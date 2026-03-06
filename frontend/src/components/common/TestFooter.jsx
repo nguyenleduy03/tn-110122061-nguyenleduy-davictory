@@ -1,5 +1,5 @@
-import React from 'react';
-import { Check } from 'lucide-react';
+import React from "react";
+import { Check } from "lucide-react";
 
 const TestFooter = ({
     testData,
@@ -8,6 +8,7 @@ const TestFooter = ({
     activeQuestion,
     setActiveQuestion,
     getAnsweredCount,
+    answers,
     submitTest,
 }) => {
     if (!testData || !testData.parts) return null;
@@ -18,20 +19,14 @@ const TestFooter = ({
                 {testData.parts.map((p, index) => {
                     const isActivePart = currentPartIndex === index;
                     const answeredCount = getAnsweredCount ? getAnsweredCount(index) : 0;
-                    const positionClass =
-                        index === 0
-                            ? 'left'
-                            : index === testData.parts.length - 1
-                            ? 'right'
-                            : 'center';
 
                     return (
-                        <div key={p.id} className={`part-group ${positionClass}`}>
-                            <h4
-                                className="part-title hover-pointer"
-                                onClick={() => setCurrentPartIndex(index)}
-                                style={{ cursor: 'pointer' }}
-                            >
+                        <div
+                            key={p.id}
+                            className={`part-group ${isActivePart ? "active-part" : ""}`}
+                            onClick={() => setCurrentPartIndex(index)}
+                        >
+                            <h4 className="part-title hover-pointer">
                                 {p.title}
                             </h4>
                             {isActivePart ? (
@@ -39,18 +34,25 @@ const TestFooter = ({
                                     {p.questions.map((q) => {
                                         const num = q.number;
                                         const isAnswered = answers =>
-                                            answers && answers[q.id] && answers[q.id].trim() !== '';
+                                            answers && answers[q.id] && answers[q.id].trim() !== "";
+
                                         const isActive = activeQuestion === num;
+                                        const answeredState = isAnswered(answers);
+
                                         return (
-                                            <div className="q-wrapper" key={num}>
-                                                <div className={`status-dash ${isActive ? 'active-dash' : ''}`} />
-                                                <span
-                                                    className={`q-num ${isActive ? 'active' : ''}`}
-                                                    onClick={() => {
-                                                        setCurrentPartIndex(index);
-                                                        setActiveQuestion(num);
-                                                    }}
-                                                >
+                                            <div
+                                                className="q-wrapper"
+                                                key={num}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setCurrentPartIndex(index);
+                                                    setActiveQuestion(num);
+                                                }}
+                                            >
+                                                {/* Vạch ngang ở trên */}
+                                                <div className={`status-dash ${answeredState ? "answered-dash" : ""}`} />
+                                                {/* Số thứ tự câu hỏi ở dưới */}
+                                                <span className={`q-num ${isActive ? "active" : ""}`}>
                                                     {num}
                                                 </span>
                                             </div>
@@ -58,10 +60,7 @@ const TestFooter = ({
                                     })}
                                 </div>
                             ) : (
-                                <div
-                                    style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-                                    onClick={() => setCurrentPartIndex(index)}
-                                >
+                                <div className="part-status-container">
                                     <span className="part-status">
                                         {answeredCount} of {p.questions.length}
                                     </span>
@@ -71,6 +70,7 @@ const TestFooter = ({
                     );
                 })}
             </div>
+
             {submitTest && (
                 <button className="submit-check-btn" onClick={submitTest} title="Submit Test">
                     <Check size={28} strokeWidth={2.5} />

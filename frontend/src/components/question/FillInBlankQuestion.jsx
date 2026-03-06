@@ -2,10 +2,10 @@ import React from 'react';
 
 const FillInBlankQuestion = ({ q, activeQuestion, setActiveQuestion, answer, handleAnswerChange, inputRefs }) => {
     const parts = q.text ? q.text.split('_______') : [];
-    if (parts.length < 2) return <li>{q.text}</li>;
+    if (parts.length < 2) return <li id={`question-${q.number}`}>{q.text}</li>;
 
     return (
-        <li>
+        <li id={`question-${q.number}`}>
             {parts[0]}
             <span
                 className={`inline-question ${activeQuestion === q.number ? 'active-question-input' : ''}`}

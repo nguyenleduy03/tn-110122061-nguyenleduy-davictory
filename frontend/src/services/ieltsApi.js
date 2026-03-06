@@ -1,4 +1,4 @@
-import { MOCK_READING_DATA } from '../data/mockData';
+import { MOCK_READING_DATA, MOCK_LISTENING_DATA } from '../data/mockData';
 import { API_CONFIG } from '../config/api';
 
 export const simulateBackendCall = async (data, delay = 500) => {
@@ -7,10 +7,9 @@ export const simulateBackendCall = async (data, delay = 500) => {
   });
 };
 
-const MOCK_DATA = MOCK_READING_DATA;
-
 export const ieltsApi = {
-  getTestSession: async (testId) => {
+  getTestSession: async (testId, mode = "READING") => {
+    const MOCK_DATA = mode === "LISTENING" ? MOCK_LISTENING_DATA : MOCK_READING_DATA;
     // Nếu là mock-session-id thì tiến hành bỏ qua fetch luôn để console không báo lỗi đỏ
     if (testId === "mock-session-id") {
       console.log("Đang chạy ở chế độ UI (sử dụng dữ liệu Mock hoàn toàn).");
@@ -31,7 +30,7 @@ export const ieltsApi = {
       const sessionsRes = await fetch(`${baseUrl}/tests/${targetTestId}/sessions`);
       if (!sessionsRes.ok) throw new Error("Could not fetch sessions");
       const sessions = await sessionsRes.json();
-      
+
       const readingSession = sessions.find(s => s.session?.skillType === "READING" || s.session?.name?.toLowerCase().includes("reading")) || sessions[0];
       if (!readingSession) throw new Error("No reading session found");
 
@@ -51,7 +50,7 @@ export const ieltsApi = {
         for (let qgWrapper of qGroups) {
           const group = qgWrapper.questionGroup;
           if (!group) continue;
-          
+
           if (group.passageText && !mergedPassageContent) {
             mergedPassageContent = group.passageText;
           }
@@ -61,28 +60,28 @@ export const ieltsApi = {
 
           if (group.questions && Array.isArray(group.questions)) {
             const sortedQuestions = [...group.questions].sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
-            
+
             sortedQuestions.forEach(q => {
-               const questionTypeStr = q.questionType?.typeName?.toLowerCase() || "";
-               
-               let mappedType = "fill-in-the-blank";
-               if (questionTypeStr.includes("choice") || questionTypeStr.includes("multiple") || questionTypeStr.includes("true_false")) {
-                 mappedType = "multiple-choice";
-               } else if (q.questionType?.code === "MCQ" || q.questionType?.code === "TFNG" || q.questionType?.code === "YNNG") {
-                 mappedType = "multiple-choice";
-               }
+              const questionTypeStr = q.questionType?.typeName?.toLowerCase() || "";
 
-               const optionsList = q.options && q.options.length > 0 
-                 ? q.options.map(opt => opt.optionText) 
-                 : (mappedType === "multiple-choice" ? ["TRUE", "FALSE", "NOT GIVEN"] : []);
+              let mappedType = "fill-in-the-blank";
+              if (questionTypeStr.includes("choice") || questionTypeStr.includes("multiple") || questionTypeStr.includes("true_false")) {
+                mappedType = "multiple-choice";
+              } else if (q.questionType?.code === "MCQ" || q.questionType?.code === "TFNG" || q.questionType?.code === "YNNG") {
+                mappedType = "multiple-choice";
+              }
 
-               questions.push({
-                 id: `q${q.id || globalQuestionCounter}`,
-                 number: q.questionNumber || globalQuestionCounter++,
-                 type: mappedType,
-                 text: q.questionText || "Question text missing",
-                 options: optionsList
-               });
+              const optionsList = q.options && q.options.length > 0
+                ? q.options.map(opt => opt.optionText)
+                : (mappedType === "multiple-choice" ? ["TRUE", "FALSE", "NOT GIVEN"] : []);
+
+              questions.push({
+                id: `q${q.id || globalQuestionCounter}`,
+                number: q.questionNumber || globalQuestionCounter++,
+                type: mappedType,
+                text: q.questionText || "Question text missing",
+                options: optionsList
+              });
             });
           }
         }
@@ -119,8 +118,8 @@ export const ieltsApi = {
   submitAnswers: async (sessionId, answers) => {
     console.log("Submitting to BE:", answers);
     return simulateBackendCall({
-      success: true, 
-      message: "Test submitted successfully with: " + JSON.stringify(answers) 
+      success: true,
+      message: "Test submitted successfully with: " + JSON.stringify(answers)
     });
   }
 };

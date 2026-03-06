@@ -25,7 +25,7 @@ const IeltsListeningTest = () => {
     } = useTestNavigation(testData);
 
     useEffect(() => {
-        ieltsApi.getTestSession("mock-session-id").then((data) => {
+        ieltsApi.getTestSession("mock-session-id", "LISTENING").then((data) => {
             data.testType = "Academic Listening";
             setTestData(data);
             if (data.parts[0]?.questions?.length > 0) {
@@ -37,7 +37,7 @@ const IeltsListeningTest = () => {
 
     useEffect(() => {
         if (inputRefs.current && inputRefs.current[activeQuestion] && typeof inputRefs.current[activeQuestion].focus === 'function') {
-            inputRefs.current[activeQuestion].focus();
+            inputRefs.current[activeQuestion].focus({ preventScroll: true });
         }
     }, [activeQuestion]);
 
@@ -82,8 +82,8 @@ const IeltsListeningTest = () => {
                 <p style={{ margin: 0, color: '#555' }}>{part.instruction || "Listen and answer questions."}</p>
             </div>
 
-            <main className="ielts-main" style={{ display: 'block', flex: 1, overflowY: 'auto' }}>
-                <div style={{ maxWidth: '1000px', margin: '0 auto', width: '100%', padding: '20px 30px', position: 'relative' }}>
+            <main className="ielts-main" style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+                <div className="questions-section" id="questions-area" style={{ width: '100%', padding: '20px 40px', paddingBottom: '80px', margin: '0' }}>
                     {part.passageContent && part.passageContent !== "<p>Nội dung bài đọc chưa được thiết lập.</p>" && (
                         <div
                             className="listening-visuals passage-content"
@@ -142,7 +142,7 @@ const IeltsListeningTest = () => {
                         </div>
                     )}
 
-                    <div className="pane-nav-buttons" style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '40px' }}>
+                    <div className="pane-nav-buttons">
                         <button className="black-nav-btn" onClick={goPrev} disabled={isFirstQuestion} style={{ opacity: isFirstQuestion ? 0.5 : 1 }}>
                             <ArrowLeft size={24} color="white" />
                         </button>
@@ -154,46 +154,68 @@ const IeltsListeningTest = () => {
             </main>
 
             <footer className="ielts-footer">
+                
                 <div className="footer-content">
                     {testData && testData.parts.map((p, index) => {
                         const isActivePart = currentPartIndex === index;
                         const answeredCount = getAnsweredCount(index);
-                        const positionClass = index === 0 ? "left" : index === testData.parts.length - 1 ? "right" : "center";
-
+                        const flatQuestions = p.questions?.flatMap(q => q.subQuestions ? q.subQuestions : q) || [];
+                        
                         return (
-                            <div key={p.id} className={"part-group " + positionClass}>
-                                <h4 className="part-title" onClick={() => setCurrentPartIndex(index)} style={{ cursor: "pointer" }}>
-                                    {p.title}
-                                </h4>
-                                {isActivePart ? (
+                            <div 
+                                key={p.id} 
+                                className={`part-group ${isActivePart ? "active-part" : ""}`}
+                                onClick={() => setCurrentPartIndex(index)}
+                            >
+                                <div className="part-status-container">
+                                    <h4 className="part-title hover-pointer">
+                                        {p.title}
+                                    </h4>
+                                    {!isActivePart && (
+                                        <span className="part-status" style={{ marginLeft: "10px" }}>
+                                            {answeredCount} of {flatQuestions.length}
+                                        </span>
+                                    )}
+                                </div>
+
+                                {isActivePart && (
                                     <div className="question-numbers">
-                                        {(p.questions?.flatMap(q => q.subQuestions ? q.subQuestions : q) || []).map((q) => {
+                                        {flatQuestions.map((q) => {
                                             const num = q.number;
                                             const ans = answers[q.id];
-                                            const isAnswered = typeof ans === 'string' ? ans.trim() !== '' : Array.isArray(ans) ? ans.length > 0 : !!ans;
+                                            const isAnswered = typeof ans === "string" ? ans.trim() !== "" : Array.isArray(ans) ? ans.length > 0 : !!ans;
                                             const isActive = activeQuestion === num;
+                                            
                                             return (
-                                                <div className="q-wrapper" key={num}>
-                                                    <div className={`status-dash ${isAnswered ? "answered" : ""} ${isActive ? "active-dash" : ""}`} />
-                                                    <span className={`q-num ${isActive ? "active" : ""}`} onClick={() => setActiveQuestion(num)}>
+                                                <div 
+                                                    className="q-wrapper" 
+                                                    key={num}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setCurrentPartIndex(index);
+                                                        setActiveQuestion(num);
+                                                        setTimeout(() => {
+                                                            const el = document.getElementById(`question-${num}`);
+                                                            if (el) {
+                                                                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                                            }
+                                                        }, 50);
+                                                    }}
+                                                >
+                                                    <div className={`status-dash ${isAnswered ? "answered-dash" : ""}`} />
+                                                    <span className={`q-num ${isActive ? "active" : ""}`}>
                                                         {num}
                                                     </span>
                                                 </div>
                                             );
                                         })}
                                     </div>
-                                ) : (
-                                    <div style={{ cursor: "pointer" }} onClick={() => setCurrentPartIndex(index)}>
-                                        <span className="part-status">
-                                            {answeredCount} of {p.questions?.flatMap(q => q.subQuestions ? q.subQuestions : q)?.length || 0}
-                                        </span>
-                                    </div>
                                 )}
                             </div>
                         );
                     })}
                 </div>
-                <button className="submit-check-btn" onClick={submitTest} title="Submit Test">
+            <button className="submit-check-btn" onClick={submitTest} title="Submit Test">
                     <Check size={28} strokeWidth={2.5} />
                 </button>
             </footer>

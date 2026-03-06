@@ -44,7 +44,7 @@ body {
 }
 
 .candidate-info {
-    font-weight: bold;
+
     font-size: 16px;
 }
 
@@ -114,7 +114,7 @@ body {
 .passage-title {
     margin-top: 0;
     font-size: 16px;
-    font-weight: bold;
+
     margin-bottom: 15px;
 }
 
@@ -124,34 +124,53 @@ body {
 
 .divider {
     width: 14px;
-    background-color: #999;
+    background-color: transparent;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: col-resize;
-    border-radius: 7px;
-    height: calc(100% - 20px);
-    margin: 10px 10px;
+    height: 100%;
+    margin: 0;
     flex-shrink: 0;
+    position: relative;
+    z-index: 5;
 }
 
-.divider:hover {
-    background-color: #888;
+.divider::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background-color: #9e9e9e;
+    transform: translateX(-50%);
+    z-index: -1;
 }
 
-.divider:active {
-    background-color: #555;
-    cursor: col-resize;
+.divider:hover::before,
+.divider:active::before {
+    background-color: #666;
 }
 
 .divider-icon {
+    position: relative;
     background: white;
     border: 1px solid #666;
-    padding: 6px 1px;
     display: flex;
     align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 32px;
     border-radius: 2px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
+
+
+
+
+
+
 
 .questions-section {
     flex: 1;
@@ -170,24 +189,27 @@ body {
 
 .questions-content li {
     margin-bottom: 25px;
-    line-height: 1.8;
+    /* Giữ margin dọc lớn */
+    line-height: 2.3;
+    /* Tăng line-height lên đáng kể vì .inline-input thường có height 28px-30px, 1.8 có khi sát quá nếu font to */
     padding-left: 5px;
 }
 
 .inline-question {
     display: inline-flex;
     align-items: center;
-    margin: 0 5px;
+    margin: 5px 5px;
+    /* Thêm margin trên dưới cho bản thân khối input để nó tự đẩy chữ ra xa */
     vertical-align: middle;
 }
 
 .inline-question.active-question-input .inline-input {
-    border-color: #333;
-    box-shadow: 0 0 0 1px #333;
+    border-color: #5b9bd5;
+    box-shadow: 0 0 0 1px #5b9bd5;
 }
 
 .inline-input {
-    border: 1px solid #5b9bd5;
+    border: 1px solid #333;
     border-radius: 4px;
     padding: 0 10px;
     height: 28px;
@@ -204,7 +226,7 @@ body {
 
 .inline-input::placeholder {
     color: #000;
-    font-weight: bold;
+
     opacity: 1;
     text-align: center;
 }
@@ -218,10 +240,13 @@ body {
     gap: 10px;
     padding-right: 20px;
     margin-top: 20px;
-    pointer-events: none; /* Let clicks pass through empty space */
+    pointer-events: none;
+    /* Let clicks pass through empty space */
 }
+
 .pane-nav-buttons button {
-    pointer-events: auto; /* Enable clicks on buttons */
+    pointer-events: auto;
+    /* Enable clicks on buttons */
 }
 
 .black-nav-btn {
@@ -244,10 +269,10 @@ body {
 /* CSS for Multiple Choice Questions */
 .tfng-question {
     margin-bottom: 30px;
-    background: white;
+    background: transparent;
     padding: 15px;
     border-radius: 4px;
-    border: 1px solid #ddd;
+    border: none;
 }
 
 .tfng-text {
@@ -258,15 +283,16 @@ body {
 }
 
 .tfng-number {
-    background: white;
-    border: 1px solid #777;
-    font-weight: bold;
+    background: transparent;
+    border: none;
+
     height: 28px;
     min-width: 28px;
     display: flex;
-    justify-content: center;
+    justify-content: flex-start;
     align-items: center;
     flex-shrink: 0;
+    font-size: 16px;
 }
 
 .tfng-options {
@@ -293,168 +319,244 @@ body {
 /* Footer Navigation */
 .ielts-footer {
     flex-shrink: 0;
-    height: 56px;
+    height: 64px;
     display: flex;
     align-items: stretch;
-    border-top: 1px solid #d5d5d5;
-    background: white;
     position: relative;
     user-select: none;
 }
 
 .footer-content {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
     flex: 1;
-    padding: 0 20px;
+    /* Chiếm toàn bộ không gian còn lại để đẩy nút check sang phải */
+    align-items: stretch;
 }
 
+/* Các Part block */
 .part-group {
-    display: flex;
-    align-items: center;
     flex: 1;
-}
-
-.part-group.left {
-    justify-content: flex-start;
-    gap: 20px;
-}
-
-.part-group.center {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
     justify-content: center;
     gap: 15px;
+    /* Khoảng cách chuẩn giữa chữ Part và các số */
+    cursor: pointer;
+    background-color: transparent;
+    transition: background-color 0.2s;
 }
 
-.part-group.right {
+.part-group:last-child {
+    border-right: none;
+}
+
+/* Part đang làm có nền trắng tinh */
+.part-group.active-part {
+    background-color: #ffffff;
+    cursor: default;
+}
+
+.part-group:hover:not(.active-part) {
+    background-color: #e8e8e8;
+}
+
+.part-title {
+    font-size: 15px;
+    font-weight: 700;
+    margin: 0;
+    color: #333;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.part-status-container {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+.part-status {
+    color: #555;
+    font-size: 15px;
+    white-space: nowrap;
+}
+
+/* Khu vực danh sách số câu hỏi */
+.question-numbers {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 2px;
+    /* Khoảng cách rất nhỏ để các vạch đứt nhìn gần như liền mạch */
+}
+
+/* Khối chứa 1 câu (Gồm Vạch + Số) */
+.q-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     justify-content: flex-end;
-    gap: 15px;
-    padding-right: 20px;
+    width: 26px;
+    /* Chiều rộng cố định để ô luôn vuông vức */
+    height: 38px;
+    cursor: pointer;
+    gap: 4px;
+    /* Khoảng cách từ vạch đứt xuống số */
 }
 
+/* Vạch đứt ngang (Dashes) */
+.status-dash {
+    width: 100%;
+    height: 3px;
+    background-color: #e0e0e0;
+    /* Xám nhạt khi chưa làm */
+    border-radius: 1px;
+}
+
+/* Khi đã trả lời, vạch đứt chuyển màu xám đen (Chuẩn thi thật, không dùng màu xanh) */
+.status-dash.answered-dash {
+    background-color: #444444;
+}
+
+/* Ô số thứ tự */
+.q-num {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 2px;
+    font-size: 15px;
+    color: #333;
+    background-color: transparent;
+    box-sizing: border-box;
+    /* Bắt buộc để viền không làm to layout */
+    border: 1.5px solid transparent;
+    /* Giữ layout cố định chờ active */
+    transition: all 0.1s;
+}
+
+.q-wrapper:hover .q-num:not(.active) {
+    background-color: #f0f0f0;
+}
+
+/* Ô số ĐANG ĐƯỢC CHỌN (Active) - Viền xanh chuẩn giống hình */
+.q-num.active {
+    border: 1.5px solid #1a73e8;
+    /* Màu xanh nước biển đặc trưng */
+
+    color: #000;
+}
+
+/* Nút Submit (Checkmark) ở góc phải */
 .submit-check-btn {
-    width: 60px;
-    background-color: #f1f1f1;
+    flex-shrink: 0;
+    width: 70px;
+    background-color: #f5f5f5;
     border: none;
     border-left: 1px solid #d5d5d5;
+    /* Viền trái để ngăn cách với footer content */
     cursor: pointer;
     display: flex;
     justify-content: center;
     align-items: center;
     color: #444;
     transition: background-color 0.2s;
-    flex-shrink: 0;
 }
 
 .submit-check-btn:hover {
     background-color: #e5e5e5;
 }
 
-h4.part-title {
-    margin: 0;
-    font-size: 14px;
-    font-weight: bold;
-    color: #333;
-    white-space: nowrap;
+/* Global customized scrollbar for passages/questions to match Inspera */
+.passage-section::-webkit-scrollbar,
+.questions-section::-webkit-scrollbar {
+    width: 16px;
 }
 
-.part-text {
-    font-size: 14px;
-    font-weight: bold;
-    color: #333;
-    white-space: nowrap;
+.passage-section::-webkit-scrollbar-track,
+.questions-section::-webkit-scrollbar-track {
+    background: #f5f5f5;
+    border-left: 1px solid #e0e0e0;
 }
 
-.part-status {
-    color: #666;
-    font-size: 14px;
-    white-space: nowrap;
+.passage-section::-webkit-scrollbar-thumb,
+.questions-section::-webkit-scrollbar-thumb {
+    background-color: #999;
+    border: 3px solid #f5f5f5;
+    /* makes it look thinner with a grey border outline */
+    border-radius: 8px;
+    /* Slight rounding looks modern, but if strict block: border-radius: 0 */
 }
 
-.question-numbers {
-    display: flex;
-    align-items: flex-end;
-    gap: 0;
+/* User wants perfect block scrollbar like the image */
+.passage-section::-webkit-scrollbar-thumb,
+.questions-section::-webkit-scrollbar-thumb {
+    background-color: #a0a0a0;
+    border: 2px solid white;
+    /* creates the gap effect around thumb */
+    border-radius: 0;
 }
 
-.q-wrapper {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 26px;
-    gap: 8px;
+.passage-section::-webkit-scrollbar-track,
+.questions-section::-webkit-scrollbar-track {
+    background: transparent;
+    border-left: none;
 }
 
-.status-dash {
-    width: 22px;
-    height: 2px;
-    background-color: #d5d5d5;
+.questions-content li {
+    padding-bottom: 12px;
+    /* Chắc chắn có đệm ở dưới để không dính */
 }
 
-.status-dash.answered {
-    background-color: #555;
-}
-
-.status-dash.active-dash {
-    background-color: #2b931e;
-    height: 3px;
-}
-
-.q-num {
-    font-size: 14px;
-    color: #333;
-    cursor: pointer;
-    width: 24px;
-    height: 24px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    text-decoration: none;
-    line-height: 1;
-    border: 1px solid transparent;
-    border-radius: 3px;
-    margin-bottom: 2px;
-}
-
-.q-num:hover {
-    color: #000;
-}
-
-.q-num.active {
-    border: 1px solid #1a73e8;
-    color: #000;
-    background-color: white;
-}
-
-/* Selection Highlight */
-::selection {
-    background: #ffff00;
-    color: #000;
-}
+/* DRAG DROP BANK OPTIONS */
 .bank-option {
-    padding: 8px 16px;
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+
     background-color: white;
     border: 1px solid #ccc;
+    /* Viền bao quanh nhạt giống hình */
     border-radius: 4px;
+    /* Bo góc nhẹ */
     cursor: grab;
     user-select: none;
-    font-size: 14px;
-    transition: background-color 0.2s, border-color 0.2s;
+    font-size: 15px;
+    transition: all 0.2s;
+    margin-bottom: 8px;
+    /* Tách các lựa chọn ra không dính nhau */
+    margin-right: 8px;
+    /* Nếu có tràn dòng thì cũng không dính ngang */
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    /* Bóng nhẹ */
+    color: #000;
 }
 
 .bank-option:hover {
-    background-color: #f0f0f0;
+    background-color: #f8f9fa;
+    border-color: #b0b0b0;
+}
+
+.bank-option:active {
+    cursor: grabbing;
 }
 
 .bank-option.used {
-    background-color: #d6eaff;
-    border-color: #3498db;
-    opacity: 0.8;
+    background-color: #f0f8ff;
+    /* Ví dụ đổi màu nhẹ khi đã dùng */
+    border-color: #007bff;
+    color: #0056b3;
+    opacity: 0.9;
 }
 
-.heading-gap {
-    display: block;
-    width: 100%;
-    margin-top: 15px;
-    margin-bottom: 5px;
+/* Đảm bảo flex/gap cho vùng chứa các bank option (dùng wrap để nhiều option rớt dòng an toàn) */
+.options-bank {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    /* Tách biệt rõ ràng */
+    margin-bottom: 20px;
+    margin-top: 0;
 }

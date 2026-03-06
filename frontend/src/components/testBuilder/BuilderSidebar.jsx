@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+i
+  { type: 'group', contentType: 'TABLE_COMPLETION', label: 'Table Completion', icon: '📊', skills: ['LISTENING', 'READING'] },mport React, { useState } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { Headphones, BookOpen, PenLine, Mic } from 'lucide-react';
 
@@ -10,23 +11,38 @@ const SESSIONS = [
 ];
 
 const PALETTE_ITEMS = [
-  { type: 'group', contentType: 'READING_PASSAGE',   label: 'Reading Passage', icon: '📄' },
-  { type: 'group', contentType: 'AUDIO_TRANSCRIPT',  label: 'Audio / Nghe',    icon: '🎵' },
-  { type: 'group', contentType: 'STANDALONE',        label: 'Câu độc lập',     icon: '📝' },
-  { type: 'group', contentType: 'MATCHING_HEADING',  label: 'Match Headings',  icon: '🔗' },
-  { type: 'group', contentType: 'SUMMARY_COMPLETION',label: 'Summary Fill',    icon: '📝' },
-  { type: 'group', contentType: 'DIAGRAM',           label: 'Sơ đồ / Chart',   icon: '📊' },
-  { type: 'group', contentType: 'MAP',               label: 'Bản đồ',          icon: '🗺️' },
-  { type: 'group', contentType: 'TABLE',             label: 'Bảng / Form',     icon: '📋' },
+  // ── READING only ──
+  { type: 'group', contentType: 'READING_PASSAGE',      label: 'Reading Passage',       icon: '📄', skills: ['READING'] },
+  { type: 'group', contentType: 'MATCHING_HEADING',     label: 'Match Headings',        icon: '🔗', skills: ['READING'] },
+  { type: 'group', contentType: 'SUMMARY_COMPLETION',   label: 'Summary Fill',          icon: '📝', skills: ['READING'] },
+  // ── LISTENING only ──
+  { type: 'group', contentType: 'AUDIO_TRANSCRIPT',     label: 'Audio / Nghe',          icon: '🎵', skills: ['LISTENING'] },
+  { type: 'group', contentType: 'MAP',                  label: 'Bản đồ',                icon: '🗺️', skills: ['LISTENING'] },
+  { type: 'group', contentType: 'MAP_LABELLING',        label: 'Map Labelling',         icon: '📍', skills: ['LISTENING'] },
+  // ── LISTENING + READING ──
+  { type: 'group', contentType: 'MULTIPLE_CHOICE_GROUP',label: 'Multiple Choice',       icon: '🔘', skills: ['LISTENING', 'READING'] },
+  { type: 'group', contentType: 'MULTIPLE_CHOICE_MULTI',label: 'Multiple Choice (nhiều)',icon: '☑️', skills: ['LISTENING', 'READING'] },
+  { type: 'group', contentType: 'SENTENCE_COMPLETION',  label: 'Sentence Completion',   icon: '✏️', skills: ['LISTENING', 'READING'] },
+  { type: 'group', contentType: 'SHORT_ANSWER_GROUP',   label: 'Short Answer',          icon: '💬', skills: ['LISTENING', 'READING'] },
+  { type: 'group', contentType: 'NOTE_COMPLETION',      label: 'Note / Form',           icon: '📒', skills: ['LISTENING', 'READING'] },
+  { type: 'group', contentType: 'DRAG_MATCHING',        label: 'Drag Matching',         icon: '↔️', skills: ['LISTENING', 'READING'] },
+  { type: 'group', contentType: 'DIAGRAM',              label: 'Sơ đồ / Chart',         icon: '📊', skills: ['LISTENING', 'READING'] },
+  { type: 'group', contentType: 'TABLE',                label: 'Bảng / Form',           icon: '📋', skills: ['LISTENING', 'READING', 'WRITING'] },
+  // ── All skills ──
+  { type: 'group', contentType: 'STANDALONE',           label: 'Câu độc lập',           icon: '📝', skills: ['LISTENING', 'READING', 'WRITING', 'SPEAKING'] },
 ];
 
 const TYPE_META = {
-  READING_PASSAGE:  { label: 'VB', bg: '#dcfce7', color: '#15803d' },
-  AUDIO_TRANSCRIPT: { label: 'NG', bg: '#dbeafe', color: '#1d4ed8' },
-  STANDALONE:       { label: 'CĐ', bg: '#f3f4f6', color: '#374151' },
-  DIAGRAM:          { label: 'SD', bg: '#fef9c3', color: '#a16207' },
-  MAP:              { label: 'BĐ', bg: '#fce7f3', color: '#be185d' },
-  TABLE:            { label: 'BG', bg: '#e0e7ff', color: '#4338ca' },
+  READING_PASSAGE:       { label: 'VB', bg: '#dcfce7', color: '#15803d' },
+  AUDIO_TRANSCRIPT:      { label: 'NG', bg: '#dbeafe', color: '#1d4ed8' },
+  STANDALONE:            { label: 'CĐ', bg: '#f3f4f6', color: '#374151' },
+  DIAGRAM:               { label: 'SD', bg: '#fef9c3', color: '#a16207' },
+  MAP:                   { label: 'BĐ', bg: '#fce7f3', color: '#be185d' },
+  TABLE:                 { label: 'BG', bg: '#e0e7ff', color: '#4338ca' },
+  MULTIPLE_CHOICE_GROUP: { label: 'MC', bg: '#ffe4e6', color: '#be123c' },
+  MULTIPLE_CHOICE_MULTI: { label: 'MM', bg: '#fce7f3', color: '#9d174d' },
+  SENTENCE_COMPLETION:   { label: 'SC', bg: '#ecfdf5', color: '#065f46' },
+  SHORT_ANSWER_GROUP:    { label: 'SA', bg: '#f0fdf4', color: '#166534' },
 };
 
 function DraggablePaletteItem({ item }) {
@@ -50,6 +66,11 @@ const BuilderSidebar = ({ parts, sessions, activeSessionKey, selection, onSelect
 
   const selectedPartId   = selection?.type === 'part'  ? selection.data.id : null;
   const selectedGroupId  = selection?.type === 'group' ? selection.data.id : null;
+
+  // Filter palette items to only show relevant types for the active skill
+  const filteredPalette = PALETTE_ITEMS.filter(
+    (item) => !item.skills || item.skills.includes(activeSessionKey)
+  );
 
   return (
     <aside className="tb-sidebar">
@@ -114,7 +135,7 @@ const BuilderSidebar = ({ parts, sessions, activeSessionKey, selection, onSelect
       <div className="tb-palette">
         <div className="tb-palette-title">Kéo thành phần vào đề</div>
         <div className="tb-palette-grid">
-          {PALETTE_ITEMS.map((item) => (
+          {filteredPalette.map((item) => (
             <DraggablePaletteItem key={item.contentType} item={item} />
           ))}
         </div>

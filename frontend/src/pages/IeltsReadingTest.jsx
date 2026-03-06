@@ -14,61 +14,92 @@ const HeadingGap = ({ qId, number, answer, handleAnswerChange, isActive, setActi
     const handleDrop = (e) => {
         e.preventDefault();
         const option = e.dataTransfer.getData('text/plain');
-        if (option) handleAnswerChange(qId, option);
+        const sourceQId = e.dataTransfer.getData('sourceQId');
+        if (option) {
+            handleAnswerChange(qId, option);
+            if (sourceQId && sourceQId !== String(qId)) {
+                handleAnswerChange(sourceQId, '');
+            }
+        }
     };
-    return (
-        <div onClick={(e) => { e.stopPropagation(); setActiveQuestion(Number(number)); }}
-           style={{ 
-             border: isActive ? '2px dashed #333' : '2px dashed #3498db', 
-             padding: '10px 15px', 
-             margin: '0 0 10px 0', display: 'flex', 
-             backgroundColor: isActive ? '#f9f9f9' : '#fff',
-             minHeight: '44px',
-             position: 'relative',
-             borderRadius: '6px',
-             alignItems: 'center',
-             justifyContent: 'center', width: '100%', boxSizing: 'border-box'
-           }}
-           onDragOver={handleDragOver} onDrop={handleDrop}
-        >
-           
-           <span style={{ 
-               padding: '0 10px', fontWeight: 'bold', color: '#333', fontSize: '15px'
-           }}>{number}</span>
 
-           {answer ? (
-               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%', gap: '10px' }}>
-                   <span style={{ fontWeight: '500', color: '#333' }}>{answer}</span>
-                   <button onClick={(e) => { e.stopPropagation(); handleAnswerChange(qId, ''); }}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', color: '#aaa' }}
-                   >×</button>
-               </div>
-           ) : <span style={{ color: '#bbb', fontSize: '14px' }}>Drop heading here</span>}
+    const handleDragStart = (e) => {
+        if (!answer) return;
+        e.dataTransfer.setData('text/plain', answer);
+        e.dataTransfer.setData('sourceQId', String(qId));
+        e.dataTransfer.effectAllowed = 'move';
+    };
+
+    return (
+        <div id={`question-${number}`} onClick={(e) => { e.stopPropagation(); setActiveQuestion(Number(number)); }}
+            style={answer ? {
+                border: '1px solid #3498db',
+                height: '34px',
+                margin: '10px 0',
+                display: 'flex',
+                backgroundColor: '#fff',
+                borderRadius: '4px',
+                alignItems: 'center',
+                boxSizing: 'border-box',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                color: '#000',
+                fontSize: '15px',
+                width: '100%',
+                padding: '0 15px'
+            } : {
+                border: isActive ? '2px dashed #3498db' : '1px dashed #ccc',
+                height: '34px',
+                margin: '10px 0',
+                display: 'flex',
+                backgroundColor: '#fff',
+                borderRadius: '4px',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '100%',
+                boxSizing: 'border-box',
+                cursor: 'pointer'
+            }}
+            onDragOver={handleDragOver} onDrop={handleDrop} draggable={!!answer} onDragStart={handleDragStart}
+        >
+            {!answer ? (
+                <span style={{ fontWeight: 'bold', color: '#000', fontSize: '16px' }}>{number}</span>
+            ) : (
+                <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                    <span>{answer}</span>
+                </div>
+            )}
         </div>
     );
 };
 
+const PassageContentStatic = React.memo(({ content }) => (
+    <div className="passage-content" dangerouslySetInnerHTML={{ __html: content }}></div>
+), (prev, next) => prev.content === next.content);
+
 const PassageRenderer = ({ part, answers, handleAnswerChange, activeQuestion, setActiveQuestion }) => {
-    const pRef = React.useRef(null);
     const [gaps, setGaps] = React.useState([]);
 
     React.useEffect(() => {
-        if (pRef.current) {
-            const nodes = Array.from(pRef.current.querySelectorAll('.heading-gap'));
+        // Query the DOM after static content paints
+        const timer = setTimeout(() => {
+            const nodes = Array.from(document.querySelectorAll('.passage-content .heading-gap'));
+            console.log("Found gaps static:", nodes.length);
             setGaps(nodes);
-        }
+        }, 100);
+        return () => clearTimeout(timer);
     }, [part.passageContent]);
 
     return (
         <div style={{ position: 'relative' }}>
-            <div ref={pRef} className="passage-content" dangerouslySetInnerHTML={{ __html: part.passageContent }}></div>
+            <PassageContentStatic content={part.passageContent} />
             {gaps.map((node, i) => {
                 const qId = node.getAttribute('data-id');
                 const num = node.getAttribute('data-number');
                 return createPortal(
-                    <HeadingGap 
-                        key={i}
-                        qId={qId} number={num} answer={answers[qId]} 
+                    <HeadingGap
+                        key={qId || i}
+                        qId={qId} number={num} answer={answers[qId]}
                         handleAnswerChange={handleAnswerChange}
                         isActive={activeQuestion == num}
                         setActiveQuestion={setActiveQuestion}
@@ -111,7 +142,7 @@ const IeltsReadingTest = () => {
 
     useEffect(() => {
         if (inputRefs.current && inputRefs.current[activeQuestion] && typeof inputRefs.current[activeQuestion].focus === 'function') {
-            inputRefs.current[activeQuestion].focus();
+            inputRefs.current[activeQuestion].focus({ preventScroll: true });
         }
     }, [activeQuestion]);
 
@@ -184,7 +215,6 @@ const IeltsReadingTest = () => {
 
                         {dragDropQuestions.length > 0 && (
                             <div style={{ marginBottom: '40px' }}>
-                                <h3 style={{ marginTop: '0', marginBottom: '20px' }}>Drag and Drop</h3>
                                 {dragDropQuestions.map(q => (
                                     <QuestionRenderer
                                         key={q.id}
@@ -230,40 +260,61 @@ const IeltsReadingTest = () => {
             </main>
 
             <footer className="ielts-footer">
+
                 <div className="footer-content">
                     {testData && testData.parts.map((p, index) => {
                         const isActivePart = currentPartIndex === index;
                         const answeredCount = getAnsweredCount(index);
-                        const positionClass = index === 0 ? "left" : index === testData.parts.length - 1 ? "right" : "center";
+                        const flatQuestions = p.questions?.flatMap(q => q.subQuestions ? q.subQuestions : q) || [];
 
                         return (
-                            <div key={p.id} className={"part-group " + positionClass}>
-                                <h4 className="part-title" onClick={() => setCurrentPartIndex(index)} style={{ cursor: 'pointer' }}>
-                                    {p.title}
-                                </h4>
-                                {isActivePart ? (
+                            <div
+                                key={p.id}
+                                className={`part-group ${isActivePart ? "active-part" : ""}`}
+                                onClick={() => setCurrentPartIndex(index)}
+                            >
+                                <div className="part-status-container">
+                                    <h4 className="part-title hover-pointer">
+                                        {p.title}
+                                    </h4>
+                                    {!isActivePart && (
+                                        <span className="part-status" style={{ marginLeft: "10px" }}>
+                                            {answeredCount} of {flatQuestions.length}
+                                        </span>
+                                    )}
+                                </div>
+
+                                {isActivePart && (
                                     <div className="question-numbers">
-                                        {p.questions.flatMap(q => q.subQuestions ? q.subQuestions : q).map(q => {
+                                        {flatQuestions.map((q) => {
                                             const num = q.number;
                                             const ans = answers[q.id];
-                                            const isAnswered = typeof ans === 'string' ? ans.trim() !== '' : Array.isArray(ans) ? ans.length > 0 : !!ans;
+                                            const isAnswered = typeof ans === "string" ? ans.trim() !== "" : Array.isArray(ans) ? ans.length > 0 : !!ans;
                                             const isActive = activeQuestion === num;
+
                                             return (
-                                                <div className="q-wrapper" key={num}>
-                                                    <div className={`status-dash ${isAnswered ? 'answered' : ''} ${isActive ? 'active-dash' : ''}`} />
-                                                    <span
-                                                        className={`q-num ${isActive ? 'active' : ''}`}
-                                                        onClick={() => setActiveQuestion(num)}
-                                                    >
+                                                <div
+                                                    className="q-wrapper"
+                                                    key={num}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setCurrentPartIndex(index);
+                                                        setActiveQuestion(num);
+                                                        setTimeout(() => {
+                                                            const el = document.getElementById(`question-${num}`);
+                                                            if (el) {
+                                                                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                                            }
+                                                        }, 50);
+                                                    }}
+                                                >
+                                                    <div className={`status-dash ${isAnswered ? "answered-dash" : ""}`} />
+                                                    <span className={`q-num ${isActive ? "active" : ""}`}>
                                                         {num}
                                                     </span>
                                                 </div>
                                             );
                                         })}
-                                    </div>
-                                ) : (
-                                    <div style={{ cursor: 'pointer' }} onClick={() => setCurrentPartIndex(index)}>
-                                        <span className="part-status">{answeredCount} of {p.questions.flatMap(q => q.subQuestions ? q.subQuestions : q).length}</span>
                                     </div>
                                 )}
                             </div>

@@ -1,9 +1,9 @@
 /**
  * PreviewModal.jsx
- * Read-only student-view preview of the exam being built.
+ * Student-view preview — styled like the real IELTS exam interface.
  */
-import React, { useState } from 'react';
-import { X, Volume2, BookOpen, Headphones, PenLine, Mic } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { X, Volume2, BookOpen, Headphones, PenLine, Mic, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
 
 // ---- Helpers (mirrors ExamCanvas) ----
 const toRoman = (n) => {
@@ -16,39 +16,67 @@ const toRoman = (n) => {
   return r;
 };
 
-const parseSummaryPreview = (text, questions) => {
+const parseSummaryPreview = (text, questions, activeQ, onSetActive) => {
   const parts = (text || '').split(/\[blank\]/gi);
   return parts.map((part, i) => {
     if (i >= parts.length - 1) return <React.Fragment key={`t${i}`}>{part}</React.Fragment>;
     const q = questions[i];
     const num = q?.questionNumber ?? i + 1;
+    const isActive = activeQ === num;
     return (
       <React.Fragment key={i}>
         {part}
-        <span className="pv-blank-box">{num}</span>
+        <span
+          className={`pv-blank-box${isActive ? ' active' : ''}`}
+          onClick={() => onSetActive(num)}
+        >{num}</span>
+      </React.Fragment>
+    );
+  });
+};
+
+// Inline input version — for Note/Form Completion: input boxes embedded directly in the text
+const parseNotePreview = (text, questions, activeQ, onSetActive, answers, onAnswer) => {
+  const parts = (text || '').split(/\[blank\]/gi);
+  return parts.map((part, i) => {
+    if (i >= parts.length - 1) return <React.Fragment key={`t${i}`}>{part}</React.Fragment>;
+    const q = questions[i];
+    const num = q?.questionNumber ?? i + 1;
+    const isActive = activeQ === num;
+    return (
+      <React.Fragment key={i}>
+        {part}
+        <input
+          className={`pv-note-inline-input${isActive ? ' active' : ''}`}
+          value={answers?.[num] ?? ''}
+          onChange={(e) => onAnswer?.(num, e.target.value)}
+          onFocus={() => onSetActive(num)}
+          placeholder={String(num)}
+          onClick={(e) => e.stopPropagation()}
+        />
       </React.Fragment>
     );
   });
 };
 
 const SESSION_META = {
-  LISTENING: { label: 'Listening', Icon: Headphones, color: '#1d4ed8', bg: '#dbeafe' },
-  READING:   { label: 'Reading',   Icon: BookOpen,   color: '#15803d', bg: '#dcfce7' },
-  WRITING:   { label: 'Writing',   Icon: PenLine,    color: '#a16207', bg: '#fef9c3' },
-  SPEAKING:  { label: 'Speaking',  Icon: Mic,        color: '#be185d', bg: '#fce7f3' },
+  LISTENING: { label: 'Listening', Icon: Headphones, color: '#1d4ed8', bg: '#dbeafe', durationMinutes: 30 },
+  READING:   { label: 'Reading',   Icon: BookOpen,   color: '#15803d', bg: '#dcfce7', durationMinutes: 60 },
+  WRITING:   { label: 'Writing',   Icon: PenLine,    color: '#a16207', bg: '#fef9c3', durationMinutes: 60 },
+  SPEAKING:  { label: 'Speaking',  Icon: Mic,        color: '#be185d', bg: '#fce7f3', durationMinutes: 15 },
 };
 
-// ---- Question renderers (read-only) ----
+// ---- Question renderers ----
 
-const TFNGQuestion = ({ q }) => (
-  <div className="pv-q">
-    <div className="pv-q-num-text">
-      <span className="pv-q-num">{q.questionNumber}</span>
-      <span className="pv-q-text">{q.questionText || <em className="pv-empty">Chưa có nội dung</em>}</span>
+const TFNGQuestion = ({ q, active, onSetActive }) => (
+  <div className={`pv-q${active ? ' pv-q-active' : ''}`} onClick={() => onSetActive(q.questionNumber)}>
+    <div className="pv-q-row">
+      <span className={`pv-q-num-badge${active ? ' active' : ''}`}>{q.questionNumber}</span>
+      <span className="pv-q-text">{q.questionText || <em className="pv-empty">Chưa có nội dung câu hỏi</em>}</span>
     </div>
     <div className="pv-tfng-opts">
       {['True', 'False', 'Not Given'].map((label) => (
-        <label key={label} className="pv-tfng-option">
+        <label key={label} className="pv-tfng-radio-label">
           <input type="radio" name={`q${q.id}`} disabled />
           <span>{label}</span>
         </label>
@@ -57,18 +85,18 @@ const TFNGQuestion = ({ q }) => (
   </div>
 );
 
-const MCQQuestion = ({ q, multiple }) => {
+const MCQQuestion = ({ q, multiple, active, onSetActive }) => {
   const opts = q.options ?? [];
   return (
-    <div className="pv-q">
+    <div className={`pv-q${active ? ' pv-q-active' : ''}`} onClick={() => onSetActive(q.questionNumber)}>
       {multiple && (
-        <div className="pv-choose-n">
+        <div className="pv-choose-n-badge">
           Chọn <strong>{q.chooseCount ?? 2}</strong> đáp án đúng
         </div>
       )}
-      <div className="pv-q-num-text">
-        <span className="pv-q-num">{q.questionNumber}</span>
-        <span className="pv-q-text">{q.questionText || <em className="pv-empty">Chưa có nội dung</em>}</span>
+      <div className="pv-q-row">
+        <span className={`pv-q-num-badge${active ? ' active' : ''}`}>{q.questionNumber}</span>
+        <span className="pv-q-text">{q.questionText || <em className="pv-empty">Chưa có nội dung câu hỏi</em>}</span>
       </div>
       <div className="pv-opts">
         {opts.length === 0
@@ -76,8 +104,8 @@ const MCQQuestion = ({ q, multiple }) => {
           : opts.map((o) => (
             <label key={o.id} className="pv-opt">
               <input type={multiple ? 'checkbox' : 'radio'} name={`q${q.id}`} disabled />
-              <span className="pv-opt-label">{o.optionLabel}.</span>
-              <span>{o.optionText || <em className="pv-empty">...</em>}</span>
+              <span className="pv-opt-key">{o.optionLabel}</span>
+              <span className="pv-opt-text">{o.optionText || <em className="pv-empty">...</em>}</span>
             </label>
           ))
         }
@@ -86,252 +114,838 @@ const MCQQuestion = ({ q, multiple }) => {
   );
 };
 
-const FillQuestion = ({ q }) => (
-  <div className="pv-q">
-    <div className="pv-q-num-text">
-      <span className="pv-q-num">{q.questionNumber}</span>
-      <span className="pv-q-text">{q.questionText || <em className="pv-empty">Chưa có nội dung</em>}</span>
+const FillQuestion = ({ q, active, onSetActive }) => (
+  <div className={`pv-q${active ? ' pv-q-active' : ''}`} onClick={() => onSetActive(q.questionNumber)}>
+    <div className="pv-q-row">
+      <span className={`pv-q-num-badge${active ? ' active' : ''}`}>{q.questionNumber}</span>
+      <div className="pv-fill-row">
+        <span className="pv-q-text">{q.questionText || <em className="pv-empty">Chưa có nội dung</em>}</span>
+        <input className="pv-inline-input" disabled placeholder={`Câu ${q.questionNumber}`} />
+      </div>
     </div>
-    <input className="pv-fill-input" disabled placeholder="Nhập câu trả lời..." />
   </div>
 );
 
-const GenericQuestion = ({ q }) => (
-  <div className="pv-q">
-    <div className="pv-q-num-text">
-      <span className="pv-q-num">{q.questionNumber}</span>
-      <span className="pv-q-text">{q.questionText || <em className="pv-empty">Chưa có nội dung</em>}</span>
+const GenericQuestion = ({ q, active, onSetActive }) => (
+  <div className={`pv-q${active ? ' pv-q-active' : ''}`} onClick={() => onSetActive(q.questionNumber)}>
+    <div className="pv-q-row">
+      <span className={`pv-q-num-badge${active ? ' active' : ''}`}>{q.questionNumber}</span>
+      <span className="pv-q-text">{q.questionText || <em className="pv-empty">Chưa có nội dung câu hỏi</em>}</span>
     </div>
     <textarea className="pv-textarea" disabled placeholder="Nhập câu trả lời..." rows={3} />
   </div>
 );
 
-const renderQuestion = (q) => {
+const renderQuestion = (q, activeQ, onSetActive) => {
   const type = q.questionType?.typeName ?? q.questionType ?? 'MULTIPLE_CHOICE';
+  const active = activeQ === q.questionNumber;
+  const props = { key: q.id, q, active, onSetActive };
   switch (type) {
-    case 'TRUE_FALSE_NG': return <TFNGQuestion key={q.id} q={q} />;
-    case 'MULTIPLE_CHOICE': return <MCQQuestion key={q.id} q={q} multiple={false} />;
-    case 'MULTIPLE_CHOICE_MULTIPLE': return <MCQQuestion key={q.id} q={q} multiple />;
+    case 'TRUE_FALSE_NG': return <TFNGQuestion {...props} />;
+    case 'MULTIPLE_CHOICE': return <MCQQuestion {...props} multiple={false} />;
+    case 'MULTIPLE_CHOICE_MULTIPLE': return <MCQQuestion {...props} multiple />;
     case 'FILL_IN_BLANK':
     case 'NOTE_COMPLETION':
-    case 'SHORT_ANSWER': return <FillQuestion key={q.id} q={q} />;
-    default: return <GenericQuestion key={q.id} q={q} />;
+    case 'SHORT_ANSWER': return <FillQuestion {...props} />;
+    default: return <GenericQuestion {...props} />;
   }
 };
 
 // ---- Group renderers ----
 
-const ReadingGroup = ({ group }) => {
-  const questions = group.questions ?? [];
+// Render a single passage group in the LEFT pane.
+// mhAnswers: { [paraId]: { text, roman } | null } — heading assigned to each para
+// onDropHeading(paraId, headingData) — called when user drops a heading chip
+// onClearHeading(paraId) — called when user clicks × on filled slot
+const PassageGroupPane = ({ group, mhAnswers = {}, onDropHeading, onClearHeading, hasMH = false }) => {
+  const paragraphs = group.paragraphs && group.paragraphs.length > 0
+    ? group.paragraphs
+    : [{ id: `${group.id}-p0`, heading: '', text: group.passageText || '' }];
+  const [overSlot, setOverSlot] = useState(null);
+
   return (
-    <div className="pv-group pv-split">
-      <div className="pv-passage-side">
-        <div className="pv-passage-title">{group.title || 'Đoạn văn'}</div>
-        <div className="pv-passage-body">
-          {group.passageText || <em className="pv-empty">Chưa có nội dung đoạn văn.</em>}
-        </div>
-      </div>
-      <div className="pv-questions-side">
-        <div className="pv-side-label">Câu hỏi {questions[0]?.questionNumber ?? ''}–{questions[questions.length - 1]?.questionNumber ?? ''}</div>
-        {questions.length === 0
-          ? <em className="pv-empty">Chưa có câu hỏi.</em>
-          : questions.map(renderQuestion)}
-      </div>
+    <div style={{ marginBottom: 20 }}>
+      {group.title && <div className="pv-passage-title">{group.title}</div>}
+      {paragraphs.map((para, idx) => {
+        const filled = mhAnswers[para.id];
+        const isOver = overSlot === para.id;
+        return (
+          <div key={para.id ?? idx} style={{ marginBottom: 14 }}>
+            {/* Heading slot — only show when there is a MatchingHeading group */}
+            {hasMH && (
+              <div
+                className={`pv-para-drop-row${isOver ? ' over' : ''}`}
+                onDragOver={(e) => { e.preventDefault(); setOverSlot(para.id); }}
+                onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setOverSlot(null); }}
+                onDrop={(e) => {
+                  e.preventDefault(); setOverSlot(null);
+                  try {
+                    const data = JSON.parse(e.dataTransfer.getData('text/x-mh'));
+                    if (data?.text && onDropHeading) onDropHeading(para.id, data);
+                  } catch {}
+                }}
+              >
+                <span className="pv-para-num">§{idx + 1}</span>
+                {filled ? (
+                  <div className="pv-para-heading-badge">
+                    {filled.roman && <span className="pv-heading-roman">{filled.roman}</span>}
+                    <span>{filled.text}</span>
+                    <button className="pv-mh-clear" title="Xóa"
+                      onClick={(e) => { e.stopPropagation(); if (onClearHeading) onClearHeading(para.id); }}>
+                      ×
+                    </button>
+                  </div>
+                ) : (
+                  <div className={`pv-para-slot${isOver ? ' over' : ''}`}>
+                    {isOver ? '↓ Thả heading vào đây' : '⬚ Kéo heading vào đây'}
+                  </div>
+                )}
+              </div>
+            )}
+            <div className="pv-passage-body">
+              {para.text
+                ? para.text.split('\n').map((line, i) => line.trim() ? <p key={i}>{line}</p> : <br key={i} />)
+                : <em className="pv-empty">Chưa có nội dung đoạn {idx + 1}.</em>}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 };
 
-const AudioGroup = ({ group }) => {
+const AudioGroup = ({ group, activeQ, onSetActive }) => {
   const questions = group.questions ?? [];
   return (
-    <div className="pv-group">
+    <div className="pv-group-block">
       <div className="pv-audio-bar">
-        <Volume2 size={18} />
+        <Volume2 size={16} style={{ flexShrink: 0 }} />
         {group.audioUrl
           ? <audio controls src={group.audioUrl} className="pv-audio-player" />
           : <span className="pv-audio-placeholder">Audio chưa được tải lên</span>}
       </div>
-      {group.title && <div className="pv-group-title">{group.title}</div>}
+      {group.title && <div className="pv-group-instructions"><strong>{group.title}</strong></div>}
       {questions.length === 0
         ? <em className="pv-empty">Chưa có câu hỏi.</em>
-        : questions.map(renderQuestion)}
+        : questions.map((q) => renderQuestion(q, activeQ, onSetActive))}
     </div>
   );
 };
 
-const MatchingHeadingGroup = ({ group }) => {
+// In preview: only shows the heading bank (draggable chips).
+// Answers are tracked in PartReadingLayout and displayed on passage paragraphs.
+// assignedTexts: Set of heading texts already placed on a paragraph
+const MatchingHeadingGroup = ({ group, assignedTexts = new Set() }) => {
+  const headings = group.headingBank ?? [];
   const questions = group.questions ?? [];
-  const headings = group.headings ?? [];
+  const first = questions[0]?.questionNumber;
+  const last  = questions[questions.length - 1]?.questionNumber;
+  const [dragging, setDragging] = useState(null);
+
   return (
-    <div className="pv-group">
-      {group.title && <div className="pv-group-title">{group.title}</div>}
+    <div className="pv-group-block">
+      {/* Question range label */}
+      {first != null && (
+        <div className="pv-questions-range">
+          Questions {first}{last != null && last !== first ? `–${last}` : ''}
+        </div>
+      )}
+      {group.title && <div className="pv-group-instructions" style={{ marginBottom: 10 }}>{group.title}</div>}
+
+      {/* Heading bank */}
       <div className="pv-heading-bank">
         <div className="pv-heading-bank-title">List of Headings</div>
-        {headings.length === 0
-          ? <em className="pv-empty">Chưa có heading.</em>
-          : headings.map((h, i) => (
-            <div key={i} className="pv-heading-bank-item">
-              <span className="pv-heading-roman">{toRoman(i + 1)}</span>
-              <span>{h.text || <em className="pv-empty">...</em>}</span>
-            </div>
-          ))
-        }
-      </div>
-      <div className="pv-matching-slots">
-        {questions.map((q) => (
-          <div key={q.id} className="pv-matching-slot">
-            <span className="pv-q-num">{q.questionNumber}</span>
-            <span className="pv-matching-label">{q.questionText || <em className="pv-empty">Tên mục...</em>}</span>
-            <select className="pv-matching-select" disabled>
-              <option>— Chọn heading —</option>
-              {headings.map((h, i) => <option key={i}>{toRoman(i + 1)} {h.text}</option>)}
-            </select>
-          </div>
-        ))}
+        <div className="pv-heading-bank-subtitle">Kéo heading vào từng đoạn văn bên trái</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+          {headings.length === 0
+            ? <em className="pv-empty">Chưa có heading.</em>
+            : headings.map((h, i) => {
+                const isAssigned = assignedTexts.has(h.text);
+                return (
+                  <div key={i}
+                    className={`pv-mh-chip${isAssigned ? ' assigned' : ''}${dragging === h.text ? ' dragging' : ''}`}
+                    draggable={!isAssigned}
+                    onDragStart={(e) => {
+                      if (isAssigned) { e.preventDefault(); return; }
+                      e.dataTransfer.setData('text/x-mh', JSON.stringify({ text: h.text, roman: toRoman(i + 1), index: i }));
+                      e.dataTransfer.effectAllowed = 'copy';
+                      setDragging(h.text);
+                    }}
+                    onDragEnd={() => setDragging(null)}
+                    title={isAssigned ? 'Đã gán vào đoạn văn' : 'Kéo vào đoạn văn bên trái'}
+                  >
+                    <span className="pv-heading-roman">{toRoman(i + 1)}</span>
+                    <span style={{ flex: 1 }}>{h.text || <em className="pv-empty">...</em>}</span>
+                    {isAssigned && <span style={{ color: '#16a34a', fontWeight: 700 }}>✓</span>}
+                  </div>
+                );
+              })
+          }
+        </div>
       </div>
     </div>
   );
 };
 
-const SummaryGroup = ({ group }) => {
+const SummaryGroup = ({ group, activeQ, onSetActive }) => {
   const questions = group.questions ?? [];
   return (
-    <div className="pv-group">
-      {group.instructions && <div className="pv-summary-instructions">{group.instructions}</div>}
-      {group.title && <div className="pv-group-title">{group.title}</div>}
+    <div className="pv-group-block">
+      {group.instructions && (
+        <div className="pv-group-instructions">{group.instructions}</div>
+      )}
+      {group.title && <div className="pv-summary-title"><strong>{group.title}</strong></div>}
       <div className="pv-summary-text">
-        {parseSummaryPreview(group.summaryText, questions)}
+        {parseSummaryPreview(group.summaryText, questions, activeQ, onSetActive)}
       </div>
-      <div className="pv-summary-answers">
-        {questions.map((q) => (
-          <div key={q.id} className="pv-summary-answer-row">
-            <span className="pv-q-num">{q.questionNumber}</span>
-            <input className="pv-fill-input" disabled placeholder="Nhập câu trả lời..." />
-          </div>
-        ))}
+      <div className="pv-summary-answer-list">
+        {questions.map((q) => {
+          const active = activeQ === q.questionNumber;
+          return (
+            <div key={q.id} className={`pv-summary-answer-row${active ? ' active' : ''}`}
+              onClick={() => onSetActive(q.questionNumber)}>
+              <span className={`pv-q-num-badge${active ? ' active' : ''}`}>{q.questionNumber}</span>
+              <input className="pv-inline-input" disabled placeholder={`Câu ${q.questionNumber}`} />
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 };
 
-const StandaloneGroup = ({ group }) => {
+const NoteCompletionGroup = ({ group, activeQ, onSetActive }) => {
+  const questions = group.questions ?? [];
+  const [answers, setAnswers] = useState({});
+  const handleAnswer = (num, val) => setAnswers((prev) => ({ ...prev, [num]: val }));
+  return (
+    <div className="pv-group-block">
+      {group.instructions && (
+        <div className="pv-group-instructions">{group.instructions}</div>
+      )}
+      {group.title && <div className="pv-summary-title"><strong>{group.title}</strong></div>}
+      <div className="pv-note-text">
+        {parseNotePreview(group.noteText, questions, activeQ, onSetActive, answers, handleAnswer)}
+      </div>
+    </div>
+  );
+};
+
+const DragMatchingGroup = ({ group, activeQ, onSetActive }) => {
+  const questions = group.questions ?? [];
+  const allOptions = (group.optionBank ?? []).map((o, i) => ({ id: i, text: o.text }));
+
+  // answers: { questionNumber -> { id, text } | null }
+  const [answers, setAnswers] = useState({});
+  const [dragId, setDragId] = useState(null); // id of chip being dragged
+  const [dragOver, setDragOver] = useState(null); // questionNumber of gap being hovered
+
+  // chips still in the bank = options not placed anywhere
+  const placed = new Set(Object.values(answers).filter(Boolean).map((v) => v.id));
+  const bankChips = allOptions.filter((o) => !placed.has(o.id));
+
+  const placeChip = (qNum, chip) => {
+    setAnswers((prev) => {
+      // if this chip was in another slot, remove it first
+      const next = { ...prev };
+      Object.keys(next).forEach((k) => { if (next[k]?.id === chip.id) next[k] = null; });
+      next[qNum] = chip;
+      return next;
+    });
+    onSetActive(qNum);
+  };
+
+  const removeAnswer = (qNum) => {
+    setAnswers((prev) => ({ ...prev, [qNum]: null }));
+  };
+
+  return (
+    <div className="pv-group-block" onClick={(e) => e.stopPropagation()}>
+      {group.instructions && <div className="pv-group-instructions">{group.instructions}</div>}
+      <div className="pv-dm-layout">
+        {/* Left: items + drop zones */}
+        <div className="pv-dm-left">
+          {group.leftTitle && <div className="pv-dm-col-header">{group.leftTitle}</div>}
+          {questions.map((q) => {
+            const active = activeQ === q.questionNumber;
+            const filled = answers[q.questionNumber];
+            const isOver = dragOver === q.questionNumber;
+            return (
+              <div key={q.id} className={`pv-dm-row${active ? ' active' : ''}`}
+                onClick={() => onSetActive(q.questionNumber)}>
+                <span className="pv-dm-item-name">
+                  {q.questionText || <em className="pv-empty">...</em>}
+                </span>
+                {/* Drop zone */}
+                <div
+                  className={`pv-dm-gap${isOver ? ' drag-over' : ''}${filled ? ' filled' : ''}`}
+                  onDragOver={(e) => { e.preventDefault(); setDragOver(q.questionNumber); }}
+                  onDragLeave={() => setDragOver(null)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setDragOver(null);
+                    const id = Number(e.dataTransfer.getData('text/x-dm'));
+                    const chip = allOptions.find((o) => o.id === id);
+                    if (chip) placeChip(q.questionNumber, chip);
+                  }}
+                  onClick={(e) => { e.stopPropagation(); if (filled) removeAnswer(q.questionNumber); }}
+                  title={filled ? 'Click để trả lại' : 'Thả đáp án vào đây'}
+                >
+                  {filled
+                    ? <span className="pv-dm-gap-filled">{filled.text}</span>
+                    : <span className="pv-dm-gap-num">{q.questionNumber}</span>
+                  }
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Right: word bank */}
+        <div className="pv-dm-right">
+          {group.rightTitle && <div className="pv-dm-col-header">{group.rightTitle}</div>}
+          <div className="pv-dm-bank">
+            {bankChips.map((chip) => (
+              <div
+                key={chip.id}
+                className={`pv-dm-chip${dragId === chip.id ? ' dragging' : ''}`}
+                draggable
+                onDragStart={(e) => {
+                  e.dataTransfer.setData('text/x-dm', String(chip.id));
+                  e.dataTransfer.effectAllowed = 'move';
+                  setDragId(chip.id);
+                }}
+                onDragEnd={() => setDragId(null)}
+              >
+                {chip.text}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const MapLabellingGroup = ({ group, activeQ, onSetActive }) => {
+  const questions = group.questions ?? [];
+  const allOptions = (group.optionBank ?? []).map((o, i) => ({ id: i, text: o.text }));
+  const [answers, setAnswers] = useState({});
+  const [dragId, setDragId] = useState(null);
+  const [dragOver, setDragOver] = useState(null);
+
+  const placed = new Set(Object.values(answers).filter(Boolean).map((v) => v.id));
+  const bankChips = allOptions.filter((o) => !placed.has(o.id));
+
+  const placeChip = (qNum, chip) => {
+    setAnswers((prev) => {
+      const next = { ...prev };
+      // remove chip from any other slot first
+      Object.keys(next).forEach((k) => { if (next[k]?.id === chip.id) next[k] = null; });
+      next[qNum] = chip;
+      return next;
+    });
+    onSetActive(qNum);
+  };
+
+  return (
+    <div className="pv-group-block">
+      {group.instructions && <div className="pv-group-instructions">{group.instructions}</div>}
+      {group.title && <div className="pv-summary-title"><strong>{group.title}</strong></div>}
+      <div className="pv-ml-layout">
+        {/* Image area with positioned drop pins */}
+        <div className="pv-ml-image-wrapper">
+          {group.imageUrl
+            ? <img src={group.imageUrl} alt="map" draggable={false} style={{ display: 'block', width: `${group.imageWidth ?? 100}%`, height: 'auto' }} />
+            : <div className="pv-diagram-placeholder">🗺️ Bản đồ chưa được tải lên</div>
+          }
+          {questions.map((q) => {
+            const filled = answers[q.questionNumber] ?? null;
+            const isOver = dragOver === q.questionNumber;
+            const active = activeQ === q.questionNumber;
+            return (
+              <div key={q.id}
+                className={`pv-ml-pin${filled ? ' filled' : ''}${isOver ? ' drag-over' : ''}${active ? ' active' : ''}`}
+                style={{ left: `${q.pinX ?? 10}%`, top: `${q.pinY ?? 10}%`, minWidth: `${group.pinBoxWidth ?? 60}px` }}
+                onDragOver={(e) => { e.preventDefault(); setDragOver(q.questionNumber); }}
+                onDragLeave={() => setDragOver(null)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setDragOver(null);
+                  const id = Number(e.dataTransfer.getData('text/x-dm'));
+                  const chip = allOptions.find((o) => o.id === id);
+                  if (chip) placeChip(q.questionNumber, chip);
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (filled) {
+                    setAnswers((prev) => ({ ...prev, [q.questionNumber]: null }));
+                  } else {
+                    onSetActive(q.questionNumber);
+                  }
+                }}
+                title={filled ? 'Click để trả lại' : `Kéo đáp án vào ô ${q.questionNumber}`}
+              >
+                {filled
+                  ? <span className="pv-ml-pin-text">{filled.text}</span>
+                  : <span className="pv-ml-pin-num">{q.questionNumber}</span>
+                }
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Word bank */}
+        <div className="pv-ml-bank">
+          {group.rightTitle && <div className="pv-dm-col-header">{group.rightTitle}</div>}
+          <div className="pv-dm-bank">
+            {bankChips.length === 0 && <em style={{ fontSize: 12, color: '#9ca3af' }}>Tất cả đã được đặt</em>}
+            {bankChips.map((chip) => (
+              <div key={chip.id}
+                className={`pv-dm-chip${dragId === chip.id ? ' dragging' : ''}`}
+                draggable
+                onDragStart={(e) => {
+                  e.dataTransfer.setData('text/x-dm', String(chip.id));
+                  e.dataTransfer.effectAllowed = 'move';
+                  setDragId(chip.id);
+                }}
+                onDragEnd={() => setDragId(null)}>
+                {chip.text}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const TableCompletionGroup = ({ group, activeQ, onSetActive }) => {
+  const columns   = group.columns   ?? [];
+  const tableRows = group.tableRows ?? [];
+  const questions = group.questions ?? [];
+  const [answers, setAnswers] = React.useState({});
+
+  // Pre-compute blank→question mapping in reading order
+  const blankMap = React.useMemo(() => {
+    const map = []; // [{ rowId, colId, qNum }]
+    for (const row of tableRows) {
+      for (const col of columns) {
+        const n = ((row.cells?.[col.id] ?? '').match(/\[blank\]/g) ?? []).length;
+        for (let i = 0; i < n; i++) {
+          map.push({ rowId: row.id, colId: col.id, qNum: questions[map.length]?.questionNumber ?? (group.fromQuestion ?? 1) + map.length });
+        }
+      }
+    }
+    return map;
+  }, [tableRows, columns, questions, group.fromQuestion]);
+
+  const parseBold = (text) =>
+    text.split(/\*\*(.*?)\*\*/).map((chunk, i) =>
+      i % 2 === 1 ? <strong key={i}>{chunk}</strong> : chunk
+    );
+
+  const renderCell = (cellText, rowId, colId) => {
+    const parts = (cellText ?? '').split('[blank]');
+    let localIdx = blankMap.filter((b) => {
+      // count blanks that come before this cell in reading order
+      const colOrder = columns.map((c) => c.id);
+      const rowOrder = tableRows.map((r) => r.id);
+      const bColIdx = colOrder.indexOf(b.colId);
+      const bRowIdx = rowOrder.indexOf(b.rowId);
+      const curColIdx = colOrder.indexOf(colId);
+      const curRowIdx = rowOrder.indexOf(rowId);
+      return bRowIdx < curRowIdx || (bRowIdx === curRowIdx && bColIdx < curColIdx);
+    }).length;
+
+    return parts.map((part, i) => {
+      const entry = blankMap[localIdx + i - 1] ?? null;
+      return (
+        <React.Fragment key={i}>
+          {parseBold(part)}
+          {i < parts.length - 1 && (() => {
+            const info = blankMap[localIdx + i];
+            if (!info) return null;
+            const qNum = info.qNum;
+            const isActive = activeQ === qNum;
+            return (
+              <input
+                key={`tc-blank-${qNum}`}
+                className={`pv-tc-blank${isActive ? ' active' : ''}`}
+                value={answers[qNum] ?? ''}
+                onChange={(e) => { setAnswers((p) => ({ ...p, [qNum]: e.target.value })); onSetActive(qNum); }}
+                onClick={() => onSetActive(qNum)}
+                placeholder={String(qNum)}
+              />
+            );
+          })()}
+        </React.Fragment>
+      );
+    });
+  };
+
+  return (
+    <div className="pv-group-block">
+      {group.instructions && <div className="pv-group-instructions">{group.instructions}</div>}
+      {group.title && <div className="pv-summary-title"><strong>{group.title}</strong></div>}
+      <div className="pv-tc-scroll">
+        <table className="pv-tc-table">
+          {group.tableTitle && (
+            <thead>
+              <tr><th className="pv-tc-title-cell" colSpan={columns.length}>{group.tableTitle}</th></tr>
+              <tr>
+                {columns.map((col) => (
+                  <th key={col.id} className="pv-tc-header-cell">{col.header}</th>
+                ))}
+              </tr>
+            </thead>
+          )}
+          {!group.tableTitle && columns.some((c) => c.header) && (
+            <thead>
+              <tr>
+                {columns.map((col) => (
+                  <th key={col.id} className="pv-tc-header-cell">{col.header}</th>
+                ))}
+              </tr>
+            </thead>
+          )}
+          <tbody>
+            {tableRows.map((row) => (
+              <tr key={row.id}>
+                {columns.map((col, ci) => (
+                  <td key={col.id} className={`pv-tc-cell${ci === 0 ? ' pv-tc-row-label' : ''}`}>
+                    {renderCell(row.cells?.[col.id] ?? '', row.id, col.id)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+
+const StandaloneGroup = ({ group, activeQ, onSetActive }) => {
   const questions = group.questions ?? [];
   return (
-    <div className="pv-group">
-      {group.title && <div className="pv-group-title">{group.title}</div>}
+    <div className="pv-group-block">
+      {group.title && <div className="pv-group-instructions"><strong>{group.title}</strong></div>}
       {questions.length === 0
         ? <em className="pv-empty">Chưa có câu hỏi.</em>
-        : questions.map(renderQuestion)}
+        : questions.map((q) => renderQuestion(q, activeQ, onSetActive))}
     </div>
   );
 };
 
-const ImageGroup = ({ group }) => {
+// Multiple Choice group — instructions banner + list of MCQ questions
+const MCQGroup = ({ group, activeQ, onSetActive, multi = false }) => {
   const questions = group.questions ?? [];
   return (
-    <div className="pv-group">
-      {group.title && <div className="pv-group-title">{group.title}</div>}
-      {group.imageUrl
-        ? <img src={group.imageUrl} alt="diagram" className="pv-image" />
-        : <div className="pv-image-placeholder">{group.contentType === 'MAP' ? '🗺️ Bản đồ chưa được tải lên' : '📊 Sơ đồ chưa được tải lên'}</div>}
-      {questions.map(renderQuestion)}
+    <div className="pv-group-block">
+      <div className="pv-mc-instructions">
+        {multi
+          ? <>Choose <strong>TWO</strong> letters, <strong>A–E</strong>.</>
+          : <>Choose the correct letter, <strong>A</strong>, <strong>B</strong>, <strong>C</strong> or <strong>D</strong>.</>
+        }
+      </div>
+      {group.title && <div className="pv-group-instructions">{group.title}</div>}
+      {questions.length === 0
+        ? <em className="pv-empty">Chưa có câu hỏi.</em>
+        : questions.map((q) => renderQuestion(q, activeQ, onSetActive))}
     </div>
   );
 };
 
-const renderGroup = (group) => {
+// Sentence Completion group
+const SentenceCompletionGroup = ({ group, activeQ, onSetActive }) => {
+  const questions = group.questions ?? [];
+  return (
+    <div className="pv-group-block">
+      <div className="pv-mc-instructions">
+        Complete the sentences. Write <strong>NO MORE THAN TWO WORDS AND/OR A NUMBER</strong> for each answer.
+      </div>
+      {group.title && <div className="pv-group-instructions">{group.title}</div>}
+      {questions.length === 0
+        ? <em className="pv-empty">Chưa có câu hỏi.</em>
+        : questions.map((q) => renderQuestion(q, activeQ, onSetActive))}
+    </div>
+  );
+};
+
+// Short Answer group
+const ShortAnswerGroup = ({ group, activeQ, onSetActive }) => {
+  const questions = group.questions ?? [];
+  return (
+    <div className="pv-group-block">
+      <div className="pv-mc-instructions">
+        Answer the questions. Write <strong>NO MORE THAN THREE WORDS</strong> for each answer.
+      </div>
+      {group.title && <div className="pv-group-instructions">{group.title}</div>}
+      {questions.length === 0
+        ? <em className="pv-empty">Chưa có câu hỏi.</em>
+        : questions.map((q) => renderQuestion(q, activeQ, onSetActive))}
+    </div>
+  );
+};
+
+const ImageGroup = ({ group, activeQ, onSetActive }) => {
+  const questions = group.questions ?? [];
+  return (
+    <div className="pv-group-block">
+      {group.title && <div className="pv-group-instructions"><strong>{group.title}</strong></div>}
+      {group.imageUrl
+        ? <img src={group.imageUrl} alt="diagram" className="pv-diagram-img" />
+        : <div className="pv-diagram-placeholder">{group.contentType === 'MAP' ? '🗺️ Bản đồ chưa được tải lên' : '📊 Sơ đồ chưa được tải lên'}</div>}
+      {questions.map((q) => renderQuestion(q, activeQ, onSetActive))}
+    </div>
+  );
+};
+
+const renderGroup = (group, activeQ, onSetActive) => {
   const ct = group.contentType;
-  if (ct === 'READING_PASSAGE') return <ReadingGroup key={group.id} group={group} />;
-  if (ct === 'AUDIO_TRANSCRIPT') return <AudioGroup key={group.id} group={group} />;
-  if (ct === 'MATCHING_HEADING') return <MatchingHeadingGroup key={group.id} group={group} />;
-  if (ct === 'SUMMARY_COMPLETION') return <SummaryGroup key={group.id} group={group} />;
-  if (ct === 'DIAGRAM' || ct === 'MAP') return <ImageGroup key={group.id} group={group} />;
-  return <StandaloneGroup key={group.id} group={group} />;
+  const props = { key: group.id, group, activeQ, onSetActive };
+  // READING_PASSAGE is rendered via PartReadingLayout, not inline here
+  if (ct === 'READING_PASSAGE') return null;
+  if (ct === 'AUDIO_TRANSCRIPT') return <AudioGroup {...props} />;
+  if (ct === 'MATCHING_HEADING') return <MatchingHeadingGroup {...props} />;
+  if (ct === 'DRAG_MATCHING') return <DragMatchingGroup {...props} />;
+  if (ct === 'TABLE_COMPLETION') return <TableCompletionGroup {...props} />;
+  if (ct === 'MAP_LABELLING') return <MapLabellingGroup {...props} />;
+  if (ct === 'SUMMARY_COMPLETION') return <SummaryGroup {...props} />;
+  if (ct === 'NOTE_COMPLETION') return <NoteCompletionGroup {...props} />;
+  if (ct === 'DIAGRAM' || ct === 'MAP') return <ImageGroup {...props} />;
+  if (ct === 'MULTIPLE_CHOICE_GROUP') return <MCQGroup {...props} multi={false} />;
+  if (ct === 'MULTIPLE_CHOICE_MULTI') return <MCQGroup {...props} multi={true} />;
+  if (ct === 'SENTENCE_COMPLETION') return <SentenceCompletionGroup {...props} />;
+  if (ct === 'SHORT_ANSWER_GROUP') return <ShortAnswerGroup {...props} />;
+  return <StandaloneGroup {...props} />;
+};
+
+// Reading: split layout — passages LEFT (with heading drop slots), question groups RIGHT
+// PartReadingLayout owns the mhAnswers state so both panes can share it.
+// mhAnswers: { [paraId]: { text, roman } }
+const PartReadingLayout = ({ part, activeQ, onSetActive }) => {
+  const groups = part.questionGroups ?? [];
+  const passages = groups.filter((g) => g.contentType === 'READING_PASSAGE');
+  const qGroups  = groups.filter((g) => g.contentType !== 'READING_PASSAGE');
+  const mhGroups = qGroups.filter((g) => g.contentType === 'MATCHING_HEADING');
+  const hasMH    = mhGroups.length > 0;
+
+  // mhAnswers[paraId] = { text, roman } | undefined
+  const [mhAnswers, setMhAnswers] = useState({});
+
+  const assignedTexts = new Set(
+    Object.values(mhAnswers).filter(Boolean).map((v) => v.text)
+  );
+
+  const handleDrop = (paraId, data) => {
+    setMhAnswers((prev) => {
+      const next = { ...prev };
+      // Remove this heading from any other para first
+      Object.keys(next).forEach((k) => {
+        if (next[k]?.text === data.text) next[k] = null;
+      });
+      next[paraId] = { text: data.text, roman: data.roman ?? '' };
+      return next;
+    });
+  };
+
+  const handleClear = (paraId) => {
+    setMhAnswers((prev) => ({ ...prev, [paraId]: null }));
+  };
+
+  if (passages.length === 0 && qGroups.length === 0) {
+    return <div className="pv-empty-state" style={{ padding: 32 }}><em>Chưa có nội dung.</em></div>;
+  }
+  return (
+    <div className="pv-reading-split">
+      <div className="pv-passage-pane">
+        {passages.length === 0
+          ? <em className="pv-empty">Chưa có đoạn văn.</em>
+          : passages.map((g) => (
+              <PassageGroupPane key={g.id} group={g}
+                hasMH={hasMH}
+                mhAnswers={mhAnswers}
+                onDropHeading={handleDrop}
+                onClearHeading={handleClear}
+              />
+            ))}
+      </div>
+      <div className="pv-divider" />
+      <div className="pv-questions-pane">
+        {qGroups.length === 0
+          ? <em className="pv-empty">Chưa có câu hỏi.</em>
+          : qGroups.map((g) => {
+              if (g.contentType === 'MATCHING_HEADING') {
+                return <MatchingHeadingGroup key={g.id} group={g} assignedTexts={assignedTexts} />;
+              }
+              return renderGroup(g, activeQ, onSetActive);
+            })}
+      </div>
+    </div>
+  );
 };
 
 // ---- Main modal ----
 
 const PreviewModal = ({ test, sessions, onClose }) => {
-  const skillKeys = Object.keys(SESSION_META).filter(
-    (k) => sessions[k] && sessions[k].some((p) => (p.questionGroups ?? []).length > 0 || true)
-  );
+  const skillKeys = Object.keys(SESSION_META);
   const [activeSkill, setActiveSkill] = useState(skillKeys[0] ?? 'LISTENING');
+  const [activeQ, setActiveQ] = useState(null);
 
   const parts = sessions[activeSkill] ?? [];
 
-  // total question count for current skill
-  const totalQ = parts.reduce(
-    (acc, p) => acc + (p.questionGroups ?? []).reduce((a, g) => a + (g.questions?.length ?? 0), 0),
-    0
-  );
+  // Flat list of all questions for current skill (for footer nav)
+  const allQuestions = useMemo(() =>
+    parts.flatMap((p) =>
+      (p.questionGroups ?? []).flatMap((g) => g.questions ?? [])
+    ), [parts]);
+
+  const totalQ = allQuestions.length;
+
+  const goToQ = (num) => setActiveQ(num);
+
+  const goPrev = () => {
+    const idx = allQuestions.findIndex((q) => q.questionNumber === activeQ);
+    if (idx > 0) setActiveQ(allQuestions[idx - 1].questionNumber);
+    else if (allQuestions.length > 0) setActiveQ(allQuestions[0].questionNumber);
+  };
+
+  const goNext = () => {
+    const idx = allQuestions.findIndex((q) => q.questionNumber === activeQ);
+    if (idx < allQuestions.length - 1) setActiveQ(allQuestions[idx + 1].questionNumber);
+  };
+
+  // Part info for footer
+  const activePart = parts.find((p) =>
+    (p.questionGroups ?? []).some((g) =>
+      (g.questions ?? []).some((q) => q.questionNumber === activeQ)
+    )
+  ) ?? parts[0];
+
+  const skillMeta = SESSION_META[activeSkill];
 
   return (
     <div className="pv-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="pv-modal">
-        {/* Modal header */}
-        <div className="pv-modal-header">
-          <div className="pv-modal-title">
-            <span className="pv-modal-tag">XEM TRƯỚC</span>
-            <span className="pv-modal-test-title">{test.title || 'Đề thi chưa đặt tên'}</span>
+      <div className="pv-shell">
+
+        {/* ── IELTS Exam Header ── */}
+        <header className="pv-ielts-header">
+          <div className="pv-ielts-header-left">
+            <span className="pv-ielts-logo">IELTS</span>
+            <div className="pv-ielts-test-info">
+              <span className="pv-ielts-test-name">{test.title || 'Đề thi chưa đặt tên'}</span>
+              <span className="pv-ielts-test-type">{test.testType ?? 'ACADEMIC'}</span>
+            </div>
           </div>
-          <div className="pv-skill-tabs">
+
+          <div className="pv-ielts-skill-tabs">
             {skillKeys.map((key) => {
               const meta = SESSION_META[key];
               const Icon = meta.Icon;
               const count = (sessions[key] ?? []).reduce(
-                (acc, p) => acc + (p.questionGroups ?? []).reduce((a, g) => a + (g.questions?.length ?? 0), 0),
-                0
+                (acc, p) => acc + (p.questionGroups ?? []).reduce((a, g) => a + (g.questions?.length ?? 0), 0), 0
               );
               return (
                 <button
                   key={key}
-                  className={`pv-skill-tab${activeSkill === key ? ' active' : ''}`}
-                  style={activeSkill === key ? { borderBottomColor: meta.color, color: meta.color } : {}}
-                  onClick={() => setActiveSkill(key)}
+                  className={`pv-ielts-tab${activeSkill === key ? ' active' : ''}`}
+                  onClick={() => { setActiveSkill(key); setActiveQ(null); }}
                 >
-                  <Icon size={14} />
-                  {meta.label}
-                  <span className="pv-skill-tab-count">{count}</span>
+                  <Icon size={13} />
+                  <span>{meta.label}</span>
+                  {count > 0 && <span className="pv-tab-count">{count}</span>}
                 </button>
               );
             })}
           </div>
-          <button className="pv-close-btn" onClick={onClose} title="Đóng xem trước">
-            <X size={20} />
-          </button>
-        </div>
 
-        {/* Content */}
-        <div className="pv-modal-body">
-          {/* Skill info bar */}
-          <div className="pv-skill-info-bar">
-            <span>
-              {SESSION_META[activeSkill]?.label} · {parts.length} phần · <strong>{totalQ}</strong> câu hỏi
-            </span>
-            <span className="pv-preview-note">Chế độ xem trước — thí sinh không thể chỉnh sửa</span>
+          <div className="pv-ielts-header-right">
+            <div className="pv-timer">
+              <Clock size={14} />
+              <span>{skillMeta?.durationMinutes ?? 60}:00</span>
+            </div>
+            <span className="pv-preview-badge">XEM TRƯỚC</span>
+            <button className="pv-close-btn" onClick={onClose} title="Đóng xem trước">
+              <X size={18} /> Đóng
+            </button>
           </div>
+        </header>
 
-          {/* Parts */}
+        {/* ── Part instruction bar ── */}
+        {activePart && (
+          <div className="pv-instruction-bar">
+            <strong>{activePart.name}</strong>
+            {activePart.instructions && (
+              <span className="pv-instruction-text"> — {activePart.instructions}</span>
+            )}
+            <span className="pv-instruction-meta">
+              {totalQ} câu hỏi · {skillMeta?.durationMinutes ?? 60} phút
+            </span>
+          </div>
+        )}
+
+        {/* ── Main content ── */}
+        <div className="pv-main">
           {parts.length === 0 ? (
-            <div className="pv-empty-state">Chưa có nội dung cho phần này.</div>
+            <div className="pv-empty-state">
+              <div className="pv-empty-icon">📄</div>
+              <div>Chưa có nội dung cho phần này.<br /><small>Thêm nhóm câu hỏi trong trình tạo đề.</small></div>
+            </div>
           ) : (
             parts.map((part) => (
-              <div key={part.id} className="pv-part">
-                <div className="pv-part-header">
-                  <span className="pv-part-name">{part.name}</span>
-                  {part.instructions && (
-                    <p className="pv-part-instructions">{part.instructions}</p>
-                  )}
+              <div key={part.id} className="pv-part-section">
+                <div className="pv-part-banner">
+                  <span className="pv-part-banner-name">{part.name}</span>
+                  {part.instructions && <span className="pv-part-banner-inst">{part.instructions}</span>}
                 </div>
-                {(part.questionGroups ?? []).length === 0 ? (
-                  <em className="pv-empty">Phần này chưa có nhóm câu hỏi.</em>
-                ) : (
-                  (part.questionGroups ?? []).map(renderGroup)
-                )}
+                {activeSkill === 'READING'
+                  ? <PartReadingLayout part={part} activeQ={activeQ} onSetActive={goToQ} />
+                  : (part.questionGroups ?? []).map((g) => renderGroup(g, activeQ, goToQ))
+                }
               </div>
             ))
           )}
         </div>
+
+        {/* ── Footer navigation ── */}
+        <footer className="pv-footer">
+          <div className="pv-footer-left">
+            <button className="pv-nav-btn" onClick={goPrev} disabled={!activeQ || allQuestions[0]?.questionNumber === activeQ}>
+              <ChevronLeft size={18} />
+            </button>
+            <button className="pv-nav-btn" onClick={goNext} disabled={!activeQ || allQuestions[allQuestions.length - 1]?.questionNumber === activeQ}>
+              <ChevronRight size={18} />
+            </button>
+            {activePart && (
+              <span className="pv-footer-part-label">{activePart.name}</span>
+            )}
+          </div>
+
+          <div className="pv-q-num-track">
+            {allQuestions.map((q) => {
+              const isActive = activeQ === q.questionNumber;
+              return (
+                <div key={q.id} className="pv-q-cell" onClick={() => goToQ(q.questionNumber)}>
+                  <div className={`pv-q-dash${isActive ? ' active' : ''}`} />
+                  <span className={`pv-q-num${isActive ? ' active' : ''}`}>{q.questionNumber}</span>
+                </div>
+              );
+            })}
+            {allQuestions.length === 0 && (
+              <span style={{ fontSize: 12, color: '#9ca3af' }}>Chưa có câu hỏi</span>
+            )}
+          </div>
+
+          <div className="pv-footer-right">
+            <span className="pv-footer-count">
+              {totalQ > 0 ? `${totalQ} câu` : '0 câu'}
+            </span>
+          </div>
+        </footer>
+
       </div>
     </div>
   );

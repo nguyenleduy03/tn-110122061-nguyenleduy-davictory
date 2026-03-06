@@ -44,10 +44,15 @@ const Navbar = () => {
       'STUDENT': 'Học viên',
       'GUEST': 'Khách'
     };
-    
-    // Lấy role cao nhất
-    const topRole = roles[0]?.name || 'GUEST';
-    return roleMap[topRole] || 'Học viên';
+
+    // roles là Set<String> từ backend: ["ADMIN", "STUDENT", ...]
+    // Ưu tiên theo thứ tự: ADMIN > MANAGER > TEACHER > STUDENT > GUEST
+    const priority = ['ADMIN', 'MANAGER', 'TEACHER', 'STUDENT', 'GUEST'];
+    const rolesArray = Array.isArray(roles) ? roles : Array.from(roles);
+    for (const p of priority) {
+      if (rolesArray.includes(p)) return roleMap[p];
+    }
+    return roleMap[rolesArray[0]] || 'Học viên';
   };
 
   const getUserInitial = (fullName) => {

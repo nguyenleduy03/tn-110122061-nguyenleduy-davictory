@@ -95,14 +95,15 @@ export const authApi = {
   hasRole: (roleName) => {
     const user = authApi.getStoredUser();
     if (!user || !user.roles) return false;
-    return user.roles.some(role => role.name === roleName);
+    // roles là Set<String> từ backend: ["ADMIN", "STUDENT", ...]
+    return user.roles.includes(roleName);
   },
 
   // Kiểm tra có ít nhất 1 trong các roles
   hasAnyRole: (roleNames) => {
     const user = authApi.getStoredUser();
     if (!user || !user.roles) return false;
-    return user.roles.some(role => roleNames.includes(role.name));
+    return user.roles.some(role => roleNames.includes(role));
   },
 };
 

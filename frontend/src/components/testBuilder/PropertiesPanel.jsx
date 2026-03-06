@@ -3,7 +3,7 @@ import { Trash2, MousePointerClick } from 'lucide-react';
 
 const CONTENT_TYPES = [
   'READING_PASSAGE', 'AUDIO_TRANSCRIPT', 'STANDALONE',
-  'DIAGRAM', 'MAP', 'TABLE', 'MATCHING_HEADING', 'SUMMARY_COMPLETION'
+  'DIAGRAM', 'MAP', 'MAP_LABELLING', 'TABLE', 'TABLE_COMPLETION', 'MATCHING_HEADING', 'DRAG_MATCHING', 'SUMMARY_COMPLETION', 'NOTE_COMPLETION'
 ];
 const QUESTION_TYPES = [
   { value: 'MULTIPLE_CHOICE',          label: 'Multiple Choice (1 đáp án)' },
@@ -113,11 +113,38 @@ const GroupPanel = ({ group, onChange, onDelete }) => (
       </div>
     )}
 
+    {(group.contentType === 'DRAG_MATCHING') && (
+      <div className="tb-field">
+        <label className="tb-label">ℹ️ Drag Matching</label>
+        <div style={{ fontSize: 12, color: '#6b7280', padding: '6px 10px', background: '#f0fdf4', borderRadius: 6, border: '1px solid #86efac' }}>
+          Cột trái: thêm mục (người/nơi). Cột phải: thêm lựa chọn vào ngân từ. Chọn đáp án đúng cho từng mục.
+        </div>
+      </div>
+    )}
+
     {(group.contentType === 'SUMMARY_COMPLETION') && (
       <div className="tb-field">
         <label className="tb-label">ℹ️ Summary Completion</label>
         <div style={{ fontSize: 12, color: '#6b7280', padding: '6px 10px', background: '#f0f9ff', borderRadius: 6, border: '1px solid #bae6fd' }}>
           Nhập văn bản tóm tắt vào canvas trực tiếp. Dùng <code>[blank]</code> để đánh dấu ô trống.
+        </div>
+      </div>
+    )}
+
+    {(group.contentType === 'NOTE_COMPLETION') && (
+      <div className="tb-field">
+        <label className="tb-label">ℹ️ Note Completion</label>
+        <div style={{ fontSize: 12, color: '#6b7280', padding: '6px 10px', background: '#fefce8', borderRadius: 6, border: '1px solid #fde68a' }}>
+          Nhập nội dung ghi chú vào canvas trực tiếp. Dùng <code>[blank]</code> để đánh dấu ô trống. Xuống dòng được giữ nguyên.
+        </div>
+      </div>
+    )}
+
+    {(group.contentType === 'TABLE_COMPLETION') && (
+      <div className="tb-field">
+        <label className="tb-label">ℹ️ Table Completion</label>
+        <div style={{ fontSize: 12, color: '#6b7280', padding: '6px 10px', background: '#e0e7ff', borderRadius: 6, border: '1px solid #a5b4fc' }}>
+          Thêm cột/hàng → Nhập nội dung ô → Nhấn <code>+□</code> để chèn ô trống → Điền đáp án đúng bên dưới.
         </div>
       </div>
     )}

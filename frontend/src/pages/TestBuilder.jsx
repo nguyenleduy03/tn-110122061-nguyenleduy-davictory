@@ -6,6 +6,7 @@ import {
   useSensor,
   useSensors,
   closestCenter,
+  rectIntersection,
 } from '@dnd-kit/core';
 import {
   SortableContext,
@@ -82,6 +83,7 @@ const TestBuilder = () => {
   const [saving, setSaving] = useState(false);
   const [activeOverlayItem, setActiveOverlayItem] = useState(null);
   const [dragOverPartId, setDragOverPartId] = useState(null);
+  const [dragOverPassagePaneId, setDragOverPassagePaneId] = useState(null);
   const [previewOpen, setPreviewOpen] = useState(false);
 
   const sensors = useSensors(
@@ -193,19 +195,39 @@ const TestBuilder = () => {
   };
 
   const addQuestion = (group) => {
+    const ct = group.contentType;
+    // Determine default questionType and options based on group contentType
+    const isMCQ  = ct === 'MULTIPLE_CHOICE_GROUP';
+    const isMMCQ = ct === 'MULTIPLE_CHOICE_MULTI';
+    const isFill = ['SENTENCE_COMPLETION', 'SHORT_ANSWER_GROUP', 'NOTE_COMPLETION', 'SUMMARY_COMPLETION'].includes(ct);
+
+    const defaultOptions = (isMCQ || isMMCQ)
+      ? [
+          { id: nextId(), optionLabel: 'A', optionText: '', isCorrect: false, orderIndex: 0 },
+          { id: nextId(), optionLabel: 'B', optionText: '', isCorrect: false, orderIndex: 1 },
+          { id: nextId(), optionLabel: 'C', optionText: '', isCorrect: false, orderIndex: 2 },
+          { id: nextId(), optionLabel: 'D', optionText: '', isCorrect: false, orderIndex: 3 },
+        ]
+      : [
+          { id: nextId(), optionLabel: 'A', optionText: '', isCorrect: false, orderIndex: 0 },
+          { id: nextId(), optionLabel: 'B', optionText: '', isCorrect: false, orderIndex: 1 },
+          { id: nextId(), optionLabel: 'C', optionText: '', isCorrect: false, orderIndex: 2 },
+          { id: nextId(), optionLabel: 'D', optionText: '', isCorrect: false, orderIndex: 3 },
+        ];
+
+    let questionTypeName = 'MULTIPLE_CHOICE';
+    if (isMMCQ) questionTypeName = 'MULTIPLE_CHOICE_MULTIPLE';
+    else if (isFill) questionTypeName = 'FILL_IN_BLANK';
+    else if (ct === 'SHORT_ANSWER_GROUP') questionTypeName = 'SHORT_ANSWER';
+
     const newQ = {
       id: nextId(),
       groupId: group.id,
       partId: group.partId,
       questionNumber: (group.questions?.length ?? 0) + 1,
       questionText: '',
-      questionType: { typeName: 'MULTIPLE_CHOICE' },
-      options: [
-        { id: nextId(), optionLabel: 'A', optionText: '', isCorrect: false, orderIndex: 0 },
-        { id: nextId(), optionLabel: 'B', optionText: '', isCorrect: false, orderIndex: 1 },
-        { id: nextId(), optionLabel: 'C', optionText: '', isCorrect: false, orderIndex: 2 },
-        { id: nextId(), optionLabel: 'D', optionText: '', isCorrect: false, orderIndex: 3 },
-      ],
+      questionType: { typeName: questionTypeName },
+      options: (isMCQ || isMMCQ) ? defaultOptions : [],
       answers: [],
       points: 1,
       orderIndex: (group.questions?.length ?? 0) + 1,
@@ -281,30 +303,56 @@ const TestBuilder = () => {
 
   const handleDragOver = ({ over }) => {
     const overData = over?.data?.current;
-    if (overData?.type === 'part') {
+    if (overData?.type === 'passage-pane') {
+      setDragOverPassagePaneId(over.id);
+      setDragOverPartId(null);
+    } else if (overData?.type === 'question-pane' || overData?.type === 'part') {
       setDragOverPartId(over.id);
+      setDragOverPassagePaneId(null);
     } else {
       setDragOverPartId(null);
+      setDragOverPassagePaneId(null);
     }
   };
 
   const handleDragEnd = ({ active, over }) => {
     setActiveOverlayItem(null);
     setDragOverPartId(null);
+    setDragOverPassagePaneId(null);
     if (!over) return;
 
     const activeData = active.data.current;
     const overData = over?.data?.current;
 
-    // 1. Palette item dropped onto a part → add group
+    // 1. Palette item dropped onto passage pane → force READING_PASSAGE type
+    if (activeData?.source === 'palette' && overData?.type === 'passage-pane') {
+      const partId = Number(overData.partId);
+      const part = parts.find((p) => p.id === partId);
+      if (part) addGroup(part, 'READING_PASSAGE');
+      return;
+    }
+
+    // 2. Palette item dropped onto question pane → use dragged contentType (block READING_PASSAGE)
+    if (activeData?.source === 'palette' && overData?.type === 'question-pane') {
+      const partId = Number(overData.partId);
+      const part = parts.find((p) => p.id === partId);
+      if (part) {
+        // Don't allow dropping READING_PASSAGE into question pane
+        const ct = activeData.contentType === 'READING_PASSAGE' ? 'STANDALONE' : activeData.contentType;
+        addGroup(part, ct);
+      }
+      return;
+    }
+
+    // 3. Palette item dropped onto generic part drop zone (Listening/Writing/Speaking)
     if (activeData?.source === 'palette' && overData?.type === 'part') {
-      const partId = overData.partId ?? overData.part?.id;
+      const partId = Number(overData.partId ?? overData.part?.id);
       const part = parts.find((p) => p.id === partId);
       if (part) addGroup(part, activeData.contentType);
       return;
     }
 
-    // 2. Reorder parts
+    // 4. Reorder parts
     if (activeData?.type === 'part' && overData?.type === 'part') {
       const oldIdx = parts.findIndex((p) => `part-${p.id}` === active.id);
       const newIdx = parts.findIndex((p) => `part-${p.id}` === over.id);
@@ -314,7 +362,7 @@ const TestBuilder = () => {
       return;
     }
 
-    // 3. Reorder groups within same part
+    // 5. Reorder groups within same part
     if (activeData?.type === 'group' && overData?.type === 'group') {
       setParts((prev) =>
         prev.map((p) => {
@@ -328,7 +376,7 @@ const TestBuilder = () => {
     }
   };
 
-  const handleDragCancel = () => { setActiveOverlayItem(null); setDragOverPartId(null); };
+  const handleDragCancel = () => { setActiveOverlayItem(null); setDragOverPartId(null); setDragOverPassagePaneId(null); };
 
   // ------------ Save ------------
 
@@ -396,7 +444,13 @@ const TestBuilder = () => {
       <div className="tb-workspace">
         <DndContext
           sensors={sensors}
-          collisionDetection={closestCenter}
+          collisionDetection={({ active, droppableContainers, ...rest }) => {
+            // For palette items use rectIntersection so empty panes are detectable
+            if (active.data.current?.source === 'palette') {
+              return rectIntersection({ active, droppableContainers, ...rest });
+            }
+            return closestCenter({ active, droppableContainers, ...rest });
+          }}
           onDragStart={handleDragStart}
           onDragOver={handleDragOver}
           onDragEnd={handleDragEnd}
@@ -417,6 +471,7 @@ const TestBuilder = () => {
             parts={parts}
             selection={selection}
             dragOverPartId={dragOverPartId}
+            dragOverPassagePaneId={dragOverPassagePaneId}
             onSelectGroup={(g, partId) => setSelection({ type: 'group', data: { ...g, partId } })}
             onSelectQuestion={(q) => setSelection({ type: 'question', data: q })}
             onUpdateGroup={(groupId, upd) => {
@@ -436,7 +491,7 @@ const TestBuilder = () => {
               if (part) deleteQuestion(part.id, groupId, questionId);
             }}
             onAddQuestion={(group) => addQuestion(group)}
-            onAddGroup={(part) => addGroup(part)}
+            onAddGroup={(part, contentType) => addGroup(part, contentType)}
             onAddPart={addPart}
           />
 
