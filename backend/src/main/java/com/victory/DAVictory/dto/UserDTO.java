@@ -14,7 +14,6 @@ public class UserDTO {
     private Long id;
     private String username;
     private String email;
-    private String password; // Tạm thời cần để verify login (TODO: xóa khi implement JWT)
     private String fullName;
     private String phoneNumber;
     private String avatar;

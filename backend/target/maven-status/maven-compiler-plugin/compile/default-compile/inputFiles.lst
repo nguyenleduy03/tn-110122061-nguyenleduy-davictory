@@ -1,6 +1,7 @@
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/DaVictoryApplication.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/config/CorsConfig.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/config/DataInitializer.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/config/SecurityConfig.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/config/SwaggerConfig.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/AnalyticsController.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/AuthController.java
@@ -134,6 +135,9 @@
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/repository/WritingScoreRepository.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/repository/WritingScoringCriteriaRepository.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/repository/WritingTaskRepository.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/security/CustomUserDetailsService.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/security/JwtAuthenticationFilter.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/security/JwtUtil.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/service/MediaService.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/service/QuestionBankService.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/service/RoleService.java

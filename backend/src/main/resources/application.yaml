@@ -22,3 +22,9 @@ springdoc:
     path: /swagger-ui.html
     operationsSorter: method
     tagsSorter: alpha
+
+# JWT Configuration
+jwt:
+  secret: DAVictorySecretKey2026SuperLongAndSecureBase64EncodedKeyForJWTSigning1234567890ABCDEF
+  expiration: 86400000   # 24 giờ (ms)
+  refresh-expiration: 604800000  # 7 ngày (ms)

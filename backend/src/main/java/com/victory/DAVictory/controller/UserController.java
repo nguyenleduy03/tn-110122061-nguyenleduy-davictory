@@ -11,6 +11,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -42,7 +45,8 @@ public class UserController {
     
     // Lấy tất cả users
     @GetMapping
-    @Operation(summary = "Lấy danh sách tất cả users", description = "Trả về danh sách tất cả người dùng trong hệ thống")
+    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
+    @Operation(summary = "Lấy danh sách tất cả users", description = "Trả về danh sách tất cả người dùng trong hệ thống [MANAGER, ADMIN]")
     @ApiResponse(responseCode = "200", description = "Lấy danh sách thành công")
     public ResponseEntity<List<UserDTO>> getAllUsers() {
         List<UserDTO> users = userService.getAllUsers();
@@ -51,7 +55,8 @@ public class UserController {
     
     // Lấy user theo ID
     @GetMapping("/{id}")
-    @Operation(summary = "Lấy user theo ID", description = "Trả về thông tin chi tiết của một user")
+    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN') or @userService.getUserById(#id).username == authentication.name")
+    @Operation(summary = "Lấy user theo ID", description = "Trả về thông tin chi tiết (chính mình hoặc MANAGER/ADMIN)")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Tìm thấy user"),
         @ApiResponse(responseCode = "404", description = "Không tìm thấy user")
@@ -85,6 +90,7 @@ public class UserController {
     
     // Lấy users theo role
     @GetMapping("/role/{roleName}")
+    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     @Operation(summary = "Lấy users theo quyền", description = "Lọc danh sách users theo vai trò (GUEST, STUDENT, TEACHER, MANAGER, ADMIN)")
     @ApiResponse(responseCode = "200", description = "Lấy danh sách thành công")
     public ResponseEntity<List<UserDTO>> getUsersByRole(
@@ -95,6 +101,7 @@ public class UserController {
     
     // Thêm role cho user
     @PostMapping("/{id}/roles/{roleName}")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Thêm quyền cho user", description = "Gán thêm một vai trò cho user (chỉ admin mới có quyền)")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Thêm quyền thành công"),
@@ -113,6 +120,7 @@ public class UserController {
     
     // Xóa role khỏi user
     @DeleteMapping("/{id}/roles/{roleName}")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Xóa quyền của user", description = "Gỡ bỏ một vai trò khỏi user (chỉ admin mới có quyền)")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Xóa quyền thành công"),
@@ -149,7 +157,8 @@ public class UserController {
     
     // Xóa user
     @DeleteMapping("/{id}")
-    @Operation(summary = "Xóa user", description = "Xóa user khỏi hệ thống (chỉ admin có quyền)")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Xóa user", description = "Xóa user khỏi hệ thống [ADMIN]")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "204", description = "Xóa thành công"),
         @ApiResponse(responseCode = "404", description = "Không tìm thấy user")

@@ -1,5 +1,6 @@
 com/victory/DAVictory/entity/QuestionHint.class
 com/victory/DAVictory/repository/WritingFeedbackTemplateRepository.class
+com/victory/DAVictory/security/JwtAuthenticationFilter.class
 com/victory/DAVictory/controller/TestManagementController.class
 com/victory/DAVictory/repository/SpeakingCueCardRepository.class
 com/victory/DAVictory/controller/WritingController$ScoreWritingRequest.class
@@ -28,6 +29,7 @@ com/victory/DAVictory/repository/WritingSampleAnswerRepository.class
 com/victory/DAVictory/entity/Session.class
 com/victory/DAVictory/repository/TeacherProfileRepository.class
 com/victory/DAVictory/controller/TestBuilderController$GenerateTestRequest.class
+com/victory/DAVictory/config/SecurityConfig.class
 com/victory/DAVictory/controller/WritingController.class
 com/victory/DAVictory/entity/DifficultyLevel.class
 com/victory/DAVictory/repository/StudentSkillScoreRepository.class
@@ -89,6 +91,7 @@ com/victory/DAVictory/repository/SpeakingFeedbackRepository.class
 com/victory/DAVictory/repository/TestRepository.class
 com/victory/DAVictory/entity/SpeakingCueCard.class
 com/victory/DAVictory/entity/WritingSampleAnswer.class
+com/victory/DAVictory/security/CustomUserDetailsService.class
 com/victory/DAVictory/entity/WritingPrompt.class
 com/victory/DAVictory/controller/SpeakingController$ScoreSpeakingRequest.class
 com/victory/DAVictory/entity/Tag.class
@@ -98,6 +101,7 @@ com/victory/DAVictory/controller/SpeakingController$StartSpeakingRequest.class
 com/victory/DAVictory/entity/Class.class
 com/victory/DAVictory/entity/StudentProgress.class
 com/victory/DAVictory/repository/AttemptSectionRepository.class
+com/victory/DAVictory/security/JwtUtil.class
 com/victory/DAVictory/repository/TestSessionRepository.class
 com/victory/DAVictory/repository/MatchingPairRepository.class
 com/victory/DAVictory/repository/QuestionTagRepository.class

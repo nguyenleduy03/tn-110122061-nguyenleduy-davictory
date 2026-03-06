@@ -9,6 +9,7 @@ import com.victory.DAVictory.service.TestStructureService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.util.HashSet;
@@ -23,6 +24,7 @@ public class DataInitializer implements CommandLineRunner {
     private final TestStructureService testStructureService;
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final PasswordEncoder passwordEncoder;
 
     private static final String DEFAULT_PASSWORD = "davictory";
 
@@ -101,7 +103,7 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     /**
-     * Tạo user nếu chưa tồn tại
+     * Tạo user nếu chưa tồn tại, hoặc cập nhật password nếu chưa được mã hóa BCrypt
      */
     private void createUserIfNotExists(String username, String email, String password,
                                       String fullName, String phoneNumber, String roleName) {
@@ -109,23 +111,33 @@ public class DataInitializer implements CommandLineRunner {
             User user = new User();
             user.setUsername(username);
             user.setEmail(email);
-            user.setPassword(password); // TODO: Sẽ mã hóa khi implement Spring Security
+            user.setPassword(passwordEncoder.encode(password)); // BCrypt mã hóa
             user.setFullName(fullName);
             user.setPhoneNumber(phoneNumber);
             user.setIsActive(true);
-            
+
             // Gán role
             Role role = roleRepository.findByName(roleName)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy role: " + roleName));
-            
+
             Set<Role> roles = new HashSet<>();
             roles.add(role);
             user.setRoles(roles);
-            
+
             userRepository.save(user);
             log.info("  ✓ Tạo tài khoản: {} (quyền: {})", username, roleName);
         } else {
-            log.info("  ○ Tài khoản đã tồn tại: {}", username);
+            // Nếu password chưa được BCrypt (plain text từ lần chạy cũ), cập nhật lại
+            userRepository.findByUsername(username).ifPresent(user -> {
+                String pwd = user.getPassword();
+                if (pwd != null && !pwd.startsWith("$2a$") && !pwd.startsWith("$2b$")) {
+                    user.setPassword(passwordEncoder.encode(password));
+                    userRepository.save(user);
+                    log.info("  ↑ Đã mã hóa lại password cho: {}", username);
+                } else {
+                    log.info("  ○ Tài khoản đã tồn tại: {}", username);
+                }
+            });
         }
     }
 
