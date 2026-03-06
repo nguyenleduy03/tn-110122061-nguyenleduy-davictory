@@ -1,0 +1,30 @@
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import HomePage from './pages/HomePage'
+import ExamLibrary from './pages/ExamLibrary'
+import IeltsReadingTest from './pages/IeltsReadingTest'
+import IeltsListeningTest from './pages/IeltsListeningTest'
+import Login from './pages/Login'
+import Register from './pages/Register'
+import TestBuilder from './pages/TestBuilder'
+import './App.css'
+
+function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/exam-library" element={<ExamLibrary />} />
+        <Route path="/test/reading" element={<IeltsReadingTest />} />
+        <Route path="/test/reading/:id" element={<IeltsReadingTest />} />
+        <Route path="/test/listening" element={<IeltsListeningTest />} />
+        <Route path="/test/listening/:id" element={<IeltsListeningTest />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/teacher/tests/new" element={<TestBuilder />} />
+        <Route path="/teacher/tests/:id/edit" element={<TestBuilder />} />
+      </Routes>
+    </Router>
+  )
+}
+
+export default App
