@@ -3,7 +3,7 @@ import FillInBlankQuestion from './FillInBlankQuestion';
 import MultipleChoiceQuestion from './MultipleChoiceQuestion';
 import DragDropGroupQuestion from './DragDropGroupQuestion';
 
-const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answer, handleAnswerChange, inputRefs }) => {
+const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answer, handleAnswerChange, inputRefs, bookmarks, toggleBookmark }) => {
     if (!q) return null;
 
     if (q.type === 'fill-in-the-blank') {
@@ -15,6 +15,10 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
                 answer={answer !== undefined ? answer : answers?.[q.id]}
                 handleAnswerChange={handleAnswerChange}
                 inputRefs={inputRefs}
+                bookmarks={bookmarks}
+                toggleBookmark={toggleBookmark}
+                bookmarks={bookmarks}
+                toggleBookmark={toggleBookmark}
             />
         );
     }
@@ -27,6 +31,8 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
                 setActiveQuestion={setActiveQuestion}
                 answer={answer !== undefined ? answer : answers?.[q.id]}
                 handleAnswerChange={handleAnswerChange}
+                bookmarks={bookmarks}
+                toggleBookmark={toggleBookmark}
             />
         );
     }
@@ -39,6 +45,8 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
                 setActiveQuestion={setActiveQuestion}
                 answers={answers || {}}
                 handleAnswerChange={handleAnswerChange}
+                bookmarks={bookmarks}
+                toggleBookmark={toggleBookmark}
             />
         );
     }

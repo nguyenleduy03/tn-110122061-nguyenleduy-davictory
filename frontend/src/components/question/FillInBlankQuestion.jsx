@@ -1,11 +1,15 @@
 import React from 'react';
+import { Bookmark } from 'lucide-react';
 
-const FillInBlankQuestion = ({ q, activeQuestion, setActiveQuestion, answer, handleAnswerChange, inputRefs }) => {
+const FillInBlankQuestion = ({ q, activeQuestion, setActiveQuestion, answer, handleAnswerChange, inputRefs, bookmarks, toggleBookmark }) => {
     const parts = q.text ? q.text.split('_______') : [];
-    if (parts.length < 2) return <li id={`question-${q.number}`}>{q.text}</li>;
+    if (parts.length < 2) return <li id={`question-${q.number}`} style={{ position: "relative" }}><span onClick={(e) => { e.stopPropagation(); toggleBookmark?.(q.number); }} style={{ position: "absolute", left: "-28px", top: "5px", cursor: "pointer", display: "flex" }}><Bookmark size={16} fill={bookmarks?.[q.number] ? "#1a73e8" : "none"} color={bookmarks?.[q.number] ? "#1a73e8" : "#ccc"} /></span>{q.text}</li>;
 
     return (
-        <li id={`question-${q.number}`}>
+        <li id={`question-${q.number}`} style={{ position: "relative" }}>
+            <span onClick={(e) => { e.stopPropagation(); toggleBookmark?.(q.number); }} style={{ position: "absolute", left: "-28px", top: "5px", cursor: "pointer", display: "flex" }}>
+                <Bookmark size={16} fill={bookmarks?.[q.number] ? "#1a73e8" : "none"} color={bookmarks?.[q.number] ? "#1a73e8" : "#ccc"} />
+            </span>
             {parts[0]}
             <span
                 className={`inline-question ${activeQuestion === q.number ? 'active-question-input' : ''}`}

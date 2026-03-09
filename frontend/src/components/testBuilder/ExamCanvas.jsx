@@ -815,8 +815,9 @@ function MapLabellingBlock({ group, onUpdate, onDelete, onSelect, selected, drag
 }
 
 // ---- Table Completion Block ----
-// Teacher builds a table with column headers, rows, and [blank] markers in cells.
-// Blanks are numbered in reading order; each blank maps to a question+answer.
+// Each cell uses TcCellEditor: contentEditable with drag/click-at-cursor to insert
+// globally-numbered blank chips.  Data model unchanged: cells store "[blank]" text.
+
 function syncTcQuestions(cols, rows, currentQs, fromQ) {
   let n = 0;
   for (const row of rows) {
@@ -834,6 +835,146 @@ function syncTcQuestions(cols, rows, currentQs, fromQ) {
   return newQs;
 }
 
+// ---- Per-cell rich editor for TableCompletion ----
+// Works like RichBlankEditor but chips display the GLOBAL question number.
+function TcCellEditor({ value, onChange, startQNum }) {
+  const editorRef = useRef(null);
+  const [dragOver, setDragOver] = useState(false);
+  const startQRef  = useRef(startQNum);
+
+  const esc = (s) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+  const toHTML = (text, firstNum) => {
+    if (!text) return '';
+    let n = firstNum - 1;
+    return esc(text).replace(/\[blank\]/gi, () => {
+      n++;
+      return `<span class="rbe-blank rbe-blank-indigo" contenteditable="false" data-blank="true">`
+           + `<span class="rbe-blank-num">${n}</span>`
+           + `<button class="rbe-blank-del" data-del="true" type="button">×</button></span>`;
+    });
+  };
+
+  const toText = (el) => {
+    let out = '';
+    for (const node of el.childNodes) {
+      if (node.nodeType === 3) out += node.textContent;
+      else if (node.nodeName === 'BR') out += '\n';
+      else if (node.dataset?.blank === 'true') out += '[blank]';
+      else out += toText(node);
+    }
+    return out;
+  };
+
+  const renumber = () => {
+    let n = startQRef.current - 1;
+    editorRef.current?.querySelectorAll('[data-blank="true"] .rbe-blank-num').forEach((el) => {
+      el.textContent = ++n;
+    });
+  };
+
+  // Initial mount
+  useEffect(() => {
+    if (editorRef.current) editorRef.current.innerHTML = toHTML(value || '', startQNum);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // When startQNum changes (prev cells changed), re-number chips without disrupting focus
+  useEffect(() => {
+    startQRef.current = startQNum;
+    renumber();
+  }); // run every render — cheap, just updates text nodes
+
+  const createChip = () => {
+    const span = document.createElement('span');
+    span.className = 'rbe-blank rbe-blank-indigo';
+    span.contentEditable = 'false';
+    span.dataset.blank = 'true';
+    const num = document.createElement('span');
+    num.className = 'rbe-blank-num';
+    num.textContent = '?';
+    const btn = document.createElement('button');
+    btn.className = 'rbe-blank-del';
+    btn.dataset.del = 'true';
+    btn.type = 'button';
+    btn.textContent = '×';
+    span.appendChild(num);
+    span.appendChild(btn);
+    return span;
+  };
+
+  const insertAtCaret = () => {
+    editorRef.current?.focus();
+    const sel = window.getSelection();
+    let range;
+    if (sel?.rangeCount && editorRef.current?.contains(sel.getRangeAt(0).commonAncestorContainer)) {
+      range = sel.getRangeAt(0);
+    } else {
+      range = document.createRange();
+      range.selectNodeContents(editorRef.current);
+      range.collapse(false);
+    }
+    range.deleteContents();
+    const chip = createChip();
+    range.insertNode(chip);
+    const nr = document.createRange();
+    nr.setStartAfter(chip);
+    nr.collapse(true);
+    sel?.removeAllRanges();
+    sel?.addRange(nr);
+    renumber();
+    onChange(toText(editorRef.current));
+  };
+
+  return (
+    <div className="tc-cell-rbe" onClick={(e) => e.stopPropagation()}>
+      <div className="tc-cell-toolbar">
+        <div className="rbe-drag-chip" draggable
+          title="Kéo vào ô"
+          onDragStart={(e) => {
+            e.dataTransfer.setData('text/x-rbe','1');
+            e.dataTransfer.effectAllowed = 'copy';
+          }}>▣</div>
+        <button type="button" className="exam-tc-blank-btn" onClick={insertAtCaret} title="Chèn ô tại con trỏ">+□</button>
+      </div>
+      <div
+        ref={editorRef}
+        className={`tc-cell-editor${dragOver ? ' drag-over' : ''}`}
+        contentEditable
+        suppressContentEditableWarning
+        data-placeholder="Nhập nội dung…"
+        onInput={() => { renumber(); onChange(toText(editorRef.current)); }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') { e.preventDefault(); document.execCommand('insertLineBreak'); onChange(toText(editorRef.current)); }
+        }}
+        onDragOver={(e) => { if ([...e.dataTransfer.types].includes('text/x-rbe')) { e.preventDefault(); setDragOver(true); } }}
+        onDragLeave={(e) => { if (!editorRef.current?.contains(e.relatedTarget)) setDragOver(false); }}
+        onDrop={(e) => {
+          if (![...e.dataTransfer.types].includes('text/x-rbe')) return;
+          e.preventDefault(); setDragOver(false);
+          let range = document.caretRangeFromPoint?.(e.clientX, e.clientY);
+          if (!range && document.caretPositionFromPoint) {
+            const pos = document.caretPositionFromPoint(e.clientX, e.clientY);
+            if (pos) { range = document.createRange(); range.setStart(pos.offsetNode, pos.offset); }
+          }
+          if (!range) return;
+          const cont = range.startContainer.nodeType === 1 ? range.startContainer : range.startContainer.parentElement;
+          if (cont?.closest('[data-blank="true"]')) return;
+          range.deleteContents();
+          range.insertNode(createChip());
+          renumber();
+          onChange(toText(editorRef.current));
+        }}
+        onClick={(e) => {
+          if (e.target.dataset?.del === 'true' || e.target.closest?.('[data-del]')) {
+            const chip = e.target.closest('[data-blank="true"]');
+            if (chip) { chip.remove(); renumber(); onChange(toText(editorRef.current)); e.preventDefault(); }
+          }
+        }}
+      />
+    </div>
+  );
+}
+
 function TableCompletionBlock({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps,
   onUpdateQuestion, selectedQuestionId }) {
   const columns   = group.columns   ?? [{ id: 'c0', header: '' }, { id: 'c1', header: 'Cột 1' }, { id: 'c2', header: 'Cột 2' }];
@@ -841,7 +982,7 @@ function TableCompletionBlock({ group, onUpdate, onDelete, onSelect, selected, d
   const questions = group.questions ?? [];
   const fromQ     = group.fromQuestion ?? 1;
 
-  const update = (cols, rows, qOverride) => {
+  const syncAndSave = (cols, rows, qOverride) => {
     const newQs = qOverride ?? syncTcQuestions(cols, rows, questions, fromQ);
     onUpdate(group.id, { columns: cols, tableRows: rows, questions: newQs });
   };
@@ -850,41 +991,46 @@ function TableCompletionBlock({ group, onUpdate, onDelete, onSelect, selected, d
     const newRows = tableRows.map((r) =>
       r.id === rowId ? { ...r, cells: { ...r.cells, [colId]: val } } : r
     );
-    update(columns, newRows);
-  };
-
-  const insertBlank = (rowId, colId) => {
-    const cur = tableRows.find((r) => r.id === rowId)?.cells?.[colId] ?? '';
-    setCell(rowId, colId, cur + '[blank]');
+    syncAndSave(columns, newRows);
   };
 
   const addColumn = () => {
     const id = `c${Date.now()}`;
     const newCols = [...columns, { id, header: '' }];
     const newRows = tableRows.map((r) => ({ ...r, cells: { ...r.cells, [id]: '' } }));
-    update(newCols, newRows);
+    syncAndSave(newCols, newRows);
   };
 
   const removeColumn = (colId) => {
     if (columns.length <= 1) return;
     const newCols = columns.filter((c) => c.id !== colId);
     const newRows = tableRows.map((r) => { const c = { ...r.cells }; delete c[colId]; return { ...r, cells: c }; });
-    update(newCols, newRows);
+    syncAndSave(newCols, newRows);
   };
 
   const addRow = () => {
     const id = `r${Date.now()}`;
     const cells = Object.fromEntries(columns.map((c) => [c.id, '']));
-    update(columns, [...tableRows, { id, cells }]);
+    syncAndSave(columns, [...tableRows, { id, cells }]);
   };
 
   const removeRow = (rowId) => {
-    update(columns, tableRows.filter((r) => r.id !== rowId));
+    syncAndSave(columns, tableRows.filter((r) => r.id !== rowId));
   };
 
   const setColHeader = (colId, val) => {
     onUpdate(group.id, { columns: columns.map((c) => c.id === colId ? { ...c, header: val } : c) });
   };
+
+  // Compute startQNum for each cell (reading order: row by row, col by col)
+  const cellStartMap = {};
+  let qCursor = fromQ;
+  for (const row of tableRows) {
+    for (const col of columns) {
+      cellStartMap[`${row.id}-${col.id}`] = qCursor;
+      qCursor += ((row.cells?.[col.id] ?? '').match(/\[blank\]/g) ?? []).length;
+    }
+  }
 
   return (
     <div className={`exam-group${selected ? ' selected' : ''}`}
@@ -892,26 +1038,31 @@ function TableCompletionBlock({ group, onUpdate, onDelete, onSelect, selected, d
       <GroupToolbar group={group} dragHandleProps={dragHandleProps} onDelete={onDelete} />
 
       {/* Table title */}
-      <div onClick={(e) => e.stopPropagation()} style={{ marginBottom: 8 }}>
-        <input className="exam-img-url-field" style={{ width: '100%', fontWeight: 600, textAlign: 'center' }}
+      <div className="exam-tc-title-row" onClick={(e) => e.stopPropagation()}>
+        <input
+          className="exam-img-url-field"
+          style={{ width: '100%', fontWeight: 700, textAlign: 'center', fontSize: 13 }}
           value={group.tableTitle ?? ''}
           placeholder="Tiêu đề bảng (VD: Research findings)"
-          onChange={(e) => onUpdate(group.id, { tableTitle: e.target.value })} />
+          onChange={(e) => onUpdate(group.id, { tableTitle: e.target.value })}
+        />
       </div>
 
-      {/* Table editor */}
+      {/* Table */}
       <div className="exam-tc-scroll" onClick={(e) => e.stopPropagation()}>
         <table className="exam-tc-table">
           <thead>
             <tr>
               {columns.map((col, ci) => (
                 <th key={col.id} className="exam-tc-header-cell">
-                  <input className="exam-tc-header-input"
+                  <input
+                    className="exam-tc-header-input"
                     value={col.header}
                     placeholder={ci === 0 ? '(nhãn hàng)' : `Tiêu đề cột ${ci}`}
-                    onChange={(e) => setColHeader(col.id, e.target.value)} />
+                    onChange={(e) => setColHeader(col.id, e.target.value)}
+                  />
                   {columns.length > 2 && (
-                    <button className="exam-tc-del-btn" onClick={() => removeColumn(col.id)} title="Xóa cột">×</button>
+                    <button className="exam-tc-del-col" onClick={() => removeColumn(col.id)} title="Xóa cột">×</button>
                   )}
                 </th>
               ))}
@@ -924,23 +1075,15 @@ function TableCompletionBlock({ group, onUpdate, onDelete, onSelect, selected, d
           <tbody>
             {tableRows.map((row) => (
               <tr key={row.id}>
-                {columns.map((col) => {
-                  const cellVal = row.cells?.[col.id] ?? '';
-                  return (
-                    <td key={col.id} className="exam-tc-cell">
-                      <div className="exam-tc-cell-editor">
-                        <textarea className="exam-tc-cell-textarea"
-                          value={cellVal}
-                          placeholder="Nội dung… dùng [blank] cho ô trống"
-                          rows={2}
-                          onChange={(e) => setCell(row.id, col.id, e.target.value)} />
-                        <button className="exam-tc-blank-btn"
-                          onClick={() => insertBlank(row.id, col.id)}
-                          title="Chèn ô trống">+□</button>
-                      </div>
-                    </td>
-                  );
-                })}
+                {columns.map((col, ci) => (
+                  <td key={col.id} className={`exam-tc-cell${ci === 0 ? ' exam-tc-row-label-cell' : ''}`}>
+                    <TcCellEditor
+                      value={row.cells?.[col.id] ?? ''}
+                      onChange={(val) => setCell(row.id, col.id, val)}
+                      startQNum={cellStartMap[`${row.id}-${col.id}`] ?? fromQ}
+                    />
+                  </td>
+                ))}
                 <td className="exam-tc-del-row-td">
                   <button className="exam-q-del-btn" onClick={() => removeRow(row.id)}>×</button>
                 </td>
@@ -974,8 +1117,8 @@ function TableCompletionBlock({ group, onUpdate, onDelete, onSelect, selected, d
       {/* Answer key */}
       {questions.length > 0 && (
         <div className="exam-ml-answer-section" onClick={(e) => e.stopPropagation()}>
-          <div className="exam-ml-answer-title">🔑 Đáp án (theo thứ tự ô trống trong bảng, từ trái sang phải, trên xuống dưới)</div>
-          {questions.map((q, idx) => (
+          <div className="exam-ml-answer-title">🔑 Đáp án (theo thứ tự ô trống)</div>
+          {questions.map((q) => (
             <div key={q.id} className="exam-ml-answer-row">
               <span className="exam-ml-answer-num">Câu {q.questionNumber}</span>
               <input className="exam-q-text-input" style={{ flex: 1, margin: 0 }}
@@ -990,6 +1133,7 @@ function TableCompletionBlock({ group, onUpdate, onDelete, onSelect, selected, d
     </div>
   );
 }
+
 
 // ---- Drag Matching Block ----
 // Two-column: left = items with numbered gap, right = word bank (editable options)

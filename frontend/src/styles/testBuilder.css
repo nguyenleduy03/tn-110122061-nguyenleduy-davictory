@@ -1792,3 +1792,28 @@
 }
 .pv-tc-blank:focus { border-bottom-color: #1a73e8; background: #f0f7ff; }
 .pv-tc-blank.active { border-bottom-color: #ea4335; }
+
+/* ================================================================
+   TABLE COMPLETION — TcCellEditor (per-cell rich blank editor)
+   ================================================================ */
+.rbe-blank-indigo { background: #e0e7ff; color: #4338ca; border-color: #a5b4fc; }
+
+.tc-cell-rbe { display: flex; flex-direction: column; gap: 2px; }
+.tc-cell-toolbar {
+  display: flex; gap: 4px; align-items: center;
+  padding-bottom: 2px;
+}
+.tc-cell-editor {
+  min-height: 30px; padding: 4px 6px; border: 1px solid #e5e7eb;
+  border-radius: 3px; font-size: 12px; line-height: 1.6;
+  outline: none; font-family: inherit; cursor: text;
+  background: #fff;
+  word-break: break-word;
+}
+.tc-cell-editor:focus { border-color: #6366f1; background: #fafafe; }
+.tc-cell-editor.drag-over { border-color: #6366f1; background: #eef2ff; }
+.tc-cell-editor[data-placeholder]:empty::before {
+  content: attr(data-placeholder);
+  color: #c0c0c0; pointer-events: none; font-style: italic;
+}
+.exam-tc-row-label-cell .tc-cell-editor { font-weight: 600; }

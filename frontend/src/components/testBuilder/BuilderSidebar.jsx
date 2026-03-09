@@ -1,5 +1,4 @@
-i
-  { type: 'group', contentType: 'TABLE_COMPLETION', label: 'Table Completion', icon: '📊', skills: ['LISTENING', 'READING'] },mport React, { useState } from 'react';
+import React, { useState } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { Headphones, BookOpen, PenLine, Mic } from 'lucide-react';
 
@@ -28,6 +27,7 @@ const PALETTE_ITEMS = [
   { type: 'group', contentType: 'DRAG_MATCHING',        label: 'Drag Matching',         icon: '↔️', skills: ['LISTENING', 'READING'] },
   { type: 'group', contentType: 'DIAGRAM',              label: 'Sơ đồ / Chart',         icon: '📊', skills: ['LISTENING', 'READING'] },
   { type: 'group', contentType: 'TABLE',                label: 'Bảng / Form',           icon: '📋', skills: ['LISTENING', 'READING', 'WRITING'] },
+  { type: 'group', contentType: 'TABLE_COMPLETION', label: 'Table Completion', icon: '📊', skills: ['LISTENING', 'READING'] },
   // ── All skills ──
   { type: 'group', contentType: 'STANDALONE',           label: 'Câu độc lập',           icon: '📝', skills: ['LISTENING', 'READING', 'WRITING', 'SPEAKING'] },
 ];

@@ -10,7 +10,11 @@ const IeltsListeningTest = () => {
     const [testData, setTestData] = useState(null);
     const [answers, setAnswers] = useState({});
     const [loading, setLoading] = useState(true);
+    const [bookmarks, setBookmarks] = useState({});
 
+    const toggleBookmark = (num) => {
+        setBookmarks(prev => ({ ...prev, [num]: !prev[num] }));
+    };
     const inputRefs = useRef({});
         const {
         currentPartIndex,
@@ -102,6 +106,10 @@ const IeltsListeningTest = () => {
                                     setActiveQuestion={setActiveQuestion}
                                     answers={answers}
                                     handleAnswerChange={handleAnswerChange}
+                                        bookmarks={bookmarks}
+                                        toggleBookmark={toggleBookmark}
+                                        bookmarks={bookmarks}
+                                        toggleBookmark={toggleBookmark}
                                     inputRefs={inputRefs}
                                 />
                             ))}
@@ -118,6 +126,10 @@ const IeltsListeningTest = () => {
                                     setActiveQuestion={setActiveQuestion}
                                     answers={answers}
                                     handleAnswerChange={handleAnswerChange}
+                                        bookmarks={bookmarks}
+                                        toggleBookmark={toggleBookmark}
+                                        bookmarks={bookmarks}
+                                        toggleBookmark={toggleBookmark}
                                 />
                             ))}
                         </div>
@@ -135,6 +147,10 @@ const IeltsListeningTest = () => {
                                         setActiveQuestion={setActiveQuestion}
                                         answers={answers}
                                         handleAnswerChange={handleAnswerChange}
+                                        bookmarks={bookmarks}
+                                        toggleBookmark={toggleBookmark}
+                                        bookmarks={bookmarks}
+                                        toggleBookmark={toggleBookmark}
                                         inputRefs={inputRefs}
                                     />
                                 ))}
@@ -188,7 +204,9 @@ const IeltsListeningTest = () => {
                                             
                                             return (
                                                 <div 
-                                                    className="q-wrapper" 
+                                                    className="q-wrapper"
+                                                    style={{ position: "relative" }}
+                                                    style={{ position: "relative" }} 
                                                     key={num}
                                                     onClick={(e) => {
                                                         e.stopPropagation();

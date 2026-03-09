@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { Check, ArrowLeft, ArrowRight, ArrowLeftRight } from "lucide-react";
+import { Check, ArrowLeft, ArrowRight, ArrowLeftRight, Bookmark } from "lucide-react";
 import "../styles/ieltsTest.css";
 import TestHeader from "../components/common/TestHeader";
 import QuestionRenderer from "../components/question/QuestionRenderer";
@@ -9,7 +9,7 @@ import { useTestNavigation } from "../hooks/useTestNavigation";
 import { ieltsApi } from "../services/ieltsApi";
 
 
-const HeadingGap = ({ qId, number, answer, handleAnswerChange, isActive, setActiveQuestion }) => {
+const HeadingGap = ({ qId, number, answer, handleAnswerChange, isActive, setActiveQuestion, bookmarks, toggleBookmark }) => {
     const handleDragOver = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
     const handleDrop = (e) => {
         e.preventDefault();
@@ -63,9 +63,17 @@ const HeadingGap = ({ qId, number, answer, handleAnswerChange, isActive, setActi
             onDragOver={handleDragOver} onDrop={handleDrop} draggable={!!answer} onDragStart={handleDragStart}
         >
             {!answer ? (
-                <span style={{ fontWeight: 'bold', color: '#000', fontSize: '16px' }}>{number}</span>
+                <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                    <span onClick={(e) => { e.stopPropagation(); toggleBookmark?.(number); }} style={{ cursor: "pointer", display: "flex" }}>
+                        <Bookmark size={15} fill={bookmarks?.[number] ? "#1a73e8" : "none"} color={bookmarks?.[number] ? "#1a73e8" : "#666"} />
+                    </span>
+                    <span style={{ fontWeight: "bold", color: "#000", fontSize: "16px" }}>{number}</span>
+                </div>
             ) : (
-                <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                <div style={{ display: "flex", alignItems: "center", width: "100%", gap: "5px" }}>
+                    <span onClick={(e) => { e.stopPropagation(); toggleBookmark?.(number); }} style={{ cursor: "pointer", display: "flex", zIndex: 10 }}>
+                        <Bookmark size={15} fill={bookmarks?.[number] ? "#1a73e8" : "none"} color={bookmarks?.[number] ? "#1a73e8" : "#666"} />
+                    </span>
                     <span>{answer}</span>
                 </div>
             )}
@@ -77,7 +85,7 @@ const PassageContentStatic = React.memo(({ content }) => (
     <div className="passage-content" dangerouslySetInnerHTML={{ __html: content }}></div>
 ), (prev, next) => prev.content === next.content);
 
-const PassageRenderer = ({ part, answers, handleAnswerChange, activeQuestion, setActiveQuestion }) => {
+const PassageRenderer = ({ part, answers, handleAnswerChange, activeQuestion, setActiveQuestion, bookmarks, toggleBookmark }) => {
     const [gaps, setGaps] = React.useState([]);
 
     React.useEffect(() => {
@@ -101,8 +109,14 @@ const PassageRenderer = ({ part, answers, handleAnswerChange, activeQuestion, se
                         key={qId || i}
                         qId={qId} number={num} answer={answers[qId]}
                         handleAnswerChange={handleAnswerChange}
+                                        bookmarks={bookmarks}
+                                        toggleBookmark={toggleBookmark}
                         isActive={activeQuestion == num}
                         setActiveQuestion={setActiveQuestion}
+                        bookmarks={bookmarks}
+                        toggleBookmark={toggleBookmark}
+                        bookmarks={bookmarks}
+                        toggleBookmark={toggleBookmark}
                     />,
                     node
                 );
@@ -115,6 +129,11 @@ const IeltsReadingTest = () => {
     const [testData, setTestData] = useState(null);
     const [answers, setAnswers] = useState({});
     const [loading, setLoading] = useState(true);
+    const [bookmarks, setBookmarks] = useState({});
+
+    const toggleBookmark = (num) => {
+        setBookmarks(prev => ({ ...prev, [num]: !prev[num] }));
+    };
 
     const inputRefs = useRef({});
     const { leftWidth, containerRef, handleDragStart } = useDividerResize(50);
@@ -184,7 +203,9 @@ const IeltsReadingTest = () => {
             <main className="ielts-main" ref={containerRef}>
                 <div className="passage-section" style={{ width: `${leftWidth}%`, flex: 'none' }}>
                     <h2 className="passage-title">{part.passageTitle}</h2>
-                    <PassageRenderer part={part} answers={answers} handleAnswerChange={handleAnswerChange} activeQuestion={activeQuestion} setActiveQuestion={setActiveQuestion} />
+                    <PassageRenderer part={part} answers={answers} handleAnswerChange={handleAnswerChange}
+                                        bookmarks={bookmarks}
+                                        toggleBookmark={toggleBookmark} activeQuestion={activeQuestion} setActiveQuestion={setActiveQuestion} />
                 </div>
 
                 <div className="divider" onMouseDown={handleDragStart}>
@@ -208,6 +229,8 @@ const IeltsReadingTest = () => {
                                         setActiveQuestion={setActiveQuestion}
                                         answers={answers}
                                         handleAnswerChange={handleAnswerChange}
+                                        bookmarks={bookmarks}
+                                        toggleBookmark={toggleBookmark}
                                     />
                                 ))}
                             </div>
@@ -223,6 +246,8 @@ const IeltsReadingTest = () => {
                                         setActiveQuestion={setActiveQuestion}
                                         answers={answers}
                                         handleAnswerChange={handleAnswerChange}
+                                        bookmarks={bookmarks}
+                                        toggleBookmark={toggleBookmark}
                                     />
                                 ))}
                             </div>
@@ -240,6 +265,8 @@ const IeltsReadingTest = () => {
                                             setActiveQuestion={setActiveQuestion}
                                             answers={answers}
                                             handleAnswerChange={handleAnswerChange}
+                                        bookmarks={bookmarks}
+                                        toggleBookmark={toggleBookmark}
                                             inputRefs={inputRefs}
                                         />
                                     ))}
@@ -295,6 +322,7 @@ const IeltsReadingTest = () => {
                                             return (
                                                 <div
                                                     className="q-wrapper"
+                                                    style={{ position: "relative" }}
                                                     key={num}
                                                     onClick={(e) => {
                                                         e.stopPropagation();

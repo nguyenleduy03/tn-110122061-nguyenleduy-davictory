@@ -1,6 +1,7 @@
 import React from 'react';
+import { Bookmark } from 'lucide-react';
 
-const DragDropGroupQuestion = ({ q, activeQuestion, setActiveQuestion, answers, handleAnswerChange }) => {
+const DragDropGroupQuestion = ({ q, activeQuestion, setActiveQuestion, answers, handleAnswerChange, bookmarks, toggleBookmark }) => {
     const handleDragStart = (e, option) => {
         e.dataTransfer.setData('text/plain', option);
         e.dataTransfer.effectAllowed = 'move';
@@ -99,11 +100,21 @@ const DragDropGroupQuestion = ({ q, activeQuestion, setActiveQuestion, answers, 
                                 onClick={() => setActiveQuestion?.(subQ.number)}
                             >
                                 {isMatchingInfo && subQ.text ? (
-                                    <span style={{ flex: 'none', marginRight: '10px' }}>{subQ.text}</span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 'none', marginRight: '10px' }}>
+                                        <span onClick={(e) => { e.stopPropagation(); toggleBookmark?.(subQ.number); }} style={{ cursor: "pointer", display: "flex" }}>
+                                            <Bookmark size={15} fill={bookmarks?.[subQ.number] ? "#1a73e8" : "none"} color={bookmarks?.[subQ.number] ? "#1a73e8" : "#ccc"} />
+                                        </span>
+                                        <span>{subQ.text}</span>
+                                    </div>
                                 ) : null}
 
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    {!isMatchingInfo && <span style={{ fontWeight: '500', width: '25px' }}>{subQ.number}</span>}
+                                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                                    {!isMatchingInfo && <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                                        <span onClick={(e) => { e.stopPropagation(); toggleBookmark?.(subQ.number); }} style={{ cursor: "pointer", display: "flex" }}>
+                                            <Bookmark size={15} fill={bookmarks?.[subQ.number] ? "#1a73e8" : "none"} color={bookmarks?.[subQ.number] ? "#1a73e8" : "#ccc"} />
+                                        </span>
+                                        <span style={{ fontWeight: "bold", width: "20px" }}>{subQ.number}</span>
+                                    </div>}
                                     {!isMatchingInfo && <span style={{ flex: 1 }}>{subQ.text}</span>}
 
                                     {/* number inside instead */}
