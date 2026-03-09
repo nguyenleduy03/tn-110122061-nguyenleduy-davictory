@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { ArrowLeft, ArrowRight, Volume2, ArrowLeftRight, Check } from "lucide-react";
+import { ArrowLeft, ArrowRight, Volume2, ArrowLeftRight, Check, Bookmark } from "lucide-react";
 import "../styles/ieltsTest.css";
 import TestHeader from "../components/common/TestHeader";
 import QuestionRenderer from "../components/question/QuestionRenderer";
@@ -16,7 +16,7 @@ const IeltsListeningTest = () => {
         setBookmarks(prev => ({ ...prev, [num]: !prev[num] }));
     };
     const inputRefs = useRef({});
-        const {
+    const {
         currentPartIndex,
         setCurrentPartIndex,
         activeQuestion,
@@ -106,10 +106,8 @@ const IeltsListeningTest = () => {
                                     setActiveQuestion={setActiveQuestion}
                                     answers={answers}
                                     handleAnswerChange={handleAnswerChange}
-                                        bookmarks={bookmarks}
-                                        toggleBookmark={toggleBookmark}
-                                        bookmarks={bookmarks}
-                                        toggleBookmark={toggleBookmark}
+                                    bookmarks={bookmarks}
+                                    toggleBookmark={toggleBookmark}
                                     inputRefs={inputRefs}
                                 />
                             ))}
@@ -126,10 +124,9 @@ const IeltsListeningTest = () => {
                                     setActiveQuestion={setActiveQuestion}
                                     answers={answers}
                                     handleAnswerChange={handleAnswerChange}
-                                        bookmarks={bookmarks}
-                                        toggleBookmark={toggleBookmark}
-                                        bookmarks={bookmarks}
-                                        toggleBookmark={toggleBookmark}
+                                    bookmarks={bookmarks}
+                                    toggleBookmark={toggleBookmark}
+
                                 />
                             ))}
                         </div>
@@ -147,8 +144,6 @@ const IeltsListeningTest = () => {
                                         setActiveQuestion={setActiveQuestion}
                                         answers={answers}
                                         handleAnswerChange={handleAnswerChange}
-                                        bookmarks={bookmarks}
-                                        toggleBookmark={toggleBookmark}
                                         bookmarks={bookmarks}
                                         toggleBookmark={toggleBookmark}
                                         inputRefs={inputRefs}
@@ -170,16 +165,16 @@ const IeltsListeningTest = () => {
             </main>
 
             <footer className="ielts-footer">
-                
+
                 <div className="footer-content">
                     {testData && testData.parts.map((p, index) => {
                         const isActivePart = currentPartIndex === index;
                         const answeredCount = getAnsweredCount(index);
                         const flatQuestions = p.questions?.flatMap(q => q.subQuestions ? q.subQuestions : q) || [];
-                        
+
                         return (
-                            <div 
-                                key={p.id} 
+                            <div
+                                key={p.id}
                                 className={`part-group ${isActivePart ? "active-part" : ""}`}
                                 onClick={() => setCurrentPartIndex(index)}
                             >
@@ -201,12 +196,11 @@ const IeltsListeningTest = () => {
                                             const ans = answers[q.id];
                                             const isAnswered = typeof ans === "string" ? ans.trim() !== "" : Array.isArray(ans) ? ans.length > 0 : !!ans;
                                             const isActive = activeQuestion === num;
-                                            
+
                                             return (
-                                                <div 
+                                                <div
                                                     className="q-wrapper"
                                                     style={{ position: "relative" }}
-                                                    style={{ position: "relative" }} 
                                                     key={num}
                                                     onClick={(e) => {
                                                         e.stopPropagation();
@@ -220,6 +214,11 @@ const IeltsListeningTest = () => {
                                                         }, 50);
                                                     }}
                                                 >
+                                                    {bookmarks[num] && (
+                                                        <div style={{ position: 'absolute', top: '-18px', display: 'flex', justifyContent: 'center', width: '100%' }}>
+                                                            <Bookmark size={14} fill="#1a73e8" color="#1a73e8" />
+                                                        </div>
+                                                    )}
                                                     <div className={`status-dash ${isAnswered ? "answered-dash" : ""}`} />
                                                     <span className={`q-num ${isActive ? "active" : ""}`}>
                                                         {num}
@@ -233,7 +232,7 @@ const IeltsListeningTest = () => {
                         );
                     })}
                 </div>
-            <button className="submit-check-btn" onClick={submitTest} title="Submit Test">
+                <button className="submit-check-btn" onClick={submitTest} title="Submit Test">
                     <Check size={28} strokeWidth={2.5} />
                 </button>
             </footer>

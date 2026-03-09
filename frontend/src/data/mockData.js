@@ -226,3 +226,186 @@ export const MOCK_LISTENING_DATA = {
     }
   ]
 };
+
+export const MOCK_WRITING_DATA = {
+  candidateName: "NGUYEN VAN A",
+  candidateId: "123456",
+  testType: "Academic Writing",
+  totalMinutes: 60,
+  parts: [
+    {
+      id: "writing-task-1",
+      title: "Task 1",
+      taskLabel: "Writing Task 1",
+      minWords: 150,
+      recommendedMinutes: 20,
+      instruction: `You should spend about 20 minutes on this task.
+
+The bar chart below shows the percentage of students at one UK university who used various facilities in the library during one week in 2019.
+
+Summarise the information by selecting and reporting the main features, and make comparisons where relevant.
+
+Write at least 150 words.`,
+      taskImageSvg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 320" style="font-family:Arial,sans-serif;font-size:12px;">
+  <rect width="520" height="320" fill="#fff" stroke="#ddd"/>
+  <!-- Y-axis label -->
+  <text x="14" y="165" transform="rotate(-90,14,165)" text-anchor="middle" font-size="11" fill="#555">Percentage of students (%)</text>
+  <!-- Title -->
+  <text x="260" y="22" text-anchor="middle" font-weight="bold" font-size="12" fill="#222">Library Facilities Used by Students (2019)</text>
+  <!-- Grid lines -->
+  <line x1="70" y1="40" x2="70" y2="265" stroke="#ccc" stroke-width="1"/>
+  <line x1="70" y1="265" x2="490" y2="265" stroke="#ccc" stroke-width="1"/>
+  <line x1="70" y1="225" x2="490" y2="225" stroke="#eee" stroke-dasharray="4,3"/>
+  <line x1="70" y1="185" x2="490" y2="185" stroke="#eee" stroke-dasharray="4,3"/>
+  <line x1="70" y1="145" x2="490" y2="145" stroke="#eee" stroke-dasharray="4,3"/>
+  <line x1="70" y1="105" x2="490" y2="105" stroke="#eee" stroke-dasharray="4,3"/>
+  <line x1="70" y1="65" x2="490" y2="65" stroke="#eee" stroke-dasharray="4,3"/>
+  <!-- Y-axis ticks -->
+  <text x="62" y="269" text-anchor="end" font-size="11" fill="#555">0</text>
+  <text x="62" y="229" text-anchor="end" font-size="11" fill="#555">10</text>
+  <text x="62" y="189" text-anchor="end" font-size="11" fill="#555">20</text>
+  <text x="62" y="149" text-anchor="end" font-size="11" fill="#555">30</text>
+  <text x="62" y="109" text-anchor="end" font-size="11" fill="#555">40</text>
+  <text x="62" y="69" text-anchor="end" font-size="11" fill="#555">50</text>
+  <!-- Bars: x-positions 80,150,220,290,360,430 each width 50 -->
+  <!-- Computers: 45% → height 180, top y = 265-180=85 -->
+  <rect x="80" y="85" width="50" height="180" fill="#4472c4"/>
+  <text x="105" y="80" text-anchor="middle" font-size="10" fill="#333">45%</text>
+  <!-- Study rooms: 38% → 152, top=113 -->
+  <rect x="150" y="113" width="50" height="152" fill="#ed7d31"/>
+  <text x="175" y="108" text-anchor="middle" font-size="10" fill="#333">38%</text>
+  <!-- Printing: 25% → 100, top=165 -->
+  <rect x="220" y="165" width="50" height="100" fill="#a9d18e"/>
+  <text x="245" y="160" text-anchor="middle" font-size="10" fill="#333">25%</text>
+  <!-- Reading area: 22% → 88, top=177 -->
+  <rect x="290" y="177" width="50" height="88" fill="#ffc000"/>
+  <text x="315" y="172" text-anchor="middle" font-size="10" fill="#333">22%</text>
+  <!-- Group discussion: 18% → 72, top=193 -->
+  <rect x="360" y="193" width="50" height="72" fill="#7030a0"/>
+  <text x="385" y="188" text-anchor="middle" font-size="10" fill="#333">18%</text>
+  <!-- Journals: 12% → 48, top=217 -->
+  <rect x="430" y="217" width="50" height="48" fill="#e74c3c"/>
+  <text x="455" y="212" text-anchor="middle" font-size="10" fill="#333">12%</text>
+  <!-- X-axis labels -->
+  <text x="105" y="282" text-anchor="middle" font-size="10" fill="#555">Computers</text>
+  <text x="175" y="282" text-anchor="middle" font-size="10" fill="#555">Study</text>
+  <text x="175" y="293" text-anchor="middle" font-size="10" fill="#555">rooms</text>
+  <text x="245" y="282" text-anchor="middle" font-size="10" fill="#555">Printing</text>
+  <text x="315" y="282" text-anchor="middle" font-size="10" fill="#555">Reading</text>
+  <text x="315" y="293" text-anchor="middle" font-size="10" fill="#555">area</text>
+  <text x="385" y="282" text-anchor="middle" font-size="10" fill="#555">Group</text>
+  <text x="385" y="293" text-anchor="middle" font-size="10" fill="#555">discussion</text>
+  <text x="455" y="282" text-anchor="middle" font-size="10" fill="#555">Journals</text>
+</svg>`,
+    },
+    {
+      id: "writing-task-2",
+      title: "Task 2",
+      taskLabel: "Writing Task 2",
+      minWords: 250,
+      recommendedMinutes: 40,
+      instruction: `You should spend about 40 minutes on this task.
+
+Write about the following topic:
+
+Some people believe that university students should be required to attend classes. Others believe that going to classes should be optional for students.
+
+Discuss both these views and give your own opinion.
+
+Give reasons for your answer and include any relevant examples from your own knowledge or experience.
+
+Write at least 250 words.`,
+      taskImageSvg: null,
+    },
+  ],
+};
+
+export const MOCK_SPEAKING_DATA = {
+  candidateName: "NGUYEN VAN A",
+  candidateId: "123456",
+  testType: "IELTS Speaking",
+  totalMinutes: 15,
+  parts: [
+    {
+      id: "speaking-part-1",
+      partNumber: 1,
+      title: "Introduction & Interview",
+      durationMinutes: 5,
+      instructions:
+        "In this part, the examiner asks you questions about yourself and familiar topics such as home, family, work, studies and interests.",
+      questions: [
+        { id: "sp1q1", text: "Can you tell me your full name please?" },
+        { id: "sp1q2", text: "Do you work or are you a student?" },
+        {
+          id: "sp1q3",
+          text: "What do you like most about the area where you grew up?",
+        },
+        {
+          id: "sp1q4",
+          text: "How do you usually spend your free time in the evenings?",
+        },
+        {
+          id: "sp1q5",
+          text: "Do you enjoy listening to music? What kinds of music do you like?",
+        },
+      ],
+    },
+    {
+      id: "speaking-part-2",
+      partNumber: 2,
+      title: "Individual Long Turn",
+      durationMinutes: 4,
+      instructions:
+        "You have one minute to prepare. Then speak for one to two minutes on the topic. The examiner may ask one or two questions at the end.",
+      questions: [
+        {
+          id: "sp2q1",
+          text: "Describe a time when you helped someone.",
+          topic: "Describe a time when you helped someone.",
+          instruction: "You should say:",
+          bulletPoints: [
+            "who you helped and when this happened",
+            "what the situation was",
+            "what you did to help",
+          ],
+          closingSentence:
+            "and explain how you felt about helping this person.",
+        },
+        {
+          id: "sp2q2",
+          text: "Have you helped more people since then?",
+        },
+      ],
+    },
+    {
+      id: "speaking-part-3",
+      partNumber: 3,
+      title: "Two-way Discussion",
+      durationMinutes: 5,
+      instructions:
+        "In this part, the examiner asks further questions connected to the topic in Part 2.",
+      questions: [
+        {
+          id: "sp3q1",
+          text: "In general, do you think people in your country are helpful to strangers? Why or why not?",
+        },
+        {
+          id: "sp3q2",
+          text: "What are some reasons why people might be reluctant to ask others for help?",
+        },
+        {
+          id: "sp3q3",
+          text: "How has the sense of community changed in modern cities compared to the past?",
+        },
+        {
+          id: "sp3q4",
+          text: "Should governments encourage volunteering? What policies might be effective?",
+        },
+        {
+          id: "sp3q5",
+          text: "Do you think social media has made it easier or harder for people to help one another? Why?",
+        },
+      ],
+    },
+  ],
+};

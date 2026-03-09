@@ -27,6 +27,10 @@ const TYPE_META = {
   MULTIPLE_CHOICE_MULTI:  { label: 'MC Nhiều đáp án',       bg: '#fce7f3', color: '#9d174d' },
   SENTENCE_COMPLETION:    { label: 'Sentence Completion',  bg: '#ecfdf5', color: '#065f46' },
   SHORT_ANSWER_GROUP:     { label: 'Short Answer',         bg: '#f0fdf4', color: '#166534' },
+  FLOW_CHART:             { label: 'Flow-chart',           bg: '#f0fdfa', color: '#0f766e' },
+  WRITING_TASK:           { label: 'Writing',              bg: '#fef9c3', color: '#a16207' },
+  SPEAKING_INTERVIEW:     { label: 'Phỏng vấn',            bg: '#fce7f3', color: '#be185d' },
+  SPEAKING_CUECARD:       { label: 'Cue Card',             bg: '#fdf4ff', color: '#7e22ce' },
 };
 
 // ---- Helper ----
@@ -252,44 +256,80 @@ const GroupToolbar = ({ group, dragHandleProps, onDelete }) => {
   );
 };
 
+// ---- Mini rich-text input (Bold / Italic / Underline) ----
+const RichInput = ({ value, onChange, placeholder, style, multiline, className }) => {
+  const ref = useRef(null);
+  const [focused, setFocused] = useState(false);
+
+  // Sync DOM → only when value changes externally (not while typing)
+  useEffect(() => {
+    if (ref.current && ref.current !== document.activeElement) {
+      ref.current.innerHTML = value || '';
+    }
+  }, [value]);
+
+  const exec = (cmd, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    ref.current?.focus();
+    document.execCommand(cmd, false, null);
+    onChange(ref.current?.innerHTML ?? '');
+  };
+
+  return (
+    <div className={`rich-input-wrap${multiline ? ' rich-input-multiline' : ''}${className ? ` ${className}` : ''}`} style={style}>
+      {focused && (
+        <div className="rich-input-toolbar" onMouseDown={(e) => e.preventDefault()}>
+          <button type="button" className="rich-tb-btn" onMouseDown={(e) => exec('bold', e)} title="Bold"><b>B</b></button>
+          <button type="button" className="rich-tb-btn" onMouseDown={(e) => exec('italic', e)} title="Italic"><i>I</i></button>
+          <button type="button" className="rich-tb-btn" onMouseDown={(e) => exec('underline', e)} title="Underline"><u>U</u></button>
+        </div>
+      )}
+      <div
+        ref={ref}
+        contentEditable
+        suppressContentEditableWarning
+        className={`rich-input-content${multiline ? ' rich-input-content--multiline' : ''}`}
+        data-placeholder={placeholder}
+        onFocus={() => setFocused(true)}
+        onBlur={(e) => { setFocused(false); onChange(e.currentTarget.innerHTML); }}
+        onInput={(e) => onChange(e.currentTarget.innerHTML)}
+      />
+    </div>
+  );
+};
+
 // ---- Passage block ----
-// Supports multiple paragraphs, each with an optional heading drop-slot.
-// paragraphs: [{ id, heading, text }]
-const PassageBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps, allGroups = [] }) => {
-  const titleRef = useRef(null);
-  const paraRefs = useRef({}); // { [paraId]: domNode }
-  const [overSlotId, setOverSlotId] = useState(null);
+// Mỗi đoạn văn có tiêu đề (label A/B/C...) + nội dung editable.
+// Không hiển thị heading drop-slot ở đây — Matching Headings được quản lý riêng ở pane phải.
+// paragraphs: [{ id, label, text, imageUrl? }]
+const PassageBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps, mhHeadings = [], mhAnswersByLabel = {} }) => {
+  const [draggingOverPara, setDraggingOverPara] = useState(null);
+  const [pendingImagePara, setPendingImagePara] = useState(null);
+  const fileInputRefs = useRef({});
+
+  const isMulti = !!group.multiParagraph;
 
   const paragraphs = group.paragraphs && group.paragraphs.length > 0
     ? group.paragraphs
-    : [{ id: `${group.id}-p0`, heading: '', text: group.passageText || '' }];
+    : [{ id: `${group.id}-p0`, label: 'A', text: group.passageText || '' }];
 
-  // Collect all headings from MatchingHeading groups in the same part
-  const allHeadings = allGroups
-    .filter((g) => g.contentType === 'MATCHING_HEADING')
-    .flatMap((g) => (g.headingBank ?? []).map((h, i) => ({ ...h, roman: toRoman(i + 1) })));
-
-  // Sync paragraph text refs when group.id changes
-  useEffect(() => {
-    paragraphs.forEach((p) => {
-      const el = paraRefs.current[p.id];
-      if (el && el !== document.activeElement) el.textContent = p.text || '';
-    });
-  }, [group.id]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (titleRef.current && titleRef.current !== document.activeElement) {
-      titleRef.current.textContent = group.title || '';
-    }
-  }, [group.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  const PARA_LABELS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
   const updateParagraphs = (newParas) => {
-    onUpdate(group.id, { paragraphs: newParas, passageText: newParas.map((p) => p.text).join('\n\n') });
+    const labeled = newParas.map((p, i) => ({ ...p, label: PARA_LABELS[i] ?? String(i + 1) }));
+    onUpdate(group.id, { paragraphs: labeled, passageText: labeled.map((p) => p.text).join('\n\n') });
+  };
+
+  const enableMulti = () => {
+    // Giữ lại đoạn hiện tại, chỉ bật multi mode
+    const labeled = paragraphs.map((p, i) => ({ ...p, label: PARA_LABELS[i] ?? String(i + 1) }));
+    onUpdate(group.id, { multiParagraph: true, paragraphs: labeled });
   };
 
   const addParagraph = () => {
     const newId = `${group.id}-p${Date.now()}`;
-    updateParagraphs([...paragraphs, { id: newId, heading: '', text: '' }]);
+    updateParagraphs([...paragraphs, { id: newId, label: '', text: '' }]);
   };
 
   const removeParagraph = (pid) => {
@@ -297,96 +337,180 @@ const PassageBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandl
     updateParagraphs(paragraphs.filter((p) => p.id !== pid));
   };
 
-  const updateParagraphText = (pid, text) => {
-    updateParagraphs(paragraphs.map((p) => p.id === pid ? { ...p, text } : p));
+  const updateParaImage = (pid, imageUrl) => {
+    updateParagraphs(paragraphs.map((p) => p.id === pid ? { ...p, imageUrl } : p));
   };
 
-  const setParaHeading = (pid, heading) => {
-    updateParagraphs(paragraphs.map((p) => p.id === pid ? { ...p, heading } : p));
+  const applyImageFile = (pid, file) => {
+    if (!file || !file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => updateParaImage(pid, ev.target.result);
+    reader.readAsDataURL(file);
   };
 
-  const assignedHeadings = new Set(paragraphs.map((p) => p.heading).filter(Boolean));
+  // Accept both: sidebar palette drag AND direct image file drag from OS
+  const isParaImageDrag = (e) => {
+    const types = e.dataTransfer.types;
+    if (types.includes('application/para-image')) return true;
+    if (types.includes('Files')) {
+      const items = e.dataTransfer.items;
+      if (items) {
+        for (let i = 0; i < items.length; i++) {
+          if (items[i].kind === 'file' && items[i].type.startsWith('image/')) return true;
+        }
+      }
+      return true;
+    }
+    return false;
+  };
+
+  const handleParaDragOver = (pid, e) => {
+    if (!isParaImageDrag(e)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+    setDraggingOverPara(pid);
+  };
+
+  const handleParaDragLeave = (pid, e) => {
+    if (!e.currentTarget.contains(e.relatedTarget)) {
+      setDraggingOverPara(null);
+    }
+  };
+
+  const handleParaDrop = (pid, e) => {
+    if (!isParaImageDrag(e)) return;
+    e.preventDefault();
+    setDraggingOverPara(null);
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      applyImageFile(pid, file);
+    } else {
+      setPendingImagePara(pid);
+    }
+  };
+
+  // Render a single paragraph body (image + text)
+  const renderParaBody = (para, idx) => (
+    <>
+      {para.imageUrl && (
+        <div className="passage-para-img-wrap">
+          <img src={para.imageUrl} alt={`Para ${para.label}`} className="passage-para-img" />
+          <button className="passage-para-img-remove" title="Xóa ảnh"
+            onClick={(e) => { e.stopPropagation(); updateParaImage(para.id, null); }}>
+            <X size={11} />
+          </button>
+        </div>
+      )}
+      {draggingOverPara === para.id && (
+        <div className="passage-para-drop-hint">
+          <span>🖼️ Thả để thêm ảnh{isMulti ? ` vào đoạn ${PARA_LABELS[idx]}` : ''}</span>
+        </div>
+      )}
+      {pendingImagePara === para.id && !para.imageUrl && (
+        <div className="passage-para-img-pick"
+          onClick={(e) => { e.stopPropagation(); fileInputRefs.current[para.id]?.click(); }}>
+          <span>🖼️</span>
+          <span>Click để chọn ảnh{isMulti ? ` cho đoạn ${PARA_LABELS[idx]}` : ''}</span>
+          <button className="passage-para-img-pick-cancel"
+            onClick={(e) => { e.stopPropagation(); setPendingImagePara(null); }}
+            title="Bỏ qua">✕</button>
+        </div>
+      )}
+      <input
+        ref={(el) => { fileInputRefs.current[para.id] = el; }}
+        type="file" accept="image/*" style={{ display: 'none' }}
+        onChange={(e) => {
+          applyImageFile(para.id, e.target.files?.[0]);
+          setPendingImagePara(null);
+          e.target.value = '';
+        }}
+      />
+      <RichInput
+        value={para.text || ''}
+        placeholder={isMulti ? `Nội dung đoạn ${PARA_LABELS[idx] ?? idx + 1}...` : 'Nội dung đoạn văn...'}
+        onChange={(html) => updateParagraphs(paragraphs.map((p) => p.id === para.id ? { ...p, text: html } : p))}
+        style={{ marginTop: 4 }}
+        multiline
+      />
+    </>
+  );
 
   return (
     <div className={`exam-group${selected ? ' selected' : ''}`}
       onClick={(e) => { e.stopPropagation(); onSelect(group); }}>
       <GroupToolbar group={group} dragHandleProps={dragHandleProps} onDelete={onDelete} />
 
-      {/* Overall passage title */}
-      <div
-        ref={titleRef}
-        contentEditable suppressContentEditableWarning
-        className="exam-passage-title"
-        onBlur={(e) => onUpdate(group.id, { title: e.currentTarget.textContent })}
-        data-placeholder="Tiêu đề đoạn văn..."
+      {/* Passage title */}
+      <RichInput
+        value={group.title || ''}
+        placeholder="Tiêu đề bài đọc (VD: The Physics of Traffic Behavior)..."
+        onChange={(html) => onUpdate(group.id, { title: html })}
+        style={{ marginBottom: 8 }}
+        className="exam-passage-title-wrap"
       />
 
-      {/* Paragraphs */}
-      {paragraphs.map((para, idx) => {
-        const isOver = overSlotId === para.id;
-        const hasHeading = !!para.heading;
-        const hObj = allHeadings.find((h) => h.text === para.heading);
-        return (
-          <div key={para.id} className="passage-para">
-            {/* Heading drop slot */}
-            <div className="passage-para-header">
-              <span className="passage-para-num">§{idx + 1}</span>
+      {/* SIMPLE mode: 1 đoạn, không label */}
+      {!isMulti && (
+        <div
+          className={`passage-para${draggingOverPara === paragraphs[0]?.id ? ' para-img-drag-over' : ''}`}
+          onDragOver={(e) => handleParaDragOver(paragraphs[0]?.id, e)}
+          onDragLeave={(e) => handleParaDragLeave(paragraphs[0]?.id, e)}
+          onDrop={(e) => handleParaDrop(paragraphs[0]?.id, e)}
+        >
+          {renderParaBody(paragraphs[0], 0)}
+        </div>
+      )}
 
-              {hasHeading ? (
-                <div className="mh-answer-badge" style={{ flex: 1 }}>
-                  {hObj && <span className="mh-answer-roman">{hObj.roman}</span>}
-                  <span className="mh-answer-text">{para.heading}</span>
-                  <button className="mh-clear-btn" title="Xóa heading"
-                    onClick={(e) => { e.stopPropagation(); setParaHeading(para.id, ''); }}>×</button>
-                </div>
+      {/* MULTI mode: nhiều đoạn với label A/B/C */}
+      {isMulti && paragraphs.map((para, idx) => (
+        <div
+          key={para.id}
+          className={`passage-para${draggingOverPara === para.id ? ' para-img-drag-over' : ''}`}
+          onDragOver={(e) => handleParaDragOver(para.id, e)}
+          onDragLeave={(e) => handleParaDragLeave(para.id, e)}
+          onDrop={(e) => handleParaDrop(para.id, e)}
+        >
+          <div className="passage-para-header">
+            <span className="passage-para-label">{PARA_LABELS[idx] ?? idx + 1}</span>
+            {/* Heading đã gán — hiện nếu có MatchingHeading group */}
+            {isMulti && mhHeadings.length > 0 && (() => {
+              const assignedText = mhAnswersByLabel[PARA_LABELS[idx]];
+              const hIdx = mhHeadings.findIndex((h) => h.text === assignedText);
+              return assignedText ? (
+                <span className="passage-para-mh-badge" title={assignedText}>
+                  {hIdx >= 0 ? toRoman(hIdx + 1) + '. ' : ''}{assignedText}
+                </span>
               ) : (
-                <div
-                  className={`mh-drop-target${isOver ? ' over' : ''}`}
-                  style={{ flex: 1 }}
-                  onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setOverSlotId(para.id); }}
-                  onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setOverSlotId(null); }}
-                  onDrop={(e) => {
-                    e.preventDefault(); e.stopPropagation(); setOverSlotId(null);
-                    try {
-                      const data = JSON.parse(e.dataTransfer.getData('text/x-heading'));
-                      if (data?.text) setParaHeading(para.id, data.text);
-                    } catch {}
-                  }}
-                >
-                  {isOver
-                    ? '↓ Thả heading vào đây'
-                    : allHeadings.length > 0
-                      ? '⬚ Kéo heading từ cột phải vào đây'
-                      : '⬚ (Thêm Match Headings ở cột phải để kéo)'}
-                </div>
-              )}
-
-              {paragraphs.length > 1 && (
-                <button className="exam-group-tool-btn danger" style={{ flexShrink: 0 }}
-                  onClick={(e) => { e.stopPropagation(); removeParagraph(para.id); }}
-                  title="Xóa đoạn này">
-                  <X size={11} />
-                </button>
-              )}
-            </div>
-
-            {/* Paragraph text */}
-            <div
-              ref={(el) => { paraRefs.current[para.id] = el; }}
-              contentEditable suppressContentEditableWarning
-              className="exam-passage-body"
-              data-placeholder={`Nội dung đoạn ${idx + 1}...`}
-              style={{ marginBottom: 0 }}
-              onBlur={(e) => updateParagraphText(para.id, e.currentTarget.textContent)}
-            />
+                <span className="passage-para-mh-empty">— chưa gán heading —</span>
+              );
+            })()}
+            {paragraphs.length > 1 && (
+              <button className="exam-group-tool-btn danger" style={{ flexShrink: 0, marginLeft: 'auto' }}
+                onClick={(e) => { e.stopPropagation(); removeParagraph(para.id); }}
+                title="Xóa đoạn này">
+                <X size={11} />
+              </button>
+            )}
           </div>
-        );
-      })}
+          {renderParaBody(para, idx)}
+        </div>
+      ))}
 
-      <button className="exam-add-btn" style={{ marginTop: 8 }}
-        onClick={(e) => { e.stopPropagation(); addParagraph(); }}>
-        <Plus size={12} /> Thêm đoạn
-      </button>
+      {/* Footer buttons */}
+      <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+        {!isMulti && (
+          <button className="exam-add-btn" style={{ borderColor: '#f59e0b', color: '#92400e', background: '#fffbeb' }}
+            onClick={(e) => { e.stopPropagation(); enableMulti(); }}>
+            <Plus size={12} /> Thêm heading
+          </button>
+        )}
+        {isMulti && (
+          <button className="exam-add-btn"
+            onClick={(e) => { e.stopPropagation(); addParagraph(); }}>
+            <Plus size={12} /> Thêm đoạn
+          </button>
+        )}
+      </div>
     </div>
   );
 };
@@ -476,26 +600,26 @@ const QuestionItem = ({ question, selected, onClick, onUpdate, onDelete }) => {
       onClick={(e) => { e.stopPropagation(); onClick(); }}>
       <div className="exam-q-num">{question.questionNumber ?? '?'}</div>
       <div className="exam-q-body">
-        <input className="exam-q-text-input"
+        <RichInput
+          style={{ flex: 1 }}
           value={question.questionText || ''}
           placeholder="Nội dung câu hỏi..."
-          onChange={(e) => onUpdate({ questionText: e.target.value })}
-          onClick={(e) => e.stopPropagation()} />
+          onChange={(html) => onUpdate({ questionText: html })} />
 
         {type === 'MULTIPLE_CHOICE' && (
           <div className="exam-q-options">
             {(question.options ?? []).map((opt, i) => (
               <div key={i} className="exam-q-option">
                 <input type="radio" readOnly checked={false} onChange={() => {}} />
-                <input className="exam-q-option-text-input"
+                <RichInput
+                  style={{ flex: 1 }}
                   value={opt.optionText || ''}
                   placeholder={`Lựa chọn ${String.fromCharCode(65 + i)}`}
-                  onChange={(e) => {
+                  onChange={(html) => {
                     const opts = [...(question.options ?? [])];
-                    opts[i] = { ...opts[i], optionText: e.target.value };
+                    opts[i] = { ...opts[i], optionText: html };
                     onUpdate({ options: opts });
-                  }}
-                  onClick={(e) => e.stopPropagation()} />
+                  }} />
                 <input type="checkbox" className="exam-q-option-correct"
                   checked={!!opt.isCorrect} title="Đáp án đúng"
                   onChange={(e) => {
@@ -762,13 +886,13 @@ function MapLabellingBlock({ group, onUpdate, onDelete, onSelect, selected, drag
         <div className="exam-dm-bank">
           {options.map((o, i) => (
             <div key={i} className="exam-dm-option">
-              <input className="exam-q-text-input" style={{ flex: 1, margin: 0 }}
+              <RichInput
+                style={{ flex: 1 }}
                 value={o.text || ''} placeholder={`Lựa chọn ${i + 1}...`}
-                onChange={(e) => {
-                  const n = [...options]; n[i] = { ...n[i], text: e.target.value };
+                onChange={(html) => {
+                  const n = [...options]; n[i] = { ...n[i], text: html };
                   onUpdate(group.id, { optionBank: n });
-                }}
-                onClick={(e) => e.stopPropagation()} />
+                }} />
               <button className="exam-q-del-btn"
                 onClick={(e) => { e.stopPropagation(); onUpdate(group.id, { optionBank: options.filter((_, j) => j !== i) }); }}>×</button>
             </div>
@@ -817,6 +941,22 @@ function MapLabellingBlock({ group, onUpdate, onDelete, onSelect, selected, drag
 // ---- Table Completion Block ----
 // Each cell uses TcCellEditor: contentEditable with drag/click-at-cursor to insert
 // globally-numbered blank chips.  Data model unchanged: cells store "[blank]" text.
+
+// ---- Flow-chart helpers ----
+function syncFcQuestions(nodes, currentQs, fromQ) {
+  let n = 0;
+  for (const node of nodes) {
+    n += ((node.text ?? '').match(/\[blank\]/g) ?? []).length;
+  }
+  const base = fromQ ?? 1;
+  const newQs = [];
+  for (let i = 0; i < n; i++) {
+    newQs.push(currentQs[i]
+      ? { ...currentQs[i], questionNumber: base + i }
+      : { id: Date.now() + i, questionNumber: base + i, answerText: '' });
+  }
+  return newQs;
+}
 
 function syncTcQuestions(cols, rows, currentQs, fromQ) {
   let n = 0;
@@ -1121,11 +1261,11 @@ function TableCompletionBlock({ group, onUpdate, onDelete, onSelect, selected, d
           {questions.map((q) => (
             <div key={q.id} className="exam-ml-answer-row">
               <span className="exam-ml-answer-num">Câu {q.questionNumber}</span>
-              <input className="exam-q-text-input" style={{ flex: 1, margin: 0 }}
+              <RichInput
+                style={{ flex: 1 }}
                 value={q.answerText ?? ''}
                 placeholder="Đáp án đúng..."
-                onChange={(e) => onUpdateQuestion(group.id, q.id, { answerText: e.target.value })}
-                onClick={(e) => e.stopPropagation()} />
+                onChange={(html) => onUpdateQuestion(group.id, q.id, { answerText: html })} />
             </div>
           ))}
         </div>
@@ -1236,115 +1376,252 @@ const DragMatchingBlock = ({ group, onUpdate, onDelete, onSelect, selected, drag
   );
 };
 
-// ---- Group renderer (dispatches by contentType) ----
-const MatchingHeadingBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps, onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onAddQuestion, selectedQuestionId }) => {
+// ---- Matching Heading Block ----
+// Giao diện tạo đề tối giản:
+//   • Phần trên: nhập "List of Headings" (i, ii, iii, ...) — danh sách heading có thể nhiều hơn số câu (headings dư để đánh lừa)
+//   • Phần dưới: từng section (đoạn A/B/C) — nhập tên section + chọn đáp án đúng từ dropdown
+// Không dùng drag & drop trong canvas soạn đề để tránh nhầm lẫn với DnD của DndContext.
+const MatchingHeadingBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps,
+  onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onAddQuestion, selectedQuestionId,
+  passageParagraphs }) => {
   const headings = group.headingBank ?? [];
   const questions = group.questions ?? [];
-  const [draggingHeading, setDraggingHeading] = useState(null); // { text, index }
-  const [overSlotId, setOverSlotId] = useState(null);
 
-  // Which headings are already assigned
-  const assignedTexts = new Set(questions.map((q) => q.answerText).filter(Boolean));
+  // If passageParagraphs are available, derive sections from them (synced).
+  // Each paragraph becomes one section row. We match existing answers by paragraph label.
+  const hasSyncedPassage = passageParagraphs && passageParagraphs.length > 0;
+
+  // Strict 1-to-1 sync: headingBank.length === passageParagraphs.length
+  const targetCount = hasSyncedPassage ? passageParagraphs.length : 0;
+  useEffect(() => {
+    if (!hasSyncedPassage) return;
+    const diff = targetCount - headings.length;
+    if (diff === 0) return;
+    if (diff > 0) {
+      // Passage got more paragraphs → pad heading bank with empty slots
+      const extra = Array.from({ length: diff }, (_, k) => ({
+        id: `h-auto-${Date.now()}-${k}`,
+        text: '',
+      }));
+      onUpdate(group.id, { headingBank: [...headings, ...extra] });
+    } else {
+      // Passage lost paragraphs → trim heading bank from the end
+      onUpdate(group.id, { headingBank: headings.slice(0, targetCount) });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [passageParagraphs?.length]);
+
+  // Build a map: paraLabel → existing question (so we can preserve answers already set)
+  const answerByLabel = {};
+  questions.forEach((q) => {
+    // questionText stores "Section A" or just the label — extract last word/char
+    const label = (q.questionText || '').replace(/^Section\s*/i, '').trim();
+    if (label) answerByLabel[label] = q;
+  });
+
+  // Synced sections derived from passage paragraphs
+  const syncedSections = hasSyncedPassage
+    ? passageParagraphs.map((para, idx) => {
+        const label = para.label || String.fromCharCode(65 + idx);
+        const existing = answerByLabel[label];
+        return {
+          id: para.id,          // use passage para id as stable key
+          paraLabel: label,
+          questionText: `Section ${label}`,
+          questionNumber: (group.fromQuestion ?? 1) + idx,
+          answerText: existing?.answerText ?? '',
+          qid: existing?.id ?? null,
+        };
+      })
+    : null;
+
+  // Handler: update answer for a synced section row
+  const updateSyncedAnswer = (section, newAnswerText) => {
+    if (section.qid) {
+      // Update existing question record
+      onUpdateQuestion(group.id, section.qid, { answerText: newAnswerText, questionText: section.questionText });
+    } else {
+      // Create a new question record for this section
+      const newQ = {
+        id: `${group.id}-q-${section.id}`,
+        questionText: section.questionText,
+        questionNumber: section.questionNumber,
+        answerText: newAnswerText,
+      };
+      onUpdate(group.id, { questions: [...questions, newQ] });
+    }
+  };
 
   return (
     <div className={`exam-group${selected ? ' selected' : ''}`} onClick={(e) => { e.stopPropagation(); onSelect(group); }}>
       <GroupToolbar group={group} dragHandleProps={dragHandleProps} onDelete={onDelete} />
 
-      {/* Heading bank — draggable chips */}
-      <div className="exam-heading-bank">
-        <div className="exam-heading-bank-title">List of Headings — kéo vào section bên dưới</div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-          {headings.map((h, i) => {
-            const isAssigned = assignedTexts.has(h.text);
-            return (
-              <div key={i} className="exam-heading-bank-item" style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span className="exam-heading-roman">{toRoman(i + 1)}</span>
-                <input className="exam-q-text-input" style={{ flex: 1, margin: 0 }}
-                  value={h.text || ''} placeholder={`Heading ${toRoman(i + 1)}...`}
-                  onChange={(e) => { const n = [...headings]; n[i] = { ...n[i], text: e.target.value }; onUpdate(group.id, { headingBank: n }); }}
-                  onClick={(e) => e.stopPropagation()} />
-                {/* Draggable chip */}
-                <div
-                  className={`mh-chip${isAssigned ? ' assigned' : ''}`}
-                  draggable={!isAssigned}
-                  title={isAssigned ? 'Đã gán' : 'Kéo vào section'}
-                  onDragStart={(e) => {
-                    e.stopPropagation();
-                    e.dataTransfer.setData('text/x-heading', JSON.stringify({ text: h.text, index: i }));
-                    e.dataTransfer.effectAllowed = 'copy';
-                    setDraggingHeading({ text: h.text, index: i });
-                  }}
-                  onDragEnd={() => setDraggingHeading(null)}
-                >
-                  {isAssigned ? '✓' : '⠿'}
-                </div>
-                <button className="exam-q-del-btn" onClick={(e) => { e.stopPropagation(); onUpdate(group.id, { headingBank: headings.filter((_, j) => j !== i) }); }}>×</button>
-              </div>
-            );
-          })}
+      {/* ── PHẦN 1: List of Headings ── */}
+      <div className="exam-mh-section" onClick={(e) => e.stopPropagation()}>
+        <div className="exam-mh-section-title">
+          <span>📋 List of Headings</span>
+          <span className="exam-mh-hint">
+            ({headings.length} heading
+            {hasSyncedPassage ? ` — khớp với ${targetCount} đoạn` : ''})
+          </span>
         </div>
-        <button className="exam-add-btn" style={{ marginTop: 6 }}
-          onClick={(e) => { e.stopPropagation(); onUpdate(group.id, { headingBank: [...headings, { id: Date.now(), text: '' }] }); }}>
+        {headings.map((h, i) => (
+          <div key={h.id} className="exam-mh-heading-row">
+            <span className="exam-heading-roman">{toRoman(i + 1)}</span>
+            <RichInput
+              style={{ flex: 1 }}
+              value={h.text || ''}
+              placeholder="VD: How a concept from one field was applied in another"
+              onChange={(html) => {
+                const updated = headings.map((x) =>
+                  x.id === h.id ? { ...x, text: html } : x
+                );
+                onUpdate(group.id, { headingBank: updated });
+              }}
+            />
+            <button className="exam-q-del-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                onUpdate(group.id, { headingBank: headings.filter((x) => x.id !== h.id) });
+              }}
+              style={{ visibility: hasSyncedPassage ? 'hidden' : 'visible' }}
+            >
+              ×
+            </button>
+          </div>
+        ))}
+        <button className="exam-add-btn" style={{ marginTop: 6, display: hasSyncedPassage ? 'none' : undefined }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onUpdate(group.id, { headingBank: [...headings, { id: `h-${Date.now()}`, text: '' }] });
+          }}>
           <Plus size={11} /> Thêm heading
         </button>
       </div>
 
-      {/* Section slots — drop targets */}
-      <div className="exam-q-range-header" style={{ marginTop: 12 }}>
-        Câu&nbsp;
-        <input className="exam-q-range-input" value={group.fromQuestion ?? ''} placeholder="1" onChange={(e) => onUpdate(group.id, { fromQuestion: e.target.value ? Number(e.target.value) : null })} onClick={(e) => e.stopPropagation()} />
-        &nbsp;–&nbsp;
-        <input className="exam-q-range-input" value={group.toQuestion ?? ''} placeholder="4" onChange={(e) => onUpdate(group.id, { toQuestion: e.target.value ? Number(e.target.value) : null })} onClick={(e) => e.stopPropagation()} />
-      </div>
-      {questions.map((q) => {
-        const isOver = overSlotId === q.id;
-        const hasAnswer = !!q.answerText;
-        // Find heading index for badge
-        const hIdx = headings.findIndex((h) => h.text === q.answerText);
-        return (
-          <div key={q.id}
-            className={`exam-matching-slot${selectedQuestionId === q.id ? ' selected' : ''}${isOver ? ' drop-over' : ''}`}
-            onClick={(e) => { e.stopPropagation(); onSelectQuestion(q); }}
-            onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setOverSlotId(q.id); }}
-            onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setOverSlotId(null); }}
-            onDrop={(e) => {
-              e.preventDefault(); e.stopPropagation();
-              setOverSlotId(null);
-              try {
-                const data = JSON.parse(e.dataTransfer.getData('text/x-heading'));
-                if (data?.text) onUpdateQuestion(group.id, q.id, { answerText: data.text });
-              } catch {}
-            }}
-          >
-            <div className="exam-q-num">{q.questionNumber ?? '?'}</div>
-            <input className="exam-q-text-input" value={q.questionText || ''}
-              placeholder="Tên section (VD: Section A)..."
-              onChange={(e) => onUpdateQuestion(group.id, q.id, { questionText: e.target.value })}
-              onClick={(e) => e.stopPropagation()} />
+      {/* ── PHẦN 2: Sections — synced from passage OR manual ── */}
+      <div className="exam-mh-section" style={{ marginTop: 10 }} onClick={(e) => e.stopPropagation()}>
+        <div className="exam-mh-section-title">
+          <span>❓ Sections — chọn đáp án đúng</span>
+          {hasSyncedPassage && (
+            <span className="exam-mh-hint" style={{ color: '#16a34a' }}>
+              ✓ Đồng bộ từ {passageParagraphs.length} đoạn passage
+            </span>
+          )}
+        </div>
 
-            {/* Answer badge — drop here or click × to clear */}
-            {hasAnswer ? (
-              <div className="mh-answer-badge">
-                {hIdx >= 0 && <span className="mh-answer-roman">{toRoman(hIdx + 1)}</span>}
-                <span className="mh-answer-text">{q.answerText}</span>
-                <button className="mh-clear-btn" title="Xóa đáp án"
-                  onClick={(e) => { e.stopPropagation(); onUpdateQuestion(group.id, q.id, { answerText: '' }); }}>
-                  ×
-                </button>
-              </div>
-            ) : (
-              <div className={`mh-drop-target${isOver ? ' over' : ''}`}>
-                {isOver ? '↓ Thả heading' : '⬚ Kéo heading vào'}
+        {/* Phạm vi câu */}
+        <div className="exam-q-range-header" style={{ marginBottom: 8 }}>
+          Câu&nbsp;
+          <input className="exam-q-range-input" value={group.fromQuestion ?? ''} placeholder="14"
+            onChange={(e) => onUpdate(group.id, { fromQuestion: e.target.value ? Number(e.target.value) : null })} />
+          &nbsp;–&nbsp;
+          <input className="exam-q-range-input" value={group.toQuestion ?? ''} placeholder="17"
+            onChange={(e) => onUpdate(group.id, { toQuestion: e.target.value ? Number(e.target.value) : null })} />
+        </div>
+
+        {/* ── SYNCED MODE: derived from passage paragraphs ── */}
+        {hasSyncedPassage ? (
+          <>
+            {syncedSections.map((section) => {
+              const ansIdx = headings.findIndex((h) => h.text === section.answerText);
+              return (
+                <div
+                  key={section.id}
+                  className="exam-mh-section-row"
+                >
+                  {/* Số câu */}
+                  <div className="exam-q-num" style={{ flexShrink: 0 }}>{section.questionNumber}</div>
+
+                  {/* Tên section — derived, read-only badge */}
+                  <span className="exam-mh-section-label">
+                    Section <strong>{section.paraLabel}</strong>
+                  </span>
+
+                  {/* Dropdown chọn heading đáp án đúng */}
+                  <select
+                    className="exam-mh-answer-select"
+                    value={section.answerText}
+                    onChange={(e) => updateSyncedAnswer(section, e.target.value)}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <option value="">— Đáp án —</option>
+                    {headings.map((h, i) => (
+                      <option key={i} value={h.text}>
+                        {toRoman(i + 1)}. {h.text}
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* Badge đáp án đã chọn */}
+                  {section.answerText && (
+                    <span className="exam-mh-answer-badge-inline" title={section.answerText}>
+                      {ansIdx >= 0 ? toRoman(ansIdx + 1) : '✓'}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+            {passageParagraphs.length === 0 && (
+              <div style={{ color: '#9ca3af', fontSize: 12, padding: '6px 0' }}>
+                (Passage chưa có đoạn nào)
               </div>
             )}
-
-            <button className="exam-group-tool-btn danger" onClick={(e) => { e.stopPropagation(); onDeleteQuestion(group.id, q.id); }}><X size={11} /></button>
-          </div>
-        );
-      })}
-      <button className="exam-add-btn" onClick={(e) => { e.stopPropagation(); onAddQuestion(group); }}>
-        <Plus size={12} /> Thêm section
-      </button>
+          </>
+        ) : (
+          /* ── MANUAL MODE: no passage found ── */
+          <>
+            {questions.length === 0 && (
+              <div style={{ color: '#9ca3af', fontSize: 12, padding: '6px 0', fontStyle: 'italic' }}>
+                💡 Thêm Reading Passage vào bên trái để tự đồng bộ sections, hoặc thêm thủ công bên dưới.
+              </div>
+            )}
+            {questions.map((q) => {
+              const ansIdx = headings.findIndex((h) => h.text === q.answerText);
+              return (
+                <div
+                  key={q.id}
+                  className={`exam-mh-section-row${selectedQuestionId === q.id ? ' selected' : ''}`}
+                  onClick={() => onSelectQuestion(q)}
+                >
+                  <div className="exam-q-num" style={{ flexShrink: 0 }}>{q.questionNumber ?? '?'}</div>
+                  <RichInput
+                    style={{ flex: 1, minWidth: 80 }}
+                    value={q.questionText || ''}
+                    placeholder="Section A"
+                    onChange={(html) => onUpdateQuestion(group.id, q.id, { questionText: html })} />
+                  <select
+                    className="exam-mh-answer-select"
+                    value={q.answerText || ''}
+                    onChange={(e) => onUpdateQuestion(group.id, q.id, { answerText: e.target.value })}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <option value="">— Đáp án —</option>
+                    {headings.map((h, i) => (
+                      <option key={i} value={h.text}>
+                        {toRoman(i + 1)}. {h.text}
+                      </option>
+                    ))}
+                  </select>
+                  {q.answerText && (
+                    <span className="exam-mh-answer-badge-inline" title={q.answerText}>
+                      {ansIdx >= 0 ? toRoman(ansIdx + 1) : '✓'}
+                    </span>
+                  )}
+                  <button className="exam-group-tool-btn danger"
+                    onClick={(e) => { e.stopPropagation(); onDeleteQuestion(group.id, q.id); }}>
+                    <X size={11} />
+                  </button>
+                </div>
+              );
+            })}
+            <button className="exam-add-btn" style={{ marginTop: 6 }}
+              onClick={() => onAddQuestion(group)}>
+              <Plus size={12} /> Thêm section
+            </button>
+          </>
+        )}
+      </div>
     </div>
   );
 };
@@ -1384,11 +1661,11 @@ const MultipleChoiceBlock = ({ group, onUpdate, onDelete, onSelect, selected, dr
             onClick={(e) => { e.stopPropagation(); onSelectQuestion(q); }}>
             <div className="exam-mc-q-header">
               <div className="exam-q-num">{q.questionNumber ?? '?'}</div>
-              <input className="exam-q-text-input" style={{ flex: 1 }}
+              <RichInput
+                style={{ flex: 1 }}
                 value={q.questionText || ''}
                 placeholder="Nội dung câu hỏi..."
-                onChange={(e) => onUpdateQuestion(group.id, q.id, { questionText: e.target.value })}
-                onClick={(e) => e.stopPropagation()} />
+                onChange={(html) => onUpdateQuestion(group.id, q.id, { questionText: html })} />
               <button className="exam-group-tool-btn danger"
                 onClick={(e) => { e.stopPropagation(); onDeleteQuestion(group.id, q.id); }}>
                 <X size={11} />
@@ -1398,14 +1675,14 @@ const MultipleChoiceBlock = ({ group, onUpdate, onDelete, onSelect, selected, dr
               {opts.map((opt, i) => (
                 <div key={i} className={`exam-mc-opt${opt.isCorrect ? ' correct' : ''}`}>
                   <span className="exam-mc-opt-label">{String.fromCharCode(65 + i)}</span>
-                  <input className="exam-q-option-text-input"
+                  <RichInput
+                    style={{ flex: 1 }}
                     value={opt.optionText || ''}
                     placeholder={`Lựa chọn ${String.fromCharCode(65 + i)}...`}
-                    onChange={(e) => {
-                      const next = [...opts]; next[i] = { ...next[i], optionText: e.target.value };
+                    onChange={(html) => {
+                      const next = [...opts]; next[i] = { ...next[i], optionText: html };
                       onUpdateQuestion(group.id, q.id, { options: next });
-                    }}
-                    onClick={(e) => e.stopPropagation()} />
+                    }} />
                   <input type="radio" className="exam-mc-opt-radio"
                     checked={!!opt.isCorrect} title="Đánh dấu đáp án đúng"
                     onChange={() => {
@@ -1471,11 +1748,11 @@ const MultipleChoiceMultiBlock = ({ group, onUpdate, onDelete, onSelect, selecte
             onClick={(e) => { e.stopPropagation(); onSelectQuestion(q); }}>
             <div className="exam-mc-q-header">
               <div className="exam-q-num" style={{ background: '#9d174d' }}>{q.questionNumber ?? '?'}</div>
-              <input className="exam-q-text-input" style={{ flex: 1 }}
+              <RichInput
+                style={{ flex: 1 }}
                 value={q.questionText || ''}
                 placeholder="Nội dung câu hỏi..."
-                onChange={(e) => onUpdateQuestion(group.id, q.id, { questionText: e.target.value })}
-                onClick={(e) => e.stopPropagation()} />
+                onChange={(html) => onUpdateQuestion(group.id, q.id, { questionText: html })} />
               <button className="exam-group-tool-btn danger"
                 onClick={(e) => { e.stopPropagation(); onDeleteQuestion(group.id, q.id); }}>
                 <X size={11} />
@@ -1485,14 +1762,14 @@ const MultipleChoiceMultiBlock = ({ group, onUpdate, onDelete, onSelect, selecte
               {opts.map((opt, i) => (
                 <div key={i} className={`exam-mc-opt${opt.isCorrect ? ' correct' : ''}`}>
                   <span className="exam-mc-opt-label">{String.fromCharCode(65 + i)}</span>
-                  <input className="exam-q-option-text-input"
+                  <RichInput
+                    style={{ flex: 1 }}
                     value={opt.optionText || ''}
                     placeholder={`Lựa chọn ${String.fromCharCode(65 + i)}...`}
-                    onChange={(e) => {
-                      const next = [...opts]; next[i] = { ...next[i], optionText: e.target.value };
+                    onChange={(html) => {
+                      const next = [...opts]; next[i] = { ...next[i], optionText: html };
                       onUpdateQuestion(group.id, q.id, { options: next });
-                    }}
-                    onClick={(e) => e.stopPropagation()} />
+                    }} />
                   <input type="checkbox" className="exam-q-option-correct"
                     checked={!!opt.isCorrect} title="Đáp án đúng"
                     onChange={(e) => {
@@ -1550,18 +1827,17 @@ const SentenceCompletionBlock = ({ group, onUpdate, onDelete, onSelect, selected
         onClick={(e) => { e.stopPropagation(); onSelectQuestion(q); }}>
         <div className="exam-q-num" style={{ background: '#065f46', flexShrink: 0 }}>{q.questionNumber ?? '?'}</div>
         <div className="exam-sc-body">
-          <input className="exam-q-text-input"
+          <RichInput
             value={q.questionText || ''}
             placeholder="VD: The conference will be held in ___ (câu hỏi / câu chứa chỗ trống)"
-            onChange={(e) => onUpdateQuestion(group.id, q.id, { questionText: e.target.value })}
-            onClick={(e) => e.stopPropagation()} />
+            onChange={(html) => onUpdateQuestion(group.id, q.id, { questionText: html })} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
             <span style={{ fontSize: 12, color: '#64748b' }}>Đáp án:</span>
-            <input className="exam-q-fill-answer" style={{ flex: 1 }}
+            <RichInput
+              style={{ flex: 1 }}
               value={q.answerText || ''}
               placeholder="nhập đáp án mẫu..."
-              onChange={(e) => onUpdateQuestion(group.id, q.id, { answerText: e.target.value })}
-              onClick={(e) => e.stopPropagation()} />
+              onChange={(html) => onUpdateQuestion(group.id, q.id, { answerText: html })} />
           </div>
         </div>
         <button className="exam-group-tool-btn danger"
@@ -1606,18 +1882,17 @@ const ShortAnswerBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragH
         onClick={(e) => { e.stopPropagation(); onSelectQuestion(q); }}>
         <div className="exam-q-num" style={{ background: '#166534', flexShrink: 0 }}>{q.questionNumber ?? '?'}</div>
         <div className="exam-sc-body">
-          <input className="exam-q-text-input"
+          <RichInput
             value={q.questionText || ''}
             placeholder="VD: What is the name of the street?"
-            onChange={(e) => onUpdateQuestion(group.id, q.id, { questionText: e.target.value })}
-            onClick={(e) => e.stopPropagation()} />
+            onChange={(html) => onUpdateQuestion(group.id, q.id, { questionText: html })} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
             <span style={{ fontSize: 12, color: '#64748b' }}>Đáp án:</span>
-            <input className="exam-q-fill-answer" style={{ flex: 1 }}
+            <RichInput
+              style={{ flex: 1 }}
               value={q.answerText || ''}
               placeholder="nhập đáp án mẫu..."
-              onChange={(e) => onUpdateQuestion(group.id, q.id, { answerText: e.target.value })}
-              onClick={(e) => e.stopPropagation()} />
+              onChange={(html) => onUpdateQuestion(group.id, q.id, { answerText: html })} />
           </div>
         </div>
         <button className="exam-group-tool-btn danger"
@@ -1725,6 +2000,410 @@ const SummaryCompletionBlock = ({ group, onUpdate, onDelete, onSelect, selected,
   </div>
 );
 
+// ---- Flow-chart Block ----
+function FlowChartBlock({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps, onUpdateQuestion, selectedQuestionId }) {
+  const flowNodes = group.flowNodes ?? [];
+  const questions = group.questions ?? [];
+  const options   = group.optionBank ?? [];
+  const fromQ     = group.fromQuestion ?? 1;
+
+  const syncAndSave = (nodes, qOverride) => {
+    const newQs = qOverride ?? syncFcQuestions(nodes, questions, fromQ);
+    onUpdate(group.id, { flowNodes: nodes, questions: newQs });
+  };
+
+  const setNodeText = (nodeId, text) => {
+    syncAndSave(flowNodes.map((n) => n.id === nodeId ? { ...n, text } : n));
+  };
+
+  const addNode = () => {
+    syncAndSave([...flowNodes, { id: `fn${Date.now()}`, text: '' }]);
+  };
+
+  const removeNode = (nodeId) => {
+    if (flowNodes.length <= 1) return;
+    syncAndSave(flowNodes.filter((n) => n.id !== nodeId));
+  };
+
+  // Cumulative start question number per node
+  const nodeStartMap = {};
+  let qCursor = fromQ;
+  for (const node of flowNodes) {
+    nodeStartMap[node.id] = qCursor;
+    qCursor += ((node.text ?? '').match(/\[blank\]/g) ?? []).length;
+  }
+
+  return (
+    <div className={`exam-group${selected ? ' selected' : ''}`}
+      onClick={(e) => { e.stopPropagation(); onSelect(group); }}>
+      <GroupToolbar group={group} dragHandleProps={dragHandleProps} onDelete={onDelete} />
+
+      {/* Chart title */}
+      <div className="exam-fc-title-row" onClick={(e) => e.stopPropagation()}>
+        <input
+          className="exam-img-url-field"
+          style={{ width: '100%', fontWeight: 700, textAlign: 'center', fontSize: 13 }}
+          value={group.title ?? ''}
+          placeholder="Tiêu đề sơ đồ (VD: Procedure for detecting life on another planet)"
+          onChange={(e) => onUpdate(group.id, { title: e.target.value })}
+        />
+      </div>
+
+      {/* Two-column: flow nodes + word bank */}
+      <div className="exam-fc-layout" onClick={(e) => e.stopPropagation()}>
+        {/* Left: flow nodes */}
+        <div className="exam-fc-nodes">
+          {flowNodes.map((node, idx) => (
+            <React.Fragment key={node.id}>
+              <div className="exam-fc-node">
+                <TcCellEditor
+                  value={node.text}
+                  onChange={(val) => setNodeText(node.id, val)}
+                  startQNum={nodeStartMap[node.id] ?? fromQ}
+                />
+                {flowNodes.length > 1 && (
+                  <button
+                    className="exam-fc-node-del"
+                    onClick={(e) => { e.stopPropagation(); removeNode(node.id); }}
+                    title="Xóa ô này"
+                  >×</button>
+                )}
+              </div>
+              {idx < flowNodes.length - 1 && (
+                <div className="exam-fc-arrow">↓</div>
+              )}
+            </React.Fragment>
+          ))}
+          <button className="exam-add-btn" style={{ marginTop: 8 }}
+            onClick={(e) => { e.stopPropagation(); addNode(); }}>
+            <Plus size={11} /> Thêm ô
+          </button>
+        </div>
+
+        {/* Right: word bank */}
+        <div className="exam-fc-bank">
+          <div className="exam-dm-col-header">
+            <input className="exam-dm-col-title-input"
+              value={group.bankTitle ?? ''}
+              placeholder="Tiêu đề ngân từ (tuỳ chọn)"
+              onChange={(e) => onUpdate(group.id, { bankTitle: e.target.value })}
+              onClick={(e) => e.stopPropagation()} />
+          </div>
+          <div className="exam-dm-bank">
+            {options.map((o, i) => (
+              <div key={i} className="exam-dm-option">
+                <input className="exam-q-text-input" style={{ flex: 1, margin: 0 }}
+                  value={o.text || ''}
+                  placeholder={`Lựa chọn ${i + 1}...`}
+                  onChange={(e) => {
+                    const n = [...options];
+                    n[i] = { ...n[i], text: e.target.value };
+                    onUpdate(group.id, { optionBank: n });
+                  }}
+                  onClick={(e) => e.stopPropagation()} />
+                <button className="exam-q-del-btn"
+                  onClick={(e) => { e.stopPropagation(); onUpdate(group.id, { optionBank: options.filter((_, j) => j !== i) }); }}>
+                  ×
+                </button>
+              </div>
+            ))}
+            <button className="exam-add-btn" style={{ marginTop: 6 }}
+              onClick={(e) => { e.stopPropagation(); onUpdate(group.id, { optionBank: [...options, { id: Date.now(), text: '' }] }); }}>
+              <Plus size={11} /> Thêm lựa chọn
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Question range */}
+      <div className="exam-q-range-header" style={{ marginTop: 10 }} onClick={(e) => e.stopPropagation()}>
+        Câu&nbsp;
+        <input className="exam-q-range-input" value={group.fromQuestion ?? ''} placeholder="26"
+          onChange={(e) => {
+            const fq = e.target.value ? Number(e.target.value) : null;
+            const newQs = syncFcQuestions(flowNodes, questions, fq);
+            onUpdate(group.id, { fromQuestion: fq, questions: newQs, toQuestion: newQs.length > 0 ? (fq ?? 1) + newQs.length - 1 : group.toQuestion });
+          }}
+          onClick={(e) => e.stopPropagation()} />
+        &nbsp;–&nbsp;
+        <input className="exam-q-range-input" value={group.toQuestion ?? ''} placeholder="30"
+          readOnly style={{ background: '#f9fafb', color: '#9ca3af' }}
+          onClick={(e) => e.stopPropagation()} />
+        <span style={{ fontSize: 11, color: '#9ca3af', marginLeft: 6 }}>(tự động)</span>
+      </div>
+
+      {/* Answer key */}
+      {questions.length > 0 && (
+        <div className="exam-ml-answer-section" onClick={(e) => e.stopPropagation()}>
+          <div className="exam-ml-answer-title">🔑 Đáp án (theo thứ tự ô trống)</div>
+          {questions.map((q) => (
+            <div key={q.id} className="exam-ml-answer-row">
+              <span className="exam-ml-answer-num">Câu {q.questionNumber}</span>
+              <input className="exam-q-text-input" style={{ flex: 1, margin: 0 }}
+                value={q.answerText ?? ''}
+                placeholder="Đáp án đúng..."
+                onChange={(e) => onUpdateQuestion(group.id, q.id, { answerText: e.target.value })}
+                onClick={(e) => e.stopPropagation()} />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---- Speaking Interview Block ----
+// Dùng cho Part 1 (Interview) và Part 3 (Discussion): danh sách câu hỏi giám khảo sẽ hỏi.
+const SpeakingInterviewBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps }) => {
+  const questions = group.questions ?? [];
+  const interviewType = group.interviewType ?? 'PART1';
+
+  const addQuestion = (e) => {
+    e.stopPropagation();
+    onUpdate(group.id, { questions: [...questions, { id: `spkq-${Date.now()}`, text: '' }] });
+  };
+
+  const updateQ = (qId, text) =>
+    onUpdate(group.id, { questions: questions.map((q) => (q.id === qId ? { ...q, text } : q)) });
+
+  const deleteQ = (qId, e) => {
+    e.stopPropagation();
+    onUpdate(group.id, { questions: questions.filter((q) => q.id !== qId) });
+  };
+
+  return (
+    <div className={`exam-group${selected ? ' selected' : ''}`}
+      onClick={(e) => { e.stopPropagation(); onSelect(group); }}>
+      <GroupToolbar group={group} dragHandleProps={dragHandleProps} onDelete={onDelete} />
+
+      {/* Part type toggle */}
+      <div className="exam-spk-type-row" onClick={(e) => e.stopPropagation()}>
+        {[['PART1', '🎤 Part 1 · Interview'], ['PART3', '💬 Part 3 · Discussion']].map(([v, lbl]) => (
+          <button key={v} type="button"
+            className={`exam-spk-type-btn${interviewType === v ? ' active' : ''}`}
+            onClick={() => onUpdate(group.id, { interviewType: v })}>{lbl}</button>
+        ))}
+      </div>
+
+      {/* Instructions */}
+      <div className="exam-wt-section" onClick={(e) => e.stopPropagation()}>
+        <label className="exam-wt-label">📋 Hướng dẫn (tuỳ chọn)</label>
+        <input
+          className="exam-spk-instr-input"
+          value={group.partInstruction ?? ''}
+          placeholder={interviewType === 'PART1'
+            ? 'VD: In this part, the examiner asks you about yourself and familiar topics...'
+            : 'VD: In this part, the examiner asks further questions related to the topic in Part 2...'}
+          onChange={(e) => onUpdate(group.id, { partInstruction: e.target.value })}
+        />
+      </div>
+
+      {/* Question list */}
+      <div className="exam-spk-qlist" onClick={(e) => e.stopPropagation()}>
+        {questions.map((q, i) => (
+          <div key={q.id} className="exam-spk-qrow">
+            <span className="exam-spk-qnum">Q{i + 1}</span>
+            <input
+              className="exam-spk-qinput"
+              value={q.text}
+              placeholder="Nhập câu hỏi của giám khảo..."
+              onChange={(e) => updateQ(q.id, e.target.value)}
+            />
+            <button className="exam-spk-qdel" title="Xóa câu hỏi"
+              onClick={(e) => deleteQ(q.id, e)}><X size={12} /></button>
+          </div>
+        ))}
+        <button className="exam-spk-qadd" onClick={addQuestion}>
+          <Plus size={12} /> Thêm câu hỏi
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// ---- Speaking Cue Card Block ----
+// Dùng cho Part 2: xuất hiện thẻ gợi ý (cue card) với chủ đề và bullet points.
+const SpeakingCueCardBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps }) => {
+  const bulletPoints = group.bulletPoints ?? ['', '', ''];
+
+  const updateBullet = (i, val) => {
+    const next = [...bulletPoints];
+    next[i] = val;
+    onUpdate(group.id, { bulletPoints: next });
+  };
+
+  const addBullet = (e) => {
+    e.stopPropagation();
+    onUpdate(group.id, { bulletPoints: [...bulletPoints, ''] });
+  };
+
+  const removeBullet = (i, e) => {
+    e.stopPropagation();
+    onUpdate(group.id, { bulletPoints: bulletPoints.filter((_, idx) => idx !== i) });
+  };
+
+  return (
+    <div className={`exam-group${selected ? ' selected' : ''}`}
+      onClick={(e) => { e.stopPropagation(); onSelect(group); }}>
+      <GroupToolbar group={group} dragHandleProps={dragHandleProps} onDelete={onDelete} />
+
+      <div className="exam-spk-cc-card" onClick={(e) => e.stopPropagation()}>
+        {/* Topic */}
+        <div className="exam-wt-section">
+          <label className="exam-wt-label">📌 Chủ đề / Câu hỏi chính (Topic)</label>
+          <textarea
+            className="exam-wt-instruction"
+            rows={2}
+            value={group.topic ?? ''}
+            placeholder="VD: Describe a time when you helped someone."
+            onChange={(e) => onUpdate(group.id, { topic: e.target.value })}
+          />
+        </div>
+
+        {/* You should say */}
+        <div className="exam-wt-section">
+          <label className="exam-wt-label">📝 Nhãn nhắc</label>
+          <input
+            className="exam-spk-instr-input"
+            value={group.shouldSayLabel ?? 'You should say:'}
+            onChange={(e) => onUpdate(group.id, { shouldSayLabel: e.target.value })}
+          />
+        </div>
+
+        {/* Bullet points */}
+        <div className="exam-spk-qlist">
+          {bulletPoints.map((bp, i) => (
+            <div key={i} className="exam-spk-qrow">
+              <span className="exam-spk-qnum" style={{ fontSize: 16 }}>•</span>
+              <input
+                className="exam-spk-qinput"
+                value={bp}
+                placeholder={`VD: who you helped`}
+                onChange={(e) => updateBullet(i, e.target.value)}
+              />
+              <button className="exam-spk-qdel" onClick={(e) => removeBullet(i, e)}><X size={12} /></button>
+            </div>
+          ))}
+          <button className="exam-spk-qadd" onClick={addBullet}>
+            <Plus size={12} /> Thêm bullet
+          </button>
+        </div>
+
+        {/* Closing sentence */}
+        <div className="exam-wt-section" style={{ marginTop: 8 }}>
+          <label className="exam-wt-label">🔚 Câu kết thúc (tuỳ chọn)</label>
+          <input
+            className="exam-spk-instr-input"
+            value={group.closingSentence ?? ''}
+            placeholder="VD: and explain how you felt about helping this person."
+            onChange={(e) => onUpdate(group.id, { closingSentence: e.target.value })}
+          />
+        </div>
+
+        {/* Prep time */}
+        <div className="exam-wt-meta-row" style={{ marginTop: 8 }}>
+          <div className="exam-wt-meta-field">
+            <label className="exam-wt-label">⏱ Thời gian chuẩn bị (giây)</label>
+            <input type="number" className="exam-q-range-input" style={{ width: 72 }}
+              value={group.prepSeconds ?? 60} min={0} max={120}
+              onChange={(e) => onUpdate(group.id, { prepSeconds: Number(e.target.value) })}
+              onClick={(e) => e.stopPropagation()} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ---- Writing Task Block ----
+// Dùng cho kỹ năng WRITING: Task 1 (biểu đồ/graph) hoặc Task 2 (luận điểm).
+// Không có sub-questions — thí sinh sẽ viết tự do vào textarea.
+const WritingTaskBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps }) => {
+  const handleFileUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => onUpdate(group.id, { imageUrl: ev.target.result });
+    reader.readAsDataURL(file);
+  };
+
+  return (
+    <div className={`exam-group${selected ? ' selected' : ''}`}
+      onClick={(e) => { e.stopPropagation(); onSelect(group); }}>
+      <GroupToolbar group={group} dragHandleProps={dragHandleProps} onDelete={onDelete} />
+
+      {/* Task instructions / prompt */}
+      <div className="exam-wt-section" onClick={(e) => e.stopPropagation()}>
+        <label className="exam-wt-label">📋 Đề bài / Hướng dẫn</label>
+        <textarea
+          className="exam-wt-instruction"
+          value={group.taskInstruction ?? ''}
+          placeholder="VD: The bar chart below shows the percentage of households with Internet access in five countries.\n\nSummarise the information by selecting and reporting the main features and make comparisons where relevant.\n\nWrite at least 150 words."
+          rows={7}
+          onChange={(e) => onUpdate(group.id, { taskInstruction: e.target.value })}
+        />
+      </div>
+
+      {/* Image upload */}
+      <div className="exam-wt-section" onClick={(e) => e.stopPropagation()}>
+        <label className="exam-wt-label">🖼 Ảnh / Biểu đồ (tuỳ chọn)</label>
+        <div className="exam-ml-upload-bar">
+          <input
+            className="exam-img-url-field"
+            style={{ flex: 1, minWidth: 0 }}
+            value={group.imageUrl?.startsWith('data:') ? '(ảnh đã tải lên)' : (group.imageUrl ?? '')}
+            placeholder="Dán URL ảnh hoặc tải lên từ máy..."
+            readOnly={group.imageUrl?.startsWith('data:')}
+            onChange={(e) => onUpdate(group.id, { imageUrl: e.target.value })}
+          />
+          <label className="exam-ml-upload-btn">
+            📁 Tải lên
+            <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileUpload} />
+          </label>
+          {group.imageUrl && (
+            <button className="exam-group-tool-btn danger" title="Xóa ảnh"
+              onClick={(e) => { e.stopPropagation(); onUpdate(group.id, { imageUrl: '' }); }}>
+              <X size={12} />
+            </button>
+          )}
+        </div>
+        {group.imageUrl && (
+          <img src={group.imageUrl} alt="writing task diagram"
+            style={{ maxWidth: '100%', marginTop: 8, border: '1px solid #e5e7eb', borderRadius: 4, display: 'block' }} />
+        )}
+      </div>
+
+      {/* Min words + recommended time */}
+      <div className="exam-wt-meta-row" onClick={(e) => e.stopPropagation()}>
+        <div className="exam-wt-meta-field">
+          <label className="exam-wt-label">📝 Số từ tối thiểu</label>
+          <input
+            type="number"
+            className="exam-q-range-input"
+            style={{ width: 72 }}
+            value={group.minWords ?? 150}
+            min={50}
+            onChange={(e) => onUpdate(group.id, { minWords: Number(e.target.value) })}
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+        <div className="exam-wt-meta-field">
+          <label className="exam-wt-label">⏱ Thời gian (phút)</label>
+          <input
+            type="number"
+            className="exam-q-range-input"
+            style={{ width: 72 }}
+            value={group.recommendedMinutes ?? 20}
+            min={1}
+            onChange={(e) => onUpdate(group.id, { recommendedMinutes: Number(e.target.value) })}
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ---- Group renderer (dispatches by contentType) ----
 const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUpdateGroup, onUpdateQuestion, onDeleteGroup, onDeleteQuestion, onAddQuestion, dragHandleProps, allGroups }) => {
   const selectedGroupId = selection?.type === 'group' ? selection.data.id : null;
@@ -1798,11 +2477,16 @@ const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUp
       selectedQuestionId={selectedQuestionId} />;
   }
   if (ct === 'MATCHING_HEADING') {
+    // Collect paragraphs only from READING_PASSAGE groups that have multi-paragraph mode enabled
+    const passageParagraphs = (allGroups ?? [])
+      .filter((g) => g.contentType === 'READING_PASSAGE' && g.multiParagraph)
+      .flatMap((g) => g.paragraphs ?? []);
     return <MatchingHeadingBlock group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
       onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps}
       onSelectQuestion={(q) => onSelectQuestion(q, group.id)}
       onUpdateQuestion={onUpdateQuestion} onDeleteQuestion={onDeleteQuestion} onAddQuestion={onAddQuestion}
-      selectedQuestionId={selectedQuestionId} />;
+      selectedQuestionId={selectedQuestionId}
+      passageParagraphs={passageParagraphs} />;
   }
   if (ct === 'SUMMARY_COMPLETION') {
     return <SummaryCompletionBlock group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
@@ -1811,10 +2495,37 @@ const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUp
       onUpdateQuestion={onUpdateQuestion} onDeleteQuestion={onDeleteQuestion} onAddQuestion={onAddQuestion}
       selectedQuestionId={selectedQuestionId} />;
   }
+  if (ct === 'FLOW_CHART') {
+    return <FlowChartBlock group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
+      onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps}
+      onUpdateQuestion={onUpdateQuestion}
+      selectedQuestionId={selectedQuestionId} />;
+  }
+  if (ct === 'WRITING_TASK') {
+    return <WritingTaskBlock group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
+      onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps} />;
+  }
+  if (ct === 'SPEAKING_INTERVIEW') {
+    return <SpeakingInterviewBlock group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
+      onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps} />;
+  }
+  if (ct === 'SPEAKING_CUECARD') {
+    return <SpeakingCueCardBlock group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
+      onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps} />;
+  }
   if (ct === 'READING_PASSAGE') {
+    // Collect heading bank + answers from all MATCHING_HEADING groups in this part
+    const mhGroup = (allGroups ?? []).find((g) => g.contentType === 'MATCHING_HEADING');
+    const mhHeadings = mhGroup?.headingBank ?? [];
+    // Build map: paraLabel → heading text (from mhGroup.questions)
+    const mhAnswersByLabel = {};
+    (mhGroup?.questions ?? []).forEach((q) => {
+      const label = (q.questionText || '').replace(/^Section\s*/i, '').trim();
+      if (label && q.answerText) mhAnswersByLabel[label] = q.answerText;
+    });
     return <PassageBlock group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
       onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps}
-      allGroups={allGroups ?? []} />;
+      mhHeadings={mhHeadings} mhAnswersByLabel={mhAnswersByLabel} />;
   }
   if (ct === 'AUDIO_TRANSCRIPT') {
     return <AudioBlock group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
@@ -1845,7 +2556,7 @@ const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUp
 };
 
 // ---- Per-Part content view ----
-const PartView = ({ skill, part, selection, onSelectGroup, onSelectQuestion, onUpdateGroup, onUpdateQuestion, onDeleteGroup, onDeleteQuestion, onAddQuestion, onAddGroup, isDropOver, isPassagePaneOver }) => {
+const PartView = ({ skill, part, selection, onSelectGroup, onSelectQuestion, onUpdateGroup, onUpdateQuestion, onDeleteGroup, onDeleteQuestion, onAddQuestion, onAddGroup, isDropOver, isPassagePaneOver, isPassagePaneLocked, isMHLocked }) => {
   const groups = part.questionGroups ?? [];
 
   const renderGroup = (group) => (
@@ -1873,8 +2584,10 @@ const PartView = ({ skill, part, selection, onSelectGroup, onSelectQuestion, onU
     return (
       <div className="exam-split">
         {/* LEFT: passage texts only */}
-        <div className="exam-pane passage">
-          <div className="exam-pane-label">📄 Đoạn văn</div>
+      <div className={`exam-pane passage${isPassagePaneLocked ? ' pane-locked' : ''}`}>
+          {isPassagePaneLocked && (
+            <div className="exam-pane-lock-overlay">🔒 Chỉ nhận <strong>Đoạn văn</strong></div>
+          )}
           <SortableContext items={passages.map((g) => `group-${g.id}`)} strategy={verticalListSortingStrategy}>
             {passages.map(renderGroup)}
           </SortableContext>
@@ -1888,8 +2601,10 @@ const PartView = ({ skill, part, selection, onSelectGroup, onSelectQuestion, onU
         </div>
         <div className="exam-pane-divider" />
         {/* RIGHT: question groups */}
-        <div className="exam-pane questions">
-          <div className="exam-pane-label">❓ Câu hỏi</div>
+        <div className={`exam-pane questions${isMHLocked ? ' pane-locked' : ''}`}>
+          {isMHLocked && (
+            <div className="exam-pane-lock-overlay">🔒 Cần bật <strong>chế độ đa đoạn</strong> ở Đoạn văn trước</div>
+          )}
           <SortableContext items={qGroups.map((g) => `group-${g.id}`)} strategy={verticalListSortingStrategy}>
             {qGroups.map(renderGroup)}
           </SortableContext>
@@ -1932,6 +2647,7 @@ const ExamCanvas = ({
   onAddGroup,
   dragOverPartId,
   dragOverPassagePaneId,
+  draggingContentType,
 }) => {
   const [activePartId, setActivePartId] = useState(null);
 
@@ -1966,6 +2682,12 @@ const ExamCanvas = ({
   // For Reading: passage pane highlights when dragging a READING_PASSAGE over the left pane
   const isPassagePaneOver = !!dragOverPassagePaneId && (
     dragOverPassagePaneId === `canvas-drop-left-${activePart?.id}`
+  );
+  // Locked = đang kéo một item KHÔNG phải READING_PASSAGE
+  const isPassagePaneLocked = !!draggingContentType && draggingContentType !== 'READING_PASSAGE';
+  // MH locked = đang kéo MATCHING_HEADING nhưng part chưa có READING_PASSAGE với multiParagraph
+  const isMHLocked = draggingContentType === 'MATCHING_HEADING' && !(activePart?.questionGroups ?? []).some(
+    (g) => g.contentType === 'READING_PASSAGE' && g.multiParagraph === true
   );
 
   return (
@@ -2023,7 +2745,9 @@ const ExamCanvas = ({
               onAddQuestion={onAddQuestion}
               onAddGroup={onAddGroup}
               isDropOver={isDropOver}
-              isPassagePaneOver={isPassagePaneOver} />
+              isPassagePaneOver={isPassagePaneOver}
+              isPassagePaneLocked={isPassagePaneLocked}
+              isMHLocked={isMHLocked} />
           </div>
         </div>
       )}

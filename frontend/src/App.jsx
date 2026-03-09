@@ -3,9 +3,12 @@ import HomePage from './pages/HomePage'
 import ExamLibrary from './pages/ExamLibrary'
 import IeltsReadingTest from './pages/IeltsReadingTest'
 import IeltsListeningTest from './pages/IeltsListeningTest'
+import IeltsWritingTest from './pages/IeltsWritingTest'
+import IeltsSpeakingTest from './pages/IeltsSpeakingTest'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import TestBuilder from './pages/TestBuilder'
+import MyDashboard from './pages/MyDashboard'
 import './App.css'
 
 function App() {
@@ -18,8 +21,13 @@ function App() {
         <Route path="/test/reading/:id" element={<IeltsReadingTest />} />
         <Route path="/test/listening" element={<IeltsListeningTest />} />
         <Route path="/test/listening/:id" element={<IeltsListeningTest />} />
+        <Route path="/test/writing" element={<IeltsWritingTest />} />
+        <Route path="/test/writing/:id" element={<IeltsWritingTest />} />
+        <Route path="/test/speaking" element={<IeltsSpeakingTest />} />
+        <Route path="/test/speaking/:id" element={<IeltsSpeakingTest />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/my-dashboard" element={<MyDashboard />} />
         <Route path="/teacher/tests/new" element={<TestBuilder />} />
         <Route path="/teacher/tests/:id/edit" element={<TestBuilder />} />
       </Routes>

@@ -33,21 +33,14 @@ const MultipleChoiceQuestion = ({ q, activeQuestion, setActiveQuestion, answer, 
                 borderRadius: '6px',
             }}
         >
-            <div className="tfng-text" style={{ display: "flex", alignItems: "flex-start", gap: "8px", marginBottom: "15px" }}>
-                
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
-                    <span onClick={(e) => { e.stopPropagation(); toggleBookmark?.(q.number); }} style={{ cursor: "pointer", display: "flex", marginTop: "2px" }}>
-                        <Bookmark size={18} fill={bookmarks?.[q.number] ? "#1a73e8" : "none"} color={bookmarks?.[q.number] ? "#1a73e8" : "#ccc"} />
-                    </span>
-                    
-                <div style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
-                    <span onClick={(e) => { e.stopPropagation(); toggleBookmark?.(q.number); }} style={{ cursor: "pointer", display: "flex", marginTop: "2px" }}>
-                        <Bookmark size={18} fill={bookmarks?.[q.number] ? "#1a73e8" : "none"} color={bookmarks?.[q.number] ? "#1a73e8" : "#ccc"} />
-                    </span>
-                    <div className="tfng-number" style={{ height: "auto", lineHeight: "1.5", fontSize: "16px", paddingTop: "0", margin: "0", alignItems: "flex-start", fontWeight: "bold", minWidth: "auto" }}>{q.number}</div>
+            <div className="tfng-text">
+                <span className="tfng-bookmark" onClick={(e) => { e.stopPropagation(); toggleBookmark?.(q.number); }} >
+                    <Bookmark size={18} fill={bookmarks?.[q.number] ? "#1a73e8" : "none"} color={bookmarks?.[q.number] ? "#1a73e8" : "#ccc"} />
+                </span>
+                <div className="tfng-question-content">
+                    <span className="tfng-number">{q.number}</span>
+                    <span className="tfng-question-text">{q.text}</span>
                 </div>
-                </div>
-                <div style={{ fontSize: "16px", fontWeight: "400", lineHeight: "1.5", margin: "0", paddingTop: "0" }}>{q.text}</div>
             </div>
             <div className="tfng-options">
                 {q.options && q.options.map((opt, idx) => {
@@ -57,9 +50,9 @@ const MultipleChoiceQuestion = ({ q, activeQuestion, setActiveQuestion, answer, 
                             key={idx}
                             className="tfng-radio-label"
                             style={{
-                                padding: '10px 15px',
+                                padding: '4px 15px',
                                 borderRadius: '6px',
-                                backgroundColor: isChecked ? '#e0e0e0' : 'transparent',
+                                backgroundColor: (!isMultiple && isChecked) ? '#e0e0e0' : 'transparent',
                                 border: 'none',
                             }}
                         >

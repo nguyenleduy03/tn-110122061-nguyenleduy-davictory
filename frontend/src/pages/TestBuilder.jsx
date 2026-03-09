@@ -48,6 +48,13 @@ const makeDefaultParts = (skillKey) => {
       instructions: '', questionGroups: [],
     }));
   }
+  if (skillKey === 'SPEAKING') {
+    return [{
+      id: nextId(), name: 'Part 1', orderIndex: 1,
+      durationMinutes: null, totalQuestions: 5,
+      instructions: '', questionGroups: [],
+    }];
+  }
   return [{
     id: nextId(), name: 'Part 1', orderIndex: 1,
     durationMinutes: null, totalQuestions: 1,
@@ -148,19 +155,209 @@ const TestBuilder = () => {
   };
 
   const addGroup = (part, contentType = 'STANDALONE') => {
+    // Ràng buộc: MATCHING_HEADING chỉ được thêm khi part đã có READING_PASSAGE với multiParagraph = true
+    if (contentType === 'MATCHING_HEADING') {
+      const hasMultiPassage = (part.questionGroups ?? []).some(
+        (g) => g.contentType === 'READING_PASSAGE' && g.multiParagraph === true
+      );
+      if (!hasMultiPassage) {
+        alert('Cần thêm "Đoạn văn" trước và nhấn "Thêm heading" để bật chế độ đa đoạn trước khi thêm Match Headings.');
+        return;
+      }
+    }
+
+    const groupIdx = (part.questionGroups?.length ?? 0) + 1;
+
+    // ── Helpers ──
+    const makeQ = (num, typeName = 'FILL_IN_BLANK', extra = {}) => ({
+      id: nextId(), groupId: null, partId: part.id,
+      questionNumber: num, questionText: '', answerText: '',
+      questionType: { typeName },
+      options: [], answers: [], points: 1, orderIndex: num,
+      ...extra,
+    });
+    const makeMCQ = (num) => makeQ(num, 'MULTIPLE_CHOICE', {
+      options: ['A','B','C','D'].map((l, i) => ({ id: nextId(), optionLabel: l, optionText: '', isCorrect: false, orderIndex: i })),
+    });
+    const makeMMCQ = (num) => makeQ(num, 'MULTIPLE_CHOICE_MULTIPLE', {
+      chooseCount: 2,
+      options: ['A','B','C','D','E'].map((l, i) => ({ id: nextId(), optionLabel: l, optionText: '', isCorrect: false, orderIndex: i })),
+    });
+
+    // ── Default seed data theo contentType ──
+    const seed = (() => {
+      switch (contentType) {
+        case 'READING_PASSAGE':
+          return {
+            title: '',
+            paragraphs: [
+              { id: `p-${nextId()}`, label: 'A', text: '' },
+            ],
+          };
+
+        case 'MATCHING_HEADING':
+          return {
+            title: `Match Headings ${groupIdx}`,
+            fromQuestion: null, toQuestion: null,
+            headingBank: [
+              { id: nextId(), text: '' },
+              { id: nextId(), text: '' },
+              { id: nextId(), text: '' },
+              { id: nextId(), text: '' },
+              { id: nextId(), text: '' },
+            ],
+            questions: [
+              makeQ(1, 'FILL_IN_BLANK', { questionText: 'Section A' }),
+              makeQ(2, 'FILL_IN_BLANK', { questionText: 'Section B' }),
+              makeQ(3, 'FILL_IN_BLANK', { questionText: 'Section C' }),
+              makeQ(4, 'FILL_IN_BLANK', { questionText: 'Section D' }),
+            ],
+          };
+
+        case 'MULTIPLE_CHOICE_GROUP':
+          return {
+            title: `Multiple Choice ${groupIdx}`,
+            fromQuestion: null, toQuestion: null,
+            questions: [makeMCQ(1), makeMCQ(2), makeMCQ(3)],
+          };
+
+        case 'MULTIPLE_CHOICE_MULTI':
+          return {
+            title: `Multiple Choice (nhiều) ${groupIdx}`,
+            chooseCount: 2,
+            fromQuestion: null, toQuestion: null,
+            questions: [makeMMCQ(1)],
+          };
+
+        case 'SENTENCE_COMPLETION':
+          return {
+            title: `Sentence Completion ${groupIdx}`,
+            fromQuestion: null, toQuestion: null,
+            questions: [
+              makeQ(1, 'FILL_IN_BLANK'),
+              makeQ(2, 'FILL_IN_BLANK'),
+              makeQ(3, 'FILL_IN_BLANK'),
+            ],
+          };
+
+        case 'SHORT_ANSWER_GROUP':
+          return {
+            title: `Short Answer ${groupIdx}`,
+            fromQuestion: null, toQuestion: null,
+            questions: [
+              makeQ(1, 'SHORT_ANSWER'),
+              makeQ(2, 'SHORT_ANSWER'),
+              makeQ(3, 'SHORT_ANSWER'),
+            ],
+          };
+
+        case 'NOTE_COMPLETION':
+          return {
+            title: `Note Completion ${groupIdx}`,
+            noteText: '',
+            fromQuestion: null, toQuestion: null,
+            questions: [],
+          };
+
+        case 'SUMMARY_COMPLETION':
+          return {
+            title: `Summary Completion ${groupIdx}`,
+            summaryText: '',
+            fromQuestion: null, toQuestion: null,
+            questions: [],
+          };
+
+        case 'DRAG_MATCHING':
+          return {
+            title: `Drag Matching ${groupIdx}`,
+            leftTitle: '', rightTitle: '',
+            fromQuestion: null, toQuestion: null,
+            optionBank: [
+              { id: nextId(), text: '' },
+              { id: nextId(), text: '' },
+              { id: nextId(), text: '' },
+              { id: nextId(), text: '' },
+            ],
+            questions: [
+              makeQ(1, 'FILL_IN_BLANK', { questionText: '' }),
+              makeQ(2, 'FILL_IN_BLANK', { questionText: '' }),
+              makeQ(3, 'FILL_IN_BLANK', { questionText: '' }),
+            ],
+          };
+
+        case 'TABLE_COMPLETION': {
+          const c0 = `c${nextId()}`, c1 = `c${nextId()}`, c2 = `c${nextId()}`;
+          return {
+            title: `Table Completion ${groupIdx}`,
+            tableTitle: '',
+            fromQuestion: 1,
+            columns: [
+              { id: c0, header: '' },
+              { id: c1, header: '' },
+              { id: c2, header: '' },
+            ],
+            tableRows: [
+              { id: `r${nextId()}`, cells: { [c0]: '', [c1]: '', [c2]: '' } },
+              { id: `r${nextId()}`, cells: { [c0]: '', [c1]: '', [c2]: '' } },
+              { id: `r${nextId()}`, cells: { [c0]: '', [c1]: '', [c2]: '' } },
+            ],
+            questions: [],
+          };
+        }
+
+        case 'AUDIO_TRANSCRIPT':
+          return {
+            title: `Part ${groupIdx}`,
+            audioUrl: '',
+            fromQuestion: null, toQuestion: null,
+            questions: [makeQ(1, 'FILL_IN_BLANK')],
+          };
+
+        case 'MAP':
+        case 'DIAGRAM':
+          return {
+            title: `${contentType === 'MAP' ? 'Bản đồ' : 'Sơ đồ'} ${groupIdx}`,
+            imageUrl: '',
+            fromQuestion: null, toQuestion: null,
+            questions: [makeQ(1, 'FILL_IN_BLANK')],
+          };
+
+        case 'MAP_LABELLING':
+          return {
+            title: `Map Labelling ${groupIdx}`,
+            imageUrl: '',
+            imageWidth: 100, pinBoxWidth: 60,
+            fromQuestion: null, toQuestion: null,
+            optionBank: [],
+            questions: [],
+          };
+
+        default: // STANDALONE, TABLE, WRITING, SPEAKING…
+          return {
+            title: `Nhóm ${groupIdx}`,
+            fromQuestion: null, toQuestion: null,
+            questions: [makeQ(1, 'FILL_IN_BLANK')],
+          };
+      }
+    })();
+
     const newGroup = {
       id: nextId(),
       partId: part.id,
-      title: `Nhóm ${(part.questionGroups?.length ?? 0) + 1}`,
       contentType,
       passageText: '',
       audioUrl: '',
       imageUrl: '',
-      fromQuestion: null,
-      toQuestion: null,
-      orderIndex: (part.questionGroups?.length ?? 0) + 1,
+      orderIndex: groupIdx,
       questions: [],
+      ...seed,
     };
+
+    // Gán groupId cho tất cả questions được seed
+    if (newGroup.questions?.length) {
+      newGroup.questions = newGroup.questions.map((q) => ({ ...q, groupId: newGroup.id }));
+    }
+
     updatePart(part.id, {
       questionGroups: [...(part.questionGroups ?? []), newGroup],
     });
@@ -301,9 +498,11 @@ const TestBuilder = () => {
     setActiveOverlayItem(active.data.current ?? null);
   };
 
-  const handleDragOver = ({ over }) => {
+  const handleDragOver = ({ active, over }) => {
     const overData = over?.data?.current;
-    if (overData?.type === 'passage-pane') {
+    const activeData = active?.data?.current;
+    const isPassageItem = activeData?.contentType === 'READING_PASSAGE';
+    if (overData?.type === 'passage-pane' && isPassageItem) {
       setDragOverPassagePaneId(over.id);
       setDragOverPartId(null);
     } else if (overData?.type === 'question-pane' || overData?.type === 'part') {
@@ -324,8 +523,9 @@ const TestBuilder = () => {
     const activeData = active.data.current;
     const overData = over?.data?.current;
 
-    // 1. Palette item dropped onto passage pane → force READING_PASSAGE type
+    // 1. Palette item dropped onto passage pane → only allow READING_PASSAGE
     if (activeData?.source === 'palette' && overData?.type === 'passage-pane') {
+      if (activeData.contentType !== 'READING_PASSAGE') return; // block non-passage items
       const partId = Number(overData.partId);
       const part = parts.find((p) => p.id === partId);
       if (part) addGroup(part, 'READING_PASSAGE');
@@ -472,6 +672,7 @@ const TestBuilder = () => {
             selection={selection}
             dragOverPartId={dragOverPartId}
             dragOverPassagePaneId={dragOverPassagePaneId}
+            draggingContentType={activeOverlayItem?.contentType ?? null}
             onSelectGroup={(g, partId) => setSelection({ type: 'group', data: { ...g, partId } })}
             onSelectQuestion={(q) => setSelection({ type: 'question', data: q })}
             onUpdateGroup={(groupId, upd) => {

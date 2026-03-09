@@ -209,6 +209,8 @@
   border-top: 1px solid rgba(255,255,255,0.07);
   padding: 8px;
   flex-shrink: 0;
+  max-height: 220px;
+  overflow-y: auto;
 }
 .tb-palette-title {
   font-size: 10px;
@@ -376,10 +378,23 @@
 }
 .exam-pane::-webkit-scrollbar { width: 5px; }
 .exam-pane::-webkit-scrollbar-thumb { background: #ddd; border-radius: 3px; }
-.exam-pane.passage { flex: 1; border-right: 1px solid #e0e0e0; }
+.exam-pane.passage { flex: 1; border-right: 1px solid #e0e0e0; position: relative; }
 .exam-pane.questions { flex: 1; }
 .exam-pane-divider { width: 8px; cursor: col-resize; background: #d4d6da; flex-shrink: 0; }
 .exam-pane-divider:hover { background: #aaa; }
+
+/* Lock overlay — hiện khi kéo item không phải READING_PASSAGE vào pane trái */
+.exam-pane-lock-overlay {
+  position: absolute; inset: 0; z-index: 20;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(239, 68, 68, 0.08);
+  border: 2px solid #fca5a5;
+  border-radius: 4px;
+  font-size: 13px; color: #b91c1c; gap: 6px;
+  pointer-events: none;
+  backdrop-filter: blur(1px);
+}
+.exam-pane.pane-locked .exam-group-drop { opacity: 0.4; pointer-events: none; }
 
 /* Pane label (Reading only) */
 .exam-pane-label {
@@ -490,6 +505,56 @@
   font-size: 11px; font-weight: 700; color: #9ca3af;
   flex-shrink: 0; min-width: 18px;
 }
+
+/* Ảnh trong đoạn văn */
+.passage-para-img-wrap {
+  position: relative; margin: 6px 8px 0;
+}
+.passage-para-img {
+  display: block; max-width: 100%; max-height: 260px;
+  border-radius: 5px; object-fit: contain;
+  border: 1px solid #e5e7eb;
+}
+.passage-para-img-remove {
+  position: absolute; top: 4px; right: 4px;
+  background: rgba(0,0,0,0.55); border: none; border-radius: 50%;
+  width: 20px; height: 20px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; opacity: 0; transition: opacity 0.15s;
+}
+.passage-para-img-wrap:hover .passage-para-img-remove { opacity: 1; }
+
+/* Highlight đoạn khi kéo ảnh từ sidebar vào */
+.passage-para.para-img-drag-over {
+  outline: 2px dashed #3b82f6;
+  outline-offset: -2px;
+  background: #eff6ff;
+}
+.passage-para-drop-hint {
+  margin: 4px 8px;
+  padding: 5px 10px;
+  background: #dbeafe; border-radius: 5px;
+  font-size: 12px; color: #1d4ed8; text-align: center;
+  pointer-events: none;
+}
+
+/* Click zone sau khi drop từ sidebar */
+.passage-para-img-pick {
+  display: flex; align-items: center; gap: 8px;
+  margin: 6px 8px;
+  padding: 7px 12px;
+  background: #f0fdf4; border: 1.5px solid #86efac;
+  border-radius: 6px; cursor: pointer;
+  font-size: 12px; color: #15803d;
+  transition: background 0.15s;
+}
+.passage-para-img-pick:hover { background: #dcfce7; }
+.passage-para-img-pick-cancel {
+  margin-left: auto; background: none; border: none;
+  color: #6b7280; font-size: 13px; cursor: pointer;
+  padding: 0 2px; line-height: 1;
+}
+.passage-para-img-pick-cancel:hover { color: #ef4444; }
 
 .exam-passage-body {
   font-size: 15px; line-height: 1.75; color: #333;
@@ -879,7 +944,148 @@
 .mh-clear-btn:hover { opacity: 1; }
 
 /* =============================================
-   SUMMARY COMPLETION BLOCK
+   MATCHING HEADINGS — REDESIGNED (no drag)
+   ============================================= */
+/* Nhãn đoạn A/B/C trong PassageBlock */
+.passage-para-label {
+  font-size: 12px; font-weight: 800; color: #c2410c;
+  background: #fff7ed; border: 1px solid #fed7aa;
+  border-radius: 4px; padding: 1px 7px;
+  flex-shrink: 0; min-width: 22px; text-align: center;
+  letter-spacing: 0.5px;
+}
+
+/* Heading đã gán hiển thị trên đoạn văn (canvas soạn đề) */
+.passage-para-mh-badge {
+  font-size: 11px; font-weight: 600; color: #1d4ed8;
+  background: #dbeafe; border: 1px solid #93c5fd;
+  border-radius: 4px; padding: 1px 8px;
+  max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  flex: 1;
+}
+.passage-para-mh-empty {
+  font-size: 11px; color: #d1d5db; font-style: italic;
+  flex: 1;
+}
+
+/* Wrapper cho 2 phần trong MatchingHeadingBlock */
+.exam-mh-section {
+  background: #fafafa; border: 1px solid #e5e7eb;
+  border-radius: 8px; padding: 10px 12px;
+}
+
+.exam-mh-section-title {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; font-weight: 700; color: #374151;
+  text-transform: uppercase; letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+.exam-mh-hint {
+  font-size: 11px; font-weight: 400; color: #9ca3af;
+  text-transform: none; letter-spacing: 0;
+}
+
+/* Mỗi dòng heading trong List of Headings */
+.exam-mh-heading-row {
+  display: flex; align-items: flex-start; gap: 8px;
+  margin-bottom: 6px;
+}
+
+/* ── Rich text input (B/I/U) ── */
+.rich-input-wrap {
+  position: relative;
+  display: flex; flex-direction: column;
+}
+.rich-input-toolbar {
+  display: flex; gap: 2px;
+  background: #1e293b; border-radius: 5px;
+  padding: 3px 4px; margin-bottom: 3px;
+  width: fit-content;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+  z-index: 10;
+}
+.rich-tb-btn {
+  background: none; border: none; cursor: pointer;
+  color: #e2e8f0; padding: 2px 7px; border-radius: 3px;
+  font-size: 13px; line-height: 1.4;
+  transition: background 0.12s;
+}
+.rich-tb-btn:hover { background: #334155; }
+.rich-input-content {
+  flex: 1;
+  min-height: 28px; padding: 4px 8px;
+  border: 1px solid #d1d5db; border-radius: 6px;
+  font-size: 13px; color: #1e293b; background: #fff;
+  outline: none; line-height: 1.5;
+  transition: border-color 0.15s;
+}
+.rich-input-content:focus { border-color: #3b82f6; box-shadow: 0 0 0 2px #bfdbfe; }
+.rich-input-content:empty:before {
+  content: attr(data-placeholder);
+  color: #9ca3af; pointer-events: none;
+}
+
+/* Multiline variant — for passage paragraphs */
+.rich-input-multiline .rich-input-content--multiline {
+  min-height: 90px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  resize: vertical;
+  overflow-y: auto;
+}
+/* Passage title variant */
+.exam-passage-title-wrap .rich-input-content {
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+  border-color: transparent;
+  background: transparent;
+  padding: 2px 4px;
+}
+.exam-passage-title-wrap .rich-input-content:focus {
+  border-color: #3b82f6;
+  background: #fff;
+}
+
+/* Mỗi dòng section (câu hỏi) */
+.exam-mh-section-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 4px; margin-bottom: 6px;
+  border-radius: 6px; cursor: default;
+  border: 1.5px solid transparent;
+  transition: border-color 0.1s, background 0.1s;
+}
+.exam-mh-section-row:hover { border-color: #e5e7eb; background: #fff; }
+.exam-mh-section-row.selected { border-color: #3b82f6; background: #eff6ff; }
+
+/* Label tên section khi ở synced mode (read-only) */
+.exam-mh-section-label {
+  flex: 1; font-size: 13px; color: #374151;
+  padding: 3px 6px; background: #f3f4f6; border-radius: 4px;
+  white-space: nowrap; min-width: 80px;
+}
+.exam-mh-section-label strong { color: #1d4ed8; }
+
+/* Dropdown chọn heading đáp án */
+.exam-mh-answer-select {
+  flex: 0 0 auto; min-width: 160px; max-width: 220px;
+  border: 1px solid #d1d5db; border-radius: 5px;
+  padding: 4px 8px; font-size: 12px; color: #374151;
+  outline: none; background: #fff; cursor: pointer;
+}
+.exam-mh-answer-select:focus { border-color: #3b82f6; }
+.exam-mh-answer-select option { font-size: 12px; }
+
+/* Badge nhỏ hiện số La Mã của đáp án đã chọn */
+.exam-mh-answer-badge-inline {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 26px; height: 22px;
+  background: #fff7ed; border: 1.5px solid #fed7aa;
+  border-radius: 4px; font-style: italic; font-weight: 700;
+  color: #c2410c; font-size: 12px; flex-shrink: 0;
+}
+
+
    ============================================= */
 .exam-summary-instructions {
   font-size: 13px; color: #0369a1; font-style: italic;
@@ -1794,6 +2000,77 @@
 .pv-tc-blank.active { border-bottom-color: #ea4335; }
 
 /* ================================================================
+   FLOW-CHART COMPLETION — Preview  (.pv-fc-*)
+   ================================================================ */
+.pv-fc-layout {
+  display: flex;
+  gap: 28px;
+  align-items: flex-start;
+}
+.pv-fc-chart {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.pv-fc-chart-title {
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+  margin: 0 0 12px 0;
+}
+.pv-fc-node {
+  border: 1px solid #333;
+  padding: 10px 14px;
+  background: #fff;
+}
+.pv-fc-node-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.8;
+}
+.pv-fc-arrow {
+  text-align: center;
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 1;
+  padding: 4px 0;
+  color: #111;
+  user-select: none;
+}
+/* Blank drop zone */
+.pv-fc-blank {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 80px;
+  padding: 2px 8px;
+  border: 2px dashed #999;
+  background: #fff;
+  vertical-align: middle;
+  cursor: pointer;
+  border-radius: 2px;
+  margin: 2px 4px;
+  font-size: 13px;
+  transition: border-color 0.15s, background 0.15s;
+}
+.pv-fc-blank:hover { border-color: #666; background: #fafafa; }
+.pv-fc-blank.filled {
+  border: 2px solid #1a73e8;
+  background: #eff6ff;
+  cursor: pointer;
+}
+.pv-fc-blank.active { border-color: #ea4335; border-style: dashed; }
+.pv-fc-blank.drag-over { border-color: #1a73e8; background: #eff6ff; border-style: dashed; }
+.pv-fc-blank-num { font-size: 13px; font-weight: 700; color: #555; }
+.pv-fc-blank-text { font-size: 13px; color: #111; font-weight: 600; }
+/* Word bank column */
+.pv-fc-bank {
+  flex: 0 0 150px;
+}
+
+/* ================================================================
    TABLE COMPLETION — TcCellEditor (per-cell rich blank editor)
    ================================================================ */
 .rbe-blank-indigo { background: #e0e7ff; color: #4338ca; border-color: #a5b4fc; }
@@ -1817,3 +2094,512 @@
   color: #c0c0c0; pointer-events: none; font-style: italic;
 }
 .exam-tc-row-label-cell .tc-cell-editor { font-weight: 600; }
+
+/* ================================================================
+   FLOW-CHART COMPLETION — builder canvas
+   ================================================================ */
+.exam-fc-title-row { margin-bottom: 10px; }
+.exam-fc-layout {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+.exam-fc-nodes {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.exam-fc-node {
+  position: relative;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  padding: 8px 28px 8px 8px;
+  background: #fff;
+}
+.exam-fc-node-del {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #ef4444;
+  font-size: 15px;
+  line-height: 1;
+  padding: 0 2px;
+}
+.exam-fc-node-del:hover { color: #b91c1c; }
+.exam-fc-arrow {
+  text-align: center;
+  font-size: 18px;
+  padding: 3px 0;
+  color: #374151;
+  font-weight: bold;
+  user-select: none;
+}
+.exam-fc-bank {
+  flex: 0 0 180px;
+}
+
+/* ============================================================
+   WRITING TASK — Builder canvas styles (.exam-wt-*)
+   ============================================================ */
+
+.exam-wt-type-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.exam-wt-type-btn {
+  flex: 1;
+  padding: 7px 12px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f9fafb;
+  cursor: pointer;
+  font-size: 12.5px;
+  color: #374151;
+  transition: border-color 0.15s, background 0.15s;
+  text-align: left;
+}
+.exam-wt-type-btn:hover { border-color: #a16207; background: #fefce8; }
+.exam-wt-type-btn.active {
+  border-color: #a16207;
+  background: #fef9c3;
+  color: #a16207;
+  font-weight: 700;
+}
+
+.exam-wt-section {
+  margin-bottom: 12px;
+}
+
+.exam-wt-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 5px;
+}
+
+.exam-wt-instruction {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-family: inherit;
+  line-height: 1.6;
+  color: #111827;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.exam-wt-instruction:focus { border-color: #a16207; box-shadow: 0 0 0 2px rgba(161,98,7,0.12); }
+
+.exam-wt-meta-row {
+  display: flex;
+  gap: 20px;
+  margin-top: 4px;
+}
+.exam-wt-meta-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ============================================================
+   WRITING TASK — Preview modal styles (.pv-wt-*)
+   ============================================================ */
+
+.pv-wt-container {
+  display: flex;
+  gap: 0;
+  min-height: 420px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 8px 0 16px;
+}
+
+.pv-wt-left {
+  flex: 0 0 50%;
+  padding: 20px 22px;
+  border-right: 1px solid #e5e7eb;
+  background: #fafafa;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.pv-wt-task-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: #a16207;
+  margin-bottom: 6px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #fbbf24;
+}
+
+.pv-wt-time-hint {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-bottom: 12px;
+  font-style: italic;
+}
+
+.pv-wt-instruction p {
+  margin: 0 0 7px;
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: #374151;
+}
+
+.pv-wt-image {
+  width: 100%;
+  max-width: 100%;
+  margin-top: 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  display: block;
+}
+
+.pv-wt-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 18px;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.pv-wt-textarea {
+  flex: 1;
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-family: "Times New Roman", Times, serif;
+  line-height: 1.8;
+  color: #111827;
+  resize: none;
+  outline: none;
+  min-height: 320px;
+  transition: border-color 0.15s;
+}
+.pv-wt-textarea:focus { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(26,115,232,0.12); }
+
+.pv-wt-wordcount {
+  margin-top: 8px;
+  font-size: 12.5px;
+  flex-shrink: 0;
+}
+.pv-wt-wc-ok { font-weight: 700; color: #16a34a; }
+.pv-wt-wc-under { font-weight: 700; color: #d97706; }
+.pv-wt-wc-min { color: #9ca3af; }
+
+
+/* ── Speaking Builder Blocks ─────────────────────────────────────────────────── */
+
+/* Part type toggle */
+.exam-spk-type-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.exam-spk-type-btn {
+  flex: 1;
+  padding: 7px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 2px solid #fbcfe8;
+  background: #fff;
+  color: #9d174d;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.exam-spk-type-btn:hover {
+  background: #fce7f3;
+}
+
+.exam-spk-type-btn.active {
+  background: #be185d;
+  border-color: #be185d;
+  color: white;
+}
+
+/* Instruction input */
+.exam-spk-instr-input {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #374151;
+  background: #f9fafb;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.exam-spk-instr-input:focus {
+  border-color: #be185d;
+  background: #fff;
+}
+
+/* Question list */
+.exam-spk-qlist {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.exam-spk-qrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.exam-spk-qnum {
+  font-size: 12px;
+  font-weight: 700;
+  color: #be185d;
+  min-width: 22px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.exam-spk-qinput {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #374151;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.exam-spk-qinput:focus {
+  border-color: #be185d;
+}
+
+.exam-spk-qdel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  background: #fce7f3;
+  color: #be185d;
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.exam-spk-qdel:hover {
+  background: #fda4af;
+}
+
+.exam-spk-qadd {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: #be185d;
+  background: none;
+  border: 1px dashed #fbcfe8;
+  border-radius: 6px;
+  padding: 5px 10px;
+  cursor: pointer;
+  margin-top: 2px;
+  transition: background 0.15s;
+}
+
+.exam-spk-qadd:hover {
+  background: #fce7f3;
+}
+
+/* Cue card wrapper */
+.exam-spk-cc-card {
+  background: #fffbeb;
+  border: 2px solid #f59e0b;
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* ── Speaking Preview (PreviewModal) ─────────────────────────────────────────── */
+
+.pv-spk-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 8px 0;
+}
+
+/* Interview group */
+.pv-spk-interview {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pv-spk-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  width: fit-content;
+}
+
+.pv-spk-chip--p1 {
+  background: #fce7f3;
+  color: #be185d;
+}
+
+.pv-spk-chip--p3 {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+
+.pv-spk-instruction {
+  font-size: 13px;
+  color: #6b7280;
+  font-style: italic;
+  padding-left: 4px;
+}
+
+.pv-spk-qlist {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pv-spk-qrow {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 1px solid #f3f4f6;
+}
+
+.pv-spk-qnum {
+  font-size: 13px;
+  font-weight: 700;
+  color: #be185d;
+  min-width: 24px;
+  flex-shrink: 0;
+  padding-top: 1px;
+}
+
+.pv-spk-qtext {
+  flex: 1;
+  font-size: 15px;
+  line-height: 1.55;
+  color: #111827;
+}
+
+.pv-spk-mic-badge {
+  font-size: 16px;
+  margin-left: 6px;
+  flex-shrink: 0;
+  opacity: 0.55;
+}
+
+/* Cue card group */
+.pv-spk-cuecard-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 20px 24px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+}
+
+.pv-spk-prep-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 20px;
+  padding: 4px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #92400e;
+}
+
+.pv-spk-cuecard {
+  background: #fffbeb;
+  border: 2px solid #f59e0b;
+  border-radius: 12px;
+  padding: 24px 28px;
+  width: 100%;
+  box-sizing: border-box;
+  max-width: 600px;
+}
+
+.pv-spk-cc-topic {
+  font-size: 18px;
+  font-weight: 700;
+  color: #92400e;
+  line-height: 1.5;
+  margin-bottom: 14px;
+}
+
+.pv-spk-cc-youshould {
+  font-size: 14px;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
+.pv-spk-cc-bullets {
+  padding-left: 22px;
+  margin: 0 0 12px;
+  color: #374151;
+  font-size: 15px;
+  line-height: 1.8;
+}
+
+.pv-spk-cc-bullets li {
+  margin-bottom: 4px;
+}
+
+.pv-spk-cc-closing {
+  font-style: italic;
+  color: #4b5563;
+  font-size: 14px;
+  margin-top: 8px;
+}
+
+.pv-spk-cc-hint {
+  font-size: 13px;
+  color: #9ca3af;
+  font-style: italic;
+}

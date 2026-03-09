@@ -11,25 +11,32 @@ const SESSIONS = [
 
 const PALETTE_ITEMS = [
   // ── READING only ──
-  { type: 'group', contentType: 'READING_PASSAGE',      label: 'Reading Passage',       icon: '📄', skills: ['READING'] },
-  { type: 'group', contentType: 'MATCHING_HEADING',     label: 'Match Headings',        icon: '🔗', skills: ['READING'] },
-  { type: 'group', contentType: 'SUMMARY_COMPLETION',   label: 'Summary Fill',          icon: '📝', skills: ['READING'] },
+  { type: 'group', contentType: 'READING_PASSAGE',      label: 'Reading Passage',        icon: '📄', skills: ['READING'] },
+  { type: 'group', contentType: 'MATCHING_HEADING',     label: 'Match Headings',         icon: '🔗', skills: ['READING'] },
+  { type: 'group', contentType: 'MULTIPLE_CHOICE_MULTI',label: 'Multiple Choice (chọn nhiều)', icon: '☑️', skills: ['READING'] },
+  { type: 'group', contentType: 'NOTE_COMPLETION',      label: 'Note / Form',            icon: '📒', skills: ['READING'] },
+  { type: 'image', contentType: 'PARA_IMAGE',           label: 'Ảnh cho đoạn văn',       icon: '🖼️', skills: ['READING'] },
   // ── LISTENING only ──
-  { type: 'group', contentType: 'AUDIO_TRANSCRIPT',     label: 'Audio / Nghe',          icon: '🎵', skills: ['LISTENING'] },
-  { type: 'group', contentType: 'MAP',                  label: 'Bản đồ',                icon: '🗺️', skills: ['LISTENING'] },
-  { type: 'group', contentType: 'MAP_LABELLING',        label: 'Map Labelling',         icon: '📍', skills: ['LISTENING'] },
-  // ── LISTENING + READING ──
-  { type: 'group', contentType: 'MULTIPLE_CHOICE_GROUP',label: 'Multiple Choice',       icon: '🔘', skills: ['LISTENING', 'READING'] },
-  { type: 'group', contentType: 'MULTIPLE_CHOICE_MULTI',label: 'Multiple Choice (nhiều)',icon: '☑️', skills: ['LISTENING', 'READING'] },
-  { type: 'group', contentType: 'SENTENCE_COMPLETION',  label: 'Sentence Completion',   icon: '✏️', skills: ['LISTENING', 'READING'] },
-  { type: 'group', contentType: 'SHORT_ANSWER_GROUP',   label: 'Short Answer',          icon: '💬', skills: ['LISTENING', 'READING'] },
-  { type: 'group', contentType: 'NOTE_COMPLETION',      label: 'Note / Form',           icon: '📒', skills: ['LISTENING', 'READING'] },
-  { type: 'group', contentType: 'DRAG_MATCHING',        label: 'Drag Matching',         icon: '↔️', skills: ['LISTENING', 'READING'] },
-  { type: 'group', contentType: 'DIAGRAM',              label: 'Sơ đồ / Chart',         icon: '📊', skills: ['LISTENING', 'READING'] },
-  { type: 'group', contentType: 'TABLE',                label: 'Bảng / Form',           icon: '📋', skills: ['LISTENING', 'READING', 'WRITING'] },
-  { type: 'group', contentType: 'TABLE_COMPLETION', label: 'Table Completion', icon: '📊', skills: ['LISTENING', 'READING'] },
-  // ── All skills ──
-  { type: 'group', contentType: 'STANDALONE',           label: 'Câu độc lập',           icon: '📝', skills: ['LISTENING', 'READING', 'WRITING', 'SPEAKING'] },
+  { type: 'group', contentType: 'AUDIO_TRANSCRIPT',     label: 'Audio / Nghe',           icon: '🎵', skills: ['LISTENING'] },
+  { type: 'group', contentType: 'MAP',                  label: 'Bản đồ',                 icon: '🗺️', skills: ['LISTENING'] },
+  { type: 'group', contentType: 'MAP_LABELLING',        label: 'Map Labelling',          icon: '📍', skills: ['LISTENING'] },
+  { type: 'group', contentType: 'DIAGRAM',              label: 'Sơ đồ / Chart',          icon: '📊', skills: ['LISTENING'] },
+  { type: 'group', contentType: 'TABLE',                label: 'Bảng / Form',            icon: '📋', skills: ['LISTENING', 'WRITING'] },
+  // ── LISTENING only ──
+  { type: 'group', contentType: 'MULTIPLE_CHOICE_GROUP',label: 'Multiple Choice',        icon: '🔘', skills: ['LISTENING'] },
+  { type: 'group', contentType: 'MULTIPLE_CHOICE_MULTI',label: 'Multiple Choice (nhiều)', icon: '☑️', skills: ['LISTENING'] },
+  { type: 'group', contentType: 'SENTENCE_COMPLETION',  label: 'Sentence Completion',    icon: '✏️', skills: ['LISTENING'] },
+  { type: 'group', contentType: 'SHORT_ANSWER_GROUP',   label: 'Short Answer',           icon: '💬', skills: ['LISTENING'] },
+  { type: 'group', contentType: 'NOTE_COMPLETION',      label: 'Note / Form',            icon: '📒', skills: ['LISTENING'] },
+  { type: 'group', contentType: 'DRAG_MATCHING',        label: 'Drag Matching',          icon: '↔️', skills: ['LISTENING'] },
+  { type: 'group', contentType: 'TABLE_COMPLETION',     label: 'Table Completion',       icon: '📊', skills: ['LISTENING'] },
+  { type: 'group', contentType: 'FLOW_CHART',           label: 'Flow-chart Completion',  icon: '🔍', skills: ['LISTENING'] },
+  // ── WRITING / SPEAKING only ──
+  { type: 'group', contentType: 'STANDALONE',           label: 'Câu độc lập',            icon: '📝', skills: ['LISTENING', 'WRITING', 'SPEAKING'] },
+  { type: 'group', contentType: 'WRITING_TASK',          label: 'Writing Task',            icon: '✍️', skills: ['WRITING'] },
+  // ── SPEAKING only ──
+  { type: 'group', contentType: 'SPEAKING_INTERVIEW',   label: 'Câu hỏi Phỏng vấn',      icon: '🎤', skills: ['SPEAKING'] },
+  { type: 'group', contentType: 'SPEAKING_CUECARD',     label: 'Cue Card (Part 2)',       icon: '🗂️', skills: ['SPEAKING'] },
 ];
 
 const TYPE_META = {
@@ -43,6 +50,10 @@ const TYPE_META = {
   MULTIPLE_CHOICE_MULTI: { label: 'MM', bg: '#fce7f3', color: '#9d174d' },
   SENTENCE_COMPLETION:   { label: 'SC', bg: '#ecfdf5', color: '#065f46' },
   SHORT_ANSWER_GROUP:    { label: 'SA', bg: '#f0fdf4', color: '#166534' },
+  FLOW_CHART:            { label: 'FC', bg: '#f0fdfa', color: '#0f766e' },
+  WRITING_TASK:          { label: 'WT', bg: '#fef9c3', color: '#a16207' },
+  SPEAKING_INTERVIEW:    { label: 'IV', bg: '#fce7f3', color: '#be185d' },
+  SPEAKING_CUECARD:      { label: 'CC', bg: '#fdf4ff', color: '#7e22ce' },
 };
 
 function DraggablePaletteItem({ item }) {
@@ -50,6 +61,24 @@ function DraggablePaletteItem({ item }) {
     id: `palette-${item.contentType}`,
     data: { source: 'palette', ...item },
   });
+
+  // Image item: use HTML5 native drag so it can drop onto passage paragraphs
+  if (item.type === 'image') {
+    return (
+      <div
+        className="tb-palette-item tb-palette-item--image"
+        draggable
+        onDragStart={(e) => {
+          e.dataTransfer.setData('application/para-image', '1');
+          e.dataTransfer.effectAllowed = 'copy';
+        }}
+      >
+        <span className="tb-palette-item-icon">{item.icon}</span>
+        <span className="tb-palette-item-label">{item.label}</span>
+      </div>
+    );
+  }
+
   return (
     <div ref={setNodeRef} {...listeners} {...attributes}
       className={`tb-palette-item${isDragging ? ' dragging' : ''}`}>

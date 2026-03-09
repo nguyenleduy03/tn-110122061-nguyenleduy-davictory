@@ -1,4 +1,4 @@
-import { MOCK_READING_DATA, MOCK_LISTENING_DATA } from '../data/mockData';
+import { MOCK_READING_DATA, MOCK_LISTENING_DATA, MOCK_WRITING_DATA, MOCK_SPEAKING_DATA } from '../data/mockData';
 import { API_CONFIG } from '../config/api';
 
 export const simulateBackendCall = async (data, delay = 500) => {
@@ -9,7 +9,10 @@ export const simulateBackendCall = async (data, delay = 500) => {
 
 export const ieltsApi = {
   getTestSession: async (testId, mode = "READING") => {
-    const MOCK_DATA = mode === "LISTENING" ? MOCK_LISTENING_DATA : MOCK_READING_DATA;
+    const MOCK_DATA = mode === "LISTENING" ? MOCK_LISTENING_DATA
+      : mode === "WRITING" ? MOCK_WRITING_DATA
+      : mode === "SPEAKING" ? MOCK_SPEAKING_DATA
+      : MOCK_READING_DATA;
     // Nếu là mock-session-id thì tiến hành bỏ qua fetch luôn để console không báo lỗi đỏ
     if (testId === "mock-session-id") {
       console.log("Đang chạy ở chế độ UI (sử dụng dữ liệu Mock hoàn toàn).");

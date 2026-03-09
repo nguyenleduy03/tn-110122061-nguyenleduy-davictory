@@ -1,5 +1,5 @@
 import React from "react";
-import { Check } from "lucide-react";
+import { Check, Bookmark } from "lucide-react";
 
 const TestFooter = ({
     testData,
@@ -10,6 +10,7 @@ const TestFooter = ({
     getAnsweredCount,
     answers,
     submitTest,
+    bookmarks,
 }) => {
     if (!testData || !testData.parts) return null;
 
@@ -42,6 +43,7 @@ const TestFooter = ({
                                         return (
                                             <div
                                                 className="q-wrapper"
+                                                style={{ position: "relative" }}
                                                 key={num}
                                                 onClick={(e) => {
                                                     e.stopPropagation();
@@ -49,6 +51,11 @@ const TestFooter = ({
                                                     setActiveQuestion(num);
                                                 }}
                                             >
+                                                {bookmarks && bookmarks[num] && (
+                                                    <div style={{ position: 'absolute', top: '-18px', display: 'flex', justifyContent: 'center', width: '100%' }}>
+                                                        <Bookmark size={14} fill="#1a73e8" color="#1a73e8" />
+                                                    </div>
+                                                )}
                                                 {/* Vạch ngang ở trên */}
                                                 <div className={`status-dash ${answeredState ? "answered-dash" : ""}`} />
                                                 {/* Số thứ tự câu hỏi ở dưới */}

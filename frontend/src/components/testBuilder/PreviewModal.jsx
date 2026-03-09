@@ -627,6 +627,140 @@ const TableCompletionGroup = ({ group, activeQ, onSetActive }) => {
 };
 
 
+// Flow-chart Completion — boxes connected by arrows, blanks are drag-and-drop targets
+const FlowChartGroup = ({ group, activeQ, onSetActive }) => {
+  const flowNodes = group.flowNodes ?? [];
+  const questions = group.questions ?? [];
+  const allOptions = (group.optionBank ?? []).map((o, i) => ({ id: i, text: o.text }));
+
+  const [answers, setAnswers] = useState({});
+  const [dragId, setDragId]   = useState(null);
+  const [dragOverQ, setDragOverQ] = useState(null);
+
+  const placed = new Set(Object.values(answers).filter(Boolean).map((v) => v.id));
+  const bankChips = allOptions.filter((o) => !placed.has(o.id));
+
+  const placeChip = (qNum, chip) => {
+    setAnswers((prev) => {
+      const next = { ...prev };
+      Object.keys(next).forEach((k) => { if (next[k]?.id === chip.id) next[k] = null; });
+      next[qNum] = chip;
+      return next;
+    });
+    onSetActive(qNum);
+  };
+
+  // Build a flat list of {blankIndex, subQ} in reading order across all nodes
+  const blanks = [];
+  for (const node of flowNodes) {
+    const n = (node.text ?? '').split(/\[blank\]/gi).length - 1;
+    for (let i = 0; i < n; i++) {
+      blanks.push(questions[blanks.length] ?? null);
+    }
+  }
+
+  // Render node text with blanks replaced by interactive drop-zones
+  const renderNodeText = (nodeText, blankOffset) => {
+    const parts = (nodeText ?? '').split(/\[blank\]/gi);
+    return parts.map((part, i) => {
+      if (i >= parts.length - 1) return <React.Fragment key={`t${i}`}>{part}</React.Fragment>;
+      const subQ = blanks[blankOffset + i];
+      const qNum = subQ?.questionNumber;
+      const filled = qNum !== undefined ? answers[qNum] : undefined;
+      const isActive = qNum !== undefined ? activeQ === qNum : false;
+      const isOver = dragOverQ === qNum;
+      return (
+        <React.Fragment key={i}>
+          {part}
+          <span
+            className={`pv-fc-blank${filled ? ' filled' : ''}${isActive ? ' active' : ''}${isOver ? ' drag-over' : ''}`}
+            onDragOver={(e) => { e.preventDefault(); setDragOverQ(qNum); }}
+            onDragLeave={() => setDragOverQ(null)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragOverQ(null);
+              const id = Number(e.dataTransfer.getData('text/x-fc'));
+              const chip = allOptions.find((o) => o.id === id);
+              if (chip && qNum !== undefined) placeChip(qNum, chip);
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (filled && qNum !== undefined) {
+                setAnswers((prev) => ({ ...prev, [qNum]: null }));
+              } else if (qNum !== undefined) {
+                onSetActive(qNum);
+              }
+            }}
+            title={filled ? 'Click để xóa' : `Kéo đáp án vào ô ${qNum}`}
+          >
+            {filled
+              ? <span className="pv-fc-blank-text">{filled.text}</span>
+              : <span className="pv-fc-blank-num">{qNum ?? '?'}</span>
+            }
+          </span>
+        </React.Fragment>
+      );
+    });
+  };
+
+  // Calculate blank offsets per node
+  let blankCursor = 0;
+  const nodesWithOffset = flowNodes.map((node) => {
+    const offset = blankCursor;
+    blankCursor += (node.text ?? '').split(/\[blank\]/gi).length - 1;
+    return { node, offset };
+  });
+
+  return (
+    <div className="pv-group-block" onClick={(e) => e.stopPropagation()}>
+      {group.instructions && <div className="pv-group-instructions">{group.instructions}</div>}
+      <div className="pv-fc-layout">
+        {/* Left: flow chart */}
+        <div className="pv-fc-chart">
+          {group.title && <div className="pv-fc-chart-title">{group.title}</div>}
+          {nodesWithOffset.map(({ node, offset }, idx) => (
+            <React.Fragment key={node.id ?? idx}>
+              <div className="pv-fc-node">
+                <p className="pv-fc-node-text">
+                  {renderNodeText(node.text, offset)}
+                </p>
+              </div>
+              {idx < nodesWithOffset.length - 1 && (
+                <div className="pv-fc-arrow">↓</div>
+              )}
+            </React.Fragment>
+          ))}
+        </div>
+
+        {/* Right: word bank */}
+        <div className="pv-fc-bank">
+          {group.bankTitle && <div className="pv-dm-col-header">{group.bankTitle}</div>}
+          <div className="pv-dm-bank">
+            {bankChips.length === 0
+              ? <em style={{ fontSize: 12, color: '#9ca3af' }}>Tất cả đã được đặt</em>
+              : bankChips.map((chip) => (
+                <div
+                  key={chip.id}
+                  className={`pv-dm-chip${dragId === chip.id ? ' dragging' : ''}`}
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData('text/x-fc', String(chip.id));
+                    e.dataTransfer.effectAllowed = 'move';
+                    setDragId(chip.id);
+                  }}
+                  onDragEnd={() => setDragId(null)}
+                >
+                  {chip.text}
+                </div>
+              ))
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const StandaloneGroup = ({ group, activeQ, onSetActive }) => {
   const questions = group.questions ?? [];
   return (
@@ -635,6 +769,111 @@ const StandaloneGroup = ({ group, activeQ, onSetActive }) => {
       {questions.length === 0
         ? <em className="pv-empty">Chưa có câu hỏi.</em>
         : questions.map((q) => renderQuestion(q, activeQ, onSetActive))}
+    </div>
+  );
+};
+
+// ── Speaking: Interview Group (Part 1 & 3)
+const SpeakingInterviewGroup = ({ group }) => {
+  const questions = group.questions ?? [];
+  const isP3 = group.interviewType === 'PART3';
+  return (
+    <div className="pv-spk-interview">
+      <div className={`pv-spk-chip${isP3 ? ' pv-spk-chip--p3' : ' pv-spk-chip--p1'}`}>
+        {isP3 ? '💬 Part 3 · Two-way Discussion' : '🎤 Part 1 · Interview'}
+      </div>
+      {group.partInstruction && (
+        <div className="pv-spk-instruction">{group.partInstruction}</div>
+      )}
+      {questions.length === 0
+        ? <em className="pv-empty">Chưa có câu hỏi.</em>
+        : (
+          <div className="pv-spk-qlist">
+            {questions.map((q, i) => (
+              <div key={q.id ?? i} className="pv-spk-qrow">
+                <span className="pv-spk-qnum">Q{i + 1}.</span>
+                <span className="pv-spk-qtext">{q.text || <em className="pv-empty">Chưa có nội dung.</em>}</span>
+                <span className="pv-spk-mic-badge" title="Ghi âm">🎤</span>
+              </div>
+            ))}
+          </div>
+        )}
+    </div>
+  );
+};
+
+// ── Speaking: Cue Card Group (Part 2)
+const SpeakingCueCardGroup = ({ group }) => {
+  const bulletPoints = (group.bulletPoints ?? []).filter(Boolean);
+  const prepSec = group.prepSeconds ?? 60;
+  return (
+    <div className="pv-spk-cuecard-wrapper">
+      <div className="pv-spk-prep-chip">⏳ Thời gian chuẩn bị: {prepSec}s</div>
+      <div className="pv-spk-cuecard">
+        <div className="pv-spk-cc-topic">
+          {group.topic || <em className="pv-empty">Chưa có chủ đề.</em>}
+        </div>
+        {(bulletPoints.length > 0 || group.closingSentence) && (
+          <>
+            <div className="pv-spk-cc-youshould">{group.shouldSayLabel || 'You should say:'}</div>
+            <ul className="pv-spk-cc-bullets">
+              {bulletPoints.map((bp, i) => <li key={i}>{bp}</li>)}
+            </ul>
+            {group.closingSentence && (
+              <div className="pv-spk-cc-closing">{group.closingSentence}</div>
+            )}
+          </>
+        )}
+      </div>
+      <div className="pv-spk-cc-hint">🎤 Nói trong 1–2 phút sau khi chuẩn bị xong</div>
+    </div>
+  );
+};
+
+// Writing Task Group — split layout: left=prompt+image, right=textarea+word count
+const WritingTaskGroup = ({ group }) => {
+  const [text, setText] = React.useState('');
+  const wordCount = text.trim() ? text.trim().split(/\s+/).filter(Boolean).length : 0;
+  const minWords = group.minWords ?? 150;
+  const isUnder = wordCount < minWords;
+
+  return (
+    <div className="pv-wt-container">
+      {/* Left: task prompt + image */}
+      <div className="pv-wt-left">
+        {group.recommendedMinutes && (
+          <div className="pv-wt-time-hint">
+            ⏱ Nên dành khoảng {group.recommendedMinutes} phút · Viết ít nhất {minWords} từ
+          </div>
+        )}
+        <div className="pv-wt-instruction">
+          {(group.taskInstruction ?? '').split('\n').map((line, i) =>
+            line.trim() ? <p key={i}>{line}</p> : <br key={i} />
+          )}
+          {!group.taskInstruction && (
+            <em className="pv-empty">Chưa có đề bài.</em>
+          )}
+        </div>
+        {group.imageUrl && (
+          <img src={group.imageUrl} alt="task diagram" className="pv-wt-image" />
+        )}
+      </div>
+
+      {/* Right: textarea + word count */}
+      <div className="pv-wt-right">
+        <textarea
+          className="pv-wt-textarea"
+          placeholder="Nhập bài viết của bạn tại đây..."
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+        />
+        <div className="pv-wt-wordcount">
+          <span className={isUnder ? 'pv-wt-wc-under' : 'pv-wt-wc-ok'}>
+            Từ: <strong>{wordCount}</strong>
+          </span>
+          <span className="pv-wt-wc-min"> (tối thiểu: {minWords})</span>
+        </div>
+      </div>
     </div>
   );
 };
@@ -715,6 +954,10 @@ const renderGroup = (group, activeQ, onSetActive) => {
   if (ct === 'MAP_LABELLING') return <MapLabellingGroup {...props} />;
   if (ct === 'SUMMARY_COMPLETION') return <SummaryGroup {...props} />;
   if (ct === 'NOTE_COMPLETION') return <NoteCompletionGroup {...props} />;
+  if (ct === 'FLOW_CHART') return <FlowChartGroup {...props} />;
+  if (ct === 'WRITING_TASK') return <WritingTaskGroup key={group.id} group={group} />;
+  if (ct === 'SPEAKING_INTERVIEW') return <SpeakingInterviewGroup key={group.id} group={group} />;
+  if (ct === 'SPEAKING_CUECARD') return <SpeakingCueCardGroup key={group.id} group={group} />;
   if (ct === 'DIAGRAM' || ct === 'MAP') return <ImageGroup {...props} />;
   if (ct === 'MULTIPLE_CHOICE_GROUP') return <MCQGroup {...props} multi={false} />;
   if (ct === 'MULTIPLE_CHOICE_MULTI') return <MCQGroup {...props} multi={true} />;
@@ -903,7 +1146,9 @@ const PreviewModal = ({ test, sessions, onClose }) => {
                 </div>
                 {activeSkill === 'READING'
                   ? <PartReadingLayout part={part} activeQ={activeQ} onSetActive={goToQ} />
-                  : (part.questionGroups ?? []).map((g) => renderGroup(g, activeQ, goToQ))
+                  : activeSkill === 'SPEAKING'
+                    ? <div className="pv-spk-layout">{(part.questionGroups ?? []).map((g) => renderGroup(g, activeQ, goToQ))}</div>
+                    : (part.questionGroups ?? []).map((g) => renderGroup(g, activeQ, goToQ))
                 }
               </div>
             ))

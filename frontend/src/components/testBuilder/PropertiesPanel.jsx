@@ -3,7 +3,8 @@ import { Trash2, MousePointerClick } from 'lucide-react';
 
 const CONTENT_TYPES = [
   'READING_PASSAGE', 'AUDIO_TRANSCRIPT', 'STANDALONE',
-  'DIAGRAM', 'MAP', 'MAP_LABELLING', 'TABLE', 'TABLE_COMPLETION', 'MATCHING_HEADING', 'DRAG_MATCHING', 'SUMMARY_COMPLETION', 'NOTE_COMPLETION'
+  'DIAGRAM', 'MAP', 'MAP_LABELLING', 'TABLE', 'TABLE_COMPLETION', 'MATCHING_HEADING', 'DRAG_MATCHING', 'SUMMARY_COMPLETION', 'NOTE_COMPLETION', 'FLOW_CHART', 'WRITING_TASK',
+  'SPEAKING_INTERVIEW', 'SPEAKING_CUECARD',
 ];
 const QUESTION_TYPES = [
   { value: 'MULTIPLE_CHOICE',          label: 'Multiple Choice (1 đáp án)' },
@@ -136,6 +137,42 @@ const GroupPanel = ({ group, onChange, onDelete }) => (
         <label className="tb-label">ℹ️ Note Completion</label>
         <div style={{ fontSize: 12, color: '#6b7280', padding: '6px 10px', background: '#fefce8', borderRadius: 6, border: '1px solid #fde68a' }}>
           Nhập nội dung ghi chú vào canvas trực tiếp. Dùng <code>[blank]</code> để đánh dấu ô trống. Xuống dòng được giữ nguyên.
+        </div>
+      </div>
+    )}
+
+    {(group.contentType === 'FLOW_CHART') && (
+      <div className="tb-field">
+        <label className="tb-label">ℹ️ Flow-chart Completion</label>
+        <div style={{ fontSize: 12, color: '#6b7280', padding: '6px 10px', background: '#f0fdfa', borderRadius: 6, border: '1px solid #99f6e4' }}>
+          Nhập tiêu đề sơ đồ → Thêm các ô (bước) → Dùng <code>[blank]</code> trong ô để tạo ô trống có số. Thêm từ ngân ở cột phải → Điền đáp án cho từng ô bên dưới.
+        </div>
+      </div>
+    )}
+
+    {(group.contentType === 'WRITING_TASK') && (
+      <div className="tb-field">
+        <label className="tb-label">ℹ️ Writing Task</label>
+        <div style={{ fontSize: 12, color: '#6b7280', padding: '6px 10px', background: '#fef9c3', borderRadius: 6, border: '1px solid #fde68a' }}>
+          Nhập đề bài → Tải ảnh biểu đồ (tuỳ chọn) → Đặt số từ tối thiểu và thời gian. Khi xem trước: thí sinh viết trực tiếp vào ô văn bản có đếm từ.
+        </div>
+      </div>
+    )}
+
+    {(group.contentType === 'SPEAKING_INTERVIEW') && (
+      <div className="tb-field">
+        <label className="tb-label">ℹ️ Câu hỏi Phỏng vấn</label>
+        <div style={{ fontSize: 12, color: '#6b7280', padding: '6px 10px', background: '#fce7f3', borderRadius: 6, border: '1px solid #fbcfe8' }}>
+          Chọn Part 1 hoặc Part 3 → Thêm câu hỏi của giám khảo → Khi xem trước: hiển thị danh sách câu hỏi theo phong cách trang thi Speaking.
+        </div>
+      </div>
+    )}
+
+    {(group.contentType === 'SPEAKING_CUECARD') && (
+      <div className="tb-field">
+        <label className="tb-label">ℹ️ Cue Card (Part 2)</label>
+        <div style={{ fontSize: 12, color: '#6b7280', padding: '6px 10px', background: '#fdf4ff', borderRadius: 6, border: '1px solid #e9d5ff' }}>
+          Nhập chủ đề → Thêm bullet points (“You should say”) → Câu kết. Khi xem trước: hiển thị thẻ gợi ý đồng hồ đếm ngược 1 phút.
         </div>
       </div>
     )}
