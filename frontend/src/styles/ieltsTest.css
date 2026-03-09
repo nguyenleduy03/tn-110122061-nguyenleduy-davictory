@@ -1177,6 +1177,7 @@
     font-size: 15px;
     color: #6b7280;
 }
+
 .fill-in-blank-item {
     position: relative;
 }
@@ -1196,9 +1197,11 @@
     margin-top: 2px;
     flex-shrink: 0;
 }
+
 .tfng-question-content {
     display: inline;
 }
+
 .tfng-question-text {
     font-weight: 400;
     display: inline;
