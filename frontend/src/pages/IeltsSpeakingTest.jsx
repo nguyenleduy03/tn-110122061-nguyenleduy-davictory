@@ -4,8 +4,6 @@ import {
   MicOff,
   RotateCcw,
   ChevronRight,
-  ChevronLeft,
-  Check,
   Volume2,
 } from "lucide-react";
 import "../styles/ieltsTest.css";
@@ -136,7 +134,6 @@ const IeltsSpeakingTest = () => {
   const questionId = currentQ?.id;
   const hasRecording = !!audioUrls[questionId];
   const isCueCard = isPartTwo && currentQ?.bulletPoints;
-  const isFirstQ = currentPartIdx === 0 && currentQIdx === 0;
   const isLastQ =
     currentPartIdx === totalParts - 1 &&
     currentQIdx === (currentPart?.questions?.length ?? 1) - 1;
@@ -260,14 +257,7 @@ const IeltsSpeakingTest = () => {
     }
   }, [currentPart, currentQIdx, currentPartIdx, totalParts, navigateTo]);
 
-  const goPrev = useCallback(() => {
-    if (currentQIdx > 0) {
-      navigateTo(currentPartIdx, currentQIdx - 1);
-    } else if (currentPartIdx > 0) {
-      const prevPart = testData.parts[currentPartIdx - 1];
-      navigateTo(currentPartIdx - 1, prevPart.questions.length - 1);
-    }
-  }, [currentQIdx, currentPartIdx, testData, navigateTo]);
+
 
   const reRecord = useCallback(() => {
     setPhase("idle");
@@ -281,8 +271,7 @@ const IeltsSpeakingTest = () => {
     setTimeout(
       () =>
         alert(
-          `Speaking test submitted!\n${count} answer(s) recorded out of ${
-            testData?.parts?.reduce((a, p) => a + p.questions.length, 0) ?? 0
+          `Speaking test submitted!\n${count} answer(s) recorded out of ${testData?.parts?.reduce((a, p) => a + p.questions.length, 0) ?? 0
           } questions.`
         ),
       50
@@ -330,26 +319,9 @@ const IeltsSpeakingTest = () => {
         submitTest={submitTest}
       />
 
-      {/* Part tabs ─────────────────────────────────────────────────────── */}
-      <div className="spk-part-bar">
-        {testData.parts.map((p, i) => {
-          const doneCount = p.questions.filter((q) => audioUrls[q.id]).length;
-          return (
-            <button
-              key={p.id}
-              className={`spk-part-chip ${i === currentPartIdx ? "active" : ""}`}
-              onClick={() => navigateTo(i, 0)}
-            >
-              Part {p.partNumber}
-              {doneCount > 0 && (
-                <span className="spk-part-chip-badge">{doneCount}</span>
-              )}
-            </button>
-          );
-        })}
-        <div className="spk-part-bar-desc">
-          {currentPart?.instructions}
-        </div>
+      <div className="instruction-bar">
+        <h3>Part {currentPart.partNumber} — {currentPart.title}</h3>
+        <p>{currentPart?.instructions}</p>
       </div>
 
       {/* Main card ──────────────────────────────────────────────────────── */}
@@ -440,85 +412,23 @@ const IeltsSpeakingTest = () => {
               </button>
             </div>
           )}
-        </div>
-      </main>
 
-      {/* Footer navigation ─────────────────────────────────────────────── */}
-      <footer className="ielts-footer">
-        <div className="footer-content">
-          {testData.parts.map((part, pi) => (
-            <div
-              key={part.id}
-              className={`part-group ${pi === currentPartIdx ? "active-part" : ""}`}
-              onClick={() => navigateTo(pi, 0)}
-            >
-              <h4 className="part-title hover-pointer">Part {part.partNumber}</h4>
-              {pi === currentPartIdx && (
-                <div className="question-numbers">
-                  {part.questions.map((q, qi) => (
-                    <div
-                      key={q.id}
-                      className="q-wrapper"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigateTo(pi, qi);
-                      }}
-                    >
-                      <div
-                        className={`status-dash ${
-                          audioUrls[q.id] ? "answered-dash" : ""
-                        }`}
-                      />
-                      <span
-                        className={`q-num ${qi === currentQIdx ? "active" : ""}`}
-                      >
-                        {qi + 1}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+          {/* Next / Submit after recording */}
+          {phase === "done" && (
+            <div className="spk-next-row">
+              {isLastQ ? (
+                <button className="spk-next-btn" onClick={submitTest}>
+                  Submit test
+                </button>
+              ) : (
+                <button className="spk-next-btn" onClick={goNext}>
+                  Next question <ChevronRight size={18} />
+                </button>
               )}
             </div>
-          ))}
+          )}
         </div>
-
-        {/* Prev / Next */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            marginRight: "8px",
-          }}
-        >
-          <button
-            className="black-nav-btn"
-            onClick={goPrev}
-            disabled={isFirstQ}
-            style={{ opacity: isFirstQ ? 0.5 : 1 }}
-            aria-label="Previous question"
-          >
-            <ChevronLeft size={24} color="white" />
-          </button>
-          <button
-            className="black-nav-btn"
-            onClick={goNext}
-            disabled={isLastQ}
-            style={{ opacity: isLastQ ? 0.5 : 1 }}
-            aria-label="Next question"
-          >
-            <ChevronRight size={24} color="white" />
-          </button>
-        </div>
-
-        <button
-          className="submit-check-btn"
-          onClick={submitTest}
-          title="Submit Speaking Test"
-        >
-          <Check size={28} strokeWidth={2.5} />
-        </button>
-      </footer>
+      </main>
     </div>
   );
 };

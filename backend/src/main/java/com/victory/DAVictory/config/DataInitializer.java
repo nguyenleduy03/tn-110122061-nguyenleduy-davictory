@@ -4,6 +4,7 @@ import com.victory.DAVictory.entity.Role;
 import com.victory.DAVictory.entity.User;
 import com.victory.DAVictory.repository.RoleRepository;
 import com.victory.DAVictory.repository.UserRepository;
+import com.victory.DAVictory.service.QuestionBankService;
 import com.victory.DAVictory.service.RoleService;
 import com.victory.DAVictory.service.TestStructureService;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,7 @@ public class DataInitializer implements CommandLineRunner {
 
     private final RoleService roleService;
     private final TestStructureService testStructureService;
+    private final QuestionBankService questionBankService;
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
@@ -49,6 +51,10 @@ public class DataInitializer implements CommandLineRunner {
 
         testStructureService.initializeParts();
         log.info("✓ Đã khởi tạo parts cho các sessions");
+
+        // 4. Khởi tạo các loại câu hỏi mặc định
+        questionBankService.initializeDefaultQuestionTypes();
+        log.info("✓ Đã khởi tạo question types mặc định");
         
         log.info("========== HOÀN THÀNH KHỞI TẠO DỮ LIỆU ==========");
         printDefaultAccounts();

@@ -78,7 +78,7 @@ const IeltsListeningTest = () => {
     const handlePlay = () => {
         setAudioStarted(true);
         if (audioRef.current) {
-            audioRef.current.play().catch(() => {});
+            audioRef.current.play().catch(() => { });
         }
     };
 

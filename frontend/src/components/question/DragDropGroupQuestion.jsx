@@ -111,7 +111,7 @@ const DragDropGroupQuestion = ({ q, activeQuestion, setActiveQuestion, answers, 
                                 <div
                                     onDragOver={handleDragOver}
                                     onDrop={(e) => handleDrop(e, subQ.id)}
-                                    className={`dd-drop-zone ${isMatchingInfo ? 'dd-drop-info' : ''} ${answer ? 'dd-drop-filled' : ''}`}
+                                    className={`dd-drop-zone ${isMatchingInfo ? 'dd-drop-info' : ''} ${answer ? 'dd-drop-filled' : ''} ${isActive && !answer ? 'dd-drop-active' : ''}`}
                                     style={{ minWidth: dropZoneWidth, width: dropZoneWidth }}
                                 >
                                     {answer ? (

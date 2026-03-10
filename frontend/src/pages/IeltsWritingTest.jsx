@@ -157,7 +157,7 @@ const IeltsWritingTest = () => {
                                 onClick={() => setCurrentPartIndex(index)}
                             >
                                 <div className="part-status-container">
-                                    <h4 className="part-title hover-pointer">{p.title}</h4>
+                                    <h4 className="part-title hover-pointer">Part {index + 1}</h4>
                                     {!isActive && (
                                         <span className="part-status" style={{ marginLeft: "10px" }}>
                                             {done ? 1 : 0} of 1
