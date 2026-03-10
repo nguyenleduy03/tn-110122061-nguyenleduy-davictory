@@ -216,6 +216,19 @@ const IeltsReadingTest = () => {
     const summaryCompletionQuestions = part.questions.filter(q => q.type === 'summary-completion');
     const imageDragDropQuestions = part.questions.filter(q => q.type === 'image-drag-drop');
 
+    // Group consecutive questions of the same type for sequential rendering
+    const questionGroups = [];
+    let currentGroup = null;
+    for (const q of part.questions) {
+        const groupType = (q.type === 'drag-and-drop' || q.type === 'matching_heading' || q.type === 'matching_info')
+            ? 'drag-drop' : q.type;
+        if (!currentGroup || currentGroup.type !== groupType) {
+            currentGroup = { type: groupType, questions: [] };
+            questionGroups.push(currentGroup);
+        }
+        currentGroup.questions.push(q);
+    }
+
     return (
         <div className="ielts-container">
             <TestHeader candidateName={testData?.candidateName} candidateId={testData?.candidateId} submitTest={submitTest} />
@@ -242,67 +255,9 @@ const IeltsReadingTest = () => {
 
                 <div className="questions-section" id="questions-area" style={{ width: `calc(${100 - leftWidth}% - 14px)`, flex: 'none' }}>
                     <div className="questions-content" style={{ paddingBottom: '80px' }}>
-                        {multiChoiceQuestions.length > 0 && (
-                            <div style={{ marginBottom: '40px' }}>
-                                <p style={{ fontWeight: 'bold', marginBottom: '20px' }}>
-                                    Choose TRUE if the statement agrees with the information given in the text, choose FALSE if the statement contradicts the information, or choose NOT GIVEN if there is no information on this.
-                                </p>
-                                {multiChoiceQuestions.map(q => (
-                                    <QuestionRenderer
-                                        key={q.id}
-                                        q={q}
-                                        activeQuestion={activeQuestion}
-                                        setActiveQuestion={setActiveQuestion}
-                                        answers={answers}
-                                        handleAnswerChange={handleAnswerChange}
-                                        bookmarks={bookmarks}
-                                        toggleBookmark={toggleBookmark}
-                                    />
-                                ))}
-                            </div>
-                        )}
-
-                        {dragDropQuestions.length > 0 && (
-                            <div style={{ marginBottom: '40px' }}>
-                                {dragDropQuestions.map(q => (
-                                    <QuestionRenderer
-                                        key={q.id}
-                                        q={q}
-                                        activeQuestion={activeQuestion}
-                                        setActiveQuestion={setActiveQuestion}
-                                        answers={answers}
-                                        handleAnswerChange={handleAnswerChange}
-                                        bookmarks={bookmarks}
-                                        toggleBookmark={toggleBookmark}
-                                    />
-                                ))}
-                            </div>
-                        )}
-
-                        {fillInBlankQuestions.length > 0 && (
-                            <div>
-                                <h3 style={{ marginTop: '0', marginBottom: '20px' }}>{part.questionsLabel}</h3>
-                                <ul>
-                                    {fillInBlankQuestions.map(q => (
-                                        <QuestionRenderer
-                                            key={q.id}
-                                            q={q}
-                                            activeQuestion={activeQuestion}
-                                            setActiveQuestion={setActiveQuestion}
-                                            answers={answers}
-                                            handleAnswerChange={handleAnswerChange}
-                                            bookmarks={bookmarks}
-                                            toggleBookmark={toggleBookmark}
-                                            inputRefs={inputRefs}
-                                        />
-                                    ))}
-                                </ul>
-                            </div>
-                        )}
-
-                        {summaryCompletionQuestions.length > 0 && (
-                            <div style={{ marginBottom: '40px' }}>
-                                {summaryCompletionQuestions.map(q => (
+                        {questionGroups.map((group, gi) => (
+                            <div key={gi} style={{ marginBottom: '40px' }}>
+                                {group.questions.map(q => (
                                     <QuestionRenderer
                                         key={q.id}
                                         q={q}
@@ -316,24 +271,7 @@ const IeltsReadingTest = () => {
                                     />
                                 ))}
                             </div>
-                        )}
-
-                        {imageDragDropQuestions.length > 0 && (
-                            <div style={{ marginBottom: '40px' }}>
-                                {imageDragDropQuestions.map(q => (
-                                    <QuestionRenderer
-                                        key={q.id}
-                                        q={q}
-                                        activeQuestion={activeQuestion}
-                                        setActiveQuestion={setActiveQuestion}
-                                        answers={answers}
-                                        handleAnswerChange={handleAnswerChange}
-                                        bookmarks={bookmarks}
-                                        toggleBookmark={toggleBookmark}
-                                    />
-                                ))}
-                            </div>
-                        )}
+                        ))}
                     </div>
 
                     <div className="pane-nav-buttons">

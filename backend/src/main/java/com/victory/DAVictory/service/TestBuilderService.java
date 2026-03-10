@@ -435,12 +435,16 @@ public class TestBuilderService {
 
     private QuestionType resolveQuestionType(Long typeId, String typeCode) {
         if (typeId != null) {
-            return questionTypeRepository.findById(typeId).orElse(null);
+            QuestionType qt = questionTypeRepository.findById(typeId).orElse(null);
+            if (qt != null) return qt;
         }
         if (typeCode != null && !typeCode.isBlank()) {
-            return questionTypeRepository.findByCode(typeCode).orElse(null);
+            QuestionType qt = questionTypeRepository.findByCode(typeCode).orElse(null);
+            if (qt != null) return qt;
         }
-        return null;
+        // Fallback: dùng FILL_BLANK nếu không tìm thấy (tránh NOT NULL violation)
+        return questionTypeRepository.findByCode("FILL_BLANK")
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy QuestionType mặc định FILL_BLANK"));
     }
 
     private void saveOptions(Question question, List<TestSaveRequest.OptionSave> options) {

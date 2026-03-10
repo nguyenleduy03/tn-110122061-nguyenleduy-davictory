@@ -93,7 +93,16 @@ export const testBuilderApi = {
 export function buildSavePayload(test, sessions, structure, createdByUserId, existingTestId = null) {
   const sessionPayloads = [];
 
+  // Xác định skills cần gửi: full test = tất cả, single = chỉ 1 skill
+  const isFullTest = test.isFullTest ?? true;
+  const allowedSkills = isFullTest
+    ? null // null = tất cả
+    : [test.singleSkill || 'LISTENING'];
+
   for (const [skillKey, parts] of Object.entries(sessions)) {
+    // Lọc theo chế độ single skill nếu cần
+    if (allowedSkills && !allowedSkills.includes(skillKey)) continue;
+
     const structInfo = structure[skillKey];
     if (!structInfo || !parts || parts.length === 0) continue;
 
@@ -106,44 +115,68 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
       const structPart = structInfo.parts.find(sp => sp.orderIndex === part.orderIndex)
                       || structInfo.parts[partIdx];
 
+      // Lọc bỏ group contentType READING_PASSAGE (chỉ chứa đoạn văn, ko có câu hỏi riêng)
+      const questionGroups = (part.questionGroups || []).filter(
+        g => g.contentType !== 'READING_PASSAGE'
+      );
+
       return {
         partId: structPart?.partId,
         orderIndex: part.orderIndex,
         name: part.name,
         totalQuestions: part.totalQuestions,
         instructions: part.instructions || '',
-        questionGroups: (part.questionGroups || []).map((group, gIdx) => ({
-          existingGroupId: group.backendGroupId || null, // Nếu đã lưu trước đó
+        questionGroups: questionGroups.map((group, gIdx) => ({
+          existingGroupId: group.backendGroupId || null,
           title: group.title || `Nhóm ${gIdx + 1}`,
-          contentType: group.contentType || 'STANDALONE',
-          passageText: serializeGroupContent(group),
+          contentType: mapContentType(group.contentType),
+          passageText: serializeGroupContent(group, part),
           audioUrl: group.audioUrl || null,
           imageUrl: group.imageUrl || null,
           fromQuestion: group.fromQuestion || null,
           toQuestion: group.toQuestion || null,
           orderIndex: gIdx + 1,
-          questions: (group.questions || []).map((q, qIdx) => ({
-            questionTypeCode: mapQuestionTypeCode(q.questionType?.typeName || group.contentType),
-            questionNumber: q.questionNumber || qIdx + 1,
-            questionText: q.questionText || '',
-            blankContext: q.blankContext || null,
-            imageUrl: q.imageUrl || null,
-            points: q.points || 1.0,
-            orderIndex: qIdx + 1,
-            options: (q.options || []).map((opt, oIdx) => ({
-              optionLabel: opt.optionLabel || String.fromCharCode(65 + oIdx),
-              optionText: opt.optionText || '',
-              isCorrect: opt.isCorrect || false,
-              orderIndex: oIdx,
-            })),
-            answers: (q.answers || []).map((ans, aIdx) => ({
-              answerText: ans.answerText || q.answerText || '',
+          questions: (group.questions || []).map((q, qIdx) => {
+            const typeCode = mapQuestionTypeCode(q.questionType?.typeName || group.contentType);
+            const isTextAnswer = isTextAnswerType(typeCode);
+
+            // Tự động tạo answers nếu question có answerText nhưng chưa có answers[]
+            let answers = (q.answers || []).map((ans, aIdx) => ({
+              answerText: ans.answerText || '',
               alternativeAnswers: ans.alternativeAnswers || null,
               isCaseSensitive: ans.isCaseSensitive || false,
               blankIndex: ans.blankIndex || aIdx + 1,
               wordLimit: ans.wordLimit || null,
-            })),
-          })),
+            }));
+
+            // Nếu dạng điền và chưa có answers, tạo từ answerText
+            if (isTextAnswer && answers.length === 0 && q.answerText) {
+              answers = [{
+                answerText: q.answerText,
+                alternativeAnswers: null,
+                isCaseSensitive: false,
+                blankIndex: 1,
+                wordLimit: null,
+              }];
+            }
+
+            return {
+              questionTypeCode: typeCode,
+              questionNumber: q.questionNumber || qIdx + 1,
+              questionText: q.questionText || '',
+              blankContext: q.blankContext || null,
+              imageUrl: q.imageUrl || null,
+              points: q.points || 1.0,
+              orderIndex: qIdx + 1,
+              options: (q.options || []).map((opt, oIdx) => ({
+                optionLabel: opt.optionLabel || String.fromCharCode(65 + oIdx),
+                optionText: opt.optionText || '',
+                isCorrect: opt.isCorrect || false,
+                orderIndex: oIdx,
+              })),
+              answers,
+            };
+          }),
         })),
       };
     });
@@ -162,7 +195,7 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
     title: test.title || 'Untitled Test',
     description: test.description || '',
     testType: test.testType || 'ACADEMIC',
-    isFullTest: test.isFullTest ?? true,
+    isFullTest: isFullTest,
     durationMinutes: test.durationMinutes || 165,
     targetBand: test.targetBand || '6.5',
     createdByUserId,
@@ -170,15 +203,49 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
   };
 }
 
+// Kiểm tra type code có phải dạng điền text không
+function isTextAnswerType(typeCode) {
+  return ['FILL_BLANK', 'SHORT_ANSWER', 'SENTENCE_COMPLETION', 'SUMMARY_COMPLETION',
+    'NOTE_COMPLETION', 'FLOW_CHART', 'MAP_DIAGRAM', 'TABLE_FORM', 'MATCHING', 'MATCHING_HEADINGS'].includes(typeCode);
+}
+
+// Map contentType từ FE sang giá trị lưu DB (chuẩn hóa)
+function mapContentType(ct) {
+  const map = {
+    'MULTIPLE_CHOICE_GROUP': 'MULTIPLE_CHOICE',
+    'MULTIPLE_CHOICE_MULTI': 'MULTIPLE_CHOICE_MULTI',
+    'SHORT_ANSWER_GROUP': 'SHORT_ANSWER',
+    'AUDIO_TRANSCRIPT': 'AUDIO_TRANSCRIPT',
+    'WRITING_TASK': 'WRITING_TASK',
+    'SPEAKING_INTERVIEW': 'SPEAKING_INTERVIEW',
+    'SPEAKING_CUECARD': 'SPEAKING_CUECARD',
+  };
+  return map[ct] || ct || 'STANDALONE';
+}
+
 // ─── Serialize nội dung group thành passageText (JSON) ───────────
 
-function serializeGroupContent(group) {
+function serializeGroupContent(group, part) {
   const ct = group.contentType;
 
   // Reading passage: lưu paragraphs
   if (ct === 'READING_PASSAGE' && group.paragraphs) {
     return JSON.stringify({ paragraphs: group.paragraphs });
   }
+
+  // Nhóm câu hỏi Reading: kèm đoạn văn từ READING_PASSAGE cùng part
+  if (part && ['MATCHING_HEADING', 'TRUE_FALSE_NG', 'MULTIPLE_CHOICE_GROUP',
+    'MULTIPLE_CHOICE_MULTI', 'SENTENCE_COMPLETION', 'SHORT_ANSWER_GROUP'].includes(ct)) {
+    const readingPassage = (part.questionGroups || []).find(g => g.contentType === 'READING_PASSAGE');
+    if (readingPassage?.paragraphs) {
+      const base = buildGroupSpecificContent(group);
+      return JSON.stringify({
+        ...base,
+        readingPassage: { paragraphs: readingPassage.paragraphs },
+      });
+    }
+  }
+
   // Table: lưu columns + rows
   if (ct === 'TABLE_COMPLETION' && group.columns) {
     return JSON.stringify({
@@ -210,30 +277,81 @@ function serializeGroupContent(group) {
       optionBank: group.optionBank,
     });
   }
+  // Flow chart
+  if (ct === 'FLOW_CHART') {
+    return group.passageText || '';
+  }
+  // Audio transcript: lưu transcript text nếu có
+  if (ct === 'AUDIO_TRANSCRIPT') {
+    return group.passageText || '';
+  }
+  // Writing task / Speaking
+  if (ct === 'WRITING_TASK' || ct === 'SPEAKING_INTERVIEW' || ct === 'SPEAKING_CUECARD') {
+    return group.passageText || '';
+  }
+  // Map / Diagram
+  if (ct === 'MAP' || ct === 'DIAGRAM') {
+    return group.passageText || '';
+  }
   // Default: plain text
   return group.passageText || '';
+}
+
+function buildGroupSpecificContent(group) {
+  if (group.contentType === 'MATCHING_HEADING' && group.headingBank) {
+    return { headingBank: group.headingBank };
+  }
+  return {};
 }
 
 // ─── Map frontend questionType name → backend QuestionType code ──
 
 function mapQuestionTypeCode(typeName) {
   const map = {
+    // MCQ variants
     'MULTIPLE_CHOICE': 'MCQ',
     'MULTIPLE_CHOICE_MULTIPLE': 'MCQ',
+    'MULTIPLE_CHOICE_GROUP': 'MCQ',
+    'MULTIPLE_CHOICE_MULTI': 'MCQ',
+    // True/False/Not Given
     'TRUE_FALSE_NG': 'TFNG',
+    // Yes/No/Not Given
     'YES_NO_NG': 'YNNG',
+    // Fill in blank variants
     'FILL_IN_BLANK': 'FILL_BLANK',
+    'FILL_BLANK': 'FILL_BLANK',
+    // Short answer
     'SHORT_ANSWER': 'SHORT_ANSWER',
+    'SHORT_ANSWER_GROUP': 'SHORT_ANSWER',
+    // Matching
     'MATCHING': 'MATCHING',
+    'DRAG_MATCHING': 'MATCHING',
+    'MATCHING_HEADING': 'MATCHING_HEADINGS',
+    'MATCHING_HEADINGS': 'MATCHING_HEADINGS',
+    // Completion types
     'SENTENCE_COMPLETION': 'SENTENCE_COMPLETION',
     'SUMMARY_COMPLETION': 'SUMMARY_COMPLETION',
     'NOTE_COMPLETION': 'NOTE_COMPLETION',
+    'TABLE_COMPLETION': 'NOTE_COMPLETION',
+    // Charts/Maps
     'FLOW_CHART': 'FLOW_CHART',
     'MAP_DIAGRAM': 'MAP_DIAGRAM',
-    'TABLE_FORM': 'TABLE_FORM',
-    'LETTER_ESSAY': 'LETTER_ESSAY',
+    'MAP': 'MAP_DIAGRAM',
+    'DIAGRAM': 'MAP_DIAGRAM',
+    'MAP_LABELLING': 'MAP_DIAGRAM',
+    // Table
+    'TABLE_FORM': 'NOTE_COMPLETION',
+    'TABLE': 'NOTE_COMPLETION',
+    // Writing/Speaking
+    'WRITING_TASK': 'ESSAY',
+    'LETTER_ESSAY': 'ESSAY',
+    'SPEAKING_INTERVIEW': 'SHORT_ANSWER',
+    'SPEAKING_CUECARD': 'SHORT_ANSWER',
+    // Audio
+    'AUDIO_TRANSCRIPT': 'FILL_BLANK',
+    'STANDALONE': 'FILL_BLANK',
   };
-  return map[typeName] || typeName || 'FILL_BLANK';
+  return map[typeName] || 'FILL_BLANK';
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -359,14 +477,16 @@ function mapBackendTypeToFrontend(code) {
     'YNNG': 'YES_NO_NG',
     'FILL_BLANK': 'FILL_IN_BLANK',
     'SHORT_ANSWER': 'SHORT_ANSWER',
-    'MATCHING': 'MATCHING',
+    'MATCHING': 'FILL_IN_BLANK',
+    'MATCHING_HEADINGS': 'FILL_IN_BLANK',
     'SENTENCE_COMPLETION': 'FILL_IN_BLANK',
     'SUMMARY_COMPLETION': 'FILL_IN_BLANK',
     'NOTE_COMPLETION': 'FILL_IN_BLANK',
     'FLOW_CHART': 'FILL_IN_BLANK',
     'MAP_DIAGRAM': 'FILL_IN_BLANK',
     'TABLE_FORM': 'FILL_IN_BLANK',
-    'LETTER_ESSAY': 'FILL_IN_BLANK',
+    'LETTER': 'FILL_IN_BLANK',
+    'ESSAY': 'FILL_IN_BLANK',
   };
   return map[code] || 'FILL_IN_BLANK';
 }

@@ -141,12 +141,22 @@ export const MOCK_READING_DATA = {
           ],
           layout: "list"
         },
-        // Q36-40: Fill in the blank — sentence completion
-        { id: "q36", number: 36, type: "fill-in-the-blank", text: "Each time a cell divides, its _______ become shorter." },
-        { id: "q37", number: 37, type: "fill-in-the-blank", text: "Long-distance runners were found to have longer telomeres than _______ individuals." },
-        { id: "q38", number: 38, type: "fill-in-the-blank", text: "Reducing caloric intake in animals by 20-40% can increase _______ by up to 50%." },
-        { id: "q39", number: 39, type: "fill-in-the-blank", text: "Senescent cells that accumulate over time contribute to _______ and tissue dysfunction." },
-        { id: "q40", number: 40, type: "fill-in-the-blank", text: "Elizabeth Blackburn won the Nobel Prize for her work on _______ ." },
+        // Q36-37: Multiple Choice (multi-select — choose TWO)
+        { id: "q36", number: 36, type: "multiple-choice", allowMultipleAnswers: true, text: "Which TWO of the following are described as characteristics of Blue Zone communities?", options: ["A. high levels of meat consumption", "B. regular physical activity", "C. working long office hours", "D. moderate caloric intake", "E. frequent international travel"] },
+        { id: "q37", number: 37, type: "multiple-choice", allowMultipleAnswers: true, text: "Which TWO findings about ageing are mentioned in relation to molecular research?", options: ["A. Telomeres protect the ends of chromosomes.", "B. Exercise has no effect on cell division.", "C. Chronic stress speeds up telomere shortening.", "D. Genes are the sole factor in ageing.", "E. Senescent cells improve tissue function."] },
+        // Q38-40: Image Drag & Drop — Map labelling
+        {
+          id: "q_image_dd",
+          type: "image-drag-drop",
+          instruction: "Label the map below. Drag the correct letter A–H to boxes 38–40.",
+          imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/PlaceholderLC.png/200px-PlaceholderLC.png",
+          bankOptions: ["Swimming Pool", "Tennis Court", "Car Park", "Reception", "Restaurant", "Library", "Gym", "Playground"],
+          subQuestions: [
+            { id: "q38", number: 38, text: "Area in the centre of the map", top: "50%", left: "50%" },
+            { id: "q39", number: 39, text: "Structure at the southern end", top: "80%", left: "40%" },
+            { id: "q40", number: 40, text: "Building on the west side", top: "55%", left: "15%" },
+          ],
+        },
       ],
     },
   ],
