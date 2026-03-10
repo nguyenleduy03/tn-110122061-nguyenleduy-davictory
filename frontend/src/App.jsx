@@ -9,6 +9,9 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import TestBuilder from './pages/TestBuilder'
 import MyDashboard from './pages/MyDashboard'
+import DashboardHistory from './pages/DashboardHistory'
+import DashboardProfile from './pages/DashboardProfile'
+import DashboardSettings from './pages/DashboardSettings'
 import './App.css'
 
 function App() {
@@ -28,6 +31,9 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/my-dashboard" element={<MyDashboard />} />
+        <Route path="/my-dashboard/history" element={<DashboardHistory />} />
+        <Route path="/profile" element={<DashboardProfile />} />
+        <Route path="/my-dashboard/settings" element={<DashboardSettings />} />
         <Route path="/teacher/tests/new" element={<TestBuilder />} />
         <Route path="/teacher/tests/:id/edit" element={<TestBuilder />} />
       </Routes>

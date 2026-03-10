@@ -1,5 +1,6 @@
 package com.victory.DAVictory.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -45,6 +46,7 @@ public class DifficultyLevel {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "difficultyLevel")
     private List<Part> parts = new ArrayList<>();
 }

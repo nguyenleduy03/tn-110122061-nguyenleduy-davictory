@@ -12,6 +12,7 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -32,11 +33,15 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+            .cors(Customizer.withDefaults())
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
             .authorizeHttpRequests(auth -> auth
+
+                // ===== CORS PREFLIGHT — luôn cho phép =====
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
                 // ===== PUBLIC ENDPOINTS (không cần đăng nhập) =====
                 .requestMatchers(
@@ -73,30 +78,30 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/users/register").permitAll()
 
                 // ===== TEST MANAGEMENT =====
-                // Tạo/cập nhật/xóa đề thi: MANAGER, ADMIN
-                .requestMatchers(HttpMethod.POST, "/api/tests").hasAnyRole("MANAGER", "ADMIN")
-                .requestMatchers(HttpMethod.PUT, "/api/tests/**").hasAnyRole("MANAGER", "ADMIN")
-                .requestMatchers(HttpMethod.DELETE, "/api/tests/**").hasAnyRole("MANAGER", "ADMIN")
+                // Tạo/cập nhật/xóa đề thi: TEACHER+
+                .requestMatchers(HttpMethod.POST, "/api/tests").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/tests/**").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/tests/**").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
                 // Xem đề thi theo trạng thái/tìm kiếm: TEACHER+
                 .requestMatchers(HttpMethod.GET, "/api/tests").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/tests/search").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
-                // Sessions & Parts trong test: MANAGER, ADMIN
-                .requestMatchers(HttpMethod.POST, "/api/tests/*/sessions").hasAnyRole("MANAGER", "ADMIN")
-                .requestMatchers(HttpMethod.POST, "/api/tests/sessions/*/parts").hasAnyRole("MANAGER", "ADMIN")
-                .requestMatchers(HttpMethod.POST, "/api/tests/parts/*/question-groups").hasAnyRole("MANAGER", "ADMIN")
+                // Sessions & Parts trong test: TEACHER+
+                .requestMatchers(HttpMethod.POST, "/api/tests/*/sessions").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/tests/sessions/*/parts").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/tests/parts/*/question-groups").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
                 // Xem sessions/parts: TEACHER+
                 .requestMatchers(HttpMethod.GET, "/api/tests/**").hasAnyRole("STUDENT", "TEACHER", "MANAGER", "ADMIN")
 
                 // ===== TEST BUILDER =====
-                // Chỉ MANAGER, ADMIN mới dùng được test builder
-                .requestMatchers("/api/test-builder/**").hasAnyRole("MANAGER", "ADMIN")
+                // TEACHER, MANAGER, ADMIN dùng được test builder
+                .requestMatchers("/api/test-builder/**").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
 
                 // ===== TEST STRUCTURE =====
-                // Xem: tất cả đã đăng nhập; Tạo/sửa/xóa: MANAGER, ADMIN
+                // Xem: tất cả đã đăng nhập; Tạo/sửa/xóa: TEACHER+
                 .requestMatchers(HttpMethod.GET, "/api/test-structure/**").authenticated()
-                .requestMatchers(HttpMethod.POST, "/api/test-structure/**").hasAnyRole("MANAGER", "ADMIN")
-                .requestMatchers(HttpMethod.PUT, "/api/test-structure/**").hasAnyRole("MANAGER", "ADMIN")
-                .requestMatchers(HttpMethod.DELETE, "/api/test-structure/**").hasAnyRole("MANAGER", "ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/test-structure/**").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/test-structure/**").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/test-structure/**").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
 
                 // ===== QUESTIONS =====
                 // Xem câu hỏi: STUDENT+ (để thi)
@@ -114,9 +119,9 @@ public class SecurityConfig {
 
                 // ===== QUESTION TYPES =====
                 .requestMatchers(HttpMethod.GET, "/api/question-types/**").authenticated()
-                .requestMatchers(HttpMethod.POST, "/api/question-types/**").hasAnyRole("MANAGER", "ADMIN")
-                .requestMatchers(HttpMethod.PUT, "/api/question-types/**").hasAnyRole("MANAGER", "ADMIN")
-                .requestMatchers(HttpMethod.DELETE, "/api/question-types/**").hasAnyRole("MANAGER", "ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/question-types/**").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/question-types/**").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/question-types/**").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
 
                 // ===== EXAM ATTEMPTS =====
                 // Student tự thi & xem kết quả của mình

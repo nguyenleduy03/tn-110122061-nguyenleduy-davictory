@@ -51,16 +51,17 @@ export const authApi = {
   // Đăng nhập
   login: async (credentials) => {
     const response = await apiClient.post('/auth/login', credentials);
-    const { token, user } = response.data;
-    
+    // Backend trả về: { accessToken, refreshToken, tokenType, user }
+    const { accessToken, user } = response.data;
+
     // Lưu token và user info vào localStorage
-    if (token) {
-      localStorage.setItem('authToken', token);
+    if (accessToken) {
+      localStorage.setItem('authToken', accessToken);
     }
     if (user) {
       localStorage.setItem('user', JSON.stringify(user));
     }
-    
+
     return response.data;
   },
 
@@ -104,6 +105,18 @@ export const authApi = {
     const user = authApi.getStoredUser();
     if (!user || !user.roles) return false;
     return user.roles.some(role => roleNames.includes(role));
+  },
+
+  // Cập nhật thông tin profile
+  updateProfile: async (userId, data) => {
+    const response = await apiClient.put(`/users/me`, data);
+    // Cập nhật lại user trong localStorage
+    const stored = authApi.getStoredUser();
+    if (stored) {
+      localStorage.setItem('user', JSON.stringify({ ...stored, ...response.data }));
+      window.dispatchEvent(new Event('profileUpdated'));
+    }
+    return response.data;
   },
 };
 

@@ -1,5 +1,6 @@
 package com.victory.DAVictory.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -21,6 +22,7 @@ public class Part {
     private Long id;
 
     // Quan hệ với session
+    @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "session_id", nullable = false)
     private Session session;

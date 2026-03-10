@@ -104,6 +104,20 @@ public class UserService {
         if (userDTO.getPhoneNumber() != null) user.setPhoneNumber(userDTO.getPhoneNumber());
         if (userDTO.getAvatar() != null) user.setAvatar(userDTO.getAvatar());
         if (userDTO.getIsActive() != null) user.setIsActive(userDTO.getIsActive());
+
+        // Cập nhật Profile học viên
+        com.victory.DAVictory.entity.StudentProfile profile = user.getStudentProfile();
+        if (profile == null) {
+            profile = new com.victory.DAVictory.entity.StudentProfile();
+            profile.setUser(user);
+            user.setStudentProfile(profile);
+        }
+        if (userDTO.getBirthday() != null) profile.setDateOfBirth(userDTO.getBirthday());
+        if (userDTO.getNationality() != null) profile.setCountry(userDTO.getNationality());
+        if (userDTO.getStudyLevel() != null) profile.setCurrentLevel(userDTO.getStudyLevel());
+        if (userDTO.getTargetBand() != null) profile.setTargetBand(userDTO.getTargetBand());
+        if (userDTO.getBio() != null) profile.setNotes(userDTO.getBio());
+
         return convertToDTO(userRepository.save(user));
     }
 
@@ -151,6 +165,16 @@ public class UserService {
         dto.setRoles(user.getRoles().stream()
                 .map(Role::getName)
                 .collect(Collectors.toSet()));
+
+        if (user.getStudentProfile() != null) {
+            com.victory.DAVictory.entity.StudentProfile profile = user.getStudentProfile();
+            dto.setBirthday(profile.getDateOfBirth());
+            dto.setNationality(profile.getCountry());
+            dto.setStudyLevel(profile.getCurrentLevel());
+            dto.setTargetBand(profile.getTargetBand());
+            dto.setBio(profile.getNotes());
+        }
+
         return dto;
     }
 }

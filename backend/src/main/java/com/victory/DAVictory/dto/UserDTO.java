@@ -22,4 +22,11 @@ public class UserDTO {
     private LocalDateTime lastLogin;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    // Student profile fields
+    private java.time.LocalDate birthday;
+    private String nationality;
+    private String studyLevel;
+    private String targetBand;
+    private String bio;
 }

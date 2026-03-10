@@ -3,6 +3,8 @@ import FillInBlankQuestion from './FillInBlankQuestion';
 import MultipleChoiceQuestion from './MultipleChoiceQuestion';
 import DragDropGroupQuestion from './DragDropGroupQuestion';
 import FlowChartQuestion from './FlowChartQuestion';
+import SummaryCompletionQuestion from './SummaryCompletionQuestion';
+import ImageDragDropQuestion from './ImageDragDropQuestion';
 
 const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answer, handleAnswerChange, inputRefs, bookmarks, toggleBookmark }) => {
     if (!q) return null;
@@ -53,6 +55,35 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
     if (q.type === 'flow_chart') {
         return (
             <FlowChartQuestion
+                q={q}
+                activeQuestion={activeQuestion}
+                setActiveQuestion={setActiveQuestion}
+                answers={answers || {}}
+                handleAnswerChange={handleAnswerChange}
+                bookmarks={bookmarks}
+                toggleBookmark={toggleBookmark}
+            />
+        );
+    }
+
+    if (q.type === 'summary-completion') {
+        return (
+            <SummaryCompletionQuestion
+                q={q}
+                activeQuestion={activeQuestion}
+                setActiveQuestion={setActiveQuestion}
+                answers={answers || {}}
+                handleAnswerChange={handleAnswerChange}
+                inputRefs={inputRefs}
+                bookmarks={bookmarks}
+                toggleBookmark={toggleBookmark}
+            />
+        );
+    }
+
+    if (q.type === 'image-drag-drop') {
+        return (
+            <ImageDragDropQuestion
                 q={q}
                 activeQuestion={activeQuestion}
                 setActiveQuestion={setActiveQuestion}

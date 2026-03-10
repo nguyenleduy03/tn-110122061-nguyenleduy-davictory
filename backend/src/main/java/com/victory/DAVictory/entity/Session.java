@@ -1,5 +1,6 @@
 package com.victory.DAVictory.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.victory.DAVictory.enums.SkillType;
 import com.victory.DAVictory.enums.TestType;
 import jakarta.persistence.*;
@@ -67,6 +68,7 @@ public class Session {
     private LocalDateTime updatedAt;
 
     // Relationship: một session có nhiều parts
+    @JsonIgnore
     @OneToMany(mappedBy = "session", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("orderIndex ASC")
     private List<Part> parts = new ArrayList<>();

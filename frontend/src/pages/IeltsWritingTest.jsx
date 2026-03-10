@@ -105,6 +105,7 @@ const IeltsWritingTest = () => {
             <TestHeader
                 candidateName={testData.candidateName}
                 candidateId={testData.candidateId}
+                submitTest={submitTest}
             />
 
             <div className="instruction-bar">
@@ -133,9 +134,17 @@ const IeltsWritingTest = () => {
                     onChange={handleAnswerChange}
                     style={{ width: `calc(${100 - leftWidth}% - 14px)` }}
                 />
+
+                <div className="pane-nav-buttons">
+                    <button className="black-nav-btn" onClick={() => setCurrentPartIndex((i) => Math.max(0, i - 1))} disabled={isFirstPart} style={{ opacity: isFirstPart ? 0.5 : 1 }}>
+                        <ArrowLeft size={24} color="white" />
+                    </button>
+                    <button className="black-nav-btn" onClick={() => setCurrentPartIndex((i) => Math.min(parts.length - 1, i + 1))} disabled={isLastPart} style={{ opacity: isLastPart ? 0.5 : 1 }}>
+                        <ArrowRight size={24} color="white" />
+                    </button>
+                </div>
             </main>
 
-            {/* Footer: part navigation + submit */}
             <footer className="ielts-footer">
                 <div className="footer-content">
                     {parts.map((p, index) => {
@@ -152,7 +161,7 @@ const IeltsWritingTest = () => {
                                     <h4 className="part-title hover-pointer">{p.title}</h4>
                                     {!isActive && (
                                         <span className="part-status" style={{ marginLeft: "10px" }}>
-                                            {wc} / {p.minWords} words
+                                            {done ? 1 : 0} of 1
                                         </span>
                                     )}
                                 </div>
@@ -160,7 +169,7 @@ const IeltsWritingTest = () => {
                                     <div className="question-numbers">
                                         <div className="q-wrapper">
                                             <div className={`status-dash ${done ? "answered-dash" : ""}`} />
-                                            <span className="q-num active">{wc}w</span>
+                                            <span className="q-num active">1</span>
                                         </div>
                                     </div>
                                 )}
@@ -168,27 +177,6 @@ const IeltsWritingTest = () => {
                         );
                     })}
                 </div>
-
-                {/* Part navigation arrows */}
-                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginRight: "8px" }}>
-                    <button
-                        className="black-nav-btn"
-                        onClick={() => setCurrentPartIndex((i) => Math.max(0, i - 1))}
-                        disabled={isFirstPart}
-                        style={{ opacity: isFirstPart ? 0.5 : 1 }}
-                    >
-                        <ArrowLeft size={24} color="white" />
-                    </button>
-                    <button
-                        className="black-nav-btn"
-                        onClick={() => setCurrentPartIndex((i) => Math.min(parts.length - 1, i + 1))}
-                        disabled={isLastPart}
-                        style={{ opacity: isLastPart ? 0.5 : 1 }}
-                    >
-                        <ArrowRight size={24} color="white" />
-                    </button>
-                </div>
-
                 <button className="submit-check-btn" onClick={submitTest} title="Submit Test">
                     <Check size={28} strokeWidth={2.5} />
                 </button>

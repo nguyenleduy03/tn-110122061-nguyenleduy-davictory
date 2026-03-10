@@ -1,4 +1,5 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import {
   DndContext,
   DragOverlay,
@@ -12,13 +13,16 @@ import {
   SortableContext,
   verticalListSortingStrategy,
   arrayMove,
-} from '@dnd-kit/sortable';import { Headphones, BookOpen, PenLine, Mic, GripVertical } from 'lucide-react';
+} from '@dnd-kit/sortable';
+import { Headphones, BookOpen, PenLine, Mic, GripVertical } from 'lucide-react';
 
 import BuilderHeader from '../components/testBuilder/BuilderHeader';
 import BuilderSidebar from '../components/testBuilder/BuilderSidebar';
 import ExamCanvas from '../components/testBuilder/ExamCanvas';
 import PropertiesPanel from '../components/testBuilder/PropertiesPanel';
 import PreviewModal from '../components/testBuilder/PreviewModal';
+import { testBuilderApi, buildSavePayload, parseLoadedTest } from '../services/testBuilderApi';
+import { authApi } from '../services/authApi';
 import '../styles/testBuilder.css';
 
 // ---- Session definitions (mirror backend Session entity) ----
@@ -69,6 +73,8 @@ const initialSessions = () =>
 
 // ---- Main Component ----
 const TestBuilder = () => {
+  const { id: editTestId } = useParams(); // /teacher/tests/:id/edit
+
   const [test, setTest] = useState({
     title: '',
     description: '',
@@ -88,10 +94,43 @@ const TestBuilder = () => {
   // { type: 'part'|'group'|'question', data: {...} }
 
   const [saving, setSaving] = useState(false);
+  const [shuffling, setShuffling] = useState(false);
   const [activeOverlayItem, setActiveOverlayItem] = useState(null);
   const [dragOverPartId, setDragOverPartId] = useState(null);
   const [dragOverPassagePaneId, setDragOverPassagePaneId] = useState(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [savedTestId, setSavedTestId] = useState(editTestId ? Number(editTestId) : null);
+  const [structure, setStructure] = useState(null); // Backend session/part IDs
+  const [saveMessage, setSaveMessage] = useState('');
+
+  // ─── Fetch backend structure + load existing test on mount ───
+  useEffect(() => {
+    const init = async () => {
+      try {
+        // Lấy cấu trúc sessions/parts từ backend
+        const struct = await testBuilderApi.getStructure(test.testType);
+        setStructure(struct);
+
+        // Nếu đang edit đề thi có sẵn → load dữ liệu
+        if (editTestId) {
+          const loaded = await testBuilderApi.loadFullTest(editTestId);
+          const { test: loadedTest, sessions: loadedSessions, testId } = parseLoadedTest(loaded);
+          setTest(prev => ({ ...prev, ...loadedTest }));
+          setSessions(prev => {
+            const merged = { ...prev };
+            for (const [skill, parts] of Object.entries(loadedSessions)) {
+              if (parts.length > 0) merged[skill] = parts;
+            }
+            return merged;
+          });
+          setSavedTestId(testId);
+        }
+      } catch (err) {
+        console.error('Không thể tải cấu trúc bài thi:', err);
+      }
+    };
+    init();
+  }, [editTestId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
@@ -99,10 +138,29 @@ const TestBuilder = () => {
 
   const parts = sessions[activeSkill] ?? [];
 
+  // Skills hiển thị dựa trên chế độ Full/Single
+  const enabledSkills = test.isFullTest
+    ? ['LISTENING', 'READING', 'WRITING', 'SPEAKING']
+    : [test.singleSkill || 'LISTENING'];
+
   // ------------ Updaters ------------
 
   const updateTest = useCallback((updates) => {
     setTest((prev) => ({ ...prev, ...updates }));
+  }, []);
+
+  const handleSkillModeChange = useCallback(({ isFullTest, singleSkill }) => {
+    const SKILL_DURATIONS = { LISTENING: 30, READING: 60, WRITING: 60, SPEAKING: 15 };
+    setTest(prev => ({
+      ...prev,
+      isFullTest,
+      singleSkill: singleSkill || null,
+      durationMinutes: isFullTest ? 165 : (SKILL_DURATIONS[singleSkill] || 30),
+    }));
+    if (!isFullTest && singleSkill) {
+      setActiveSkill(singleSkill);
+    }
+    setSelection(null);
   }, []);
 
   const setParts = (updater) =>
@@ -227,6 +285,17 @@ const TestBuilder = () => {
             chooseCount: 2,
             fromQuestion: null, toQuestion: null,
             questions: [makeMMCQ(1)],
+          };
+
+        case 'TRUE_FALSE_NG':
+          return {
+            title: '',
+            fromQuestion: null, toQuestion: null,
+            questions: [
+              makeQ(1, 'TRUE_FALSE_NG'),
+              makeQ(2, 'TRUE_FALSE_NG'),
+              makeQ(3, 'TRUE_FALSE_NG'),
+            ],
           };
 
         case 'SENTENCE_COMPLETION':
@@ -396,6 +465,7 @@ const TestBuilder = () => {
     // Determine default questionType and options based on group contentType
     const isMCQ  = ct === 'MULTIPLE_CHOICE_GROUP';
     const isMMCQ = ct === 'MULTIPLE_CHOICE_MULTI';
+    const isTFNG = ct === 'TRUE_FALSE_NG';
     const isFill = ['SENTENCE_COMPLETION', 'SHORT_ANSWER_GROUP', 'NOTE_COMPLETION', 'SUMMARY_COMPLETION'].includes(ct);
 
     const defaultOptions = (isMCQ || isMMCQ)
@@ -414,6 +484,7 @@ const TestBuilder = () => {
 
     let questionTypeName = 'MULTIPLE_CHOICE';
     if (isMMCQ) questionTypeName = 'MULTIPLE_CHOICE_MULTIPLE';
+    else if (isTFNG) questionTypeName = 'TRUE_FALSE_NG';
     else if (isFill) questionTypeName = 'FILL_IN_BLANK';
     else if (ct === 'SHORT_ANSWER_GROUP') questionTypeName = 'SHORT_ANSWER';
 
@@ -582,13 +653,71 @@ const TestBuilder = () => {
 
   const handleSave = async () => {
     setSaving(true);
-    // TODO: POST /api/tests with test + sessions payload
-    await new Promise((r) => setTimeout(r, 800));
-    setSaving(false);
+    setSaveMessage('');
+    try {
+      // Lấy cấu trúc nếu chưa có
+      let struct = structure;
+      if (!struct) {
+        struct = await testBuilderApi.getStructure(test.testType);
+        setStructure(struct);
+      }
+
+      const user = authApi.getStoredUser();
+      const userId = user?.id || 1;
+
+      const payload = buildSavePayload(test, sessions, struct, userId, savedTestId);
+      const result = await testBuilderApi.saveFullTest(payload);
+
+      setSavedTestId(result.id);
+      setSaveMessage('Đã lưu đề thi thành công!');
+      setTimeout(() => setSaveMessage(''), 3000);
+    } catch (err) {
+      console.error('Lỗi lưu đề thi:', err);
+      setSaveMessage('Lỗi khi lưu đề thi: ' + (err.response?.data?.error || err.message));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleSubmitReview = () => {
     updateTest({ status: 'REVIEWING' });
+  };
+
+  // ------------ Shuffle ------------
+
+  const handleShuffle = async () => {
+    setShuffling(true);
+    setSaveMessage('');
+    try {
+      const user = authApi.getStoredUser();
+      const userId = user?.id || 1;
+
+      const result = await testBuilderApi.shuffleTest({
+        title: `Đề trộn - ${new Date().toLocaleDateString('vi-VN')}`,
+        testType: test.testType,
+        createdByUserId: userId,
+        isFullTest: true,
+      });
+
+      // Load kết quả vào builder
+      const { test: shuffledTest, sessions: shuffledSessions, testId } = parseLoadedTest(result);
+      setTest(prev => ({ ...prev, ...shuffledTest }));
+      setSessions(prev => {
+        const merged = { ...prev };
+        for (const [skill, parts] of Object.entries(shuffledSessions)) {
+          if (parts.length > 0) merged[skill] = parts;
+        }
+        return merged;
+      });
+      setSavedTestId(testId);
+      setSaveMessage('Trộn đề thành công! Đề mới đã được tạo.');
+      setTimeout(() => setSaveMessage(''), 3000);
+    } catch (err) {
+      console.error('Lỗi trộn đề:', err);
+      setSaveMessage('Lỗi trộn đề: ' + (err.response?.data?.error || err.message));
+    } finally {
+      setShuffling(false);
+    }
   };
 
   // ------------ Render session header ------------
@@ -639,6 +768,10 @@ const TestBuilder = () => {
         onPreview={() => setPreviewOpen(true)}
         onSubmitReview={handleSubmitReview}
         saving={saving}
+        onShuffle={handleShuffle}
+        shuffling={shuffling}
+        saveMessage={saveMessage}
+        onSkillModeChange={handleSkillModeChange}
       />
 
       <div className="tb-workspace">
@@ -661,6 +794,7 @@ const TestBuilder = () => {
             sessions={sessions}
             activeSessionKey={activeSkill}
             selection={selection}
+            enabledSkills={enabledSkills}
             onSelectSession={(key) => { setActiveSkill(key); setSelection(null); }}
             onSelectPart={(p) => setSelection({ type: 'part', data: p })}
             onSelectGroup={(g) => setSelection({ type: 'group', data: { ...g } })}

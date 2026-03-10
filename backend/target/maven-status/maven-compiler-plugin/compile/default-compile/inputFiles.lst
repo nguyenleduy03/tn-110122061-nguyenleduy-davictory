@@ -1,6 +1,7 @@
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/DaVictoryApplication.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/config/CorsConfig.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/config/DataInitializer.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/config/PublicIpService.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/config/SecurityConfig.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/config/SwaggerConfig.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/AnalyticsController.java
@@ -18,6 +19,9 @@
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/WritingController.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/LoginRequest.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/RegisterRequest.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/ShuffleTestRequest.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/TestFullResponse.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/TestSaveRequest.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/UserDTO.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/entity/Answer.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/entity/Assignment.java
@@ -141,6 +145,7 @@
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/service/MediaService.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/service/QuestionBankService.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/service/RoleService.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/service/TestBuilderService.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/service/TestManagementService.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/service/TestStructureService.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/service/UserService.java

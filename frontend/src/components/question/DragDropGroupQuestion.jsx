@@ -47,16 +47,12 @@ const DragDropGroupQuestion = ({ q, activeQuestion, setActiveQuestion, answers, 
     const usedOptions = (q.subQuestions || []).map(subQ => answers[subQ.id]).filter(Boolean);
 
     const renderBank = () => (
-        <div className="bank-section"
+        <div className={`bank-section ${isMatchingHeading ? 'bank-heading' : ''}`}
             onDragOver={handleDragOver}
-            onDrop={handleBankDrop}
-            style={{
-                display: 'flex', flexDirection: isMatchingHeading ? 'column' : 'row', flexWrap: 'wrap', gap: '10px',
-                padding: '0', marginBottom: '20px'
-            }}>
-            {isMatchingHeading && <h4 style={{ margin: '0 0 10px 0' }}>List of Headings</h4>}
-            {isMatchingInfo && <h4 style={{ margin: '0 0 8px 0', width: '100%', fontSize: '18px', fontWeight: 'bold', lineHeight: '20px' }}>{q.rightHeader || 'Options'}</h4>}
-            <div className="options-bank" style={{ display: 'flex', flexDirection: isMatchingHeading ? 'column' : 'column', gap: '2px', width: '100%' }}>
+            onDrop={handleBankDrop}>
+            {isMatchingHeading && <h4 className="bank-section-title">List of Headings</h4>}
+            {isMatchingInfo && <h4 className="bank-section-title info-title">{q.rightHeader || 'Options'}</h4>}
+            <div className="options-bank">
                 {q.bankOptions.map((opt, idx) => {
                     const isUsed = usedOptions.includes(opt);
                     return (
@@ -64,7 +60,12 @@ const DragDropGroupQuestion = ({ q, activeQuestion, setActiveQuestion, answers, 
                             key={idx}
                             draggable={true}
                             onDragStart={(e) => handleDragStart(e, opt)}
-                            className={`bank-option ${isUsed ? 'used' : ''}`} style={{ display: isUsed ? 'none' : 'inline-flex', alignItems: 'center', height: '32px', width: isMatchingHeading ? 'fit-content' : (isMatchingInfo ? dropZoneWidth : 'auto'), fontWeight: isMatchingHeading ? 'bold' : 'normal', boxSizing: 'border-box' }}
+                            className={`bank-option ${isUsed ? 'used' : ''} ${isMatchingHeading ? 'bank-option-heading' : ''}`}
+                            style={{
+                                display: isUsed ? 'none' : 'inline-flex',
+                                height: '32px',
+                                width: isMatchingInfo ? dropZoneWidth : undefined
+                            }}
                         >
                             {opt}
                         </div>
@@ -75,115 +76,85 @@ const DragDropGroupQuestion = ({ q, activeQuestion, setActiveQuestion, answers, 
     );
 
     const renderQuestions = () => (
-        <div className={`sub-questions layout-${q.layout || 'list'}`} style={{ flex: 1, paddingRight: isMatchingInfo ? '20px' : '0' }}>
-            {isMatchingInfo && <h4 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: 'bold', lineHeight: '20px' }}>{q.leftHeader || 'Questions'}</h4>}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    {(q.subQuestions || []).map((subQ) => {
-                        const isActive = activeQuestion === subQ.number;
-                        const answer = answers[subQ.id];
+        <div className={`dd-sub-questions ${isMatchingInfo ? 'dd-info-padded' : ''}`}>
+            {isMatchingInfo && <h4 className="bank-section-title info-title">{q.leftHeader || 'Questions'}</h4>}
+            <div className="dd-questions-list">
+                {(q.subQuestions || []).map((subQ) => {
+                    const isActive = activeQuestion === subQ.number;
+                    const answer = answers[subQ.id];
 
-                        return (
-                            <div
-                                key={subQ.id}
-                                id={`question-${subQ.number}`}
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '15px',
-                                    marginBottom: '0', height: isMatchingInfo ? '32px' : 'auto', boxSizing: 'border-box',
-                                    padding: isMatchingInfo ? '0' : '10px',
-                                    border: 'none',
-                                    backgroundColor: isActive ? '#f9f9f9' : 'transparent',
-                                    borderRadius: '6px'
-                                }}
-                                onClick={() => setActiveQuestion?.(subQ.number)}
-                            >
-                                {isMatchingInfo && subQ.text ? (
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 'none', marginRight: '10px' }}>
-                                        <span onClick={(e) => { e.stopPropagation(); toggleBookmark?.(subQ.number); }} style={{ cursor: "pointer", display: "flex" }}>
-                                            <Bookmark size={15} fill={bookmarks?.[subQ.number] ? "#1a73e8" : "none"} color={bookmarks?.[subQ.number] ? "#1a73e8" : "#ccc"} />
-                                        </span>
-                                        <span>{subQ.text}</span>
-                                    </div>
-                                ) : null}
+                    return (
+                        <div
+                            key={subQ.id}
+                            id={`question-${subQ.number}`}
+                            className={`dd-question-row ${isMatchingInfo ? 'dd-row-info' : 'dd-row-default'}`}
+                            onClick={() => setActiveQuestion?.(subQ.number)}
+                        >
+                            {isMatchingInfo && subQ.text ? (
+                                <div className="dd-info-text">
+                                    <span onClick={(e) => { e.stopPropagation(); toggleBookmark?.(subQ.number); }} className="dd-bookmark-btn">
+                                        <Bookmark size={15} fill={bookmarks?.[subQ.number] ? "#1a73e8" : "none"} color={bookmarks?.[subQ.number] ? "#1a73e8" : "#ccc"} />
+                                    </span>
+                                    <span>{subQ.text}</span>
+                                </div>
+                            ) : null}
 
-                                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                                    {!isMatchingInfo && <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                                        <span onClick={(e) => { e.stopPropagation(); toggleBookmark?.(subQ.number); }} style={{ cursor: "pointer", display: "flex" }}>
-                                            <Bookmark size={15} fill={bookmarks?.[subQ.number] ? "#1a73e8" : "none"} color={bookmarks?.[subQ.number] ? "#1a73e8" : "#ccc"} />
-                                        </span>
-                                        <span style={{ fontWeight: "bold", width: "20px" }}>{subQ.number}</span>
-                                    </div>}
-                                    {!isMatchingInfo && <span style={{ flex: 1 }}>{subQ.text}</span>}
+                            <div className="dd-default-meta">
+                                {!isMatchingInfo && <div className="dd-default-label">
+                                    <span onClick={(e) => { e.stopPropagation(); toggleBookmark?.(subQ.number); }} className="dd-bookmark-btn">
+                                        <Bookmark size={15} fill={bookmarks?.[subQ.number] ? "#1a73e8" : "none"} color={bookmarks?.[subQ.number] ? "#1a73e8" : "#ccc"} />
+                                    </span>
+                                    <span className="dd-question-num">{subQ.number}</span>
+                                </div>}
+                                {!isMatchingInfo && <span className="dd-question-text">{subQ.text}</span>}
 
-                                    {/* number inside instead */}
-                                    <div
-                                        onDragOver={handleDragOver}
-                                        onDrop={(e) => handleDrop(e, subQ.id)}
-                                        style={{
-                                            minWidth: dropZoneWidth,
-                                            width: dropZoneWidth,
-                                            height: isMatchingInfo ? '32px' : '40px',
-                                            border: isMatchingInfo ? '1px dashed #999' : '2px dashed #bbb',
-                                            borderRadius: '4px',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            padding: '0 10px',
-                                            backgroundColor: answer ? '#e8f4fd' : 'white',
-                                            position: 'relative'
-                                        }}
-                                    >
-                                        {answer ? (
-                                            <>
-                                                <span
-                                                    draggable={true}
-                                                    onDragStart={(e) => {
-                                                        handleDragStart(e, answer);
-                                                        e.dataTransfer.setData('sourceQId', subQ.id); // Track which question this came from
-                                                    }}
-                                                    style={{ fontWeight: 'normal', cursor: 'grab' }}
-                                                >
-                                                    {answer}
-                                                </span>
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); handleClear(subQ.id); }}
-                                                    style={{
-                                                        position: 'absolute',
-                                                        right: '5px',
-                                                        background: 'none',
-                                                        border: 'none',
-                                                        cursor: 'pointer',
-                                                        color: '#888',
-                                                        fontSize: '16px'
-                                                    }}
-                                                >
-                                                    ×
-                                                </button>
-                                            </>
+                                <div
+                                    onDragOver={handleDragOver}
+                                    onDrop={(e) => handleDrop(e, subQ.id)}
+                                    className={`dd-drop-zone ${isMatchingInfo ? 'dd-drop-info' : ''} ${answer ? 'dd-drop-filled' : ''}`}
+                                    style={{ minWidth: dropZoneWidth, width: dropZoneWidth }}
+                                >
+                                    {answer ? (
+                                        <>
+                                            <span
+                                                draggable={true}
+                                                onDragStart={(e) => {
+                                                    handleDragStart(e, answer);
+                                                    e.dataTransfer.setData('sourceQId', subQ.id);
+                                                }}
+                                                className="dd-drop-answer"
+                                            >
+                                                {answer}
+                                            </span>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); handleClear(subQ.id); }}
+                                                className="dd-drop-clear"
+                                            >
+                                                ×
+                                            </button>
+                                        </>
+                                    ) : (
+                                        isMatchingInfo ? (
+                                            <div className="dd-drop-number">
+                                                {subQ.number}
+                                            </div>
                                         ) : (
-                                            isMatchingInfo ? (
-                                                <div style={{ color: '#000', fontWeight: 'bold', width: '100%', textAlign: 'center' }}>
-                                                    {subQ.number}
-                                                </div>
-                                            ) : (
-                                                <span style={{ color: '#aaa', fontSize: '14px' }}>Drop here</span>
-                                            )
-                                        )}
-                                    </div>
+                                            <span className="dd-drop-placeholder">Drop here</span>
+                                        )
+                                    )}
                                 </div>
                             </div>
-                        );
-                    })}
-                </div>
+                        </div>
+                    );
+                })}
             </div>
         </div>
     );
 
     if (isMatchingHeading) {
         return (
-            <div className="drag-drop-group matching-heading" style={{ marginBottom: '30px' }}>
-                <p style={{ marginBottom: '0', height: isMatchingInfo ? '32px' : 'auto', boxSizing: 'border-box', color: '#555' }}>
+            <div className="drag-drop-group matching-heading">
+                <p className="dd-heading-instruction">
                     Choose the correct heading for each section and move it into the gap.
                 </p>
                 {renderBank()}
@@ -193,11 +164,11 @@ const DragDropGroupQuestion = ({ q, activeQuestion, setActiveQuestion, answers, 
 
     if (isMatchingInfo) {
         return (
-            <div className="drag-drop-group matching-info" style={{ marginBottom: '30px', display: 'flex', gap: '20px' }}>
-                <div style={{ flex: 0.5, minWidth: '300px', maxWidth: '350px' }}>
+            <div className="drag-drop-group matching-info">
+                <div className="dd-info-questions-col">
                     {renderQuestions()}
                 </div>
-                <div style={{ width: '250px' }}>
+                <div className="dd-info-bank-col">
                     {renderBank()}
                 </div>
             </div>
@@ -206,7 +177,7 @@ const DragDropGroupQuestion = ({ q, activeQuestion, setActiveQuestion, answers, 
 
     // Default drag-and-drop
     return (
-        <div className="drag-drop-group" style={{ marginBottom: '30px' }}>
+        <div className="drag-drop-group">
             {renderBank()}
             {renderQuestions()}
         </div>

@@ -25,6 +25,7 @@ const TYPE_META = {
   NOTE_COMPLETION:        { label: 'Note Completion',      bg: '#fefce8', color: '#854d0e' },
   MULTIPLE_CHOICE_GROUP:  { label: 'Multiple Choice',      bg: '#ffe4e6', color: '#be123c' },
   MULTIPLE_CHOICE_MULTI:  { label: 'MC Nhiều đáp án',       bg: '#fce7f3', color: '#9d174d' },
+  TRUE_FALSE_NG:          { label: 'True/False/NG',      bg: '#eff6ff', color: '#1d4ed8' },
   SENTENCE_COMPLETION:    { label: 'Sentence Completion',  bg: '#ecfdf5', color: '#065f46' },
   SHORT_ANSWER_GROUP:     { label: 'Short Answer',         bg: '#f0fdf4', color: '#166534' },
   FLOW_CHART:             { label: 'Flow-chart',           bg: '#f0fdfa', color: '#0f766e' },
@@ -1391,23 +1392,18 @@ const MatchingHeadingBlock = ({ group, onUpdate, onDelete, onSelect, selected, d
   // Each paragraph becomes one section row. We match existing answers by paragraph label.
   const hasSyncedPassage = passageParagraphs && passageParagraphs.length > 0;
 
-  // Strict 1-to-1 sync: headingBank.length === passageParagraphs.length
+  // Khi thêm đoạn mới: tự động pad heading bank cho đủ — nhưng không trim khi xóa đoạn
+  // (heading có thể nhiều hơn số đoạn — làm "mồi" cho thí sinh)
   const targetCount = hasSyncedPassage ? passageParagraphs.length : 0;
   useEffect(() => {
     if (!hasSyncedPassage) return;
     const diff = targetCount - headings.length;
-    if (diff === 0) return;
-    if (diff > 0) {
-      // Passage got more paragraphs → pad heading bank with empty slots
-      const extra = Array.from({ length: diff }, (_, k) => ({
-        id: `h-auto-${Date.now()}-${k}`,
-        text: '',
-      }));
-      onUpdate(group.id, { headingBank: [...headings, ...extra] });
-    } else {
-      // Passage lost paragraphs → trim heading bank from the end
-      onUpdate(group.id, { headingBank: headings.slice(0, targetCount) });
-    }
+    if (diff <= 0) return; // không trim, chỉ pad thêm
+    const extra = Array.from({ length: diff }, (_, k) => ({
+      id: `h-auto-${Date.now()}-${k}`,
+      text: '',
+    }));
+    onUpdate(group.id, { headingBank: [...headings, ...extra] });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [passageParagraphs?.length]);
 
@@ -1462,7 +1458,7 @@ const MatchingHeadingBlock = ({ group, onUpdate, onDelete, onSelect, selected, d
           <span>📋 List of Headings</span>
           <span className="exam-mh-hint">
             ({headings.length} heading
-            {hasSyncedPassage ? ` — khớp với ${targetCount} đoạn` : ''})
+            {hasSyncedPassage ? ` — ${passageParagraphs.length} đoạn, có thể thêm heading mồi` : ''})
           </span>
         </div>
         {headings.map((h, i) => (
@@ -1484,13 +1480,12 @@ const MatchingHeadingBlock = ({ group, onUpdate, onDelete, onSelect, selected, d
                 e.stopPropagation();
                 onUpdate(group.id, { headingBank: headings.filter((x) => x.id !== h.id) });
               }}
-              style={{ visibility: hasSyncedPassage ? 'hidden' : 'visible' }}
             >
               ×
             </button>
           </div>
         ))}
-        <button className="exam-add-btn" style={{ marginTop: 6, display: hasSyncedPassage ? 'none' : undefined }}
+        <button className="exam-add-btn" style={{ marginTop: 6 }}
           onClick={(e) => {
             e.stopPropagation();
             onUpdate(group.id, { headingBank: [...headings, { id: `h-${Date.now()}`, text: '' }] });
@@ -1789,6 +1784,71 @@ const MultipleChoiceMultiBlock = ({ group, onUpdate, onDelete, onSelect, selecte
           </div>
         );
       })}
+      <button className="exam-add-btn" onClick={(e) => { e.stopPropagation(); onAddQuestion(group); }}>
+        <Plus size={12} /> Thêm câu hỏi
+      </button>
+    </div>
+  );
+};
+
+// ---- True / False / Not Given Block ----
+const TFNGBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps,
+  onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onAddQuestion, selectedQuestionId }) => {
+  const questions = group.questions ?? [];
+  return (
+    <div className={`exam-group${selected ? ' selected' : ''}`}
+      onClick={(e) => { e.stopPropagation(); onSelect(group); }}>
+      <GroupToolbar group={group} dragHandleProps={dragHandleProps} onDelete={onDelete} />
+      <div className="exam-mc-instructions">
+        Choose <strong>TRUE</strong> if the statement agrees with the information,
+        <strong> FALSE</strong> if it contradicts, or <strong>NOT GIVEN</strong> if there is no information.
+      </div>
+      <div contentEditable suppressContentEditableWarning className="exam-mc-context"
+        data-placeholder="Tiêu đề / ngữ cảnh chung (nếu có)..."
+        onBlur={(e) => onUpdate(group.id, { title: e.currentTarget.textContent })}>
+        {group.title || ''}
+      </div>
+      <div className="exam-q-range-header">
+        Câu&nbsp;
+        <input className="exam-q-range-input" value={group.fromQuestion ?? ''} placeholder="1"
+          onChange={(e) => onUpdate(group.id, { fromQuestion: e.target.value ? Number(e.target.value) : null })}
+          onClick={(e) => e.stopPropagation()} />
+        &nbsp;–&nbsp;
+        <input className="exam-q-range-input" value={group.toQuestion ?? ''} placeholder="7"
+          onChange={(e) => onUpdate(group.id, { toQuestion: e.target.value ? Number(e.target.value) : null })}
+          onClick={(e) => e.stopPropagation()} />
+      </div>
+      {questions.map((q) => (
+        <div key={q.id}
+          className={`exam-mc-question${selectedQuestionId === q.id ? ' selected' : ''}`}
+          onClick={(e) => { e.stopPropagation(); onSelectQuestion(q); }}>
+          <div className="exam-mc-q-header">
+            <div className="exam-q-num" style={{ background: '#1d4ed8' }}>{q.questionNumber ?? '?'}</div>
+            <RichInput
+              style={{ flex: 1 }}
+              value={q.questionText || ''}
+              placeholder="Nội dung phát biểu..."
+              onChange={(html) => onUpdateQuestion(group.id, q.id, { questionText: html })} />
+            <button className="exam-group-tool-btn danger"
+              onClick={(e) => { e.stopPropagation(); onDeleteQuestion(group.id, q.id); }}>
+              <X size={11} />
+            </button>
+          </div>
+          {/* TRUE / FALSE / NOT GIVEN radio buttons */}
+          <div className="exam-tfng-options">
+            {['TRUE', 'FALSE', 'NOT GIVEN'].map((v) => (
+              <label key={v} className={`exam-tfng-opt${q.answerText === v ? ' correct' : ''}`}
+                onClick={(e) => e.stopPropagation()}>
+                <input type="radio"
+                  checked={q.answerText === v}
+                  onChange={() => onUpdateQuestion(group.id, q.id, { answerText: v })}
+                  onClick={(e) => e.stopPropagation()} />
+                {v}
+              </label>
+            ))}
+          </div>
+        </div>
+      ))}
       <button className="exam-add-btn" onClick={(e) => { e.stopPropagation(); onAddQuestion(group); }}>
         <Plus size={12} /> Thêm câu hỏi
       </button>
@@ -2438,6 +2498,13 @@ const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUp
   }
   if (ct === 'MULTIPLE_CHOICE_MULTI') {
     return <MultipleChoiceMultiBlock group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
+      onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps}
+      onSelectQuestion={(q) => onSelectQuestion(q, group.id)}
+      onUpdateQuestion={onUpdateQuestion} onDeleteQuestion={onDeleteQuestion} onAddQuestion={onAddQuestion}
+      selectedQuestionId={selectedQuestionId} />;
+  }
+  if (ct === 'TRUE_FALSE_NG') {
+    return <TFNGBlock group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
       onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps}
       onSelectQuestion={(q) => onSelectQuestion(q, group.id)}
       onUpdateQuestion={onUpdateQuestion} onDeleteQuestion={onDeleteQuestion} onAddQuestion={onAddQuestion}

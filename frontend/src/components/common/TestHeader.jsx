@@ -1,29 +1,247 @@
-import React from 'react';
-import { Wifi, Bell, Menu } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { Wifi, Bell, Menu, Send, ChevronRight, ChevronLeft, X, Contrast, ZoomIn, Check } from 'lucide-react';
 
-const TestHeader = ({ candidateName, candidateId, extraInfo }) => {
+const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest }) => {
+    const [isOptionsOpen, setIsOptionsOpen] = useState(false);
+    const [optionsView, setOptionsView] = useState('main'); // 'main', 'contrast', 'text-size'
+
+    // State to track current theme/size for radio buttons
+    const [currentTheme, setCurrentTheme] = useState('standard');
+    const [currentTextSize, setCurrentTextSize] = useState('regular');
+
+    // Sync <html> element classes for zoom overflow control
+    const syncHtmlClasses = () => {
+        const html = document.documentElement;
+        const body = document.body;
+        // Zoom class on <html>
+        if (body.classList.contains('text-size-large') || body.classList.contains('text-size-xlarge')) {
+            html.classList.add('text-size-zoomed');
+        } else {
+            html.classList.remove('text-size-zoomed');
+        }
+        // Theme class on <html> for background color
+        html.classList.remove('theme-white-black-html', 'theme-yellow-black-html');
+        if (body.classList.contains('theme-white-black')) html.classList.add('theme-white-black-html');
+        if (body.classList.contains('theme-yellow-black')) html.classList.add('theme-yellow-black-html');
+    };
+
+    // Restore saved settings on mount
+    useEffect(() => {
+        const savedTheme = sessionStorage.getItem('ielts-theme');
+        const savedSize = sessionStorage.getItem('ielts-text-size');
+        if (savedTheme && savedTheme !== 'standard') {
+            document.body.classList.remove('theme-yellow-black', 'theme-white-black');
+            document.body.classList.add(`theme-${savedTheme}`);
+            setCurrentTheme(savedTheme);
+        }
+        if (savedSize && savedSize !== 'regular') {
+            document.body.classList.remove('text-size-large', 'text-size-xlarge');
+            if (savedSize === 'large') document.body.classList.add('text-size-large');
+            if (savedSize === 'extra-large') document.body.classList.add('text-size-xlarge');
+            setCurrentTextSize(savedSize);
+        }
+        syncHtmlClasses();
+    }, []);
+
+    useEffect(() => {
+        if (document.body.classList.contains('theme-yellow-black')) {
+            setCurrentTheme('yellow-black');
+        } else if (document.body.classList.contains('theme-white-black')) {
+            setCurrentTheme('white-black');
+        } else {
+            setCurrentTheme('standard');
+        }
+
+        if (document.body.classList.contains('text-size-xlarge')) {
+            setCurrentTextSize('extra-large');
+        } else if (document.body.classList.contains('text-size-large')) {
+            setCurrentTextSize('large');
+        } else {
+            setCurrentTextSize('regular');
+        }
+    }, [isOptionsOpen, optionsView]);
+
+    const handleThemeChange = (theme) => {
+        document.body.classList.remove('theme-yellow-black', 'theme-white-black');
+        if (theme === 'yellow-black') {
+            document.body.classList.add('theme-yellow-black');
+        } else if (theme === 'white-black') {
+            document.body.classList.add('theme-white-black');
+        }
+        setCurrentTheme(theme);
+        sessionStorage.setItem('ielts-theme', theme);
+        syncHtmlClasses();
+    };
+
+    const handleTextSizeChange = (size) => {
+        document.body.classList.remove('text-size-large', 'text-size-xlarge');
+        if (size === 'large') {
+            document.body.classList.add('text-size-large');
+        } else if (size === 'extra-large') {
+            document.body.classList.add('text-size-xlarge');
+        }
+        setCurrentTextSize(size);
+        sessionStorage.setItem('ielts-text-size', size);
+        syncHtmlClasses();
+    };
+
     return (
-        <header className="ielts-header">
-            <div className="header-left">
-                <div className="ielts-logo">IELTS</div>
-                <div className="candidate-info">
-                    {candidateId}
-                    {extraInfo && (
-                        <div
-                            className="extra-header-info"
-                            style={{ marginLeft: '15px', color: '#333', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '5px' }}
-                        >
-                            {extraInfo}
-                        </div>
-                    )}
+        <>
+            <header className="ielts-header">
+                <div className="header-left">
+                    <div className="ielts-logo">IELTS</div>
+                    <div className="candidate-info">
+                        <span>{candidateId}</span>
+                        {extraInfo && (
+                            <div
+                                className="extra-header-info"
+                                style={{ color: '#333', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '5px' }}
+                            >
+                                {extraInfo}
+                            </div>
+                        )}
+                    </div>
                 </div>
-            </div>
-            <div className="header-right">
-                <button className="icon-btn"><Wifi size={22} /></button>
-                <button className="icon-btn"><Bell size={22} /></button>
-                <button className="icon-btn"><Menu size={26} /></button>
-            </div>
-        </header>
+                <div className="header-right">
+                    <button className="icon-btn" title="Network status"><Wifi size={22} /></button>
+                    <button className="icon-btn" title="Messages"><Bell size={22} /></button>
+                    <button className="icon-btn" title="Options" onClick={() => { setIsOptionsOpen(true); setOptionsView('main'); }}><Menu size={26} /></button>
+                </div>
+            </header>
+
+            {isOptionsOpen && createPortal(
+                <div className="options-fs-overlay">
+                    <div className="options-fs-header">
+                        {optionsView === 'main' ? (
+                            <div style={{ width: 80 }}></div> // placeholder for flex space
+                        ) : (
+                            <button className="options-fs-back" onClick={() => setOptionsView('main')}>
+                                <ChevronLeft size={24} strokeWidth={3} />
+                                <span>Options</span>
+                            </button>
+                        )}
+
+                        <h2 className="options-fs-title">
+                            {optionsView === 'main' && 'Options'}
+                            {optionsView === 'contrast' && 'Contrast'}
+                            {optionsView === 'text-size' && 'Text size'}
+                        </h2>
+
+                        <button className="options-fs-close" onClick={() => setIsOptionsOpen(false)}>
+                            <X size={28} strokeWidth={3} />
+                        </button>
+                    </div>
+
+                    <div className="options-fs-content">
+                        {optionsView === 'main' && (
+                            <div className="options-fs-card">
+                                {submitTest && (
+                                    <button
+                                        className="go-submission-btn"
+                                        onClick={() => {
+                                            setIsOptionsOpen(false);
+                                            submitTest();
+                                        }}
+                                    >
+                                        <div className="go-submission-left">
+                                            <Send size={20} />
+                                            <span>Go to submission page</span>
+                                        </div>
+                                        <ChevronRight size={20} />
+                                    </button>
+                                )}
+
+                                <div className="options-list-box">
+                                    <div className="option-list-item" onClick={() => setOptionsView('contrast')}>
+                                        <div className="option-list-left">
+                                            <div className="option-icon-wrap">
+                                                <Contrast size={22} fill="currentColor" opacity="0.3" />
+                                            </div>
+                                            <span>Contrast</span>
+                                        </div>
+                                        <ChevronRight className="option-arrow" size={20} />
+                                    </div>
+
+                                    <div className="option-list-item" onClick={() => setOptionsView('text-size')}>
+                                        <div className="option-list-left">
+                                            <div className="option-icon-wrap">
+                                                <ZoomIn size={22} />
+                                            </div>
+                                            <span>Text size</span>
+                                        </div>
+                                        <ChevronRight className="option-arrow" size={20} />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {optionsView === 'contrast' && (
+                            <div className="options-fs-card">
+                                <div className="options-list-box">
+                                    <div className="option-list-item" onClick={() => handleThemeChange('standard')}>
+                                        <div className="option-list-left radio-left">
+                                            <div className="radio-icon">
+                                                {currentTheme === 'standard' && <Check size={20} strokeWidth={3} color={currentTheme === "yellow-black" ? "#e5ff00" : currentTheme === "white-black" ? "#fff" : "black"} />}
+                                            </div>
+                                            <span>Black on white</span>
+                                        </div>
+                                    </div>
+                                    <div className="option-list-item" onClick={() => handleThemeChange('white-black')}>
+                                        <div className="option-list-left radio-left">
+                                            <div className="radio-icon">
+                                                {currentTheme === 'white-black' && <Check size={20} strokeWidth={3} color={currentTheme === "yellow-black" ? "#e5ff00" : currentTheme === "white-black" ? "#fff" : "black"} />}
+                                            </div>
+                                            <span>White on black</span>
+                                        </div>
+                                    </div>
+                                    <div className="option-list-item" onClick={() => handleThemeChange('yellow-black')}>
+                                        <div className="option-list-left radio-left">
+                                            <div className="radio-icon">
+                                                {currentTheme === 'yellow-black' && <Check size={20} strokeWidth={3} color={currentTheme === "yellow-black" ? "#e5ff00" : currentTheme === "white-black" ? "#fff" : "black"} />}
+                                            </div>
+                                            <span>Yellow on black</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {optionsView === 'text-size' && (
+                            <div className="options-fs-card">
+                                <div className="options-list-box">
+                                    <div className="option-list-item" onClick={() => handleTextSizeChange('regular')}>
+                                        <div className="option-list-left radio-left">
+                                            <div className="radio-icon">
+                                                {currentTextSize === 'regular' && <Check size={20} strokeWidth={3} color={currentTheme === "yellow-black" ? "#e5ff00" : currentTheme === "white-black" ? "#fff" : "black"} />}
+                                            </div>
+                                            <span>Regular</span>
+                                        </div>
+                                    </div>
+                                    <div className="option-list-item" onClick={() => handleTextSizeChange('large')}>
+                                        <div className="option-list-left radio-left">
+                                            <div className="radio-icon">
+                                                {currentTextSize === 'large' && <Check size={20} strokeWidth={3} color={currentTheme === "yellow-black" ? "#e5ff00" : currentTheme === "white-black" ? "#fff" : "black"} />}
+                                            </div>
+                                            <span>Large</span>
+                                        </div>
+                                    </div>
+                                    <div className="option-list-item" onClick={() => handleTextSizeChange('extra-large')}>
+                                        <div className="option-list-left radio-left">
+                                            <div className="radio-icon">
+                                                {currentTextSize === 'extra-large' && <Check size={20} strokeWidth={3} color={currentTheme === "yellow-black" ? "#e5ff00" : currentTheme === "white-black" ? "#fff" : "black"} />}
+                                            </div>
+                                            <span>Extra large</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>,
+                document.body
+            )}
+        </>
     );
 };
 

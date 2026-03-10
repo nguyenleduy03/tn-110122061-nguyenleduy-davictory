@@ -1085,8 +1085,7 @@
   color: #c2410c; font-size: 12px; flex-shrink: 0;
 }
 
-
-   ============================================= */
+/* ============================================= */
 .exam-summary-instructions {
   font-size: 13px; color: #0369a1; font-style: italic;
   margin-bottom: 10px; padding: 7px 12px;
@@ -1154,6 +1153,20 @@
   min-width: 18px; flex-shrink: 0;
 }
 .exam-mc-opt-radio { flex-shrink: 0; cursor: pointer; accent-color: #e11d48; }
+
+/* True / False / Not Given options */
+.exam-tfng-options {
+  display: flex; gap: 8px; padding: 6px 8px 4px; flex-wrap: wrap;
+}
+.exam-tfng-opt {
+  display: flex; align-items: center; gap: 5px;
+  padding: 4px 12px; border-radius: 20px; cursor: pointer;
+  font-size: 12px; font-weight: 600; border: 1.5px solid #c7d2fe;
+  color: #3730a3; background: #eef2ff;
+  transition: all 0.12s; user-select: none;
+}
+.exam-tfng-opt input[type="radio"] { accent-color: #1d4ed8; cursor: pointer; }
+.exam-tfng-opt.correct { background: #dbeafe; border-color: #3b82f6; color: #1d4ed8; }
 
 /* Sentence / Short Answer (builder canvas) */
 .exam-sc-question {

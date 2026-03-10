@@ -137,7 +137,23 @@ public class UserController {
         }
     }
     
-    // Cập nhật thông tin user
+    // Cập nhật thông tin user chính mình
+    @PutMapping("/me")
+    @Operation(summary = "Cập nhật thông tin chính mình", description = "User tự cập nhật thông tin cá nhân")
+    public ResponseEntity<UserDTO> updateMyProfile(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody UserDTO userDTO) {
+        if (userDetails == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        try {
+            UserDTO currentUser = userService.getUserByUsername(userDetails.getUsername());
+            UserDTO updated = userService.updateUser(currentUser.getId(), userDTO);
+            return ResponseEntity.ok(updated);
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    // Cập nhật thông tin user (Dành cho Admin)
     @PutMapping("/{id}")
     @Operation(summary = "Cập nhật thông tin user", description = "Chỉnh sửa thông tin cá nhân của user")
     @ApiResponses(value = {

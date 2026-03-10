@@ -82,6 +82,59 @@
     font-size: 15px;
 }
 
+/* Listening Audio Overlay */
+.listening-audio-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.97);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+}
+
+.listening-audio-overlay svg {
+    margin-bottom: 8px;
+}
+
+.listening-audio-warning {
+    max-width: 650px;
+    text-align: center;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.5;
+    color: #222;
+}
+
+.listening-audio-continue {
+    font-size: 15px;
+    color: #555;
+}
+
+.listening-play-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 32px;
+    background: #222;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 8px;
+}
+
+.listening-play-btn:hover {
+    background: #000;
+}
+
 /* Main Split View */
 .ielts-main {
     display: flex;
@@ -161,12 +214,6 @@
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-
-
-
-
-
-
 .questions-section {
     flex: 1;
     height: 100%;
@@ -214,6 +261,7 @@
     width: 140px;
     text-align: center;
     box-sizing: border-box;
+    background-color: transparent;
 }
 
 .inline-input:focus {
@@ -226,7 +274,6 @@
     opacity: 1;
     text-align: center;
 }
-
 
 .pane-nav-buttons {
     position: fixed;
@@ -670,6 +717,228 @@
     opacity: 0.9;
 }
 
+/* ============================================================
+   DRAG & DROP GROUP QUESTION
+   ============================================================ */
+.drag-drop-group {
+    margin-bottom: 30px;
+}
+
+.drag-drop-group.matching-info {
+    display: flex;
+    gap: 60px;
+}
+
+.dd-info-questions-col {
+    flex: 0.5;
+    min-width: 300px;
+    max-width: 350px;
+}
+
+.dd-info-bank-col {
+    width: 250px;
+}
+
+.dd-heading-instruction {
+    margin-bottom: 0;
+    color: #555;
+}
+
+/* Bank section */
+.bank-section {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 0;
+    margin-bottom: 20px;
+}
+
+.bank-section.bank-heading {
+    flex-direction: column;
+}
+
+.bank-section-title {
+    margin: 0 0 10px 0;
+}
+
+.bank-section-title.info-title {
+    margin: 0 0 8px 0;
+    width: 100%;
+    font-size: 18px;
+    font-weight: bold;
+    line-height: 20px;
+}
+
+/* Sub questions area */
+.dd-sub-questions {
+    flex: 1;
+}
+
+.dd-sub-questions.dd-info-padded {
+    padding-right: 20px;
+}
+
+.dd-questions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.dd-question-row {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 0;
+    border: none;
+    border-radius: 6px;
+}
+
+.dd-question-row.dd-row-default {
+    padding: 10px;
+}
+
+.dd-question-row.dd-row-info {
+    height: 32px;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.dd-info-text {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: none;
+    margin-right: 10px;
+}
+
+.dd-bookmark-btn {
+    cursor: pointer;
+    display: flex;
+}
+
+.dd-default-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.dd-default-label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.dd-question-num {
+    font-weight: bold;
+    width: 20px;
+}
+
+.dd-question-text {
+    flex: 1;
+}
+
+/* Drop zone */
+.dd-drop-zone {
+    background-color: #fff;
+    min-width: 150px;
+    border: 2px dashed #bbb;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    position: relative;
+    height: 40px;
+}
+
+.dd-drop-zone.dd-drop-info {
+    border: 1px dashed #999;
+    height: 32px;
+}
+
+.dd-drop-zone.dd-drop-filled {
+    background-color: #e8f4fd;
+}
+
+.dd-drop-number {
+    color: #000;
+    font-weight: bold;
+    width: 100%;
+    text-align: center;
+}
+
+.dd-drop-answer {
+    font-weight: normal;
+    cursor: grab;
+}
+
+.dd-drop-clear {
+    position: absolute;
+    right: 5px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #888;
+    font-size: 16px;
+}
+
+.dd-drop-placeholder {
+    color: #aaa;
+    font-size: 14px;
+}
+
+/* Bank option overrides for specific layouts */
+.bank-option.bank-option-heading {
+    width: fit-content;
+    font-weight: bold;
+}
+
+/* ============================================================
+   HEADING GAP (inline drop zone in passage for matching_heading)
+   ============================================================ */
+.heading-gap-zone {
+    height: 34px;
+    margin: 10px 0;
+    display: flex;
+    background-color: transparent;
+    border: 1px dashed #ccc;
+    border-radius: 4px;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    box-sizing: border-box;
+    cursor: pointer;
+}
+
+.heading-gap-zone.heading-gap-active {
+    border: 2px dashed #3498db;
+}
+
+.heading-gap-zone.heading-gap-filled {
+    border: 1px solid #3498db;
+    justify-content: flex-start;
+    padding: 0 15px;
+    font-weight: bold;
+    font-size: 15px;
+}
+
+.heading-gap-placeholder {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.heading-gap-number {
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.heading-gap-answer {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 5px;
+}
+
 /* Đảm bảo flex/gap cho vùng chứa các bank option (dùng wrap để nhiều option rớt dòng an toàn) */
 .options-bank {
     display: flex;
@@ -690,8 +959,6 @@
     overflow-y: auto;
     height: 100%;
     min-height: 0;
-    border-right: 1px solid #ddd;
-    background: #fafafa;
 }
 
 .writing-task-inner {
@@ -758,7 +1025,7 @@
     border-radius: 4px;
     padding: 14px 16px;
     font-size: 15px;
-    font-family: "Times New Roman", Times, serif;
+    font-family: Arial, Helvetica, sans-serif;
     line-height: 1.8;
     color: #222;
     outline: none;
@@ -774,6 +1041,7 @@
 .writing-word-count {
     display: flex;
     align-items: center;
+    justify-content: flex-end;
     gap: 4px;
     font-size: 13px;
     padding: 4px 2px;
@@ -782,16 +1050,16 @@
 
 .wc-ok {
     font-weight: 700;
-    color: #27ae60;
+    color: #000;
 }
 
 .wc-under {
     font-weight: 700;
-    color: #e67e22;
+    color: #000;
 }
 
 .wc-min {
-    color: #888;
+    color: #000;
 }
 
 /* Scrollbar for writing task pane */
@@ -1190,7 +1458,6 @@
     display: flex;
 }
 
-
 .tfng-bookmark {
     cursor: pointer;
     display: flex;
@@ -1211,4 +1478,939 @@
     border: none;
     background-color: transparent;
     border-radius: 6px;
+}
+
+/* Summary Completion Question */
+.summary-completion-container {
+    margin-bottom: 30px;
+    padding: 15px;
+    line-height: 2.4;
+}
+
+.summary-title {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.summary-text {
+    font-size: 15px;
+}
+
+.summary-inline-item {
+    position: relative;
+    display: inline-block;
+    margin: 0 5px;
+}
+
+.summary-bookmark {
+    position: absolute;
+    left: -20px;
+    top: -5px;
+    cursor: pointer;
+    display: flex;
+    z-index: 10;
+}
+
+.summary-input {
+    width: 120px;
+    text-align: center;
+    font-weight: bold;
+}
+
+/* Image Drag Drop Question */
+.image-drag-drop-container {
+    margin-bottom: 30px;
+    display: flex;
+    gap: 30px;
+}
+
+.image-area {
+    position: relative;
+    flex: 2;
+    border: 1px solid #ddd;
+    padding: 10px;
+    border-radius: 8px;
+}
+
+.idd-map-image {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.image-placeholder {
+    width: 100%;
+    height: 400px;
+    background-color: #eee;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.drop-zone {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    min-width: 120px;
+    min-height: 35px;
+    background-color: white;
+    border: 2px dashed #999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+}
+
+.drop-zone.active {
+    border: 2px solid #1a73e8;
+}
+
+.drop-zone-bookmark {
+    position: absolute;
+    left: -25px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    display: flex;
+}
+
+.drop-zone-number {
+    margin-right: 8px;
+    font-size: 14px;
+}
+
+.dz-answered {
+    background-color: #e6f4ea;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 14px;
+    color: #1a73e8;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    border: 1px solid #1a73e8;
+}
+
+.dz-clear {
+    cursor: pointer;
+    font-weight: bold;
+    margin-left: 5px;
+    color: #ff4d4f;
+}
+
+.dz-placeholder {
+    color: #ccc;
+    font-style: italic;
+    font-size: 13px;
+}
+
+.bank-area {
+    flex: 1;
+    padding: 15px;
+}
+
+.bank-options-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.bank-option-item {
+    padding: 8px 12px;
+    background-color: white;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    cursor: grab;
+    font-size: 14px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* Options Modal */
+.options-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.options-modal-content {
+    background: white;
+    width: 600px;
+    max-width: 90%;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    position: relative;
+    font-family: Arial, sans-serif;
+}
+
+.options-modal-header {
+    text-align: center;
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.options-modal-header h3 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: normal;
+}
+
+.options-close-btn {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #666;
+}
+
+.go-submission-btn {
+    background-color: #d10029;
+    color: white;
+    width: 100%;
+    padding: 15px 20px;
+    border: none;
+    border-radius: 6px;
+    font-size: 1.125em;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    transition: background 0.2s;
+}
+
+.go-submission-btn:hover {
+    background-color: #b00022;
+}
+
+.go-submission-left {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.options-list-box {
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background: white;
+}
+
+.option-list-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.option-list-item:hover {
+    background: #f9f9f9;
+}
+
+.option-list-item:not(:last-child) {
+    border-bottom: 1px solid #ddd;
+}
+
+.option-list-left {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    font-size: 1.125em;
+    color: #000;
+}
+
+.option-icon-wrap {
+    color: #888;
+    display: flex;
+    align-items: center;
+}
+
+.option-arrow {
+    color: #000;
+    font-weight: bold;
+}
+
+/* Theme Classes */
+body.theme-yellow-black .ielts-container {
+    background-color: #000000;
+    color: #e5ff00;
+}
+
+body.theme-yellow-black .questions-section,
+body.theme-yellow-black .passage-section,
+body.theme-yellow-black .ielts-header,
+body.theme-yellow-black .ielts-footer {
+    background-color: #000000;
+    color: #e5ff00;
+}
+
+body.theme-yellow-black .ielts-header {
+    border-bottom-color: #444;
+}
+
+/* Full Screen Options Modal */
+.options-fs-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: #fff;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+}
+
+.options-fs-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 30px;
+    height: 70px;
+    box-sizing: border-box;
+    /* optional bottom border if you want, but image has plain white */
+    /* border-bottom: 1px solid #ddd; */
+    position: relative;
+}
+
+.options-fs-back {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: none;
+    border: none;
+    font-size: 1.375em;
+    font-weight: normal;
+    cursor: pointer;
+    color: #000;
+    padding: 0;
+    width: 120px;
+}
+
+.options-fs-title {
+    margin: 0;
+    font-size: 1.5em;
+    font-weight: normal;
+    flex-grow: 1;
+    text-align: center;
+}
+
+.options-fs-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #000;
+    padding: 0;
+    width: 120px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.options-fs-content {
+    flex-grow: 1;
+    display: flex;
+    justify-content: center;
+    padding-top: 40px;
+    background-color: #ffffff;
+}
+
+.options-fs-card {
+    width: 600px;
+    max-width: 90%;
+}
+
+.radio-left {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    /* space between icon and text */
+}
+
+.radio-icon {
+    width: 24px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* white-black theme */
+body.theme-white-black .ielts-container {
+    background-color: #000000;
+    color: #ffffff;
+}
+
+body.theme-white-black .questions-section,
+body.theme-white-black .passage-section,
+body.theme-white-black .ielts-header,
+body.theme-white-black .ielts-footer {
+    background-color: #000000;
+    color: #ffffff;
+}
+
+body.theme-white-black .ielts-header {
+    border-bottom-color: #444;
+}
+
+/* Theme targeting for full screen options modal */
+
+/* White on Black Theme for Modal */
+body.theme-white-black .options-fs-overlay,
+body.theme-white-black .options-fs-content {
+    background-color: #000;
+    color: #fff;
+}
+
+body.theme-white-black .options-fs-header,
+body.theme-white-black .options-fs-title,
+body.theme-white-black .options-fs-back,
+body.theme-white-black .options-fs-close {
+    color: #fff;
+}
+
+body.theme-white-black .options-list-box {
+    background-color: #000;
+    border-color: #444;
+}
+
+body.theme-white-black .option-list-item {
+    border-bottom-color: #444;
+}
+
+body.theme-white-black .option-list-item:hover {
+    background-color: #222;
+}
+
+body.theme-white-black .option-list-left,
+body.theme-white-black .option-arrow {
+    color: #fff;
+}
+
+body.theme-white-black .radio-icon svg {
+    stroke: #fff;
+}
+
+/* Yellow on Black Theme for Modal */
+body.theme-yellow-black .options-fs-overlay,
+body.theme-yellow-black .options-fs-content {
+    background-color: #000;
+    color: #e5ff00;
+}
+
+body.theme-yellow-black .options-fs-header,
+body.theme-yellow-black .options-fs-title,
+body.theme-yellow-black .options-fs-back,
+body.theme-yellow-black .options-fs-close {
+    color: #e5ff00;
+}
+
+body.theme-yellow-black .options-list-box {
+    background-color: #000;
+    border-color: #e5ff00;
+}
+
+body.theme-yellow-black .option-list-item {
+    border-bottom-color: #444;
+}
+
+body.theme-yellow-black .option-list-item:hover {
+    background-color: #222;
+}
+
+body.theme-yellow-black .option-list-left,
+body.theme-yellow-black .option-arrow {
+    color: #e5ff00;
+}
+
+body.theme-yellow-black .radio-icon svg {
+    stroke: #e5ff00;
+}
+
+/* ============================================================
+   Dark Mode Components Overrides (White-Black & Yellow-Black)
+   ============================================================ */
+
+/* General Elements */
+body.theme-white-black .bank-option,
+body.theme-yellow-black .bank-option,
+body.theme-white-black .fc-bank-chip,
+body.theme-yellow-black .fc-bank-chip,
+body.theme-white-black .tfng-option,
+body.theme-yellow-black .tfng-option,
+body.theme-white-black .mc-option,
+body.theme-yellow-black .mc-option,
+body.theme-white-black .fc-node,
+body.theme-yellow-black .fc-node,
+body.theme-white-black input,
+body.theme-white-black textarea,
+body.theme-yellow-black input,
+body.theme-yellow-black textarea,
+body.theme-white-black .writing-task-pane,
+body.theme-yellow-black .writing-task-pane,
+body.theme-white-black .writing-task-image,
+body.theme-yellow-black .writing-task-image {
+    background-color: #000;
+    border-color: #555;
+}
+
+/* Specific Border Overrides */
+body.theme-white-black .fc-blank,
+body.theme-yellow-black .fc-blank {
+    background-color: #000;
+    border-color: #555;
+}
+
+body.theme-white-black .fc-blank-active,
+body.theme-yellow-black .fc-blank-active {
+    border-color: #3498db;
+}
+
+body.theme-white-black .tfng-number,
+body.theme-yellow-black .tfng-number,
+body.theme-white-black .mc-number,
+body.theme-yellow-black .mc-number {
+    border-right-color: #555;
+    background-color: transparent;
+}
+
+/* Base Theme White-Black Colors */
+body.theme-white-black .bank-option,
+body.theme-white-black .fc-bank-chip,
+body.theme-white-black .tfng-option,
+body.theme-white-black .mc-option,
+body.theme-white-black .fc-blank,
+body.theme-white-black .fc-blank-num,
+body.theme-white-black .fc-blank-answer,
+body.theme-white-black .q-num,
+body.theme-white-black .part-btn,
+body.theme-white-black .writing-task-title,
+body.theme-white-black .writing-task-instruction p,
+body.theme-white-black .writing-textarea,
+body.theme-white-black .tfng-number,
+body.theme-white-black .mc-number,
+body.theme-white-black .icon-btn svg,
+body.theme-white-black input,
+body.theme-white-black textarea,
+body.theme-white-black .submit-check-btn {
+    color: #fff;
+}
+
+/* Theme White-Black Footer and Navigation UI */
+body.theme-white-black .nav-btn.prev-btn {
+    background-color: #999;
+    color: #000;
+}
+
+body.theme-white-black .nav-btn.next-btn {
+    background-color: #fff;
+    color: #000;
+}
+
+body.theme-white-black .q-num.active {
+    border-color: #fff;
+}
+
+body.theme-white-black .part-btn.active {
+    color: #fff;
+    background-color: #000;
+}
+
+body.theme-white-black .submit-check-btn {
+    background-color: #111;
+    border-left-color: #333;
+}
+
+body.theme-white-black .submit-check-btn:hover {
+    background-color: #222;
+}
+
+body.theme-white-black .status-dash {
+    background-color: #333;
+}
+
+body.theme-white-black .status-dash.answered-dash {
+    background-color: #777;
+}
+
+body.theme-white-black .part-btn {
+    border-right-color: #333;
+}
+
+body.theme-white-black .q-wrapper:hover .q-num:not(.active) {
+    background-color: #333;
+}
+
+body.theme-white-black .bank-option {
+    border-color: #fff;
+}
+
+body.theme-white-black .dd-drop-zone {
+    background-color: #000;
+    border-color: #555 !important;
+}
+
+body.theme-white-black .dd-drop-zone.dd-drop-filled {
+    background-color: #111;
+}
+
+body.theme-white-black .dd-drop-number {
+    color: #fff;
+}
+
+body.theme-white-black .dd-drop-answer,
+body.theme-white-black .dd-drop-placeholder,
+body.theme-white-black .dd-heading-instruction,
+body.theme-white-black .dd-question-num,
+body.theme-white-black .dd-question-text {
+    color: #fff;
+}
+
+body.theme-white-black .dd-drop-clear {
+    color: #aaa;
+}
+
+body.theme-white-black .heading-gap-zone {
+    background-color: #000;
+    border-color: #555;
+}
+
+body.theme-white-black .heading-gap-zone.heading-gap-active {
+    border-color: #3498db;
+}
+
+body.theme-white-black .heading-gap-zone.heading-gap-filled {
+    border-color: #3498db;
+}
+
+body.theme-white-black .heading-gap-number,
+body.theme-white-black .heading-gap-answer {
+    color: #fff;
+}
+
+/* Base Theme Yellow-Black Colors */
+body.theme-yellow-black .bank-option,
+body.theme-yellow-black .fc-bank-chip,
+body.theme-yellow-black .tfng-option,
+body.theme-yellow-black .mc-option,
+body.theme-yellow-black .fc-blank,
+body.theme-yellow-black .fc-blank-num,
+body.theme-yellow-black .fc-blank-answer,
+body.theme-yellow-black .q-num,
+body.theme-yellow-black .part-btn,
+body.theme-yellow-black .writing-task-title,
+body.theme-yellow-black .writing-task-instruction p,
+body.theme-yellow-black .writing-textarea,
+body.theme-yellow-black .tfng-number,
+body.theme-yellow-black .mc-number,
+body.theme-yellow-black .icon-btn svg,
+body.theme-yellow-black input,
+body.theme-yellow-black textarea,
+body.theme-yellow-black .submit-check-btn {
+    color: #e5ff00;
+}
+
+/* Theme Yellow-Black Footer and Navigation UI */
+body.theme-yellow-black .nav-btn.prev-btn {
+    background-color: #999;
+    color: #000;
+}
+
+body.theme-yellow-black .nav-btn.next-btn {
+    background-color: #e5ff00;
+    color: #000;
+}
+
+body.theme-yellow-black .q-num.active {
+    border-color: #e5ff00;
+}
+
+body.theme-yellow-black .part-btn.active {
+    color: #e5ff00;
+    background-color: #000;
+}
+
+body.theme-yellow-black .submit-check-btn {
+    background-color: #111;
+    border-left-color: #333;
+}
+
+body.theme-yellow-black .submit-check-btn:hover {
+    background-color: #222;
+}
+
+body.theme-yellow-black .status-dash {
+    background-color: #333;
+}
+
+body.theme-yellow-black .status-dash.answered-dash {
+    background-color: #777;
+}
+
+body.theme-yellow-black .part-btn {
+    border-right-color: #333;
+}
+
+body.theme-yellow-black .q-wrapper:hover .q-num:not(.active) {
+    background-color: #333;
+}
+
+body.theme-yellow-black .bank-option {
+    border-color: #e5ff00;
+}
+
+body.theme-yellow-black .dd-drop-zone {
+    background-color: #000;
+    border-color: #e5ff00 !important;
+}
+
+body.theme-yellow-black .dd-drop-zone.dd-drop-filled {
+    background-color: #111;
+}
+
+body.theme-yellow-black .dd-drop-number {
+    color: #e5ff00;
+}
+
+body.theme-yellow-black .dd-drop-answer,
+body.theme-yellow-black .dd-drop-placeholder,
+body.theme-yellow-black .dd-heading-instruction,
+body.theme-yellow-black .dd-question-num,
+body.theme-yellow-black .dd-question-text {
+    color: #e5ff00;
+}
+
+body.theme-yellow-black .dd-drop-clear {
+    color: #aaa;
+}
+
+body.theme-yellow-black .heading-gap-zone {
+    background-color: #000;
+    border-color: #555;
+}
+
+body.theme-yellow-black .heading-gap-zone.heading-gap-active {
+    border-color: #3498db;
+}
+
+body.theme-yellow-black .heading-gap-zone.heading-gap-filled {
+    border-color: #3498db;
+}
+
+body.theme-yellow-black .heading-gap-number,
+body.theme-yellow-black .heading-gap-answer {
+    color: #e5ff00;
+}
+
+/* Active part footer background fix for dark themes */
+body.theme-white-black .part-group.active-part {
+    background-color: #000;
+}
+
+body.theme-white-black .part-group:hover:not(.active-part) {
+    background-color: #222;
+}
+
+body.theme-white-black .part-title {
+    color: #fff;
+}
+
+body.theme-yellow-black .part-group.active-part {
+    background-color: #000;
+}
+
+body.theme-yellow-black .part-group:hover:not(.active-part) {
+    background-color: #222;
+}
+
+body.theme-yellow-black .part-title {
+    color: #e5ff00;
+}
+
+/* Inline input fix for dark themes */
+body.theme-white-black .inline-input {
+    border: 1.5px dashed #e5ff00;
+    background-color: #000;
+    color: #fff;
+}
+
+body.theme-white-black .inline-input::placeholder {
+    color: #fff;
+}
+
+body.theme-yellow-black .inline-input {
+    border: 1.5px dashed #e5ff00;
+    background-color: #000;
+    color: #e5ff00;
+}
+
+body.theme-yellow-black .inline-input::placeholder {
+    color: #e5ff00;
+}
+
+/* Image Drop Zone specific dark mode fix */
+body.theme-white-black .image-drop-zone,
+body.theme-yellow-black .image-drop-zone {
+    background-color: rgba(0, 0, 0, 0.6);
+    border-color: #555;
+    color: inherit;
+}
+
+body.theme-white-black .image-drop-zone.filled,
+body.theme-yellow-black .image-drop-zone.filled {
+    background-color: #000;
+    border-color: inherit;
+}
+
+/* ============================================================
+   DEEP THEME COLOR OVERRIDES (Fix for missing colors)
+   ============================================================ */
+
+/* White-Black (White text on black) */
+body.theme-white-black .passage-content,
+body.theme-white-black .passage-content p,
+body.theme-white-black .passage-content div,
+body.theme-white-black .passage-content span,
+body.theme-white-black .questions-content,
+body.theme-white-black .questions-content p,
+body.theme-white-black .questions-content h3,
+body.theme-white-black .questions-content h4,
+body.theme-white-black .tfng-instruction,
+body.theme-white-black .tfng-question-text,
+body.theme-white-black .tfng-radio-label,
+body.theme-white-black .fill-in-blank-item,
+body.theme-white-black .summary-text,
+body.theme-white-black .summary-title,
+body.theme-white-black .fc-node-text,
+body.theme-white-black .fc-chart-title {
+    color: #ffffff !important;
+}
+
+/* Yellow-Black (Yellow text on black) */
+body.theme-yellow-black .passage-content,
+body.theme-yellow-black .passage-content p,
+body.theme-yellow-black .passage-content div,
+body.theme-yellow-black .passage-content span,
+body.theme-yellow-black .questions-content,
+body.theme-yellow-black .questions-content p,
+body.theme-yellow-black .questions-content h3,
+body.theme-yellow-black .questions-content h4,
+body.theme-yellow-black .tfng-instruction,
+body.theme-yellow-black .tfng-question-text,
+body.theme-yellow-black .tfng-radio-label,
+body.theme-yellow-black .fill-in-blank-item,
+body.theme-yellow-black .summary-text,
+body.theme-yellow-black .summary-title,
+body.theme-yellow-black .fc-node-text,
+body.theme-yellow-black .fc-chart-title {
+    color: #e5ff00 !important;
+}
+
+body.theme-white-black .tfng-number,
+body.theme-yellow-black .tfng-number,
+body.theme-white-black .q-num,
+body.theme-yellow-black .q-num {
+    color: inherit;
+}
+
+/* Fix colors for instruction bar in themes */
+body.theme-white-black .instruction-bar h3,
+body.theme-white-black .instruction-bar p,
+body.theme-white-black .passage-title {
+    color: #fff !important;
+}
+
+body.theme-yellow-black .instruction-bar h3,
+body.theme-yellow-black .instruction-bar p,
+body.theme-yellow-black .passage-title {
+    color: #e5ff00 !important;
+}
+
+/* Fix contrast background for instruction bar */
+body.theme-white-black .instruction-bar,
+body.theme-yellow-black .instruction-bar {
+    background-color: #000;
+    border-bottom: 1px solid #444;
+}
+
+body.theme-white-black .listening-audio-overlay,
+body.theme-yellow-black .listening-audio-overlay {
+    background: rgba(0, 0, 0, 0.97);
+}
+
+body.theme-white-black .listening-audio-warning,
+body.theme-white-black .listening-audio-continue {
+    color: #fff;
+}
+
+body.theme-yellow-black .listening-audio-warning,
+body.theme-yellow-black .listening-audio-continue {
+    color: #e5ff00;
+}
+
+body.theme-white-black .listening-play-btn,
+body.theme-yellow-black .listening-play-btn {
+    background: #fff;
+    color: #000;
+}
+
+/* ============================================================
+   TEXT SIZE SCALING — Proportional zoom across entire UI
+   Height is divided by zoom factor so the container stays
+   exactly viewport-height after scaling → header & footer fixed
+   ============================================================ */
+
+html.text-size-zoomed,
+html.text-size-zoomed body {
+    overflow: hidden;
+    height: 100vh;
+    margin: 0;
+    padding: 0;
+}
+
+body.text-size-large .ielts-container {
+    zoom: 1.25;
+    height: calc(100vh / 1.25);
+}
+
+body.text-size-xlarge .ielts-container {
+    zoom: 1.5;
+    height: calc(100vh / 1.5);
+}
+
+/* Body background must match theme when zoomed to prevent white gaps */
+html.text-size-zoomed.theme-white-black-html,
+html.text-size-zoomed.theme-yellow-black-html {
+    background-color: #000;
+}
+
+body.text-size-large.theme-white-black,
+body.text-size-xlarge.theme-white-black,
+body.text-size-large.theme-yellow-black,
+body.text-size-xlarge.theme-yellow-black {
+    background-color: #000;
+}
+
+/* Scale options overlay text to match chosen text size */
+body.text-size-large .options-fs-overlay {
+    font-size: 125%;
+}
+
+body.text-size-xlarge .options-fs-overlay {
+    font-size: 150%;
 }

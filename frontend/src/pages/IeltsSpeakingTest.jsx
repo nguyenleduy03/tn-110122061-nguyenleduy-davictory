@@ -327,6 +327,7 @@ const IeltsSpeakingTest = () => {
       <TestHeader
         candidateName={testData.candidateName}
         candidateId={testData.candidateId}
+        submitTest={submitTest}
       />
 
       {/* Part tabs ─────────────────────────────────────────────────────── */}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { ArrowLeft, ArrowRight, Volume2, ArrowLeftRight, Check, Bookmark } from "lucide-react";
+import { ArrowLeft, ArrowRight, Volume2, ArrowLeftRight, Check, Bookmark, Headphones, Play } from "lucide-react";
 import "../styles/ieltsTest.css";
 import TestHeader from "../components/common/TestHeader";
 import QuestionRenderer from "../components/question/QuestionRenderer";
@@ -11,6 +11,8 @@ const IeltsListeningTest = () => {
     const [answers, setAnswers] = useState({});
     const [loading, setLoading] = useState(true);
     const [bookmarks, setBookmarks] = useState({});
+    const [audioStarted, setAudioStarted] = useState(false);
+    const audioRef = useRef(null);
 
     const toggleBookmark = (num) => {
         setBookmarks(prev => ({ ...prev, [num]: !prev[num] }));
@@ -73,17 +75,44 @@ const IeltsListeningTest = () => {
     const multiChoiceQuestions = part.questions?.filter(q => q.type === 'multiple-choice') || [];
     const dragDropQuestions = part.questions?.filter(q => q.type === 'drag-and-drop' || q.type === 'matching_heading' || q.type === 'matching_info') || [];
 
+    const handlePlay = () => {
+        setAudioStarted(true);
+        if (audioRef.current) {
+            audioRef.current.play().catch(() => {});
+        }
+    };
+
     return (
         <div className="ielts-container">
             <TestHeader
                 candidateName={testData.candidateName}
                 candidateId={testData.candidateId}
-                extraInfo={<><Volume2 size={16} /> Audio is playing</>}
+                submitTest={submitTest}
+                extraInfo={audioStarted ? <><Volume2 size={16} /> Audio is playing</> : null}
             />
 
-            <div className="listen-instruction-bar" style={{ backgroundColor: '#f5f5f5', padding: '15px 30px', borderBottom: '1px solid #ddd', flexShrink: 0 }}>
-                <h3 style={{ margin: '0 0 5px 0' }}>{part.title}</h3>
-                <p style={{ margin: 0, color: '#555' }}>{part.instruction || "Listen and answer questions."}</p>
+            {/* Hidden audio element */}
+            {part.audioUrl && (
+                <audio ref={audioRef} src={part.audioUrl} />
+            )}
+
+            {/* Audio start overlay */}
+            {!audioStarted && (
+                <div className="listening-audio-overlay">
+                    <Headphones size={80} strokeWidth={1.5} />
+                    <p className="listening-audio-warning">
+                        You will be listening to an audio clip during this test. You will not be permitted to pause or rewind the audio while answering the questions.
+                    </p>
+                    <p className="listening-audio-continue">To continue, click Play.</p>
+                    <button className="listening-play-btn" onClick={handlePlay}>
+                        <Play size={20} fill="#fff" /> Play
+                    </button>
+                </div>
+            )}
+
+            <div className="instruction-bar">
+                <h3>{part.title}</h3>
+                <p>{part.instruction || "Listen and answer questions."}</p>
             </div>
 
             <main className="ielts-main" style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>

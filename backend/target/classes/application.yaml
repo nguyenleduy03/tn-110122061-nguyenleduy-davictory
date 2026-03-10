@@ -28,3 +28,8 @@ jwt:
   secret: DAVictorySecretKey2026SuperLongAndSecureBase64EncodedKeyForJWTSigning1234567890ABCDEF
   expiration: 86400000   # 24 giờ (ms)
   refresh-expiration: 604800000  # 7 ngày (ms)
+
+logging:
+  level:
+    org.springframework.security: DEBUG
+    org.springframework.web: DEBUG

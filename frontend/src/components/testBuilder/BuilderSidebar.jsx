@@ -13,6 +13,7 @@ const PALETTE_ITEMS = [
   // ── READING only ──
   { type: 'group', contentType: 'READING_PASSAGE',      label: 'Reading Passage',        icon: '📄', skills: ['READING'] },
   { type: 'group', contentType: 'MATCHING_HEADING',     label: 'Match Headings',         icon: '🔗', skills: ['READING'] },
+  { type: 'group', contentType: 'TRUE_FALSE_NG',         label: 'True / False / Not Given', icon: '✅', skills: ['READING'] },
   { type: 'group', contentType: 'MULTIPLE_CHOICE_MULTI',label: 'Multiple Choice (chọn nhiều)', icon: '☑️', skills: ['READING'] },
   { type: 'group', contentType: 'NOTE_COMPLETION',      label: 'Note / Form',            icon: '📒', skills: ['READING'] },
   { type: 'image', contentType: 'PARA_IMAGE',           label: 'Ảnh cho đoạn văn',       icon: '🖼️', skills: ['READING'] },
@@ -88,7 +89,7 @@ function DraggablePaletteItem({ item }) {
   );
 }
 
-const BuilderSidebar = ({ parts, sessions, activeSessionKey, selection, onSelectSession, onSelectPart, onSelectGroup }) => {
+const BuilderSidebar = ({ parts, sessions, activeSessionKey, selection, onSelectSession, onSelectPart, onSelectGroup, enabledSkills }) => {
   const [openParts, setOpenParts] = useState({});
 
   const togglePart = (partId) => setOpenParts((prev) => ({ ...prev, [partId]: !prev[partId] }));
@@ -105,7 +106,7 @@ const BuilderSidebar = ({ parts, sessions, activeSessionKey, selection, onSelect
     <aside className="tb-sidebar">
       {/* Skill tabs */}
       <div className="tb-skill-tabs">
-        {SESSIONS.map((s) => {
+        {SESSIONS.filter(s => !enabledSkills || enabledSkills.includes(s.key)).map((s) => {
           const Icon = s.icon;
           const isActive = activeSessionKey === s.key;
           return (

@@ -41,9 +41,19 @@ const Login = () => {
       
       console.log('Đăng nhập thành công:', result);
       
-      // Chuyển hướng về trang chủ hoặc trang trước đó
-      const from = location.state?.from?.pathname || '/';
-      navigate(from, { replace: true });
+      // Chuyển hướng theo role của user
+      let targetPath = '/';
+      const userRoles = result.user?.roles || [];
+      
+      if (location.state?.from?.pathname) {
+        targetPath = location.state.from.pathname;
+      } else if (userRoles.includes('ADMIN') || userRoles.includes('TEACHER')) {
+        targetPath = '/teacher/tests/new';
+      } else if (userRoles.includes('STUDENT')) {
+        targetPath = '/my-dashboard';
+      }
+
+      navigate(targetPath, { replace: true });
       
       // Reload để cập nhật navbar
       window.location.reload();

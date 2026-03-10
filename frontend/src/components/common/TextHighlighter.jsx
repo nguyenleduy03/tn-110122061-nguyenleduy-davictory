@@ -65,15 +65,15 @@ const TextHighlighter = ({ containerRef, onHighlightChange }) => {
             sel.removeAllRanges();
             sel.addRange(range);
 
-            if (!document.execCommand('hiliteColor', false, '#fff5b0')) {
+            if (!document.execCommand('hiliteColor', false, 'rgb(255, 221, 0)')) {
                 // Fallback for browsers not supporting hiliteColor
-                document.execCommand('BackColor', false, '#fff5b0');
+                document.execCommand('BackColor', false, 'rgb(255, 221, 0)');
             }
 
             document.designMode = "off";
             let marks = document.querySelectorAll('span[style*="background-color"], font[style*="background-color"]');
             marks.forEach(mark => {
-                if (mark.style.backgroundColor === 'rgb(255, 245, 176)' || mark.style.backgroundColor === '#fff5b0') {
+                if (mark.style.backgroundColor === 'rgb(255, 221, 0)' || mark.style.backgroundColor === '#fff5b0') {
                     mark.classList.add('custom-highlight');
                     mark.style.borderRadius = '3px';
                     mark.style.padding = '2px 0';

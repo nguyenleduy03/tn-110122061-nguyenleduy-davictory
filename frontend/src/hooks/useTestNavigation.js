@@ -1,10 +1,22 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export function useTestNavigation(testData) {
     const [currentPartIndex, setCurrentPartIndex] = useState(0);
-    const [activeQuestion, setActiveQuestion] = useState(1);
+    const [activeQuestion, setActiveQuestion] = useState(null);
 
     const part = testData?.parts[currentPartIndex];
+
+    // Auto-focus first question and scroll to top when part changes
+    useEffect(() => {
+        if (part?.questions?.length) {
+            const firstQ = part.questions[0];
+            const firstNum = firstQ.subQuestions ? firstQ.subQuestions[0].number : firstQ.number;
+            setActiveQuestion(firstNum);
+        }
+        document.querySelector('.passage-section')?.scrollTo(0, 0);
+        document.querySelector('.questions-section')?.scrollTo(0, 0);
+        document.querySelector('.ielts-main')?.scrollTo(0, 0);
+    }, [currentPartIndex, part]);
 
     const goNext = () => {
         if (!part || !testData) return;

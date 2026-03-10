@@ -33,42 +33,15 @@ const HeadingGap = ({ qId, number, answer, handleAnswerChange, isActive, setActi
 
     return (
         <div id={`question-${number}`} onClick={(e) => { e.stopPropagation(); setActiveQuestion(Number(number)); }}
-            style={answer ? {
-                border: '1px solid #3498db',
-                height: '34px',
-                margin: '10px 0',
-                display: 'flex',
-                backgroundColor: '#fff',
-                borderRadius: '4px',
-                alignItems: 'center',
-                boxSizing: 'border-box',
-                cursor: 'pointer',
-                fontWeight: 'bold',
-                color: '#000',
-                fontSize: '15px',
-                width: '100%',
-                padding: '0 15px'
-            } : {
-                border: isActive ? '2px dashed #3498db' : '1px dashed #ccc',
-                height: '34px',
-                margin: '10px 0',
-                display: 'flex',
-                backgroundColor: '#fff',
-                borderRadius: '4px',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '100%',
-                boxSizing: 'border-box',
-                cursor: 'pointer'
-            }}
+            className={`heading-gap-zone ${answer ? 'heading-gap-filled' : ''} ${isActive && !answer ? 'heading-gap-active' : ''}`}
             onDragOver={handleDragOver} onDrop={handleDrop} draggable={!!answer} onDragStart={handleDragStart}
         >
             {!answer ? (
-                <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                    <span style={{ fontWeight: "bold", color: "#000", fontSize: "16px" }}>{number}</span>
+                <div className="heading-gap-placeholder">
+                    <span className="heading-gap-number">{number}</span>
                 </div>
             ) : (
-                <div style={{ display: "flex", alignItems: "center", width: "100%", gap: "5px" }}>
+                <div className="heading-gap-answer">
                     <span>{answer}</span>
                 </div>
             )}
@@ -179,9 +152,6 @@ const IeltsReadingTest = () => {
     useEffect(() => {
         ieltsApi.getTestSession("mock-session-id").then((data) => {
             setTestData(data);
-            if (data.parts[0]?.questions?.length > 0) {
-                setActiveQuestion(data.parts[0].questions[0].number);
-            }
             setLoading(false);
         });
     }, []);
@@ -243,10 +213,12 @@ const IeltsReadingTest = () => {
     const fillInBlankQuestions = part.questions.filter(q => q.type === 'fill-in-the-blank');
     const multiChoiceQuestions = part.questions.filter(q => q.type === 'multiple-choice');
     const dragDropQuestions = part.questions.filter(q => q.type === 'drag-and-drop' || q.type === 'matching_heading' || q.type === 'matching_info');
+    const summaryCompletionQuestions = part.questions.filter(q => q.type === 'summary-completion');
+    const imageDragDropQuestions = part.questions.filter(q => q.type === 'image-drag-drop');
 
     return (
         <div className="ielts-container">
-            <TestHeader candidateName={testData?.candidateName} candidateId={testData?.candidateId} />
+            <TestHeader candidateName={testData?.candidateName} candidateId={testData?.candidateId} submitTest={submitTest} />
 
             <div className="instruction-bar">
                 <h3>{part.title}</h3>
@@ -325,6 +297,41 @@ const IeltsReadingTest = () => {
                                         />
                                     ))}
                                 </ul>
+                            </div>
+                        )}
+
+                        {summaryCompletionQuestions.length > 0 && (
+                            <div style={{ marginBottom: '40px' }}>
+                                {summaryCompletionQuestions.map(q => (
+                                    <QuestionRenderer
+                                        key={q.id}
+                                        q={q}
+                                        activeQuestion={activeQuestion}
+                                        setActiveQuestion={setActiveQuestion}
+                                        answers={answers}
+                                        handleAnswerChange={handleAnswerChange}
+                                        bookmarks={bookmarks}
+                                        toggleBookmark={toggleBookmark}
+                                        inputRefs={inputRefs}
+                                    />
+                                ))}
+                            </div>
+                        )}
+
+                        {imageDragDropQuestions.length > 0 && (
+                            <div style={{ marginBottom: '40px' }}>
+                                {imageDragDropQuestions.map(q => (
+                                    <QuestionRenderer
+                                        key={q.id}
+                                        q={q}
+                                        activeQuestion={activeQuestion}
+                                        setActiveQuestion={setActiveQuestion}
+                                        answers={answers}
+                                        handleAnswerChange={handleAnswerChange}
+                                        bookmarks={bookmarks}
+                                        toggleBookmark={toggleBookmark}
+                                    />
+                                ))}
                             </div>
                         )}
                     </div>
