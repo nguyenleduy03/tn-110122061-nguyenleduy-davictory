@@ -119,8 +119,7 @@ const IeltsWritingTest = () => {
                 {/* Left pane: task prompt + image */}
                 <WritingTaskPane part={part} style={{ width: `${leftWidth}%` }} />
 
-                {/* Draggable divider */}
-                <div className="divider" onMouseDown={handleDragStart} style={{ width: "14px", flexShrink: 0 }}>
+                <div className="divider" onMouseDown={handleDragStart}>
                     <div className="divider-icon">
                         <ArrowLeftRight size={14} color="#333" />
                     </div>

@@ -959,6 +959,8 @@
     overflow-y: auto;
     height: 100%;
     min-height: 0;
+    padding-right: 25px;
+    padding-left: 10px;
 }
 
 .writing-task-inner {
@@ -1062,19 +1064,19 @@
     color: #000;
 }
 
-/* Scrollbar for writing task pane */
+/* Scrollbar for writing panes — synced with passage/questions */
 .writing-task-pane::-webkit-scrollbar {
-    width: 10px;
+    width: 16px;
 }
 
 .writing-task-pane::-webkit-scrollbar-track {
-    background: #f0f0f0;
+    background: transparent;
 }
 
 .writing-task-pane::-webkit-scrollbar-thumb {
-    background-color: #bbb;
-    border-radius: 4px;
-    border: 2px solid #f0f0f0;
+    background-color: #a0a0a0;
+    border: 2px solid white;
+    border-radius: 0;
 }
 
 /* ── Speaking Test ─────────────────────────────────────────────────────────── */
