@@ -4,6 +4,8 @@ import com.victory.DAVictory.dto.QuestionGroupRequest;
 import com.victory.DAVictory.entity.*;
 import com.victory.DAVictory.enums.QuestionTypeEnum;
 import com.victory.DAVictory.repository.*;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,6 +15,9 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class QuestionBankService {
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     private final QuestionTypeRepository questionTypeRepository;
     private final QuestionGroupRepository questionGroupRepository;
@@ -162,7 +167,10 @@ public class QuestionBankService {
             }
         }
 
-        return questionGroupRepository.findById(savedGroup.getId()).orElse(savedGroup);
+        // Flush để ghi tất cả vào DB, sau đó refresh để load lại associations
+        entityManager.flush();
+        entityManager.refresh(savedGroup);
+        return savedGroup;
     }
 
     @Transactional
