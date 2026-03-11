@@ -54,11 +54,9 @@ const MultipleChoiceQuestion = ({ q, activeQuestion, setActiveQuestion, answer, 
                     return (
                         <label
                             key={idx}
-                            className="tfng-radio-label"
+                            className={`tfng-radio-label${isChecked ? ' tfng-option-selected' : ''}`}
                             style={{
                                 padding: '4px 15px',
-                                borderRadius: '6px',
-                                backgroundColor: (!isMultiple && isChecked) ? '#e0e0e0' : 'transparent',
                                 border: 'none',
                                 opacity: isDisabled ? 0.4 : 1,
                                 pointerEvents: isDisabled ? 'none' : 'auto',

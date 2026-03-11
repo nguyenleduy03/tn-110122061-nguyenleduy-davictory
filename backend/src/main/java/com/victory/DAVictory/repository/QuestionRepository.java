@@ -20,8 +20,6 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
 
     List<Question> findByQuestionTypeIdAndIsActiveTrue(Long questionTypeId);
 
-    List<Question> findByDifficultyLevelIdAndIsActiveTrue(Long difficultyLevelId);
-
     @Query("SELECT q FROM Question q JOIN q.questionGroup qg JOIN qg.part p JOIN p.session s " +
            "WHERE s.id = :sessionId AND q.isActive = true ORDER BY q.questionNumber ASC")
     List<Question> findAllBySessionId(@Param("sessionId") Long sessionId);

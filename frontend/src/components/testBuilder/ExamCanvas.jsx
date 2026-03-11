@@ -1667,28 +1667,63 @@ const MultipleChoiceBlock = ({ group, onUpdate, onDelete, onSelect, selected, dr
               </button>
             </div>
             <div className="exam-mc-options">
-              {opts.map((opt, i) => (
-                <div key={i} className={`exam-mc-opt${opt.isCorrect ? ' correct' : ''}`}>
-                  <span className="exam-mc-opt-label">{String.fromCharCode(65 + i)}</span>
-                  <RichInput
-                    style={{ flex: 1 }}
-                    value={opt.optionText || ''}
-                    placeholder={`Lựa chọn ${String.fromCharCode(65 + i)}...`}
-                    onChange={(html) => {
-                      const next = [...opts]; next[i] = { ...next[i], optionText: html };
-                      onUpdateQuestion(group.id, q.id, { options: next });
-                    }} />
-                  <input type="radio" className="exam-mc-opt-radio"
-                    checked={!!opt.isCorrect} title="Đánh dấu đáp án đúng"
-                    onChange={() => {
-                      const next = opts.map((o, j) => ({ ...o, isCorrect: j === i }));
-                      onUpdateQuestion(group.id, q.id, { options: next, answerText: opt.optionText });
-                    }}
-                    onClick={(e) => e.stopPropagation()} />
-                  <button className="exam-q-del-btn"
-                    onClick={(e) => { e.stopPropagation(); onUpdateQuestion(group.id, q.id, { options: opts.filter((_, j) => j !== i) }); }}>×</button>
-                </div>
-              ))}
+              {opts.map((opt, i) => {
+                const isImg = opt.optionMode === 'image';
+                return (
+                  <div key={i} className={`exam-mc-opt${opt.isCorrect ? ' correct' : ''}${isImg ? ' exam-mc-opt-img-row' : ''}`}>
+                    <span className="exam-mc-opt-label">{String.fromCharCode(65 + i)}</span>
+                    {isImg ? (
+                      <div className="exam-mc-opt-image-cell">
+                        {opt.optionImageUrl
+                          ? <img src={opt.optionImageUrl} alt={`Opt ${String.fromCharCode(65 + i)}`} className="exam-mc-opt-img-preview" />
+                          : <div className="exam-mc-opt-img-empty">Chưa có ảnh</div>}
+                        <div className="exam-mc-opt-img-controls">
+                          <input
+                            type="text"
+                            className="exam-mc-opt-url-input"
+                            placeholder="Dán URL ảnh..."
+                            value={opt.optionImageUrl || ''}
+                            onChange={(e) => { const next = [...opts]; next[i] = { ...next[i], optionImageUrl: e.target.value }; onUpdateQuestion(group.id, q.id, { options: next }); }}
+                            onClick={(e) => e.stopPropagation()} />
+                          <label className="exam-mc-img-file-btn" title="Tải ảnh từ máy" onClick={(e) => e.stopPropagation()}>
+                            <Image size={12} />
+                            <input type="file" accept="image/*" hidden onChange={(e) => {
+                              const file = e.target.files?.[0]; if (!file) return;
+                              const reader = new FileReader();
+                              reader.onload = (ev) => { const next = [...opts]; next[i] = { ...next[i], optionImageUrl: ev.target.result }; onUpdateQuestion(group.id, q.id, { options: next }); };
+                              reader.readAsDataURL(file); e.target.value = '';
+                            }} />
+                          </label>
+                        </div>
+                      </div>
+                    ) : (
+                      <RichInput
+                        style={{ flex: 1 }}
+                        value={opt.optionText || ''}
+                        placeholder={`Lựa chọn ${String.fromCharCode(65 + i)}...`}
+                        onChange={(html) => {
+                          const next = [...opts]; next[i] = { ...next[i], optionText: html };
+                          onUpdateQuestion(group.id, q.id, { options: next });
+                        }} />
+                    )}
+                    <button
+                      className="exam-mc-opt-mode-btn"
+                      title={isImg ? 'Chuyển sang văn bản' : 'Chuyển sang hình ảnh'}
+                      onClick={(e) => { e.stopPropagation(); const next = [...opts]; next[i] = { ...next[i], optionMode: isImg ? 'text' : 'image' }; onUpdateQuestion(group.id, q.id, { options: next }); }}>
+                      {isImg ? <span style={{ fontSize: 11, fontWeight: 700 }}>Aa</span> : <Image size={12} />}
+                    </button>
+                    <input type="radio" className="exam-mc-opt-radio"
+                      checked={!!opt.isCorrect} title="Đánh dấu đáp án đúng"
+                      onChange={() => {
+                        const next = opts.map((o, j) => ({ ...o, isCorrect: j === i }));
+                        onUpdateQuestion(group.id, q.id, { options: next, answerText: opt.optionText });
+                      }}
+                      onClick={(e) => e.stopPropagation()} />
+                    <button className="exam-q-del-btn"
+                      onClick={(e) => { e.stopPropagation(); onUpdateQuestion(group.id, q.id, { options: opts.filter((_, j) => j !== i) }); }}>×</button>
+                  </div>
+                );
+              })}
               <button className="exam-add-btn" style={{ padding: '3px 10px', fontSize: 11, marginTop: 4 }}
                 onClick={(e) => { e.stopPropagation(); onUpdateQuestion(group.id, q.id, { options: [...opts, { id: Date.now(), optionText: '', isCorrect: false }] }); }}>
                 <Plus size={10} /> Thêm lựa chọn
@@ -1754,28 +1789,63 @@ const MultipleChoiceMultiBlock = ({ group, onUpdate, onDelete, onSelect, selecte
               </button>
             </div>
             <div className="exam-mc-options">
-              {opts.map((opt, i) => (
-                <div key={i} className={`exam-mc-opt${opt.isCorrect ? ' correct' : ''}`}>
-                  <span className="exam-mc-opt-label">{String.fromCharCode(65 + i)}</span>
-                  <RichInput
-                    style={{ flex: 1 }}
-                    value={opt.optionText || ''}
-                    placeholder={`Lựa chọn ${String.fromCharCode(65 + i)}...`}
-                    onChange={(html) => {
-                      const next = [...opts]; next[i] = { ...next[i], optionText: html };
-                      onUpdateQuestion(group.id, q.id, { options: next });
-                    }} />
-                  <input type="checkbox" className="exam-q-option-correct"
-                    checked={!!opt.isCorrect} title="Đáp án đúng"
-                    onChange={(e) => {
-                      const next = [...opts]; next[i] = { ...next[i], isCorrect: e.target.checked };
-                      onUpdateQuestion(group.id, q.id, { options: next });
-                    }}
-                    onClick={(e) => e.stopPropagation()} />
-                  <button className="exam-q-del-btn"
-                    onClick={(e) => { e.stopPropagation(); onUpdateQuestion(group.id, q.id, { options: opts.filter((_, j) => j !== i) }); }}>×</button>
-                </div>
-              ))}
+              {opts.map((opt, i) => {
+                const isImg = opt.optionMode === 'image';
+                return (
+                  <div key={i} className={`exam-mc-opt${opt.isCorrect ? ' correct' : ''}${isImg ? ' exam-mc-opt-img-row' : ''}`}>
+                    <span className="exam-mc-opt-label">{String.fromCharCode(65 + i)}</span>
+                    {isImg ? (
+                      <div className="exam-mc-opt-image-cell">
+                        {opt.optionImageUrl
+                          ? <img src={opt.optionImageUrl} alt={`Opt ${String.fromCharCode(65 + i)}`} className="exam-mc-opt-img-preview" />
+                          : <div className="exam-mc-opt-img-empty">Chưa có ảnh</div>}
+                        <div className="exam-mc-opt-img-controls">
+                          <input
+                            type="text"
+                            className="exam-mc-opt-url-input"
+                            placeholder="Dán URL ảnh..."
+                            value={opt.optionImageUrl || ''}
+                            onChange={(e) => { const next = [...opts]; next[i] = { ...next[i], optionImageUrl: e.target.value }; onUpdateQuestion(group.id, q.id, { options: next }); }}
+                            onClick={(e) => e.stopPropagation()} />
+                          <label className="exam-mc-img-file-btn" title="Tải ảnh từ máy" onClick={(e) => e.stopPropagation()}>
+                            <Image size={12} />
+                            <input type="file" accept="image/*" hidden onChange={(e) => {
+                              const file = e.target.files?.[0]; if (!file) return;
+                              const reader = new FileReader();
+                              reader.onload = (ev) => { const next = [...opts]; next[i] = { ...next[i], optionImageUrl: ev.target.result }; onUpdateQuestion(group.id, q.id, { options: next }); };
+                              reader.readAsDataURL(file); e.target.value = '';
+                            }} />
+                          </label>
+                        </div>
+                      </div>
+                    ) : (
+                      <RichInput
+                        style={{ flex: 1 }}
+                        value={opt.optionText || ''}
+                        placeholder={`Lựa chọn ${String.fromCharCode(65 + i)}...`}
+                        onChange={(html) => {
+                          const next = [...opts]; next[i] = { ...next[i], optionText: html };
+                          onUpdateQuestion(group.id, q.id, { options: next });
+                        }} />
+                    )}
+                    <button
+                      className="exam-mc-opt-mode-btn"
+                      title={isImg ? 'Chuyển sang văn bản' : 'Chuyển sang hình ảnh'}
+                      onClick={(e) => { e.stopPropagation(); const next = [...opts]; next[i] = { ...next[i], optionMode: isImg ? 'text' : 'image' }; onUpdateQuestion(group.id, q.id, { options: next }); }}>
+                      {isImg ? <span style={{ fontSize: 11, fontWeight: 700 }}>Aa</span> : <Image size={12} />}
+                    </button>
+                    <input type="checkbox" className="exam-q-option-correct"
+                      checked={!!opt.isCorrect} title="Đáp án đúng"
+                      onChange={(e) => {
+                        const next = [...opts]; next[i] = { ...next[i], isCorrect: e.target.checked };
+                        onUpdateQuestion(group.id, q.id, { options: next });
+                      }}
+                      onClick={(e) => e.stopPropagation()} />
+                    <button className="exam-q-del-btn"
+                      onClick={(e) => { e.stopPropagation(); onUpdateQuestion(group.id, q.id, { options: opts.filter((_, j) => j !== i) }); }}>×</button>
+                  </div>
+                );
+              })}
               <button className="exam-add-btn" style={{ padding: '3px 10px', fontSize: 11, marginTop: 4 }}
                 onClick={(e) => { e.stopPropagation(); onUpdateQuestion(group.id, q.id, { options: [...opts, { id: Date.now(), optionText: '', isCorrect: false }] }); }}>
                 <Plus size={10} /> Thêm lựa chọn

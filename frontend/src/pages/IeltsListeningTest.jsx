@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
-import { ArrowLeft, ArrowRight, Volume2, ArrowLeftRight, Check, Bookmark, Headphones, Play } from "lucide-react";
+import { ArrowLeft, ArrowRight, Volume2, ArrowLeftRight, Check, Headphones, Play } from "lucide-react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import "../styles/ieltsTest.css";
 import TestHeader from "../components/common/TestHeader";
 import QuestionRenderer from "../components/question/QuestionRenderer";
@@ -12,6 +13,7 @@ const IeltsListeningTest = () => {
     const [loading, setLoading] = useState(true);
     const [bookmarks, setBookmarks] = useState({});
     const [audioStarted, setAudioStarted] = useState(false);
+    const [showSubmitModal, setShowSubmitModal] = useState(false);
     const audioRef = useRef(null);
 
     const toggleBookmark = (num) => {
@@ -51,7 +53,29 @@ const IeltsListeningTest = () => {
         setAnswers((prev) => ({ ...prev, [questionId]: value }));
     };
 
+    const [searchParams] = useSearchParams();
+    const navigate = useNavigate();
+    const isFullTest = searchParams.get('fullTest') === 'true';
+
+    const handleFullTestNext = () => {
+        try {
+            const session = JSON.parse(sessionStorage.getItem('ieltsFullTest') || 'null');
+            if (!session) return;
+            const nextIdx = session.currentSection + 1;
+            if (nextIdx < session.sections.length) {
+                const updated = { ...session, currentSection: nextIdx };
+                sessionStorage.setItem('ieltsFullTest', JSON.stringify(updated));
+                const next = updated.sections[nextIdx];
+                navigate(`/test/${next.skill}/${next.testId}?fullTest=true`);
+            } else {
+                sessionStorage.removeItem('ieltsFullTest');
+                navigate('/exam-library');
+            }
+        } catch { navigate('/exam-library'); }
+    };
+
     const submitTest = () => {
+        if (isFullTest) { handleFullTestNext(); return; }
         ieltsApi.submitAnswers("mock-session-id", answers).then(() => {
             alert("Test submitted!\nAnswers: " + JSON.stringify(answers, null, 2));
         });
@@ -79,7 +103,13 @@ const IeltsListeningTest = () => {
         return flatQs.reduce((sum, q) => sum + (q.numberRange ? q.numberRange.length : 1), 0);
     };
 
-    if (loading) return <div style={{ padding: '20px' }}>Loading...</div>;
+    if (loading) return (
+        <div className="test-loading-screen">
+            <div className="test-loading-spinner"></div>
+            <p className="test-loading-title">Your test will begin shortly</p>
+            <p className="test-loading-sub">Please wait</p>
+        </div>
+    );
     if (!testData) return <div style={{ padding: '20px' }}>No test data available</div>;
     if (!part) return <div style={{ padding: '20px' }}>Part not found</div>;
 
@@ -99,7 +129,7 @@ const IeltsListeningTest = () => {
             <TestHeader
                 candidateName={testData.candidateName}
                 candidateId={testData.candidateId}
-                submitTest={submitTest}
+                submitTest={() => setShowSubmitModal(true)}
                 extraInfo={audioStarted ? <><Volume2 size={16} /> Audio is playing</> : null}
             />
 
@@ -194,14 +224,14 @@ const IeltsListeningTest = () => {
                         </div>
                     )}
 
-                    <div className="pane-nav-buttons">
+                    {audioStarted && <div className="pane-nav-buttons">
                         <button className="black-nav-btn" onClick={goPrev} disabled={isFirstQuestion} style={{ opacity: isFirstQuestion ? 0.5 : 1 }}>
                             <ArrowLeft size={24} color="white" />
                         </button>
                         <button className="black-nav-btn" onClick={goNext} disabled={isLastQuestion} style={{ opacity: isLastQuestion ? 0.5 : 1 }}>
                             <ArrowRight size={24} color="white" />
                         </button>
-                    </div>
+                    </div>}
                 </div>
             </main>
 
@@ -259,13 +289,8 @@ const IeltsListeningTest = () => {
                                                         }, 50);
                                                     }}
                                                 >
-                                                    {nums.some(n => bookmarks[n]) && (
-                                                        <div style={{ position: 'absolute', top: '-18px', display: 'flex', justifyContent: 'center', width: '100%' }}>
-                                                            <Bookmark size={14} fill="#1a73e8" color="#1a73e8" />
-                                                        </div>
-                                                    )}
-                                                    <div className={`status-dash ${isAnswered ? "answered-dash" : ""}`} />
-                                                    <span className={`q-num ${isActive ? "active" : ""} ${isRange ? "q-num-range" : ""}`}>
+                                                    <div className={`status-dash${isAnswered ? " answered-dash" : ""}${nums.some(n => bookmarks[n]) ? " bookmarked-dash" : ""}`} />
+                                                    <span className={`q-num${isActive ? " active" : ""}${isRange ? " q-num-range" : ""}${nums.some(n => bookmarks[n]) ? " bookmarked" : ""}`}>
                                                         {isRange ? `${nums[0]}–${nums[nums.length - 1]}` : q.number}
                                                     </span>
                                                 </div>
@@ -277,10 +302,24 @@ const IeltsListeningTest = () => {
                         );
                     })}
                 </div>
-                <button className="submit-check-btn" onClick={submitTest} title="Submit Test">
+                <button className="submit-check-btn" onClick={() => setShowSubmitModal(true)} title="Submit Test">
                     <Check size={28} strokeWidth={2.5} />
                 </button>
             </footer>
+
+            {showSubmitModal && (
+                <div className="submit-confirm-overlay" onClick={() => setShowSubmitModal(false)}>
+                    <div className="submit-confirm-modal" onClick={e => e.stopPropagation()}>
+                        <h3>Submit your test?</h3>
+                        <p>You are about to submit your answers for this section. Once submitted, you cannot return to make changes.</p>
+                        <p className="scm-warning">This action cannot be undone.</p>
+                        <div className="submit-confirm-actions">
+                            <button className="scm-cancel-btn" onClick={() => setShowSubmitModal(false)}>Cancel</button>
+                            <button className="scm-submit-btn" onClick={() => { setShowSubmitModal(false); submitTest(); }}>Submit Test</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

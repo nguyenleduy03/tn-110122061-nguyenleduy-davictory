@@ -491,10 +491,6 @@ public class TestBuilderService {
                 qr.setQuestionTypeCode(q.getQuestionType().getCode());
                 qr.setQuestionTypeName(q.getQuestionType().getDisplayName());
             }
-            if (q.getDifficultyLevel() != null) {
-                qr.setDifficultyLevelName(q.getDifficultyLevel().getName());
-            }
-
             // Options
             List<QuestionOption> opts = questionOptionRepository
                     .findByQuestionIdOrderByOrderIndexAsc(q.getId());

@@ -34,10 +34,6 @@ public class Question {
     @JoinColumn(name = "question_type_id", nullable = false)
     private QuestionType questionType;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "difficulty_level_id")
-    private DifficultyLevel difficultyLevel;
-
     @Column(nullable = false)
     private Integer questionNumber;
     // Số thứ tự câu hỏi trong bài thi (1-40 đối với Listening/Reading)

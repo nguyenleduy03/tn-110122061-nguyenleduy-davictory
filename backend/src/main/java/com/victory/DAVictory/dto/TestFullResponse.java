@@ -81,7 +81,6 @@ public class TestFullResponse {
         private Long questionTypeId;
         private String questionTypeCode;
         private String questionTypeName;
-        private String difficultyLevelName;
         private List<OptionResp> options;
         private List<AnswerResp> answers;
     }

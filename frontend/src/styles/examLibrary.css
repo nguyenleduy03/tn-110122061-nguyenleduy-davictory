@@ -173,6 +173,7 @@
     opacity: 0;
     transform: translateY(-8px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -336,7 +337,6 @@
 
 .el-breadcrumb a:hover {
   color: #1d2f5e;
-  text-decoration: underline;
 }
 
 .el-breadcrumb-sep {
@@ -515,7 +515,428 @@
 }
 
 /* ============================================================
-   TEST CARD
+   SERIES LIST (All Skills view)
+   ============================================================ */
+.el-series-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.series-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 18px 20px;
+  display: flex;
+  gap: 18px;
+  cursor: pointer;
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+
+.series-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.09);
+  border-color: #c7d2fe;
+}
+
+.series-card-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+}
+
+.series-card-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.series-skill-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.series-skill-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* ============================================================
+   TEST GRID (individual skill tabs)
+   ============================================================ */
+.test-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.test-grid-item {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 14px 16px;
+  text-decoration: none;
+  transition: box-shadow 0.18s, border-color 0.18s;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.test-grid-item:hover {
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+  border-color: #a5b4fc;
+}
+
+.test-grid-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e3a8a;
+  line-height: 1.4;
+}
+
+/* ============================================================
+   SERIES DETAIL view
+   ============================================================ */
+.series-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.series-detail-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: #4b5563;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0;
+  width: fit-content;
+}
+
+.series-detail-back:hover {
+  color: #111827;
+}
+
+.series-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.book-cover-sm {
+  width: 56px !important;
+  min-height: 74px !important;
+}
+
+.book-cover-sm .book-cover-ielts {
+  font-size: 12px !important;
+}
+
+.book-cover-sm .book-cover-year {
+  font-size: 9px !important;
+}
+
+.series-detail-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.skill-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.skill-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 28px 18px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  min-height: 220px;
+}
+
+.skill-card-top {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.skill-card-label {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.skill-card-spacer {
+  flex: 1;
+  min-height: 20px;
+}
+
+.skill-card-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  border-radius: 20px;
+  padding: 9px 28px;
+  transition: opacity 0.15s;
+  width: 100%;
+}
+
+.skill-card-btn:hover {
+  opacity: 0.88;
+}
+
+.skill-card-bookmark {
+  margin-top: 10px;
+  display: flex;
+  justify-content: center;
+}
+
+/* ============================================================
+   FULL TEST ROW
+   ============================================================ */
+.full-test-row {
+  position: relative;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 18px 24px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  overflow: hidden;
+}
+
+.full-test-new-badge {
+  position: absolute;
+  top: 0;
+  left: 0;
+  background: #ef4444;
+  color: white;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 3px 10px;
+  border-radius: 12px 0 12px 0;
+  letter-spacing: 0.5px;
+}
+
+.full-test-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 140px;
+}
+
+.full-test-label {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1e3a8a;
+}
+
+.full-test-progress-wrap {
+  flex: 1;
+}
+
+.full-test-progress-bar {
+  position: relative;
+  height: 22px;
+  background: white;
+  border: 1.5px solid #d1d5db;
+  border-radius: 20px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.full-test-progress-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: #3b82f6;
+  border-radius: 20px;
+  transition: width 0.3s;
+}
+
+.full-test-progress-text {
+  position: relative;
+  z-index: 1;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.full-test-start-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: #1e3a8a;
+  color: white;
+  font-size: 14px;
+  font-weight: 700;
+  border: none;
+  border-radius: 20px;
+  padding: 10px 22px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.15s;
+}
+
+.full-test-start-btn:hover {
+  opacity: 0.88;
+}
+
+/* ============================================================
+   FULL TEST MODAL
+   ============================================================ */
+.ft-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.ft-modal {
+  background: white;
+  border-radius: 16px;
+  padding: 36px 32px 32px;
+  max-width: 460px;
+  width: 100%;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.ft-modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #6b7280;
+  display: flex;
+  padding: 4px;
+}
+
+.ft-modal-close:hover {
+  color: #111827;
+}
+
+.ft-modal-icon {
+  margin-bottom: 4px;
+}
+
+.ft-modal-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: #111827;
+  margin: 0;
+  text-align: center;
+}
+
+.ft-modal-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: #f9fafb;
+  border-radius: 10px;
+  padding: 14px 16px;
+  width: 100%;
+}
+
+.ft-modal-hint p {
+  margin: 0;
+  font-size: 14px;
+  color: #374151;
+  line-height: 1.6;
+}
+
+.ft-modal-info {
+  width: 100%;
+  background: #f9fafb;
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.ft-modal-info strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 8px;
+}
+
+.ft-modal-info ul {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ft-modal-info ul li {
+  font-size: 13px;
+  color: #374151;
+  line-height: 1.5;
+}
+
+.ft-modal-confirm-text {
+  font-size: 13px;
+  color: #6b7280;
+  text-align: center;
+  margin: 0;
+}
+
+.ft-modal-confirm-btn {
+  background: #1e3a8a;
+  color: white;
+  font-size: 15px;
+  font-weight: 700;
+  border: none;
+  border-radius: 24px;
+  padding: 12px 48px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  width: 100%;
+}
+
+.ft-modal-confirm-btn:hover {
+  opacity: 0.88;
+}
+
+/* ============================================================
+   TEST CARD (legacy — kept for compatibility)
    ============================================================ */
 .test-card {
   background: white;
@@ -629,7 +1050,6 @@
 
 .test-card-item:hover {
   color: #1d4ed8;
-  text-decoration: underline;
 }
 
 .test-skill-badge {

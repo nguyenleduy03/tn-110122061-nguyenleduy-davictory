@@ -200,6 +200,10 @@ public class TestStructureService {
         return sessionRepository.findByTestTypeOrderByOrderIndexAsc(testType);
     }
 
+    public List<Session> getAllSessions() {
+        return sessionRepository.findAll();
+    }
+
     public List<Part> getPartsBySessionId(Long sessionId) {
         return partRepository.findBySessionIdOrderByOrderIndexAsc(sessionId);
     }

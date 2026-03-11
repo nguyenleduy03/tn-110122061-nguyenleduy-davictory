@@ -105,7 +105,12 @@ const MCQQuestion = ({ q, multiple, active, onSetActive }) => {
             <label key={o.id} className="pv-opt">
               <input type={multiple ? 'checkbox' : 'radio'} name={`q${q.id}`} disabled />
               <span className="pv-opt-key">{o.optionLabel}</span>
-              <span className="pv-opt-text">{o.optionText || <em className="pv-empty">...</em>}</span>
+              <span className="pv-opt-text">
+                {o.optionMode === 'image' && o.optionImageUrl
+                  ? <img src={o.optionImageUrl} alt={o.optionLabel} style={{ maxWidth: 140, maxHeight: 90, borderRadius: 4, display: 'block' }} />
+                  : (o.optionText || <em className="pv-empty">...</em>)
+                }
+              </span>
             </label>
           ))
         }

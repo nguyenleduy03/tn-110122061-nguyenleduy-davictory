@@ -64,6 +64,11 @@ public class UserService {
         return convertToDTO(user);
     }
 
+    public User getUserEntityByUsername(String username) {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy user"));
+    }
+
     public List<UserDTO> getAllUsers() {
         return userRepository.findAll().stream()
                 .map(this::convertToDTO)

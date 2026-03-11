@@ -80,16 +80,15 @@ public class SecurityConfig {
                 // ===== TEST MANAGEMENT =====
                 // Tạo/cập nhật/xóa đề thi: TEACHER+
                 .requestMatchers(HttpMethod.POST, "/api/tests").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/tests/**").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
                 .requestMatchers(HttpMethod.PUT, "/api/tests/**").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/tests/**").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
                 // Xem đề thi theo trạng thái/tìm kiếm: TEACHER+
                 .requestMatchers(HttpMethod.GET, "/api/tests").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/tests/search").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
-                // Sessions & Parts trong test: TEACHER+
-                .requestMatchers(HttpMethod.POST, "/api/tests/*/sessions").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
-                .requestMatchers(HttpMethod.POST, "/api/tests/sessions/*/parts").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
-                .requestMatchers(HttpMethod.POST, "/api/tests/parts/*/question-groups").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
-                // Xem sessions/parts: TEACHER+
+                // Master sessions (để chọn kỹ năng): authenticated
+                .requestMatchers(HttpMethod.GET, "/api/tests/sessions/master").authenticated()
+                // Xem sessions/parts: STUDENT+
                 .requestMatchers(HttpMethod.GET, "/api/tests/**").hasAnyRole("STUDENT", "TEACHER", "MANAGER", "ADMIN")
 
                 // ===== TEST BUILDER =====

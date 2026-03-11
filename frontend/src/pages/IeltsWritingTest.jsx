@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { ArrowLeft, ArrowRight, ArrowLeftRight, Check } from "lucide-react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import "../styles/ieltsTest.css";
 import TestHeader from "../components/common/TestHeader";
 import { useDividerResize } from "../hooks/useDividerResize";
@@ -66,6 +67,7 @@ const IeltsWritingTest = () => {
     const [loading, setLoading] = useState(true);
     const [currentPartIndex, setCurrentPartIndex] = useState(0);
     const [writingAnswers, setWritingAnswers] = useState({});
+    const [showSubmitModal, setShowSubmitModal] = useState(false);
 
     const { leftWidth, containerRef, handleDragStart } = useDividerResize(50);
 
@@ -81,18 +83,46 @@ const IeltsWritingTest = () => {
         setWritingAnswers((prev) => ({ ...prev, [partId]: value }));
     }, []);
 
+    const [searchParams] = useSearchParams();
+    const navigate = useNavigate();
+    const isFullTest = searchParams.get('fullTest') === 'true';
+
+    const handleFullTestNext = () => {
+        try {
+            const session = JSON.parse(sessionStorage.getItem('ieltsFullTest') || 'null');
+            if (!session) return;
+            const nextIdx = session.currentSection + 1;
+            if (nextIdx < session.sections.length) {
+                const updated = { ...session, currentSection: nextIdx };
+                sessionStorage.setItem('ieltsFullTest', JSON.stringify(updated));
+                const next = updated.sections[nextIdx];
+                navigate(`/test/${next.skill}/${next.testId}?fullTest=true`);
+            } else {
+                sessionStorage.removeItem('ieltsFullTest');
+                navigate('/exam-library');
+            }
+        } catch { navigate('/exam-library'); }
+    };
+
     const submitTest = () => {
+        if (isFullTest) { handleFullTestNext(); return; }
         ieltsApi.submitAnswers("mock-session-id", writingAnswers).then(() => {
             alert(
                 "Test submitted!\n\n" +
-                    Object.entries(writingAnswers)
-                        .map(([k, v]) => `${k}: ${countWords(v)} words`)
-                        .join("\n")
+                Object.entries(writingAnswers)
+                    .map(([k, v]) => `${k}: ${countWords(v)} words`)
+                    .join("\n")
             );
         });
     };
 
-    if (loading) return <div style={{ padding: "50px", textAlign: "center" }}>Loading Test...</div>;
+    if (loading) return (
+        <div className="test-loading-screen">
+            <div className="test-loading-spinner"></div>
+            <p className="test-loading-title">Your test will begin shortly</p>
+            <p className="test-loading-sub">Please wait</p>
+        </div>
+    );
     if (!testData) return <div style={{ padding: "50px" }}>No test data available</div>;
 
     const parts = testData.parts || [];
@@ -105,7 +135,7 @@ const IeltsWritingTest = () => {
             <TestHeader
                 candidateName={testData.candidateName}
                 candidateId={testData.candidateId}
-                submitTest={submitTest}
+                submitTest={() => setShowSubmitModal(true)}
             />
 
             <div className="instruction-bar">
@@ -176,10 +206,24 @@ const IeltsWritingTest = () => {
                         );
                     })}
                 </div>
-                <button className="submit-check-btn" onClick={submitTest} title="Submit Test">
+                <button className="submit-check-btn" onClick={() => setShowSubmitModal(true)} title="Submit Test">
                     <Check size={28} strokeWidth={2.5} />
                 </button>
             </footer>
+
+            {showSubmitModal && (
+                <div className="submit-confirm-overlay" onClick={() => setShowSubmitModal(false)}>
+                    <div className="submit-confirm-modal" onClick={e => e.stopPropagation()}>
+                        <h3>Submit your test?</h3>
+                        <p>You are about to submit your answers for this section. Once submitted, you cannot return to make changes.</p>
+                        <p className="scm-warning">This action cannot be undone.</p>
+                        <div className="submit-confirm-actions">
+                            <button className="scm-cancel-btn" onClick={() => setShowSubmitModal(false)}>Cancel</button>
+                            <button className="scm-submit-btn" onClick={() => { setShowSubmitModal(false); submitTest(); }}>Submit Test</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

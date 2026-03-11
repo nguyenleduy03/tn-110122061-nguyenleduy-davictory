@@ -4,164 +4,84 @@ import com.victory.DAVictory.entity.Role;
 import com.victory.DAVictory.entity.User;
 import com.victory.DAVictory.repository.RoleRepository;
 import com.victory.DAVictory.repository.UserRepository;
-import com.victory.DAVictory.service.QuestionBankService;
-import com.victory.DAVictory.service.RoleService;
-import com.victory.DAVictory.service.TestStructureService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
 import java.util.Set;
 
 @Component
+@Order(1)
 @RequiredArgsConstructor
 @Slf4j
 public class DataInitializer implements CommandLineRunner {
 
-    private final RoleService roleService;
-    private final TestStructureService testStructureService;
-    private final QuestionBankService questionBankService;
-    private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    private static final String DEFAULT_PASSWORD = "davictory";
-
     @Override
-    public void run(String... args) throws Exception {
-        log.info("========== BẮT ĐẦU KHỞI TẠO DỮ LIỆU MẶC ĐỊNH ==========");
-        
-        // 1. Khởi tạo roles mặc định
-        roleService.initializeDefaultRoles();
-        log.info("✓ Đã khởi tạo roles mặc định");
-
-        // 2. Khởi tạo các tài khoản mặc định
-        initializeDefaultUsers();
-        log.info("✓ Đã khởi tạo users mặc định");
-
-        // 3. Khởi tạo cấu trúc bài thi IELTS
-        testStructureService.initializeDifficultyLevels();
-        log.info("✓ Đã khởi tạo difficulty levels");
-
-        testStructureService.initializeSessions();
-        log.info("✓ Đã khởi tạo sessions (Academic & General)");
-
-        testStructureService.initializeParts();
-        log.info("✓ Đã khởi tạo parts cho các sessions");
-
-        // 4. Khởi tạo các loại câu hỏi mặc định
-        questionBankService.initializeDefaultQuestionTypes();
-        log.info("✓ Đã khởi tạo question types mặc định");
-        
-        log.info("========== HOÀN THÀNH KHỞI TẠO DỮ LIỆU ==========");
-        printDefaultAccounts();
+    @Transactional
+    public void run(String... args) {
+        initRoles();
+        initDefaultUsers();
     }
 
-    /**
-     * Khởi tạo các tài khoản mặc định
-     * Username = Role, Password = davictory
-     */
-    private void initializeDefaultUsers() {
-        log.info(">>> Khởi tạo tài khoản mặc định...");
-        
-        // Admin
-        createUserIfNotExists(
-            "admin",
-            "admin@davictory.com",
-            DEFAULT_PASSWORD,
-            "Administrator",
-            "0123456789",
-            "ADMIN"
-        );
-        
-        // Manager
-        createUserIfNotExists(
-            "manager",
-            "manager@davictory.com",
-            DEFAULT_PASSWORD,
-            "Content Manager",
-            "0123456788",
-            "MANAGER"
-        );
-        
-        // Teacher
-        createUserIfNotExists(
-            "teacher",
-            "teacher@davictory.com",
-            DEFAULT_PASSWORD,
-            "Demo Teacher",
-            "0123456787",
-            "TEACHER"
-        );
-        
-        // Student
-        createUserIfNotExists(
-            "student",
-            "student@davictory.com",
-            DEFAULT_PASSWORD,
-            "Demo Student",
-            "0123456786",
-            "STUDENT"
-        );
-    }
+    private void initRoles() {
+        String[][] roles = {
+            {"GUEST", "Khách - Người dùng chưa đăng ký"},
+            {"STUDENT", "Học viên - Người học IELTS"},
+            {"TEACHER", "Giảng viên - Người dạy IELTS"},
+            {"MANAGER", "Quản lý - Quản lý hệ thống"},
+            {"ADMIN", "Admin - Quản trị viên hệ thống"}
+        };
 
-    /**
-     * Tạo user nếu chưa tồn tại, hoặc cập nhật password nếu chưa được mã hóa BCrypt
-     */
-    private void createUserIfNotExists(String username, String email, String password,
-                                      String fullName, String phoneNumber, String roleName) {
-        if (!userRepository.existsByUsername(username)) {
-            User user = new User();
-            user.setUsername(username);
-            user.setEmail(email);
-            user.setPassword(passwordEncoder.encode(password)); // BCrypt mã hóa
-            user.setFullName(fullName);
-            user.setPhoneNumber(phoneNumber);
-            user.setIsActive(true);
-
-            // Gán role
-            Role role = roleRepository.findByName(roleName)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy role: " + roleName));
-
-            Set<Role> roles = new HashSet<>();
-            roles.add(role);
-            user.setRoles(roles);
-
-            userRepository.save(user);
-            log.info("  ✓ Tạo tài khoản: {} (quyền: {})", username, roleName);
-        } else {
-            // Nếu password chưa được BCrypt (plain text từ lần chạy cũ), cập nhật lại
-            userRepository.findByUsername(username).ifPresent(user -> {
-                String pwd = user.getPassword();
-                if (pwd != null && !pwd.startsWith("$2a$") && !pwd.startsWith("$2b$")) {
-                    user.setPassword(passwordEncoder.encode(password));
-                    userRepository.save(user);
-                    log.info("  ↑ Đã mã hóa lại password cho: {}", username);
-                } else {
-                    log.info("  ○ Tài khoản đã tồn tại: {}", username);
-                }
-            });
+        for (String[] r : roles) {
+            if (!roleRepository.existsByName(r[0])) {
+                Role role = new Role();
+                role.setName(r[0]);
+                role.setDescription(r[1]);
+                roleRepository.save(role);
+                log.info("✅ Tạo role: {}", r[0]);
+            }
         }
     }
 
-    /**
-     * In ra thông tin các tài khoản mặc định
-     */
-    private void printDefaultAccounts() {
-        log.info("\n" +
-            "╔════════════════════════════════════════════════════════════╗\n" +
-            "║         THÔNG TIN TÀI KHOẢN MẶC ĐỊNH                      ║\n" +
-            "╠════════════════════════════════════════════════════════════╣\n" +
-            "║  Tài khoản     │ Mật khẩu   │ Quyền                       ║\n" +
-            "╠════════════════════════════════════════════════════════════╣\n" +
-            "║  admin         │ davictory  │ ADMIN (Quản trị viên)       ║\n" +
-            "║  manager       │ davictory  │ MANAGER (Quản lý)           ║\n" +
-            "║  teacher       │ davictory  │ TEACHER (Giáo viên)         ║\n" +
-            "║  student       │ davictory  │ STUDENT (Học viên)          ║\n" +
-            "╚════════════════════════════════════════════════════════════╝\n"
-        );
+    private void initDefaultUsers() {
+        // 4 users mặc định: admin, manager, teacher, student
+        // username = tên quyền (viết thường), password = davictory
+        String[][] users = {
+            {"admin", "admin@davictory.com", "Quản trị viên", "ADMIN"},
+            {"manager", "manager@davictory.com", "Quản lý hệ thống", "MANAGER"},
+            {"teacher", "teacher@davictory.com", "Giảng viên IELTS", "TEACHER"},
+            {"student", "student@davictory.com", "Học viên IELTS", "STUDENT"}
+        };
+
+        String defaultPassword = passwordEncoder.encode("davictory");
+
+        for (String[] u : users) {
+            if (!userRepository.existsByUsername(u[0])) {
+                User user = new User();
+                user.setUsername(u[0]);
+                user.setEmail(u[1]);
+                user.setFullName(u[2]);
+                user.setPassword(defaultPassword);
+                user.setIsActive(true);
+
+                Role role = roleRepository.findByName(u[3])
+                        .orElseThrow(() -> new RuntimeException("Role not found: " + u[3]));
+                Set<Role> roleSet = new HashSet<>();
+                roleSet.add(role);
+                user.setRoles(roleSet);
+
+                userRepository.save(user);
+                log.info("✅ Tạo user: {} (role: {})", u[0], u[3]);
+            }
+        }
     }
 }

@@ -1,5 +1,127 @@
 /* Body styles are kept in index.css — do not override globally here */
 
+/* Test Loading Screen */
+.test-loading-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    width: 100%;
+    background: #fff;
+    gap: 12px;
+}
+
+.test-loading-spinner {
+    width: 48px;
+    height: 48px;
+    border: 4px solid transparent;
+    border-top-color: #111;
+    border-right-color: #111;
+    border-radius: 50%;
+    animation: test-spin 0.75s linear infinite;
+    margin-bottom: 8px;
+}
+
+@keyframes test-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.test-loading-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #111;
+    margin: 0;
+}
+
+.test-loading-sub {
+    font-size: 14px;
+    color: #555;
+    margin: 0;
+}
+
+/* Submit Confirmation Modal */
+.submit-confirm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.submit-confirm-modal {
+    background: #fff;
+    border-radius: 10px;
+    padding: 36px 40px;
+    max-width: 460px;
+    width: 90%;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+}
+
+.submit-confirm-modal h3 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #111;
+    margin: 0 0 14px;
+}
+
+.submit-confirm-modal p {
+    font-size: 14px;
+    color: #444;
+    line-height: 1.65;
+    margin: 0 0 10px;
+}
+
+.scm-warning {
+    font-size: 13px;
+    color: #b91c1c;
+    font-weight: 600;
+    margin-top: 4px;
+    margin-bottom: 28px !important;
+}
+
+.submit-confirm-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.scm-cancel-btn {
+    padding: 10px 22px;
+    background: #efefef;
+    color: #333;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.scm-cancel-btn:hover {
+    background: #e0e0e0;
+}
+
+.scm-submit-btn {
+    padding: 10px 22px;
+    background: #111;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.scm-submit-btn:hover {
+    background: #333;
+}
+
 .ielts-container {
     display: flex;
     flex-direction: column;
@@ -173,6 +295,8 @@
 .divider {
     width: 14px;
     background-color: transparent;
+    background-color: #ffe066;
+    color: #222;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -347,6 +471,20 @@
     gap: 10px;
     cursor: pointer;
     font-size: 15px;
+    border-radius: 6px;
+    transition: background-color 0.15s;
+}
+
+.tfng-radio-label:hover {
+    background-color: #e5e5e5;
+}
+
+.tfng-radio-label.tfng-option-selected {
+    background-color: #c5ddf5;
+}
+
+.tfng-radio-label.tfng-option-selected:hover {
+    background-color: #b3d1ef;
 }
 
 .tfng-radio-label input {
@@ -456,6 +594,7 @@
 /* Khi đã trả lời, vạch đứt chuyển màu xám đen (Chuẩn thi thật, không dùng màu xanh) */
 .status-dash.answered-dash {
     background-color: #444444;
+    background-color: #ffe066;
 }
 
 /* Ô số thứ tự */
@@ -493,8 +632,22 @@
     font-size: 15px;
     white-space: nowrap;
 }
+
 .q-wrapper:has(.q-num-range) {
     width: auto;
+}
+
+/* Bookmark flag above status dash in footer */
+.q-bookmark-flag {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 8px;
+    height: 10px;
+    background: #f59e0b;
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 72%, 0 100%);
+    pointer-events: none;
 }
 
 /* Nút Submit (Checkmark) ở góc phải */
@@ -731,6 +884,7 @@
    ============================================================ */
 .drag-drop-group {
     margin-bottom: 30px;
+    padding-left: 15px;
 }
 
 .drag-drop-group.matching-info {
@@ -822,6 +976,7 @@
     box-sizing: border-box;
     flex-wrap: nowrap;
     align-items: center;
+    margin-left: 0;
 }
 
 .dd-info-text {
@@ -884,6 +1039,21 @@
 
 .dd-drop-zone.dd-drop-filled {
     background-color: #e8f4fd;
+}
+
+.dd-drop-zone.dd-drop-info.dd-drop-filled {
+    background-color: #fff;
+    border: 1px solid #3498db;
+    border-style: solid;
+}
+
+.dd-drop-zone.dd-drop-info.dd-drop-filled .dd-drop-answer {
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.dd-drop-zone.dd-drop-info .dd-drop-clear {
+    display: none;
 }
 
 .dd-drop-number {
@@ -1503,12 +1673,14 @@
 
 .fill-in-blank-item {
     position: relative;
+    list-style: none;
 }
 
 .fill-in-blank-bookmark {
     position: absolute;
-    left: -28px;
-    top: 5px;
+    left: -20px;
+    top: 50%;
+    transform: translateY(-50%);
     cursor: pointer;
     display: flex;
 }

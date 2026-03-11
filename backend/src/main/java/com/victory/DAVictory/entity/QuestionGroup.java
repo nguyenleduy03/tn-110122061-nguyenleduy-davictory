@@ -34,6 +34,10 @@ public class QuestionGroup {
     @JoinColumn(name = "part_id", nullable = false)
     private Part part; // Thuộc phần thi nào
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "question_type_id")
+    private QuestionType questionType; // Loại câu hỏi của group (MCQ, TFNG, FILL_BLANK...)
+
     @Column(nullable = false, length = 200)
     private String title; // Tiêu đề nhóm, ví dụ: "Questions 1-10", "Passage 1"
 
