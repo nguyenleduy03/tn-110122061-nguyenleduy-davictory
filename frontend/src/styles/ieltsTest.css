@@ -483,9 +483,18 @@
 /* Ô số ĐANG ĐƯỢC CHỌN (Active) - Viền xanh chuẩn giống hình */
 .q-num.active {
     border: 1.5px solid #1a73e8;
-    /* Màu xanh nước biển đặc trưng */
-
     color: #000;
+}
+
+/* Ô số gộp (range) — nằm ngang */
+.q-num.q-num-range {
+    width: auto;
+    padding: 0 4px;
+    font-size: 15px;
+    white-space: nowrap;
+}
+.q-wrapper:has(.q-num-range) {
+    width: auto;
 }
 
 /* Nút Submit (Checkmark) ở góc phải */
@@ -726,17 +735,26 @@
 
 .drag-drop-group.matching-info {
     display: flex;
-    gap: 60px;
+    gap: 20px;
 }
 
 .dd-info-questions-col {
-    flex: 0.5;
-    min-width: 300px;
-    max-width: 350px;
+    flex: 0 1 auto;
+    min-width: 0;
 }
 
 .dd-info-bank-col {
-    width: 250px;
+    flex: 0 0 auto;
+}
+
+.dd-info-bank-col .bank-section {
+    flex-direction: column;
+    flex-wrap: nowrap;
+}
+
+.dd-info-bank-col .options-bank {
+    flex-direction: column;
+    flex-wrap: nowrap;
 }
 
 .dd-heading-instruction {
@@ -798,17 +816,21 @@
 }
 
 .dd-question-row.dd-row-info {
-    height: 32px;
-    padding: 0;
+    min-height: 32px;
+    height: auto;
+    padding: 6px 0;
     box-sizing: border-box;
+    flex-wrap: nowrap;
+    align-items: center;
 }
 
 .dd-info-text {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 8px;
-    flex: none;
+    flex: 0 1 auto;
     margin-right: 10px;
+    line-height: 1.5;
 }
 
 .dd-bookmark-btn {
@@ -1532,18 +1554,18 @@
 }
 
 .summary-inline-item {
-    position: relative;
-    display: inline-block;
-    margin: 0 5px;
+    display: inline-flex;
+    align-items: center;
+    margin: 0 4px;
+    vertical-align: middle;
 }
 
 .summary-bookmark {
-    position: absolute;
-    left: -20px;
-    top: -5px;
     cursor: pointer;
     display: flex;
-    z-index: 10;
+    align-items: center;
+    margin-right: 2px;
+    flex-shrink: 0;
 }
 
 .summary-input {

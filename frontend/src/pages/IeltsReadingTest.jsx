@@ -202,10 +202,22 @@ const IeltsReadingTest = () => {
         if (!testData) return 0;
         const p = testData.parts[partIndex];
         const flatQs = p.questions.flatMap(q => q.subQuestions ? q.subQuestions : q);
-        return flatQs.filter(q => {
+        let count = 0;
+        flatQs.forEach(q => {
             const ans = answers[q.id];
-            return typeof ans === 'string' ? ans.trim() !== '' : Array.isArray(ans) ? ans.length > 0 : !!ans;
-        }).length;
+            const isAnswered = q.selectCount
+                ? (Array.isArray(ans) && ans.length >= q.selectCount)
+                : (typeof ans === 'string' ? ans.trim() !== '' : Array.isArray(ans) ? ans.length > 0 : !!ans);
+            if (isAnswered) count += (q.numberRange ? q.numberRange.length : 1);
+        });
+        return count;
+    };
+
+    const getTotalCount = (partIndex) => {
+        if (!testData) return 0;
+        const p = testData.parts[partIndex];
+        const flatQs = p.questions.flatMap(q => q.subQuestions ? q.subQuestions : q);
+        return flatQs.reduce((sum, q) => sum + (q.numberRange ? q.numberRange.length : 1), 0);
     };
 
     if (loading) return <div style={{ padding: '50px', textAlign: 'center' }}>Loading Test...</div>;
@@ -291,6 +303,7 @@ const IeltsReadingTest = () => {
                     {testData && testData.parts.map((p, index) => {
                         const isActivePart = currentPartIndex === index;
                         const answeredCount = getAnsweredCount(index);
+                        const totalCount = getTotalCount(index);
                         const flatQuestions = p.questions?.flatMap(q => q.subQuestions ? q.subQuestions : q) || [];
 
                         return (
@@ -305,7 +318,7 @@ const IeltsReadingTest = () => {
                                     </h4>
                                     {!isActivePart && (
                                         <span className="part-status" style={{ marginLeft: "10px" }}>
-                                            {answeredCount} of {flatQuestions.length}
+                                            {answeredCount} of {totalCount}
                                         </span>
                                     )}
                                 </div>
@@ -313,36 +326,39 @@ const IeltsReadingTest = () => {
                                 {isActivePart && (
                                     <div className="question-numbers">
                                         {flatQuestions.map((q) => {
-                                            const num = q.number;
+                                            const nums = q.numberRange || [q.number];
+                                            const isRange = nums.length > 1;
                                             const ans = answers[q.id];
-                                            const isAnswered = typeof ans === "string" ? ans.trim() !== "" : Array.isArray(ans) ? ans.length > 0 : !!ans;
-                                            const isActive = activeQuestion === num;
+                                            const isAnswered = q.selectCount
+                                                ? (Array.isArray(ans) && ans.length >= q.selectCount)
+                                                : (typeof ans === "string" ? ans.trim() !== "" : Array.isArray(ans) ? ans.length > 0 : !!ans);
+                                            const isActive = nums.includes(activeQuestion);
 
                                             return (
                                                 <div
                                                     className="q-wrapper"
                                                     style={{ position: "relative" }}
-                                                    key={num}
+                                                    key={q.id}
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         setCurrentPartIndex(index);
-                                                        setActiveQuestion(num);
+                                                        setActiveQuestion(q.number);
                                                         setTimeout(() => {
-                                                            const el = document.getElementById(`question-${num}`);
+                                                            const el = document.getElementById(`question-${q.number}`);
                                                             if (el) {
                                                                 el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                                                             }
                                                         }, 50);
                                                     }}
                                                 >
-                                                    {bookmarks[num] && (
+                                                    {nums.some(n => bookmarks[n]) && (
                                                         <div style={{ position: 'absolute', top: '-18px', display: 'flex', justifyContent: 'center', width: '100%' }}>
                                                             <Bookmark size={14} fill="#1a73e8" color="#1a73e8" />
                                                         </div>
                                                     )}
                                                     <div className={`status-dash ${isAnswered ? "answered-dash" : ""}`} />
-                                                    <span className={`q-num ${isActive ? "active" : ""}`}>
-                                                        {num}
+                                                    <span className={`q-num ${isActive ? "active" : ""} ${isRange ? "q-num-range" : ""}`}>
+                                                        {isRange ? `${nums[0]}–${nums[nums.length - 1]}` : q.number}
                                                     </span>
                                                 </div>
                                             );

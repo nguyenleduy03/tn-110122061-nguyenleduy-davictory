@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Eye, Save, Send, Settings, Shuffle } from 'lucide-react';
+import { ArrowLeft, Eye, Save, Send, Settings, Shuffle, List } from 'lucide-react';
 
 const STATUS_LABELS = {
   DRAFT: 'Nháp',
@@ -21,8 +21,12 @@ const BuilderHeader = ({ test, onTestChange, onSave, onSubmitReview, saving, onP
     <header className="tb-header">
       {/* Left Section - Navigation & Title */}
       <div className="tb-header-left">
-        <Link to="/teacher/tests" className="tb-back-btn" title="Quay lại danh sách">
+        <Link to="/" className="tb-back-btn" title="Quay lại trang chủ">
           <ArrowLeft size={18} />
+        </Link>
+
+        <Link to="/teacher/tests" className="tb-back-btn" title="Danh sách đề thi">
+          <List size={18} />
         </Link>
         
         <div className="tb-divider"></div>

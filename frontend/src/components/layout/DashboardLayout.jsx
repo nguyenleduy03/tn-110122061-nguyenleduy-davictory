@@ -9,6 +9,8 @@ import {
   Award,
   Clock,
   Target,
+  FilePlus,
+  FolderOpen,
 } from 'lucide-react';
 import Navbar from './Navbar';
 import { authApi } from '../../services/authApi';
@@ -22,6 +24,17 @@ const SIDEBAR_ITEMS = [
   { label: 'Cài đặt', icon: Settings, path: '/my-dashboard/settings' },
 ];
 
+const TEACHER_SIDEBAR_ITEMS = [
+  { label: 'Tạo đề thi', icon: FilePlus, path: '/teacher/tests/new' },
+  { label: 'Quản lý đề thi', icon: FolderOpen, path: '/teacher/tests' },
+];
+
+const isTeacherOrAbove = (roles) => {
+  if (!roles) return false;
+  const rolesArray = Array.isArray(roles) ? roles : Array.from(roles);
+  return ['ADMIN', 'MANAGER', 'TEACHER'].some(r => rolesArray.includes(r));
+};
+
 export default function DashboardLayout({ children }) {
   const location = useLocation();
   const [userInfo, setUserInfo] = useState({
@@ -29,6 +42,7 @@ export default function DashboardLayout({ children }) {
     email: '',
     avatar: 'VH',
     memberType: 'Thành viên',
+    roles: [],
   });
 
   const loadUser = async () => {
@@ -48,6 +62,7 @@ export default function DashboardLayout({ children }) {
         email: data.email || '',
         avatar,
         memberType,
+        roles: Array.isArray(roles) ? roles : Array.from(roles),
       });
     } catch (err) {
       console.error('Lỗi khi load sidebar user:', err);
@@ -88,6 +103,22 @@ export default function DashboardLayout({ children }) {
                 <span>{label}</span>
               </Link>
             ))}
+            {isTeacherOrAbove(userInfo.roles) && (
+              <>
+                <div className="db-sidebar-divider" style={{ margin: '8px 0' }} />
+                <p className="db-nav-section-label" style={{ fontSize: 11, color: '#9ca3af', padding: '0 12px', marginBottom: 4 }}>Giảng viên</p>
+                {TEACHER_SIDEBAR_ITEMS.map(({ label, icon: Icon, path }) => (
+                  <Link
+                    key={path}
+                    to={path}
+                    className={`db-nav-item${location.pathname === path ? ' active' : ''}`}
+                  >
+                    <Icon size={18} />
+                    <span>{label}</span>
+                  </Link>
+                ))}
+              </>
+            )}
           </nav>
 
           <div className="db-sidebar-divider" />

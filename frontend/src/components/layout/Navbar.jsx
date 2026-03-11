@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Bell, ChevronDown, LogOut, User, Settings } from 'lucide-react';
+import { Bell, ChevronDown, LogOut, User, Settings, FilePlus } from 'lucide-react';
 import { authApi } from '../../services/authApi';
 
 const NAV_ITEMS = [
@@ -11,6 +11,12 @@ const NAV_ITEMS = [
   { label: 'Khóa học IELTS', path: '/courses' },
   { label: 'Học trực tiếp', path: '/live' },
 ];
+
+const isTeacherOrAbove = (roles) => {
+  if (!roles) return false;
+  const rolesArray = Array.isArray(roles) ? roles : Array.from(roles);
+  return ['ADMIN', 'MANAGER', 'TEACHER'].some(r => rolesArray.includes(r));
+};
 
 const Navbar = () => {
   const location = useLocation();
@@ -81,6 +87,15 @@ const Navbar = () => {
               <ChevronDown size={13} />
             </Link>
           ))}
+          {user && isTeacherOrAbove(user.roles) && (
+            <Link
+              to="/teacher/tests/new"
+              className={`nav-link${location.pathname.startsWith('/teacher') ? ' nav-link-active' : ''}`}
+            >
+              Tạo đề thi
+              <ChevronDown size={13} />
+            </Link>
+          )}
         </div>
 
         <div className="nav-actions">
@@ -113,6 +128,12 @@ const Navbar = () => {
                       <User size={16} />
                       <span>Thông tin cá nhân</span>
                     </Link>
+                    {isTeacherOrAbove(user.roles) && (
+                      <Link to="/teacher/tests/new" className="user-dropdown-item">
+                        <FilePlus size={16} />
+                        <span>Tạo đề thi</span>
+                      </Link>
+                    )}
                     <Link to="/settings" className="user-dropdown-item">
                       <Settings size={16} />
                       <span>Cài đặt</span>

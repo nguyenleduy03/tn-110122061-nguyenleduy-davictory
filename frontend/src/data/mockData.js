@@ -142,8 +142,7 @@ export const MOCK_READING_DATA = {
           layout: "list"
         },
         // Q36-37: Multiple Choice (multi-select — choose TWO)
-        { id: "q36", number: 36, type: "multiple-choice", allowMultipleAnswers: true, text: "Which TWO of the following are described as characteristics of Blue Zone communities?", options: ["A. high levels of meat consumption", "B. regular physical activity", "C. working long office hours", "D. moderate caloric intake", "E. frequent international travel"] },
-        { id: "q37", number: 37, type: "multiple-choice", allowMultipleAnswers: true, text: "Which TWO findings about ageing are mentioned in relation to molecular research?", options: ["A. Telomeres protect the ends of chromosomes.", "B. Exercise has no effect on cell division.", "C. Chronic stress speeds up telomere shortening.", "D. Genes are the sole factor in ageing.", "E. Senescent cells improve tissue function."] },
+        { id: "q36-37", number: 36, numberRange: [36, 37], type: "multiple-choice", allowMultipleAnswers: true, selectCount: 2, text: "Which TWO of the following are described as characteristics of Blue Zone communities?", options: ["A. high levels of meat consumption", "B. regular physical activity", "C. working long office hours", "D. moderate caloric intake", "E. frequent international travel"] },
         // Q38-40: Image Drag & Drop — Map labelling
         {
           id: "q_image_dd",
