@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ArrowLeft, ArrowRight, Volume2, ArrowLeftRight, Headphones, Play } from "lucide-react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate, useParams } from "react-router-dom";
 import "../styles/ieltsTest.css";
 import TestHeader from "../components/common/TestHeader";
 import QuestionRenderer from "../components/question/QuestionRenderer";
@@ -11,12 +11,14 @@ const IeltsListeningTest = () => {
     const [testData, setTestData] = useState(null);
     const [answers, setAnswers] = useState({});
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const [bookmarks, setBookmarks] = useState({});
     const [audioStarted, setAudioStarted] = useState(false);
     const audioRef = useRef(null);
 
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
+    const { id: testId } = useParams();
     const isFullTest = searchParams.get('fullTest') === 'true';
     const mode = searchParams.get('mode') || 'practice';
     const isReview = searchParams.get('review') === 'true';
@@ -38,7 +40,8 @@ const IeltsListeningTest = () => {
     } = useTestNavigation(testData);
 
     useEffect(() => {
-        ieltsApi.getTestSession("mock-session-id", "LISTENING").then((data) => {
+        if (!testId) { setError('Không tìm thấy ID bài thi.'); setLoading(false); return; }
+        ieltsApi.getTestSession(testId, "LISTENING").then((data) => {
             data.testType = "Academic Listening";
             setTestData(data);
             if (data.parts[0]?.questions?.length > 0) {
@@ -47,14 +50,20 @@ const IeltsListeningTest = () => {
             setLoading(false);
 
             if (isReview) {
-                setAudioStarted(true); // Bỏ qua overlay bắt play audio
+                setAudioStarted(true);
                 const savedAnswers = sessionStorage.getItem('lastAnswers_listening');
                 if (savedAnswers) {
                     setAnswers(JSON.parse(savedAnswers));
                 }
             }
+        }).catch((err) => {
+            console.error('[Listening] Lỗi tải bài thi:', err);
+            setError(err.message === 'AUTH_REQUIRED'
+                ? 'Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.'
+                : `Không thể tải bài thi: ${err.message}`);
+            setLoading(false);
         });
-    }, [isReview]);
+    }, [testId, isReview]);
 
     useEffect(() => {
         if (inputRefs.current && inputRefs.current[activeQuestion] && typeof inputRefs.current[activeQuestion].focus === 'function') {
@@ -88,7 +97,7 @@ const IeltsListeningTest = () => {
         
         if (isFullTest) { handleFullTestNext(); return; }
         
-        ieltsApi.submitAnswers("mock-session-id", answers).then(() => {
+        ieltsApi.submitAnswers(testId || "mock-session-id", answers).then(() => {
             navigate(`/test/complete?mode=${mode}&skill=listening`);
         });
     };
@@ -120,6 +129,12 @@ const IeltsListeningTest = () => {
             <div className="test-loading-spinner"></div>
             <p className="test-loading-title">Your test will begin shortly</p>
             <p className="test-loading-sub">Please wait</p>
+        </div>
+    );
+    if (error) return (
+        <div style={{ padding: '40px', textAlign: 'center', color: '#dc2626' }}>
+            <p style={{ fontSize: '18px', fontWeight: 600 }}>⚠️ {error}</p>
+            <button onClick={() => navigate('/exam-library')} style={{ marginTop: '16px', padding: '8px 20px', borderRadius: '6px', border: 'none', background: '#1e3a8a', color: '#fff', cursor: 'pointer' }}>← Quay lại thư viện</button>
         </div>
     );
     if (!testData) return <div style={{ padding: '20px' }}>No test data available</div>;
@@ -169,7 +184,7 @@ const IeltsListeningTest = () => {
             )}
 
             <div className="instruction-bar">
-                <h3>{part.title}</h3>
+                <h3 dangerouslySetInnerHTML={{ __html: part.title }} />
                 <p>{part.instruction || "Listen and answer questions."}</p>
             </div>
 
@@ -269,9 +284,9 @@ const IeltsListeningTest = () => {
                                 onClick={() => setCurrentPartIndex(index)}
                             >
                                 <div className="part-status-container">
-                                    <h4 className="part-title hover-pointer">
-                                        {p.title}
-                                    </h4>
+                                    <h4 className="part-title hover-pointer"
+                                        dangerouslySetInnerHTML={{ __html: p.title }}
+                                    />
                                     {!isActivePart && (
                                         <span className="part-status" style={{ marginLeft: "10px" }}>
                                             {answeredCount} of {totalCount}

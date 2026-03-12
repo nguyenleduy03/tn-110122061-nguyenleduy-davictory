@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import {
   LayoutGrid,
@@ -18,7 +18,7 @@ import {
   HelpCircle,
 } from 'lucide-react';
 import Navbar from '../components/layout/Navbar';
-import { TEST_SERIES } from '../data/examLibraryData';
+import { API_CONFIG } from '../config/api';
 import '../styles/examLibrary.css';
 
 const TYPE_TABS = [
@@ -231,6 +231,69 @@ export default function ExamLibrary() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSeries, setSelectedSeries] = useState(null);
   const [selectedSeriesIndex, setSelectedSeriesIndex] = useState(0);
+  const [testSeries, setTestSeries] = useState([]);
+  const [loadingTests, setLoadingTests] = useState(true);
+  const [fetchError, setFetchError] = useState(null);
+
+  // Fetch published tests from backend
+  useEffect(() => {
+    const fetchPublishedTests = async () => {
+      try {
+        const res = await fetch(`${API_CONFIG.BASE_URL}/tests/published`, {
+          signal: AbortSignal.timeout(5000),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+
+        if (!data || data.length === 0) {
+          console.log('[ExamLibrary] No data received or empty array:', data);
+          setTestSeries([]);
+          setFetchError(null);
+          // Note: finally still runs after return, so setLoadingTests(false) is called
+          return;
+        }
+
+        console.log('[ExamLibrary] Received data:', data.length, 'tests');
+        console.log('[ExamLibrary] First test:', data[0]);
+
+        // Transform backend TestResponse[] → TEST_SERIES format
+        // Each Test becomes its own "series", skills are inferred from sessions or isFullTest flag
+        const SKILL_ORDER = ['LISTENING', 'READING', 'WRITING', 'SPEAKING'];
+        const mapped = data.map((test) => ({
+          id: `be-${test.id}`,
+          backendId: test.id,
+          title: test.title || `Test ${test.id}`,
+          type: test.testType || 'ACADEMIC',
+          year: test.publishedAt ? new Date(test.publishedAt).getFullYear() : new Date().getFullYear(),
+          tests: test.isFullTest
+            ? SKILL_ORDER.map((skill) => ({
+                id: test.id,
+                name: `${test.title} – ${skill.charAt(0) + skill.slice(1).toLowerCase()}`,
+                skill,
+              }))
+            : (test.sessions || []).map((s) => ({
+                id: test.id,
+                name: `${test.title} – ${s.skillType || 'Test'}`,
+                skill: s.skillType || 'READING',
+              })),
+        }));
+
+        console.log('[ExamLibrary] Mapped data:', mapped);
+        console.log('[ExamLibrary] Setting testSeries to:', mapped.length, 'series');
+        setTestSeries(mapped);
+        setFetchError(null);
+      } catch (err) {
+        const reason = err.name === 'TimeoutError' ? 'timeout sau 5 giây' : err.message;
+        console.warn(`[ExamLibrary] Lỗi tải dữ liệu: ${reason}`);
+        setFetchError(reason);
+        setTestSeries([]);
+      } finally {
+        setLoadingTests(false);
+      }
+    };
+
+    fetchPublishedTests();
+  }, []);
 
   const rawSkill = searchParams.get('skill')?.toUpperCase() || 'ALL';
   const activeSkill = SKILL_PILLS.some(s => s.key === rawSkill) ? rawSkill : 'ALL';
@@ -244,13 +307,31 @@ export default function ExamLibrary() {
   };
 
   const filteredSeries = useMemo(() => {
-    return TEST_SERIES.filter(series => {
-      if (activeType !== 'ALL' && series.type !== activeType) return false;
-      if (searchQuery && !series.title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-      if (activeSkill !== 'ALL') return series.tests.some(t => t.skill === activeSkill);
+    console.log('[ExamLibrary] Filtering - testSeries:', testSeries.length);
+    console.log('[ExamLibrary] Filtering - activeType:', activeType, 'activeSkill:', activeSkill, 'searchQuery:', searchQuery);
+    
+    const filtered = testSeries.filter(series => {
+      if (activeType !== 'ALL' && series.type !== activeType) {
+        console.log('[ExamLibrary] Filtered out by type:', series.title, 'type:', series.type);
+        return false;
+      }
+      if (searchQuery && !series.title.toLowerCase().includes(searchQuery.toLowerCase())) {
+        console.log('[ExamLibrary] Filtered out by search:', series.title);
+        return false;
+      }
+      if (activeSkill !== 'ALL') {
+        const hasSkill = series.tests.some(t => t.skill === activeSkill);
+        if (!hasSkill) {
+          console.log('[ExamLibrary] Filtered out by skill:', series.title, 'available skills:', series.tests.map(t => t.skill));
+        }
+        return hasSkill;
+      }
       return true;
     });
-  }, [activeType, activeSkill, searchQuery]);
+    
+    console.log('[ExamLibrary] Filtered result:', filtered.length, 'series');
+    return filtered;
+  }, [testSeries, activeType, activeSkill, searchQuery]);
 
   const flatTests = useMemo(() => {
     if (activeSkill === 'ALL') return [];
@@ -267,7 +348,28 @@ export default function ExamLibrary() {
     <div className="exam-library-page">
       <Navbar />
 
-      <div className="exam-library-wrapper">
+      {loadingTests ? (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+          <div style={{ textAlign: 'center', color: '#6b7280' }}>
+            <div style={{ width: 40, height: 40, border: '3px solid #e5e7eb', borderTopColor: '#1e3a8a', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
+            <p>Đang tải danh sách đề thi...</p>
+          </div>
+        </div>
+      ) : fetchError ? (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+          <div style={{ textAlign: 'center', padding: '40px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', margin: '20px' }}>
+            <p style={{ color: '#dc2626', marginBottom: '16px' }}>❌ Lỗi kết nối backend: {fetchError}</p>
+            <p style={{ color: '#6b7280', marginBottom: '16px' }}>API URL: {API_CONFIG.BASE_URL}/tests/published</p>
+            <button 
+              onClick={() => window.location.reload()} 
+              style={{ padding: '8px 16px', backgroundColor: '#dc2626', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+            >
+              Thử lại
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="exam-library-wrapper">
         <div className="exam-library-main">
           <nav className="el-breadcrumb">
             <Link to="/">Home</Link>
@@ -334,11 +436,16 @@ export default function ExamLibrary() {
             />
           ) : activeSkill === 'ALL' ? (
             <div className="el-series-list">
-              {filteredSeries.length === 0
-                ? <div className="el-empty">Không tìm thấy đề thi phù hợp.</div>
-                : filteredSeries.map((series, idx) => (
-                  <SeriesCard key={series.id} series={series} index={idx} onSelect={handleSelectSeries} />
-                ))
+              {fetchError ? (
+                <div className="el-empty">
+                  <p>⚠️ Không kết nối được backend.</p>
+                  <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>{fetchError}</p>
+                </div>
+              ) : filteredSeries.length === 0 ? (
+                <div className="el-empty">Chưa có đề thi nào được xuất bản.</div>
+              ) : filteredSeries.map((series, idx) => (
+                <SeriesCard key={series.id} series={series} index={idx} onSelect={handleSelectSeries} />
+              ))
               }
             </div>
           ) : (
@@ -388,6 +495,7 @@ export default function ExamLibrary() {
           </div>
         </aside>
       </div>
+      )}
     </div>
   );
 }

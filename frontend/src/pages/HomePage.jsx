@@ -16,6 +16,13 @@ import {
   Layers,
 } from 'lucide-react';
 import Navbar from '../components/layout/Navbar';
+import TestConnection from '../components/common/TestConnection';
+import QuickApiTest from '../components/common/QuickApiTest';
+import CorsTest from '../components/common/CorsTest';
+import DataStructureTest from '../components/common/DataStructureTest';
+import DatabaseDebug from '../components/common/DatabaseDebug';
+import TestSessionDebug from '../components/common/TestSessionDebug';
+import SkillTestDebug from '../components/common/SkillTestDebug';
 import '../styles/homePage.css';
 
 // ---- Carousel slides ----
@@ -340,6 +347,15 @@ const HomePage = () => {
           </div>
         </div>
       </section>
+
+      {/* ---- TEST CONNECTION ---- */}
+      <TestConnection />
+      <QuickApiTest />
+      <CorsTest />
+      <DataStructureTest />
+      <DatabaseDebug />
+      <TestSessionDebug />
+      <SkillTestDebug />
 
       {/* ---- CTA BANNER ---- */}
       <section className="cta-banner">

@@ -142,9 +142,12 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/speaking/**").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
 
                 // ===== WRITING =====
+                // Nộp bài & xem bài của mình: STUDENT+
                 .requestMatchers(HttpMethod.POST, "/api/writing/submit").hasAnyRole("STUDENT", "TEACHER", "MANAGER", "ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/writing/submissions").hasAnyRole("STUDENT", "TEACHER", "MANAGER", "ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/writing/submissions/**").hasAnyRole("STUDENT", "TEACHER", "MANAGER", "ADMIN")
+                // Chấm bài: TEACHER+
                 .requestMatchers(HttpMethod.POST, "/api/writing/*/grade").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
-                .requestMatchers(HttpMethod.GET, "/api/writing/my/**").hasAnyRole("STUDENT", "TEACHER", "MANAGER", "ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/writing/pending").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/writing/prompts/**").hasAnyRole("STUDENT", "TEACHER", "MANAGER", "ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/writing/**").hasAnyRole("TEACHER", "MANAGER", "ADMIN")

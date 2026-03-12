@@ -14,6 +14,8 @@ import TestComplete from './pages/TestComplete'
 import DashboardHistory from './pages/DashboardHistory'
 import DashboardProfile from './pages/DashboardProfile'
 import DashboardSettings from './pages/DashboardSettings'
+import ApiDebugPage from './pages/ApiDebugPage'
+import ProtectedRoute from './components/common/ProtectedRoute'
 import './App.css'
 
 function App() {
@@ -22,24 +24,28 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/exam-library" element={<ExamLibrary />} />
-        <Route path="/test/reading" element={<IeltsReadingTest />} />
-        <Route path="/test/reading/:id" element={<IeltsReadingTest />} />
-        <Route path="/test/listening" element={<IeltsListeningTest />} />
-        <Route path="/test/listening/:id" element={<IeltsListeningTest />} />
-        <Route path="/test/writing" element={<IeltsWritingTest />} />
-        <Route path="/test/writing/:id" element={<IeltsWritingTest />} />
-        <Route path="/test/speaking" element={<IeltsSpeakingTest />} />
-        <Route path="/test/speaking/:id" element={<IeltsSpeakingTest />} />
-        <Route path="/test/complete" element={<TestComplete />} />
+
+        {/* Test routes — yêu cầu đăng nhập (STUDENT role) để gọi BE API */}
+        <Route path="/test/reading" element={<ProtectedRoute><IeltsReadingTest /></ProtectedRoute>} />
+        <Route path="/test/reading/:id" element={<ProtectedRoute><IeltsReadingTest /></ProtectedRoute>} />
+        <Route path="/test/listening" element={<ProtectedRoute><IeltsListeningTest /></ProtectedRoute>} />
+        <Route path="/test/listening/:id" element={<ProtectedRoute><IeltsListeningTest /></ProtectedRoute>} />
+        <Route path="/test/writing" element={<ProtectedRoute><IeltsWritingTest /></ProtectedRoute>} />
+        <Route path="/test/writing/:id" element={<ProtectedRoute><IeltsWritingTest /></ProtectedRoute>} />
+        <Route path="/test/speaking" element={<ProtectedRoute><IeltsSpeakingTest /></ProtectedRoute>} />
+        <Route path="/test/speaking/:id" element={<ProtectedRoute><IeltsSpeakingTest /></ProtectedRoute>} />
+        <Route path="/test/complete" element={<ProtectedRoute><TestComplete /></ProtectedRoute>} />
+
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/my-dashboard" element={<MyDashboard />} />
-        <Route path="/my-dashboard/history" element={<DashboardHistory />} />
-        <Route path="/profile" element={<DashboardProfile />} />
-        <Route path="/my-dashboard/settings" element={<DashboardSettings />} />
-        <Route path="/teacher/tests" element={<TeacherTests />} />
-        <Route path="/teacher/tests/new" element={<TestBuilder />} />
-        <Route path="/teacher/tests/:id/edit" element={<TestBuilder />} />
+        <Route path="/debug" element={<ApiDebugPage />} />
+        <Route path="/my-dashboard" element={<ProtectedRoute><MyDashboard /></ProtectedRoute>} />
+        <Route path="/my-dashboard/history" element={<ProtectedRoute><DashboardHistory /></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><DashboardProfile /></ProtectedRoute>} />
+        <Route path="/my-dashboard/settings" element={<ProtectedRoute><DashboardSettings /></ProtectedRoute>} />
+        <Route path="/teacher/tests" element={<ProtectedRoute><TeacherTests /></ProtectedRoute>} />
+        <Route path="/teacher/tests/new" element={<ProtectedRoute><TestBuilder /></ProtectedRoute>} />
+        <Route path="/teacher/tests/:id/edit" element={<ProtectedRoute><TestBuilder /></ProtectedRoute>} />
       </Routes>
     </Router>
   )

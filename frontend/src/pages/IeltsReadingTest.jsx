@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Check, ArrowLeft, ArrowRight, ArrowLeftRight, Bookmark } from "lucide-react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate, useParams } from "react-router-dom";
 import "../styles/ieltsTest.css";
 import TestHeader from "../components/common/TestHeader";
 import QuestionRenderer from "../components/question/QuestionRenderer";
@@ -151,10 +151,12 @@ const IeltsReadingTest = () => {
     const [testData, setTestData] = useState(null);
     const [answers, setAnswers] = useState({});
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const [bookmarks, setBookmarks] = useState({});
 
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
+    const { id: testId } = useParams();
     const isFullTest = searchParams.get('fullTest') === 'true';
     const mode = searchParams.get('mode') || 'practice';
     const isReview = searchParams.get('review') === 'true';
@@ -178,19 +180,25 @@ const IeltsReadingTest = () => {
     } = useTestNavigation(testData);
 
     useEffect(() => {
-        ieltsApi.getTestSession("mock-session-id").then((data) => {
+        if (!testId) { setError('Không tìm thấy ID bài thi.'); setLoading(false); return; }
+        ieltsApi.getTestSession(testId, "READING").then((data) => {
             setTestData(data);
             setLoading(false);
             
-            // Nếu là trang review, lấy lại answers từ sessionStorage
             if (isReview) {
                 const savedAnswers = sessionStorage.getItem('lastAnswers_reading');
                 if (savedAnswers) {
                     setAnswers(JSON.parse(savedAnswers));
                 }
             }
+        }).catch((err) => {
+            console.error('[Reading] Lỗi tải bài thi:', err);
+            setError(err.message === 'AUTH_REQUIRED'
+                ? 'Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.'
+                : `Không thể tải bài thi: ${err.message}`);
+            setLoading(false);
         });
-    }, [isReview]);
+    }, [testId, isReview]);
 
     const handleHighlightChange = () => {
         // Find the passage portion to avoid capturing the entire layout including portals
@@ -251,7 +259,7 @@ const IeltsReadingTest = () => {
         
         if (isFullTest) { handleFullTestNext(); return; }
         
-        ieltsApi.submitAnswers("mock-session-id", answers).then(() => {
+        ieltsApi.submitAnswers(testId || "mock-session-id", answers).then(() => {
             navigate(`/test/complete?mode=${mode}&skill=reading`);
         });
     };
@@ -285,6 +293,13 @@ const IeltsReadingTest = () => {
             <p className="test-loading-sub">Please wait</p>
         </div>
     );
+    if (error) return (
+        <div style={{ padding: '40px', textAlign: 'center', color: '#dc2626' }}>
+            <p style={{ fontSize: '18px', fontWeight: 600 }}>⚠️ {error}</p>
+            <button onClick={() => navigate('/exam-library')} style={{ marginTop: '16px', padding: '8px 20px', borderRadius: '6px', border: 'none', background: '#1e3a8a', color: '#fff', cursor: 'pointer' }}>← Quay lại thư viện</button>
+        </div>
+    );
+    if (!testData || !part) return null;
 
     const fillInBlankQuestions = part.questions.filter(q => q.type === 'fill-in-the-blank');
     const multiChoiceQuestions = part.questions.filter(q => q.type === 'multiple-choice');
@@ -310,14 +325,14 @@ const IeltsReadingTest = () => {
             <TestHeader candidateName={testData?.candidateName} candidateId={testData?.candidateId} submitTest={submitTest} isReview={isReview} isFullTest={isFullTest} skill="reading" navigate={navigate} />
 
             <div className="instruction-bar">
-                <h3>{part.title}</h3>
-                <p>{part.instruction}</p>
+                <h3 dangerouslySetInnerHTML={{ __html: part.title }} />
+                {part.instruction && <p dangerouslySetInnerHTML={{ __html: part.instruction }} />}
             </div>
 
             <main className="ielts-main" ref={containerRef}>
                 <TextHighlighter containerRef={containerRef} onHighlightChange={handleHighlightChange} />
                 <div className="passage-section" style={{ width: `${leftWidth}%`, flex: 'none' }}>
-                    <h2 className="passage-title">{part.passageTitle}</h2>
+                    <h2 className="passage-title" dangerouslySetInnerHTML={{ __html: part.passageTitle }} />
                     <PassageRenderer part={part} answers={answers} handleAnswerChange={handleAnswerChange}
                         bookmarks={bookmarks}
                         toggleBookmark={toggleBookmark} activeQuestion={activeQuestion} setActiveQuestion={setActiveQuestion} isReview={isReview} testData={testData} />
@@ -378,9 +393,9 @@ const IeltsReadingTest = () => {
                                 onClick={() => setCurrentPartIndex(index)}
                             >
                                 <div className="part-status-container">
-                                    <h4 className="part-title hover-pointer">
-                                        {p.title}
-                                    </h4>
+                                    <h4 className="part-title hover-pointer"
+                                        dangerouslySetInnerHTML={{ __html: p.title }}
+                                    />
                                     {!isActivePart && (
                                         <span className="part-status" style={{ marginLeft: "10px" }}>
                                             {answeredCount} of {totalCount}

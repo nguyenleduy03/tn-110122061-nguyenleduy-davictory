@@ -6,7 +6,7 @@ import {
   ChevronRight,
   Volume2,
 } from "lucide-react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate, useParams } from "react-router-dom";
 import "../styles/ieltsTest.css";
 import TestHeader from "../components/common/TestHeader";
 import { ieltsApi } from "../services/ieltsApi";
@@ -64,19 +64,21 @@ const Waveform = ({ analyser }) => {
 // ── CueCard (Part 2 only) ─────────────────────────────────────────────────────
 const CueCard = ({ question }) => (
   <div className="spk-cuecard">
-    <div className="spk-cuecard-topic">{question.topic}</div>
+    {question.topic
+      ? <div className="spk-cuecard-topic" dangerouslySetInnerHTML={{ __html: question.topic }} />
+      : <div className="spk-cuecard-topic" />}
     {question.instruction && (
-      <div className="spk-cuecard-desc">{question.instruction}</div>
+      <div className="spk-cuecard-desc" dangerouslySetInnerHTML={{ __html: question.instruction }} />
     )}
     {question.bulletPoints?.length > 0 && (
       <ul className="spk-cuecard-bullets">
         {question.bulletPoints.map((bp, i) => (
-          <li key={i}>{bp}</li>
+          <li key={i} dangerouslySetInnerHTML={{ __html: bp }} />
         ))}
       </ul>
     )}
     {question.closingSentence && (
-      <div className="spk-cuecard-closing">{question.closingSentence}</div>
+      <div className="spk-cuecard-closing" dangerouslySetInnerHTML={{ __html: question.closingSentence }} />
     )}
   </div>
 );
@@ -85,6 +87,9 @@ const CueCard = ({ question }) => (
 const IeltsSpeakingTest = () => {
   const [testData, setTestData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const { id: testId } = useParams();
 
   const [currentPartIdx, setCurrentPartIdx] = useState(0);
   const [currentQIdx, setCurrentQIdx] = useState(0);
@@ -109,11 +114,18 @@ const IeltsSpeakingTest = () => {
 
   // ── Load test data ─────────────────────────────────────────────────────────
   useEffect(() => {
-    ieltsApi.getTestSession("mock-session-id", "SPEAKING").then((data) => {
+    if (!testId) { setError('Không tìm thấy ID bài thi.'); setLoading(false); return; }
+    ieltsApi.getTestSession(testId, "SPEAKING").then((data) => {
       setTestData(data);
       setLoading(false);
+    }).catch((err) => {
+      console.error('[Speaking] Lỗi tải bài thi:', err);
+      setError(err.message === 'AUTH_REQUIRED'
+        ? 'Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.'
+        : `Không thể tải bài thi: ${err.message}`);
+      setLoading(false);
     });
-  }, []);
+  }, [testId]);
 
   // ── Cleanup on unmount ─────────────────────────────────────────────────────
   useEffect(() => {
@@ -308,6 +320,13 @@ const IeltsSpeakingTest = () => {
         <p className="test-loading-sub">Please wait</p>
       </div>
     );
+  if (error)
+    return (
+      <div style={{ padding: '40px', textAlign: 'center', color: '#dc2626' }}>
+        <p style={{ fontSize: '18px', fontWeight: 600 }}>⚠️ {error}</p>
+        <button onClick={() => window.location.href = '/exam-library'} style={{ marginTop: '16px', padding: '8px 20px', borderRadius: '6px', border: 'none', background: '#1e3a8a', color: '#fff', cursor: 'pointer' }}>← Quay lại thư viện</button>
+      </div>
+    );
   if (!testData)
     return <div style={{ padding: "50px" }}>No test data available</div>;
 
@@ -343,8 +362,8 @@ const IeltsSpeakingTest = () => {
       />
 
       <div className="instruction-bar">
-        <h3>Part {currentPart.partNumber} — {currentPart.title}</h3>
-        <p>{currentPart?.instructions}</p>
+        <h3>Part {currentPart.partNumber} — <span dangerouslySetInnerHTML={{ __html: currentPart.title }} /></h3>
+        {currentPart?.instructions && <p dangerouslySetInnerHTML={{ __html: currentPart.instructions }} />}
       </div>
 
       {/* Main card ──────────────────────────────────────────────────────── */}
@@ -352,7 +371,7 @@ const IeltsSpeakingTest = () => {
         <div className="spk-card">
           {/* Part label */}
           <div className="spk-part-label">
-            Part {currentPart.partNumber} · {currentPart.title}
+            Part {currentPart.partNumber} · <span dangerouslySetInnerHTML={{ __html: currentPart.title }} />
             <span className="spk-q-counter">
               Q{currentQIdx + 1} / {currentPart.questions.length}
             </span>
@@ -364,7 +383,7 @@ const IeltsSpeakingTest = () => {
           ) : (
             <div className="spk-question-text">
               <span className="spk-q-number">Q{currentQIdx + 1}.</span>{" "}
-              {currentQ.text}
+              <span dangerouslySetInnerHTML={{ __html: currentQ.text }} />
             </div>
           )}
 

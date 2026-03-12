@@ -31,8 +31,12 @@ public class StudentWritingSubmission {
     private User user; // Học viên nộp bài
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "writing_prompt_id", nullable = false)
-    private WritingPrompt writingPrompt; // Đề bài
+    @JoinColumn(name = "writing_prompt_id")
+    private WritingPrompt writingPrompt; // Đề bài (từ writing_prompts — dùng sau)
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "question_group_id")
+    private QuestionGroup questionGroup; // Đề bài từ TestBuilder (question_groups)
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "exam_attempt_id")

@@ -1594,9 +1594,9 @@ const MultipleChoiceBlock = ({ group, onUpdate, onDelete, onSelect, selected, dr
       {/* Optional shared context / instructions */}
       <div contentEditable suppressContentEditableWarning className="exam-mc-context"
         data-placeholder="Ngữ cảnh chung (nếu có, VD: What does the speaker say about...)"
-        onBlur={(e) => onUpdate(group.id, { title: e.currentTarget.textContent })}>
-        {group.title || ''}
-      </div>
+        onBlur={(e) => onUpdate(group.id, { title: e.currentTarget.innerHTML })}
+        dangerouslySetInnerHTML={{ __html: group.title || '' }}
+      />
       <div className="exam-q-range-header">
         Câu&nbsp;
         <input className="exam-q-range-input" value={group.fromQuestion ?? ''} placeholder="1"
@@ -1716,9 +1716,9 @@ const MultipleChoiceMultiBlock = ({ group, onUpdate, onDelete, onSelect, selecte
       </div>
       <div contentEditable suppressContentEditableWarning className="exam-mc-context"
         data-placeholder="Ngữ cảnh chung (nếu có)..."
-        onBlur={(e) => onUpdate(group.id, { title: e.currentTarget.textContent })}>
-        {group.title || ''}
-      </div>
+        onBlur={(e) => onUpdate(group.id, { title: e.currentTarget.innerHTML })}
+        dangerouslySetInnerHTML={{ __html: group.title || '' }}
+      />
       <div className="exam-q-range-header">
         Câu&nbsp;
         <input className="exam-q-range-input" value={group.fromQuestion ?? ''} placeholder="1"
@@ -1834,9 +1834,9 @@ const TFNGBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandlePr
       </div>
       <div contentEditable suppressContentEditableWarning className="exam-mc-context"
         data-placeholder="Tiêu đề / ngữ cảnh chung (nếu có)..."
-        onBlur={(e) => onUpdate(group.id, { title: e.currentTarget.textContent })}>
-        {group.title || ''}
-      </div>
+        onBlur={(e) => onUpdate(group.id, { title: e.currentTarget.innerHTML })}
+        dangerouslySetInnerHTML={{ __html: group.title || '' }}
+      />
       <div className="exam-q-range-header">
         Câu&nbsp;
         <input className="exam-q-range-input" value={group.fromQuestion ?? ''} placeholder="1"
@@ -1897,9 +1897,9 @@ const SentenceCompletionBlock = ({ group, onUpdate, onDelete, onSelect, selected
     </div>
     <div contentEditable suppressContentEditableWarning className="exam-mc-context"
       data-placeholder="Tiêu đề / ngữ cảnh (nếu có)..."
-      onBlur={(e) => onUpdate(group.id, { title: e.currentTarget.textContent })}>
-      {group.title || ''}
-    </div>
+      onBlur={(e) => onUpdate(group.id, { title: e.currentTarget.innerHTML })}
+      dangerouslySetInnerHTML={{ __html: group.title || '' }}
+    />
     <div className="exam-q-range-header">
       Câu&nbsp;
       <input className="exam-q-range-input" value={group.fromQuestion ?? ''} placeholder="1"
@@ -1952,9 +1952,9 @@ const ShortAnswerBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragH
     </div>
     <div contentEditable suppressContentEditableWarning className="exam-mc-context"
       data-placeholder="Tiêu đề / ngữ cảnh (nếu có)..."
-      onBlur={(e) => onUpdate(group.id, { title: e.currentTarget.textContent })}>
-      {group.title || ''}
-    </div>
+      onBlur={(e) => onUpdate(group.id, { title: e.currentTarget.innerHTML })}
+      dangerouslySetInnerHTML={{ __html: group.title || '' }}
+    />
     <div className="exam-q-range-header">
       Câu&nbsp;
       <input className="exam-q-range-input" value={group.fromQuestion ?? ''} placeholder="1"
@@ -2006,10 +2006,10 @@ const NoteCompletionBlock = ({ group, onUpdate, onDelete, onSelect, selected, dr
 
     {/* Note title (e.g. "Phone call about second-hand furniture") */}
     <div contentEditable suppressContentEditableWarning className="exam-note-form-title"
-      onBlur={(e) => onUpdate(group.id, { title: e.currentTarget.textContent })}
-      data-placeholder="Tiêu đề ghi chú (VD: Phone call about furniture)">
-      {group.title || ''}
-    </div>
+      onBlur={(e) => onUpdate(group.id, { title: e.currentTarget.innerHTML })}
+      data-placeholder="Tiêu đề ghi chú (VD: Phone call about furniture)"
+      dangerouslySetInnerHTML={{ __html: group.title || '' }}
+    />
 
     <RichBlankEditor
       value={group.noteText}
@@ -2052,9 +2052,9 @@ const SummaryCompletionBlock = ({ group, onUpdate, onDelete, onSelect, selected,
 
     {/* Summary title */}
     <div contentEditable suppressContentEditableWarning className="exam-passage-title"
-      onBlur={(e) => onUpdate(group.id, { title: e.currentTarget.textContent })}>
-      {group.title || ''}
-    </div>
+      onBlur={(e) => onUpdate(group.id, { title: e.currentTarget.innerHTML })}
+      dangerouslySetInnerHTML={{ __html: group.title || '' }}
+    />
 
     <RichBlankEditor
       value={group.summaryText}

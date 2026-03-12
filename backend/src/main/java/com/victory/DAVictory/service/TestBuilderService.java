@@ -68,9 +68,22 @@ public class TestBuilderService {
             test.setDurationMinutes(req.getDurationMinutes());
             test.setTargetBand(req.getTargetBand());
 
+            // Thu thập group ID cũ trước khi xóa cấu trúc
+            List<Long> oldGroupIds = testQuestionGroupRepository.findQuestionGroupIdsByTestId(test.getId());
+
             // Xóa cấu trúc cũ — cascade sẽ xóa TestPart, TestQuestionGroup
             test.getTestSessions().clear();
             testRepository.saveAndFlush(test);
+
+            // Xóa các QuestionGroup không còn được tham chiếu bởi bất kỳ đề thi nào
+            for (Long groupId : oldGroupIds) {
+                if (testQuestionGroupRepository.findByQuestionGroupId(groupId).isEmpty()) {
+                    questionOptionRepository.deleteByQuestionGroupId(groupId);
+                    answerRepository.deleteByQuestionGroupId(groupId);
+                    questionRepository.deleteByQuestionGroupId(groupId);
+                    questionGroupRepository.deleteById(groupId);
+                }
+            }
         } else {
             // ─── Tạo đề thi mới ───
             test = new Test();
@@ -123,6 +136,7 @@ public class TestBuilderService {
                         tp.setOrderIndex(ps.getOrderIndex());
                         tp.setCustomInstructions(ps.getInstructions());
                         tp.setCustomName(ps.getName());
+                        tp.setQuestionCount(ps.getTotalQuestions());
                         tp = testPartRepository.save(tp);
 
                         // ─── Xử lý QuestionGroups ───
@@ -131,50 +145,97 @@ public class TestBuilderService {
                                 QuestionGroup qg;
 
                                 if (gs.getExistingGroupId() != null) {
-                                    // Tham chiếu group có sẵn trong ngân hàng câu hỏi
-                                    qg = questionGroupRepository.findById(gs.getExistingGroupId())
-                                            .orElseThrow(() -> new RuntimeException(
-                                                    "Không tìm thấy QuestionGroup ID=" + gs.getExistingGroupId()));
+                                    // Kiểm tra group có tồn tại không
+                                    var existingGroup = questionGroupRepository.findById(gs.getExistingGroupId());
+                                    
+                                    if (existingGroup.isPresent()) {
+                                        // Group tồn tại - Tham chiếu và cập nhật
+                                        qg = existingGroup.get();
+                                        
+                                        // Cập nhật metadata của group
+                                        if (gs.getTitle() != null) qg.setTitle(gs.getTitle());
+                                        qg.setPassageText(gs.getPassageText());
+                                        qg.setAudioUrl(gs.getAudioUrl());
+                                        qg.setImageUrl(gs.getImageUrl());
+                                        if (gs.getFromQuestion() != null) qg.setFromQuestion(gs.getFromQuestion());
+                                        if (gs.getToQuestion() != null) qg.setToQuestion(gs.getToQuestion());
+                                        qg.setOrderIndex(gs.getOrderIndex());
+                                        qg = questionGroupRepository.save(qg);
 
-                                    // Cập nhật metadata của group
-                                    if (gs.getTitle() != null) qg.setTitle(gs.getTitle());
-                                    qg.setPassageText(gs.getPassageText());
-                                    qg.setAudioUrl(gs.getAudioUrl());
-                                    qg.setImageUrl(gs.getImageUrl());
-                                    if (gs.getFromQuestion() != null) qg.setFromQuestion(gs.getFromQuestion());
-                                    if (gs.getToQuestion() != null) qg.setToQuestion(gs.getToQuestion());
-                                    qg.setOrderIndex(gs.getOrderIndex());
-                                    qg = questionGroupRepository.save(qg);
+                                        // Xóa câu hỏi cũ theo thứ tự FK: options → answers → questions
+                                        questionOptionRepository.deleteByQuestionGroupId(qg.getId());
+                                        answerRepository.deleteByQuestionGroupId(qg.getId());
+                                        questionRepository.deleteByQuestionGroupId(qg.getId());
 
-                                    // Xóa câu hỏi cũ theo thứ tự FK: options → answers → questions
-                                    questionOptionRepository.deleteByQuestionGroupId(qg.getId());
-                                    answerRepository.deleteByQuestionGroupId(qg.getId());
-                                    questionRepository.deleteByQuestionGroupId(qg.getId());
+                                        if (gs.getQuestions() != null) {
+                                            for (TestSaveRequest.QuestionSave qs : gs.getQuestions()) {
+                                                Question q = new Question();
+                                                q.setQuestionGroup(qg);
+                                                q.setQuestionNumber(qs.getQuestionNumber());
+                                                q.setQuestionText(qs.getQuestionText());
+                                                q.setBlankContext(qs.getBlankContext());
+                                                q.setPinX(qs.getPinX());
+                                                q.setPinY(qs.getPinY());
+                                                q.setImageUrl(qs.getImageUrl());
+                                                q.setPoints(qs.getPoints() != null ? qs.getPoints() : 1.0);
+                                                q.setOrderIndex(qs.getOrderIndex());
 
-                                    if (gs.getQuestions() != null) {
-                                        for (TestSaveRequest.QuestionSave qs : gs.getQuestions()) {
-                                            Question q = new Question();
-                                            q.setQuestionGroup(qg);
-                                            q.setQuestionNumber(qs.getQuestionNumber());
-                                            q.setQuestionText(qs.getQuestionText());
-                                            q.setBlankContext(qs.getBlankContext());
-                                            q.setPinX(qs.getPinX());
-                                            q.setPinY(qs.getPinY());
-                                            q.setImageUrl(qs.getImageUrl());
-                                            q.setPoints(qs.getPoints() != null ? qs.getPoints() : 1.0);
-                                            q.setOrderIndex(qs.getOrderIndex());
+                                                QuestionType qt = resolveQuestionType(qs.getQuestionTypeId(), qs.getQuestionTypeCode());
+                                                q.setQuestionType(qt);
 
-                                            QuestionType qt = resolveQuestionType(qs.getQuestionTypeId(), qs.getQuestionTypeCode());
-                                            q.setQuestionType(qt);
+                                                q = questionRepository.save(q);
 
-                                            q = questionRepository.save(q);
+                                                saveOptions(q, qs.getOptions());
+                                                saveAnswers(q, qs.getAnswers());
+                                            }
+                                        }
+                                    } else {
+                                        // Group không tồn tại - Tự động tạo mới
+                                        qg = new QuestionGroup();
+                                        qg.setPart(part);
+                                        qg.setTitle(gs.getTitle() != null ? gs.getTitle() : "Nhóm câu hỏi");
+                                        qg.setContentType(gs.getContentType());
+                                        qg.setPassageText(gs.getPassageText());
+                                        qg.setAudioUrl(gs.getAudioUrl());
+                                        qg.setImageUrl(gs.getImageUrl());
+                                        qg.setFromQuestion(gs.getFromQuestion());
+                                        qg.setToQuestion(gs.getToQuestion());
+                                        qg.setOrderIndex(gs.getOrderIndex());
+                                        // Gán loại câu hỏi của group dựa trên câu hỏi đầu tiên
+                                        if (gs.getQuestions() != null && !gs.getQuestions().isEmpty()) {
+                                            TestSaveRequest.QuestionSave firstQ = gs.getQuestions().get(0);
+                                            QuestionType groupQType = resolveQuestionType(
+                                                    firstQ.getQuestionTypeId(), firstQ.getQuestionTypeCode());
+                                            qg.setQuestionType(groupQType);
+                                        }
+                                        qg = questionGroupRepository.save(qg);
 
-                                            saveOptions(q, qs.getOptions());
-                                            saveAnswers(q, qs.getAnswers());
+                                        // Tạo Questions cho group mới
+                                        if (gs.getQuestions() != null) {
+                                            for (TestSaveRequest.QuestionSave qs : gs.getQuestions()) {
+                                                Question q = new Question();
+                                                q.setQuestionGroup(qg);
+                                                q.setQuestionNumber(qs.getQuestionNumber());
+                                                q.setQuestionText(qs.getQuestionText());
+                                                q.setBlankContext(qs.getBlankContext());
+                                                q.setPinX(qs.getPinX());
+                                                q.setPinY(qs.getPinY());
+                                                q.setImageUrl(qs.getImageUrl());
+                                                q.setPoints(qs.getPoints() != null ? qs.getPoints() : 1.0);
+                                                q.setOrderIndex(qs.getOrderIndex());
+
+                                                QuestionType qt = resolveQuestionType(qs.getQuestionTypeId(), qs.getQuestionTypeCode());
+                                                q.setQuestionType(qt);
+
+                                                q = questionRepository.save(q);
+
+                                                saveOptions(q, qs.getOptions());
+                                                saveAnswers(q, qs.getAnswers());
+                                            }
                                         }
                                     }
                                 } else {
-                                    // Tạo group mới trong ngân hàng
+                                    // Không có existingGroupId - Tạo group hoàn toàn mới
                                     qg = new QuestionGroup();
                                     qg.setPart(part);
                                     qg.setTitle(gs.getTitle() != null ? gs.getTitle() : "Nhóm câu hỏi");
@@ -185,6 +246,13 @@ public class TestBuilderService {
                                     qg.setFromQuestion(gs.getFromQuestion());
                                     qg.setToQuestion(gs.getToQuestion());
                                     qg.setOrderIndex(gs.getOrderIndex());
+                                    // Gán loại câu hỏi của group dựa trên câu hỏi đầu tiên
+                                    if (gs.getQuestions() != null && !gs.getQuestions().isEmpty()) {
+                                        TestSaveRequest.QuestionSave firstQ = gs.getQuestions().get(0);
+                                        QuestionType groupQType = resolveQuestionType(
+                                                firstQ.getQuestionTypeId(), firstQ.getQuestionTypeCode());
+                                        qg.setQuestionType(groupQType);
+                                    }
                                     qg = questionGroupRepository.save(qg);
 
                                     // Tạo Questions

@@ -72,7 +72,11 @@ const TFNGQuestion = ({ q, active, onSetActive }) => (
   <div className={`pv-q${active ? ' pv-q-active' : ''}`} onClick={() => onSetActive(q.questionNumber)}>
     <div className="pv-q-row">
       <span className={`pv-q-num-badge${active ? ' active' : ''}`}>{q.questionNumber}</span>
-      <span className="pv-q-text">{q.questionText || <em className="pv-empty">Chưa có nội dung câu hỏi</em>}</span>
+      <span className="pv-q-text">
+        {q.questionText
+          ? <span dangerouslySetInnerHTML={{ __html: q.questionText }} />
+          : <em className="pv-empty">Chưa có nội dung câu hỏi</em>}
+      </span>
     </div>
     <div className="pv-tfng-opts">
       {['True', 'False', 'Not Given'].map((label) => (
@@ -96,7 +100,11 @@ const MCQQuestion = ({ q, multiple, active, onSetActive }) => {
       )}
       <div className="pv-q-row">
         <span className={`pv-q-num-badge${active ? ' active' : ''}`}>{q.questionNumber}</span>
-        <span className="pv-q-text">{q.questionText || <em className="pv-empty">Chưa có nội dung câu hỏi</em>}</span>
+        <span className="pv-q-text">
+          {q.questionText
+            ? <span dangerouslySetInnerHTML={{ __html: q.questionText }} />
+            : <em className="pv-empty">Chưa có nội dung câu hỏi</em>}
+        </span>
       </div>
       <div className="pv-opts">
         {opts.length === 0
@@ -124,7 +132,11 @@ const FillQuestion = ({ q, active, onSetActive }) => (
     <div className="pv-q-row">
       <span className={`pv-q-num-badge${active ? ' active' : ''}`}>{q.questionNumber}</span>
       <div className="pv-fill-row">
-        <span className="pv-q-text">{q.questionText || <em className="pv-empty">Chưa có nội dung</em>}</span>
+        <span className="pv-q-text">
+          {q.questionText
+            ? <span dangerouslySetInnerHTML={{ __html: q.questionText }} />
+            : <em className="pv-empty">Chưa có nội dung</em>}
+        </span>
         <input className="pv-inline-input" disabled placeholder={`Câu ${q.questionNumber}`} />
       </div>
     </div>
@@ -135,7 +147,11 @@ const GenericQuestion = ({ q, active, onSetActive }) => (
   <div className={`pv-q${active ? ' pv-q-active' : ''}`} onClick={() => onSetActive(q.questionNumber)}>
     <div className="pv-q-row">
       <span className={`pv-q-num-badge${active ? ' active' : ''}`}>{q.questionNumber}</span>
-      <span className="pv-q-text">{q.questionText || <em className="pv-empty">Chưa có nội dung câu hỏi</em>}</span>
+      <span className="pv-q-text">
+        {q.questionText
+          ? <span dangerouslySetInnerHTML={{ __html: q.questionText }} />
+          : <em className="pv-empty">Chưa có nội dung câu hỏi</em>}
+      </span>
     </div>
     <textarea className="pv-textarea" disabled placeholder="Nhập câu trả lời..." rows={3} />
   </div>
@@ -170,7 +186,7 @@ const PassageGroupPane = ({ group, mhAnswers = {}, onDropHeading, onClearHeading
 
   return (
     <div style={{ marginBottom: 20 }}>
-      {group.title && <div className="pv-passage-title">{group.title}</div>}
+      {group.title && <div className="pv-passage-title" dangerouslySetInnerHTML={{ __html: group.title }} />}
       {paragraphs.map((para, idx) => {
         const filled = mhAnswers[para.id];
         const isOver = overSlot === para.id;
@@ -194,7 +210,7 @@ const PassageGroupPane = ({ group, mhAnswers = {}, onDropHeading, onClearHeading
                 {filled ? (
                   <div className="pv-para-heading-badge">
                     {filled.roman && <span className="pv-heading-roman">{filled.roman}</span>}
-                    <span>{filled.text}</span>
+                    <span dangerouslySetInnerHTML={{ __html: filled.text }} />
                     <button className="pv-mh-clear" title="Xóa"
                       onClick={(e) => { e.stopPropagation(); if (onClearHeading) onClearHeading(para.id); }}>
                       ×
@@ -209,7 +225,7 @@ const PassageGroupPane = ({ group, mhAnswers = {}, onDropHeading, onClearHeading
             )}
             <div className="pv-passage-body">
               {para.text
-                ? para.text.split('\n').map((line, i) => line.trim() ? <p key={i}>{line}</p> : <br key={i} />)
+                ? <div dangerouslySetInnerHTML={{ __html: para.text }} />
                 : <em className="pv-empty">Chưa có nội dung đoạn {idx + 1}.</em>}
             </div>
           </div>
@@ -229,7 +245,7 @@ const AudioGroup = ({ group, activeQ, onSetActive }) => {
           ? <audio controls src={group.audioUrl} className="pv-audio-player" />
           : <span className="pv-audio-placeholder">Audio chưa được tải lên</span>}
       </div>
-      {group.title && <div className="pv-group-instructions"><strong>{group.title}</strong></div>}
+      {group.title && <div className="pv-group-instructions" dangerouslySetInnerHTML={{ __html: group.title }} />}
       {questions.length === 0
         ? <em className="pv-empty">Chưa có câu hỏi.</em>
         : questions.map((q) => renderQuestion(q, activeQ, onSetActive))}
@@ -255,7 +271,7 @@ const MatchingHeadingGroup = ({ group, assignedTexts = new Set() }) => {
           Questions {first}{last != null && last !== first ? `–${last}` : ''}
         </div>
       )}
-      {group.title && <div className="pv-group-instructions" style={{ marginBottom: 10 }}>{group.title}</div>}
+      {group.title && <div className="pv-group-instructions" style={{ marginBottom: 10 }} dangerouslySetInnerHTML={{ __html: group.title }} />}
 
       {/* Heading bank */}
       <div className="pv-heading-bank">
@@ -280,7 +296,9 @@ const MatchingHeadingGroup = ({ group, assignedTexts = new Set() }) => {
                     title={isAssigned ? 'Đã gán vào đoạn văn' : 'Kéo vào đoạn văn bên trái'}
                   >
                     <span className="pv-heading-roman">{toRoman(i + 1)}</span>
-                    <span style={{ flex: 1 }}>{h.text || <em className="pv-empty">...</em>}</span>
+                    {h.text
+                      ? <span style={{ flex: 1 }} dangerouslySetInnerHTML={{ __html: h.text }} />
+                      : <em className="pv-empty" style={{ flex: 1 }}>...</em>}
                     {isAssigned && <span style={{ color: '#16a34a', fontWeight: 700 }}>✓</span>}
                   </div>
                 );
@@ -297,9 +315,9 @@ const SummaryGroup = ({ group, activeQ, onSetActive }) => {
   return (
     <div className="pv-group-block">
       {group.instructions && (
-        <div className="pv-group-instructions">{group.instructions}</div>
+        <div className="pv-group-instructions" dangerouslySetInnerHTML={{ __html: group.instructions }} />
       )}
-      {group.title && <div className="pv-summary-title"><strong>{group.title}</strong></div>}
+      {group.title && <div className="pv-summary-title" dangerouslySetInnerHTML={{ __html: group.title }} />}
       <div className="pv-summary-text">
         {parseSummaryPreview(group.summaryText, questions, activeQ, onSetActive)}
       </div>
@@ -326,9 +344,9 @@ const NoteCompletionGroup = ({ group, activeQ, onSetActive }) => {
   return (
     <div className="pv-group-block">
       {group.instructions && (
-        <div className="pv-group-instructions">{group.instructions}</div>
+        <div className="pv-group-instructions" dangerouslySetInnerHTML={{ __html: group.instructions }} />
       )}
-      {group.title && <div className="pv-summary-title"><strong>{group.title}</strong></div>}
+      {group.title && <div className="pv-summary-title" dangerouslySetInnerHTML={{ __html: group.title }} />}
       <div className="pv-note-text">
         {parseNotePreview(group.noteText, questions, activeQ, onSetActive, answers, handleAnswer)}
       </div>
@@ -366,7 +384,7 @@ const DragMatchingGroup = ({ group, activeQ, onSetActive }) => {
 
   return (
     <div className="pv-group-block" onClick={(e) => e.stopPropagation()}>
-      {group.instructions && <div className="pv-group-instructions">{group.instructions}</div>}
+      {group.instructions && <div className="pv-group-instructions" dangerouslySetInnerHTML={{ __html: group.instructions }} />}
       <div className="pv-dm-layout">
         {/* Left: items + drop zones */}
         <div className="pv-dm-left">
@@ -379,7 +397,9 @@ const DragMatchingGroup = ({ group, activeQ, onSetActive }) => {
               <div key={q.id} className={`pv-dm-row${active ? ' active' : ''}`}
                 onClick={() => onSetActive(q.questionNumber)}>
                 <span className="pv-dm-item-name">
-                  {q.questionText || <em className="pv-empty">...</em>}
+                  {q.questionText
+                    ? <span dangerouslySetInnerHTML={{ __html: q.questionText }} />
+                    : <em className="pv-empty">...</em>}
                 </span>
                 {/* Drop zone */}
                 <div
@@ -455,8 +475,8 @@ const MapLabellingGroup = ({ group, activeQ, onSetActive }) => {
 
   return (
     <div className="pv-group-block">
-      {group.instructions && <div className="pv-group-instructions">{group.instructions}</div>}
-      {group.title && <div className="pv-summary-title"><strong>{group.title}</strong></div>}
+      {group.instructions && <div className="pv-group-instructions" dangerouslySetInnerHTML={{ __html: group.instructions }} />}
+      {group.title && <div className="pv-summary-title" dangerouslySetInnerHTML={{ __html: group.title }} />}
       <div className="pv-ml-layout">
         {/* Image area with positioned drop pins */}
         <div className="pv-ml-image-wrapper">
@@ -591,8 +611,8 @@ const TableCompletionGroup = ({ group, activeQ, onSetActive }) => {
 
   return (
     <div className="pv-group-block">
-      {group.instructions && <div className="pv-group-instructions">{group.instructions}</div>}
-      {group.title && <div className="pv-summary-title"><strong>{group.title}</strong></div>}
+      {group.instructions && <div className="pv-group-instructions" dangerouslySetInnerHTML={{ __html: group.instructions }} />}
+      {group.title && <div className="pv-summary-title" dangerouslySetInnerHTML={{ __html: group.title }} />}
       <div className="pv-tc-scroll">
         <table className="pv-tc-table">
           {group.tableTitle && (
@@ -718,11 +738,11 @@ const FlowChartGroup = ({ group, activeQ, onSetActive }) => {
 
   return (
     <div className="pv-group-block" onClick={(e) => e.stopPropagation()}>
-      {group.instructions && <div className="pv-group-instructions">{group.instructions}</div>}
+      {group.instructions && <div className="pv-group-instructions" dangerouslySetInnerHTML={{ __html: group.instructions }} />}
       <div className="pv-fc-layout">
         {/* Left: flow chart */}
         <div className="pv-fc-chart">
-          {group.title && <div className="pv-fc-chart-title">{group.title}</div>}
+          {group.title && <div className="pv-fc-chart-title" dangerouslySetInnerHTML={{ __html: group.title }} />}
           {nodesWithOffset.map(({ node, offset }, idx) => (
             <React.Fragment key={node.id ?? idx}>
               <div className="pv-fc-node">
@@ -770,7 +790,7 @@ const StandaloneGroup = ({ group, activeQ, onSetActive }) => {
   const questions = group.questions ?? [];
   return (
     <div className="pv-group-block">
-      {group.title && <div className="pv-group-instructions"><strong>{group.title}</strong></div>}
+      {group.title && <div className="pv-group-instructions" dangerouslySetInnerHTML={{ __html: group.title }} />}
       {questions.length === 0
         ? <em className="pv-empty">Chưa có câu hỏi.</em>
         : questions.map((q) => renderQuestion(q, activeQ, onSetActive))}
@@ -788,7 +808,7 @@ const SpeakingInterviewGroup = ({ group }) => {
         {isP3 ? '💬 Part 3 · Two-way Discussion' : '🎤 Part 1 · Interview'}
       </div>
       {group.partInstruction && (
-        <div className="pv-spk-instruction">{group.partInstruction}</div>
+        <div className="pv-spk-instruction" dangerouslySetInnerHTML={{ __html: group.partInstruction }} />
       )}
       {questions.length === 0
         ? <em className="pv-empty">Chưa có câu hỏi.</em>
@@ -797,7 +817,11 @@ const SpeakingInterviewGroup = ({ group }) => {
             {questions.map((q, i) => (
               <div key={q.id ?? i} className="pv-spk-qrow">
                 <span className="pv-spk-qnum">Q{i + 1}.</span>
-                <span className="pv-spk-qtext">{q.text || <em className="pv-empty">Chưa có nội dung.</em>}</span>
+                <span className="pv-spk-qtext">
+                  {q.text
+                    ? <span dangerouslySetInnerHTML={{ __html: q.text }} />
+                    : <em className="pv-empty">Chưa có nội dung.</em>}
+                </span>
                 <span className="pv-spk-mic-badge" title="Ghi âm">🎤</span>
               </div>
             ))}
@@ -816,7 +840,9 @@ const SpeakingCueCardGroup = ({ group }) => {
       <div className="pv-spk-prep-chip">⏳ Thời gian chuẩn bị: {prepSec}s</div>
       <div className="pv-spk-cuecard">
         <div className="pv-spk-cc-topic">
-          {group.topic || <em className="pv-empty">Chưa có chủ đề.</em>}
+          {group.topic
+            ? <span dangerouslySetInnerHTML={{ __html: group.topic }} />
+            : <em className="pv-empty">Chưa có chủ đề.</em>}
         </div>
         {(bulletPoints.length > 0 || group.closingSentence) && (
           <>
@@ -852,12 +878,9 @@ const WritingTaskGroup = ({ group }) => {
           </div>
         )}
         <div className="pv-wt-instruction">
-          {(group.taskInstruction ?? '').split('\n').map((line, i) =>
-            line.trim() ? <p key={i}>{line}</p> : <br key={i} />
-          )}
-          {!group.taskInstruction && (
-            <em className="pv-empty">Chưa có đề bài.</em>
-          )}
+          {group.taskInstruction
+            ? <div dangerouslySetInnerHTML={{ __html: group.taskInstruction }} />
+            : <em className="pv-empty">Chưa có đề bài.</em>}
         </div>
         {group.imageUrl && (
           <img src={group.imageUrl} alt="task diagram" className="pv-wt-image" />
@@ -894,7 +917,7 @@ const MCQGroup = ({ group, activeQ, onSetActive, multi = false }) => {
           : <>Choose the correct letter, <strong>A</strong>, <strong>B</strong>, <strong>C</strong> or <strong>D</strong>.</>
         }
       </div>
-      {group.title && <div className="pv-group-instructions">{group.title}</div>}
+      {group.title && <div className="pv-group-instructions" dangerouslySetInnerHTML={{ __html: group.title }} />}
       {questions.length === 0
         ? <em className="pv-empty">Chưa có câu hỏi.</em>
         : questions.map((q) => renderQuestion(q, activeQ, onSetActive))}
@@ -910,7 +933,7 @@ const SentenceCompletionGroup = ({ group, activeQ, onSetActive }) => {
       <div className="pv-mc-instructions">
         Complete the sentences. Write <strong>NO MORE THAN TWO WORDS AND/OR A NUMBER</strong> for each answer.
       </div>
-      {group.title && <div className="pv-group-instructions">{group.title}</div>}
+      {group.title && <div className="pv-group-instructions" dangerouslySetInnerHTML={{ __html: group.title }} />}
       {questions.length === 0
         ? <em className="pv-empty">Chưa có câu hỏi.</em>
         : questions.map((q) => renderQuestion(q, activeQ, onSetActive))}
@@ -926,7 +949,7 @@ const ShortAnswerGroup = ({ group, activeQ, onSetActive }) => {
       <div className="pv-mc-instructions">
         Answer the questions. Write <strong>NO MORE THAN THREE WORDS</strong> for each answer.
       </div>
-      {group.title && <div className="pv-group-instructions">{group.title}</div>}
+      {group.title && <div className="pv-group-instructions" dangerouslySetInnerHTML={{ __html: group.title }} />}
       {questions.length === 0
         ? <em className="pv-empty">Chưa có câu hỏi.</em>
         : questions.map((q) => renderQuestion(q, activeQ, onSetActive))}
@@ -938,7 +961,7 @@ const ImageGroup = ({ group, activeQ, onSetActive }) => {
   const questions = group.questions ?? [];
   return (
     <div className="pv-group-block">
-      {group.title && <div className="pv-group-instructions"><strong>{group.title}</strong></div>}
+      {group.title && <div className="pv-group-instructions" dangerouslySetInnerHTML={{ __html: group.title }} />}
       {group.imageUrl
         ? <img src={group.imageUrl} alt="diagram" className="pv-diagram-img" />
         : <div className="pv-diagram-placeholder">{group.contentType === 'MAP' ? '🗺️ Bản đồ chưa được tải lên' : '📊 Sơ đồ chưa được tải lên'}</div>}

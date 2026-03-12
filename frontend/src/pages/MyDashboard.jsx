@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Headphones, BookOpen, PenLine, Mic,
@@ -7,7 +7,9 @@ import {
   PlayCircle, CheckCircle2, XCircle, Flame, ClipboardList,
 } from 'lucide-react';
 import DashboardLayout from '../components/layout/DashboardLayout';
-import { USER, HISTORY, SKILL_META } from '../data/dashboardData';
+import LoadingSpinner from '../components/common/LoadingSpinner';
+import ErrorMessage from '../components/common/ErrorMessage';
+import { authApi } from '../services/authApi';
 import '../styles/dashboard.css';
 
 const STATS = [
@@ -52,15 +54,55 @@ function ScoreRing({ score, color, size = 76 }) {
 }
 
 export default function MyDashboard() {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    loadUserData();
+  }, []);
+
+  const loadUserData = async () => {
+    try {
+      const userData = await authApi.getCurrentUser();
+      setUser(userData);
+      setError(null);
+    } catch (err) {
+      setError('Không thể tải thông tin người dùng');
+      console.error('Load user error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <LoadingSpinner text="Đang tải thông tin người dùng..." />
+      </DashboardLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <DashboardLayout>
+        <ErrorMessage message={error} onRetry={loadUserData} />
+      </DashboardLayout>
+    );
+  }
+
+  const displayName = user?.fullName || user?.username || 'Học viên';
+  const joinDate = user?.createdAt ? new Date(user.createdAt).toLocaleDateString('vi-VN') : 'N/A';
+
   return (
     <DashboardLayout>
       {/* Welcome banner */}
       <div className="db-welcome">
         <div className="db-welcome-left">
           <p className="db-welcome-greeting">Chào mừng trở lại,</p>
-          <h1 className="db-welcome-name">{USER.name} 👋</h1>
+          <h1 className="db-welcome-name">{displayName} 👋</h1>
           <p className="db-welcome-sub">
-            <Calendar size={14} /> Thành viên từ {USER.joinDate} · Hãy tiếp tục luyện tập để đạt mục tiêu!
+            <Calendar size={14} /> Thành viên từ {joinDate} · Hãy tiếp tục luyện tập để đạt mục tiêu!
           </p>
         </div>
         <Link to="/exam-library" className="db-welcome-cta">

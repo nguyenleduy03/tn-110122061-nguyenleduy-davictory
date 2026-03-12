@@ -115,10 +115,8 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
       const structPart = structInfo.parts.find(sp => sp.orderIndex === part.orderIndex)
                       || structInfo.parts[partIdx];
 
-      // Lọc bỏ group contentType READING_PASSAGE (chỉ chứa đoạn văn, ko có câu hỏi riêng)
-      const questionGroups = (part.questionGroups || []).filter(
-        g => g.contentType !== 'READING_PASSAGE'
-      );
+      // Lưu tất cả groups kể cả READING_PASSAGE
+      const questionGroups = part.questionGroups || [];
 
       return {
         partId: structPart?.partId,
@@ -144,24 +142,35 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
             const typeCode = mapQuestionTypeCode(contentTypeOverride || q.questionType?.typeName || group.contentType || 'FILL_IN_BLANK');
             const isTextAnswer = isTextAnswerType(typeCode);
 
-            // Tự động tạo answers nếu question có answerText nhưng chưa có answers[]
-            let answers = (q.answers || []).map((ans, aIdx) => ({
-              answerText: ans.answerText || '',
-              alternativeAnswers: ans.alternativeAnswers || null,
-              isCaseSensitive: ans.isCaseSensitive || false,
-              blankIndex: ans.blankIndex || aIdx + 1,
-              wordLimit: ans.wordLimit || null,
-            }));
-
-            // Nếu dạng điền và chưa có answers, tạo từ answerText
-            if (isTextAnswer && answers.length === 0 && q.answerText) {
-              answers = [{
-                answerText: q.answerText,
-                alternativeAnswers: null,
-                isCaseSensitive: false,
-                blankIndex: 1,
-                wordLimit: null,
-              }];
+            // Xây dựng answers[] để gửi lên backend
+            // Ưu tiên: answerText (giá trị UI hiện tại) override answers[] cũ từ DB.
+            // Lý do: UI chỉ cập nhật q.answerText khi người dùng sửa đáp án,
+            //        còn q.answers[] là dữ liệu stale được load từ DB trước đó.
+            let answers;
+            if (isTextAnswer) {
+              if (q.answerText) {
+                // Dạng đơn: answerText là nguồn sự thật (TFNG, YNNG, fill-blank, map-pin...)
+                answers = [{
+                  answerText: q.answerText,
+                  alternativeAnswers: q.answers?.[0]?.alternativeAnswers || null,
+                  isCaseSensitive: q.answers?.[0]?.isCaseSensitive || false,
+                  blankIndex: q.answers?.[0]?.blankIndex || 1,
+                  wordLimit: q.answers?.[0]?.wordLimit || null,
+                }];
+              } else if ((q.answers || []).length > 0) {
+                // Dạng nhiều ô trống: giữ nguyên answers[] (Flow chart, Table completion...)
+                answers = q.answers.map((ans, aIdx) => ({
+                  answerText: ans.answerText || '',
+                  alternativeAnswers: ans.alternativeAnswers || null,
+                  isCaseSensitive: ans.isCaseSensitive || false,
+                  blankIndex: ans.blankIndex || aIdx + 1,
+                  wordLimit: ans.wordLimit || null,
+                }));
+              } else {
+                answers = [];
+              }
+            } else {
+              answers = [];
             }
 
             return {
@@ -209,10 +218,12 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
   };
 }
 
-// Kiểm tra type code có phải dạng điền text không
+// Kiểm tra type code có phải dạng lưu vào bảng answers không
+// TFNG/YNNG: answerText là 'TRUE'/'FALSE'/'NOT GIVEN' cũng lưu vào answers
 function isTextAnswerType(typeCode) {
   return ['FILL_BLANK', 'SHORT_ANSWER', 'SENTENCE_COMPLETION', 'SUMMARY_COMPLETION',
-    'NOTE_COMPLETION', 'FLOW_CHART', 'MAP_DIAGRAM', 'TABLE_FORM', 'MATCHING', 'MATCHING_HEADINGS'].includes(typeCode);
+    'NOTE_COMPLETION', 'FLOW_CHART', 'MAP_DIAGRAM', 'TABLE_FORM', 'MATCHING', 'MATCHING_HEADINGS',
+    'TFNG', 'YNNG'].includes(typeCode);
 }
 
 // Map contentType từ FE sang giá trị lưu DB (chuẩn hóa)
@@ -239,18 +250,7 @@ function serializeGroupContent(group, part) {
     return JSON.stringify({ paragraphs: group.paragraphs });
   }
 
-  // Nhóm câu hỏi Reading: kèm đoạn văn từ READING_PASSAGE cùng part
-  if (part && ['MATCHING_HEADING', 'TRUE_FALSE_NG', 'MULTIPLE_CHOICE_GROUP',
-    'MULTIPLE_CHOICE_MULTI', 'SENTENCE_COMPLETION', 'SHORT_ANSWER_GROUP'].includes(ct)) {
-    const readingPassage = (part.questionGroups || []).find(g => g.contentType === 'READING_PASSAGE');
-    if (readingPassage?.paragraphs) {
-      const base = buildGroupSpecificContent(group);
-      return JSON.stringify({
-        ...base,
-        readingPassage: { paragraphs: readingPassage.paragraphs },
-      });
-    }
-  }
+  // Nhóm câu hỏi Reading: READING_PASSAGE đã được lưu riêng, không cần nhúng vào đây
 
   // Table: lưu columns + rows
   if (ct === 'TABLE_COMPLETION' && group.columns) {
@@ -413,14 +413,8 @@ export function parseLoadedTest(data) {
 
   for (const sessionResp of (data.sessions || [])) {
     const skillKey = sessionResp.skillType;
-    const parts = (sessionResp.parts || []).map(partResp => ({
-      id: nextId++,
-      backendTestPartId: partResp.testPartId,
-      name: partResp.name,
-      orderIndex: partResp.orderIndex,
-      totalQuestions: partResp.totalQuestions,
-      instructions: partResp.instructions || '',
-      questionGroups: (partResp.questionGroups || []).map(groupResp => {
+    const parts = (sessionResp.parts || []).map(partResp => {
+      const mappedGroups = (partResp.questionGroups || []).map(groupResp => {
         const base = {
           id: nextId++,
           backendGroupId: groupResp.questionGroupId,
@@ -443,6 +437,8 @@ export function parseLoadedTest(data) {
             imageUrl: qResp.imageUrl,
             points: qResp.points,
             orderIndex: qResp.orderIndex,
+            // Khôi phục answerText từ answers[0] để UI hiển thị đúng (fill-blank, TFNG, matching...)
+            answerText: qResp.answers?.[0]?.answerText || '',
             questionType: { typeName: mapBackendTypeToFrontend(qResp.questionTypeCode) },
             options: (qResp.options || []).map(opt => ({
               id: nextId++,
@@ -460,11 +456,37 @@ export function parseLoadedTest(data) {
             })),
           })),
         };
-
-        // Deserialize passageText theo contentType
         return { ...base, ...deserializeGroupContent(groupResp.contentType, groupResp.passageText) };
-      }),
-    }));
+      });
+
+      // Backward compat: reconstruct READING_PASSAGE from legacy embedded data
+      const hasReadingPassage = mappedGroups.some(g => g.contentType === 'READING_PASSAGE');
+      if (!hasReadingPassage) {
+        const embedded = mappedGroups.find(g => g._embeddedPassage);
+        if (embedded) {
+          mappedGroups.unshift({
+            id: nextId++,
+            contentType: 'READING_PASSAGE',
+            backendGroupId: null,
+            title: '',
+            orderIndex: 0,
+            questions: [],
+            paragraphs: embedded._embeddedPassage.paragraphs || [],
+          });
+        }
+      }
+      mappedGroups.forEach(g => { delete g._embeddedPassage; });
+
+      return {
+        id: nextId++,
+        backendTestPartId: partResp.testPartId,
+        name: partResp.name,
+        orderIndex: partResp.orderIndex,
+        totalQuestions: partResp.totalQuestions,
+        instructions: partResp.instructions || '',
+        questionGroups: mappedGroups,
+      };
+    });
 
     sessions[skillKey] = parts;
   }
@@ -488,7 +510,9 @@ function deserializeGroupContent(contentType, passageText) {
     if (contentType === 'SUMMARY_COMPLETION') return { summaryText: passageText };
     if (contentType === 'MATCHING_HEADING') {
       const parsed = JSON.parse(passageText);
-      return { headingBank: parsed.headingBank || [] };
+      // Handle legacy format: headingBank + embedded readingPassage
+      const extra = parsed.readingPassage ? { _embeddedPassage: parsed.readingPassage } : {};
+      return { headingBank: parsed.headingBank || [], ...extra };
     }
     if (contentType === 'DRAG_MATCHING') {
       const parsed = JSON.parse(passageText);

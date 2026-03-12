@@ -16,7 +16,7 @@ const WritingTaskPane = ({ part, style }) => {
     return (
         <div className="writing-task-pane" style={style}>
             <div className="writing-task-inner">
-                <h2 className="writing-task-title">{part.taskLabel || part.title}</h2>
+                <h2 className="writing-task-title" dangerouslySetInnerHTML={{ __html: part.taskLabel || part.title }} />
                 <div
                     className="writing-task-instruction"
                     dangerouslySetInnerHTML={{ __html: part.instruction }}
@@ -66,14 +66,23 @@ const WritingAnswerPane = ({ partId, minWords, value, onChange, style }) => {
 const IeltsWritingTest = () => {
     const [testData, setTestData] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const [currentPartIndex, setCurrentPartIndex] = useState(0);
     const [writingAnswers, setWritingAnswers] = useState({});
+    const [startTime] = useState(() => Date.now()); // theo dõi thời gian làm bài
     const { leftWidth, containerRef, handleDragStart } = useDividerResize(50);
     const { id: testId } = useParams();
 
     useEffect(() => {
-        ieltsApi.getWritingTestSession(testId || 'mock-session-id').then((data) => {
+        if (!testId) { setError('Không tìm thấy ID bài thi.'); setLoading(false); return; }
+        ieltsApi.getWritingTestSession(testId).then((data) => {
             setTestData(data);
+            setLoading(false);
+        }).catch((err) => {
+            console.error('[Writing] Lỗi tải bài thi:', err);
+            setError(err.message === 'AUTH_REQUIRED'
+                ? 'Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.'
+                : `Không thể tải bài thi: ${err.message}`);
             setLoading(false);
         });
     }, [testId]);
@@ -106,9 +115,17 @@ const IeltsWritingTest = () => {
 
     const submitTest = () => {
         if (isFullTest) { handleFullTestNext(); return; }
-        ieltsApi.submitAnswers("mock-session-id", writingAnswers).then(() => {
-            navigate(`/test/complete?mode=${mode}&skill=writing`);
-        });
+        const timeTakenSeconds = Math.floor((Date.now() - startTime) / 1000);
+        const parts = testData?.parts || [];
+        ieltsApi.submitWriting(parts, writingAnswers, timeTakenSeconds)
+            .then(() => {
+                navigate(`/test/complete?mode=${mode}&skill=writing`);
+            })
+            .catch((err) => {
+                console.error('[Writing] Lỗi nộp bài:', err);
+                // Nếu chưa đăng nhập vẫn cho qua màn hình complete
+                navigate(`/test/complete?mode=${mode}&skill=writing`);
+            });
     };
 
     if (loading) return (
@@ -116,6 +133,12 @@ const IeltsWritingTest = () => {
             <div className="test-loading-spinner"></div>
             <p className="test-loading-title">Your test will begin shortly</p>
             <p className="test-loading-sub">Please wait</p>
+        </div>
+    );
+    if (error) return (
+        <div style={{ padding: '40px', textAlign: 'center', color: '#dc2626' }}>
+            <p style={{ fontSize: '18px', fontWeight: 600 }}>⚠️ {error}</p>
+            <button onClick={() => navigate('/exam-library')} style={{ marginTop: '16px', padding: '8px 20px', borderRadius: '6px', border: 'none', background: '#1e3a8a', color: '#fff', cursor: 'pointer' }}>← Quay lại thư viện</button>
         </div>
     );
     if (!testData) return <div style={{ padding: "50px" }}>No test data available</div>;

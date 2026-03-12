@@ -1,186 +1,194 @@
-import { MOCK_READING_DATA, MOCK_LISTENING_DATA, MOCK_WRITING_DATA, MOCK_SPEAKING_DATA } from '../data/mockData';
 import { API_CONFIG } from '../config/api';
 
-export const simulateBackendCall = async (data, delay = 500) => {
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(data), delay);
+// ─── Helper: auth headers ───────────────────────────────────────────
+function authHeaders() {
+  const token = localStorage.getItem('authToken');
+  return token ? { 'Authorization': `Bearer ${token}` } : {};
+}
+
+// ─── Helper: fetch với timeout + auth ───────────────────────────────
+async function apiFetch(url, options = {}) {
+  const res = await fetch(url, {
+    ...options,
+    headers: {
+      ...authHeaders(),
+      ...(options.headers || {}),
+    },
+    signal: AbortSignal.timeout(10000),
   });
-};
 
+  if (res.status === 401 || res.status === 403) {
+    throw new Error('AUTH_REQUIRED');
+  }
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || `HTTP ${res.status}: ${url}`);
+  }
+  return res.json();
+}
+
+
+// ═══════════════════════════════════════════════════════════════════
+//  getTestSession
+//  Tải đề thi từ backend theo testId và skill (READING / LISTENING / …)
+// ═══════════════════════════════════════════════════════════════════
 export const ieltsApi = {
-  getTestSession: async (testId, mode = "READING") => {
-    const MOCK_DATA = mode === "LISTENING" ? MOCK_LISTENING_DATA
-      : mode === "WRITING" ? MOCK_WRITING_DATA
-      : mode === "SPEAKING" ? MOCK_SPEAKING_DATA
-      : MOCK_READING_DATA;
-    // Nếu là mock-session-id thì tiến hành bỏ qua fetch luôn để console không báo lỗi đỏ
-    if (testId === "mock-session-id") {
-      console.log("Đang chạy ở chế độ UI (sử dụng dữ liệu Mock hoàn toàn).");
-      return simulateBackendCall({
-        ...MOCK_DATA,
-        sessionId: testId
-      });
-    }
+  getTestSession: async (testId, mode = 'READING') => {
+    const baseUrl = API_CONFIG.BASE_URL;
+    const targetMode = mode.toUpperCase();
 
-    try {
-      const targetTestId = testId;
-      const baseUrl = API_CONFIG.BASE_URL;
+    // 1. Lấy toàn bộ đề thi từ test-builder (có structure đầy đủ)
+    const testData = await apiFetch(`${baseUrl}/test-builder/${testId}/full`);
 
-      const testRes = await fetch(`${baseUrl}/tests/${targetTestId}`);
-      if (!testRes.ok) throw new Error("Could not fetch test summary");
-      const testData = await testRes.json();
+    // 2. Tìm session theo skillType
+    const targetSession = testData.sessions.find(s =>
+      s.skillType === targetMode
+    ) || testData.sessions[0];
+    if (!targetSession) throw new Error(`Không tìm thấy session ${targetMode}`);
 
-      const sessionsRes = await fetch(`${baseUrl}/tests/${targetTestId}/sessions`);
-      if (!sessionsRes.ok) throw new Error("Could not fetch sessions");
-      const sessions = await sessionsRes.json();
+    let globalQuestionCounter = 1;
 
-      const readingSession = sessions.find(s => s.session?.skillType === "READING" || s.session?.name?.toLowerCase().includes("reading")) || sessions[0];
-      if (!readingSession) throw new Error("No reading session found");
+    // 3. Transform parts từ TestFullResponse
+    const populatedParts = targetSession.parts.map((part, index) => {
+      let mergedPassageContent = '';
+      let mergedPassageTitle = '';
+      let questions = [];
 
-      const partsRes = await fetch(`${baseUrl}/tests/sessions/${readingSession.id}/parts`);
-      const testParts = await partsRes.json();
-
-      let globalQuestionCounter = 1;
-
-      const populatedParts = await Promise.all(testParts.map(async (part, index) => {
-        const qgRes = await fetch(`${baseUrl}/tests/parts/${part.id}/question-groups`);
-        const qGroups = await qgRes.json();
-
-        let mergedPassageContent = "";
-        let mergedPassageTitle = "";
-        let questions = [];
-
-        for (let qgWrapper of qGroups) {
-          const group = qgWrapper.questionGroup;
-          if (!group) continue;
-
-          if (group.passageText && !mergedPassageContent) {
-            mergedPassageContent = group.passageText;
-          }
-          if (group.title && !mergedPassageTitle) {
-            mergedPassageTitle = group.title;
-          }
-
-          if (group.questions && Array.isArray(group.questions)) {
-            const sortedQuestions = [...group.questions].sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
-
-            sortedQuestions.forEach(q => {
-              const questionTypeStr = q.questionType?.typeName?.toLowerCase() || "";
-
-              let mappedType = "fill-in-the-blank";
-              if (questionTypeStr.includes("choice") || questionTypeStr.includes("multiple") || questionTypeStr.includes("true_false")) {
-                mappedType = "multiple-choice";
-              } else if (q.questionType?.code === "MCQ" || q.questionType?.code === "TFNG" || q.questionType?.code === "YNNG") {
-                mappedType = "multiple-choice";
-              }
-
-              const optionsList = q.options && q.options.length > 0
-                ? q.options.map(opt => opt.optionText)
-                : (mappedType === "multiple-choice" ? ["TRUE", "FALSE", "NOT GIVEN"] : []);
-
-              questions.push({
-                id: `q${q.id || globalQuestionCounter}`,
-                number: q.questionNumber || globalQuestionCounter++,
-                type: mappedType,
-                text: q.questionText || "Question text missing",
-                options: optionsList
-              });
-            });
-          }
+      // Xử lý question groups
+      (part.questionGroups || []).forEach(group => {
+        if (group.passageText && !mergedPassageContent) {
+          mergedPassageContent = group.passageText;
+        }
+        if (group.title && !mergedPassageTitle) {
+          mergedPassageTitle = group.title;
         }
 
-        return {
-          id: `part-${part.id || index + 1}`,
-          title: `Part ${part.orderIndex || index + 1}`,
-          instruction: part.instructions || "Read the text and answer the questions.",
-          passageTitle: mergedPassageTitle || `Reading Passage ${index + 1}`,
-          passageContent: mergedPassageContent || "<p>Nội dung bài đọc chưa được thiết lập.</p>",
-          questionsLabel: mergedPassageTitle || "Questions",
-          questions: questions
-        };
-      }));
+        // Transform questions
+        (group.questions || []).forEach(q => {
+          const typeCode = q.questionTypeCode?.toUpperCase() || '';
+          let mappedType = 'fill-in-the-blank';
+          if (['MCQ', 'TFNG', 'YNNG'].includes(typeCode)) {
+            mappedType = 'multiple-choice';
+          }
+
+          const optionsList = q.options && q.options.length > 0
+            ? q.options.map(opt => opt.optionText)
+            : (mappedType === 'multiple-choice' ? ['TRUE', 'FALSE', 'NOT GIVEN'] : []);
+
+          questions.push({
+            id: `q${q.id || globalQuestionCounter}`,
+            number: q.questionNumber || globalQuestionCounter++,
+            type: mappedType,
+            text: q.questionText || 'Question text missing',
+            options: optionsList,
+            correctAnswer: q.answers?.[0]?.answerText || null,
+          });
+        });
+      });
 
       return {
-        sessionId: readingSession.id || testId,
-        candidateName: "Guest Student",
-        candidateId: "DEFAULT-ID",
-        testType: testData.testType || "Academic Reading",
-        totalMinutes: testData.durationMinutes || readingSession.durationMinutes || 60,
-        parts: populatedParts.length > 0 ? populatedParts : MOCK_DATA.parts
+        id: `part-${part.testPartId}`,
+        title: part.name || `Part ${part.orderIndex || index + 1}`,
+        instruction: part.instructions || 'Read the text and answer the questions.',
+        passageTitle: mergedPassageTitle || `Passage ${index + 1}`,
+        passageContent: mergedPassageContent || '<p>Nội dung bài đọc chưa được thiết lập.</p>',
+        questionsLabel: mergedPassageTitle || 'Questions',
+        audioUrl: part.questionGroups?.[0]?.audioUrl || null,
+        questions,
       };
+    });
 
-    } catch (error) {
-      console.log("Đang sử dụng dữ liệu giả (fallback) do chưa kết nối Backend.");
-      return simulateBackendCall({
-        ...MOCK_DATA,
-        sessionId: testId
-      });
-    }
+    return {
+      sessionId: targetSession.testSessionId,
+      candidateName: 'Guest Student',
+      candidateId: 'DEFAULT-ID',
+      testType: testData.testType || `Academic ${targetMode.charAt(0) + targetMode.slice(1).toLowerCase()}`,
+      totalMinutes: testData.durationMinutes || targetSession.durationMinutes || 60,
+      parts: populatedParts,
+    };
   },
 
-  // ─── Writing test: load từ backend theo testId ───────────────
+  // ─── Writing test: load từ backend theo testId ───────────────────
   getWritingTestSession: async (testId) => {
-    if (!testId || testId === 'mock-session-id') {
-      return simulateBackendCall({ ...MOCK_WRITING_DATA, sessionId: testId });
-    }
-    try {
-      const baseUrl = API_CONFIG.BASE_URL;
-      const res = await fetch(`${baseUrl}/test-builder/${testId}/full`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` },
-      });
-      if (!res.ok) throw new Error('Failed to fetch writing test');
-      const data = await res.json();
+    const baseUrl = API_CONFIG.BASE_URL;
 
-      // Tìm WRITING session
-      const writingSession = (data.sessions || []).find(s => s.skillType === 'WRITING');
-      if (!writingSession) throw new Error('No WRITING session found');
+    // Lấy toàn bộ đề thi từ test-builder
+    const testData = await apiFetch(`${baseUrl}/test-builder/${testId}/full`);
+    const writingSession = testData.sessions.find(s => s.skillType === 'WRITING');
+    if (!writingSession) throw new Error('Không tìm thấy WRITING session');
 
-      const parts = (writingSession.parts || []).map((part, idx) => {
-        // Lấy group WRITING_TASK đầu tiên trong part
-        const writingGroup = (part.questionGroups || []).find(g => g.contentType === 'WRITING_TASK');
-        let taskInstruction = part.instructions || '';
-        let minWords = 150;
-        let recommendedMinutes = 20;
+    const mappedParts = writingSession.parts.map((part, idx) => {
+      const writingGroup = part.questionGroups?.find(g => g.contentType === 'WRITING_TASK') || part.questionGroups?.[0];
+      let taskInstruction = part.instructions || '';
+      let minWords = 150;
+      let recommendedMinutes = 20;
 
-        if (writingGroup?.passageText) {
-          try {
-            const parsed = JSON.parse(writingGroup.passageText);
-            taskInstruction = parsed.taskInstruction || taskInstruction;
-            minWords = parsed.minWords ?? minWords;
-            recommendedMinutes = parsed.recommendedMinutes ?? recommendedMinutes;
-          } catch { /* plain text fallback */ }
-        }
-
-        return {
-          id: `part-${part.testPartId || idx + 1}`,
-          title: part.name || `Task ${part.orderIndex || idx + 1}`,
-          taskLabel: part.name || `Writing Task ${part.orderIndex || idx + 1}`,
-          minWords,
-          recommendedMinutes,
-          instruction: taskInstruction || 'No instructions provided.',
-          imageUrl: writingGroup?.imageUrl || null,
-        };
-      });
+      if (writingGroup?.passageText) {
+        try {
+          const parsed = JSON.parse(writingGroup.passageText);
+          taskInstruction = parsed.taskInstruction || taskInstruction;
+          minWords = parsed.minWords ?? minWords;
+          recommendedMinutes = parsed.recommendedMinutes ?? recommendedMinutes;
+        } catch { /* plain text fallback */ }
+      }
 
       return {
-        sessionId: testId,
-        candidateName: 'Guest Student',
-        candidateId: data.id || testId,
-        testType: data.testType || 'Academic Writing',
-        totalMinutes: writingSession.durationMinutes || 60,
-        parts: parts.length > 0 ? parts : MOCK_WRITING_DATA.parts,
+        id: `part-${part.testPartId}`,
+        questionGroupId: writingGroup?.questionGroupId || null, // ID question_group để lưu bài
+        title: part.name || `Task ${part.orderIndex || idx + 1}`,
+        taskLabel: part.name || `Writing Task ${part.orderIndex || idx + 1}`,
+        minWords,
+        recommendedMinutes,
+        instruction: taskInstruction || 'No instructions provided.',
+        imageUrl: writingGroup?.imageUrl || null,
       };
-    } catch (err) {
-      console.warn('Writing test fetch failed, using mock:', err.message);
-      return simulateBackendCall({ ...MOCK_WRITING_DATA, sessionId: testId });
-    }
+    });
+
+    return {
+      sessionId: testId,
+      candidateName: 'Guest Student',
+      candidateId: testData.id || testId,
+      testType: testData.testType || 'Academic Writing',
+      totalMinutes: writingSession.durationMinutes || 60,
+      parts: mappedParts,
+    };
   },
 
   submitAnswers: async (sessionId, answers) => {
-    console.log("Submitting to BE:", answers);
-    return simulateBackendCall({
-      success: true,
-      message: "Test submitted successfully with: " + JSON.stringify(answers)
-    });
-  }
+    console.log('Submitting answers for session:', sessionId, answers);
+    // TODO: kết nối với exam-attempts endpoint khi BE sẵn sàng
+    return { success: true, message: 'Submitted' };
+  },
+
+  // ─── Nộp bài Writing thực sự vào CSDL ──────────────────────────
+  // parts: mảng parts từ testData, mỗi phần tử có questionGroupId
+  // writingAnswers: { [partId]: text }
+  // timeTakenSeconds: tổng thời gian làm bài (giây)
+  submitWriting: async (parts, writingAnswers, timeTakenSeconds = null) => {
+    const baseUrl = API_CONFIG.BASE_URL;
+    const results = [];
+
+    for (const part of parts) {
+      const text = writingAnswers[part.id] || '';
+      if (!text.trim() || !part.questionGroupId) continue;
+
+      const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
+
+      const payload = {
+        questionGroupId: part.questionGroupId,
+        submissionText: text,
+        wordCount,
+        timeTakenSeconds,
+      };
+
+      const result = await apiFetch(`${baseUrl}/writing/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      results.push(result);
+    }
+
+    return results;
+  },
 };

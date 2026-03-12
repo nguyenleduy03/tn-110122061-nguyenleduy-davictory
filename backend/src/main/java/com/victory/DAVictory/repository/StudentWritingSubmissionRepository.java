@@ -37,8 +37,26 @@ public interface StudentWritingSubmissionRepository extends JpaRepository<Studen
            "WHERE s.user.id = :userId AND s.overallBandScore IS NOT NULL")
     Optional<Double> findAvgBandScoreByUser(@Param("userId") Long userId);
 
-    // Số lần nộp tiếp theo cho đề bài
+    // Số lần nộp tiếp theo cho đề bài (writing_prompts)
     @Query("SELECT COALESCE(MAX(s.attemptNumber), 0) + 1 FROM StudentWritingSubmission s " +
            "WHERE s.user.id = :userId AND s.writingPrompt.id = :promptId")
     Integer getNextAttemptNumber(@Param("userId") Long userId, @Param("promptId") Long promptId);
+
+    // ─── Queries theo question_group (TestBuilder flow) ───────────
+
+    // Tất cả bài nộp của học viên cho một question group
+    List<StudentWritingSubmission> findByUserIdAndQuestionGroupIdOrderByAttemptNumberDesc(
+            Long userId, Long questionGroupId);
+
+    // Lần nộp mới nhất của học viên cho question group
+    Optional<StudentWritingSubmission> findTopByUserIdAndQuestionGroupIdOrderByAttemptNumberDesc(
+            Long userId, Long questionGroupId);
+
+    // Số lần nộp tiếp theo cho question group
+    @Query("SELECT COALESCE(MAX(s.attemptNumber), 0) + 1 FROM StudentWritingSubmission s " +
+           "WHERE s.user.id = :userId AND s.questionGroup.id = :groupId")
+    Integer getNextAttemptNumberByGroup(@Param("userId") Long userId, @Param("groupId") Long groupId);
+
+    // Tất cả bài chờ chấm (dùng cho giảng viên)
+    List<StudentWritingSubmission> findByStatusInOrderBySubmittedAtAsc(List<String> statuses);
 }
