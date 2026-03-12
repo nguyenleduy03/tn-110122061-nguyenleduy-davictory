@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import { testBuilderApi } from '../services/testBuilderApi';
+import { authApi } from '../services/authApi';
 
 /* ── Status config ── */
 const STATUS_CONFIG = {
@@ -108,6 +109,10 @@ function ConfirmModal({ test, onConfirm, onCancel }) {
 export default function TeacherTests() {
   const navigate = useNavigate();
 
+  // Kiểm tra quyền TEACHER
+  const user = authApi.getStoredUser();
+  const hasPermission = user?.roles?.some(r => ['TEACHER', 'MANAGER', 'ADMIN'].includes(r));
+
   const [tests, setTests]           = useState([]);
   const [loading, setLoading]       = useState(true);
   const [error, setError]           = useState('');
@@ -117,18 +122,23 @@ export default function TeacherTests() {
   const [deleting, setDeleting]     = useState(false);
 
   const fetchTests = useCallback(async () => {
+    if (!hasPermission) { setLoading(false); return; }
     setLoading(true);
     setError('');
     try {
       const data = await testBuilderApi.getAllTests(statusFilter || undefined);
       setTests(Array.isArray(data) ? data : (data.content ?? []));
     } catch (err) {
-      setError('Không thể tải danh sách đề thi. Vui lòng thử lại.');
+      if (err.response?.status === 403) {
+        setError('Bạn không có quyền truy cập. Cần đăng nhập bằng tài khoản TEACHER/MANAGER/ADMIN.');
+      } else {
+        setError('Không thể tải danh sách đề thi. Vui lòng thử lại.');
+      }
       console.error(err);
     } finally {
       setLoading(false);
     }
-  }, [statusFilter]);
+  }, [statusFilter, hasPermission]);
 
   useEffect(() => { fetchTests(); }, [fetchTests]);
 
@@ -155,6 +165,19 @@ export default function TeacherTests() {
   return (
     <DashboardLayout>
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '28px 24px' }}>
+
+        {!hasPermission && (
+          <div style={{ textAlign: 'center', padding: '40px', background: '#fff3cd', borderRadius: 12, marginBottom: 24 }}>
+            <h2 style={{ color: '#856404', marginBottom: 12 }}>Không có quyền truy cập</h2>
+            <p style={{ color: '#856404' }}>
+              Trang này yêu cầu tài khoản có quyền <strong>TEACHER</strong>, <strong>MANAGER</strong> hoặc <strong>ADMIN</strong>.
+            </p>
+            <button onClick={() => window.location.href = '/login'}
+              style={{ marginTop: 16, padding: '10px 24px', background: '#856404', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer' }}>
+              Đăng nhập lại
+            </button>
+          </div>
+        )}
 
         {/* ── Page title row ── */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>

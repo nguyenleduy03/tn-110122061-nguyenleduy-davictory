@@ -30,7 +30,7 @@ public class QuestionOption {
     @JoinColumn(name = "question_id", nullable = false)
     private Question question;
 
-    @Column(nullable = false, length = 5)
+    @Column(nullable = false, length = 20)
     private String optionLabel;
     // MCQ: "A", "B", "C", "D"
     // TFNG: "TRUE", "FALSE", "NOT GIVEN"

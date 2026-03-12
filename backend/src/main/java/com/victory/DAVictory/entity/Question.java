@@ -45,6 +45,12 @@ public class Question {
     private String blankContext;
     // Câu chứa chỗ trống, ví dụ: "The event starts at ___"
 
+    @Column
+    private Double pinX; // Tọa độ X của ô pin trên bản đồ (MAP_DIAGRAM)
+
+    @Column
+    private Double pinY; // Tọa độ Y của ô pin trên bản đồ (MAP_DIAGRAM)
+
     @Column(length = 500)
     private String imageUrl; // Hình minh hoạ cho câu hỏi (nếu có)
 

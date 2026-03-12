@@ -41,6 +41,7 @@ const FlowChartQuestion = ({
     handleAnswerChange,
     bookmarks,
     toggleBookmark,
+    isReview
 }) => {
     const flowNodes = q.flowNodes ?? [];
     const subQuestions = q.subQuestions ?? [];
@@ -71,6 +72,7 @@ const FlowChartQuestion = ({
     };
 
     const handleDrop = (e, subQId) => {
+        if (isReview) return;
         e.preventDefault();
         const option = e.dataTransfer.getData('text/plain');
         const sourceQId = e.dataTransfer.getData('sourceQId');
@@ -109,12 +111,12 @@ const FlowChartQuestion = ({
                                             <span
                                                 key={pidx}
                                                 id={subQ ? `question-${subQ.number}` : undefined}
-                                                className={`fc-blank${answer ? ' fc-blank-filled' : ''}${isActive ? ' fc-blank-active' : ''}`}
-                                                onClick={(e) => { e.stopPropagation(); if (subQ) setActiveQuestion(subQ.number); }}
-                                                onDragOver={handleDragOver}
-                                                onDrop={(e) => subQ && handleDrop(e, subQ.id)}
-                                                draggable={!!answer}
-                                                onDragStart={(e) => answer && handleDragStart(e, answer, subQ?.id)}
+                                                className={`fc-blank${answer ? ' fc-blank-filled' : ''}${isActive ? ' fc-blank-active' : ''} ${isReview && subQ ? (answer?.trim() === subQ.correctAnswer?.trim() ? 'review-correct' : 'review-wrong') : ''}`}
+                                                onClick={(e) => { e.stopPropagation(); if (subQ && !isReview) setActiveQuestion(subQ.number); }}
+                                                onDragOver={isReview ? undefined : handleDragOver}
+                                                onDrop={isReview ? undefined : (e) => subQ && handleDrop(e, subQ.id)}
+                                                draggable={!isReview && !!answer}
+                                                onDragStart={(e) => { if (!isReview && answer) handleDragStart(e, answer, subQ?.id); }}
                                             >
                                                 <span
                                                     className="fc-blank-bookmark"
@@ -128,6 +130,11 @@ const FlowChartQuestion = ({
                                                 </span>
                                                 <strong className="fc-blank-num">{subQ?.number}</strong>
                                                 {answer && <span className="fc-blank-answer">{answer}</span>}
+                                                {isReview && subQ && answer?.trim() !== subQ.correctAnswer?.trim() && (
+                                                    <div className="review-correct-label" style={{ position: 'absolute', top: '100%', left: 0, marginTop: '2px', backgroundColor: 'rgba(255,255,255,0.9)', padding: '2px 4px', borderRadius: '4px', whiteSpace: 'nowrap', zIndex: 10 }}>
+                                                        ({subQ.correctAnswer})
+                                                    </div>
+                                                )}
                                             </span>
                                         );
                                     })}
@@ -148,8 +155,8 @@ const FlowChartQuestion = ({
                             <div
                                 key={i}
                                 className="fc-bank-chip"
-                                draggable
-                                onDragStart={(e) => handleDragStart(e, opt)}
+                                draggable={!isReview}
+                                onDragStart={(e) => { if (!isReview) handleDragStart(e, opt); }}
                             >
                                 {opt}
                             </div>

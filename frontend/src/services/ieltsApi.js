@@ -118,6 +118,64 @@ export const ieltsApi = {
     }
   },
 
+  // ─── Writing test: load từ backend theo testId ───────────────
+  getWritingTestSession: async (testId) => {
+    if (!testId || testId === 'mock-session-id') {
+      return simulateBackendCall({ ...MOCK_WRITING_DATA, sessionId: testId });
+    }
+    try {
+      const baseUrl = API_CONFIG.BASE_URL;
+      const res = await fetch(`${baseUrl}/test-builder/${testId}/full`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('token') || ''}` },
+      });
+      if (!res.ok) throw new Error('Failed to fetch writing test');
+      const data = await res.json();
+
+      // Tìm WRITING session
+      const writingSession = (data.sessions || []).find(s => s.skillType === 'WRITING');
+      if (!writingSession) throw new Error('No WRITING session found');
+
+      const parts = (writingSession.parts || []).map((part, idx) => {
+        // Lấy group WRITING_TASK đầu tiên trong part
+        const writingGroup = (part.questionGroups || []).find(g => g.contentType === 'WRITING_TASK');
+        let taskInstruction = part.instructions || '';
+        let minWords = 150;
+        let recommendedMinutes = 20;
+
+        if (writingGroup?.passageText) {
+          try {
+            const parsed = JSON.parse(writingGroup.passageText);
+            taskInstruction = parsed.taskInstruction || taskInstruction;
+            minWords = parsed.minWords ?? minWords;
+            recommendedMinutes = parsed.recommendedMinutes ?? recommendedMinutes;
+          } catch { /* plain text fallback */ }
+        }
+
+        return {
+          id: `part-${part.testPartId || idx + 1}`,
+          title: part.name || `Task ${part.orderIndex || idx + 1}`,
+          taskLabel: part.name || `Writing Task ${part.orderIndex || idx + 1}`,
+          minWords,
+          recommendedMinutes,
+          instruction: taskInstruction || 'No instructions provided.',
+          imageUrl: writingGroup?.imageUrl || null,
+        };
+      });
+
+      return {
+        sessionId: testId,
+        candidateName: 'Guest Student',
+        candidateId: data.id || testId,
+        testType: data.testType || 'Academic Writing',
+        totalMinutes: writingSession.durationMinutes || 60,
+        parts: parts.length > 0 ? parts : MOCK_WRITING_DATA.parts,
+      };
+    } catch (err) {
+      console.warn('Writing test fetch failed, using mock:', err.message);
+      return simulateBackendCall({ ...MOCK_WRITING_DATA, sessionId: testId });
+    }
+  },
+
   submitAnswers: async (sessionId, answers) => {
     console.log("Submitting to BE:", answers);
     return simulateBackendCall({

@@ -26,20 +26,20 @@ export const MOCK_READING_DATA = {
       questionsLabel: "Questions 1–13",
       questions: [
         // Q1-6: TRUE / FALSE / NOT GIVEN
-        { id: "q1", number: 1, type: "multiple-choice", text: "Marie Curie's husband was a joint winner of both Marie's Nobel Prizes.", options: ["TRUE", "FALSE", "NOT GIVEN"] },
-        { id: "q2", number: 2, type: "multiple-choice", text: "Marie became interested in science when she was a child.", options: ["TRUE", "FALSE", "NOT GIVEN"] },
-        { id: "q3", number: 3, type: "multiple-choice", text: "Marie was able to attend the Sorbonne because of her sister's financial contribution.", options: ["TRUE", "FALSE", "NOT GIVEN"] },
-        { id: "q4", number: 4, type: "multiple-choice", text: "Marie stopped doing research for several years when her children were born.", options: ["TRUE", "FALSE", "NOT GIVEN"] },
-        { id: "q5", number: 5, type: "multiple-choice", text: "Marie took over the teaching position her husband had held.", options: ["TRUE", "FALSE", "NOT GIVEN"] },
-        { id: "q6", number: 6, type: "multiple-choice", text: "Marie's sister Bronia studied the medical uses of radioactivity.", options: ["TRUE", "FALSE", "NOT GIVEN"] },
+        { id: "q1", number: 1, type: "multiple-choice", text: "Marie Curie's husband was a joint winner of both Marie's Nobel Prizes.", options: ["TRUE", "FALSE", "NOT GIVEN"], correctAnswer: "FALSE" },
+        { id: "q2", number: 2, type: "multiple-choice", text: "Marie became interested in science when she was a child.", options: ["TRUE", "FALSE", "NOT GIVEN"], correctAnswer: "NOT GIVEN" },
+        { id: "q3", number: 3, type: "multiple-choice", text: "Marie was able to attend the Sorbonne because of her sister's financial contribution.", options: ["TRUE", "FALSE", "NOT GIVEN"], correctAnswer: "TRUE" },
+        { id: "q4", number: 4, type: "multiple-choice", text: "Marie stopped doing research for several years when her children were born.", options: ["TRUE", "FALSE", "NOT GIVEN"], correctAnswer: "FALSE" },
+        { id: "q5", number: 5, type: "multiple-choice", text: "Marie took over the teaching position her husband had held.", options: ["TRUE", "FALSE", "NOT GIVEN"], correctAnswer: "TRUE" },
+        { id: "q6", number: 6, type: "multiple-choice", text: "Marie's sister Bronia studied the medical uses of radioactivity.", options: ["TRUE", "FALSE", "NOT GIVEN"], correctAnswer: "NOT GIVEN" },
         // Q7-13: Fill in the blank — note completion
-        { id: "q7", number: 7, type: "fill-in-the-blank", text: "When uranium was discovered to be radioactive, Marie Curie found that the element called _______ had the same property." },
-        { id: "q8", number: 8, type: "fill-in-the-blank", text: "Marie and Pierre Curie's research into the radioactivity of the mineral known as _______ led to the discovery of two new elements." },
-        { id: "q9", number: 9, type: "fill-in-the-blank", text: "In 1911, Marie Curie received recognition for her work on the element _______ ." },
-        { id: "q10", number: 10, type: "fill-in-the-blank", text: "Marie and Irène Curie developed X-radiography which was used as a medical technique for _______ ." },
-        { id: "q11", number: 11, type: "fill-in-the-blank", text: "Marie Curie saw the importance of collecting radioactive material both for research and for cases of _______ ." },
-        { id: "q12", number: 12, type: "fill-in-the-blank", text: "The radioactive material stocked in Paris contributed to the discoveries in the 1930s of the _______ and of what was known as artificial radioactivity." },
-        { id: "q13", number: 13, type: "fill-in-the-blank", text: "During her research, Marie Curie was exposed to radiation and as a result she suffered from _______ ." },
+        { id: "q7", number: 7, type: "fill-in-the-blank", text: "When uranium was discovered to be radioactive, Marie Curie found that the element called _______ had the same property.", correctAnswer: "thorium" },
+        { id: "q8", number: 8, type: "fill-in-the-blank", text: "Marie and Pierre Curie's research into the radioactivity of the mineral known as _______ led to the discovery of two new elements.", correctAnswer: "pitchblende" },
+        { id: "q9", number: 9, type: "fill-in-the-blank", text: "In 1911, Marie Curie received recognition for her work on the element _______ .", correctAnswer: "radium" },
+        { id: "q10", number: 10, type: "fill-in-the-blank", text: "Marie and Irène Curie developed X-radiography which was used as a medical technique for _______ .", correctAnswer: "soldiers" },
+        { id: "q11", number: 11, type: "fill-in-the-blank", text: "Marie Curie saw the importance of collecting radioactive material both for research and for cases of _______ .", correctAnswer: "illness" },
+        { id: "q12", number: 12, type: "fill-in-the-blank", text: "The radioactive material stocked in Paris contributed to the discoveries in the 1930s of the _______ and of what was known as artificial radioactivity.", correctAnswer: "neutron" },
+        { id: "q13", number: 13, type: "fill-in-the-blank", text: "During her research, Marie Curie was exposed to radiation and as a result she suffered from _______ .", correctAnswer: "leukaemia" },
       ],
     },
     // ======== PART 2: Questions 14–26 ========
@@ -75,11 +75,11 @@ export const MOCK_READING_DATA = {
             "The explicit verbal recognition of self"
           ],
           subQuestions: [
-            { id: "q14_head", number: 14 },
-            { id: "q15_head", number: 15 },
-            { id: "q16_head", number: 16 },
-            { id: "q17_head", number: 17 },
-            { id: "q18_head", number: 18 }
+            { id: "q14_head", number: 14, correctAnswer: "Children's first steps towards self-awareness" },
+            { id: "q15_head", number: 15, correctAnswer: "Learning about self through imitation and mirrors" },
+            { id: "q16_head", number: 16, correctAnswer: "The role of social relationships in developing identity" },
+            { id: "q17_head", number: 17, correctAnswer: "The explicit verbal recognition of self" },
+            { id: "q18_head", number: 18, correctAnswer: "The distinction between subjective and objective self" }
           ]
         },
         // Q19-22: Summary Completion
@@ -89,17 +89,17 @@ export const MOCK_READING_DATA = {
           title: "The development of a child's sense of self",
           text: "William James was one of the first psychologists to study the concept of identity in children. He identified two main aspects: the self as a [19] and the self as an object. According to Cooley, young children first develop a sense of self through trying to control [20] around them. Dunn later emphasised that children develop understanding of self through [21] with family members. By around 18 months, children start using words like 'me' to show they have developed what is known as the [22] self.",
           subQuestions: [
-            { id: "q19", number: 19 },
-            { id: "q20", number: 20 },
-            { id: "q21", number: 21 },
-            { id: "q22", number: 22 }
+            { id: "q19", number: 19, correctAnswer: "subject" },
+            { id: "q20", number: 20, correctAnswer: "objects" },
+            { id: "q21", number: 21, correctAnswer: "interactions" },
+            { id: "q22", number: 22, correctAnswer: "categorical" }
           ]
         },
         // Q23-26: Multiple Choice — paragraph matching
-        { id: "q23", number: 23, type: "multiple-choice", text: "The role of imitation in developing a sense of identity.", options: ["A", "B", "C", "D", "E"] },
-        { id: "q24", number: 24, type: "multiple-choice", text: "The age at which children can usually identify themselves verbally.", options: ["A", "B", "C", "D", "E"] },
-        { id: "q25", number: 25, type: "multiple-choice", text: "The theory that relationships are central to developing self-awareness.", options: ["A", "B", "C", "D", "E"] },
-        { id: "q26", number: 26, type: "multiple-choice", text: "The first academic distinction between two types of self.", options: ["A", "B", "C", "D", "E"] },
+        { id: "q23", number: 23, type: "multiple-choice", text: "The role of imitation in developing a sense of identity.", options: ["A", "B", "C", "D", "E"], correctAnswer: "C" },
+        { id: "q24", number: 24, type: "multiple-choice", text: "The age at which children can usually identify themselves verbally.", options: ["A", "B", "C", "D", "E"], correctAnswer: "E" },
+        { id: "q25", number: 25, type: "multiple-choice", text: "The theory that relationships are central to developing self-awareness.", options: ["A", "B", "C", "D", "E"], correctAnswer: "D" },
+        { id: "q26", number: 26, type: "multiple-choice", text: "The first academic distinction between two types of self.", options: ["A", "B", "C", "D", "E"], correctAnswer: "A" },
       ],
     },
     // ======== PART 3: Questions 27–40 ========
@@ -121,10 +121,10 @@ export const MOCK_READING_DATA = {
       questionsLabel: "Questions 27–40",
       questions: [
         // Q27-30: Multiple Choice (ABCD)
-        { id: "q27", number: 27, type: "multiple-choice", text: "What did early scientists believe was the main factor in ageing?", options: ["A. environmental conditions", "B. genetic factors", "C. dietary habits", "D. social connections"] },
-        { id: "q28", number: 28, type: "multiple-choice", text: "What is significant about the communities in Okinawa and Sardinia?", options: ["A. They have the oldest recorded humans.", "B. They have an unusually high number of centenarians.", "C. They consume very little food.", "D. They exercise more than most populations."] },
-        { id: "q29", number: 29, type: "multiple-choice", text: "What happens when telomeres become too short?", options: ["A. The cell grows faster.", "B. The cell repairs itself.", "C. The cell becomes inactive or dies.", "D. The cell divides more rapidly."] },
-        { id: "q30", number: 30, type: "multiple-choice", text: "What does 'hara hachi bu' mean?", options: ["A. eating only vegetables", "B. fasting one day per week", "C. eating until 80% full", "D. consuming raw food only"] },
+        { id: "q27", number: 27, type: "multiple-choice", text: "What did early scientists believe was the main factor in ageing?", options: ["A. environmental conditions", "B. genetic factors", "C. dietary habits", "D. social connections"], correctAnswer: "B. genetic factors" },
+        { id: "q28", number: 28, type: "multiple-choice", text: "What is significant about the communities in Okinawa and Sardinia?", options: ["A. They have the oldest recorded humans.", "B. They have an unusually high number of centenarians.", "C. They consume very little food.", "D. They exercise more than most populations."], correctAnswer: "B. They have an unusually high number of centenarians." },
+        { id: "q29", number: 29, type: "multiple-choice", text: "What happens when telomeres become too short?", options: ["A. The cell grows faster.", "B. The cell repairs itself.", "C. The cell becomes inactive or dies.", "D. The cell divides more rapidly."], correctAnswer: "C. The cell becomes inactive or dies." },
+        { id: "q30", number: 30, type: "multiple-choice", text: "What does 'hara hachi bu' mean?", options: ["A. eating only vegetables", "B. fasting one day per week", "C. eating until 80% full", "D. consuming raw food only"], correctAnswer: "C. eating until 80% full" },
         // Q31-35: Matching Information (drag-drop)
         {
           id: "q_matching_info",
@@ -133,16 +133,16 @@ export const MOCK_READING_DATA = {
           rightHeader: "Paragraph",
           bankOptions: ["A", "B", "C", "D", "E", "F", "G", "H"],
           subQuestions: [
-            { id: "q31", number: 31, text: "a reference to a specific experiment showing exercise can reverse biological ageing" },
-            { id: "q32", number: 32, text: "mention of a long-running health study demonstrating the importance of social ties" },
-            { id: "q33", number: 33, text: "a description of common lifestyle features shared by long-lived communities" },
-            { id: "q34", number: 34, text: "an explanation of how stress affects the body at a cellular level" },
-            { id: "q35", number: 35, text: "details of pharmaceutical research aimed at the ageing process itself" }
+            { id: "q31", number: 31, text: "a reference to a specific experiment showing exercise can reverse biological ageing", correctAnswer: "E" },
+            { id: "q32", number: 32, text: "mention of a long-running health study demonstrating the importance of social ties", correctAnswer: "G" },
+            { id: "q33", number: 33, text: "a description of common lifestyle features shared by long-lived communities", correctAnswer: "C" },
+            { id: "q34", number: 34, text: "an explanation of how stress affects the body at a cellular level", correctAnswer: "D" },
+            { id: "q35", number: 35, text: "details of pharmaceutical research aimed at the ageing process itself", correctAnswer: "H" }
           ],
           layout: "list"
         },
         // Q36-37: Multiple Choice (multi-select — choose TWO)
-        { id: "q36-37", number: 36, numberRange: [36, 37], type: "multiple-choice", allowMultipleAnswers: true, selectCount: 2, text: "Which TWO of the following are described as characteristics of Blue Zone communities?", options: ["A. high levels of meat consumption", "B. regular physical activity", "C. working long office hours", "D. moderate caloric intake", "E. frequent international travel"] },
+        { id: "q36-37", number: 36, numberRange: [36, 37], type: "multiple-choice", allowMultipleAnswers: true, selectCount: 2, text: "Which TWO of the following are described as characteristics of Blue Zone communities?", options: ["A. high levels of meat consumption", "B. regular physical activity", "C. working long office hours", "D. moderate caloric intake", "E. frequent international travel"], correctAnswer: ["B. regular physical activity", "D. moderate caloric intake"] },
         // Q38-40: Image Drag & Drop — Map labelling
         {
           id: "q_image_dd",
@@ -151,9 +151,9 @@ export const MOCK_READING_DATA = {
           imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/PlaceholderLC.png/200px-PlaceholderLC.png",
           bankOptions: ["Swimming Pool", "Tennis Court", "Car Park", "Reception", "Restaurant", "Library", "Gym", "Playground"],
           subQuestions: [
-            { id: "q38", number: 38, text: "Area in the centre of the map", top: "50%", left: "50%" },
-            { id: "q39", number: 39, text: "Structure at the southern end", top: "80%", left: "40%" },
-            { id: "q40", number: 40, text: "Building on the west side", top: "55%", left: "15%" },
+            { id: "q38", number: 38, text: "Area in the centre of the map", top: "50%", left: "50%", correctAnswer: "Library" },
+            { id: "q39", number: 39, text: "Structure at the southern end", top: "80%", left: "40%", correctAnswer: "Tennis Court" },
+            { id: "q40", number: 40, text: "Building on the west side", top: "55%", left: "15%", correctAnswer: "Gym" },
           ],
         },
       ],
@@ -178,16 +178,16 @@ export const MOCK_LISTENING_DATA = {
       audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
       passageContent: "<h3>Holiday Rental Enquiry</h3><p>Complete the notes below.<br>Write <b>ONE WORD AND/OR A NUMBER</b> for each answer.</p>",
       questions: [
-        { id: "lq1", number: 1, type: "fill-in-the-blank", text: "Type of property: a _______ by the sea" },
-        { id: "lq2", number: 2, type: "fill-in-the-blank", text: "Number of bedrooms needed: _______ " },
-        { id: "lq3", number: 3, type: "fill-in-the-blank", text: "Arrival date: 17th _______ " },
-        { id: "lq4", number: 4, type: "fill-in-the-blank", text: "Length of stay: _______ nights" },
-        { id: "lq5", number: 5, type: "fill-in-the-blank", text: "Name of caller: Mrs _______ " },
-        { id: "lq6", number: 6, type: "fill-in-the-blank", text: "Address: 27 _______ Road, Brixham" },
-        { id: "lq7", number: 7, type: "fill-in-the-blank", text: "Postcode: BX7 _______ " },
-        { id: "lq8", number: 8, type: "fill-in-the-blank", text: "Phone number: 01onal _______ " },
-        { id: "lq9", number: 9, type: "fill-in-the-blank", text: "Special requirement: sea _______ from the room" },
-        { id: "lq10", number: 10, type: "fill-in-the-blank", text: "Total cost per week: £ _______ " }
+        { id: "lq1", number: 1, type: "fill-in-the-blank", text: "Type of property: a _______ by the sea", correctAnswer: "cottage" },
+        { id: "lq2", number: 2, type: "fill-in-the-blank", text: "Number of bedrooms needed: _______ ", correctAnswer: "3" },
+        { id: "lq3", number: 3, type: "fill-in-the-blank", text: "Arrival date: 17th _______ ", correctAnswer: "August" },
+        { id: "lq4", number: 4, type: "fill-in-the-blank", text: "Length of stay: _______ nights", correctAnswer: "14" },
+        { id: "lq5", number: 5, type: "fill-in-the-blank", text: "Name of caller: Mrs _______ ", correctAnswer: "Higginson" },
+        { id: "lq6", number: 6, type: "fill-in-the-blank", text: "Address: 27 _______ Road, Brixham", correctAnswer: "Clarence" },
+        { id: "lq7", number: 7, type: "fill-in-the-blank", text: "Postcode: BX7 _______ ", correctAnswer: "9DP" },
+        { id: "lq8", number: 8, type: "fill-in-the-blank", text: "Phone number: 01onal _______ ", correctAnswer: "876421" },
+        { id: "lq9", number: 9, type: "fill-in-the-blank", text: "Special requirement: sea _______ from the room", correctAnswer: "view" },
+        { id: "lq10", number: 10, type: "fill-in-the-blank", text: "Total cost per week: £ _______ ", correctAnswer: "450" }
       ]
     },
     // ======== SECTION 2: Questions 11–20 (MC + Matching) ========
@@ -199,12 +199,12 @@ export const MOCK_LISTENING_DATA = {
       audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
       passageContent: "<h3>Riverview Sports Centre</h3><p>Questions 11–16: Choose the correct letter, <b>A</b>, <b>B</b> or <b>C</b>.</p>",
       questions: [
-        { id: "lq11", number: 11, type: "multiple-choice", text: "The main reason for the upgrade of the sports centre is to", options: ["A. increase the number of members.", "B. replace outdated equipment.", "C. improve energy efficiency."] },
-        { id: "lq12", number: 12, type: "multiple-choice", text: "The new swimming pool will be", options: ["A. 25 metres long.", "B. 50 metres long.", "C. indoor and outdoor."] },
-        { id: "lq13", number: 13, type: "multiple-choice", text: "The gym equipment is funded by", options: ["A. the local council.", "B. a private sponsor.", "C. membership fee increases."] },
-        { id: "lq14", number: 14, type: "multiple-choice", text: "What is now available for children under 10?", options: ["A. free tennis coaching", "B. a dedicated play area", "C. swimming lessons on weekdays"] },
-        { id: "lq15", number: 15, type: "multiple-choice", text: "The centre will now close at", options: ["A. 9:30 PM on weekdays.", "B. 10:00 PM every day.", "C. 11:00 PM at weekends."] },
-        { id: "lq16", number: 16, type: "multiple-choice", text: "Membership fees will", options: ["A. remain the same for one year.", "B. increase by 10% next month.", "C. decrease for students."] },
+        { id: "lq11", number: 11, type: "multiple-choice", text: "The main reason for the upgrade of the sports centre is to", options: ["A. increase the number of members.", "B. replace outdated equipment.", "C. improve energy efficiency."], correctAnswer: "B. replace outdated equipment." },
+        { id: "lq12", number: 12, type: "multiple-choice", text: "The new swimming pool will be", options: ["A. 25 metres long.", "B. 50 metres long.", "C. indoor and outdoor."], correctAnswer: "B. 50 metres long." },
+        { id: "lq13", number: 13, type: "multiple-choice", text: "The gym equipment is funded by", options: ["A. the local council.", "B. a private sponsor.", "C. membership fee increases."], correctAnswer: "A. the local council." },
+        { id: "lq14", number: 14, type: "multiple-choice", text: "What is now available for children under 10?", options: ["A. free tennis coaching", "B. a dedicated play area", "C. swimming lessons on weekdays"], correctAnswer: "A. free tennis coaching" },
+        { id: "lq15", number: 15, type: "multiple-choice", text: "The centre will now close at", options: ["A. 9:30 PM on weekdays.", "B. 10:00 PM every day.", "C. 11:00 PM at weekends."], correctAnswer: "B. 10:00 PM every day." },
+        { id: "lq16", number: 16, type: "multiple-choice", text: "Membership fees will", options: ["A. remain the same for one year.", "B. increase by 10% next month.", "C. decrease for students."], correctAnswer: "A. remain the same for one year." },
         // Q17-20: Matching (drag-drop)
         {
           id: "listen_dnd_1",
@@ -213,10 +213,10 @@ export const MOCK_LISTENING_DATA = {
           rightHeader: "New facility",
           bankOptions: ["Café", "Sauna", "Childcare room", "Squash courts", "Yoga studio"],
           subQuestions: [
-            { id: "lq17", number: 17, text: "Ground floor, East Wing" },
-            { id: "lq18", number: 18, text: "Ground floor, West Wing" },
-            { id: "lq19", number: 19, text: "Basement" },
-            { id: "lq20", number: 20, text: "First floor" }
+            { id: "lq17", number: 17, text: "Ground floor, East Wing", correctAnswer: "Café" },
+            { id: "lq18", number: 18, text: "Ground floor, West Wing", correctAnswer: "Childcare room" },
+            { id: "lq19", number: 19, text: "Basement", correctAnswer: "Squash courts" },
+            { id: "lq20", number: 20, text: "First floor", correctAnswer: "Yoga studio" }
           ]
         }
       ]
@@ -238,20 +238,20 @@ export const MOCK_LISTENING_DATA = {
           rightHeader: "Person responsible",
           bankOptions: ["Alice", "Bob", "Dr Chen", "Both students"],
           subQuestions: [
-            { id: "lq21", number: 21, text: "Literature review" },
-            { id: "lq22", number: 22, text: "Data collection" },
-            { id: "lq23", number: 23, text: "Statistical analysis" }
+            { id: "lq21", number: 21, text: "Literature review", correctAnswer: "Alice" },
+            { id: "lq22", number: 22, text: "Data collection", correctAnswer: "Both students" },
+            { id: "lq23", number: 23, text: "Statistical analysis", correctAnswer: "Bob" }
           ]
         },
         // Q24-27: Multiple choice
-        { id: "lq24", number: 24, type: "multiple-choice", text: "What is the main topic of their research project?", options: ["A. The effect of social media on student wellbeing", "B. Renewable energy adoption in urban areas", "C. Consumer attitudes towards online shopping"] },
-        { id: "lq25", number: 25, type: "multiple-choice", text: "How many participants do they plan to survey?", options: ["A. 50", "B. 100", "C. 200"] },
-        { id: "lq26", number: 26, type: "multiple-choice", text: "When is the project deadline?", options: ["A. end of March", "B. mid-April", "C. beginning of May"] },
-        { id: "lq27", number: 27, type: "multiple-choice", text: "Dr Chen recommends they focus on", options: ["A. qualitative data only.", "B. a mixed-methods approach.", "C. quantitative data only."] },
+        { id: "lq24", number: 24, type: "multiple-choice", text: "What is the main topic of their research project?", options: ["A. The effect of social media on student wellbeing", "B. Renewable energy adoption in urban areas", "C. Consumer attitudes towards online shopping"], correctAnswer: "B. Renewable energy adoption in urban areas" },
+        { id: "lq25", number: 25, type: "multiple-choice", text: "How many participants do they plan to survey?", options: ["A. 50", "B. 100", "C. 200"], correctAnswer: "B. 100" },
+        { id: "lq26", number: 26, type: "multiple-choice", text: "When is the project deadline?", options: ["A. end of March", "B. mid-April", "C. beginning of May"], correctAnswer: "A. end of March" },
+        { id: "lq27", number: 27, type: "multiple-choice", text: "Dr Chen recommends they focus on", options: ["A. qualitative data only.", "B. a mixed-methods approach.", "C. quantitative data only."], correctAnswer: "B. a mixed-methods approach." },
         // Q28-30: TRUE / FALSE / NOT GIVEN
-        { id: "lq28", number: 28, type: "multiple-choice", text: "Alice has already started writing the introduction.", options: ["TRUE", "FALSE", "NOT GIVEN"] },
-        { id: "lq29", number: 29, type: "multiple-choice", text: "Bob will design the survey questionnaire alone.", options: ["TRUE", "FALSE", "NOT GIVEN"] },
-        { id: "lq30", number: 30, type: "multiple-choice", text: "The tutor is satisfied with their initial proposal.", options: ["TRUE", "FALSE", "NOT GIVEN"] },
+        { id: "lq28", number: 28, type: "multiple-choice", text: "Alice has already started writing the introduction.", options: ["TRUE", "FALSE", "NOT GIVEN"], correctAnswer: "FALSE" },
+        { id: "lq29", number: 29, type: "multiple-choice", text: "Bob will design the survey questionnaire alone.", options: ["TRUE", "FALSE", "NOT GIVEN"], correctAnswer: "TRUE" },
+        { id: "lq30", number: 30, type: "multiple-choice", text: "The tutor is satisfied with their initial proposal.", options: ["TRUE", "FALSE", "NOT GIVEN"], correctAnswer: "NOT GIVEN" },
       ]
     },
     // ======== SECTION 4: Questions 31–40 (Sentence completion) ========
@@ -263,16 +263,16 @@ export const MOCK_LISTENING_DATA = {
       audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3",
       passageContent: "<h3>Lecture: The History of Urban Planning</h3><p>Complete the notes below.<br>Write <b>ONE WORD ONLY</b> for each answer.</p>",
       questions: [
-        { id: "lq31", number: 31, type: "fill-in-the-blank", text: "The earliest known planned cities were built in ancient _______ ." },
-        { id: "lq32", number: 32, type: "fill-in-the-blank", text: "Greek cities were designed around a central open space called the _______ ." },
-        { id: "lq33", number: 33, type: "fill-in-the-blank", text: "Roman cities typically followed a _______ layout based on two main streets." },
-        { id: "lq34", number: 34, type: "fill-in-the-blank", text: "During the Middle Ages, most European cities grew without any formal _______ ." },
-        { id: "lq35", number: 35, type: "fill-in-the-blank", text: "Baron Haussmann redesigned the _______ of Paris in the 19th century." },
-        { id: "lq36", number: 36, type: "fill-in-the-blank", text: "The 'Garden City' concept was proposed by Ebenezer _______ ." },
-        { id: "lq37", number: 37, type: "fill-in-the-blank", text: "After World War II, many cities prioritised building _______ for cars." },
-        { id: "lq38", number: 38, type: "fill-in-the-blank", text: "Modern sustainable planning focuses on reducing urban _______ ." },
-        { id: "lq39", number: 39, type: "fill-in-the-blank", text: "The concept of '15-minute cities' aims to ensure all services are within walking _______ ." },
-        { id: "lq40", number: 40, type: "fill-in-the-blank", text: "Smart cities use _______ and sensors to manage urban infrastructure." }
+        { id: "lq31", number: 31, type: "fill-in-the-blank", text: "The earliest known planned cities were built in ancient _______ .", correctAnswer: "Mesopotamia" },
+        { id: "lq32", number: 32, type: "fill-in-the-blank", text: "Greek cities were designed around a central open space called the _______ .", correctAnswer: "agora" },
+        { id: "lq33", number: 33, type: "fill-in-the-blank", text: "Roman cities typically followed a _______ layout based on two main streets.", correctAnswer: "grid" },
+        { id: "lq34", number: 34, type: "fill-in-the-blank", text: "During the Middle Ages, most European cities grew without any formal _______ .", correctAnswer: "planning" },
+        { id: "lq35", number: 35, type: "fill-in-the-blank", text: "Baron Haussmann redesigned the _______ of Paris in the 19th century.", correctAnswer: "boulevards" },
+        { id: "lq36", number: 36, type: "fill-in-the-blank", text: "The 'Garden City' concept was proposed by Ebenezer _______ .", correctAnswer: "Howard" },
+        { id: "lq37", number: 37, type: "fill-in-the-blank", text: "After World War II, many cities prioritised building _______ for cars.", correctAnswer: "highways" },
+        { id: "lq38", number: 38, type: "fill-in-the-blank", text: "Modern sustainable planning focuses on reducing urban _______ .", correctAnswer: "sprawl" },
+        { id: "lq39", number: 39, type: "fill-in-the-blank", text: "The concept of '15-minute cities' aims to ensure all services are within walking _______ .", correctAnswer: "distance" },
+        { id: "lq40", number: 40, type: "fill-in-the-blank", text: "Smart cities use _______ and sensors to manage urban infrastructure.", correctAnswer: "data" }
       ]
     }
   ],

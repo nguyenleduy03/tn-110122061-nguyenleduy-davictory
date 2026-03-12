@@ -25,6 +25,14 @@ import { testBuilderApi, buildSavePayload, parseLoadedTest } from '../services/t
 import { authApi } from '../services/authApi';
 import '../styles/testBuilder.css';
 
+// Roles cho phép dùng Test Builder
+const ALLOWED_ROLES = ['TEACHER', 'MANAGER', 'ADMIN'];
+const hasTeacherRole = () => {
+  const user = authApi.getStoredUser();
+  if (!user?.roles) return false;
+  return user.roles.some(r => ALLOWED_ROLES.includes(r));
+};
+
 // ---- Session definitions (mirror backend Session entity) ----
 const SESSION_META = {
   LISTENING: { label: 'Listening', icon: Headphones, iconBg: '#dbeafe', iconColor: '#1d4ed8', durationMinutes: 30, totalQuestions: 40 },
@@ -52,12 +60,28 @@ const makeDefaultParts = (skillKey) => {
       instructions: '', questionGroups: [],
     }));
   }
+  if (skillKey === 'WRITING') {
+    return [
+      { id: nextId(), name: 'Task 1 – Report/Description', orderIndex: 1,
+        durationMinutes: 20, totalQuestions: 1,
+        instructions: 'Mô tả biểu đồ, bảng số liệu, sơ đồ hoặc bản đồ (tối thiểu 150 từ)', questionGroups: [] },
+      { id: nextId(), name: 'Task 2 – Essay', orderIndex: 2,
+        durationMinutes: 40, totalQuestions: 1,
+        instructions: 'Viết bài luận (tối thiểu 250 từ)', questionGroups: [] },
+    ];
+  }
   if (skillKey === 'SPEAKING') {
-    return [{
-      id: nextId(), name: 'Part 1', orderIndex: 1,
-      durationMinutes: null, totalQuestions: 5,
-      instructions: '', questionGroups: [],
-    }];
+    return [
+      { id: nextId(), name: 'Part 1 – Introduction & Interview', orderIndex: 1,
+        durationMinutes: 5, totalQuestions: 1,
+        instructions: 'Giám khảo hỏi về bản thân, gia đình, sở thích (4-5 phút)', questionGroups: [] },
+      { id: nextId(), name: 'Part 2 – Long Turn (Cue Card)', orderIndex: 2,
+        durationMinutes: 4, totalQuestions: 1,
+        instructions: 'Nói về chủ đề cho sẵn trong 1-2 phút sau 1 phút chuẩn bị', questionGroups: [] },
+      { id: nextId(), name: 'Part 3 – Two-way Discussion', orderIndex: 3,
+        durationMinutes: 5, totalQuestions: 1,
+        instructions: 'Thảo luận sâu hơn về chủ đề trong Part 2 (4-5 phút)', questionGroups: [] },
+    ];
   }
   return [{
     id: nextId(), name: 'Part 1', orderIndex: 1,
@@ -102,11 +126,18 @@ const TestBuilder = () => {
   const [savedTestId, setSavedTestId] = useState(editTestId ? Number(editTestId) : null);
   const [structure, setStructure] = useState(null); // Backend session/part IDs
   const [saveMessage, setSaveMessage] = useState('');
+  const [roleError, setRoleError] = useState(false);
 
   // ─── Fetch backend structure + load existing test on mount ───
   useEffect(() => {
     const init = async () => {
       try {
+        // Kiểm tra quyền TEACHER trước
+        if (!hasTeacherRole()) {
+          setRoleError(true);
+          return;
+        }
+
         // Lấy cấu trúc sessions/parts từ backend
         const struct = await testBuilderApi.getStructure(test.testType);
         setStructure(struct);
@@ -401,7 +432,35 @@ const TestBuilder = () => {
             questions: [],
           };
 
-        default: // STANDALONE, TABLE, WRITING, SPEAKING…
+        case 'WRITING_TASK':
+          return {
+            title: `Writing Task ${groupIdx}`,
+            passageText: '',
+            fromQuestion: null, toQuestion: null,
+            questions: [makeQ(1, 'WRITING_TASK', { questionText: '' })],
+          };
+
+        case 'SPEAKING_INTERVIEW':
+          return {
+            title: `Speaking Interview ${groupIdx}`,
+            passageText: '',
+            fromQuestion: null, toQuestion: null,
+            questions: [
+              makeQ(1, 'SPEAKING_INTERVIEW', { questionText: '' }),
+              makeQ(2, 'SPEAKING_INTERVIEW', { questionText: '' }),
+              makeQ(3, 'SPEAKING_INTERVIEW', { questionText: '' }),
+            ],
+          };
+
+        case 'SPEAKING_CUECARD':
+          return {
+            title: `Cue Card ${groupIdx}`,
+            passageText: '',
+            fromQuestion: null, toQuestion: null,
+            questions: [makeQ(1, 'SPEAKING_CUECARD', { questionText: '' })],
+          };
+
+        default: // STANDALONE, TABLE…
           return {
             title: `Nhóm ${groupIdx}`,
             fromQuestion: null, toQuestion: null,
@@ -673,7 +732,11 @@ const TestBuilder = () => {
       setTimeout(() => setSaveMessage(''), 3000);
     } catch (err) {
       console.error('Lỗi lưu đề thi:', err);
-      setSaveMessage('Lỗi khi lưu đề thi: ' + (err.response?.data?.error || err.message));
+      if (err.response?.status === 403) {
+        setSaveMessage('Bạn không có quyền lưu đề thi. Cần đăng nhập tài khoản có quyền TEACHER/MANAGER/ADMIN.');
+      } else {
+        setSaveMessage('Lỗi khi lưu đề thi: ' + (err.response?.data?.error || err.message));
+      }
     } finally {
       setSaving(false);
     }
@@ -750,6 +813,28 @@ const TestBuilder = () => {
   };
 
   // ------------ Render ------------
+
+  if (roleError) {
+    return (
+      <div className="tb-page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center', padding: '40px', background: '#fff3cd', borderRadius: 12, maxWidth: 500 }}>
+          <h2 style={{ color: '#856404', marginBottom: 12 }}>Không có quyền truy cập</h2>
+          <p style={{ color: '#856404', marginBottom: 20 }}>
+            Tính năng tạo đề thi yêu cầu tài khoản có quyền <strong>TEACHER</strong>, <strong>MANAGER</strong> hoặc <strong>ADMIN</strong>.
+          </p>
+          <p style={{ color: '#856404', fontSize: 14 }}>
+            Tài khoản hiện tại chỉ có quyền <strong>STUDENT</strong>. Vui lòng đăng nhập lại bằng tài khoản giáo viên.
+          </p>
+          <button
+            onClick={() => window.location.href = '/login'}
+            style={{ marginTop: 16, padding: '10px 24px', background: '#856404', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 15 }}
+          >
+            Đăng nhập lại
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="tb-page">

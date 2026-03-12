@@ -1,7 +1,7 @@
 import React from 'react';
 import { Bookmark } from 'lucide-react';
 
-const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answers, handleAnswerChange, inputRefs, bookmarks, toggleBookmark }) => {
+const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answers, handleAnswerChange, inputRefs, bookmarks, toggleBookmark, isReview }) => {
     
     // Parse text to find placeholders like [24], [25]
     const renderParagraph = () => {
@@ -34,14 +34,20 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
                         <input
                             ref={(el) => { if (inputRefs?.current) inputRefs.current[qNum] = el; }}
                             type="text"
-                            className="inline-input summary-input"
+                            className={`inline-input summary-input ${isReview ? (answer?.trim().toLowerCase() === subQ?.correctAnswer?.toLowerCase() ? 'review-correct' : 'review-wrong') : ''}`}
                             placeholder={qNum.toString()}
                             value={answer}
-                            onChange={(e) => handleAnswerChange?.(qId, e.target.value)}
-                            onFocus={() => setActiveQuestion?.(qNum)}
+                            onChange={(e) => { if (!isReview) handleAnswerChange?.(qId, e.target.value); }}
+                            onFocus={() => { if (!isReview) setActiveQuestion?.(qNum); }}
                             autoComplete="off"
                             spellCheck="false"
+                            readOnly={isReview}
                         />
+                        {isReview && answer?.trim().toLowerCase() !== subQ?.correctAnswer?.toLowerCase() && (
+                            <span className="review-correct-label" style={{ marginLeft: '4px' }}>
+                                ({subQ?.correctAnswer})
+                            </span>
+                        )}
                     </span>
                 );
             }

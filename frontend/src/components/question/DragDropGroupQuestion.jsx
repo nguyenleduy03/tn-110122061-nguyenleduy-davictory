@@ -1,7 +1,7 @@
 import React from 'react';
 import { Bookmark } from 'lucide-react';
 
-const DragDropGroupQuestion = ({ q, activeQuestion, setActiveQuestion, answers, handleAnswerChange, bookmarks, toggleBookmark }) => {
+const DragDropGroupQuestion = ({ q, activeQuestion, setActiveQuestion, answers, handleAnswerChange, bookmarks, toggleBookmark, isReview }) => {
     const handleDragStart = (e, option) => {
         e.dataTransfer.setData('text/plain', option);
         e.dataTransfer.effectAllowed = 'move';
@@ -13,6 +13,7 @@ const DragDropGroupQuestion = ({ q, activeQuestion, setActiveQuestion, answers, 
     };
 
     const handleDrop = (e, subQId) => {
+        if (isReview) return;
         e.preventDefault();
         const option = e.dataTransfer.getData('text/plain');
         const sourceQId = e.dataTransfer.getData('sourceQId');
@@ -58,8 +59,8 @@ const DragDropGroupQuestion = ({ q, activeQuestion, setActiveQuestion, answers, 
                     return (
                         <div
                             key={idx}
-                            draggable={true}
-                            onDragStart={(e) => handleDragStart(e, opt)}
+                            draggable={!isReview}
+                            onDragStart={(e) => { if (!isReview) handleDragStart(e, opt); }}
                             className={`bank-option ${isUsed ? 'used' : ''} ${isMatchingHeading ? 'bank-option-heading' : ''}`}
                             style={{
                                 display: isUsed ? 'none' : 'inline-flex',
@@ -109,16 +110,17 @@ const DragDropGroupQuestion = ({ q, activeQuestion, setActiveQuestion, answers, 
                                 {!isMatchingInfo && <span className="dd-question-text">{subQ.text}</span>}
 
                                 <div
-                                    onDragOver={handleDragOver}
-                                    onDrop={(e) => handleDrop(e, subQ.id)}
-                                    className={`dd-drop-zone ${isMatchingInfo ? 'dd-drop-info' : ''} ${answer ? 'dd-drop-filled' : ''} ${isActive && !answer ? 'dd-drop-active' : ''}`}
+                                    onDragOver={isReview ? undefined : handleDragOver}
+                                    onDrop={isReview ? undefined : (e) => handleDrop(e, subQ.id)}
+                                    className={`dd-drop-zone ${isMatchingInfo ? 'dd-drop-info' : ''} ${answer ? 'dd-drop-filled' : ''} ${isActive && !answer ? 'dd-drop-active' : ''} ${isReview ? (answer?.trim() === subQ.correctAnswer?.trim() ? 'review-correct' : 'review-wrong') : ''}`}
                                     style={{ minWidth: dropZoneWidth, width: dropZoneWidth }}
                                 >
                                     {answer ? (
                                         <>
                                             <span
-                                                draggable={true}
+                                                draggable={!isReview}
                                                 onDragStart={(e) => {
+                                                    if (isReview) return;
                                                     handleDragStart(e, answer);
                                                     e.dataTransfer.setData('sourceQId', subQ.id);
                                                 }}
@@ -126,12 +128,14 @@ const DragDropGroupQuestion = ({ q, activeQuestion, setActiveQuestion, answers, 
                                             >
                                                 {answer}
                                             </span>
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); handleClear(subQ.id); }}
-                                                className="dd-drop-clear"
-                                            >
-                                                ×
-                                            </button>
+                                            {!isReview && (
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); handleClear(subQ.id); }}
+                                                    className="dd-drop-clear"
+                                                >
+                                                    ×
+                                                </button>
+                                            )}
                                         </>
                                     ) : (
                                         isMatchingInfo ? (
@@ -143,6 +147,11 @@ const DragDropGroupQuestion = ({ q, activeQuestion, setActiveQuestion, answers, 
                                         )
                                     )}
                                 </div>
+                                {isReview && answer?.trim() !== subQ.correctAnswer?.trim() && (
+                                    <span className="review-correct-label" style={{ marginLeft: '10px' }}>
+                                        ({subQ.correctAnswer})
+                                    </span>
+                                )}
                             </div>
                         </div>
                     );

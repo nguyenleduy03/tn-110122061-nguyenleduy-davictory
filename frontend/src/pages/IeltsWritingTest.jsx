@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { ArrowLeft, ArrowRight, ArrowLeftRight, Check } from "lucide-react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { ArrowLeft, ArrowRight, ArrowLeftRight } from "lucide-react";
+import { useSearchParams, useNavigate, useParams } from "react-router-dom";
 import "../styles/ieltsTest.css";
 import TestHeader from "../components/common/TestHeader";
 import { useDividerResize } from "../hooks/useDividerResize";
@@ -17,20 +17,21 @@ const WritingTaskPane = ({ part, style }) => {
         <div className="writing-task-pane" style={style}>
             <div className="writing-task-inner">
                 <h2 className="writing-task-title">{part.taskLabel || part.title}</h2>
-                <div className="writing-task-instruction">
-                    {part.instruction.split("\n").map((line, i) =>
-                        line.trim() === "" ? (
-                            <br key={i} />
-                        ) : (
-                            <p key={i}>{line}</p>
-                        )
-                    )}
-                </div>
+                <div
+                    className="writing-task-instruction"
+                    dangerouslySetInnerHTML={{ __html: part.instruction }}
+                />
                 {part.taskImageSvg && (
                     <div
                         className="writing-task-image"
                         dangerouslySetInnerHTML={{ __html: part.taskImageSvg }}
                     />
+                )}
+                {!part.taskImageSvg && part.imageUrl && (
+                    <div className="writing-task-image">
+                        <img src={part.imageUrl} alt="task diagram"
+                            style={{ maxWidth: '100%', height: 'auto', borderRadius: 4 }} />
+                    </div>
                 )}
             </div>
         </div>
@@ -67,17 +68,15 @@ const IeltsWritingTest = () => {
     const [loading, setLoading] = useState(true);
     const [currentPartIndex, setCurrentPartIndex] = useState(0);
     const [writingAnswers, setWritingAnswers] = useState({});
-    const [showSubmitModal, setShowSubmitModal] = useState(false);
-
     const { leftWidth, containerRef, handleDragStart } = useDividerResize(50);
+    const { id: testId } = useParams();
 
     useEffect(() => {
-        ieltsApi.getTestSession("mock-session-id", "WRITING").then((data) => {
-            data.testType = "Academic Writing";
+        ieltsApi.getWritingTestSession(testId || 'mock-session-id').then((data) => {
             setTestData(data);
             setLoading(false);
         });
-    }, []);
+    }, [testId]);
 
     const handleAnswerChange = useCallback((partId, value) => {
         setWritingAnswers((prev) => ({ ...prev, [partId]: value }));
@@ -86,6 +85,7 @@ const IeltsWritingTest = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const isFullTest = searchParams.get('fullTest') === 'true';
+    const mode = searchParams.get('mode') || 'practice';
 
     const handleFullTestNext = () => {
         try {
@@ -96,10 +96,10 @@ const IeltsWritingTest = () => {
                 const updated = { ...session, currentSection: nextIdx };
                 sessionStorage.setItem('ieltsFullTest', JSON.stringify(updated));
                 const next = updated.sections[nextIdx];
-                navigate(`/test/${next.skill}/${next.testId}?fullTest=true`);
+                navigate(`/test/${next.skill}/${next.testId}?fullTest=true&mode=${session.mode || mode}`);
             } else {
                 sessionStorage.removeItem('ieltsFullTest');
-                navigate('/exam-library');
+                navigate(`/test/complete?mode=${session.mode || mode}&skill=writing&fullTest=true`);
             }
         } catch { navigate('/exam-library'); }
     };
@@ -107,12 +107,7 @@ const IeltsWritingTest = () => {
     const submitTest = () => {
         if (isFullTest) { handleFullTestNext(); return; }
         ieltsApi.submitAnswers("mock-session-id", writingAnswers).then(() => {
-            alert(
-                "Test submitted!\n\n" +
-                Object.entries(writingAnswers)
-                    .map(([k, v]) => `${k}: ${countWords(v)} words`)
-                    .join("\n")
-            );
+            navigate(`/test/complete?mode=${mode}&skill=writing`);
         });
     };
 
@@ -135,7 +130,7 @@ const IeltsWritingTest = () => {
             <TestHeader
                 candidateName={testData.candidateName}
                 candidateId={testData.candidateId}
-                submitTest={() => setShowSubmitModal(true)}
+                submitTest={submitTest}
             />
 
             <div className="instruction-bar">
@@ -206,24 +201,7 @@ const IeltsWritingTest = () => {
                         );
                     })}
                 </div>
-                <button className="submit-check-btn" onClick={() => setShowSubmitModal(true)} title="Submit Test">
-                    <Check size={28} strokeWidth={2.5} />
-                </button>
             </footer>
-
-            {showSubmitModal && (
-                <div className="submit-confirm-overlay" onClick={() => setShowSubmitModal(false)}>
-                    <div className="submit-confirm-modal" onClick={e => e.stopPropagation()}>
-                        <h3>Submit your test?</h3>
-                        <p>You are about to submit your answers for this section. Once submitted, you cannot return to make changes.</p>
-                        <p className="scm-warning">This action cannot be undone.</p>
-                        <div className="submit-confirm-actions">
-                            <button className="scm-cancel-btn" onClick={() => setShowSubmitModal(false)}>Cancel</button>
-                            <button className="scm-submit-btn" onClick={() => { setShowSubmitModal(false); submitTest(); }}>Submit Test</button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };

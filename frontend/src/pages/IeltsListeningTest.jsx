@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { ArrowLeft, ArrowRight, Volume2, ArrowLeftRight, Check, Headphones, Play } from "lucide-react";
+import { ArrowLeft, ArrowRight, Volume2, ArrowLeftRight, Headphones, Play } from "lucide-react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import "../styles/ieltsTest.css";
 import TestHeader from "../components/common/TestHeader";
@@ -13,8 +13,13 @@ const IeltsListeningTest = () => {
     const [loading, setLoading] = useState(true);
     const [bookmarks, setBookmarks] = useState({});
     const [audioStarted, setAudioStarted] = useState(false);
-    const [showSubmitModal, setShowSubmitModal] = useState(false);
     const audioRef = useRef(null);
+
+    const [searchParams] = useSearchParams();
+    const navigate = useNavigate();
+    const isFullTest = searchParams.get('fullTest') === 'true';
+    const mode = searchParams.get('mode') || 'practice';
+    const isReview = searchParams.get('review') === 'true';
 
     const toggleBookmark = (num) => {
         setBookmarks(prev => ({ ...prev, [num]: !prev[num] }));
@@ -40,8 +45,16 @@ const IeltsListeningTest = () => {
                 setActiveQuestion(data.parts[0].questions[0].number);
             }
             setLoading(false);
+
+            if (isReview) {
+                setAudioStarted(true); // Bỏ qua overlay bắt play audio
+                const savedAnswers = sessionStorage.getItem('lastAnswers_listening');
+                if (savedAnswers) {
+                    setAnswers(JSON.parse(savedAnswers));
+                }
+            }
         });
-    }, []);
+    }, [isReview]);
 
     useEffect(() => {
         if (inputRefs.current && inputRefs.current[activeQuestion] && typeof inputRefs.current[activeQuestion].focus === 'function') {
@@ -53,10 +66,6 @@ const IeltsListeningTest = () => {
         setAnswers((prev) => ({ ...prev, [questionId]: value }));
     };
 
-    const [searchParams] = useSearchParams();
-    const navigate = useNavigate();
-    const isFullTest = searchParams.get('fullTest') === 'true';
-
     const handleFullTestNext = () => {
         try {
             const session = JSON.parse(sessionStorage.getItem('ieltsFullTest') || 'null');
@@ -66,18 +75,21 @@ const IeltsListeningTest = () => {
                 const updated = { ...session, currentSection: nextIdx };
                 sessionStorage.setItem('ieltsFullTest', JSON.stringify(updated));
                 const next = updated.sections[nextIdx];
-                navigate(`/test/${next.skill}/${next.testId}?fullTest=true`);
+                navigate(`/test/${next.skill}/${next.testId}?fullTest=true&mode=${session.mode || mode}`);
             } else {
                 sessionStorage.removeItem('ieltsFullTest');
-                navigate('/exam-library');
+                navigate(`/test/complete?mode=${session.mode || mode}&skill=listening&fullTest=true`);
             }
         } catch { navigate('/exam-library'); }
     };
 
     const submitTest = () => {
+        sessionStorage.setItem('lastAnswers_listening', JSON.stringify(answers));
+        
         if (isFullTest) { handleFullTestNext(); return; }
+        
         ieltsApi.submitAnswers("mock-session-id", answers).then(() => {
-            alert("Test submitted!\nAnswers: " + JSON.stringify(answers, null, 2));
+            navigate(`/test/complete?mode=${mode}&skill=listening`);
         });
     };
 
@@ -129,8 +141,12 @@ const IeltsListeningTest = () => {
             <TestHeader
                 candidateName={testData.candidateName}
                 candidateId={testData.candidateId}
-                submitTest={() => setShowSubmitModal(true)}
-                extraInfo={audioStarted ? <><Volume2 size={16} /> Audio is playing</> : null}
+                submitTest={submitTest}
+                extraInfo={audioStarted && !isReview ? <><Volume2 size={16} /> Audio is playing</> : null}
+                isReview={isReview}
+                isFullTest={isFullTest}
+                skill="listening"
+                navigate={navigate}
             />
 
             {/* Hidden audio element */}
@@ -176,10 +192,11 @@ const IeltsListeningTest = () => {
                                     activeQuestion={activeQuestion}
                                     setActiveQuestion={setActiveQuestion}
                                     answers={answers}
-                                    handleAnswerChange={handleAnswerChange}
+                                    handleAnswerChange={isReview ? () => {} : handleAnswerChange}
                                     bookmarks={bookmarks}
                                     toggleBookmark={toggleBookmark}
                                     inputRefs={inputRefs}
+                                    isReview={isReview}
                                 />
                             ))}
                         </div>
@@ -194,10 +211,10 @@ const IeltsListeningTest = () => {
                                     activeQuestion={activeQuestion}
                                     setActiveQuestion={setActiveQuestion}
                                     answers={answers}
-                                    handleAnswerChange={handleAnswerChange}
+                                    handleAnswerChange={isReview ? () => {} : handleAnswerChange}
                                     bookmarks={bookmarks}
                                     toggleBookmark={toggleBookmark}
-
+                                    isReview={isReview}
                                 />
                             ))}
                         </div>
@@ -214,10 +231,11 @@ const IeltsListeningTest = () => {
                                         activeQuestion={activeQuestion}
                                         setActiveQuestion={setActiveQuestion}
                                         answers={answers}
-                                        handleAnswerChange={handleAnswerChange}
+                                        handleAnswerChange={isReview ? () => {} : handleAnswerChange}
                                         bookmarks={bookmarks}
                                         toggleBookmark={toggleBookmark}
                                         inputRefs={inputRefs}
+                                        isReview={isReview}
                                     />
                                 ))}
                             </ul>
@@ -302,24 +320,7 @@ const IeltsListeningTest = () => {
                         );
                     })}
                 </div>
-                <button className="submit-check-btn" onClick={() => setShowSubmitModal(true)} title="Submit Test">
-                    <Check size={28} strokeWidth={2.5} />
-                </button>
             </footer>
-
-            {showSubmitModal && (
-                <div className="submit-confirm-overlay" onClick={() => setShowSubmitModal(false)}>
-                    <div className="submit-confirm-modal" onClick={e => e.stopPropagation()}>
-                        <h3>Submit your test?</h3>
-                        <p>You are about to submit your answers for this section. Once submitted, you cannot return to make changes.</p>
-                        <p className="scm-warning">This action cannot be undone.</p>
-                        <div className="submit-confirm-actions">
-                            <button className="scm-cancel-btn" onClick={() => setShowSubmitModal(false)}>Cancel</button>
-                            <button className="scm-submit-btn" onClick={() => { setShowSubmitModal(false); submitTest(); }}>Submit Test</button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };

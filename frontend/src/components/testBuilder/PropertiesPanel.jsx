@@ -1,5 +1,6 @@
 import React from 'react';
 import { Trash2, MousePointerClick } from 'lucide-react';
+import RichInput from '../common/RichInput';
 
 const CONTENT_TYPES = [
   'READING_PASSAGE', 'AUDIO_TRANSCRIPT', 'STANDALONE',
@@ -35,12 +36,12 @@ const PartPanel = ({ part, onChange, onDelete }) => (
 
     <div className="tb-field">
       <label className="tb-label">Hướng dẫn</label>
-      <textarea
-        className="tb-textarea"
-        value={part.instructions ?? ''}
-        onChange={(e) => onChange({ instructions: e.target.value })}
-        placeholder="Nội dung hướng dẫn cho học viên..."
+      <RichInput
+        multiline
         rows={3}
+        value={part.instructions ?? ''}
+        onChange={(html) => onChange({ instructions: html })}
+        placeholder="Nội dung hướng dẫn cho học viên..."
       />
     </div>
 
@@ -189,11 +190,11 @@ const GroupPanel = ({ group, onChange, onDelete }) => (
     {(group.contentType === 'READING_PASSAGE') && (
       <div className="tb-field">
         <label className="tb-label">Nội dung bài đọc</label>
-        <textarea
-          className="tb-textarea"
-          style={{ minHeight: 120 }}
+        <RichInput
+          multiline
+          rows={8}
           value={group.passageText ?? ''}
-          onChange={(e) => onChange({ passageText: e.target.value })}
+          onChange={(html) => onChange({ passageText: html })}
           placeholder="Dán nội dung bài đọc vào đây..."
         />
       </div>
@@ -316,12 +317,12 @@ const QuestionPanel = ({ question, onChange, onDelete }) => {
 
       <div className="tb-field">
         <label className="tb-label">Nội dung câu hỏi</label>
-        <textarea
-          className="tb-textarea"
-          value={question.questionText ?? ''}
-          onChange={(e) => onChange({ questionText: e.target.value })}
-          placeholder="Nhập nội dung câu hỏi..."
+        <RichInput
+          multiline
           rows={3}
+          value={question.questionText ?? ''}
+          onChange={(html) => onChange({ questionText: html })}
+          placeholder="Nhập nội dung câu hỏi..."
         />
       </div>
 

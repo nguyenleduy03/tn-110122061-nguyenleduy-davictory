@@ -121,6 +121,8 @@ public class TestBuilderService {
                         tp.setTestSession(ts);
                         tp.setPart(part);
                         tp.setOrderIndex(ps.getOrderIndex());
+                        tp.setCustomInstructions(ps.getInstructions());
+                        tp.setCustomName(ps.getName());
                         tp = testPartRepository.save(tp);
 
                         // ─── Xử lý QuestionGroups ───
@@ -133,6 +135,44 @@ public class TestBuilderService {
                                     qg = questionGroupRepository.findById(gs.getExistingGroupId())
                                             .orElseThrow(() -> new RuntimeException(
                                                     "Không tìm thấy QuestionGroup ID=" + gs.getExistingGroupId()));
+
+                                    // Cập nhật metadata của group
+                                    if (gs.getTitle() != null) qg.setTitle(gs.getTitle());
+                                    qg.setPassageText(gs.getPassageText());
+                                    qg.setAudioUrl(gs.getAudioUrl());
+                                    qg.setImageUrl(gs.getImageUrl());
+                                    if (gs.getFromQuestion() != null) qg.setFromQuestion(gs.getFromQuestion());
+                                    if (gs.getToQuestion() != null) qg.setToQuestion(gs.getToQuestion());
+                                    qg.setOrderIndex(gs.getOrderIndex());
+                                    qg = questionGroupRepository.save(qg);
+
+                                    // Xóa câu hỏi cũ theo thứ tự FK: options → answers → questions
+                                    questionOptionRepository.deleteByQuestionGroupId(qg.getId());
+                                    answerRepository.deleteByQuestionGroupId(qg.getId());
+                                    questionRepository.deleteByQuestionGroupId(qg.getId());
+
+                                    if (gs.getQuestions() != null) {
+                                        for (TestSaveRequest.QuestionSave qs : gs.getQuestions()) {
+                                            Question q = new Question();
+                                            q.setQuestionGroup(qg);
+                                            q.setQuestionNumber(qs.getQuestionNumber());
+                                            q.setQuestionText(qs.getQuestionText());
+                                            q.setBlankContext(qs.getBlankContext());
+                                            q.setPinX(qs.getPinX());
+                                            q.setPinY(qs.getPinY());
+                                            q.setImageUrl(qs.getImageUrl());
+                                            q.setPoints(qs.getPoints() != null ? qs.getPoints() : 1.0);
+                                            q.setOrderIndex(qs.getOrderIndex());
+
+                                            QuestionType qt = resolveQuestionType(qs.getQuestionTypeId(), qs.getQuestionTypeCode());
+                                            q.setQuestionType(qt);
+
+                                            q = questionRepository.save(q);
+
+                                            saveOptions(q, qs.getOptions());
+                                            saveAnswers(q, qs.getAnswers());
+                                        }
+                                    }
                                 } else {
                                     // Tạo group mới trong ngân hàng
                                     qg = new QuestionGroup();
@@ -155,6 +195,8 @@ public class TestBuilderService {
                                             q.setQuestionNumber(qs.getQuestionNumber());
                                             q.setQuestionText(qs.getQuestionText());
                                             q.setBlankContext(qs.getBlankContext());
+                                            q.setPinX(qs.getPinX());
+                                            q.setPinY(qs.getPinY());
                                             q.setImageUrl(qs.getImageUrl());
                                             q.setPoints(qs.getPoints() != null ? qs.getPoints() : 1.0);
                                             q.setOrderIndex(qs.getOrderIndex());
@@ -248,10 +290,10 @@ public class TestBuilderService {
                 TestFullResponse.PartResp pr = new TestFullResponse.PartResp();
                 pr.setTestPartId(tp.getId());
                 pr.setPartId(part.getId());
-                pr.setName(part.getName());
+                pr.setName(tp.getCustomName() != null ? tp.getCustomName() : part.getName());
                 pr.setOrderIndex(tp.getOrderIndex());
                 pr.setTotalQuestions(part.getTotalQuestions());
-                pr.setInstructions(part.getInstructions());
+                pr.setInstructions(tp.getCustomInstructions() != null ? tp.getCustomInstructions() : part.getInstructions());
 
                 // ─── QuestionGroups ───
                 List<TestQuestionGroup> tqgs = testQuestionGroupRepository
@@ -482,6 +524,8 @@ public class TestBuilderService {
             qr.setQuestionNumber(q.getQuestionNumber());
             qr.setQuestionText(q.getQuestionText());
             qr.setBlankContext(q.getBlankContext());
+            qr.setPinX(q.getPinX());
+            qr.setPinY(q.getPinY());
             qr.setImageUrl(q.getImageUrl());
             qr.setPoints(q.getPoints());
             qr.setOrderIndex(q.getOrderIndex());

@@ -7,9 +7,11 @@
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/config/TestStructureInitializer.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/AuthController.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/QuestionGroupController.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/TestBuilderController.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/TestController.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/TestPartController.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/TestSessionController.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/TestStructureController.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/UserController.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/AuthResponse.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/ChangePasswordRequest.java

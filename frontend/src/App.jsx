@@ -10,6 +10,7 @@ import Register from './pages/Register'
 import TestBuilder from './pages/TestBuilder'
 import TeacherTests from './pages/TeacherTests'
 import MyDashboard from './pages/MyDashboard'
+import TestComplete from './pages/TestComplete'
 import DashboardHistory from './pages/DashboardHistory'
 import DashboardProfile from './pages/DashboardProfile'
 import DashboardSettings from './pages/DashboardSettings'
@@ -29,6 +30,7 @@ function App() {
         <Route path="/test/writing/:id" element={<IeltsWritingTest />} />
         <Route path="/test/speaking" element={<IeltsSpeakingTest />} />
         <Route path="/test/speaking/:id" element={<IeltsSpeakingTest />} />
+        <Route path="/test/complete" element={<TestComplete />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/my-dashboard" element={<MyDashboard />} />

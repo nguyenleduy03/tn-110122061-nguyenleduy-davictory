@@ -19,16 +19,164 @@
    ============================================= */
 .tb-header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 16px;
-  height: 60px;
+  flex-direction: column;
+  flex-shrink: 0;
   background: #ffffff;
   color: #1f2937;
-  flex-shrink: 0;
-  border-bottom: 1px solid #e5e7eb;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   z-index: 100;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.10);
+}
+
+/* Title bar — Row 1 */
+.tb-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  height: 46px;
+  background: #fff;
+  border-bottom: 1px solid #e9ecef;
+  flex-shrink: 0;
+}
+
+/* ─── Formatting Ribbon — Row 2 ─── */
+.tb-ribbon {
+  display: flex;
+  align-items: stretch;
+  padding: 0 10px;
+  height: 60px;
+  background: #f3f4f8;
+  border-bottom: 2px solid #d1d5db;
+  gap: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  flex-shrink: 0;
+}
+.tb-ribbon::-webkit-scrollbar { height: 3px; }
+.tb-ribbon::-webkit-scrollbar-thumb { background: #c4c8d4; border-radius: 2px; }
+
+.tb-rgroup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 8px 3px;
+  border-radius: 4px;
+  min-width: fit-content;
+  transition: background 0.12s;
+}
+.tb-rgroup:hover { background: rgba(0,0,0,0.04); }
+
+.tb-rgroup-btns {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+}
+
+.tb-rgroup-lbl {
+  font-size: 10px;
+  color: #9ca3af;
+  text-align: center;
+  white-space: nowrap;
+  letter-spacing: 0.2px;
+  margin-top: 2px;
+  line-height: 1;
+}
+
+.tb-rsep {
+  width: 1px;
+  background: #d1d5db;
+  margin: 8px 6px;
+  align-self: stretch;
+  flex-shrink: 0;
+}
+.tb-rsep-mini {
+  display: inline-block;
+  width: 1px;
+  height: 18px;
+  background: #d1d5db;
+  margin: 0 3px;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+/* Ribbon buttons */
+.tb-rbn-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  transition: all 0.1s;
+  flex-shrink: 0;
+  padding: 0;
+}
+.tb-rbn-btn:hover {
+  background: #e2e8f7;
+  border-color: #c3cfe0;
+}
+.tb-rbn-active {
+  background: #dbeafe !important;
+  border-color: #93c5fd !important;
+  color: #1d4ed8 !important;
+}
+
+/* Ribbon selects */
+.tb-rbn-select {
+  height: 26px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  background: #fff;
+  color: #374151;
+  font-size: 12px;
+  padding: 0 4px;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.1s;
+}
+.tb-rbn-select:hover { border-color: #9ca3af; }
+.tb-rbn-select:focus { border-color: #3b82f6; box-shadow: 0 0 0 2px #bfdbfe; }
+
+/* Color picker buttons */
+.tb-rbn-color-lbl {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  gap: 1px;
+  transition: all 0.1s;
+}
+.tb-rbn-color-lbl:hover { background: #e2e8f7; border-color: #c3cfe0; }
+.tb-rbn-color-icon {
+  font-weight: 900;
+  font-size: 13px;
+  line-height: 1;
+  color: #374151;
+  user-select: none;
+}
+.tb-rbn-hl { color: #d97706; }
+.tb-rbn-color-input {
+  width: 20px;
+  height: 4px;
+  padding: 0;
+  border: none;
+  outline: none;
+  border-radius: 2px;
+  cursor: pointer;
+  background: transparent;
 }
 
 .tb-header-left {
@@ -1109,20 +1257,43 @@
   display: flex; flex-direction: column;
 }
 .rich-input-toolbar {
-  display: flex; gap: 2px;
-  background: #1e293b; border-radius: 5px;
-  padding: 3px 4px; margin-bottom: 3px;
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  background: #1e293b;
+  border-radius: 6px;
+  padding: 3px 6px;
+  margin-bottom: 4px;
   width: fit-content;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+  box-shadow: 0 3px 10px rgba(0,0,0,0.22);
   z-index: 10;
 }
 .rich-tb-btn {
-  background: none; border: none; cursor: pointer;
-  color: #e2e8f0; padding: 2px 7px; border-radius: 3px;
-  font-size: 13px; line-height: 1.4;
-  transition: background 0.12s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+  color: #e2e8f0;
+  padding: 3px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+  transition: all 0.1s;
+  min-width: 24px;
+  height: 24px;
 }
-.rich-tb-btn:hover { background: #334155; }
+.rich-tb-btn:hover { background: #334155; border-color: #475569; }
+.rich-tb-btn.active { background: #1d4ed8; border-color: #3b82f6; color: #fff; }
+.rich-tb-sep {
+  width: 1px; height: 16px;
+  background: #475569;
+  margin: 0 3px;
+  flex-shrink: 0;
+  display: inline-block;
+}
 .rich-input-content {
   flex: 1;
   min-height: 28px; padding: 4px 8px;
@@ -1144,6 +1315,32 @@
   white-space: pre-wrap;
   resize: vertical;
   overflow-y: auto;
+}
+
+/* PropertiesPanel variant — match tb-textarea look */
+.tb-field .rich-input-content {
+  font-size: 13px;
+  min-height: 60px;
+  border-color: #d1d5db;
+}
+.tb-field .rich-input-content:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px #bfdbfe;
+}
+.tb-field .rich-input-multiline .rich-input-content--multiline {
+  min-height: 72px;
+  resize: vertical;
+}
+
+/* Speaking interview rich question input */
+.exam-spk-rich-q {
+  flex: 1;
+  min-width: 0;
+}
+.exam-spk-rich-q .rich-input-content {
+  min-height: 30px;
+  padding: 4px 8px;
+  font-size: 13px;
 }
 /* Passage title variant */
 .exam-passage-title-wrap .rich-input-content {

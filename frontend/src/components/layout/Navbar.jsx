@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Bell, ChevronDown, LogOut, User, Settings, FilePlus } from 'lucide-react';
+import { Bell, ChevronDown, LogOut, User, Settings, FilePlus, Menu, X } from 'lucide-react';
 import { authApi } from '../../services/authApi';
 
 const NAV_ITEMS = [
@@ -23,6 +23,7 @@ const Navbar = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     // Lấy thông tin user từ localStorage
@@ -69,12 +70,47 @@ const Navbar = () => {
   return (
     <nav className="site-navbar">
       <div className="site-navbar-inner">
+        <button 
+          className="mobile-menu-toggle" 
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          aria-label="Menu"
+        >
+          {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
+
         <Link to="/" className="site-logo">
           <div className="site-logo-mark">DA</div>
           <span className="site-logo-text">
             DAVictory<span className="site-logo-dot">.com</span>
           </span>
         </Link>
+        
+        {/* Mobile Menu Overlay */}
+        {mobileMenuOpen && (
+          <div className="mobile-menu-overlay">
+            <div className="mobile-nav-links">
+              {NAV_ITEMS.map((item) => (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`mobile-nav-link${location.pathname === item.path ? ' active' : ''}`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {item.label}
+                </Link>
+              ))}
+              {user && isTeacherOrAbove(user.roles) && (
+                <Link
+                  to="/teacher/tests/new"
+                  className={`mobile-nav-link${location.pathname.startsWith('/teacher') ? ' active' : ''}`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Tạo đề thi
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="nav-links">
           {NAV_ITEMS.map((item) => (

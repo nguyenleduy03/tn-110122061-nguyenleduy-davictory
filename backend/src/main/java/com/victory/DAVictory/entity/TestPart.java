@@ -47,6 +47,14 @@ public class TestPart {
     private Integer durationMinutes;
     // Override thời gian riêng cho part này (null = dùng mặc định)
 
+    @Column(columnDefinition = "TEXT")
+    private String customInstructions;
+    // Override hướng dẫn riêng cho part này trong đề thi (null = dùng từ Part gốc)
+
+    @Column(length = 200)
+    private String customName;
+    // Override tên riêng cho part này trong đề thi (null = dùng từ Part gốc)
+
     // Media đính kèm: audio cho Listening, image cho Reading diagram
     @ManyToOne
     @JoinColumn(name = "media_file_id")

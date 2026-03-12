@@ -97,7 +97,6 @@ const IeltsSpeakingTest = () => {
   const [audioUrls, setAudioUrls] = useState({}); // { questionId: objectURL }
   const [micAllowed, setMicAllowed] = useState(null); // null | true | false
   const [submitted, setSubmitted] = useState(false);
-  const [showSubmitModal, setShowSubmitModal] = useState(false);
 
   // recording internals
   const mediaRecorderRef = useRef(null);
@@ -278,11 +277,11 @@ const IeltsSpeakingTest = () => {
             const updated = { ...session, currentSection: nextIdx };
             sessionStorage.setItem('ieltsFullTest', JSON.stringify(updated));
             const next = updated.sections[nextIdx];
-            window.location.href = `/test/${next.skill}/${next.testId}?fullTest=true`;
+            window.location.href = `/test/${next.skill}/${next.testId}?fullTest=true&mode=${session.mode || 'practice'}`;
             return;
           } else {
             sessionStorage.removeItem('ieltsFullTest');
-            window.location.href = '/exam-library';
+            window.location.href = `/test/complete?mode=${session.mode || 'practice'}&skill=speaking&fullTest=true`;
             return;
           }
         }
@@ -340,7 +339,7 @@ const IeltsSpeakingTest = () => {
       <TestHeader
         candidateName={testData.candidateName}
         candidateId={testData.candidateId}
-        submitTest={() => setShowSubmitModal(true)}
+        submitTest={submitTest}
       />
 
       <div className="instruction-bar">
@@ -441,7 +440,7 @@ const IeltsSpeakingTest = () => {
           {phase === "done" && (
             <div className="spk-next-row">
               {isLastQ ? (
-                <button className="spk-next-btn" onClick={() => setShowSubmitModal(true)}>
+                <button className="spk-next-btn" onClick={submitTest}>
                   Submit test
                 </button>
               ) : (
@@ -453,20 +452,6 @@ const IeltsSpeakingTest = () => {
           )}
         </div>
       </main>
-
-      {showSubmitModal && (
-        <div className="submit-confirm-overlay" onClick={() => setShowSubmitModal(false)}>
-          <div className="submit-confirm-modal" onClick={e => e.stopPropagation()}>
-            <h3>Submit your test?</h3>
-            <p>You are about to submit your speaking answers. Once submitted, you cannot re-record your responses.</p>
-            <p className="scm-warning">This action cannot be undone.</p>
-            <div className="submit-confirm-actions">
-              <button className="scm-cancel-btn" onClick={() => setShowSubmitModal(false)}>Cancel</button>
-              <button className="scm-submit-btn" onClick={() => { setShowSubmitModal(false); submitTest(); }}>Submit Test</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

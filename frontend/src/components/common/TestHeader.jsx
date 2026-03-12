@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Wifi, Bell, Menu, Send, ChevronRight, ChevronLeft, X, Contrast, ZoomIn, Check } from 'lucide-react';
+import { Wifi, Bell, Menu, Send, ChevronRight, ChevronLeft, X, Contrast, ZoomIn, Check, LogOut, ArrowLeftRight } from 'lucide-react';
 
-const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest }) => {
+const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isReview, isFullTest, skill, navigate }) => {
     const [isOptionsOpen, setIsOptionsOpen] = useState(false);
     const [optionsView, setOptionsView] = useState('main'); // 'main', 'contrast', 'text-size'
+    const [showSubmitModal, setShowSubmitModal] = useState(false);
 
     // State to track current theme/size for radio buttons
     const [currentTheme, setCurrentTheme] = useState('standard');
@@ -14,19 +15,16 @@ const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest }) => {
     const syncHtmlClasses = () => {
         const html = document.documentElement;
         const body = document.body;
-        // Zoom class on <html>
         if (body.classList.contains('text-size-large') || body.classList.contains('text-size-xlarge')) {
             html.classList.add('text-size-zoomed');
         } else {
             html.classList.remove('text-size-zoomed');
         }
-        // Theme class on <html> for background color
         html.classList.remove('theme-white-black-html', 'theme-yellow-black-html');
         if (body.classList.contains('theme-white-black')) html.classList.add('theme-white-black-html');
         if (body.classList.contains('theme-yellow-black')) html.classList.add('theme-yellow-black-html');
     };
 
-    // Restore saved settings on mount
     useEffect(() => {
         const savedTheme = sessionStorage.getItem('ielts-theme');
         const savedSize = sessionStorage.getItem('ielts-text-size');
@@ -86,6 +84,28 @@ const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest }) => {
         syncHtmlClasses();
     };
 
+    const handleSubmitClick = () => {
+        setIsOptionsOpen(false);
+        if (isReview) {
+            if (submitTest) submitTest(); // Exit review immediately
+        } else {
+            setShowSubmitModal(true);
+        }
+    };
+
+    const handleConfirmSubmit = () => {
+        setShowSubmitModal(false);
+        if (submitTest) submitTest();
+    };
+
+    const handleSwitchReview = () => {
+        if (!isFullTest || !isReview || !navigate) return;
+        const targetSkill = skill === 'reading' ? 'listening' : 'reading';
+        navigate(`/test/${targetSkill}/1?fullTest=true&mode=practice&review=true`);
+    };
+
+    const checkColor = currentTheme === 'yellow-black' ? '#e5ff00' : currentTheme === 'white-black' ? '#fff' : 'black';
+
     return (
         <>
             <header className="ielts-header">
@@ -94,40 +114,85 @@ const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest }) => {
                     <div className="candidate-info">
                         <span>{candidateId}</span>
                         {extraInfo && (
-                            <div
-                                className="extra-header-info"
-                                style={{ color: '#333', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '5px' }}
-                            >
+                            <div className="extra-header-info" style={{ color: '#333', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '5px' }}>
                                 {extraInfo}
                             </div>
                         )}
                     </div>
                 </div>
                 <div className="header-right">
+                    {submitTest && !isReview && (
+                        <button
+                            className="header-submit-btn"
+                            onClick={handleSubmitClick}
+                            title={"Submit this section"}
+                        >
+                            <Send size={14} />
+                            <span>{"Submit test"}</span>
+                            <ChevronRight size={14} />
+                        </button>
+                    )}
+                    {isReview && isFullTest && navigate && (
+                        <button
+                            className="header-submit-btn"
+                            style={{ backgroundColor: '#1a73e8', color: 'white' }}
+                            onClick={handleSwitchReview}
+                            title={`Switch to ${skill === 'reading' ? 'Listening' : 'Reading'} review`}
+                        >
+                            <ArrowLeftRight size={14} />
+                            <span>{`Review ${skill === 'reading' ? 'Listening' : 'Reading'}`}</span>
+                            <ChevronRight size={14} />
+                        </button>
+                    )}
                     <button className="icon-btn" title="Network status"><Wifi size={22} /></button>
                     <button className="icon-btn" title="Messages"><Bell size={22} /></button>
                     <button className="icon-btn" title="Options" onClick={() => { setIsOptionsOpen(true); setOptionsView('main'); }}><Menu size={26} /></button>
                 </div>
             </header>
 
+            {/* ── Submit confirmation modal ── */}
+            {showSubmitModal && createPortal(
+                <div className="submit-modal-overlay" onClick={() => setShowSubmitModal(false)}>
+                    <div className="submit-modal" onClick={e => e.stopPropagation()}>
+                        <div className="submit-modal-header">
+                            <Send size={20} />
+                            <h2>Submit this section</h2>
+                        </div>
+                        <div className="submit-modal-body">
+                            <p>Are you sure you want to submit this section?</p>
+                            <p>Once submitted, you will not be able to return and change your answers.</p>
+                        </div>
+                        <div className="submit-modal-actions">
+                            <button className="submit-modal-cancel" onClick={() => setShowSubmitModal(false)}>
+                                Cancel
+                            </button>
+                            <button className="submit-modal-confirm" onClick={handleConfirmSubmit}>
+                                <Send size={15} />
+                                Submit
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {/* ── Options panel ── */}
             {isOptionsOpen && createPortal(
                 <div className="options-fs-overlay">
                     <div className="options-fs-header">
                         {optionsView === 'main' ? (
-                            <div style={{ width: 80 }}></div> // placeholder for flex space
+                            <div style={{ width: 80 }}></div>
                         ) : (
                             <button className="options-fs-back" onClick={() => setOptionsView('main')}>
                                 <ChevronLeft size={24} strokeWidth={3} />
                                 <span>Options</span>
                             </button>
                         )}
-
                         <h2 className="options-fs-title">
                             {optionsView === 'main' && 'Options'}
                             {optionsView === 'contrast' && 'Contrast'}
                             {optionsView === 'text-size' && 'Text size'}
                         </h2>
-
                         <button className="options-fs-close" onClick={() => setIsOptionsOpen(false)}>
                             <X size={28} strokeWidth={3} />
                         </button>
@@ -136,38 +201,26 @@ const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest }) => {
                     <div className="options-fs-content">
                         {optionsView === 'main' && (
                             <div className="options-fs-card">
-                                {submitTest && (
-                                    <button
-                                        className="go-submission-btn"
-                                        onClick={() => {
-                                            setIsOptionsOpen(false);
-                                            submitTest();
-                                        }}
-                                    >
+                                {submitTest && !isReview && (
+                                    <button className="go-submission-btn" onClick={handleSubmitClick}>
                                         <div className="go-submission-left">
                                             <Send size={20} />
-                                            <span>Go to submission page</span>
+                                            <span>Submit test</span>
                                         </div>
                                         <ChevronRight size={20} />
                                     </button>
                                 )}
-
                                 <div className="options-list-box">
                                     <div className="option-list-item" onClick={() => setOptionsView('contrast')}>
                                         <div className="option-list-left">
-                                            <div className="option-icon-wrap">
-                                                <Contrast size={22} fill="currentColor" opacity="0.3" />
-                                            </div>
+                                            <div className="option-icon-wrap"><Contrast size={22} fill="currentColor" opacity="0.3" /></div>
                                             <span>Contrast</span>
                                         </div>
                                         <ChevronRight className="option-arrow" size={20} />
                                     </div>
-
                                     <div className="option-list-item" onClick={() => setOptionsView('text-size')}>
                                         <div className="option-list-left">
-                                            <div className="option-icon-wrap">
-                                                <ZoomIn size={22} />
-                                            </div>
+                                            <div className="option-icon-wrap"><ZoomIn size={22} /></div>
                                             <span>Text size</span>
                                         </div>
                                         <ChevronRight className="option-arrow" size={20} />
@@ -179,30 +232,20 @@ const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest }) => {
                         {optionsView === 'contrast' && (
                             <div className="options-fs-card">
                                 <div className="options-list-box">
-                                    <div className="option-list-item" onClick={() => handleThemeChange('standard')}>
-                                        <div className="option-list-left radio-left">
-                                            <div className="radio-icon">
-                                                {currentTheme === 'standard' && <Check size={20} strokeWidth={3} color={currentTheme === "yellow-black" ? "#e5ff00" : currentTheme === "white-black" ? "#fff" : "black"} />}
+                                    {[
+                                        { value: 'standard', label: 'Black on white' },
+                                        { value: 'white-black', label: 'White on black' },
+                                        { value: 'yellow-black', label: 'Yellow on black' },
+                                    ].map(({ value, label }) => (
+                                        <div key={value} className="option-list-item" onClick={() => handleThemeChange(value)}>
+                                            <div className="option-list-left radio-left">
+                                                <div className="radio-icon">
+                                                    {currentTheme === value && <Check size={20} strokeWidth={3} color={checkColor} />}
+                                                </div>
+                                                <span>{label}</span>
                                             </div>
-                                            <span>Black on white</span>
                                         </div>
-                                    </div>
-                                    <div className="option-list-item" onClick={() => handleThemeChange('white-black')}>
-                                        <div className="option-list-left radio-left">
-                                            <div className="radio-icon">
-                                                {currentTheme === 'white-black' && <Check size={20} strokeWidth={3} color={currentTheme === "yellow-black" ? "#e5ff00" : currentTheme === "white-black" ? "#fff" : "black"} />}
-                                            </div>
-                                            <span>White on black</span>
-                                        </div>
-                                    </div>
-                                    <div className="option-list-item" onClick={() => handleThemeChange('yellow-black')}>
-                                        <div className="option-list-left radio-left">
-                                            <div className="radio-icon">
-                                                {currentTheme === 'yellow-black' && <Check size={20} strokeWidth={3} color={currentTheme === "yellow-black" ? "#e5ff00" : currentTheme === "white-black" ? "#fff" : "black"} />}
-                                            </div>
-                                            <span>Yellow on black</span>
-                                        </div>
-                                    </div>
+                                    ))}
                                 </div>
                             </div>
                         )}
@@ -210,30 +253,20 @@ const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest }) => {
                         {optionsView === 'text-size' && (
                             <div className="options-fs-card">
                                 <div className="options-list-box">
-                                    <div className="option-list-item" onClick={() => handleTextSizeChange('regular')}>
-                                        <div className="option-list-left radio-left">
-                                            <div className="radio-icon">
-                                                {currentTextSize === 'regular' && <Check size={20} strokeWidth={3} color={currentTheme === "yellow-black" ? "#e5ff00" : currentTheme === "white-black" ? "#fff" : "black"} />}
+                                    {[
+                                        { value: 'regular', label: 'Regular' },
+                                        { value: 'large', label: 'Large' },
+                                        { value: 'extra-large', label: 'Extra large' },
+                                    ].map(({ value, label }) => (
+                                        <div key={value} className="option-list-item" onClick={() => handleTextSizeChange(value)}>
+                                            <div className="option-list-left radio-left">
+                                                <div className="radio-icon">
+                                                    {currentTextSize === value && <Check size={20} strokeWidth={3} color={checkColor} />}
+                                                </div>
+                                                <span>{label}</span>
                                             </div>
-                                            <span>Regular</span>
                                         </div>
-                                    </div>
-                                    <div className="option-list-item" onClick={() => handleTextSizeChange('large')}>
-                                        <div className="option-list-left radio-left">
-                                            <div className="radio-icon">
-                                                {currentTextSize === 'large' && <Check size={20} strokeWidth={3} color={currentTheme === "yellow-black" ? "#e5ff00" : currentTheme === "white-black" ? "#fff" : "black"} />}
-                                            </div>
-                                            <span>Large</span>
-                                        </div>
-                                    </div>
-                                    <div className="option-list-item" onClick={() => handleTextSizeChange('extra-large')}>
-                                        <div className="option-list-left radio-left">
-                                            <div className="radio-icon">
-                                                {currentTextSize === 'extra-large' && <Check size={20} strokeWidth={3} color={currentTheme === "yellow-black" ? "#e5ff00" : currentTheme === "white-black" ? "#fff" : "black"} />}
-                                            </div>
-                                            <span>Extra large</span>
-                                        </div>
-                                    </div>
+                                    ))}
                                 </div>
                             </div>
                         )}

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Bookmark } from 'lucide-react';
 
-const ImageDragDropQuestion = ({ q, activeQuestion, setActiveQuestion, answers, handleAnswerChange, bookmarks, toggleBookmark }) => {
+const ImageDragDropQuestion = ({ q, activeQuestion, setActiveQuestion, answers, handleAnswerChange, bookmarks, toggleBookmark, isReview }) => {
     // Collect used options so they disappear from bank or look disabled
     const usedOptions = Object.values(answers || {});
 
@@ -22,6 +22,7 @@ const ImageDragDropQuestion = ({ q, activeQuestion, setActiveQuestion, answers, 
     };
 
     const handleDrop = (e, subQId) => {
+        if (isReview) return;
         e.preventDefault();
         const option = e.dataTransfer.getData('text/plain');
         const sourceQId = e.dataTransfer.getData('sourceQId');
@@ -68,10 +69,10 @@ const ImageDragDropQuestion = ({ q, activeQuestion, setActiveQuestion, answers, 
                     return (
                         <div
                             key={subQ.id}
-                            className={`drop-zone ${isActive ? 'active' : ''}`}
-                            onClick={() => setActiveQuestion?.(subQ.number)}
-                            onDrop={(e) => handleDrop(e, subQ.id)}
-                            onDragOver={handleDragOver}
+                            className={`drop-zone ${isActive ? 'active' : ''} ${isReview ? (answer?.trim() === subQ.correctAnswer?.trim() ? 'review-correct' : 'review-wrong') : ''}`}
+                            onClick={() => { if (!isReview) setActiveQuestion?.(subQ.number); }}
+                            onDrop={isReview ? undefined : (e) => handleDrop(e, subQ.id)}
+                            onDragOver={isReview ? undefined : handleDragOver}
                             style={{
                                 top: subQ.top || '50%',   // Dynamic inline needed
                                 left: subQ.left || '50%', // Dynamic inline needed
@@ -92,19 +93,29 @@ const ImageDragDropQuestion = ({ q, activeQuestion, setActiveQuestion, answers, 
                             {answer ? (
                                 <div
                                     className="dz-answered"
-                                    draggable={true}
-                                    onDragStart={(e) => handleDragStartFromZone(e, answer, subQ.id)}
+                                    draggable={!isReview}
+                                    onDragStart={(e) => {
+                                        if (isReview) return;
+                                        handleDragStartFromZone(e, answer, subQ.id)
+                                    }}
                                 >
                                     {answer}
-                                    <span
-                                        className="dz-clear"
-                                        onClick={(e) => { e.stopPropagation(); handleClear(subQ.id); }}
-                                    >
-                                        ×
-                                    </span>
+                                    {!isReview && (
+                                        <span
+                                            className="dz-clear"
+                                            onClick={(e) => { e.stopPropagation(); handleClear(subQ.id); }}
+                                        >
+                                            ×
+                                        </span>
+                                    )}
                                 </div>
                             ) : (
                                 <div className="dz-placeholder">Drop here</div>
+                            )}
+                            {isReview && answer?.trim() !== subQ.correctAnswer?.trim() && (
+                                <div className="review-correct-label" style={{ position: 'absolute', bottom: '-20px', left: 0, whiteSpace: 'nowrap', backgroundColor: 'rgba(255,255,255,0.8)', padding: '2px 4px', borderRadius: '4px' }}>
+                                    ({subQ.correctAnswer})
+                                </div>
                             )}
                         </div>
                     );
@@ -126,8 +137,8 @@ const ImageDragDropQuestion = ({ q, activeQuestion, setActiveQuestion, answers, 
                             <div
                                 key={idx}
                                 className="bank-option-item"
-                                draggable={true}
-                                onDragStart={(e) => handleDragStart(e, opt)}
+                                draggable={!isReview}
+                                onDragStart={(e) => { if (!isReview) handleDragStart(e, opt); }}
                             >
                                 {opt}
                             </div>

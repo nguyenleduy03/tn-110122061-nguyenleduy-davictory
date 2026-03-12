@@ -1,5 +1,5 @@
 import React from "react";
-import { Check, Bookmark } from "lucide-react";
+import { Bookmark } from "lucide-react";
 
 const TestFooter = ({
     testData,
@@ -9,7 +9,6 @@ const TestFooter = ({
     setActiveQuestion,
     getAnsweredCount,
     answers,
-    submitTest,
     bookmarks,
 }) => {
     if (!testData || !testData.parts) return null;
@@ -57,7 +56,7 @@ const TestFooter = ({
                                                     </div>
                                                 )}
                                                 {/* Vạch ngang ở trên */}
-                                                <div className={`status-dash ${answeredState ? "answered-dash" : ""}`} />
+                                                <div className={`status-dash ${answeredState ? "answered-dash" : ""} ${bookmarks && bookmarks[num] ? "bookmarked-dash" : ""}`} />
                                                 {/* Số thứ tự câu hỏi ở dưới */}
                                                 <span className={`q-num ${isActive ? "active" : ""}`}>
                                                     {num}
@@ -77,12 +76,6 @@ const TestFooter = ({
                     );
                 })}
             </div>
-
-            {submitTest && (
-                <button className="submit-check-btn" onClick={submitTest} title="Submit Test">
-                    <Check size={28} strokeWidth={2.5} />
-                </button>
-            )}
         </footer>
     );
 };

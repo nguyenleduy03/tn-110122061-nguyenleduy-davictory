@@ -1,12 +1,13 @@
 import React from 'react';
 import FillInBlankQuestion from './FillInBlankQuestion';
 import MultipleChoiceQuestion from './MultipleChoiceQuestion';
+import TFNGQuestion from './TFNGQuestion';
 import DragDropGroupQuestion from './DragDropGroupQuestion';
 import FlowChartQuestion from './FlowChartQuestion';
 import SummaryCompletionQuestion from './SummaryCompletionQuestion';
 import ImageDragDropQuestion from './ImageDragDropQuestion';
 
-const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answer, handleAnswerChange, inputRefs, bookmarks, toggleBookmark }) => {
+const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answer, handleAnswerChange, inputRefs, bookmarks, toggleBookmark, isReview }) => {
     if (!q) return null;
 
     if (q.type === 'fill-in-the-blank') {
@@ -20,6 +21,7 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
                 inputRefs={inputRefs}
                 bookmarks={bookmarks}
                 toggleBookmark={toggleBookmark}
+                isReview={isReview}
             />
         );
     }
@@ -34,6 +36,22 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
                 handleAnswerChange={handleAnswerChange}
                 bookmarks={bookmarks}
                 toggleBookmark={toggleBookmark}
+                isReview={isReview}
+            />
+        );
+    }
+
+    if (q.type === 'tfng') {
+        return (
+            <TFNGQuestion
+                q={q}
+                activeQuestion={activeQuestion}
+                setActiveQuestion={setActiveQuestion}
+                answer={answer !== undefined ? answer : answers?.[q.id]}
+                handleAnswerChange={handleAnswerChange}
+                bookmarks={bookmarks}
+                toggleBookmark={toggleBookmark}
+                isReview={isReview}
             />
         );
     }
@@ -48,6 +66,7 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
                 handleAnswerChange={handleAnswerChange}
                 bookmarks={bookmarks}
                 toggleBookmark={toggleBookmark}
+                isReview={isReview}
             />
         );
     }
@@ -62,6 +81,7 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
                 handleAnswerChange={handleAnswerChange}
                 bookmarks={bookmarks}
                 toggleBookmark={toggleBookmark}
+                isReview={isReview}
             />
         );
     }
@@ -77,6 +97,7 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
                 inputRefs={inputRefs}
                 bookmarks={bookmarks}
                 toggleBookmark={toggleBookmark}
+                isReview={isReview}
             />
         );
     }
@@ -91,6 +112,7 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
                 handleAnswerChange={handleAnswerChange}
                 bookmarks={bookmarks}
                 toggleBookmark={toggleBookmark}
+                isReview={isReview}
             />
         );
     }

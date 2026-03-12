@@ -42,6 +42,119 @@
     margin: 0;
 }
 
+/* ── Test Complete Screen ── */
+.test-complete-screen {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f5f5f5;
+    padding: 24px;
+}
+
+.test-complete-card {
+    background: #fff;
+    width: 100%;
+    max-width: 500px;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.14);
+}
+
+.test-complete-header {
+    background: #1e8e3e;
+    color: #fff;
+    padding: 36px 32px 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    text-align: center;
+}
+
+.test-complete-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.test-complete-title {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: 0.01em;
+}
+
+.test-complete-skill {
+    margin: 0;
+    font-size: 14px;
+    opacity: 0.85;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.test-complete-body {
+    padding: 28px 32px 12px;
+    font-size: 14.5px;
+    line-height: 1.7;
+    color: #333;
+}
+
+.test-complete-msg {
+    margin: 0 0 10px;
+    font-weight: 600;
+    color: #111;
+}
+
+.test-complete-sub {
+    margin: 0 0 18px;
+    color: #555;
+}
+
+.test-complete-review-placeholder {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 16px;
+    background: #f7f7f7;
+    border-radius: 6px;
+    color: #888;
+    font-size: 13.5px;
+    border: 1.5px dashed #ddd;
+    margin-top: 4px;
+}
+
+.test-complete-actions {
+    padding: 16px 32px 28px;
+    display: flex;
+    justify-content: center;
+}
+
+.test-complete-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 28px;
+    background: #1e8e3e;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s;
+    letter-spacing: 0.01em;
+}
+
+.test-complete-btn:hover {
+    background: #176c2f;
+}
+
 /* Submit Confirmation Modal */
 .submit-confirm-overlay {
     position: fixed;
@@ -184,6 +297,124 @@
     color: #000;
 }
 
+/* ── Header Submit Button ── */
+.header-submit-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 14px 6px 12px;
+    background-color: #c0001c;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.01em;
+    transition: background-color 0.15s;
+    white-space: nowrap;
+}
+
+.header-submit-btn:hover {
+    background-color: #a50017;
+}
+
+/* ── Submit Confirm Modal ── */
+.submit-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.submit-modal {
+    background: #fff;
+    width: 480px;
+    max-width: 95vw;
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.22);
+}
+
+.submit-modal-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 18px 24px;
+    background-color: #c0001c;
+    color: #fff;
+}
+
+.submit-modal-header h2 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+}
+
+.submit-modal-body {
+    padding: 20px 24px 8px;
+    font-size: 14.5px;
+    line-height: 1.65;
+    color: #222;
+}
+
+.submit-modal-body p {
+    margin: 0 0 10px;
+}
+
+.submit-modal-note {
+    color: #555;
+    font-size: 13.5px;
+    font-style: italic;
+}
+
+.submit-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 12px 24px 20px;
+}
+
+.submit-modal-cancel {
+    padding: 8px 20px;
+    background: #fff;
+    border: 1.5px solid #bbb;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.submit-modal-cancel:hover {
+    background: #f0f0f0;
+}
+
+.submit-modal-confirm {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 20px;
+    background-color: #c0001c;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+
+.submit-modal-confirm:hover {
+    background-color: #a50017;
+}
+
+
 /* Sub-header instruction */
 .instruction-bar {
     flex-shrink: 0;
@@ -295,7 +526,6 @@
 .divider {
     width: 14px;
     background-color: transparent;
-    background-color: #ffe066;
     color: #222;
     display: flex;
     align-items: center;
@@ -591,10 +821,14 @@
     border-radius: 1px;
 }
 
-/* Khi đã trả lời, vạch đứt chuyển màu xám đen (Chuẩn thi thật, không dùng màu xanh) */
+/* Khi đã trả lời, vạch đứt chuyển màu xám đen (Chuẩn thi thật) */
 .status-dash.answered-dash {
     background-color: #444444;
-    background-color: #ffe066;
+}
+
+/* Khi câu hỏi được gắn cờ (bookmark), vạch đứt chuyển sang màu vàng cam */
+.status-dash.bookmarked-dash {
+    background-color: #f59e0b;
 }
 
 /* Ô số thứ tự */
@@ -2275,6 +2509,10 @@ body.theme-white-black .status-dash.answered-dash {
     background-color: #777;
 }
 
+body.theme-white-black .status-dash.bookmarked-dash {
+    background-color: #f59e0b;
+}
+
 body.theme-white-black .part-btn {
     border-right-color: #333;
 }
@@ -2392,6 +2630,10 @@ body.theme-yellow-black .status-dash {
 
 body.theme-yellow-black .status-dash.answered-dash {
     background-color: #777;
+}
+
+body.theme-yellow-black .status-dash.bookmarked-dash {
+    background-color: #f59e0b;
 }
 
 body.theme-yellow-black .part-btn {
@@ -2650,4 +2892,37 @@ body.text-size-large .options-fs-overlay {
 
 body.text-size-xlarge .options-fs-overlay {
     font-size: 150%;
+}
+
+/* --- Chế độ Review (Practice Mode) --- */
+.review-correct {
+    border-color: #107c41 !important;
+    background-color: #f3fcf2 !important;
+    color: #107c41 !important;
+    font-weight: 500;
+}
+
+.review-wrong {
+    border-color: #d13438 !important;
+    background-color: #fdf3f4 !important;
+    color: #d13438 !important;
+    font-weight: 500;
+}
+
+.review-choice-correct {
+    background-color: #f3fcf2 !important;
+    border: 1px solid #107c41 !important;
+    border-radius: 4px;
+}
+
+.review-choice-wrong {
+    background-color: #fdf3f4 !important;
+    border: 1px solid #d13438 !important;
+    border-radius: 4px;
+}
+
+.review-correct-label {
+    margin-left: 8px;
+    color: #107c41;
+    font-weight: 600;
 }

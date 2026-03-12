@@ -62,6 +62,8 @@ public class TestSaveRequest {
         private Integer questionNumber;
         private String questionText;
         private String blankContext;
+        private Double pinX;
+        private Double pinY;
         private String imageUrl;
         private Double points;
         private Integer orderIndex;

@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import { createPortal } from "react-dom";
 import { Check, ArrowLeft, ArrowRight, ArrowLeftRight, Bookmark } from "lucide-react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import "../styles/ieltsTest.css";
@@ -9,10 +8,10 @@ import { useDividerResize } from "../hooks/useDividerResize";
 import { useTestNavigation } from "../hooks/useTestNavigation";
 import { ieltsApi } from "../services/ieltsApi";
 import TextHighlighter from "../components/common/TextHighlighter";
+import { createPortal } from "react-dom";
 
-
-const HeadingGap = ({ qId, number, answer, handleAnswerChange, isActive, setActiveQuestion, bookmarks, toggleBookmark }) => {
-    const handleDragOver = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
+const HeadingGap = ({ qId, number, answer, correctAnswer, handleAnswerChange, isActive, setActiveQuestion, bookmarks, toggleBookmark, isReview }) => {
+    const handleDragOver = (e) => { if (isReview) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
     const handleDrop = (e) => {
         e.preventDefault();
         const option = e.dataTransfer.getData('text/plain');
@@ -26,16 +25,16 @@ const HeadingGap = ({ qId, number, answer, handleAnswerChange, isActive, setActi
     };
 
     const handleDragStart = (e) => {
-        if (!answer) return;
+        if (!answer || isReview) return;
         e.dataTransfer.setData('text/plain', answer);
         e.dataTransfer.setData('sourceQId', String(qId));
         e.dataTransfer.effectAllowed = 'move';
     };
 
     return (
-        <div id={`question-${number}`} onClick={(e) => { e.stopPropagation(); setActiveQuestion(Number(number)); }}
-            className={`heading-gap-zone ${answer ? 'heading-gap-filled' : ''} ${isActive && !answer ? 'heading-gap-active' : ''}`}
-            onDragOver={handleDragOver} onDrop={handleDrop} draggable={!!answer} onDragStart={handleDragStart}
+        <div id={`question-${number}`} onClick={(e) => { e.stopPropagation(); if (!isReview) setActiveQuestion(Number(number)); }}
+            className={`heading-gap-zone ${answer ? 'heading-gap-filled' : ''} ${isActive && !answer ? 'heading-gap-active' : ''} ${isReview ? (answer?.trim() === correctAnswer?.trim() ? 'review-correct' : 'review-wrong') : ''}`}
+            onDragOver={handleDragOver} onDrop={isReview ? undefined : handleDrop} draggable={!isReview && !!answer} onDragStart={handleDragStart}
         >
             {!answer ? (
                 <div className="heading-gap-placeholder">
@@ -46,6 +45,11 @@ const HeadingGap = ({ qId, number, answer, handleAnswerChange, isActive, setActi
                     <span>{answer}</span>
                 </div>
             )}
+            {isReview && answer?.trim() !== correctAnswer?.trim() && (
+                <div className="review-correct-label" style={{ position: 'absolute', top: '100%', left: 0, marginTop: '2px', backgroundColor: 'rgba(255,255,255,0.9)', padding: '2px 4px', borderRadius: '4px', whiteSpace: 'nowrap', zIndex: 10 }}>
+                    ({correctAnswer})
+                </div>
+            )}
         </div>
     );
 };
@@ -54,7 +58,7 @@ const PassageContentStatic = React.memo(({ content, title }) => (
     <div className="passage-content" dangerouslySetInnerHTML={{ __html: content }}></div>
 ), (prev, next) => prev.title === next.title);
 
-const PassageRenderer = ({ part, answers, handleAnswerChange, activeQuestion, setActiveQuestion, bookmarks, toggleBookmark }) => {
+const PassageRenderer = ({ part, answers, handleAnswerChange, activeQuestion, setActiveQuestion, bookmarks, toggleBookmark, isReview, testData }) => {
     const [gaps, setGaps] = React.useState([]);
     const [bookmarkNodes, setBookmarkNodes] = React.useState([]);
 
@@ -103,13 +107,30 @@ const PassageRenderer = ({ part, answers, handleAnswerChange, activeQuestion, se
             {gaps.map((node, i) => {
                 const qId = node.getAttribute('data-id');
                 const num = node.getAttribute('data-number');
+                let correctAnswer = null;
+
+                if (isReview && testData?.parts) {
+                    testData.parts.forEach(p => {
+                        p.questions?.forEach(q => {
+                            if (q.subQuestions) {
+                                const subQ = q.subQuestions.find(sq => String(sq.id) === String(qId));
+                                if (subQ && subQ.correctAnswer) correctAnswer = subQ.correctAnswer;
+                            } else if (String(q.id) === String(qId)) {
+                                if (q.correctAnswer) correctAnswer = q.correctAnswer;
+                            }
+                        });
+                    });
+                }
+
                 return createPortal(
                     <HeadingGap
                         key={qId || i}
                         qId={qId} number={num} answer={answers[qId]}
+                        correctAnswer={correctAnswer}
                         handleAnswerChange={handleAnswerChange}
                         isActive={activeQuestion == num}
                         setActiveQuestion={setActiveQuestion}
+                        isReview={isReview}
                     />,
                     node
                 );
@@ -131,7 +152,12 @@ const IeltsReadingTest = () => {
     const [answers, setAnswers] = useState({});
     const [loading, setLoading] = useState(true);
     const [bookmarks, setBookmarks] = useState({});
-    const [showSubmitModal, setShowSubmitModal] = useState(false);
+
+    const [searchParams] = useSearchParams();
+    const navigate = useNavigate();
+    const isFullTest = searchParams.get('fullTest') === 'true';
+    const mode = searchParams.get('mode') || 'practice';
+    const isReview = searchParams.get('review') === 'true';
 
     const toggleBookmark = (num) => {
         setBookmarks(prev => ({ ...prev, [num]: !prev[num] }));
@@ -155,8 +181,16 @@ const IeltsReadingTest = () => {
         ieltsApi.getTestSession("mock-session-id").then((data) => {
             setTestData(data);
             setLoading(false);
+            
+            // Nếu là trang review, lấy lại answers từ sessionStorage
+            if (isReview) {
+                const savedAnswers = sessionStorage.getItem('lastAnswers_reading');
+                if (savedAnswers) {
+                    setAnswers(JSON.parse(savedAnswers));
+                }
+            }
         });
-    }, []);
+    }, [isReview]);
 
     const handleHighlightChange = () => {
         // Find the passage portion to avoid capturing the entire layout including portals
@@ -194,10 +228,6 @@ const IeltsReadingTest = () => {
         setAnswers((prev) => ({ ...prev, [questionId]: value }));
     };
 
-    const [searchParams] = useSearchParams();
-    const navigate = useNavigate();
-    const isFullTest = searchParams.get('fullTest') === 'true';
-
     const handleFullTestNext = () => {
         try {
             const session = JSON.parse(sessionStorage.getItem('ieltsFullTest') || 'null');
@@ -207,18 +237,22 @@ const IeltsReadingTest = () => {
                 const updated = { ...session, currentSection: nextIdx };
                 sessionStorage.setItem('ieltsFullTest', JSON.stringify(updated));
                 const next = updated.sections[nextIdx];
-                navigate(`/test/${next.skill}/${next.testId}?fullTest=true`);
+                navigate(`/test/${next.skill}/${next.testId}?fullTest=true&mode=${session.mode || mode}`);
             } else {
                 sessionStorage.removeItem('ieltsFullTest');
-                navigate('/exam-library');
+                navigate(`/test/complete?mode=${session.mode || mode}&skill=reading&fullTest=true`);
             }
         } catch { navigate('/exam-library'); }
     };
 
     const submitTest = () => {
+        // Lưu lại đáp án để lát review
+        sessionStorage.setItem('lastAnswers_reading', JSON.stringify(answers));
+        
         if (isFullTest) { handleFullTestNext(); return; }
+        
         ieltsApi.submitAnswers("mock-session-id", answers).then(() => {
-            alert("Test submitted!\nAnswers: " + JSON.stringify(answers, null, 2));
+            navigate(`/test/complete?mode=${mode}&skill=reading`);
         });
     };
 
@@ -273,7 +307,7 @@ const IeltsReadingTest = () => {
 
     return (
         <div className="ielts-container">
-            <TestHeader candidateName={testData?.candidateName} candidateId={testData?.candidateId} submitTest={() => setShowSubmitModal(true)} />
+            <TestHeader candidateName={testData?.candidateName} candidateId={testData?.candidateId} submitTest={submitTest} isReview={isReview} isFullTest={isFullTest} skill="reading" navigate={navigate} />
 
             <div className="instruction-bar">
                 <h3>{part.title}</h3>
@@ -286,7 +320,7 @@ const IeltsReadingTest = () => {
                     <h2 className="passage-title">{part.passageTitle}</h2>
                     <PassageRenderer part={part} answers={answers} handleAnswerChange={handleAnswerChange}
                         bookmarks={bookmarks}
-                        toggleBookmark={toggleBookmark} activeQuestion={activeQuestion} setActiveQuestion={setActiveQuestion} />
+                        toggleBookmark={toggleBookmark} activeQuestion={activeQuestion} setActiveQuestion={setActiveQuestion} isReview={isReview} testData={testData} />
                 </div>
 
                 <div className="divider" onMouseDown={handleDragStart}>
@@ -306,10 +340,11 @@ const IeltsReadingTest = () => {
                                         activeQuestion={activeQuestion}
                                         setActiveQuestion={setActiveQuestion}
                                         answers={answers}
-                                        handleAnswerChange={handleAnswerChange}
+                                        handleAnswerChange={isReview ? () => {} : handleAnswerChange}
                                         bookmarks={bookmarks}
                                         toggleBookmark={toggleBookmark}
                                         inputRefs={inputRefs}
+                                        isReview={isReview}
                                     />
                                 ))}
                             </div>
@@ -394,24 +429,7 @@ const IeltsReadingTest = () => {
                         );
                     })}
                 </div>
-                <button className="submit-check-btn" onClick={() => setShowSubmitModal(true)} title="Submit Test">
-                    <Check size={28} strokeWidth={2.5} />
-                </button>
             </footer>
-
-            {showSubmitModal && (
-                <div className="submit-confirm-overlay" onClick={() => setShowSubmitModal(false)}>
-                    <div className="submit-confirm-modal" onClick={e => e.stopPropagation()}>
-                        <h3>Submit your test?</h3>
-                        <p>You are about to submit your answers for this section. Once submitted, you cannot return to make changes.</p>
-                        <p className="scm-warning">This action cannot be undone.</p>
-                        <div className="submit-confirm-actions">
-                            <button className="scm-cancel-btn" onClick={() => setShowSubmitModal(false)}>Cancel</button>
-                            <button className="scm-submit-btn" onClick={() => { setShowSubmitModal(false); submitTest(); }}>Submit Test</button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };

@@ -143,9 +143,10 @@ function SeriesDetail({ series, index, onBack }) {
       totalSections: sections.length,
       sections,
       currentSection: 0,
+      mode: 'practice',
     }));
     setShowModal(false);
-    navigate(`/test/${sections[0].skill}/${sections[0].testId}?fullTest=true`);
+    navigate(`/test/${sections[0].skill}/${sections[0].testId}?fullTest=true&mode=practice`);
   };
 
   return (
@@ -164,7 +165,7 @@ function SeriesDetail({ series, index, onBack }) {
               </div>
               <div className="skill-card-spacer" />
               <Link
-                to={`/test/${skill.toLowerCase()}/${tests[0].id}`}
+                to={`/test/${skill.toLowerCase()}/${tests[0].id}?mode=practice`}
                 className="skill-card-btn"
                 style={{ background: m.btnColor }}
               >

@@ -8,6 +8,7 @@ import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-
 import { CSS } from '@dnd-kit/utilities';
 import { useDroppable } from '@dnd-kit/core';
 import { GripVertical, X, Volume2, Image, Plus } from 'lucide-react';
+import RichInput from '../common/RichInput';
 
 // ---- Type metadata ----
 const TYPE_META = {
@@ -258,48 +259,6 @@ const GroupToolbar = ({ group, dragHandleProps, onDelete }) => {
 };
 
 // ---- Mini rich-text input (Bold / Italic / Underline) ----
-const RichInput = ({ value, onChange, placeholder, style, multiline, className }) => {
-  const ref = useRef(null);
-  const [focused, setFocused] = useState(false);
-
-  // Sync DOM → only when value changes externally (not while typing)
-  useEffect(() => {
-    if (ref.current && ref.current !== document.activeElement) {
-      ref.current.innerHTML = value || '';
-    }
-  }, [value]);
-
-  const exec = (cmd, e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    ref.current?.focus();
-    document.execCommand(cmd, false, null);
-    onChange(ref.current?.innerHTML ?? '');
-  };
-
-  return (
-    <div className={`rich-input-wrap${multiline ? ' rich-input-multiline' : ''}${className ? ` ${className}` : ''}`} style={style}>
-      {focused && (
-        <div className="rich-input-toolbar" onMouseDown={(e) => e.preventDefault()}>
-          <button type="button" className="rich-tb-btn" onMouseDown={(e) => exec('bold', e)} title="Bold"><b>B</b></button>
-          <button type="button" className="rich-tb-btn" onMouseDown={(e) => exec('italic', e)} title="Italic"><i>I</i></button>
-          <button type="button" className="rich-tb-btn" onMouseDown={(e) => exec('underline', e)} title="Underline"><u>U</u></button>
-        </div>
-      )}
-      <div
-        ref={ref}
-        contentEditable
-        suppressContentEditableWarning
-        className={`rich-input-content${multiline ? ' rich-input-content--multiline' : ''}`}
-        data-placeholder={placeholder}
-        onFocus={() => setFocused(true)}
-        onBlur={(e) => { setFocused(false); onChange(e.currentTarget.innerHTML); }}
-        onInput={(e) => onChange(e.currentTarget.innerHTML)}
-      />
-    </div>
-  );
-};
-
 // ---- Passage block ----
 // Mỗi đoạn văn có tiêu đề (label A/B/C...) + nội dung editable.
 // Không hiển thị heading drop-slot ở đây — Matching Headings được quản lý riêng ở pane phải.
@@ -2290,11 +2249,18 @@ const SpeakingInterviewBlock = ({ group, onUpdate, onDelete, onSelect, selected,
 
   const addQuestion = (e) => {
     e.stopPropagation();
-    onUpdate(group.id, { questions: [...questions, { id: `spkq-${Date.now()}`, text: '' }] });
+    onUpdate(group.id, {
+      questions: [...questions, {
+        id: `spkq-${Date.now()}`,
+        questionText: '',
+        questionType: { typeName: 'SPEAKING_INTERVIEW' },
+        options: [], answers: [], points: 1,
+      }],
+    });
   };
 
   const updateQ = (qId, text) =>
-    onUpdate(group.id, { questions: questions.map((q) => (q.id === qId ? { ...q, text } : q)) });
+    onUpdate(group.id, { questions: questions.map((q) => (q.id === qId ? { ...q, questionText: text } : q)) });
 
   const deleteQ = (qId, e) => {
     e.stopPropagation();
@@ -2318,13 +2284,12 @@ const SpeakingInterviewBlock = ({ group, onUpdate, onDelete, onSelect, selected,
       {/* Instructions */}
       <div className="exam-wt-section" onClick={(e) => e.stopPropagation()}>
         <label className="exam-wt-label">📋 Hướng dẫn (tuỳ chọn)</label>
-        <input
-          className="exam-spk-instr-input"
+        <RichInput
           value={group.partInstruction ?? ''}
           placeholder={interviewType === 'PART1'
             ? 'VD: In this part, the examiner asks you about yourself and familiar topics...'
             : 'VD: In this part, the examiner asks further questions related to the topic in Part 2...'}
-          onChange={(e) => onUpdate(group.id, { partInstruction: e.target.value })}
+          onChange={(html) => onUpdate(group.id, { partInstruction: html })}
         />
       </div>
 
@@ -2333,11 +2298,11 @@ const SpeakingInterviewBlock = ({ group, onUpdate, onDelete, onSelect, selected,
         {questions.map((q, i) => (
           <div key={q.id} className="exam-spk-qrow">
             <span className="exam-spk-qnum">Q{i + 1}</span>
-            <input
-              className="exam-spk-qinput"
-              value={q.text}
+            <RichInput
+              value={q.questionText || q.text || ''}
               placeholder="Nhập câu hỏi của giám khảo..."
-              onChange={(e) => updateQ(q.id, e.target.value)}
+              onChange={(html) => updateQ(q.id, html)}
+              className="exam-spk-rich-q"
             />
             <button className="exam-spk-qdel" title="Xóa câu hỏi"
               onClick={(e) => deleteQ(q.id, e)}><X size={12} /></button>
@@ -2381,12 +2346,12 @@ const SpeakingCueCardBlock = ({ group, onUpdate, onDelete, onSelect, selected, d
         {/* Topic */}
         <div className="exam-wt-section">
           <label className="exam-wt-label">📌 Chủ đề / Câu hỏi chính (Topic)</label>
-          <textarea
-            className="exam-wt-instruction"
+          <RichInput
+            multiline
             rows={2}
             value={group.topic ?? ''}
             placeholder="VD: Describe a time when you helped someone."
-            onChange={(e) => onUpdate(group.id, { topic: e.target.value })}
+            onChange={(html) => onUpdate(group.id, { topic: html })}
           />
         </div>
 
@@ -2465,12 +2430,12 @@ const WritingTaskBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragH
       {/* Task instructions / prompt */}
       <div className="exam-wt-section" onClick={(e) => e.stopPropagation()}>
         <label className="exam-wt-label">📋 Đề bài / Hướng dẫn</label>
-        <textarea
-          className="exam-wt-instruction"
+        <RichInput
+          multiline
+          rows={7}
           value={group.taskInstruction ?? ''}
           placeholder="VD: The bar chart below shows the percentage of households with Internet access in five countries.\n\nSummarise the information by selecting and reporting the main features and make comparisons where relevant.\n\nWrite at least 150 words."
-          rows={7}
-          onChange={(e) => onUpdate(group.id, { taskInstruction: e.target.value })}
+          onChange={(html) => onUpdate(group.id, { taskInstruction: html })}
         />
       </div>
 

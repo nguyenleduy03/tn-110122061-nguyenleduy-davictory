@@ -36,7 +36,7 @@ export const testBuilderApi = {
 
   // ─── Lấy danh sách question types ─────────────────────────────
   getQuestionTypes: async () => {
-    const res = await apiClient.get('/question-types');
+    const res = await apiClient.get('/tests/question-types');
     return res.data;
   },
 
@@ -137,7 +137,11 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
           toQuestion: group.toQuestion || null,
           orderIndex: gIdx + 1,
           questions: (group.questions || []).map((q, qIdx) => {
-            const typeCode = mapQuestionTypeCode(q.questionType?.typeName || group.contentType);
+            // Ưu tiên contentType của group cho các loại writing/speaking đặc biệt
+            const contentTypeOverride = ['WRITING_TASK', 'SPEAKING_INTERVIEW', 'SPEAKING_CUECARD'].includes(group.contentType)
+              ? group.contentType
+              : null;
+            const typeCode = mapQuestionTypeCode(contentTypeOverride || q.questionType?.typeName || group.contentType || 'FILL_IN_BLANK');
             const isTextAnswer = isTextAnswerType(typeCode);
 
             // Tự động tạo answers nếu question có answerText nhưng chưa có answers[]
@@ -165,6 +169,8 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
               questionNumber: q.questionNumber || qIdx + 1,
               questionText: q.questionText || '',
               blankContext: q.blankContext || null,
+              pinX: q.pinX ?? null,
+              pinY: q.pinY ?? null,
               imageUrl: q.imageUrl || null,
               points: q.points || 1.0,
               orderIndex: qIdx + 1,
@@ -272,6 +278,7 @@ function serializeGroupContent(group, part) {
   // Map labelling
   if (ct === 'MAP_LABELLING' && group.optionBank) {
     return JSON.stringify({
+      rightTitle: group.rightTitle || '',
       imageWidth: group.imageWidth,
       pinBoxWidth: group.pinBoxWidth,
       optionBank: group.optionBank,
@@ -279,15 +286,41 @@ function serializeGroupContent(group, part) {
   }
   // Flow chart
   if (ct === 'FLOW_CHART') {
-    return group.passageText || '';
+    return JSON.stringify({
+      title: group.title || '',
+      flowNodes: group.flowNodes || [],
+      bankTitle: group.bankTitle || '',
+      optionBank: group.optionBank || [],
+    });
   }
   // Audio transcript: lưu transcript text nếu có
   if (ct === 'AUDIO_TRANSCRIPT') {
     return group.passageText || '';
   }
-  // Writing task / Speaking
-  if (ct === 'WRITING_TASK' || ct === 'SPEAKING_INTERVIEW' || ct === 'SPEAKING_CUECARD') {
-    return group.passageText || '';
+  // Writing task
+  if (ct === 'WRITING_TASK') {
+    return JSON.stringify({
+      taskInstruction: group.taskInstruction || '',
+      minWords: group.minWords ?? 150,
+      recommendedMinutes: group.recommendedMinutes ?? 20,
+    });
+  }
+  // Speaking Interview
+  if (ct === 'SPEAKING_INTERVIEW') {
+    return JSON.stringify({
+      interviewType: group.interviewType || 'PART1',
+      partInstruction: group.partInstruction || '',
+    });
+  }
+  // Speaking Cue Card
+  if (ct === 'SPEAKING_CUECARD') {
+    return JSON.stringify({
+      topic: group.topic || '',
+      shouldSayLabel: group.shouldSayLabel || 'You should say:',
+      bulletPoints: group.bulletPoints || [],
+      closingSentence: group.closingSentence || '',
+      prepSeconds: group.prepSeconds ?? 60,
+    });
   }
   // Map / Diagram
   if (ct === 'MAP' || ct === 'DIAGRAM') {
@@ -405,6 +438,8 @@ export function parseLoadedTest(data) {
             questionNumber: qResp.questionNumber,
             questionText: qResp.questionText,
             blankContext: qResp.blankContext,
+            pinX: qResp.pinX ?? null,
+            pinY: qResp.pinY ?? null,
             imageUrl: qResp.imageUrl,
             points: qResp.points,
             orderIndex: qResp.orderIndex,
@@ -461,7 +496,46 @@ function deserializeGroupContent(contentType, passageText) {
     }
     if (contentType === 'MAP_LABELLING') {
       const parsed = JSON.parse(passageText);
-      return { imageWidth: parsed.imageWidth, pinBoxWidth: parsed.pinBoxWidth, optionBank: parsed.optionBank || [] };
+      return {
+        rightTitle: parsed.rightTitle || '',
+        imageWidth: parsed.imageWidth,
+        pinBoxWidth: parsed.pinBoxWidth,
+        optionBank: parsed.optionBank || [],
+      };
+    }
+    if (contentType === 'FLOW_CHART') {
+      const parsed = JSON.parse(passageText);
+      return {
+        title: parsed.title || '',
+        flowNodes: parsed.flowNodes || [],
+        bankTitle: parsed.bankTitle || '',
+        optionBank: parsed.optionBank || [],
+      };
+    }
+    if (contentType === 'WRITING_TASK') {
+      const parsed = JSON.parse(passageText);
+      return {
+        taskInstruction: parsed.taskInstruction || '',
+        minWords: parsed.minWords ?? 150,
+        recommendedMinutes: parsed.recommendedMinutes ?? 20,
+      };
+    }
+    if (contentType === 'SPEAKING_INTERVIEW') {
+      const parsed = JSON.parse(passageText);
+      return {
+        interviewType: parsed.interviewType || 'PART1',
+        partInstruction: parsed.partInstruction || '',
+      };
+    }
+    if (contentType === 'SPEAKING_CUECARD') {
+      const parsed = JSON.parse(passageText);
+      return {
+        topic: parsed.topic || '',
+        shouldSayLabel: parsed.shouldSayLabel || 'You should say:',
+        bulletPoints: parsed.bulletPoints || [],
+        closingSentence: parsed.closingSentence || '',
+        prepSeconds: parsed.prepSeconds ?? 60,
+      };
     }
   } catch {
     // passageText is not JSON — use as plain text
@@ -486,7 +560,7 @@ function mapBackendTypeToFrontend(code) {
     'MAP_DIAGRAM': 'FILL_IN_BLANK',
     'TABLE_FORM': 'FILL_IN_BLANK',
     'LETTER': 'FILL_IN_BLANK',
-    'ESSAY': 'FILL_IN_BLANK',
+    'ESSAY': 'WRITING_TASK',
   };
   return map[code] || 'FILL_IN_BLANK';
 }
