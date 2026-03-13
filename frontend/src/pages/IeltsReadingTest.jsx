@@ -184,7 +184,7 @@ const IeltsReadingTest = () => {
         ieltsApi.getTestSession(testId, "READING").then((data) => {
             setTestData(data);
             setLoading(false);
-            
+
             if (isReview) {
                 const savedAnswers = sessionStorage.getItem('lastAnswers_reading');
                 if (savedAnswers) {
@@ -256,9 +256,9 @@ const IeltsReadingTest = () => {
     const submitTest = () => {
         // Lưu lại đáp án để lát review
         sessionStorage.setItem('lastAnswers_reading', JSON.stringify(answers));
-        
+
         if (isFullTest) { handleFullTestNext(); return; }
-        
+
         ieltsApi.submitAnswers(testId || "mock-session-id", answers).then(() => {
             navigate(`/test/complete?mode=${mode}&skill=reading`);
         });
@@ -325,7 +325,6 @@ const IeltsReadingTest = () => {
             <TestHeader candidateName={testData?.candidateName} candidateId={testData?.candidateId} submitTest={submitTest} isReview={isReview} isFullTest={isFullTest} skill="reading" navigate={navigate} />
 
             <div className="instruction-bar">
-                <h3 dangerouslySetInnerHTML={{ __html: part.title }} />
                 {part.instruction && <p dangerouslySetInnerHTML={{ __html: part.instruction }} />}
             </div>
 
@@ -355,7 +354,7 @@ const IeltsReadingTest = () => {
                                         activeQuestion={activeQuestion}
                                         setActiveQuestion={setActiveQuestion}
                                         answers={answers}
-                                        handleAnswerChange={isReview ? () => {} : handleAnswerChange}
+                                        handleAnswerChange={isReview ? () => { } : handleAnswerChange}
                                         bookmarks={bookmarks}
                                         toggleBookmark={toggleBookmark}
                                         inputRefs={inputRefs}

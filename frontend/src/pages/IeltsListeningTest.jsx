@@ -94,9 +94,9 @@ const IeltsListeningTest = () => {
 
     const submitTest = () => {
         sessionStorage.setItem('lastAnswers_listening', JSON.stringify(answers));
-        
+
         if (isFullTest) { handleFullTestNext(); return; }
-        
+
         ieltsApi.submitAnswers(testId || "mock-session-id", answers).then(() => {
             navigate(`/test/complete?mode=${mode}&skill=listening`);
         });
@@ -140,9 +140,8 @@ const IeltsListeningTest = () => {
     if (!testData) return <div style={{ padding: '20px' }}>No test data available</div>;
     if (!part) return <div style={{ padding: '20px' }}>Part not found</div>;
 
-    const fillInBlankQuestions = part.questions?.filter(q => q.type === 'fill-in-the-blank') || [];
-    const multiChoiceQuestions = part.questions?.filter(q => q.type === 'multiple-choice') || [];
-    const dragDropQuestions = part.questions?.filter(q => q.type === 'drag-and-drop' || q.type === 'matching_heading' || q.type === 'matching_info') || [];
+
+
 
     const handlePlay = () => {
         setAudioStarted(true);
@@ -184,8 +183,7 @@ const IeltsListeningTest = () => {
             )}
 
             <div className="instruction-bar">
-                <h3 dangerouslySetInnerHTML={{ __html: part.title }} />
-                <p>{part.instruction || "Listen and answer questions."}</p>
+                <p dangerouslySetInnerHTML={{ __html: part.instruction || "Listen and answer questions." }} />
             </div>
 
             <main className="ielts-main" style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
@@ -198,64 +196,39 @@ const IeltsListeningTest = () => {
                         />
                     )}
 
-                    {multiChoiceQuestions.length > 0 && (
-                        <div style={{ marginBottom: '40px' }}>
-                            {multiChoiceQuestions.map(q => (
-                                <QuestionRenderer
-                                    key={q.id}
-                                    q={q}
-                                    activeQuestion={activeQuestion}
-                                    setActiveQuestion={setActiveQuestion}
-                                    answers={answers}
-                                    handleAnswerChange={isReview ? () => {} : handleAnswerChange}
-                                    bookmarks={bookmarks}
-                                    toggleBookmark={toggleBookmark}
-                                    inputRefs={inputRefs}
-                                    isReview={isReview}
-                                />
-                            ))}
-                        </div>
-                    )}
-
-                    {dragDropQuestions.length > 0 && (
-                        <div style={{ marginBottom: '40px' }}>
-                            {dragDropQuestions.map(q => (
-                                <QuestionRenderer
-                                    key={q.id}
-                                    q={q}
-                                    activeQuestion={activeQuestion}
-                                    setActiveQuestion={setActiveQuestion}
-                                    answers={answers}
-                                    handleAnswerChange={isReview ? () => {} : handleAnswerChange}
-                                    bookmarks={bookmarks}
-                                    toggleBookmark={toggleBookmark}
-                                    isReview={isReview}
-                                />
-                            ))}
-                        </div>
-                    )}
-
-                    {fillInBlankQuestions.length > 0 && (
-                        <div>
-                            <h3 style={{ marginTop: '0', marginBottom: '20px' }}>{part.questionsLabel}</h3>
-                            <ul>
-                                {fillInBlankQuestions.map(q => (
+                    {/* Render tất cả loại câu hỏi qua QuestionRenderer */}
+                    {(() => {
+                        // Group consecutive questions of the same type for sequential rendering
+                        const questionGroups = [];
+                        let currentGroup = null;
+                        for (const q of (part.questions || [])) {
+                            const groupType = (q.type === 'drag-and-drop' || q.type === 'matching_heading' || q.type === 'matching_info')
+                                ? 'drag-drop' : q.type;
+                            if (!currentGroup || currentGroup.type !== groupType) {
+                                currentGroup = { type: groupType, questions: [] };
+                                questionGroups.push(currentGroup);
+                            }
+                            currentGroup.questions.push(q);
+                        }
+                        return questionGroups.map((group, gi) => (
+                            <div key={gi} style={{ marginBottom: '40px' }}>
+                                {group.questions.map(q => (
                                     <QuestionRenderer
                                         key={q.id}
                                         q={q}
                                         activeQuestion={activeQuestion}
                                         setActiveQuestion={setActiveQuestion}
                                         answers={answers}
-                                        handleAnswerChange={isReview ? () => {} : handleAnswerChange}
+                                        handleAnswerChange={isReview ? () => { } : handleAnswerChange}
                                         bookmarks={bookmarks}
                                         toggleBookmark={toggleBookmark}
                                         inputRefs={inputRefs}
                                         isReview={isReview}
                                     />
                                 ))}
-                            </ul>
-                        </div>
-                    )}
+                            </div>
+                        ));
+                    })()}
 
                     {audioStarted && <div className="pane-nav-buttons">
                         <button className="black-nav-btn" onClick={goPrev} disabled={isFirstQuestion} style={{ opacity: isFirstQuestion ? 0.5 : 1 }}>

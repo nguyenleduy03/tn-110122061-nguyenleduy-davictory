@@ -56,6 +56,22 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
         );
     }
 
+    if (q.type === 'ynng') {
+        return (
+            <TFNGQuestion
+                q={q}
+                activeQuestion={activeQuestion}
+                setActiveQuestion={setActiveQuestion}
+                answer={answer !== undefined ? answer : answers?.[q.id]}
+                handleAnswerChange={handleAnswerChange}
+                bookmarks={bookmarks}
+                toggleBookmark={toggleBookmark}
+                isReview={isReview}
+                customOptions={['YES', 'NO', 'NOT GIVEN']}
+            />
+        );
+    }
+
     if (q.type === 'drag-and-drop' || q.type === 'matching_heading' || q.type === 'matching_info') {
         return (
             <DragDropGroupQuestion
@@ -86,7 +102,7 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
         );
     }
 
-    if (q.type === 'summary-completion') {
+    if (q.type === 'summary-completion' || q.type === 'note-completion') {
         return (
             <SummaryCompletionQuestion
                 q={q}
@@ -114,6 +130,34 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
                 toggleBookmark={toggleBookmark}
                 isReview={isReview}
             />
+        );
+    }
+
+    if (q.type === 'table-completion') {
+        // Table completion: render as fill-in-the-blank style inputs for each table cell
+        return (
+            <div className="table-completion-container">
+                <h4>{q.title}</h4>
+                <div className="table-completion-grid">
+                    {q.subQuestions?.map((subQ) => (
+                        <div key={subQ.id} className="table-cell-input">
+                            <label>Q{subQ.number}</label>
+                            <input
+                                ref={(el) => { if (inputRefs?.current) inputRefs.current[subQ.id] = el; }}
+                                type="text"
+                                className={`inline-input ${isReview ? (answer?.[subQ.id]?.trim().toLowerCase() === subQ.correctAnswer?.toLowerCase() ? 'review-correct' : 'review-wrong') : ''}`}
+                                placeholder={`Q${subQ.number}`}
+                                value={answer?.[subQ.id] || ''}
+                                onChange={(e) => { if (!isReview) handleAnswerChange?.(subQ.id, e.target.value); }}
+                                readOnly={isReview}
+                            />
+                            {isReview && answer?.[subQ.id]?.trim().toLowerCase() !== subQ.correctAnswer?.toLowerCase() && (
+                                <span className="review-correct-label">({subQ.correctAnswer})</span>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            </div>
         );
     }
 

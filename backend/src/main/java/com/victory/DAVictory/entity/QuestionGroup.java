@@ -38,7 +38,7 @@ public class QuestionGroup {
     @JoinColumn(name = "question_type_id")
     private QuestionType questionType; // Loại câu hỏi của group (MCQ, TFNG, FILL_BLANK...)
 
-    @Column(nullable = false, length = 200)
+    @Column(nullable = false, length = 500)
     private String title; // Tiêu đề nhóm, ví dụ: "Questions 1-10", "Passage 1"
 
     @Column(length = 50)

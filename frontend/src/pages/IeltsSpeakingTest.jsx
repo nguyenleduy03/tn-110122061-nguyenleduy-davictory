@@ -362,8 +362,7 @@ const IeltsSpeakingTest = () => {
       />
 
       <div className="instruction-bar">
-        <h3>Part {currentPart.partNumber} — <span dangerouslySetInnerHTML={{ __html: currentPart.title }} /></h3>
-        {currentPart?.instructions && <p dangerouslySetInnerHTML={{ __html: currentPart.instructions }} />}
+        {currentPart?.instruction && <p dangerouslySetInnerHTML={{ __html: currentPart.instruction }} />}
       </div>
 
       {/* Main card ──────────────────────────────────────────────────────── */}

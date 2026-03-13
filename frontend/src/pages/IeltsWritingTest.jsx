@@ -19,7 +19,7 @@ const WritingTaskPane = ({ part, style }) => {
                 <h2 className="writing-task-title" dangerouslySetInnerHTML={{ __html: part.taskLabel || part.title }} />
                 <div
                     className="writing-task-instruction"
-                    dangerouslySetInnerHTML={{ __html: part.instruction }}
+                    dangerouslySetInnerHTML={{ __html: part.instruction || 'No instructions provided.' }}
                 />
                 {part.taskImageSvg && (
                     <div
@@ -75,7 +75,7 @@ const IeltsWritingTest = () => {
 
     useEffect(() => {
         if (!testId) { setError('Không tìm thấy ID bài thi.'); setLoading(false); return; }
-        ieltsApi.getWritingTestSession(testId).then((data) => {
+        ieltsApi.getTestSession(testId, 'WRITING').then((data) => {
             setTestData(data);
             setLoading(false);
         }).catch((err) => {
@@ -157,7 +157,7 @@ const IeltsWritingTest = () => {
             />
 
             <div className="instruction-bar">
-                <h3>{part.title}</h3>
+                {part.instruction && <p dangerouslySetInnerHTML={{ __html: part.instruction }} />}
                 <p>
                     {`Recommended time: ${part.recommendedMinutes} minutes — Write at least ${part.minWords} words.`}
                 </p>

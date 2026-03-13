@@ -25,8 +25,10 @@ const SIDEBAR_ITEMS = [
 ];
 
 const TEACHER_SIDEBAR_ITEMS = [
+  { label: 'Tong quan giao vien', icon: LayoutDashboard, path: '/teacher/manage' },
   { label: 'Tạo đề thi', icon: FilePlus, path: '/teacher/tests/new' },
   { label: 'Quản lý đề thi', icon: FolderOpen, path: '/teacher/tests' },
+  { label: 'Bai nop Writing', icon: ClipboardList, path: '/teacher/writing' },
 ];
 
 const isTeacherOrAbove = (roles) => {

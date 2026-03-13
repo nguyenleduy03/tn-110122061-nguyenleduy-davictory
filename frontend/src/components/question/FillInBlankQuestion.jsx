@@ -1,5 +1,6 @@
 import React from 'react';
 import { Bookmark } from 'lucide-react';
+import { formatTextWithWhitespace } from '../../utils/textFormatters';
 
 const FillInBlankQuestion = ({ q, activeQuestion, setActiveQuestion, answer, handleAnswerChange, inputRefs, bookmarks, toggleBookmark, isReview }) => {
     const parts = q.text ? q.text.split('_______') : [];

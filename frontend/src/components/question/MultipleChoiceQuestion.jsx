@@ -1,5 +1,6 @@
 import React from 'react';
 import { Bookmark } from 'lucide-react';
+import { formatTextWithWhitespace } from '../../utils/textFormatters';
 
 const MultipleChoiceQuestion = ({ q, activeQuestion, setActiveQuestion, answer, handleAnswerChange, bookmarks, toggleBookmark, isReview }) => {
     const nums = q.numberRange || [q.number];
@@ -44,10 +45,10 @@ const MultipleChoiceQuestion = ({ q, activeQuestion, setActiveQuestion, answer, 
                         (() => {
                             const correctArr = Array.isArray(q.correctAnswer) ? q.correctAnswer : [q.correctAnswer];
                             const isAllCorrect = selectedAnswers.length === correctArr.length && selectedAnswers.every(ans => correctArr.includes(ans));
-                            return isAllCorrect ? <span style={{color: '#107c41'}}>✓</span> : <span style={{color: '#d13438'}}>✗</span>;
+                            return isAllCorrect ? <span style={{ color: '#107c41' }}>✓</span> : <span style={{ color: '#d13438' }}>✗</span>;
                         })()
                     ) : (
-                        answer === q.correctAnswer ? <span style={{color: '#107c41'}}>✓</span> : <span style={{color: '#d13438'}}>✗</span>
+                        answer === q.correctAnswer ? <span style={{ color: '#107c41' }}>✓</span> : <span style={{ color: '#d13438' }}>✗</span>
                     )}
                 </div>
             )}
@@ -58,7 +59,7 @@ const MultipleChoiceQuestion = ({ q, activeQuestion, setActiveQuestion, answer, 
                         const isAllCorrect = isMultiple
                             ? selectedAnswers.length === correctArr.length && selectedAnswers.every(ans => correctArr.includes(ans))
                             : answer === q.correctAnswer;
-                        
+
                         if (!isAllCorrect && isReview) {
                             return <span className="review-correct-label">({correctArr.join(', ')})</span>;
                         }
@@ -72,14 +73,14 @@ const MultipleChoiceQuestion = ({ q, activeQuestion, setActiveQuestion, answer, 
                 </span>
                 <div className="tfng-question-content">
                     <span className="tfng-number">{displayNumber}</span>
-                    <span className="tfng-question-text">{q.text}</span>
+                    <span className="tfng-question-text" dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(q.text) || '' }} />
                 </div>
             </div>
             <div className="tfng-options">
                 {q.options && q.options.map((opt, idx) => {
                     const isChecked = isMultiple ? selectedAnswers.includes(opt) : selectedAnswers === opt;
                     const isDisabled = (isMultiple && isFull && !isChecked) || isReview;
-                    
+
                     let reviewClass = '';
                     if (isReview && isChecked) {
                         const correctArr = Array.isArray(q.correctAnswer) ? q.correctAnswer : [q.correctAnswer];
@@ -111,7 +112,7 @@ const MultipleChoiceQuestion = ({ q, activeQuestion, setActiveQuestion, answer, 
                                 onChange={() => handleChange(opt)}
                                 style={{ margin: 0 }}
                             />
-                            <span style={{ fontSize: '14px' }}>{opt}</span>
+                            <span style={{ fontSize: '14px' }} dangerouslySetInnerHTML={{ __html: opt || '' }} />
                         </label>
                     );
                 })}

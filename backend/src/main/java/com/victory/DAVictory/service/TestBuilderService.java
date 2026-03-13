@@ -152,14 +152,14 @@ public class TestBuilderService {
                                         // Group tồn tại - Tham chiếu và cập nhật
                                         qg = existingGroup.get();
                                         
-                                        // Cập nhật metadata của group
-                                        if (gs.getTitle() != null) qg.setTitle(gs.getTitle());
-                                        qg.setPassageText(gs.getPassageText());
-                                        qg.setAudioUrl(gs.getAudioUrl());
-                                        qg.setImageUrl(gs.getImageUrl());
+                                        // Cập nhật metadata của group (chỉ khi không null)
+                                        if (gs.getTitle() != null) qg.setTitle(truncateTitle(gs.getTitle()));
+                                        if (gs.getPassageText() != null) qg.setPassageText(gs.getPassageText());
+                                        if (gs.getAudioUrl() != null) qg.setAudioUrl(gs.getAudioUrl());
+                                        if (gs.getImageUrl() != null) qg.setImageUrl(gs.getImageUrl());
                                         if (gs.getFromQuestion() != null) qg.setFromQuestion(gs.getFromQuestion());
                                         if (gs.getToQuestion() != null) qg.setToQuestion(gs.getToQuestion());
-                                        qg.setOrderIndex(gs.getOrderIndex());
+                                        if (gs.getOrderIndex() != null) qg.setOrderIndex(gs.getOrderIndex());
                                         qg = questionGroupRepository.save(qg);
 
                                         // Xóa câu hỏi cũ theo thứ tự FK: options → answers → questions
@@ -193,7 +193,7 @@ public class TestBuilderService {
                                         // Group không tồn tại - Tự động tạo mới
                                         qg = new QuestionGroup();
                                         qg.setPart(part);
-                                        qg.setTitle(gs.getTitle() != null ? gs.getTitle() : "Nhóm câu hỏi");
+                                        qg.setTitle(truncateTitle(gs.getTitle()));
                                         qg.setContentType(gs.getContentType());
                                         qg.setPassageText(gs.getPassageText());
                                         qg.setAudioUrl(gs.getAudioUrl());
@@ -238,7 +238,7 @@ public class TestBuilderService {
                                     // Không có existingGroupId - Tạo group hoàn toàn mới
                                     qg = new QuestionGroup();
                                     qg.setPart(part);
-                                    qg.setTitle(gs.getTitle() != null ? gs.getTitle() : "Nhóm câu hỏi");
+                                    qg.setTitle(truncateTitle(gs.getTitle()));
                                     qg.setContentType(gs.getContentType());
                                     qg.setPassageText(gs.getPassageText());
                                     qg.setAudioUrl(gs.getAudioUrl());
@@ -542,6 +542,15 @@ public class TestBuilderService {
     // ═══════════════════════════════════════════════════════════════
     //  PRIVATE HELPERS
     // ═══════════════════════════════════════════════════════════════
+
+    /**
+     * Truncate title để đảm bảo không vượt quá 500 ký tự
+     */
+    private String truncateTitle(String title) {
+        if (title == null) return "Nhóm câu hỏi";
+        if (title.length() <= 500) return title;
+        return title.substring(0, 497) + "...";
+    }
 
     private QuestionType resolveQuestionType(Long typeId, String typeCode) {
         if (typeId != null) {

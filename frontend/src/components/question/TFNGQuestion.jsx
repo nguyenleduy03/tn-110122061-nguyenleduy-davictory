@@ -1,7 +1,9 @@
 import React from 'react';
 import { Bookmark } from 'lucide-react';
+import { formatTextWithWhitespace } from '../../utils/textFormatters';
 
-const TFNGQuestion = ({ q, activeQuestion, setActiveQuestion, answer, handleAnswerChange, bookmarks, toggleBookmark, isReview }) => {
+const TFNGQuestion = ({ q, activeQuestion, setActiveQuestion, answer, handleAnswerChange, bookmarks, toggleBookmark, isReview, customOptions }) => {
+    const options = customOptions || ['TRUE', 'FALSE', 'NOT GIVEN'];
     const nums = q.numberRange || [q.number];
     const isActive = nums.includes(activeQuestion);
     const selectedAnswer = answer;
@@ -26,7 +28,7 @@ const TFNGQuestion = ({ q, activeQuestion, setActiveQuestion, answer, handleAnsw
         >
             {isReview && (
                 <div style={{ position: 'absolute', right: '10px', top: '10px' }}>
-                    {selectedAnswer === q.correctAnswer ? <span style={{color: '#107c41'}}>&#10003;</span> : <span style={{color: '#d13438'}}>&#10007;</span>}
+                    {selectedAnswer === q.correctAnswer ? <span style={{ color: '#107c41' }}>&#10003;</span> : <span style={{ color: '#d13438' }}>&#10007;</span>}
                 </div>
             )}
             <div className="tfng-text">
@@ -35,11 +37,11 @@ const TFNGQuestion = ({ q, activeQuestion, setActiveQuestion, answer, handleAnsw
                 </span>
                 <div className="tfng-question-content">
                     <span className="tfng-number">{displayNumber}</span>
-                    <span className="tfng-question-text">{q.text}</span>
+                    <span className="tfng-question-text" dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(q.text) || '' }} />
                 </div>
             </div>
             <div className="tfng-options">
-                {['TRUE', 'FALSE', 'NOT GIVEN'].map((opt, idx) => {
+                {options.map((opt, idx) => {
                     const isChecked = selectedAnswer === opt;
                     const isDisabled = isReview;
                     let reviewClass = '';
@@ -66,7 +68,7 @@ const TFNGQuestion = ({ q, activeQuestion, setActiveQuestion, answer, handleAnsw
                                 onChange={() => handleChange(opt)}
                                 style={{ margin: 0 }}
                             />
-                            <span style={{ fontSize: '14px' }}>{opt}</span>
+                            <span style={{ fontSize: '14px' }} dangerouslySetInnerHTML={{ __html: opt || '' }} />
                         </label>
                     );
                 })}

@@ -9,6 +9,8 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import TestBuilder from './pages/TestBuilder'
 import TeacherTests from './pages/TeacherTests'
+import TeacherManage from './pages/TeacherManage'
+import TeacherWritingSubmissions from './pages/TeacherWritingSubmissions'
 import MyDashboard from './pages/MyDashboard'
 import TestComplete from './pages/TestComplete'
 import DashboardHistory from './pages/DashboardHistory'
@@ -43,6 +45,8 @@ function App() {
         <Route path="/my-dashboard/history" element={<ProtectedRoute><DashboardHistory /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><DashboardProfile /></ProtectedRoute>} />
         <Route path="/my-dashboard/settings" element={<ProtectedRoute><DashboardSettings /></ProtectedRoute>} />
+        <Route path="/teacher/manage" element={<ProtectedRoute><TeacherManage /></ProtectedRoute>} />
+        <Route path="/teacher/writing" element={<ProtectedRoute><TeacherWritingSubmissions /></ProtectedRoute>} />
         <Route path="/teacher/tests" element={<ProtectedRoute><TeacherTests /></ProtectedRoute>} />
         <Route path="/teacher/tests/new" element={<ProtectedRoute><TestBuilder /></ProtectedRoute>} />
         <Route path="/teacher/tests/:id/edit" element={<ProtectedRoute><TestBuilder /></ProtectedRoute>} />
