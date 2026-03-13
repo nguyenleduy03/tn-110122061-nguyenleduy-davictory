@@ -13,14 +13,24 @@ import { createPortal } from "react-dom";
 const HeadingGap = ({ qId, number, answer, correctAnswer, handleAnswerChange, isActive, setActiveQuestion, bookmarks, toggleBookmark, isReview }) => {
     const handleDragOver = (e) => { if (isReview) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
     const handleDrop = (e) => {
+        if (isReview) return;
         e.preventDefault();
+        e.stopPropagation();
         const option = e.dataTransfer.getData('text/plain');
         const sourceQId = e.dataTransfer.getData('sourceQId');
-        if (option) {
-            handleAnswerChange(qId, option);
-            if (sourceQId && sourceQId !== String(qId)) {
+
+        // Defensive check for qId
+        const activeQId = qId || (number ? `q${number}` : null);
+
+        console.log(`[HeadingGap] Attempting drop. TargetQId: ${activeQId}, Option: ${option}, Source: ${sourceQId}`);
+
+        if (option && activeQId) {
+            handleAnswerChange(activeQId, option);
+            if (sourceQId && String(sourceQId) !== String(activeQId)) {
                 handleAnswerChange(sourceQId, '');
             }
+        } else {
+            console.warn('[HeadingGap] Drop rejected: missing option or target ID');
         }
     };
 
@@ -31,12 +41,18 @@ const HeadingGap = ({ qId, number, answer, correctAnswer, handleAnswerChange, is
         e.dataTransfer.effectAllowed = 'move';
     };
 
+    const isFilled = !!answer;
+
     return (
-        <div id={`question-${number}`} onClick={(e) => { e.stopPropagation(); if (!isReview) setActiveQuestion(Number(number)); }}
-            className={`heading-gap-zone ${answer ? 'heading-gap-filled' : ''} ${isActive && !answer ? 'heading-gap-active' : ''} ${isReview ? (answer?.trim() === correctAnswer?.trim() ? 'review-correct' : 'review-wrong') : ''}`}
-            onDragOver={handleDragOver} onDrop={isReview ? undefined : handleDrop} draggable={!isReview && !!answer} onDragStart={handleDragStart}
+        <div id={`question-${number}`}
+            onClick={(e) => { e.stopPropagation(); if (!isReview) setActiveQuestion(Number(number)); }}
+            className={`heading-gap-zone ${isFilled ? 'heading-gap-filled' : ''} ${isActive && !isFilled ? 'heading-gap-active' : ''} ${isReview ? (answer?.trim() === correctAnswer?.trim() ? 'review-correct' : 'review-wrong') : ''}`}
+            onDragOver={handleDragOver}
+            onDrop={isReview ? undefined : handleDrop}
+            draggable={!isReview && isFilled}
+            onDragStart={handleDragStart}
         >
-            {!answer ? (
+            {!isFilled ? (
                 <div className="heading-gap-placeholder">
                     <span className="heading-gap-number">{number}</span>
                 </div>
@@ -46,69 +62,92 @@ const HeadingGap = ({ qId, number, answer, correctAnswer, handleAnswerChange, is
                 </div>
             )}
             {isReview && answer?.trim() !== correctAnswer?.trim() && (
-                <div className="review-correct-label" style={{ position: 'absolute', top: '100%', left: 0, marginTop: '2px', backgroundColor: 'rgba(255,255,255,0.9)', padding: '2px 4px', borderRadius: '4px', whiteSpace: 'nowrap', zIndex: 10 }}>
-                    ({correctAnswer})
+                <div className="review-correct-label">
+                    <span dangerouslySetInnerHTML={{ __html: correctAnswer }} />
                 </div>
             )}
         </div>
     );
 };
 
-const PassageContentStatic = React.memo(({ content, title }) => (
-    <div className="passage-content" dangerouslySetInnerHTML={{ __html: content }}></div>
-), (prev, next) => prev.title === next.title);
+const PassageContentStatic = React.memo(({ content }) => {
+    return (
+        <div className="passage-content" dangerouslySetInnerHTML={{ __html: content }}></div>
+    );
+});
 
 const PassageRenderer = ({ part, answers, handleAnswerChange, activeQuestion, setActiveQuestion, bookmarks, toggleBookmark, isReview, testData }) => {
     const [gaps, setGaps] = React.useState([]);
     const [bookmarkNodes, setBookmarkNodes] = React.useState([]);
+    const startQuestionNumber = part.fromQuestion || 1;
+    const containerRef = React.useRef(null);
 
     React.useEffect(() => {
-        // Query the DOM after static content paints
-        const timer = setTimeout(() => {
-            const nodes = Array.from(document.querySelectorAll('.passage-content .heading-gap'));
-            console.log("Found gaps static:", nodes.length);
-            setGaps(nodes);
+        // Clear existing gaps immediately when content changes to prevent portalling into old nodes
+        setGaps([]);
+        setBookmarkNodes([]);
 
-            // Create target nodes for bookmarks right after the gaps (which are right before the text)
+        const findAndSetGaps = () => {
+            if (!containerRef.current) return false;
+            const nodes = Array.from(containerRef.current.querySelectorAll('.heading-gap'));
+            if (nodes.length > 0) {
+                console.log(`[PassageRenderer] Found ${nodes.length} heading gaps. Setting up portals...`);
+                setGaps(nodes);
+                processGaps(nodes);
+                return true;
+            }
+            return false;
+        };
+
+        function processGaps(nodes) {
             const bNodes = [];
             nodes.forEach(node => {
-                let p = node.nextElementSibling;
-                while (p && p.tagName !== 'P') {
-                    p = p.nextElementSibling;
+                let p = node.nextElementSibling || node.parentElement;
+                if (p && p.tagName !== 'P') {
+                    const parentP = node.closest('p');
+                    if (parentP) p = parentP;
                 }
 
-                if (p) {
-                    // check if already injected
+                if (p && p.tagName === 'P') {
                     let bContainer = p.querySelector('.bookmark-portal-target');
                     if (!bContainer) {
                         bContainer = document.createElement('span');
                         bContainer.className = 'bookmark-portal-target';
-                        bContainer.style.display = 'inline-flex';
-                        bContainer.style.marginRight = '8px';
-                        bContainer.style.verticalAlign = 'top';
-                        // Insert at the beginning of the P tag
-                        if (p.firstChild) {
-                            p.insertBefore(bContainer, p.firstChild);
-                        } else {
-                            p.appendChild(bContainer);
-                        }
+                        if (p.firstChild) p.insertBefore(bContainer, p.firstChild);
+                        else p.appendChild(bContainer);
                     }
                     bNodes.push({ container: bContainer, num: node.getAttribute('data-number') });
                 }
             });
             setBookmarkNodes(bNodes);
-        }, 100);
-        return () => clearTimeout(timer);
-    }, [part.passageTitle]); // Prevent re-running when content changes due to highlight, only run when switching parts
+        }
+
+        // Delay detection to ensure PassageContentStatic has finished rendering
+        console.log('[PassageRenderer] Content changed, waiting for DOM stable...');
+        let attempts = 0;
+        const interval = setInterval(() => {
+            attempts++;
+            if (findAndSetGaps()) {
+                console.log(`[PassageRenderer] Gaps found on attempt ${attempts}`);
+                clearInterval(interval);
+            } else if (attempts > 20) { // 4 seconds
+                clearInterval(interval);
+                console.warn('[PassageRenderer] Failed to find heading gaps after 4 seconds.');
+            }
+        }, 200);
+
+        return () => clearInterval(interval);
+    }, [part.passageTitle, part.passageContent]);
 
     return (
-        <div style={{ position: 'relative' }}>
-            <PassageContentStatic content={part.passageContent} title={part.passageTitle} />
+        <div className="passage-renderer-wrapper" ref={containerRef}>
+            <PassageContentStatic content={part.passageContent} />
             {gaps.map((node, i) => {
                 const qId = node.getAttribute('data-id');
-                const num = node.getAttribute('data-number');
-                let correctAnswer = null;
+                const numAttr = node.getAttribute('data-number');
+                const number = numAttr ? parseInt(numAttr, 10) : (startQuestionNumber + i);
 
+                let correctAnswer = null;
                 if (isReview && testData?.parts) {
                     testData.parts.forEach(p => {
                         p.questions?.forEach(q => {
@@ -125,10 +164,12 @@ const PassageRenderer = ({ part, answers, handleAnswerChange, activeQuestion, se
                 return createPortal(
                     <HeadingGap
                         key={qId || i}
-                        qId={qId} number={num} answer={answers[qId]}
+                        qId={qId}
+                        number={number}
+                        answer={answers[qId]}
                         correctAnswer={correctAnswer}
                         handleAnswerChange={handleAnswerChange}
-                        isActive={activeQuestion == num}
+                        isActive={activeQuestion == number}
                         setActiveQuestion={setActiveQuestion}
                         isReview={isReview}
                     />,
@@ -137,7 +178,7 @@ const PassageRenderer = ({ part, answers, handleAnswerChange, activeQuestion, se
             })}
             {bookmarkNodes.map((bNode, i) => (
                 createPortal(
-                    <span onClick={(e) => { e.stopPropagation(); toggleBookmark?.(bNode.num); }} style={{ cursor: "pointer", display: "flex", marginTop: "2px" }}>
+                    <span onClick={(e) => { e.stopPropagation(); toggleBookmark?.(bNode.num); }} className="bookmark-portal-container">
                         <Bookmark size={18} fill={bookmarks?.[bNode.num] ? "#1a73e8" : "none"} color={bookmarks?.[bNode.num] ? "#1a73e8" : "#ccc"} />
                     </span>,
                     bNode.container
@@ -248,7 +289,7 @@ const IeltsReadingTest = () => {
                 navigate(`/test/${next.skill}/${next.testId}?fullTest=true&mode=${session.mode || mode}`);
             } else {
                 sessionStorage.removeItem('ieltsFullTest');
-                navigate(`/test/complete?mode=${session.mode || mode}&skill=reading&fullTest=true`);
+                navigate(`/test/complete?mode=${session.mode || mode}&skill=reading&fullTest=true&testId=${testId}`);
             }
         } catch { navigate('/exam-library'); }
     };
@@ -260,7 +301,7 @@ const IeltsReadingTest = () => {
         if (isFullTest) { handleFullTestNext(); return; }
 
         ieltsApi.submitAnswers(testId || "mock-session-id", answers).then(() => {
-            navigate(`/test/complete?mode=${mode}&skill=reading`);
+            navigate(`/test/complete?mode=${mode}&skill=reading&testId=${testId}`);
         });
     };
 
@@ -322,16 +363,37 @@ const IeltsReadingTest = () => {
 
     return (
         <div className="ielts-container">
-            <TestHeader candidateName={testData?.candidateName} candidateId={testData?.candidateId} submitTest={submitTest} isReview={isReview} isFullTest={isFullTest} skill="reading" navigate={navigate} />
+            <TestHeader
+                candidateName={testData?.candidateName}
+                candidateId={testData?.candidateId}
+                submitTest={submitTest}
+                isReview={isReview}
+                isFullTest={isFullTest}
+                skill="reading"
+                navigate={navigate}
+                duration={testData?.totalMinutes}
+                onTimeUp={submitTest}
+            />
 
             <div className="instruction-bar">
+                <h3 dangerouslySetInnerHTML={{ __html: part.title }} />
                 {part.instruction && <p dangerouslySetInnerHTML={{ __html: part.instruction }} />}
             </div>
 
-            <main className="ielts-main" ref={containerRef}>
-                <TextHighlighter containerRef={containerRef} onHighlightChange={handleHighlightChange} />
-                <div className="passage-section" style={{ width: `${leftWidth}%`, flex: 'none' }}>
-                    <h2 className="passage-title" dangerouslySetInnerHTML={{ __html: part.passageTitle }} />
+            <main className="ielts-main" ref={containerRef} style={{
+                display: 'grid',
+                gridTemplateColumns: `${leftWidth}% 14px 1fr`,
+                padding: 0,
+                gap: 0,
+                width: '100%',
+                flex: '1',
+                minHeight: 0,
+                overflow: 'hidden'
+            }}>
+                <div className="passage-section" style={{ minWidth: 0, width: '100%' }}>
+                    {part.passageTitle && !part.passageTitle.toLowerCase().startsWith('nhóm') && (
+                        <h2 className="passage-title" dangerouslySetInnerHTML={{ __html: part.passageTitle }} />
+                    )}
                     <PassageRenderer part={part} answers={answers} handleAnswerChange={handleAnswerChange}
                         bookmarks={bookmarks}
                         toggleBookmark={toggleBookmark} activeQuestion={activeQuestion} setActiveQuestion={setActiveQuestion} isReview={isReview} testData={testData} />
@@ -343,7 +405,7 @@ const IeltsReadingTest = () => {
                     </div>
                 </div>
 
-                <div className="questions-section" id="questions-area" style={{ width: `calc(${100 - leftWidth}% - 14px)`, flex: 'none' }}>
+                <div className="questions-section" id="questions-area" style={{ minWidth: 0, width: '100%' }}>
                     <div className="questions-content" style={{ paddingBottom: '80px' }}>
                         {questionGroups.map((group, gi) => (
                             <div key={gi} style={{ marginBottom: '40px' }}>
@@ -361,6 +423,24 @@ const IeltsReadingTest = () => {
                                         isReview={isReview}
                                     />
                                 ))}
+
+                                {/* Chú thích cho Fill Blank questions */}
+                                {group.type === 'fill-in-the-blank' && group.questions.length > 0 && (
+                                    <div style={{
+                                        marginTop: '10px',
+                                        fontSize: '12px',
+                                        color: '#666',
+                                        fontStyle: 'italic',
+                                        borderTop: '1px solid #eee',
+                                        paddingTop: '8px'
+                                    }}>
+                                        <strong>Chú thích vị trí trong đoạn văn:</strong> {
+                                            group.questions.map((q, idx) =>
+                                                `Câu ${q.number}(${idx + 1})`
+                                            ).join(', ')
+                                        }
+                                    </div>
+                                )}
                             </div>
                         ))}
                     </div>
@@ -374,6 +454,7 @@ const IeltsReadingTest = () => {
                         </button>
                     </div>
                 </div>
+                <TextHighlighter containerRef={containerRef} onHighlightChange={handleHighlightChange} />
             </main>
 
             <footer className="ielts-footer">
@@ -430,6 +511,11 @@ const IeltsReadingTest = () => {
                                                         }, 50);
                                                     }}
                                                 >
+                                                    {nums.some(n => bookmarks[n]) && (
+                                                        <div className="q-bookmark-flag">
+                                                            <Bookmark size={16} fill="#1a73e8" color="#1a73e8" />
+                                                        </div>
+                                                    )}
                                                     <div className={`status-dash${isAnswered ? " answered-dash" : ""}${nums.some(n => bookmarks[n]) ? " bookmarked-dash" : ""}`} />
                                                     <span className={`q-num${isActive ? " active" : ""}${isRange ? " q-num-range" : ""}${nums.some(n => bookmarks[n]) ? " bookmarked" : ""}`}>
                                                         {isRange ? `${nums[0]}–${nums[nums.length - 1]}` : q.number}

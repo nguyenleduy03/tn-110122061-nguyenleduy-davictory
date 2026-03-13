@@ -10,6 +10,7 @@ const MultipleChoiceQuestion = ({ q, activeQuestion, setActiveQuestion, answer, 
     const selectedAnswers = isMultiple ? (Array.isArray(answer) ? answer : []) : answer;
     const isFull = isMultiple && selectCount > 0 && selectedAnswers.length >= selectCount;
     const displayNumber = nums.length > 1 ? `${nums[0]}–${nums[nums.length - 1]}` : q.number;
+    const hasGroupInstruction = isMultiple && q.groupInstruction;
 
     const handleChange = (opt) => {
         if (!handleAnswerChange || isReview) return;
@@ -28,45 +29,14 @@ const MultipleChoiceQuestion = ({ q, activeQuestion, setActiveQuestion, answer, 
     };
 
     return (
-        <div
-            className="tfng-question"
-            id={`question-${q.number}`}
-            onFocus={() => setActiveQuestion?.(q.number)}
-            onClick={() => setActiveQuestion?.(q.number)}
-            style={{
-                border: 'none',
-                backgroundColor: 'transparent',
-                borderRadius: '6px',
-            }}
-        >
-            {isReview && (
-                <div style={{ position: 'absolute', right: '10px', top: '10px' }}>
-                    {isMultiple ? (
-                        (() => {
-                            const correctArr = Array.isArray(q.correctAnswer) ? q.correctAnswer : [q.correctAnswer];
-                            const isAllCorrect = selectedAnswers.length === correctArr.length && selectedAnswers.every(ans => correctArr.includes(ans));
-                            return isAllCorrect ? <span style={{ color: '#107c41' }}>✓</span> : <span style={{ color: '#d13438' }}>✗</span>;
-                        })()
-                    ) : (
-                        answer === q.correctAnswer ? <span style={{ color: '#107c41' }}>✓</span> : <span style={{ color: '#d13438' }}>✗</span>
-                    )}
+        <div className="tfng-question relative-pos">
+            {/* Group instruction cho MCQ multiple */}
+            {hasGroupInstruction && (
+                <div className="mcq-group-instruction">
+                    {q.groupInstruction}
                 </div>
             )}
-            {isReview && (
-                <div style={{ position: 'absolute', right: '10px', bottom: '10px', fontSize: '13px', color: '#555' }}>
-                    {(() => {
-                        const correctArr = Array.isArray(q.correctAnswer) ? q.correctAnswer : [q.correctAnswer];
-                        const isAllCorrect = isMultiple
-                            ? selectedAnswers.length === correctArr.length && selectedAnswers.every(ans => correctArr.includes(ans))
-                            : answer === q.correctAnswer;
 
-                        if (!isAllCorrect && isReview) {
-                            return <span className="review-correct-label">({correctArr.join(', ')})</span>;
-                        }
-                        return null;
-                    })()}
-                </div>
-            )}
             <div className="tfng-text">
                 <span className="tfng-bookmark" onClick={(e) => { e.stopPropagation(); nums.forEach(n => toggleBookmark?.(n)); }} >
                     <Bookmark size={18} fill={nums.some(n => bookmarks?.[n]) ? "#1a73e8" : "none"} color={nums.some(n => bookmarks?.[n]) ? "#1a73e8" : "#ccc"} />
@@ -82,12 +52,14 @@ const MultipleChoiceQuestion = ({ q, activeQuestion, setActiveQuestion, answer, 
                     const isDisabled = (isMultiple && isFull && !isChecked) || isReview;
 
                     let reviewClass = '';
-                    if (isReview && isChecked) {
+                    if (isReview) {
                         const correctArr = Array.isArray(q.correctAnswer) ? q.correctAnswer : [q.correctAnswer];
-                        const isCorrectOpt = correctArr.includes(opt);
+                        const normalizedOpt = String(opt).trim().toLowerCase();
+                        const isCorrectOpt = correctArr.some(ans => String(ans).trim().toLowerCase() === normalizedOpt);
+                        
                         if (isCorrectOpt) {
                             reviewClass = 'review-choice-correct';
-                        } else {
+                        } else if (isChecked) {
                             reviewClass = 'review-choice-wrong';
                         }
                     }
@@ -97,10 +69,7 @@ const MultipleChoiceQuestion = ({ q, activeQuestion, setActiveQuestion, answer, 
                             key={idx}
                             className={`tfng-radio-label${isChecked ? ' tfng-option-selected' : ''} ${reviewClass}`}
                             style={{
-                                padding: '4px 15px',
-                                border: 'none',
-                                opacity: (isDisabled && !isReview) ? 0.4 : 1,
-                                pointerEvents: isDisabled ? 'none' : 'auto',
+                                opacity: (isDisabled && !isReview) ? 0.4 : 1
                             }}
                         >
                             <input
@@ -110,9 +79,8 @@ const MultipleChoiceQuestion = ({ q, activeQuestion, setActiveQuestion, answer, 
                                 checked={isChecked}
                                 disabled={isDisabled}
                                 onChange={() => handleChange(opt)}
-                                style={{ margin: 0 }}
                             />
-                            <span style={{ fontSize: '14px' }} dangerouslySetInnerHTML={{ __html: opt || '' }} />
+                            <span className="opt-text" dangerouslySetInnerHTML={{ __html: opt || '' }} />
                         </label>
                     );
                 })}

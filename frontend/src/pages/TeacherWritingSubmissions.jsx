@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   AlertCircle,
   CheckCircle2,
@@ -81,6 +82,15 @@ export default function TeacherWritingSubmissions() {
     });
   }, [search, submissions]);
 
+  const statusCounts = useMemo(() => {
+    const counts = { SUBMITTED: 0, UNDER_REVIEW: 0, GRADED: 0, RETURNED: 0, DRAFT: 0 };
+    submissions.forEach((s) => {
+      const key = s.status || 'DRAFT';
+      if (counts[key] !== undefined) counts[key] += 1;
+    });
+    return counts;
+  }, [submissions]);
+
   return (
     <DashboardLayout>
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '28px 24px' }}>
@@ -138,6 +148,18 @@ export default function TeacherWritingSubmissions() {
           </span>
         </div>
 
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+          {Object.keys(STATUS_META).map((key) => (
+            <span key={key} style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              padding: '4px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600,
+              color: STATUS_META[key].color, background: STATUS_META[key].bg,
+            }}>
+              {STATUS_META[key].label}: {statusCounts[key]}
+            </span>
+          ))}
+        </div>
+
         {error && (
           <div style={{
             display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px',
@@ -169,18 +191,19 @@ export default function TeacherWritingSubmissions() {
           </div>
         ) : (
           <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 2fr 1.2fr 1fr 1fr 1.2fr', gap: 0, background: '#f9fafb', padding: '10px 16px', fontSize: 12, fontWeight: 600, color: '#6b7280' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 2fr 1.2fr 1fr 1fr 1.2fr 1fr', gap: 0, background: '#f9fafb', padding: '10px 16px', fontSize: 12, fontWeight: 600, color: '#6b7280' }}>
               <div>Hoc vien</div>
               <div>De bai</div>
               <div>Trang thai</div>
               <div>So tu</div>
               <div>Diem</div>
               <div>Ngay nop</div>
+              <div>Thao tac</div>
             </div>
             {filtered.map((s) => (
               <div
                 key={s.id}
-                style={{ display: 'grid', gridTemplateColumns: '2fr 2fr 1.2fr 1fr 1fr 1.2fr', gap: 0, padding: '12px 16px', borderTop: '1px solid #eef2f7', alignItems: 'center' }}
+                style={{ display: 'grid', gridTemplateColumns: '2fr 2fr 1.2fr 1fr 1fr 1.2fr 1fr', gap: 0, padding: '12px 16px', borderTop: '1px solid #eef2f7', alignItems: 'center' }}
               >
                 <div style={{ fontWeight: 600, color: '#111827' }}>{s.username || '—'}</div>
                 <div style={{ color: '#374151' }}>{s.groupTitle || 'Writing task'}</div>
@@ -193,6 +216,19 @@ export default function TeacherWritingSubmissions() {
                   {s.overallBandScore != null && <CheckCircle2 size={14} color="#16a34a" />}
                 </div>
                 <div style={{ color: '#6b7280' }}>{formatDate(s.submittedAt)}</div>
+                <div>
+                  <Link
+                    to={`/teacher/writing/${s.id}`}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      padding: '6px 10px', borderRadius: 6, border: '1px solid #e5e7eb',
+                      background: '#fff', fontSize: 12, color: '#2563eb', textDecoration: 'none',
+                      fontWeight: 600,
+                    }}
+                  >
+                    Chi tiet
+                  </Link>
+                </div>
               </div>
             ))}
           </div>

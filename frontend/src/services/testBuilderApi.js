@@ -1,4 +1,21 @@
-import apiClient from './authApi';
+import axios from 'axios';
+import { API_CONFIG } from '../config/api';
+
+const apiClient = axios.create({
+  baseURL: API_CONFIG.BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Interceptor để thêm JWT token
+apiClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem('authToken');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 
 /**
  * API service cho TestBuilder.
@@ -110,13 +127,30 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
     const hasContent = parts.some(p => (p.questionGroups?.length ?? 0) > 0);
     if (!hasContent) continue;
 
-    const partPayloads = parts.map((part, partIdx) => {
+    // Tính startQuestionNumber cho mỗi part trong session
+    let sessionQuestionNumber = 1;
+    const partsWithQuestionNumbers = parts.map(part => {
+      const partStartNumber = sessionQuestionNumber;
+      const totalQuestionsInPart = (part.questionGroups || []).reduce((sum, group) => {
+        return sum + (group.questions || []).reduce((qSum, q) => {
+          return qSum + (q.questionCount || 1); // Tính theo questionCount
+        }, 0);
+      }, 0);
+      sessionQuestionNumber += totalQuestionsInPart;
+      
+      return { ...part, startQuestionNumber: partStartNumber };
+    });
+
+    const partPayloads = partsWithQuestionNumbers.map((part, partIdx) => {
       // Tìm Part ID từ structure dựa trên orderIndex
       const structPart = structInfo.parts.find(sp => sp.orderIndex === part.orderIndex)
                       || structInfo.parts[partIdx];
 
       // Lưu tất cả groups kể cả READING_PASSAGE
       const questionGroups = part.questionGroups || [];
+
+      // Tính questionNumber liên tục trong part
+      let partQuestionNumber = (part.startQuestionNumber || 1) - 1;
 
       return {
         partId: structPart?.partId,
@@ -135,6 +169,11 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
           toQuestion: group.toQuestion || null,
           orderIndex: gIdx + 1,
           questions: (group.questions || []).map((q, qIdx) => {
+            // Tính questionCount cho MCQ multiple
+            const questionCount = q.questionCount || 1;
+            const currentQuestionNumber = partQuestionNumber + 1;
+            partQuestionNumber += questionCount; // Tăng theo questionCount
+            
             // Ưu tiên contentType của group cho các loại writing/speaking đặc biệt
             const contentTypeOverride = ['WRITING_TASK', 'SPEAKING_INTERVIEW', 'SPEAKING_CUECARD'].includes(group.contentType)
               ? group.contentType
@@ -175,7 +214,7 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
 
             return {
               questionTypeCode: typeCode,
-              questionNumber: q.questionNumber || qIdx + 1,
+              questionNumber: currentQuestionNumber,
               questionText: q.questionText || '',
               blankContext: q.blankContext || null,
               pinX: q.pinX ?? null,
@@ -183,6 +222,9 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
               imageUrl: q.imageUrl || null,
               points: q.points || 1.0,
               orderIndex: qIdx + 1,
+              // Lưu questionCount và groupInstruction để backend biết
+              questionCount: questionCount,
+              groupInstruction: q.groupInstruction || null,
               options: (q.options || []).map((opt, oIdx) => ({
                 optionLabel: opt.optionLabel || String.fromCharCode(65 + oIdx),
                 optionText: opt.optionText || '',
@@ -264,24 +306,26 @@ function serializeGroupContent(group, part) {
   if (ct === 'NOTE_COMPLETION') return group.noteText || '';
   if (ct === 'SUMMARY_COMPLETION') return group.summaryText || '';
   // Matching heading: lưu heading bank
-  if (ct === 'MATCHING_HEADING' && group.headingBank) {
+  if (ct === 'MATCHING_HEADING') {
     return JSON.stringify({ headingBank: group.headingBank });
   }
   // Drag matching: lưu option bank
-  if (ct === 'DRAG_MATCHING' && group.optionBank) {
+  if (ct === 'DRAG_MATCHING') {
     return JSON.stringify({
       leftTitle: group.leftTitle,
       rightTitle: group.rightTitle,
-      optionBank: group.optionBank,
+      optionBank: group.optionBank || [],
     });
   }
   // Map labelling
-  if (ct === 'MAP_LABELLING' && group.optionBank) {
+  if (ct === 'MAP_LABELLING') {
     return JSON.stringify({
+      instructions: group.instructions || '',
       rightTitle: group.rightTitle || '',
       imageWidth: group.imageWidth,
       pinBoxWidth: group.pinBoxWidth,
-      optionBank: group.optionBank,
+      constrainHalfPage: Boolean(group.constrainHalfPage),
+      optionBank: group.optionBank || [],
     });
   }
   // Flow chart
@@ -426,35 +470,46 @@ export function parseLoadedTest(data) {
           fromQuestion: groupResp.fromQuestion,
           toQuestion: groupResp.toQuestion,
           orderIndex: groupResp.orderIndex,
-          questions: (groupResp.questions || []).map(qResp => ({
-            id: nextId++,
-            backendQuestionId: qResp.id,
-            questionNumber: qResp.questionNumber,
-            questionText: qResp.questionText,
-            blankContext: qResp.blankContext,
-            pinX: qResp.pinX ?? null,
-            pinY: qResp.pinY ?? null,
-            imageUrl: qResp.imageUrl,
-            points: qResp.points,
-            orderIndex: qResp.orderIndex,
-            // Khôi phục answerText từ answers[0] để UI hiển thị đúng (fill-blank, TFNG, matching...)
-            answerText: qResp.answers?.[0]?.answerText || '',
-            questionType: { typeName: mapBackendTypeToFrontend(qResp.questionTypeCode) },
-            options: (qResp.options || []).map(opt => ({
+          questions: (groupResp.questions || []).map(qResp => {
+            const questionCount = qResp.questionCount || 1;
+            const startNum = qResp.questionNumber;
+            const numberRange = questionCount > 1 
+              ? Array.from({length: questionCount}, (_, i) => startNum + i)
+              : [startNum];
+            
+            return {
               id: nextId++,
-              optionLabel: opt.optionLabel,
-              optionText: opt.optionText,
-              isCorrect: opt.isCorrect,
-              orderIndex: opt.orderIndex,
-            })),
-            answers: (qResp.answers || []).map(ans => ({
-              answerText: ans.answerText,
-              alternativeAnswers: ans.alternativeAnswers,
-              isCaseSensitive: ans.isCaseSensitive,
-              blankIndex: ans.blankIndex,
-              wordLimit: ans.wordLimit,
-            })),
-          })),
+              backendQuestionId: qResp.id,
+              questionNumber: qResp.questionNumber,
+              questionCount: questionCount,
+              numberRange: numberRange,
+              questionText: qResp.questionText,
+              blankContext: qResp.blankContext,
+              pinX: qResp.pinX ?? null,
+              pinY: qResp.pinY ?? null,
+              imageUrl: qResp.imageUrl,
+              points: qResp.points,
+              orderIndex: qResp.orderIndex,
+              // Khôi phục answerText từ answers[0] để UI hiển thị đúng (fill-blank, TFNG, matching...)
+              answerText: qResp.answers?.[0]?.answerText || '',
+              groupInstruction: qResp.groupInstruction || null,
+              questionType: { typeName: mapBackendTypeToFrontend(qResp.questionTypeCode) },
+              options: (qResp.options || []).map(opt => ({
+                id: nextId++,
+                optionLabel: opt.optionLabel,
+                optionText: opt.optionText,
+                isCorrect: opt.isCorrect,
+                orderIndex: opt.orderIndex,
+              })),
+              answers: (qResp.answers || []).map(ans => ({
+                answerText: ans.answerText,
+                alternativeAnswers: ans.alternativeAnswers,
+                isCaseSensitive: ans.isCaseSensitive,
+                blankIndex: ans.blankIndex,
+                wordLimit: ans.wordLimit,
+              })),
+            };
+          }),
         };
         return { ...base, ...deserializeGroupContent(groupResp.contentType, groupResp.passageText) };
       });
@@ -521,9 +576,11 @@ function deserializeGroupContent(contentType, passageText) {
     if (contentType === 'MAP_LABELLING') {
       const parsed = JSON.parse(passageText);
       return {
+        instructions: parsed.instructions || '',
         rightTitle: parsed.rightTitle || '',
         imageWidth: parsed.imageWidth,
         pinBoxWidth: parsed.pinBoxWidth,
+        constrainHalfPage: Boolean(parsed.constrainHalfPage),
         optionBank: parsed.optionBank || [],
       };
     }

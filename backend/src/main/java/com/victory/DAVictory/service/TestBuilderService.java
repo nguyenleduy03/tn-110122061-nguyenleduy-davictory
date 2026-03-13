@@ -599,6 +599,8 @@ public class TestBuilderService {
             TestFullResponse.QuestionResp qr = new TestFullResponse.QuestionResp();
             qr.setId(q.getId());
             qr.setQuestionNumber(q.getQuestionNumber());
+            qr.setQuestionCount(q.getQuestionCount());
+            qr.setGroupInstruction(q.getGroupInstruction());
             qr.setQuestionText(q.getQuestionText());
             qr.setBlankContext(q.getBlankContext());
             qr.setPinX(q.getPinX());
@@ -660,5 +662,26 @@ public class TestBuilderService {
         resp.setCreatedAt(test.getCreatedAt());
         resp.setUpdatedAt(test.getUpdatedAt());
         return resp;
+    }
+
+    // Helper method để tạo Question từ QuestionSave
+    private Question createQuestionFromSave(QuestionGroup qg, TestSaveRequest.QuestionSave qs) {
+        Question q = new Question();
+        q.setQuestionGroup(qg);
+        q.setQuestionNumber(qs.getQuestionNumber());
+        q.setQuestionCount(qs.getQuestionCount() != null ? qs.getQuestionCount() : 1);
+        q.setGroupInstruction(qs.getGroupInstruction());
+        q.setQuestionText(qs.getQuestionText());
+        q.setBlankContext(qs.getBlankContext());
+        q.setPinX(qs.getPinX());
+        q.setPinY(qs.getPinY());
+        q.setImageUrl(qs.getImageUrl());
+        q.setPoints(qs.getPoints() != null ? qs.getPoints() : 1.0);
+        q.setOrderIndex(qs.getOrderIndex());
+        
+        QuestionType qt = resolveQuestionType(qs.getQuestionTypeId(), qs.getQuestionTypeCode());
+        q.setQuestionType(qt);
+        
+        return questionRepository.save(q);
     }
 }

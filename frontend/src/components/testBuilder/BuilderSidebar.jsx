@@ -6,7 +6,7 @@ const SESSIONS = [
   { key: 'LISTENING', label: 'Listen',   icon: Headphones, iconBg: '#dbeafe', iconColor: '#1d4ed8', meta: '40 câu • 30p' },
   { key: 'READING',   label: 'Reading',  icon: BookOpen,   iconBg: '#dcfce7', iconColor: '#15803d', meta: '40 câu • 60p' },
   { key: 'WRITING',   label: 'Writing',  icon: PenLine,    iconBg: '#fef9c3', iconColor: '#a16207', meta: 'Task 1&2 • 60p' },
-  { key: 'SPEAKING',  label: 'Speaking', icon: Mic,        iconBg: '#fce7f3', iconColor: '#be185d', meta: 'Part 1-3 • 15p' },
+  { key: 'SPEAKING',  label: 'Speaking', icon: Mic,        iconBg: '#fce7f3', iconColor: '#be185d', meta: 'Part 1-3 • 12p' },
 ];
 
 const PALETTE_ITEMS = [

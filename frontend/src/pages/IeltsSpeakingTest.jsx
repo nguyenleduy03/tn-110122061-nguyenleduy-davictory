@@ -6,7 +6,7 @@ import {
   ChevronRight,
   Volume2,
 } from "lucide-react";
-import { useSearchParams, useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import "../styles/ieltsTest.css";
 import TestHeader from "../components/common/TestHeader";
 import { ieltsApi } from "../services/ieltsApi";
@@ -21,6 +21,7 @@ const fmtTime = (sec) => {
 };
 
 const PREP_SECONDS = 60;
+const PART_DURATION_SECONDS = { 1: 5 * 60, 2: 2 * 60, 3: 5 * 60 };
 
 // ── Waveform visualiser (canvas) ──────────────────────────────────────────────
 const Waveform = ({ analyser }) => {
@@ -98,6 +99,11 @@ const IeltsSpeakingTest = () => {
   const [phase, setPhase] = useState("idle");
   const [prepSeconds, setPrepSeconds] = useState(PREP_SECONDS);
   const [recSeconds, setRecSeconds] = useState(0);
+  const [partSecondsLeft, setPartSecondsLeft] = useState(0);
+
+  // stage: mic-test | part | part-review
+  const [stage, setStage] = useState('mic-test');
+  const [micTested, setMicTested] = useState(false);
 
   const [audioUrls, setAudioUrls] = useState({}); // { questionId: objectURL }
   const [micAllowed, setMicAllowed] = useState(null); // null | true | false
@@ -108,6 +114,7 @@ const IeltsSpeakingTest = () => {
   const chunksRef = useRef([]);
   const streamRef = useRef(null);
   const timerRef = useRef(null);
+  const partTimerRef = useRef(null);
   const audioCtxRef = useRef(null);
   const analyserRef = useRef(null);
   const [analyser, setAnalyser] = useState(null);
@@ -131,6 +138,7 @@ const IeltsSpeakingTest = () => {
   useEffect(() => {
     return () => {
       clearInterval(timerRef.current);
+      clearInterval(partTimerRef.current);
       if (streamRef.current)
         streamRef.current.getTracks().forEach((t) => t.stop());
       if (audioCtxRef.current) audioCtxRef.current.close();
@@ -150,6 +158,12 @@ const IeltsSpeakingTest = () => {
   const isLastQ =
     currentPartIdx === totalParts - 1 &&
     currentQIdx === (currentPart?.questions?.length ?? 1) - 1;
+
+  const getPartDurationSec = useCallback((part) => {
+    if (!part) return 0;
+    if (part.durationMinutes && part.durationMinutes > 0) return part.durationMinutes * 60;
+    return PART_DURATION_SECONDS[part.partNumber] ?? 0;
+  }, []);
 
   // ── Mic setup ──────────────────────────────────────────────────────────────
   const ensureMic = async () => {
@@ -172,6 +186,13 @@ const IeltsSpeakingTest = () => {
       return null;
     }
   };
+
+  const runMicTest = useCallback(async () => {
+    const stream = await ensureMic();
+    if (!stream) return;
+    setMicTested(true);
+    setAnalyser(analyserRef.current);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Start recording ────────────────────────────────────────────────────────
   const startRecording = useCallback(async () => {
@@ -261,14 +282,48 @@ const IeltsSpeakingTest = () => {
     [phase]
   );
 
+  const goPartReview = useCallback(() => {
+    clearInterval(timerRef.current);
+    clearInterval(partTimerRef.current);
+    if (phase === 'recording') mediaRecorderRef.current?.stop();
+    setPhase('idle');
+    setAnalyser(null);
+    setStage('part-review');
+  }, [phase]);
+
+  const startPartWithIndex = useCallback((partIdx) => {
+    const part = testData?.parts?.[partIdx];
+    if (!part) return;
+    clearInterval(partTimerRef.current);
+    const durationSec = getPartDurationSec(part);
+    setPartSecondsLeft(durationSec);
+    setStage('part');
+    setPhase('idle');
+    setRecSeconds(0);
+    setPrepSeconds(PREP_SECONDS);
+    setAnalyser(null);
+    setCurrentPartIdx(partIdx);
+    setCurrentQIdx(0);
+    partTimerRef.current = setInterval(() => {
+      setPartSecondsLeft((s) => {
+        if (s <= 1) {
+          clearInterval(partTimerRef.current);
+          goPartReview();
+          return 0;
+        }
+        return s - 1;
+      });
+    }, 1000);
+  }, [getPartDurationSec, goPartReview, testData]);
+
   const goNext = useCallback(() => {
     if (!currentPart) return;
     if (currentQIdx < currentPart.questions.length - 1) {
       navigateTo(currentPartIdx, currentQIdx + 1);
-    } else if (currentPartIdx < totalParts - 1) {
-      navigateTo(currentPartIdx + 1, 0);
+    } else {
+      goPartReview();
     }
-  }, [currentPart, currentQIdx, currentPartIdx, totalParts, navigateTo]);
+  }, [currentPart, currentQIdx, currentPartIdx, navigateTo, goPartReview]);
 
 
 
@@ -293,7 +348,7 @@ const IeltsSpeakingTest = () => {
             return;
           } else {
             sessionStorage.removeItem('ieltsFullTest');
-            window.location.href = `/test/complete?mode=${session.mode || 'practice'}&skill=speaking&fullTest=true`;
+            window.location.href = `/test/complete?mode=${session.mode || 'practice'}&skill=speaking&fullTest=true&testId=${testId}`;
             return;
           }
         }
@@ -301,14 +356,11 @@ const IeltsSpeakingTest = () => {
     }
     const count = Object.keys(audioUrls).length;
     setSubmitted(true);
-    setTimeout(
-      () =>
-        alert(
-          `Speaking test submitted!\n${count} answer(s) recorded out of ${testData?.parts?.reduce((a, p) => a + p.questions.length, 0) ?? 0
-          } questions.`
-        ),
-      50
-    );
+    // After setSubmitted(true), we don't automatically navigate, but if the user finishes, they might need a way to go to complete page.
+    // However, looking at the UI, the submit 버튼 calls this. Let's redirect to complete page after submitted.
+    setTimeout(() => {
+        window.location.href = `/test/complete?mode=practice&skill=speaking&testId=${testId}`;
+    }, 2000);
   }, [audioUrls, testData]);
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -359,81 +411,40 @@ const IeltsSpeakingTest = () => {
         candidateName={testData.candidateName}
         candidateId={testData.candidateId}
         submitTest={submitTest}
+        duration={testData.totalMinutes}
+        onTimeUp={submitTest}
       />
 
       <div className="instruction-bar">
-        {currentPart?.instruction && <p dangerouslySetInnerHTML={{ __html: currentPart.instruction }} />}
+          <h3 dangerouslySetInnerHTML={{ __html: currentPart?.title }} />
+          {currentPart?.instruction && <p dangerouslySetInnerHTML={{ __html: currentPart.instruction }} />}
       </div>
 
       {/* Main card ──────────────────────────────────────────────────────── */}
       <main className="spk-main">
-        <div className="spk-card">
-          {/* Part label */}
-          <div className="spk-part-label">
-            Part {currentPart.partNumber} · <span dangerouslySetInnerHTML={{ __html: currentPart.title }} />
-            <span className="spk-q-counter">
-              Q{currentQIdx + 1} / {currentPart.questions.length}
-            </span>
-          </div>
-
-          {/* Cue card or question text */}
-          {isCueCard ? (
-            <CueCard question={currentQ} />
-          ) : (
-            <div className="spk-question-text">
-              <span className="spk-q-number">Q{currentQIdx + 1}.</span>{" "}
-              <span dangerouslySetInnerHTML={{ __html: currentQ.text }} />
+        {stage === 'mic-test' && (
+          <div className="spk-card spk-mic-check">
+            <div className="spk-mic-title">Kiểm tra micro trước khi bắt đầu</div>
+            <div className="spk-mic-sub">
+              Cho phép quyền micro để bạn có thể ghi âm câu trả lời trong bài Speaking.
             </div>
-          )}
-
-          {/* Preparation countdown (Part 2) */}
-          {phase === "preparing" && (
-            <div className="spk-prep-timer">
-              <span className="spk-prep-label">⏳ Preparation time remaining</span>
-              <span className="spk-prep-countdown">{fmtTime(prepSeconds)}</span>
-              <button className="spk-skip-prep-btn" onClick={skipPrep}>
-                Start speaking now →
+            <div className="spk-mic-actions">
+              <button className="spk-mic-test-btn" onClick={runMicTest}>
+                Bắt đầu test mic
+              </button>
+              <button
+                className="spk-start-btn"
+                disabled={!micTested}
+                onClick={() => startPartWithIndex(0)}
+              >
+                Bắt đầu Part 1
               </button>
             </div>
-          )}
-
-          {/* Mic button + status ────────────────────────────────────────── */}
-          <div className="spk-mic-area">
-            {phase === "idle" && (
-              <p className="spk-idle-hint">
-                {isCueCard
-                  ? "Press the microphone to begin 1-minute preparation"
-                  : "Press the microphone to start recording your answer"}
-              </p>
-            )}
-            {phase === "recording" && (
-              <div className="spk-rec-status">
-                <span className="spk-rec-dot" />
-                <span>Recording · {fmtTime(recSeconds)}</span>
+            {micTested && analyser && (
+              <div className="spk-mic-wave">
+                <Waveform analyser={analyser} />
               </div>
             )}
-            {phase === "done" && (
-              <p className="spk-done-hint">✓ Answer recorded</p>
-            )}
-
-            <button
-              className={micBtnClass}
-              onClick={handleMicBtn}
-              title={
-                phase === "recording" ? "Stop recording" : "Start recording"
-              }
-              aria-label={
-                phase === "recording" ? "Stop recording" : "Start recording"
-              }
-            >
-              {phase === "recording" ? <MicOff size={38} /> : <Mic size={38} />}
-            </button>
-
-            {/* Waveform */}
-            {phase === "recording" && analyser && (
-              <Waveform analyser={analyser} />
-            )}
-
             {micAllowed === false && (
               <p className="spk-mic-error">
                 ⚠ Microphone access denied. Please allow microphone in your
@@ -441,34 +452,145 @@ const IeltsSpeakingTest = () => {
               </p>
             )}
           </div>
+        )}
 
-          {/* Playback ─────────────────────────────────────────────────── */}
-          {hasRecording && phase !== "recording" && (
-            <div className="spk-playback-row">
-              <Volume2 size={16} color="#6b7280" />
-              <audio controls src={audioUrls[questionId]} className="spk-audio" />
-              <button className="spk-rerecord-btn" onClick={reRecord}>
-                <RotateCcw size={13} />
-                Re-record
-              </button>
+        {stage === 'part-review' && (
+          <div className="spk-card spk-review">
+            <div className="spk-review-title">
+              Hoàn thành Part {currentPart.partNumber} · Nghe lại câu trả lời
             </div>
-          )}
-
-          {/* Next / Submit after recording */}
-          {phase === "done" && (
-            <div className="spk-next-row">
-              {isLastQ ? (
-                <button className="spk-next-btn" onClick={submitTest}>
-                  Submit test
+            <div className="spk-review-list">
+              {(currentPart.questions ?? []).map((q, idx) => {
+                const qId = q.id;
+                const text = q.text || q.topic || `Question ${idx + 1}`;
+                return (
+                  <div key={qId ?? idx} className="spk-review-item">
+                    <div className="spk-review-q">
+                      <span className="spk-review-qnum">Q{idx + 1}.</span>
+                      <span dangerouslySetInnerHTML={{ __html: text }} />
+                    </div>
+                    {audioUrls[qId]
+                      ? <audio controls src={audioUrls[qId]} className="spk-audio" />
+                      : <span className="spk-review-missing">Chưa ghi âm</span>}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="spk-review-actions">
+              {currentPartIdx < totalParts - 1 ? (
+                <button className="spk-next-btn" onClick={() => startPartWithIndex(currentPartIdx + 1)}>
+                  Tiếp tục Part {currentPartIdx + 2} <ChevronRight size={18} />
                 </button>
               ) : (
-                <button className="spk-next-btn" onClick={goNext}>
-                  Next question <ChevronRight size={18} />
+                <button className="spk-next-btn" onClick={submitTest}>
+                  Nộp bài
                 </button>
               )}
             </div>
-          )}
-        </div>
+          </div>
+        )}
+
+        {stage === 'part' && (
+          <div className="spk-card">
+            {/* Part label */}
+            <div className="spk-part-label">
+              Part {currentPart.partNumber} · <span dangerouslySetInnerHTML={{ __html: currentPart.title }} />
+              <span className="spk-part-meta">
+                ({currentPart.questions.length} questions) · {fmtTime(partSecondsLeft)}
+              </span>
+              <span className="spk-q-counter">
+                Q{currentQIdx + 1} / {currentPart.questions.length}
+              </span>
+            </div>
+
+            {/* Cue card or question text */}
+            {isCueCard ? (
+              <CueCard question={currentQ} />
+            ) : (
+              <div className="spk-question-text">
+                <span className="spk-q-number">Q{currentQIdx + 1}.</span>{" "}
+                <span dangerouslySetInnerHTML={{ __html: currentQ.text }} />
+              </div>
+            )}
+
+            {/* Preparation countdown (Part 2) */}
+            {phase === "preparing" && (
+              <div className="spk-prep-timer">
+                <span className="spk-prep-label">⏳ Preparation time remaining</span>
+                <span className="spk-prep-countdown">{fmtTime(prepSeconds)}</span>
+                <button className="spk-skip-prep-btn" onClick={skipPrep}>
+                  Start speaking now →
+                </button>
+              </div>
+            )}
+
+            {/* Mic button + status ────────────────────────────────────────── */}
+            <div className="spk-mic-area">
+              {phase === "idle" && (
+                <p className="spk-idle-hint">
+                  {isCueCard
+                    ? "Press the microphone to begin 1-minute preparation"
+                    : "Press the microphone to start recording your answer"}
+                </p>
+              )}
+              {phase === "recording" && (
+                <div className="spk-rec-status">
+                  <span className="spk-rec-dot" />
+                  <span>Recording · {fmtTime(recSeconds)}</span>
+                </div>
+              )}
+              {phase === "done" && (
+                <p className="spk-done-hint">✓ Answer recorded</p>
+              )}
+
+              <button
+                className={micBtnClass}
+                onClick={handleMicBtn}
+                title={
+                  phase === "recording" ? "Stop recording" : "Start recording"
+                }
+                aria-label={
+                  phase === "recording" ? "Stop recording" : "Start recording"
+                }
+              >
+                {phase === "recording" ? <MicOff size={38} /> : <Mic size={38} />}
+              </button>
+
+              {/* Waveform */}
+              {phase === "recording" && analyser && (
+                <Waveform analyser={analyser} />
+              )}
+
+              {micAllowed === false && (
+                <p className="spk-mic-error">
+                  ⚠ Microphone access denied. Please allow microphone in your
+                  browser settings and reload.
+                </p>
+              )}
+            </div>
+
+            {/* Playback ─────────────────────────────────────────────────── */}
+            {hasRecording && phase !== "recording" && (
+              <div className="spk-playback-row">
+                <Volume2 size={16} color="#6b7280" />
+                <audio controls src={audioUrls[questionId]} className="spk-audio" />
+                <button className="spk-rerecord-btn" onClick={reRecord}>
+                  <RotateCcw size={13} />
+                  Re-record
+                </button>
+              </div>
+            )}
+
+            {/* Next after recording */}
+            {phase === "done" && (
+              <div className="spk-next-row">
+                <button className="spk-next-btn" onClick={goNext}>
+                  {isLastQ ? 'Hoàn thành Part' : 'Next question'} <ChevronRight size={18} />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </main>
     </div>
   );

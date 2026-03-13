@@ -137,7 +137,13 @@ const GroupPanel = ({ group, onChange, onDelete }) => (
       <div className="tb-field">
         <label className="tb-label">ℹ️ Note Completion</label>
         <div style={{ fontSize: 12, color: '#6b7280', padding: '6px 10px', background: '#fefce8', borderRadius: 6, border: '1px solid #fde68a' }}>
-          Nhập nội dung ghi chú vào canvas trực tiếp. Dùng <code>[blank]</code> để đánh dấu ô trống. Xuống dòng được giữ nguyên.
+          <div>Nhập nội dung ghi chú vào canvas trực tiếp. Dùng <code>[blank]</code> để đánh dấu ô trống.</div>
+          <div style={{ marginTop: '8px', padding: '6px', background: '#fff3cd', borderRadius: 4, border: '1px solid #ffeaa7' }}>
+            <strong>📍 Chú thích số thứ tự:</strong><br/>
+            • Vị trí trong đoạn văn: 1, 2, 3, 4, 5...<br/>
+            • Số câu hỏi thực tế: Sẽ tiếp tục từ group trước<br/>
+            • Học viên điền đáp án theo số câu hỏi thực tế
+          </div>
         </div>
       </div>
     )}
@@ -212,7 +218,7 @@ const GroupPanel = ({ group, onChange, onDelete }) => (
       </div>
     )}
 
-    {(group.contentType === 'DIAGRAM' || group.contentType === 'MAP') && (
+    {(group.contentType === 'DIAGRAM' || group.contentType === 'MAP' || group.contentType === 'MAP_LABELLING') && (
       <div className="tb-field">
         <label className="tb-label">URL Hình ảnh</label>
         <input
@@ -261,6 +267,7 @@ const QuestionPanel = ({ question, onChange, onDelete }) => {
   const qtype = question.questionType?.typeName ?? 'MULTIPLE_CHOICE';
   const options = question.options ?? [];
   const answers = question.answers ?? [];
+  const isSpeakingGroup = ['SPEAKING_INTERVIEW', 'SPEAKING_CUECARD'].includes(question.groupContentType);
 
   const updateOption = (idx, key, val) => {
     const next = options.map((o, i) => i === idx ? { ...o, [key]: val } : o);
@@ -351,11 +358,28 @@ const QuestionPanel = ({ question, onChange, onDelete }) => {
       {qtype === 'MULTIPLE_CHOICE_MULTIPLE' && (
         <>
           <div className="tb-field">
+            <label className="tb-label">Instruction chung</label>
+            <input className="tb-input" 
+              value={question.groupInstruction ?? 'Choose TWO correct answers.'}
+              onChange={(e) => onChange({ groupInstruction: e.target.value })}
+              placeholder="Choose TWO correct answers." />
+          </div>
+          <div className="tb-field">
             <label className="tb-label">Số đáp án cần chọn</label>
             <input className="tb-input" type="number" min={1} max={10}
               value={question.chooseCount ?? 2}
               onChange={(e) => onChange({ chooseCount: Number(e.target.value) })}
               placeholder="2" />
+          </div>
+          <div className="tb-field">
+            <label className="tb-label">Số câu hỏi (hiển thị)</label>
+            <input className="tb-input" type="number" min={1} max={10}
+              value={question.questionCount ?? 1}
+              onChange={(e) => onChange({ questionCount: Number(e.target.value) })}
+              placeholder="1" />
+            <small style={{ color: '#666', fontSize: '12px' }}>
+              Ví dụ: 2 câu → hiển thị "Câu 1-2", câu tiếp theo sẽ là "Câu 3"
+            </small>
           </div>
           <div className="tb-field">
             <label className="tb-label">Các lựa chọn (tick để chọn đáp án đúng)</label>
@@ -399,7 +423,7 @@ const QuestionPanel = ({ question, onChange, onDelete }) => {
       )}
 
       {/* Answer for fill-in / short answer */}
-      {['FILL_IN_BLANK', 'SHORT_ANSWER', 'NOTE_COMPLETION'].includes(qtype) && (
+      {!isSpeakingGroup && ['FILL_IN_BLANK', 'SHORT_ANSWER', 'NOTE_COMPLETION'].includes(qtype) && (
         <div className="tb-field">
           <label className="tb-label">Đáp án đúng <span>*</span></label>
           <input

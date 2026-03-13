@@ -140,19 +140,21 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
                 <h4>{q.title}</h4>
                 <div className="table-completion-grid">
                     {q.subQuestions?.map((subQ) => (
-                        <div key={subQ.id} className="table-cell-input">
+                        <div key={subQ.id} className="table-cell-input relative-pos">
                             <label>Q{subQ.number}</label>
                             <input
                                 ref={(el) => { if (inputRefs?.current) inputRefs.current[subQ.id] = el; }}
                                 type="text"
-                                className={`inline-input ${isReview ? (answer?.[subQ.id]?.trim().toLowerCase() === subQ.correctAnswer?.toLowerCase() ? 'review-correct' : 'review-wrong') : ''}`}
+                                className={`inline-input ${isReview ? (answer?.[subQ.id]?.trim().toLowerCase() === subQ.correctAnswer?.trim().toLowerCase() ? 'review-correct' : 'review-wrong') : ''}`}
                                 placeholder={`Q${subQ.number}`}
                                 value={answer?.[subQ.id] || ''}
                                 onChange={(e) => { if (!isReview) handleAnswerChange?.(subQ.id, e.target.value); }}
                                 readOnly={isReview}
                             />
-                            {isReview && answer?.[subQ.id]?.trim().toLowerCase() !== subQ.correctAnswer?.toLowerCase() && (
-                                <span className="review-correct-label">({subQ.correctAnswer})</span>
+                            {isReview && answer?.[subQ.id]?.trim().toLowerCase() !== subQ.correctAnswer?.trim().toLowerCase() && (
+                                <span className="review-correct-label">
+                                    <span dangerouslySetInnerHTML={{ __html: subQ.correctAnswer }} />
+                                </span>
                             )}
                         </div>
                     ))}

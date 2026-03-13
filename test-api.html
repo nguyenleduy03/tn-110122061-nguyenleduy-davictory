@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test API</title>
+</head>
+<body>
+    <h1>Test Teacher API</h1>
+    <button onclick="testLogin()">1. Test Login</button>
+    <button onclick="testGetTests()">2. Test Get Tests</button>
+    <div id="result"></div>
+
+    <script>
+        let token = null;
+
+        async function testLogin() {
+            try {
+                const response = await fetch('http://localhost:8080/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: 'admin',
+                        password: 'admin123'
+                    })
+                });
+                const data = await response.json();
+                token = data.accessToken;
+                document.getElementById('result').innerHTML = `
+                    <h3>Login Result:</h3>
+                    <p>Status: ${response.status}</p>
+                    <p>Token: ${token ? 'OK' : 'FAILED'}</p>
+                    <p>User: ${JSON.stringify(data.user)}</p>
+                `;
+            } catch (error) {
+                document.getElementById('result').innerHTML = `Login Error: ${error}`;
+            }
+        }
+
+        async function testGetTests() {
+            if (!token) {
+                alert('Login first!');
+                return;
+            }
+            try {
+                const response = await fetch('http://localhost:8080/api/test-builder', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+                document.getElementById('result').innerHTML = `
+                    <h3>Get Tests Result:</h3>
+                    <p>Status: ${response.status}</p>
+                    <p>Tests count: ${Array.isArray(data) ? data.length : 'Not array'}</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                document.getElementById('result').innerHTML = `Get Tests Error: ${error}`;
+            }
+        }
+    </script>
+</body>
+</html>

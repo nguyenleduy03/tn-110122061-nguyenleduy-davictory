@@ -10,11 +10,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -67,12 +68,6 @@ public class UserService {
     public User getUserEntityByUsername(String username) {
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy user"));
-    }
-
-    public List<UserDTO> getAllUsers() {
-        return userRepository.findAll().stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
     }
 
     public List<UserDTO> getUsersByRoleName(String roleName) {
@@ -145,41 +140,196 @@ public class UserService {
         });
     }
 
+    /**
+     * Import học viên từ file CSV
+     * Format: username,firstname,lastname,email,password,cohort
+     */
     @Transactional
-    public void deleteUser(Long id) {
-        if (!userRepository.existsById(id)) {
-            throw new RuntimeException("Không tìm thấy user");
+    public Map<String, Object> importStudentsFromCSV(MultipartFile file) {
+        List<String> errors = new ArrayList<>();
+        int successCount = 0;
+        int failedCount = 0;
+
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream()))) {
+            String line;
+            int lineNumber = 0;
+            
+            // Skip header line
+            if ((line = reader.readLine()) != null) {
+                lineNumber++;
+            }
+
+            Role studentRole = roleRepository.findByName("STUDENT")
+                    .orElseThrow(() -> new RuntimeException("Role STUDENT không tồn tại"));
+
+            while ((line = reader.readLine()) != null) {
+                lineNumber++;
+                
+                if (line.trim().isEmpty()) continue;
+
+                try {
+                    String[] parts = line.split(",");
+                    if (parts.length < 6) {
+                        errors.add("Dòng " + lineNumber + ": Thiếu dữ liệu (cần 6 cột)");
+                        failedCount++;
+                        continue;
+                    }
+
+                    String username = parts[0].trim();
+                    String firstName = parts[1].trim();
+                    String lastName = parts[2].trim();
+                    String email = parts[3].trim();
+                    String password = parts[4].trim();
+                    String cohort = parts[5].trim();
+
+                    // Validate
+                    if (username.isEmpty() || email.isEmpty() || password.isEmpty()) {
+                        errors.add("Dòng " + lineNumber + ": Username, email và password không được để trống");
+                        failedCount++;
+                        continue;
+                    }
+
+                    // Check duplicates
+                    if (userRepository.existsByUsername(username)) {
+                        errors.add("Dòng " + lineNumber + ": Username '" + username + "' đã tồn tại");
+                        failedCount++;
+                        continue;
+                    }
+
+                    if (userRepository.existsByEmail(email)) {
+                        errors.add("Dòng " + lineNumber + ": Email '" + email + "' đã tồn tại");
+                        failedCount++;
+                        continue;
+                    }
+
+                    // Create user
+                    User user = new User();
+                    user.setUsername(username);
+                    user.setEmail(email);
+                    user.setPassword(passwordEncoder.encode(password));
+                    user.setFullName(firstName + " " + lastName);
+                    user.setIsActive(true);
+
+                    Set<Role> roles = new HashSet<>();
+                    roles.add(studentRole);
+                    user.setRoles(roles);
+
+                    userRepository.save(user);
+                    successCount++;
+
+                } catch (Exception e) {
+                    errors.add("Dòng " + lineNumber + ": " + e.getMessage());
+                    failedCount++;
+                }
+            }
+
+        } catch (Exception e) {
+            throw new RuntimeException("Lỗi khi đọc file CSV: " + e.getMessage());
         }
-        userRepository.deleteById(id);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", successCount);
+        result.put("failed", failedCount);
+        result.put("total", successCount + failedCount);
+        if (!errors.isEmpty()) {
+            result.put("errors", errors);
+        }
+
+        return result;
     }
 
-    // Entity → DTO (KHÔNG trả về password)
-    public UserDTO convertToDTO(User user) {
+    public List<UserDTO> getAllUsers() {
+        List<User> users = userRepository.findAll();
+        return users.stream().map(this::convertToDTO).collect(Collectors.toList());
+    }
+
+    @Transactional
+    public UserDTO toggleUserActive(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy user"));
+        user.setIsActive(!user.getIsActive());
+        return convertToDTO(userRepository.save(user));
+    }
+
+    @Transactional
+    public void adminChangePassword(Long userId, String newPassword) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy user"));
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+    }
+
+    @Transactional
+    public UserDTO updateUser(Long userId, Map<String, Object> userData) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy user"));
+        
+        if (userData.containsKey("fullName")) {
+            user.setFullName((String) userData.get("fullName"));
+        }
+        if (userData.containsKey("email")) {
+            user.setEmail((String) userData.get("email"));
+        }
+        if (userData.containsKey("roles")) {
+            List<String> roleNames = (List<String>) userData.get("roles");
+            
+            // Kiểm tra bảo mật: Không được tạo thêm ADMIN
+            boolean hasNewAdmin = roleNames.contains("ADMIN") && 
+                                 user.getRoles().stream().noneMatch(r -> "ADMIN".equals(r.getName()));
+            if (hasNewAdmin) {
+                throw new RuntimeException("Không được phép nâng cấp tài khoản lên ADMIN!");
+            }
+            
+            // Kiểm tra không được hạ cấp ADMIN cuối cùng
+            boolean isCurrentAdmin = user.getRoles().stream().anyMatch(r -> "ADMIN".equals(r.getName()));
+            boolean willRemoveAdmin = isCurrentAdmin && !roleNames.contains("ADMIN");
+            if (willRemoveAdmin) {
+                long adminCount = userRepository.countByRoleName("ADMIN");
+                if (adminCount <= 1) {
+                    throw new RuntimeException("Không thể hạ cấp Admin cuối cùng trong hệ thống!");
+                }
+            }
+            
+            Set<Role> roles = new HashSet<>();
+            for (String roleName : roleNames) {
+                Role role = roleRepository.findByName(roleName)
+                        .orElseThrow(() -> new RuntimeException("Không tìm thấy role: " + roleName));
+                roles.add(role);
+            }
+            user.setRoles(roles);
+        }
+        
+        return convertToDTO(userRepository.save(user));
+    }
+
+    @Transactional
+    public void deleteUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy user"));
+        
+        // Kiểm tra không được xóa ADMIN cuối cùng
+        boolean isAdmin = user.getRoles().stream().anyMatch(r -> "ADMIN".equals(r.getName()));
+        if (isAdmin) {
+            long adminCount = userRepository.countByRoleName("ADMIN");
+            if (adminCount <= 1) {
+                throw new RuntimeException("Không thể xóa Admin cuối cùng trong hệ thống!");
+            }
+        }
+        
+        userRepository.delete(user);
+    }
+
+    private UserDTO convertToDTO(User user) {
         UserDTO dto = new UserDTO();
         dto.setId(user.getId());
         dto.setUsername(user.getUsername());
-        dto.setEmail(user.getEmail());
-        // Không set password vào DTO nữa (bảo mật)
         dto.setFullName(user.getFullName());
-        dto.setPhoneNumber(user.getPhoneNumber());
-        dto.setAvatar(user.getAvatar());
+        dto.setEmail(user.getEmail());
         dto.setIsActive(user.getIsActive());
         dto.setLastLogin(user.getLastLogin());
-        dto.setCreatedAt(user.getCreatedAt());
-        dto.setUpdatedAt(user.getUpdatedAt());
         dto.setRoles(user.getRoles().stream()
-                .map(Role::getName)
-                .collect(Collectors.toSet()));
-
-        if (user.getStudentProfile() != null) {
-            com.victory.DAVictory.entity.StudentProfile profile = user.getStudentProfile();
-            dto.setBirthday(profile.getDateOfBirth());
-            dto.setNationality(profile.getCountry());
-            dto.setStudyLevel(profile.getCurrentLevel());
-            dto.setTargetBand(profile.getTargetBand());
-            dto.setBio(profile.getNotes());
-        }
-
+                .map(role -> role.getName().toString())
+                .collect(Collectors.toList()));
         return dto;
     }
 }

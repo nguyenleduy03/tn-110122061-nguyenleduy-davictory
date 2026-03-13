@@ -1,5 +1,4 @@
 import React from 'react';
-import { Bookmark } from 'lucide-react';
 
 /**
  * FlowChartQuestion — renders the flow-chart completion question for test-takers.
@@ -45,6 +44,16 @@ const FlowChartQuestion = ({
 }) => {
     const flowNodes = q.flowNodes ?? [];
     const subQuestions = q.subQuestions ?? [];
+    const numbers = subQuestions.map((sq) => sq.number).filter((n) => Number.isFinite(n));
+    const minNum = numbers.length ? Math.min(...numbers) : null;
+    const maxNum = numbers.length ? Math.max(...numbers) : null;
+    const fallbackHeading = (minNum !== null && maxNum !== null)
+        ? (minNum === maxNum ? `Question ${minNum}` : `Questions ${minNum}-${maxNum}`)
+        : '';
+    const heading = q.heading || fallbackHeading;
+    const instruction = q.instruction || 'Complete the flow-chart. Choose the correct answer and move it into the gap.';
+    const chartTitle = /^\s*(nh[oó]m|group)\s*\d*\s*$/i.test(String(q.title || '')) ? '' : q.title;
+    const bankTitle = q.bankTitle || '';
 
     // Map each blank in order across all nodes to a subQuestion
     let blankCounter = 0;
@@ -92,63 +101,61 @@ const FlowChartQuestion = ({
 
     return (
         <div className="fc-container">
+            <div className="fc-header">
+                {heading && <h4 className="fc-heading">{heading}</h4>}
+                {instruction && <p className="fc-instruction">{instruction}</p>}
+            </div>
+
             <div className="fc-layout">
                 {/* Left: flow chart */}
                 <div className="fc-chart">
-                    {q.title && <div className="fc-chart-title">{q.title}</div>}
-                    {nodeRenderData.map(({ node, parts }, idx) => (
-                        <React.Fragment key={node.id ?? idx}>
-                            <div className="fc-node">
-                                <p className="fc-node-text">
-                                    {parts.map((part, pidx) => {
-                                        if (part.type === 'text') {
-                                            return <span key={pidx}>{part.content}</span>;
-                                        }
-                                        const subQ = part.subQ;
-                                        const answer = subQ ? answers[subQ.id] : undefined;
-                                        const isActive = subQ ? activeQuestion === subQ.number : false;
-                                        return (
-                                            <span
-                                                key={pidx}
-                                                id={subQ ? `question-${subQ.number}` : undefined}
-                                                className={`fc-blank${answer ? ' fc-blank-filled' : ''}${isActive ? ' fc-blank-active' : ''} ${isReview && subQ ? (answer?.trim() === subQ.correctAnswer?.trim() ? 'review-correct' : 'review-wrong') : ''}`}
-                                                onClick={(e) => { e.stopPropagation(); if (subQ && !isReview) setActiveQuestion(subQ.number); }}
-                                                onDragOver={isReview ? undefined : handleDragOver}
-                                                onDrop={isReview ? undefined : (e) => subQ && handleDrop(e, subQ.id)}
-                                                draggable={!isReview && !!answer}
-                                                onDragStart={(e) => { if (!isReview && answer) handleDragStart(e, answer, subQ?.id); }}
-                                            >
+                    {chartTitle && <div className="fc-chart-title">{chartTitle}</div>}
+                    <div className="fc-flow-stack">
+                        {nodeRenderData.map(({ node, parts }, idx) => (
+                            <React.Fragment key={node.id ?? idx}>
+                                <div className="fc-node">
+                                    <p className="fc-node-text">
+                                        {parts.map((part, pidx) => {
+                                            if (part.type === 'text') {
+                                                return <span key={pidx}>{part.content}</span>;
+                                            }
+                                            const subQ = part.subQ;
+                                            const answer = subQ ? answers[subQ.id] : undefined;
+                                            const isActive = subQ ? activeQuestion === subQ.number : false;
+                                            return (
                                                 <span
-                                                    className="fc-blank-bookmark"
-                                                    onClick={(ee) => { ee.stopPropagation(); toggleBookmark?.(subQ?.number); }}
+                                                    key={pidx}
+                                                    id={subQ ? `question-${subQ.number}` : undefined}
+                                                    className={`fc-blank${answer ? ' fc-blank-filled' : ''}${isActive ? ' fc-blank-active' : ''} ${isReview && subQ ? (answer?.trim() === subQ.correctAnswer?.trim() ? 'review-correct' : 'review-wrong') : ''} relative-pos`}
+                                                    onClick={(e) => { e.stopPropagation(); if (subQ && !isReview) setActiveQuestion(subQ.number); }}
+                                                    onDragOver={isReview ? undefined : handleDragOver}
+                                                    onDrop={isReview ? undefined : (e) => subQ && handleDrop(e, subQ.id)}
+                                                    draggable={!isReview && !!answer}
+                                                    onDragStart={(e) => { if (!isReview && answer) handleDragStart(e, answer, subQ?.id); }}
                                                 >
-                                                    <Bookmark
-                                                        size={12}
-                                                        fill={bookmarks?.[subQ?.number] ? '#1a73e8' : 'none'}
-                                                        color={bookmarks?.[subQ?.number] ? '#1a73e8' : '#999'}
-                                                    />
+                                                    <strong className="fc-blank-num">{subQ?.number}</strong>
+                                                    {answer && <span className="fc-blank-answer">{answer}</span>}
+                                                    {isReview && subQ && answer?.trim() !== subQ.correctAnswer?.trim() && (
+                                                        <div className="review-correct-label">
+                                                            <span dangerouslySetInnerHTML={{ __html: subQ.correctAnswer }} />
+                                                        </div>
+                                                    )}
                                                 </span>
-                                                <strong className="fc-blank-num">{subQ?.number}</strong>
-                                                {answer && <span className="fc-blank-answer">{answer}</span>}
-                                                {isReview && subQ && answer?.trim() !== subQ.correctAnswer?.trim() && (
-                                                    <div className="review-correct-label" style={{ position: 'absolute', top: '100%', left: 0, marginTop: '2px', backgroundColor: 'rgba(255,255,255,0.9)', padding: '2px 4px', borderRadius: '4px', whiteSpace: 'nowrap', zIndex: 10 }}>
-                                                        ({subQ.correctAnswer})
-                                                    </div>
-                                                )}
-                                            </span>
-                                        );
-                                    })}
-                                </p>
-                            </div>
-                            {idx < nodeRenderData.length - 1 && (
-                                <div className="fc-arrow">↓</div>
-                            )}
-                        </React.Fragment>
-                    ))}
+                                            );
+                                        })}
+                                    </p>
+                                </div>
+                                {idx < nodeRenderData.length - 1 && (
+                                    <div className="fc-arrow">↓</div>
+                                )}
+                            </React.Fragment>
+                        ))}
+                    </div>
                 </div>
 
                 {/* Right: word bank */}
                 <div className="fc-bank" onDragOver={handleDragOver} onDrop={handleBankDrop}>
+                    {bankTitle && <div className="fc-bank-title">{bankTitle}</div>}
                     {(q.bankOptions ?? []).map((opt, i) => {
                         if (usedAnswers.includes(opt)) return null;
                         return (

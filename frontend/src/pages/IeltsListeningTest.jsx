@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { ArrowLeft, ArrowRight, Volume2, ArrowLeftRight, Headphones, Play } from "lucide-react";
+import { Bookmark, ArrowLeft, ArrowRight, Volume2, ArrowLeftRight, Headphones, Play } from "lucide-react";
 import { useSearchParams, useNavigate, useParams } from "react-router-dom";
 import "../styles/ieltsTest.css";
 import TestHeader from "../components/common/TestHeader";
@@ -87,7 +87,7 @@ const IeltsListeningTest = () => {
                 navigate(`/test/${next.skill}/${next.testId}?fullTest=true&mode=${session.mode || mode}`);
             } else {
                 sessionStorage.removeItem('ieltsFullTest');
-                navigate(`/test/complete?mode=${session.mode || mode}&skill=listening&fullTest=true`);
+                navigate(`/test/complete?mode=${session.mode || mode}&skill=listening&fullTest=true&testId=${testId}`);
             }
         } catch { navigate('/exam-library'); }
     };
@@ -98,7 +98,7 @@ const IeltsListeningTest = () => {
         if (isFullTest) { handleFullTestNext(); return; }
 
         ieltsApi.submitAnswers(testId || "mock-session-id", answers).then(() => {
-            navigate(`/test/complete?mode=${mode}&skill=listening`);
+            navigate(`/test/complete?mode=${mode}&skill=listening&testId=${testId}`);
         });
     };
 
@@ -161,6 +161,8 @@ const IeltsListeningTest = () => {
                 isFullTest={isFullTest}
                 skill="listening"
                 navigate={navigate}
+                duration={testData.totalMinutes}
+                onTimeUp={submitTest}
             />
 
             {/* Hidden audio element */}
@@ -183,6 +185,7 @@ const IeltsListeningTest = () => {
             )}
 
             <div className="instruction-bar">
+                <h3 dangerouslySetInnerHTML={{ __html: part.title }} />
                 <p dangerouslySetInnerHTML={{ __html: part.instruction || "Listen and answer questions." }} />
             </div>
 
@@ -261,7 +264,7 @@ const IeltsListeningTest = () => {
                                         dangerouslySetInnerHTML={{ __html: p.title }}
                                     />
                                     {!isActivePart && (
-                                        <span className="part-status" style={{ marginLeft: "10px" }}>
+                                        <span className="part-status">
                                             {answeredCount} of {totalCount}
                                         </span>
                                     )}
@@ -280,8 +283,7 @@ const IeltsListeningTest = () => {
 
                                             return (
                                                 <div
-                                                    className="q-wrapper"
-                                                    style={{ position: "relative" }}
+                                                    className="q-wrapper relative-pos"
                                                     key={q.id}
                                                     onClick={(e) => {
                                                         e.stopPropagation();
@@ -295,6 +297,11 @@ const IeltsListeningTest = () => {
                                                         }, 50);
                                                     }}
                                                 >
+                                                    {nums.some(n => bookmarks[n]) && (
+                                                        <div className="q-bookmark-flag">
+                                                            <Bookmark size={16} fill="#1a73e8" color="#1a73e8" />
+                                                        </div>
+                                                    )}
                                                     <div className={`status-dash${isAnswered ? " answered-dash" : ""}${nums.some(n => bookmarks[n]) ? " bookmarked-dash" : ""}`} />
                                                     <span className={`q-num${isActive ? " active" : ""}${isRange ? " q-num-range" : ""}${nums.some(n => bookmarks[n]) ? " bookmarked" : ""}`}>
                                                         {isRange ? `${nums[0]}–${nums[nums.length - 1]}` : q.number}

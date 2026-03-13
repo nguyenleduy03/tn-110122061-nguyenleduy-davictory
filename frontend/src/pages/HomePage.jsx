@@ -16,13 +16,6 @@ import {
   Layers,
 } from 'lucide-react';
 import Navbar from '../components/layout/Navbar';
-import TestConnection from '../components/common/TestConnection';
-import QuickApiTest from '../components/common/QuickApiTest';
-import CorsTest from '../components/common/CorsTest';
-import DataStructureTest from '../components/common/DataStructureTest';
-import DatabaseDebug from '../components/common/DatabaseDebug';
-import TestSessionDebug from '../components/common/TestSessionDebug';
-import SkillTestDebug from '../components/common/SkillTestDebug';
 import '../styles/homePage.css';
 
 // ---- Carousel slides ----
@@ -183,17 +176,38 @@ const HomePage = () => {
         <div className="hero-inner">
           {/* Left: text */}
           <div className="hero-text-side">
-            <span className="hero-badge">{slide.badge}</span>
+            <span 
+              className="hero-badge"
+              style={{ animation: 'fadeInUp 0.8s ease-out 0.2s both' }}
+            >
+              {slide.badge}
+            </span>
 
-            <h1 className="hero-title-line1">
+            <h1 
+              className="hero-title-line1"
+              style={{ animation: 'slideInLeft 0.8s ease-out 0.4s both' }}
+            >
               {slide.titleLine1}&nbsp;
               <span className="hero-title-accent">{slide.titleAccent}</span>
             </h1>
-            <h1 className="hero-title-line2">{slide.titleLine2}</h1>
+            <h1 
+              className="hero-title-line2"
+              style={{ animation: 'slideInLeft 0.8s ease-out 0.6s both' }}
+            >
+              {slide.titleLine2}
+            </h1>
 
-            <p className="hero-subtitle">{slide.subtitle}</p>
+            <p 
+              className="hero-subtitle"
+              style={{ animation: 'fadeInUp 0.8s ease-out 0.8s both' }}
+            >
+              {slide.subtitle}
+            </p>
 
-            <div className="hero-cta-row">
+            <div 
+              className="hero-cta-row"
+              style={{ animation: 'fadeInUp 0.8s ease-out 1s both' }}
+            >
               <Link to="/exam-library" className="hero-btn-outline">
                 THƯ VIỆN ĐỀ THI <ArrowUpRight size={18} />
               </Link>
@@ -216,11 +230,19 @@ const HomePage = () => {
           </div>
 
           {/* Right: student photo */}
-          <div className="hero-image-side">
+          <div 
+            className="hero-image-side"
+            style={{ animation: 'slideInRight 0.8s ease-out 0.6s both' }}
+          >
             <img
+              key={activeSlide}
               src={slide.image}
               alt="IELTS student studying"
               loading="eager"
+              style={{ 
+                animation: 'fadeInUp 0.8s ease-out both',
+                animationDelay: '0.2s'
+              }}
             />
           </div>
         </div>
@@ -229,8 +251,14 @@ const HomePage = () => {
       {/* ---- STATS BAND ---- */}
       <div className="stats-band">
         <div className="stats-band-inner">
-          {STATS.map((s) => (
-            <div key={s.label} className="stat-item">
+          {STATS.map((s, index) => (
+            <div 
+              key={s.label} 
+              className="stat-item"
+              style={{
+                animation: `fadeInUp 0.6s ease-out ${index * 0.1}s both`
+              }}
+            >
               <span className="stat-item-value">{s.value}</span>
               <span className="stat-item-label">{s.label}</span>
             </div>
@@ -347,15 +375,6 @@ const HomePage = () => {
           </div>
         </div>
       </section>
-
-      {/* ---- TEST CONNECTION ---- */}
-      <TestConnection />
-      <QuickApiTest />
-      <CorsTest />
-      <DataStructureTest />
-      <DatabaseDebug />
-      <TestSessionDebug />
-      <SkillTestDebug />
 
       {/* ---- CTA BANNER ---- */}
       <section className="cta-banner">

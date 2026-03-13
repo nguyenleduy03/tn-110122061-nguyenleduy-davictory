@@ -10,6 +10,7 @@ const TestComplete = () => {
     const skill = searchParams.get('skill') || '';
     const isExam = mode === 'exam';
     const isFullTest = searchParams.get('fullTest') === 'true';
+    const testId = searchParams.get('testId');
 
     const skillLabel = {
         listening: 'Listening',
@@ -19,8 +20,11 @@ const TestComplete = () => {
     }[skill?.toLowerCase()] || 'Test';
 
     const handleReview = (reviewSkill) => {
-        // Assume testId is 107 for mock, in real app needs to be passed
-        navigate(`/test/${reviewSkill}/107?mode=practice&review=true`);
+        if (!testId) {
+            alert("Test ID not found. Cannot review.");
+            return;
+        }
+        navigate(`/test/${reviewSkill}/${testId}?mode=practice&review=true`);
     };
 
     return (
@@ -59,14 +63,14 @@ const TestComplete = () => {
                                     <>
                                         <button 
                                             className="test-complete-btn" 
-                                            onClick={() => navigate('/test/reading/107?fullTest=true&mode=practice&review=true')}
+                                            onClick={() => navigate(`/test/reading/${testId}?fullTest=true&mode=practice&review=true`)}
                                             style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}
                                         >
                                             <Eye size={16} /> Review Reading
                                         </button>
                                         <button 
                                             className="test-complete-btn" 
-                                            onClick={() => navigate('/test/listening/107?fullTest=true&mode=practice&review=true')}
+                                            onClick={() => navigate(`/test/listening/${testId}?fullTest=true&mode=practice&review=true`)}
                                             style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}
                                         >
                                             <Eye size={16} /> Review Listening

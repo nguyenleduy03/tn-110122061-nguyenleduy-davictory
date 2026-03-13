@@ -47,8 +47,10 @@ const Login = () => {
       
       if (location.state?.from?.pathname) {
         targetPath = location.state.from.pathname;
-      } else if (userRoles.includes('ADMIN') || userRoles.includes('TEACHER')) {
-        targetPath = '/teacher/tests/new';
+      } else if (userRoles.includes('ADMIN')) {
+        targetPath = '/admin';
+      } else if (userRoles.includes('TEACHER') || userRoles.includes('MANAGER')) {
+        targetPath = '/teacher/manage';
       } else if (userRoles.includes('STUDENT')) {
         targetPath = '/my-dashboard';
       }

@@ -89,7 +89,7 @@ const SESSION_META = {
   LISTENING: { label: 'Listening', Icon: Headphones, color: '#1d4ed8', bg: '#dbeafe', durationMinutes: 30 },
   READING: { label: 'Reading', Icon: BookOpen, color: '#15803d', bg: '#dcfce7', durationMinutes: 60 },
   WRITING: { label: 'Writing', Icon: PenLine, color: '#a16207', bg: '#fef9c3', durationMinutes: 60 },
-  SPEAKING: { label: 'Speaking', Icon: Mic, color: '#be185d', bg: '#fce7f3', durationMinutes: 15 },
+  SPEAKING: { label: 'Speaking', Icon: Mic, color: '#be185d', bg: '#fce7f3', durationMinutes: 12 },
 };
 
 // ---- Question renderers ----
@@ -212,7 +212,9 @@ const PassageGroupPane = ({ group, mhAnswers = {}, onDropHeading, onClearHeading
 
   return (
     <div style={{ marginBottom: 20 }}>
-      {group.title && <div className="pv-passage-title" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.title) }} />}
+      {group.title && !group.title.toLowerCase().startsWith('nhóm') && (
+        <div className="pv-passage-title" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.title) }} />
+      )}
       {paragraphs.map((para, idx) => {
         const filled = mhAnswers[para.id];
         const isOver = overSlot === para.id;
@@ -476,6 +478,7 @@ const DragMatchingGroup = ({ group, activeQ, onSetActive }) => {
 
 const MapLabellingGroup = ({ group, activeQ, onSetActive }) => {
   const questions = group.questions ?? [];
+  const showTitle = group.title && !/^Map\s*Labelling/i.test(group.title.trim());
   const allOptions = (group.optionBank ?? []).map((o, i) => ({ id: i, text: o.text }));
   const [answers, setAnswers] = useState({});
   const [dragId, setDragId] = useState(null);
@@ -499,7 +502,7 @@ const MapLabellingGroup = ({ group, activeQ, onSetActive }) => {
     <div className="pv-group-block">
       <QuestionRange group={group} />
       {group.instructions && <div className="pv-group-instructions" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.instructions) }} />}
-      {group.title && <div className="pv-summary-title" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.title) }} />}
+      {showTitle && <div className="pv-summary-title" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.title) }} />}
       <div className="pv-ml-layout">
         {/* Image area with positioned drop pins */}
         <div className="pv-ml-image-wrapper">

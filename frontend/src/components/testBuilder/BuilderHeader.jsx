@@ -52,19 +52,33 @@ const BuilderHeader = ({
   useEffect(() => {
     const update = () => {
       try {
-        setActiveFormats({
-          bold:                document.queryCommandState('bold'),
-          italic:              document.queryCommandState('italic'),
-          underline:           document.queryCommandState('underline'),
-          strikeThrough:       document.queryCommandState('strikeThrough'),
-          justifyLeft:         document.queryCommandState('justifyLeft'),
-          justifyCenter:       document.queryCommandState('justifyCenter'),
-          justifyRight:        document.queryCommandState('justifyRight'),
-          subscript:           document.queryCommandState('subscript'),
-          superscript:         document.queryCommandState('superscript'),
+        const states = {
+          bold: document.queryCommandState('bold'),
+          italic: document.queryCommandState('italic'),
+          underline: document.queryCommandState('underline'),
+          strikeThrough: document.queryCommandState('strikeThrough'),
+          subscript: document.queryCommandState('subscript'),
+          superscript: document.queryCommandState('superscript'),
           insertUnorderedList: document.queryCommandState('insertUnorderedList'),
-          insertOrderedList:   document.queryCommandState('insertOrderedList'),
-        });
+          insertOrderedList: document.queryCommandState('insertOrderedList'),
+          justifyLeft: false,
+          justifyCenter: false,
+          justifyRight: false,
+        };
+        
+        // Check CSS alignment for active contentEditable
+        const activeEl = document.activeElement;
+        if (activeEl && activeEl.isContentEditable) {
+          const computedStyle = window.getComputedStyle(activeEl);
+          const textAlign = computedStyle.textAlign;
+          
+          states.justifyLeft = textAlign === 'left' || textAlign === 'start' || textAlign === '';
+          states.justifyCenter = textAlign === 'center';
+          states.justifyRight = textAlign === 'right' || textAlign === 'end';
+        }
+        
+        setActiveFormats(states);
+        
         const sel = window.getSelection();
         if (sel?.rangeCount > 0 && document.activeElement?.isContentEditable) {
           lastRangeRef.current = sel.getRangeAt(0).cloneRange();
@@ -88,7 +102,41 @@ const BuilderHeader = ({
   // For buttons: preventDefault keeps focus in the contentEditable
   const btn = (cmd, val = null) => (e) => {
     e.preventDefault();
-    document.execCommand(cmd, false, val);
+    
+    // Find contentEditable element
+    const activeEl = document.activeElement;
+    let editableEl = null;
+    
+    if (activeEl && activeEl.isContentEditable) {
+      editableEl = activeEl;
+    } else {
+      editableEl = document.querySelector('[contenteditable="true"]');
+    }
+    
+    if (!editableEl) {
+      console.warn('No contentEditable element found');
+      return;
+    }
+    
+    editableEl.focus();
+    
+    // Use CSS for alignment commands
+    if (cmd.startsWith('justify')) {
+      const alignMap = {
+        'justifyLeft': 'left',
+        'justifyCenter': 'center', 
+        'justifyRight': 'right',
+        'justifyFull': 'justify'
+      };
+      editableEl.style.textAlign = alignMap[cmd] || 'left';
+    } else {
+      // Use execCommand for other formatting
+      try {
+        document.execCommand(cmd, false, val);
+      } catch (error) {
+        console.error(`execCommand '${cmd}' error:`, error);
+      }
+    }
   };
 
   const rbnCls = (cmd) => `tb-rbn-btn${activeFormats[cmd] ? ' tb-rbn-active' : ''}`;

@@ -38,7 +38,7 @@ const SESSION_META = {
   LISTENING: { label: 'Listening', icon: Headphones, iconBg: '#dbeafe', iconColor: '#1d4ed8', durationMinutes: 30, totalQuestions: 40 },
   READING:   { label: 'Reading',   icon: BookOpen,   iconBg: '#dcfce7', iconColor: '#15803d', durationMinutes: 60, totalQuestions: 40 },
   WRITING:   { label: 'Writing',   icon: PenLine,    iconBg: '#fef9c3', iconColor: '#a16207', durationMinutes: 60, totalQuestions: 2  },
-  SPEAKING:  { label: 'Speaking',  icon: Mic,        iconBg: '#fce7f3', iconColor: '#be185d', durationMinutes: 15, totalQuestions: 3  },
+  SPEAKING:  { label: 'Speaking',  icon: Mic,        iconBg: '#fce7f3', iconColor: '#be185d', durationMinutes: 12, totalQuestions: 18 },
 };
 
 // ---- Helpers ----
@@ -73,13 +73,13 @@ const makeDefaultParts = (skillKey) => {
   if (skillKey === 'SPEAKING') {
     return [
       { id: nextId(), name: 'Part 1 – Introduction & Interview', orderIndex: 1,
-        durationMinutes: 5, totalQuestions: 1,
+        durationMinutes: 5, totalQuestions: 13,
         instructions: 'Giám khảo hỏi về bản thân, gia đình, sở thích (4-5 phút)', questionGroups: [] },
       { id: nextId(), name: 'Part 2 – Long Turn (Cue Card)', orderIndex: 2,
-        durationMinutes: 4, totalQuestions: 1,
+        durationMinutes: 2, totalQuestions: 1,
         instructions: 'Nói về chủ đề cho sẵn trong 1-2 phút sau 1 phút chuẩn bị', questionGroups: [] },
       { id: nextId(), name: 'Part 3 – Two-way Discussion', orderIndex: 3,
-        durationMinutes: 5, totalQuestions: 1,
+        durationMinutes: 5, totalQuestions: 4,
         instructions: 'Thảo luận sâu hơn về chủ đề trong Part 2 (4-5 phút)', questionGroups: [] },
     ];
   }
@@ -169,6 +169,19 @@ const TestBuilder = () => {
 
   const parts = sessions[activeSkill] ?? [];
 
+  const findQuestionContext = useCallback((questionId) => {
+    for (const part of parts) {
+      const groups = part.questionGroups ?? [];
+      for (const group of groups) {
+        const questions = group.questions ?? [];
+        if (questions.some((q) => q.id === questionId)) {
+          return { part, group };
+        }
+      }
+    }
+    return null;
+  }, [parts]);
+
   // Skills hiển thị dựa trên chế độ Full/Single
   const enabledSkills = test.isFullTest
     ? ['LISTENING', 'READING', 'WRITING', 'SPEAKING']
@@ -181,7 +194,7 @@ const TestBuilder = () => {
   }, []);
 
   const handleSkillModeChange = useCallback(({ isFullTest, singleSkill }) => {
-    const SKILL_DURATIONS = { LISTENING: 30, READING: 60, WRITING: 60, SPEAKING: 15 };
+    const SKILL_DURATIONS = { LISTENING: 30, READING: 60, WRITING: 60, SPEAKING: 12 };
     setTest(prev => ({
       ...prev,
       isFullTest,
@@ -257,12 +270,23 @@ const TestBuilder = () => {
 
     const groupIdx = (part.questionGroups?.length ?? 0) + 1;
 
+    // Tính startQuestionNumber dựa trên group trước đó
+    const lastGroup = part.questionGroups?.[part.questionGroups.length - 1];
+    let startQuestionNumber = 1;
+    
+    if (lastGroup && lastGroup.questions?.length > 0) {
+      const lastQuestion = lastGroup.questions[lastGroup.questions.length - 1];
+      const lastQuestionCount = lastQuestion.questionCount || 1;
+      startQuestionNumber = lastQuestion.questionNumber + lastQuestionCount;
+    }
+
     // ── Helpers ──
-    const makeQ = (num, typeName = 'FILL_IN_BLANK', extra = {}) => ({
+    const makeQ = (offset, typeName = 'FILL_IN_BLANK', extra = {}) => ({
       id: nextId(), groupId: null, partId: part.id,
-      questionNumber: num, questionText: '', answerText: '',
+      questionNumber: startQuestionNumber + offset - 1,
+      questionText: '', answerText: '',
       questionType: { typeName },
-      options: [], answers: [], points: 1, orderIndex: num,
+      options: [], answers: [], points: 1, orderIndex: offset,
       ...extra,
     });
     const makeMCQ = (num) => makeQ(num, 'MULTIPLE_CHOICE', {
@@ -427,6 +451,7 @@ const TestBuilder = () => {
             title: `Map Labelling ${groupIdx}`,
             imageUrl: '',
             imageWidth: 100, pinBoxWidth: 60,
+            constrainHalfPage: false,
             fromQuestion: null, toQuestion: null,
             optionBank: [],
             questions: [],
@@ -893,7 +918,22 @@ const TestBuilder = () => {
             dragOverPassagePaneId={dragOverPassagePaneId}
             draggingContentType={activeOverlayItem?.contentType ?? null}
             onSelectGroup={(g, partId) => setSelection({ type: 'group', data: { ...g, partId } })}
-            onSelectQuestion={(q) => setSelection({ type: 'question', data: q })}
+            onSelectQuestion={(q) => {
+              const ctx = findQuestionContext(q.id);
+              if (ctx) {
+                setSelection({
+                  type: 'question',
+                  data: {
+                    ...q,
+                    partId: ctx.part.id,
+                    groupId: ctx.group.id,
+                    groupContentType: ctx.group.contentType,
+                  },
+                });
+              } else {
+                setSelection({ type: 'question', data: q });
+              }
+            }}
             onUpdateGroup={(groupId, upd) => {
               const part = parts.find((p) => p.questionGroups?.some((g) => g.id === groupId));
               if (part) updateGroup(part.id, groupId, upd);

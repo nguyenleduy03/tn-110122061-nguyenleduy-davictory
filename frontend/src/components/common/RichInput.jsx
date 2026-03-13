@@ -25,24 +25,92 @@ const RichInput = ({ value, onChange, placeholder, style, multiline, className, 
 
   const updateActive = () => {
     try {
-      setActive({
-        bold:          document.queryCommandState('bold'),
-        italic:        document.queryCommandState('italic'),
-        underline:     document.queryCommandState('underline'),
+      const states = {
+        bold: document.queryCommandState('bold'),
+        italic: document.queryCommandState('italic'),
+        underline: document.queryCommandState('underline'),
         strikeThrough: document.queryCommandState('strikeThrough'),
-        superscript:   document.queryCommandState('superscript'),
-        subscript:     document.queryCommandState('subscript'),
-      });
+        superscript: document.queryCommandState('superscript'),
+        subscript: document.queryCommandState('subscript'),
+        justifyLeft: false,
+        justifyCenter: false,
+        justifyRight: false,
+      };
+      
+      // Check CSS text-align for alignment state
+      if (ref.current) {
+        const computedStyle = window.getComputedStyle(ref.current);
+        const textAlign = computedStyle.textAlign;
+        
+        states.justifyLeft = textAlign === 'left' || textAlign === 'start' || textAlign === '';
+        states.justifyCenter = textAlign === 'center';
+        states.justifyRight = textAlign === 'right' || textAlign === 'end';
+      }
+      
+      setActive(states);
     } catch (_) {}
   };
 
   const exec = (cmd, e) => {
     e.preventDefault();
     e.stopPropagation();
-    ref.current?.focus();
-    document.execCommand(cmd, false, null);
-    onChange(ref.current?.innerHTML ?? '');
-    updateActive();
+    
+    if (ref.current) {
+      ref.current.focus();
+      
+      // Direct CSS approach for alignment commands
+      if (cmd.startsWith('justify')) {
+        applyAlignment(cmd);
+      } else {
+        // Use execCommand for other formatting
+        try {
+          document.execCommand(cmd, false, null);
+        } catch (error) {
+          console.error(`execCommand '${cmd}' error:`, error);
+        }
+      }
+      
+      onChange(ref.current.innerHTML ?? '');
+      updateActive();
+    }
+  };
+
+  const applyAlignment = (cmd) => {
+    const selection = window.getSelection();
+    if (!selection.rangeCount) {
+      // No selection, apply to entire content
+      const alignMap = {
+        'justifyLeft': 'left',
+        'justifyCenter': 'center', 
+        'justifyRight': 'right'
+      };
+      ref.current.style.textAlign = alignMap[cmd] || 'left';
+      return;
+    }
+    
+    const range = selection.getRangeAt(0);
+    let element = range.commonAncestorContainer;
+    
+    // Find parent element
+    while (element && element.nodeType !== Node.ELEMENT_NODE) {
+      element = element.parentNode;
+    }
+    
+    // If we're in the editor, apply alignment
+    if (element && ref.current.contains(element)) {
+      const alignMap = {
+        'justifyLeft': 'left',
+        'justifyCenter': 'center', 
+        'justifyRight': 'right'
+      };
+      
+      // Apply to the element or create a div wrapper
+      if (element === ref.current) {
+        element.style.textAlign = alignMap[cmd] || 'left';
+      } else {
+        element.style.textAlign = alignMap[cmd] || 'left';
+      }
+    }
   };
 
   const minHeight = multiline ? `${(rows ?? 4) * 1.6}em` : undefined;
@@ -64,6 +132,11 @@ const RichInput = ({ value, onChange, placeholder, style, multiline, className, 
           {/* Super/Subscript */}
           <button type="button" className={cls('superscript')} onMouseDown={(e) => exec('superscript', e)} title="Chỉ số trên">x²</button>
           <button type="button" className={cls('subscript')}   onMouseDown={(e) => exec('subscript', e)}   title="Chỉ số dưới">x₂</button>
+          <span className="rich-tb-sep" />
+          {/* Alignment */}
+          <button type="button" className={cls('justifyLeft')}   onMouseDown={(e) => exec('justifyLeft', e)}   title="Căn trái">⬅</button>
+          <button type="button" className={cls('justifyCenter')} onMouseDown={(e) => exec('justifyCenter', e)} title="Căn giữa">⬌</button>
+          <button type="button" className={cls('justifyRight')}  onMouseDown={(e) => exec('justifyRight', e)}  title="Căn phải">➡</button>
           <span className="rich-tb-sep" />
           {/* Clear */}
           <button type="button" className="rich-tb-btn"

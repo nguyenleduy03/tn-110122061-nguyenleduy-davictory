@@ -67,16 +67,16 @@ function mapQuestionType(questionTypeCode) {
   }
 }
 
-  // ─── Transform 1 question group từ BE → FE question(s) ──────────────
+// ─── Transform 1 question group từ BE → FE question(s) ──────────────
 // Priority: check group.contentType FIRST, then fallback to questionTypeCode
 async function transformGroup(baseUrl, group, globalCounterRef) {
   const questions = group.questions || [];
   const contentType = (group.contentType || '').toUpperCase();
-  
+
   // ─── Determine FE type từ contentType hoặc questionTypeCode ─────────
   let feType = null;
   let typeCode = null;
-  
+
   // Map contentType directly to FE type (higher priority)
   if (contentType === 'SUMMARY_COMPLETION') {
     feType = 'summary-completion';
@@ -88,9 +88,9 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
     feType = 'note-completion';
   } else if (contentType === 'MAP_LABELLING' || contentType === 'DIAGRAM' || contentType === 'MAP') {
     feType = 'image-drag-drop';
-  } else if (contentType === 'MATCHING_HEADING') {
+  } else if (contentType === 'MATCHING_HEADING' || contentType === 'MATCHING_HEADINGS' || contentType === 'MATCHING_PARA') {
     feType = 'matching_heading';
-  } else if (contentType === 'DRAG_MATCHING' || contentType === 'MATCHING') {
+  } else if (contentType === 'DRAG_MATCHING' || contentType === 'MATCHING' || contentType === 'MATCHING_INFO') {
     feType = 'matching_info';
   } else if (contentType === 'AUDIO_TRANSCRIPT') {
     // Audio transcript groups - skip questions, just extract audio
@@ -144,22 +144,22 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
       const correctOpts = (q.options || []).filter(o => o.isCorrect);
       const isMultiSelect = feType === 'multiple-choice' && correctOpts.length > 1;
       const selectCount = isMultiSelect ? correctOpts.length : 0;
-      
+
       const num = q.questionNumber || globalCounterRef.counter;
-      
+
       let numberRange = null;
       if (isMultiSelect) {
-         numberRange = Array.from({ length: selectCount }, (_, i) => num + i);
-         globalCounterRef.counter = Math.max(globalCounterRef.counter, num + selectCount);
+        numberRange = Array.from({ length: selectCount }, (_, i) => num + i);
+        globalCounterRef.counter = Math.max(globalCounterRef.counter, num + selectCount);
       } else {
-         globalCounterRef.counter = Math.max(globalCounterRef.counter, num + 1);
+        globalCounterRef.counter = Math.max(globalCounterRef.counter, num + 1);
       }
 
       const optionsList = (q.options || []).length > 0
         ? q.options.map(o => o.optionText || o.optionLabel || '')
         : (feType === 'tfng' ? ['TRUE', 'FALSE', 'NOT GIVEN']
           : feType === 'ynng' ? ['YES', 'NO', 'NOT GIVEN']
-          : []);
+            : []);
 
       let correctAnswer = null;
       if (isMultiSelect) {
@@ -257,11 +257,34 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
     });
 
     let flowNodes = [];
+    let flowTitle = group.title || '';
+    let flowInstruction = 'Complete the flow-chart. Choose the correct answer and move it into the gap.';
+    let bankTitle = '';
+    let bankOptions = [];
     if (group.passageText) {
       try {
         const parsed = JSON.parse(group.passageText);
         if (Array.isArray(parsed)) {
           flowNodes = parsed;
+        } else if (parsed && typeof parsed === 'object') {
+          if (Array.isArray(parsed.flowNodes)) {
+            flowNodes = parsed.flowNodes;
+          }
+          if (parsed.title) {
+            flowTitle = parsed.title;
+          }
+          if (parsed.instructions) {
+            flowInstruction = parsed.instructions;
+          }
+          if (parsed.bankTitle) {
+            bankTitle = parsed.bankTitle;
+          }
+          if (Array.isArray(parsed.optionBank)) {
+            bankOptions = parsed.optionBank.map((item) => {
+              if (typeof item === 'string') return item;
+              return item?.text || item?.label || item?.value || '';
+            }).filter(Boolean);
+          }
         }
       } catch {
         flowNodes = questions.map((q, i) => ({
@@ -276,13 +299,30 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
       }));
     }
 
-    const bankOptions = (questions[0]?.options || []).map(o => o.optionText || o.optionLabel);
+    if (bankOptions.length === 0) {
+      bankOptions = (questions[0]?.options || []).map(o => o.optionText || o.optionLabel).filter(Boolean);
+    }
+
+    const numbers = subQuestions.map((sq) => sq.number).filter((n) => Number.isFinite(n));
+    const minNum = numbers.length ? Math.min(...numbers) : null;
+    const maxNum = numbers.length ? Math.max(...numbers) : null;
+    const heading = (minNum !== null && maxNum !== null)
+      ? (minNum === maxNum ? `Question ${minNum}` : `Questions ${minNum}-${maxNum}`)
+      : '';
+
+    const isGenericGroupTitle = (value) => /^\s*(nh[oó]m|group)\s*\d*\s*$/i.test(String(value || ''));
+    if (isGenericGroupTitle(flowTitle)) {
+      flowTitle = '';
+    }
 
     return [{
       id: `group-${group.questionGroupId || group.id}`,
       type: 'flow_chart',
       questionTypeCode: typeCode,
-      title: group.title || '',
+      heading,
+      instruction: flowInstruction,
+      title: flowTitle,
+      bankTitle,
       bankOptions,
       flowNodes,
       subQuestions,
@@ -291,6 +331,15 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
 
   // ─── MAP_DIAGRAM / IMAGE_DRAG_DROP → 1 group question ────────────
   if (feType === 'image-drag-drop') {
+    let parsedMapMeta = {};
+    if (group.passageText) {
+      try {
+        parsedMapMeta = JSON.parse(group.passageText);
+      } catch {
+        parsedMapMeta = {};
+      }
+    }
+
     const subQuestions = questions.map((q) => {
       const num = q.questionNumber || globalCounterRef.counter++;
       globalCounterRef.counter = Math.max(globalCounterRef.counter, num + 1);
@@ -307,14 +356,31 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
       };
     });
 
-    const bankOptions = (questions[0]?.options || []).map(o => o.optionText || o.optionLabel);
+    const fallbackOptions = (questions[0]?.options || []).map(o => o.optionText || o.optionLabel).filter(Boolean);
+    const mapMetaOptions = (parsedMapMeta.optionBank || []).map((o) => {
+      if (typeof o === 'string') return o;
+      return o?.text || '';
+    }).filter(Boolean);
+    const bankOptions = mapMetaOptions.length > 0 ? mapMetaOptions : fallbackOptions;
+    const numbers = subQuestions.map((sq) => sq.number).filter((n) => Number.isFinite(n));
+    const minNum = numbers.length ? Math.min(...numbers) : null;
+    const maxNum = numbers.length ? Math.max(...numbers) : null;
+    const heading = (minNum !== null && maxNum !== null)
+      ? (minNum === maxNum ? `Question ${minNum}` : `Questions ${minNum}\u2013${maxNum}`)
+      : '';
+    const instruction = parsedMapMeta.instructions || group.instructions || group.title || '';
 
     return [{
       id: `group-${group.questionGroupId || group.id}`,
       type: 'image-drag-drop',
       questionTypeCode: typeCode,
-      instruction: group.title || '',
+      heading,
+      instruction,
+      rightTitle: parsedMapMeta.rightTitle || '',
       imageUrl: group.imageUrl || null,
+      imageWidth: parsedMapMeta.imageWidth ?? 100,
+      pinBoxWidth: parsedMapMeta.pinBoxWidth ?? 60,
+      constrainHalfPage: Boolean(parsedMapMeta.constrainHalfPage),
       bankOptions,
       subQuestions,
     }];
@@ -424,7 +490,7 @@ export const ieltsApi = {
         let mergedAudioUrl = null;
         let mergedImageUrl = null;
         let mergedInstructions = '';
-        
+
         // Special handling for WRITING skill
         let taskLabel = part.name || `Task ${part.orderIndex || index + 1}`;
         let minWords = 150;
@@ -476,7 +542,7 @@ export const ieltsApi = {
 
             // Transform group's questions using transformGroup()
             const transformedQuestions = await transformGroup(baseUrl, group, globalCounterRef);
-            
+
             return {
               ...group,
               // Keep raw group data
@@ -496,13 +562,96 @@ export const ieltsApi = {
         // Flatten transformed questions for backward compatibility
         const flattenedQuestions = transformedGroups.flatMap(g => g.questions || []);
 
+        // --- NEW: Inject Heading Gaps for Matching Heading questions ---
+        // Find the group containing matching_heading questions
+        const mhGroupFound = transformedGroups.find(g => 
+          g.questions && g.questions.some(q => q.type === 'matching_heading')
+        );
+        
+        // Find the group containing the passage - specifically look for READING_PASSAGE or paragraphs JSON
+        let sourceParagraphs = [];
+        const passageGroup = transformedGroups.find(g => {
+          if (!g.passageText) return false;
+          try {
+            const parsed = JSON.parse(g.passageText);
+            if (parsed.paragraphs && Array.isArray(parsed.paragraphs)) {
+              sourceParagraphs = parsed.paragraphs;
+              return true;
+            }
+          } catch (e) {
+            // If it's not JSON, it might be a plain string passage
+            if (typeof g.passageText === 'string' && g.passageText.length > 100) {
+              return true;
+            }
+          }
+          return (g.contentType || '').toUpperCase() === 'READING_PASSAGE';
+        });
+
+        if (mhGroupFound && (sourceParagraphs.length > 0 || (passageGroup && passageGroup.passageText))) {
+          console.log('[ieltsApi] Matching Heading injection candidate found.');
+          try {
+            let paragraphs = sourceParagraphs;
+            if (paragraphs.length === 0 && passageGroup?.passageText) {
+               const text = passageGroup.passageText.trim();
+               // Split by double newlines or single newlines if they look like paragraph breaks
+               paragraphs = text.split(/\r?\n\s*\r?\n/).map(t => ({ text: t.trim() }));
+            }
+
+            if (paragraphs.length > 0) {
+              const mhGroup = (mhGroupFound.questions || []).find(q => q.type === 'matching_heading');
+              const mhSubQs = mhGroup?.subQuestions || [];
+              
+              // More robust extraction of starting question number
+              let startPartNum = 1;
+              if (flattenedQuestions && flattenedQuestions.length > 0) {
+                const firstQ = flattenedQuestions[0];
+                startPartNum = firstQ.number || 
+                               (firstQ.subQuestions && firstQ.subQuestions[0]?.number) || 
+                               1;
+              }
+
+              console.log(`[ieltsApi] Injecting into ${paragraphs.length} paragraphs. Matching against ${mhSubQs.length} sub-questions.`);
+
+              const stripHtml = (html) => (html || '').replace(/<[^>]*>?/gm, '').trim().toLowerCase();
+              const getCoreLabel = (l) => {
+                let s = stripHtml(l).replace(/^(paragraph|section|đoạn|phần|đoạn văn|section nº)\s+/i, '');
+                return s.replace(/[:.]$/, '').trim();
+              };
+
+              mergedPassageContent = paragraphs.map((p, pIdx) => {
+                const rawLabel = p.label || String.fromCharCode(65 + pIdx);
+                const coreLabel = getCoreLabel(rawLabel);
+                const posNum = startPartNum + pIdx;
+                
+                // Tiered matching
+                const matchedQ = mhSubQs.find(sq => {
+                  const qText = stripHtml(sq.text);
+                  const qCore = getCoreLabel(qText);
+                  return qCore === coreLabel || 
+                         sq.number === posNum || 
+                         (qCore && coreLabel && (qCore.includes(coreLabel) || coreLabel.includes(qCore)));
+                });
+
+                // Add unique ID and &nbsp; to ensure span is not collapsed or ignored
+                const gapHtml = matchedQ ? `<div class="heading-gap" id="gap-${matchedQ.number}" data-id="${matchedQ.id}" data-number="${matchedQ.number}">&nbsp;</div>` : '';
+                return `${gapHtml}<p>${formatTextWithWhitespace(p.text || p.content || p)}</p>`;
+              }).join('');
+              
+              const gapCount = (mergedPassageContent.match(/class="heading-gap"/g) || []).length;
+              console.log(`[ieltsApi] Injection result: ${gapCount} gaps injected into passage.`);
+            }
+          } catch (e) {
+            console.error('[ieltsApi] Heading gap injection failed:', e);
+          }
+        }
+
         const partObj = {
           id: `part-${part.testPartId || part.id}`,
           partNumber: part.orderIndex || index + 1,
           name: part.name || `Part ${part.orderIndex || index + 1}`,
           orderIndex: part.orderIndex || index + 1,
           title: part.name || `Part ${part.orderIndex || index + 1}`,
-          
+
           // Extracted metadata
           instruction: mergedInstructions || part.instructions || (targetMode === 'WRITING' ? 'No task specified.' : 'Listen and answer questions.'),
           instructions: mergedInstructions || part.instructions,
@@ -511,20 +660,20 @@ export const ieltsApi = {
           questionsLabel: mergedPassageTitle || 'Questions',
           audioUrl: mergedAudioUrl,
           imageUrl: mergedImageUrl,
-          
+
           // Writing-specific fields
           taskLabel: targetMode === 'WRITING' ? taskLabel : undefined,
           minWords: targetMode === 'WRITING' ? minWords : undefined,
           recommendedMinutes: targetMode === 'WRITING' ? recommendedMinutes : undefined,
           taskImageSvg: targetMode === 'WRITING' ? taskImageSvg : undefined,
-          
+
           // Preserve group structure with transformed questions
           questionGroups: transformedGroups,
           groups: transformedGroups,
-          
+
           // Provide flattened transformed questions for compatibility
           questions: flattenedQuestions,
-          
+
           // Source fields from backend
           durationMinutes: part.durationMinutes || null,
           totalQuestions: part.totalQuestions || 0,
@@ -608,7 +757,7 @@ export const ieltsApi = {
       if (!groupId && part.questions?.[0]?.id) {
         groupId = part.questions[0].id;
       }
-      
+
       if (!text.trim() || !groupId) continue;
 
       const wordCount = text.trim().split(/\s+/).filter(Boolean).length;

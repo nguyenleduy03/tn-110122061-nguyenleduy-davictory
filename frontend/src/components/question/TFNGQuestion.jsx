@@ -16,21 +16,12 @@ const TFNGQuestion = ({ q, activeQuestion, setActiveQuestion, answer, handleAnsw
 
     return (
         <div
-            className="tfng-question"
+            className="tfng-question relative-pos"
             id={`question-${q.number}`}
             onFocus={() => setActiveQuestion?.(q.number)}
             onClick={() => setActiveQuestion?.(q.number)}
-            style={{
-                border: 'none',
-                backgroundColor: 'transparent',
-                borderRadius: '6px',
-            }}
         >
-            {isReview && (
-                <div style={{ position: 'absolute', right: '10px', top: '10px' }}>
-                    {selectedAnswer === q.correctAnswer ? <span style={{ color: '#107c41' }}>&#10003;</span> : <span style={{ color: '#d13438' }}>&#10007;</span>}
-                </div>
-            )}
+
             <div className="tfng-text">
                 <span className="tfng-bookmark" onClick={(e) => { e.stopPropagation(); nums.forEach(n => toggleBookmark?.(n)); }} >
                     <Bookmark size={18} fill={nums.some(n => bookmarks?.[n]) ? "#1a73e8" : "none"} color={nums.some(n => bookmarks?.[n]) ? "#1a73e8" : "#ccc"} />
@@ -45,19 +36,21 @@ const TFNGQuestion = ({ q, activeQuestion, setActiveQuestion, answer, handleAnsw
                     const isChecked = selectedAnswer === opt;
                     const isDisabled = isReview;
                     let reviewClass = '';
-                    if (isReview && isChecked) {
-                        reviewClass = selectedAnswer === q.correctAnswer ? 'review-choice-correct' : 'review-choice-wrong';
+                    if (isReview) {
+                        const normalizedOpt = String(opt).trim().toLowerCase();
+                        const normalizedCorrect = String(q.correctAnswer).trim().toLowerCase();
+                        const isCorrectOpt = normalizedOpt === normalizedCorrect;
+
+                        if (isCorrectOpt) {
+                            reviewClass = 'review-choice-correct';
+                        } else if (isChecked) {
+                            reviewClass = 'review-choice-wrong';
+                        }
                     }
                     return (
                         <label
                             key={idx}
                             className={`tfng-radio-label${isChecked ? ' tfng-option-selected' : ''} ${reviewClass}`}
-                            style={{
-                                padding: '4px 15px',
-                                border: 'none',
-                                opacity: isDisabled ? 0.4 : 1,
-                                pointerEvents: isDisabled ? 'none' : 'auto',
-                            }}
                         >
                             <input
                                 type="radio"
@@ -65,10 +58,10 @@ const TFNGQuestion = ({ q, activeQuestion, setActiveQuestion, answer, handleAnsw
                                 value={opt}
                                 checked={isChecked}
                                 disabled={isDisabled}
+                                className="tfng-input-no-margin"
                                 onChange={() => handleChange(opt)}
-                                style={{ margin: 0 }}
                             />
-                            <span style={{ fontSize: '14px' }} dangerouslySetInnerHTML={{ __html: opt || '' }} />
+                            <span className="opt-text" dangerouslySetInnerHTML={{ __html: opt || '' }} />
                         </label>
                     );
                 })}

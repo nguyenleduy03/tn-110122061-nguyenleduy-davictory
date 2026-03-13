@@ -60,10 +60,18 @@ public class UserController {
 
     // ===== ADMIN: Cập nhật bất kỳ user =====
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
-    public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody UserDTO userDTO) {
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody Map<String, Object> userData,
+                                        Authentication authentication) {
         try {
-            UserDTO updated = userService.updateUser(id, userDTO);
+            // Kiểm tra không được sửa chính mình
+            String currentUsername = authentication.getName();
+            UserDTO currentUser = userService.getUserByUsername(currentUsername);
+            if (currentUser.getId().equals(id)) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Không thể chỉnh sửa thông tin của chính mình!"));
+            }
+            
+            UserDTO updated = userService.updateUser(id, userData);
             return ResponseEntity.ok(updated);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -111,8 +119,15 @@ public class UserController {
     // ===== ADMIN: Xóa user =====
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> deleteUser(@PathVariable Long id) {
+    public ResponseEntity<?> deleteUser(@PathVariable Long id, Authentication authentication) {
         try {
+            // Kiểm tra không được xóa chính mình
+            String currentUsername = authentication.getName();
+            UserDTO currentUser = userService.getUserByUsername(currentUsername);
+            if (currentUser.getId().equals(id)) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Không thể xóa chính mình!"));
+            }
+            
             userService.deleteUser(id);
             return ResponseEntity.ok(Map.of("message", "Xóa user thành công"));
         } catch (RuntimeException e) {

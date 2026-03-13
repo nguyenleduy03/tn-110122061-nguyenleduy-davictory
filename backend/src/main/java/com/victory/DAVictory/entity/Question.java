@@ -38,6 +38,14 @@ public class Question {
     private Integer questionNumber;
     // Số thứ tự câu hỏi trong bài thi (1-40 đối với Listening/Reading)
 
+    @Column
+    private Integer questionCount = 1;
+    // Số câu hỏi hiển thị (cho MCQ multiple: 1=câu đơn, 2=câu 1-2)
+
+    @Column(length = 255)
+    private String groupInstruction;
+    // Instruction chung cho nhóm câu (VD: "Choose TWO correct answers.")
+
     @Column(columnDefinition = "TEXT")
     private String questionText; // Nội dung câu hỏi / yêu cầu
 

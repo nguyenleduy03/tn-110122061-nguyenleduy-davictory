@@ -9,10 +9,19 @@ import {
   CheckCircle2,
   AlertCircle,
   Loader2,
+  Upload,
+  Download,
+  Users,
 } from 'lucide-react';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import { authApi } from '../services/authApi';
 import { testBuilderApi } from '../services/testBuilderApi';
+
+const isAdminOnly = (roles) => {
+  if (!roles) return false;
+  const rolesArray = Array.isArray(roles) ? roles : Array.from(roles);
+  return rolesArray.includes('ADMIN');
+};
 
 const isTeacherOrAbove = (roles) => {
   if (!roles) return false;
@@ -25,10 +34,13 @@ const countByStatus = (tests, status) => tests.filter(t => t.status === status).
 export default function TeacherManage() {
   const user = authApi.getStoredUser();
   const hasPermission = isTeacherOrAbove(user?.roles);
+  const canImportStudents = isAdminOnly(user?.roles);
 
   const [tests, setTests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState(null);
 
   const fetchTests = useCallback(async () => {
     if (!hasPermission) {
@@ -58,6 +70,29 @@ export default function TeacherManage() {
     draft: countByStatus(tests, 'DRAFT'),
     reviewing: countByStatus(tests, 'REVIEWING'),
   }), [tests]);
+
+  const handleCSVImport = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    setImporting(true);
+    setImportResult(null);
+    setError('');
+
+    try {
+      const result = await authApi.importStudentsFromCSV(file);
+      setImportResult(result);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Lỗi khi import file CSV');
+    } finally {
+      setImporting(false);
+      event.target.value = ''; // Reset file input
+    }
+  };
+
+  const handleDownloadTemplate = () => {
+    authApi.downloadCSVTemplate();
+  };
 
   return (
     <DashboardLayout>
@@ -121,6 +156,29 @@ export default function TeacherManage() {
           </div>
         )}
 
+        {importResult && (
+          <div style={{
+            padding: '12px 16px', background: '#f0f9ff', border: '1px solid #bae6fd', 
+            borderRadius: 8, marginBottom: 16, fontSize: 14,
+          }}>
+            <div style={{ fontWeight: 600, color: '#0369a1', marginBottom: 8 }}>
+              Kết quả import CSV:
+            </div>
+            <div style={{ color: '#0c4a6e' }}>
+              ✅ Thành công: {importResult.success || 0} học viên<br/>
+              {importResult.failed > 0 && `❌ Thất bại: ${importResult.failed} học viên`}
+              {importResult.errors && (
+                <details style={{ marginTop: 8 }}>
+                  <summary style={{ cursor: 'pointer', color: '#dc2626' }}>Chi tiết lỗi</summary>
+                  <pre style={{ fontSize: 12, marginTop: 4, color: '#dc2626' }}>
+                    {importResult.errors.join('\n')}
+                  </pre>
+                </details>
+              )}
+            </div>
+          </div>
+        )}
+
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginBottom: 20 }}>
           <SummaryCard label="Tong de thi" value={summary.total} icon={ClipboardList} tone="#2563eb" />
           <SummaryCard label="Da xuat ban" value={summary.published} icon={CheckCircle2} tone="#16a34a" />
@@ -135,6 +193,13 @@ export default function TeacherManage() {
           </div>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16 }}>
+            {canImportStudents && (
+              <StudentImportPanel 
+                onCSVImport={handleCSVImport}
+                onDownloadTemplate={handleDownloadTemplate}
+                importing={importing}
+              />
+            )}
             <InfoPanel
               title="Bai nop Writing"
               description="Danh sach bai nop can cham va bai da cham"
@@ -144,7 +209,7 @@ export default function TeacherManage() {
             <InfoPanel
               title="Bai tap theo lop"
               description="Giao bai, theo doi nop bai, cham diem"
-              cta={{ label: 'Mo quan ly', disabled: true }}
+              cta={{ label: 'Mo quan ly', href: '/teacher/assignments' }}
               note="Can API Assignment va AssignmentSubmission."
             />
             <InfoPanel
@@ -158,6 +223,81 @@ export default function TeacherManage() {
       </div>
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </DashboardLayout>
+  );
+}
+
+function StudentImportPanel({ onCSVImport, onDownloadTemplate, importing }) {
+  return (
+    <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+        <Users size={18} color="#2563eb" />
+        <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#111827' }}>
+          Import học viên
+        </h3>
+      </div>
+      
+      <p style={{ marginTop: 6, fontSize: 13, color: '#6b7280', marginBottom: 12 }}>
+        Tạo tài khoản học viên hàng loạt từ file CSV
+      </p>
+
+      <div style={{ marginBottom: 12 }}>
+        <button
+          onClick={onDownloadTemplate}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: '6px 12px', borderRadius: 6,
+            border: '1px solid #d1d5db', background: '#f9fafb',
+            color: '#374151', fontSize: 12, cursor: 'pointer',
+            width: '100%', justifyContent: 'center',
+          }}
+        >
+          <Download size={14} />
+          Tải file mẫu CSV
+        </button>
+      </div>
+
+      <div style={{ position: 'relative' }}>
+        <input
+          type="file"
+          accept=".csv"
+          onChange={onCSVImport}
+          disabled={importing}
+          style={{
+            position: 'absolute', opacity: 0, width: '100%', height: '100%',
+            cursor: importing ? 'not-allowed' : 'pointer',
+          }}
+        />
+        <button
+          disabled={importing}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: '8px 14px', borderRadius: 8,
+            border: '1px solid #2563eb', 
+            background: importing ? '#f3f4f6' : '#2563eb',
+            color: importing ? '#9ca3af' : '#fff',
+            fontSize: 13, fontWeight: 600, width: '100%',
+            justifyContent: 'center',
+            cursor: importing ? 'not-allowed' : 'pointer',
+          }}
+        >
+          {importing ? (
+            <>
+              <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
+              Đang import...
+            </>
+          ) : (
+            <>
+              <Upload size={14} />
+              Chọn file CSV
+            </>
+          )}
+        </button>
+      </div>
+
+      <div style={{ marginTop: 10, fontSize: 11, color: '#9ca3af' }}>
+        Format: username,firstname,lastname,email,password,cohort
+      </div>
+    </div>
   );
 }
 

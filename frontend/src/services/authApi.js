@@ -121,6 +121,66 @@ export const authApi = {
     }
     return response.data;
   },
-};
 
-export default apiClient;
+  // Import học viên từ CSV
+  importStudentsFromCSV: async (csvFile) => {
+    const formData = new FormData();
+    formData.append('file', csvFile);
+    
+    const response = await apiClient.post('/admin/users/import-students', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  // Lấy tất cả người dùng (chỉ Admin)
+  getAllUsers: async () => {
+    const response = await apiClient.get('/admin/users');
+    return response.data;
+  },
+
+  // Cập nhật trạng thái active của user
+  toggleUserActive: async (userId) => {
+    const response = await apiClient.put(`/admin/users/${userId}/toggle-active`);
+    return response.data;
+  },
+
+  // Đổi mật khẩu user (Admin)
+  adminChangePassword: async (userId, newPassword) => {
+    const response = await apiClient.put(`/admin/users/${userId}/admin-change-password`, {
+      newPassword
+    });
+    return response.data;
+  },
+
+  // Cập nhật thông tin user (Admin)
+  updateUser: async (userId, userData) => {
+    const response = await apiClient.put(`/admin/users/${userId}`, userData);
+    return response.data;
+  },
+
+  // Xóa user (Admin)
+  deleteUser: async (userId) => {
+    const response = await apiClient.delete(`/admin/users/${userId}`);
+    return response.data;
+  },
+
+  // Tải template CSV
+  downloadCSVTemplate: () => {
+    const csvContent = `username,firstname,lastname,email,password,cohort
+VIC009999,Nguyễn Văn,An,VIC009999@gmail.com,@VIC009999,VIC260312IE45A
+VIC009998,Trần Thị,Bình,VIC009998@gmail.com,@VIC009998,VIC260312IE45A`;
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'student_import_template.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  },
+};

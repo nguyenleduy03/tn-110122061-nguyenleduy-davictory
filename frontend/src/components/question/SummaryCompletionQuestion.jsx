@@ -13,23 +13,30 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
             ? q.text.split(/\[blank\]/gi)
             : q.text.split(/(\[\d+\])/g);
 
+        let blankIndex = 0; // Đếm ô trống từ 0
+
         return parts.map((part, index) => {
             if (hasBlank) {
                 if (index >= parts.length - 1) {
                     return <span key={index} dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(part) }} />;
                 }
 
-                const subQ = q.subQuestions?.[index];
-                const qNum = subQ?.number ?? index + 1;
+                const subQ = q.subQuestions?.[blankIndex];
+                const qNum = subQ?.number ?? blankIndex + 1;
                 const qId = subQ ? subQ.id : `q${qNum}`;
                 const isActive = activeQuestion === qNum;
                 const answer = answers?.[qId] || '';
+                
+                blankIndex++; // Tăng index cho ô trống tiếp theo
+
+                // Chỉ thêm số thứ tự × cho Note Completion
+                const showOrderNumber = q.type === 'note-completion';
 
                 return (
                     <span key={index}>
                         <span dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(part) }} />
                         <span
-                            className={`inline-question summary-inline-item ${isActive ? 'active-question-input' : ''}`}
+                            className={`inline-question summary-inline-item ${isActive ? 'active-question-input' : ''} relative-pos`}
                             onClick={() => setActiveQuestion?.(qNum)}
                         >
                             <span
@@ -38,10 +45,20 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
                             >
                                 <Bookmark size={15} fill={bookmarks?.[qNum] ? "#1a73e8" : "none"} color={bookmarks?.[qNum] ? "#1a73e8" : "#ccc"} />
                             </span>
+                            {showOrderNumber && (
+                                <span style={{ 
+                                    fontSize: '12px', 
+                                    fontWeight: 'bold', 
+                                    color: '#2563eb', 
+                                    marginRight: '4px' 
+                                }}>
+                                    {blankIndex}×
+                                </span>
+                            )}
                             <input
                                 ref={(el) => { if (inputRefs?.current) inputRefs.current[qNum] = el; }}
                                 type="text"
-                                className={`inline-input summary-input ${isReview ? (answer?.trim().toLowerCase() === subQ?.correctAnswer?.toLowerCase() ? 'review-correct' : 'review-wrong') : ''}`}
+                                className={`inline-input summary-input ${isReview ? (answer?.trim().toLowerCase() === subQ?.correctAnswer?.trim().toLowerCase() ? 'review-correct' : 'review-wrong') : ''}`}
                                 placeholder={qNum.toString()}
                                 value={answer}
                                 onChange={(e) => { if (!isReview) handleAnswerChange?.(qId, e.target.value); }}
@@ -50,9 +67,9 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
                                 spellCheck="false"
                                 readOnly={isReview}
                             />
-                            {isReview && answer?.trim().toLowerCase() !== subQ?.correctAnswer?.toLowerCase() && (
-                                <span className="review-correct-label" style={{ marginLeft: '4px' }}>
-                                    ({subQ?.correctAnswer})
+                            {isReview && answer?.trim().toLowerCase() !== subQ?.correctAnswer?.trim().toLowerCase() && (
+                                <span className="review-correct-label">
+                                    <span dangerouslySetInnerHTML={{ __html: subQ?.correctAnswer }} />
                                 </span>
                             )}
                         </span>
@@ -68,10 +85,13 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
                 const isActive = activeQuestion === qNum;
                 const answer = answers?.[qId] || '';
 
+                // Chỉ thêm số thứ tự × cho Note Completion
+                const showOrderNumber = q.type === 'note-completion';
+
                 return (
                     <span
                         key={index}
-                        className={`inline-question summary-inline-item ${isActive ? 'active-question-input' : ''}`}
+                        className={`inline-question summary-inline-item ${isActive ? 'active-question-input' : ''} relative-pos`}
                         onClick={() => setActiveQuestion?.(qNum)}
                     >
                         <span
@@ -80,10 +100,20 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
                         >
                             <Bookmark size={15} fill={bookmarks?.[qNum] ? "#1a73e8" : "none"} color={bookmarks?.[qNum] ? "#1a73e8" : "#ccc"} />
                         </span>
+                        {showOrderNumber && (
+                            <span style={{ 
+                                fontSize: '12px', 
+                                fontWeight: 'bold', 
+                                color: '#2563eb', 
+                                marginRight: '4px' 
+                            }}>
+                                {qNum}×
+                            </span>
+                        )}
                         <input
                             ref={(el) => { if (inputRefs?.current) inputRefs.current[qNum] = el; }}
                             type="text"
-                            className={`inline-input summary-input ${isReview ? (answer?.trim().toLowerCase() === subQ?.correctAnswer?.toLowerCase() ? 'review-correct' : 'review-wrong') : ''}`}
+                            className={`inline-input summary-input ${isReview ? (answer?.trim().toLowerCase() === subQ?.correctAnswer?.trim().toLowerCase() ? 'review-correct' : 'review-wrong') : ''}`}
                             placeholder={qNum.toString()}
                             value={answer}
                             onChange={(e) => { if (!isReview) handleAnswerChange?.(qId, e.target.value); }}
@@ -92,9 +122,9 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
                             spellCheck="false"
                             readOnly={isReview}
                         />
-                        {isReview && answer?.trim().toLowerCase() !== subQ?.correctAnswer?.toLowerCase() && (
-                            <span className="review-correct-label" style={{ marginLeft: '4px' }}>
-                                ({subQ?.correctAnswer})
+                        {isReview && answer?.trim().toLowerCase() !== subQ?.correctAnswer?.trim().toLowerCase() && (
+                            <span className="review-correct-label">
+                                <span dangerouslySetInnerHTML={{ __html: subQ?.correctAnswer }} />
                             </span>
                         )}
                     </span>
@@ -106,7 +136,7 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
 
     return (
         <div className="summary-completion-container">
-            {q.title && <h3 className="summary-title" dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(q.title) }} />}
+            {q.title && <p className="summary-title" dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(q.title) }} />}
             <div className="summary-text">
                 {renderParagraph()}
             </div>

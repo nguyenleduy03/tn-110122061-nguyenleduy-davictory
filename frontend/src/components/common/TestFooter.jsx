@@ -51,8 +51,8 @@ const TestFooter = ({
                                                 }}
                                             >
                                                 {bookmarks && bookmarks[num] && (
-                                                    <div style={{ position: 'absolute', top: '-18px', display: 'flex', justifyContent: 'center', width: '100%' }}>
-                                                        <Bookmark size={14} fill="#1a73e8" color="#1a73e8" />
+                                                    <div className="q-bookmark-flag">
+                                                        <Bookmark size={16} fill="#1a73e8" color="#1a73e8" />
                                                     </div>
                                                 )}
                                                 {/* Vạch ngang ở trên */}

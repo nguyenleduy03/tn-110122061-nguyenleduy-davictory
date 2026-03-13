@@ -9,6 +9,7 @@
 export const formatTextWithWhitespace = (text) => {
   if (typeof text !== 'string') return text || '';
   return text
-    .replace(/\\t|\/t|\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;')
+    .replace(/\\t|\/t|\t/g, '    ')
+    .replace(/\u00A0/g, ' ')
     .replace(/\\n|\n/g, '<br/>');
 };

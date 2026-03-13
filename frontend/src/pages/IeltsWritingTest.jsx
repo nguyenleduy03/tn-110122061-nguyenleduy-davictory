@@ -108,7 +108,7 @@ const IeltsWritingTest = () => {
                 navigate(`/test/${next.skill}/${next.testId}?fullTest=true&mode=${session.mode || mode}`);
             } else {
                 sessionStorage.removeItem('ieltsFullTest');
-                navigate(`/test/complete?mode=${session.mode || mode}&skill=writing&fullTest=true`);
+                navigate(`/test/complete?mode=${session.mode || mode}&skill=writing&fullTest=true&testId=${testId}`);
             }
         } catch { navigate('/exam-library'); }
     };
@@ -119,12 +119,12 @@ const IeltsWritingTest = () => {
         const parts = testData?.parts || [];
         ieltsApi.submitWriting(parts, writingAnswers, timeTakenSeconds)
             .then(() => {
-                navigate(`/test/complete?mode=${mode}&skill=writing`);
+                navigate(`/test/complete?mode=${mode}&skill=writing&testId=${testId}`);
             })
             .catch((err) => {
                 console.error('[Writing] Lỗi nộp bài:', err);
                 // Nếu chưa đăng nhập vẫn cho qua màn hình complete
-                navigate(`/test/complete?mode=${mode}&skill=writing`);
+                navigate(`/test/complete?mode=${mode}&skill=writing&testId=${testId}`);
             });
     };
 
@@ -154,9 +154,12 @@ const IeltsWritingTest = () => {
                 candidateName={testData.candidateName}
                 candidateId={testData.candidateId}
                 submitTest={submitTest}
+                duration={testData.totalMinutes}
+                onTimeUp={submitTest}
             />
 
             <div className="instruction-bar">
+                <h3 dangerouslySetInnerHTML={{ __html: part.title }} />
                 {part.instruction && <p dangerouslySetInnerHTML={{ __html: part.instruction }} />}
                 <p>
                     {`Recommended time: ${part.recommendedMinutes} minutes — Write at least ${part.minWords} words.`}

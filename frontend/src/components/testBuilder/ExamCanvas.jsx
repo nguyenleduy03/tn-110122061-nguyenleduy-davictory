@@ -753,6 +753,17 @@ function MapLabellingBlock({ group, onUpdate, onDelete, onSelect, selected, drag
       onClick={(e) => { e.stopPropagation(); onSelect(group); }}>
       <GroupToolbar group={group} dragHandleProps={dragHandleProps} onDelete={onDelete} />
 
+      <div className="exam-field" onClick={(e) => e.stopPropagation()} style={{ marginBottom: 10 }}>
+        <label className="exam-field-label">Yeu cau hien thi phia tren</label>
+        <RichInput
+          multiline
+          rows={2}
+          value={group.instructions || ''}
+          onChange={(html) => onUpdate(group.id, { instructions: html })}
+          placeholder="VD: Label the map. Choose the correct answer and move it into the gap."
+        />
+      </div>
+
       {/* Upload controls */}
       <div className="exam-ml-upload-bar" onClick={(e) => e.stopPropagation()}>
         <input className="exam-img-url-field" style={{ flex: 1, minWidth: 0 }}
@@ -785,6 +796,14 @@ function MapLabellingBlock({ group, onUpdate, onDelete, onSelect, selected, drag
           <input type="range" min={30} max={180} step={2}
             value={group.pinBoxWidth ?? 60}
             onChange={(e) => onUpdate(group.id, { pinBoxWidth: Number(e.target.value) })} />
+        </label>
+        <label className="exam-ml-size-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <input
+            type="checkbox"
+            checked={Boolean(group.constrainHalfPage)}
+            onChange={(e) => onUpdate(group.id, { constrainHalfPage: e.target.checked })}
+          />
+          Ràng buộc hiển thị 1/2 trang
         </label>
       </div>
 

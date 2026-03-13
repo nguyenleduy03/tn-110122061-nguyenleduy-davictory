@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Wifi, Bell, Menu, Send, ChevronRight, ChevronLeft, X, Contrast, ZoomIn, Check, LogOut, ArrowLeftRight } from 'lucide-react';
 
-const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isReview, isFullTest, skill, navigate }) => {
+const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isReview, isFullTest, skill, navigate, duration = 60, onTimeUp }) => {
     const [isOptionsOpen, setIsOptionsOpen] = useState(false);
     const [optionsView, setOptionsView] = useState('main'); // 'main', 'contrast', 'text-size'
     const [showSubmitModal, setShowSubmitModal] = useState(false);
+    const [timeLeft, setTimeLeft] = useState(duration * 60);
 
     // State to track current theme/size for radio buttons
     const [currentTheme, setCurrentTheme] = useState('standard');
@@ -59,6 +60,28 @@ const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isRevie
             setCurrentTextSize('regular');
         }
     }, [isOptionsOpen, optionsView]);
+
+    // Timer logic
+    useEffect(() => {
+        if (isReview) return;
+        if (timeLeft <= 0) {
+            if (onTimeUp) onTimeUp();
+            return;
+        }
+
+        const timer = setInterval(() => {
+            setTimeLeft(prev => prev - 1);
+        }, 1000);
+
+        return () => clearInterval(timer);
+    }, [timeLeft, isReview, onTimeUp]);
+
+    const formatTime = (seconds) => {
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = seconds % 60;
+        return `${h > 0 ? h.toString().padStart(2, '0') + ':' : ''}${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    };
 
     const handleThemeChange = (theme) => {
         document.body.classList.remove('theme-yellow-black', 'theme-white-black');
@@ -120,6 +143,14 @@ const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isRevie
                         )}
                     </div>
                 </div>
+
+                {!isReview && (
+                    <div className={`header-timer ${timeLeft < 300 ? 'timer-low' : ''}`}>
+                        <span className="timer-label">Time left:</span>
+                        <span className="timer-value">{formatTime(timeLeft)}</span>
+                    </div>
+                )}
+
                 <div className="header-right">
                     {submitTest && !isReview && (
                         <button

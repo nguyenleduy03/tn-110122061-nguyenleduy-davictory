@@ -60,6 +60,8 @@ public class TestSaveRequest {
         private Long questionTypeId;
         private String questionTypeCode; // Fallback nếu không có questionTypeId
         private Integer questionNumber;
+        private Integer questionCount; // Số câu hỏi hiển thị (cho MCQ multiple)
+        private String groupInstruction; // Instruction chung cho nhóm câu
         private String questionText;
         private String blankContext;
         private Double pinX;

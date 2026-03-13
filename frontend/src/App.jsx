@@ -10,7 +10,18 @@ import Register from './pages/Register'
 import TestBuilder from './pages/TestBuilder'
 import TeacherTests from './pages/TeacherTests'
 import TeacherManage from './pages/TeacherManage'
+import AdminDashboard from './pages/AdminDashboard'
+import AdminUsers from './pages/AdminUsers'
 import TeacherWritingSubmissions from './pages/TeacherWritingSubmissions'
+import TeacherWritingDetail from './pages/TeacherWritingDetail'
+import TeacherAssignments from './pages/TeacherAssignments'
+import LmsTeacherDashboard from './pages/lms/LmsTeacherDashboard'
+import LmsTeacherClasses from './pages/lms/LmsTeacherClasses'
+import LmsTeacherTests from './pages/lms/LmsTeacherTests'
+import LmsTeacherAssignments from './pages/lms/LmsTeacherAssignments'
+import LmsTeacherSubmissions from './pages/lms/LmsTeacherSubmissions'
+import LmsTeacherAnalytics from './pages/lms/LmsTeacherAnalytics'
+import LmsTeacherSettings from './pages/lms/LmsTeacherSettings'
 import MyDashboard from './pages/MyDashboard'
 import TestComplete from './pages/TestComplete'
 import DashboardHistory from './pages/DashboardHistory'
@@ -45,11 +56,23 @@ function App() {
         <Route path="/my-dashboard/history" element={<ProtectedRoute><DashboardHistory /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><DashboardProfile /></ProtectedRoute>} />
         <Route path="/my-dashboard/settings" element={<ProtectedRoute><DashboardSettings /></ProtectedRoute>} />
+        <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+        <Route path="/admin/users" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />
         <Route path="/teacher/manage" element={<ProtectedRoute><TeacherManage /></ProtectedRoute>} />
         <Route path="/teacher/writing" element={<ProtectedRoute><TeacherWritingSubmissions /></ProtectedRoute>} />
+        <Route path="/teacher/writing/:id" element={<ProtectedRoute><TeacherWritingDetail /></ProtectedRoute>} />
+        <Route path="/teacher/assignments" element={<ProtectedRoute><TeacherAssignments /></ProtectedRoute>} />
         <Route path="/teacher/tests" element={<ProtectedRoute><TeacherTests /></ProtectedRoute>} />
         <Route path="/teacher/tests/new" element={<ProtectedRoute><TestBuilder /></ProtectedRoute>} />
         <Route path="/teacher/tests/:id/edit" element={<ProtectedRoute><TestBuilder /></ProtectedRoute>} />
+
+        <Route path="/lms/teacher" element={<ProtectedRoute><LmsTeacherDashboard /></ProtectedRoute>} />
+        <Route path="/lms/teacher/classes" element={<ProtectedRoute><LmsTeacherClasses /></ProtectedRoute>} />
+        <Route path="/lms/teacher/tests" element={<ProtectedRoute><LmsTeacherTests /></ProtectedRoute>} />
+        <Route path="/lms/teacher/assignments" element={<ProtectedRoute><LmsTeacherAssignments /></ProtectedRoute>} />
+        <Route path="/lms/teacher/submissions" element={<ProtectedRoute><LmsTeacherSubmissions /></ProtectedRoute>} />
+        <Route path="/lms/teacher/analytics" element={<ProtectedRoute><LmsTeacherAnalytics /></ProtectedRoute>} />
+        <Route path="/lms/teacher/settings" element={<ProtectedRoute><LmsTeacherSettings /></ProtectedRoute>} />
       </Routes>
     </Router>
   )

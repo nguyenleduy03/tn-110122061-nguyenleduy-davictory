@@ -2,8 +2,11 @@ import React from 'react';
 import { Bookmark } from 'lucide-react';
 
 const DragDropGroupQuestion = ({ q, activeQuestion, setActiveQuestion, answers, handleAnswerChange, bookmarks, toggleBookmark, isReview }) => {
-    const handleDragStart = (e, option) => {
+    const handleDragStart = (e, option, sourceQId = null) => {
         e.dataTransfer.setData('text/plain', option);
+        if (sourceQId) {
+            e.dataTransfer.setData('sourceQId', String(sourceQId));
+        }
         e.dataTransfer.effectAllowed = 'move';
     };
 
@@ -56,14 +59,14 @@ const DragDropGroupQuestion = ({ q, activeQuestion, setActiveQuestion, answers, 
             <div className="options-bank">
                 {q.bankOptions.map((opt, idx) => {
                     const isUsed = usedOptions.includes(opt);
+                    if (isUsed && !isReview) return null; // Ẩn heading đã được thả
                     return (
                         <div
                             key={idx}
                             draggable={!isReview}
-                            onDragStart={(e) => { if (!isReview) handleDragStart(e, opt); }}
+                            onDragStart={(e) => { if (!isReview) handleDragStart(e, opt, null); }}
                             className={`bank-option ${isUsed ? 'used' : ''} ${isMatchingHeading ? 'bank-option-heading' : ''}`}
                             style={{
-                                display: isUsed ? 'none' : 'inline-flex',
                                 height: '32px',
                                 width: isMatchingInfo ? dropZoneWidth : undefined
                             }}
@@ -110,10 +113,8 @@ const DragDropGroupQuestion = ({ q, activeQuestion, setActiveQuestion, answers, 
                                 {!isMatchingInfo && <span className="dd-question-text">{subQ.text}</span>}
 
                                 <div
-                                    onDragOver={isReview ? undefined : handleDragOver}
                                     onDrop={isReview ? undefined : (e) => handleDrop(e, subQ.id)}
-                                    className={`dd-drop-zone ${isMatchingInfo ? 'dd-drop-info' : ''} ${answer ? 'dd-drop-filled' : ''} ${isActive && !answer ? 'dd-drop-active' : ''} ${isReview ? (answer?.trim() === subQ.correctAnswer?.trim() ? 'review-correct' : 'review-wrong') : ''}`}
-                                    style={{ minWidth: dropZoneWidth, width: dropZoneWidth }}
+                                    className={`dd-drop-zone ${isMatchingInfo ? 'dd-drop-info' : ''} ${answer ? 'dd-drop-filled' : ''} ${isActive && !answer ? 'dd-drop-active' : ''} ${isReview ? (answer?.trim() === subQ.correctAnswer?.trim() ? 'review-correct' : 'review-wrong') : ''} relative-pos`}
                                 >
                                     {answer ? (
                                         <>
@@ -121,8 +122,7 @@ const DragDropGroupQuestion = ({ q, activeQuestion, setActiveQuestion, answers, 
                                                 draggable={!isReview}
                                                 onDragStart={(e) => {
                                                     if (isReview) return;
-                                                    handleDragStart(e, answer);
-                                                    e.dataTransfer.setData('sourceQId', subQ.id);
+                                                    handleDragStart(e, answer, subQ.id);
                                                 }}
                                                 className="dd-drop-answer"
                                             >
@@ -148,8 +148,8 @@ const DragDropGroupQuestion = ({ q, activeQuestion, setActiveQuestion, answers, 
                                     )}
                                 </div>
                                 {isReview && answer?.trim() !== subQ.correctAnswer?.trim() && (
-                                    <span className="review-correct-label" style={{ marginLeft: '10px' }}>
-                                        ({subQ.correctAnswer})
+                                    <span className="review-correct-label">
+                                        <span dangerouslySetInnerHTML={{ __html: subQ.correctAnswer }} />
                                     </span>
                                 )}
                             </div>

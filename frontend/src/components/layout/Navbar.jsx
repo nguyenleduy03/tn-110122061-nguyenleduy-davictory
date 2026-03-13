@@ -101,11 +101,11 @@ const Navbar = () => {
               ))}
               {user && isTeacherOrAbove(user.roles) && (
                 <Link
-                  to="/teacher/tests/new"
-                  className={`mobile-nav-link${location.pathname.startsWith('/teacher') ? ' active' : ''}`}
+                  to="/lms/teacher"
+                  className={`mobile-nav-link${location.pathname.startsWith('/lms/teacher') ? ' active' : ''}`}
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  Tạo đề thi
+                  LMS giao vien
                 </Link>
               )}
             </div>
@@ -125,10 +125,14 @@ const Navbar = () => {
           ))}
           {user && isTeacherOrAbove(user.roles) && (
             <Link
-              to="/teacher/tests/new"
-              className={`nav-link${location.pathname.startsWith('/teacher') ? ' nav-link-active' : ''}`}
+              to={user.roles?.includes('ADMIN') ? '/admin' : '/teacher/manage'}
+              className={`nav-link${
+                (user.roles?.includes('ADMIN') && location.pathname.startsWith('/admin')) ||
+                (!user.roles?.includes('ADMIN') && location.pathname.startsWith('/teacher')) 
+                ? ' nav-link-active' : ''
+              }`}
             >
-              Tạo đề thi
+              {user.roles?.includes('ADMIN') ? 'Quản trị' : 'Giảng dạy'}
               <ChevronDown size={13} />
             </Link>
           )}
@@ -165,9 +169,9 @@ const Navbar = () => {
                       <span>Thông tin cá nhân</span>
                     </Link>
                     {isTeacherOrAbove(user.roles) && (
-                      <Link to="/teacher/tests/new" className="user-dropdown-item">
+                      <Link to="/lms/teacher" className="user-dropdown-item">
                         <FilePlus size={16} />
-                        <span>Tạo đề thi</span>
+                        <span>LMS giao vien</span>
                       </Link>
                     )}
                     <Link to="/settings" className="user-dropdown-item">

@@ -73,6 +73,8 @@ public class TestFullResponse {
     public static class QuestionResp {
         private Long id;
         private Integer questionNumber;
+        private Integer questionCount; // Số câu hỏi hiển thị
+        private String groupInstruction; // Instruction chung cho nhóm câu
         private String questionText;
         private String blankContext;
         private Double pinX;
