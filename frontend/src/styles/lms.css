@@ -1,20 +1,20 @@
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Sora:wght@400;500;600;700&display=swap');
 
 :root {
-  --lms-bg: #f4f1ea;
-  --lms-ink: #111017;
-  --lms-muted: #6a6a70;
-  --lms-accent: #1b7f79;
-  --lms-accent-2: #f59e0b;
-  --lms-card: #fffdf8;
-  --lms-border: #e6dfd2;
-  --lms-shadow: 0 18px 45px rgba(17, 16, 23, 0.08);
+  --lms-bg: #f7f9fc;
+  --lms-ink: #172b4d;
+  --lms-muted: #5e6c84;
+  --lms-accent: #0056d2;
+  --lms-accent-2: #00a3ff;
+  --lms-card: #ffffff;
+  --lms-border: #dfe1e6;
+  --lms-shadow: 0 10px 30px rgba(0, 40, 100, 0.08);
 }
 
 .lms-root {
   min-height: 100vh;
-  background: radial-gradient(circle at 10% 10%, rgba(27, 127, 121, 0.12), transparent 35%),
-    radial-gradient(circle at 80% 0%, rgba(245, 158, 11, 0.12), transparent 35%),
+  background: radial-gradient(circle at 10% 10%, rgba(0, 86, 210, 0.12), transparent 35%),
+    radial-gradient(circle at 80% 0%, rgba(0, 163, 255, 0.1), transparent 35%),
     var(--lms-bg);
   color: var(--lms-ink);
   font-family: 'Sora', sans-serif;
@@ -23,16 +23,16 @@
 .lms-shell {
   display: grid;
   grid-template-columns: 280px 1fr;
-  min-height: 100vh;
+  min-height: calc(100vh - var(--header-height));
 }
 
 .lms-sidebar {
   padding: 28px 20px;
-  background: linear-gradient(180deg, #0f2725 0%, #143534 100%);
-  color: #f6f2ea;
+  background: linear-gradient(180deg, #0d2f6f 0%, #0b4bb2 100%);
+  color: #f8fbff;
   position: sticky;
-  top: 0;
-  height: 100vh;
+  top: var(--header-height);
+  height: calc(100vh - var(--header-height));
 }
 
 .lms-brand {
@@ -46,8 +46,8 @@
   width: 42px;
   height: 42px;
   border-radius: 12px;
-  background: #f59e0b;
-  color: #1f1606;
+  background: #ffffff;
+  color: var(--lms-accent);
   display: grid;
   place-items: center;
   font-weight: 700;
@@ -63,7 +63,7 @@
 
 .lms-brand-sub {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.75);
 }
 
 .lms-nav {
@@ -86,18 +86,18 @@
 }
 
 .lms-nav-item:hover {
-  background: rgba(245, 158, 11, 0.14);
+  background: rgba(255, 255, 255, 0.14);
 }
 
 .lms-nav-item.active {
-  background: rgba(27, 127, 121, 0.35);
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  background: rgba(255, 255, 255, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.28);
 }
 
 .lms-nav-badge {
   margin-left: auto;
-  background: rgba(245, 158, 11, 0.2);
-  color: #fcd34d;
+  background: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
   font-size: 11px;
   padding: 2px 8px;
   border-radius: 999px;
@@ -133,10 +133,10 @@
   align-items: center;
   gap: 10px;
   background: #fff;
-  border: 1px solid var(--lms-border);
+  border: 1px solid #d7e5ff;
   border-radius: 999px;
   padding: 8px 14px;
-  box-shadow: var(--lms-shadow);
+  box-shadow: 0 6px 18px rgba(0, 86, 210, 0.08);
 }
 
 .lms-search input {
@@ -172,6 +172,7 @@
 .lms-card .lms-card-value {
   font-size: 24px;
   font-weight: 700;
+  color: var(--lms-accent);
 }
 
 .lms-grid {
@@ -218,18 +219,18 @@
 }
 
 .lms-pill.success {
-  background: rgba(27, 127, 121, 0.12);
-  color: #116861;
+  background: rgba(22, 163, 74, 0.12);
+  color: #166534;
 }
 
 .lms-pill.warn {
-  background: rgba(245, 158, 11, 0.16);
-  color: #b45309;
+  background: rgba(249, 115, 22, 0.15);
+  color: #c2410c;
 }
 
 .lms-pill.neutral {
-  background: rgba(17, 16, 23, 0.08);
-  color: #3f3d46;
+  background: rgba(100, 116, 139, 0.14);
+  color: #475569;
 }
 
 .lms-cta {
@@ -239,7 +240,7 @@
   padding: 8px 14px;
   border-radius: 10px;
   border: none;
-  background: var(--lms-ink);
+  background: linear-gradient(135deg, #0056d2, #0077ff);
   color: #fff;
   font-size: 12px;
   font-weight: 600;
@@ -248,8 +249,8 @@
 
 .lms-cta.ghost {
   background: transparent;
-  color: var(--lms-ink);
-  border: 1px solid var(--lms-border);
+  color: var(--lms-accent);
+  border: 1px solid #bfd7ff;
 }
 
 .lms-section-title {
@@ -267,8 +268,8 @@
 .lms-chip {
   padding: 6px 10px;
   border-radius: 999px;
-  background: rgba(27, 127, 121, 0.12);
-  color: #0f5a56;
+  background: rgba(0, 86, 210, 0.1);
+  color: #0b4bb2;
   font-size: 12px;
   font-weight: 600;
 }
@@ -281,8 +282,8 @@
 }
 
 .lms-hero-card {
-  background: linear-gradient(130deg, #1b7f79 0%, #2a9d8f 60%, #f59e0b 160%);
-  color: #fefaf2;
+  background: linear-gradient(130deg, #0c3e91 0%, #0056d2 56%, #00a3ff 145%);
+  color: #f8fbff;
   border-radius: 22px;
   padding: 20px;
   box-shadow: var(--lms-shadow);
@@ -296,7 +297,7 @@
 .lms-hero-card p {
   margin: 0;
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 @keyframes fadeUp {

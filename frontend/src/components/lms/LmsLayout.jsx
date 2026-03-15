@@ -9,16 +9,17 @@ import {
   BarChart3,
   Settings,
 } from 'lucide-react';
+import Navbar from '../layout/Navbar';
 import '../../styles/lms.css';
 
 const NAV_ITEMS = [
-  { label: 'Tong quan', path: '/lms/teacher', icon: LayoutDashboard },
-  { label: 'Lop hoc', path: '/lms/teacher/classes', icon: Users, badge: '6' },
-  { label: 'De thi', path: '/lms/teacher/tests', icon: FolderOpen },
-  { label: 'Bai tap', path: '/lms/teacher/assignments', icon: ClipboardList },
-  { label: 'Bai nop', path: '/lms/teacher/submissions', icon: FileText, badge: '12' },
-  { label: 'Bao cao', path: '/lms/teacher/analytics', icon: BarChart3 },
-  { label: 'Cai dat', path: '/lms/teacher/settings', icon: Settings },
+  { label: 'Tổng quan', path: '/lms/teacher', icon: LayoutDashboard },
+  { label: 'Lớp học', path: '/lms/teacher/classes', icon: Users, badge: '6' },
+  { label: 'Đề thi', path: '/lms/teacher/tests', icon: FolderOpen },
+  { label: 'Bài tập', path: '/lms/teacher/assignments', icon: ClipboardList },
+  { label: 'Bài nộp', path: '/lms/teacher/submissions', icon: FileText, badge: '12' },
+  { label: 'Báo cáo', path: '/lms/teacher/analytics', icon: BarChart3 },
+  { label: 'Cài đặt', path: '/lms/teacher/settings', icon: Settings },
 ];
 
 export default function LmsLayout({ title, subtitle, children }) {
@@ -26,13 +27,14 @@ export default function LmsLayout({ title, subtitle, children }) {
 
   return (
     <div className="lms-root">
+      <Navbar />
       <div className="lms-shell">
         <aside className="lms-sidebar">
           <div className="lms-brand">
-            <div className="lms-brand-mark">VL</div>
+            <div className="lms-brand-mark">DA</div>
             <div className="lms-brand-title">
-              Victory LMS
-              <span className="lms-brand-sub">Teacher workspace</span>
+              DAVictory LMS
+              <span className="lms-brand-sub">Không gian giảng viên</span>
             </div>
           </div>
           <nav className="lms-nav">
@@ -57,7 +59,7 @@ export default function LmsLayout({ title, subtitle, children }) {
             </div>
             <div className="lms-search">
               <span>🔍</span>
-              <input placeholder="Search in LMS" />
+              <input placeholder="Tìm kiếm trong LMS" />
             </div>
           </div>
           {children}

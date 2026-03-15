@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import HomePage from './pages/HomePage'
 import ExamLibrary from './pages/ExamLibrary'
 import IeltsReadingTest from './pages/IeltsReadingTest'
@@ -8,7 +8,6 @@ import IeltsSpeakingTest from './pages/IeltsSpeakingTest'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import TestBuilder from './pages/TestBuilder'
-import TeacherTests from './pages/TeacherTests'
 import TeacherManage from './pages/TeacherManage'
 import AdminDashboard from './pages/AdminDashboard'
 import AdminUsers from './pages/AdminUsers'
@@ -62,7 +61,7 @@ function App() {
         <Route path="/teacher/writing" element={<ProtectedRoute><TeacherWritingSubmissions /></ProtectedRoute>} />
         <Route path="/teacher/writing/:id" element={<ProtectedRoute><TeacherWritingDetail /></ProtectedRoute>} />
         <Route path="/teacher/assignments" element={<ProtectedRoute><TeacherAssignments /></ProtectedRoute>} />
-        <Route path="/teacher/tests" element={<ProtectedRoute><TeacherTests /></ProtectedRoute>} />
+        <Route path="/teacher/tests" element={<Navigate to="/lms/teacher/tests" replace />} />
         <Route path="/teacher/tests/new" element={<ProtectedRoute><TestBuilder /></ProtectedRoute>} />
         <Route path="/teacher/tests/:id/edit" element={<ProtectedRoute><TestBuilder /></ProtectedRoute>} />
 

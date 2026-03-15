@@ -91,6 +91,14 @@ export const testBuilderApi = {
   deleteTest: async (testId) => {
     await apiClient.delete(`/test-builder/${testId}`);
   },
+
+  // ─── Cập nhật trạng thái đề thi ──────────────────────────────
+  updateTestStatus: async (testId, status) => {
+    const res = await apiClient.put(`/tests/${testId}/status`, null, {
+      params: { status },
+    });
+    return res.data;
+  },
 };
 
 // ═══════════════════════════════════════════════════════════════

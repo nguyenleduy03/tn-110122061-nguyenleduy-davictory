@@ -13,9 +13,14 @@ const NAV_ITEMS = [
   { label: 'Học trực tiếp', path: '/live' },
 ];
 
-const isTeacherOrAbove = (roles) => {
-  if (!roles) return false;
+const normalizeRoles = (roles) => {
+  if (!roles) return [];
   const rolesArray = Array.isArray(roles) ? roles : Array.from(roles);
+  return rolesArray.map((r) => (typeof r === 'string' ? r : (r?.name || r?.roleName || String(r))));
+};
+
+const isTeacherOrAbove = (roles) => {
+  const rolesArray = normalizeRoles(roles);
   return ['ADMIN', 'MANAGER', 'TEACHER'].some(r => rolesArray.includes(r));
 };
 
@@ -25,6 +30,8 @@ const Navbar = () => {
   const [user, setUser] = useState(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const userRoles = normalizeRoles(user?.roles);
+  const isAdmin = userRoles.includes('ADMIN');
 
   useEffect(() => {
     // Lấy thông tin user từ localStorage
@@ -103,7 +110,7 @@ const Navbar = () => {
                   className={`mobile-nav-link${location.pathname.startsWith('/lms/teacher') ? ' active' : ''}`}
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  LMS giao vien
+                  LMS Giảng viên
                 </Link>
               )}
             </div>
@@ -123,14 +130,14 @@ const Navbar = () => {
           ))}
           {user && isTeacherOrAbove(user.roles) && (
             <Link
-              to={user.roles?.includes('ADMIN') ? '/admin' : '/teacher/manage'}
+              to={isAdmin ? '/admin' : '/lms/teacher'}
               className={`nav-link${
-                (user.roles?.includes('ADMIN') && location.pathname.startsWith('/admin')) ||
-                (!user.roles?.includes('ADMIN') && location.pathname.startsWith('/teacher')) 
+                (isAdmin && location.pathname.startsWith('/admin')) ||
+                (!isAdmin && location.pathname.startsWith('/lms/teacher')) 
                 ? ' nav-link-active' : ''
               }`}
             >
-              {user.roles?.includes('ADMIN') ? 'Quản trị' : 'Giảng dạy'}
+              {isAdmin ? 'Quản trị' : 'LMS Giảng viên'}
               <ChevronDown size={13} />
             </Link>
           )}
@@ -169,7 +176,7 @@ const Navbar = () => {
                     {isTeacherOrAbove(user.roles) && (
                       <Link to="/lms/teacher" className="user-dropdown-item">
                         <FilePlus size={16} />
-                        <span>LMS giao vien</span>
+                        <span>LMS Giảng viên</span>
                       </Link>
                     )}
                     <Link to="/settings" className="user-dropdown-item">
