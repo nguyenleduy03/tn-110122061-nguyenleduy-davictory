@@ -96,7 +96,7 @@ public class UserImportController {
 
     /**
      * Import học viên từ file CSV
-     * Format: username,firstname,lastname,email,password,cohort
+        * Format: username,firstname,lastname,email,password,cohort1
      */
     @PostMapping("/import-students")
     @PreAuthorize("hasRole('ADMIN')")

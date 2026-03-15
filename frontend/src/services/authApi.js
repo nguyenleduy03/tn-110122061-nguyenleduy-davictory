@@ -194,7 +194,7 @@ export const authApi = {
 
   // Tải template CSV
   downloadCSVTemplate: () => {
-    const csvContent = `username,firstname,lastname,email,password,cohort
+    const csvContent = `username,firstname,lastname,email,password,cohort1
 VIC009999,Nguyễn Văn,An,VIC009999@gmail.com,@VIC009999,VIC260312IE45A
 VIC009998,Trần Thị,Bình,VIC009998@gmail.com,@VIC009998,VIC260312IE45A`;
     

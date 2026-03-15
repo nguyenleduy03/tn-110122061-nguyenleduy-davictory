@@ -6,6 +6,7 @@ import com.victory.DAVictory.entity.Role;
 import com.victory.DAVictory.entity.User;
 import com.victory.DAVictory.entity.ClassStudent;
 import com.victory.DAVictory.entity.ClassTeacher;
+import com.victory.DAVictory.entity.StudentProfile;
 import com.victory.DAVictory.repository.RoleRepository;
 import com.victory.DAVictory.repository.UserRepository;
 import com.victory.DAVictory.repository.ClassRepository;
@@ -166,6 +167,7 @@ public class UserService {
     @Transactional
     public Map<String, Object> importStudentsFromCSV(MultipartFile file) {
         List<String> errors = new ArrayList<>();
+        List<String> warnings = new ArrayList<>();
         int successCount = 0;
         int failedCount = 0;
 
@@ -199,6 +201,7 @@ public class UserService {
                     String lastName = parts[2].trim();
                     String email = parts[3].trim();
                     String password = parts[4].trim();
+                    String cohortCode = parts[5].trim();
                     // Validate
                     if (username.isEmpty() || email.isEmpty() || password.isEmpty()) {
                         errors.add("Dòng " + lineNumber + ": Username, email và password không được để trống");
@@ -231,7 +234,50 @@ public class UserService {
                     roles.add(studentRole);
                     user.setRoles(roles);
 
-                    userRepository.save(user);
+                    User savedUser = userRepository.save(user);
+
+                    // Lưu thông tin profile học viên để đảm bảo không mất trường cohort1
+                    StudentProfile profile = studentProfileRepository.findByUserId(savedUser.getId())
+                            .orElseGet(StudentProfile::new);
+                    profile.setUser(savedUser);
+                    profile.setStudentCode(username);
+                    if (profile.getEnrollmentDate() == null) {
+                        profile.setEnrollmentDate(LocalDate.now());
+                    }
+                    if (cohortCode != null && !cohortCode.isBlank()) {
+                        String currentNotes = profile.getNotes();
+                        String cohortNote = "Imported cohort1: " + cohortCode;
+                        profile.setNotes(currentNotes == null || currentNotes.isBlank()
+                                ? cohortNote
+                                : currentNotes + "\n" + cohortNote);
+                    }
+                    studentProfileRepository.save(profile);
+
+                    // Nếu cohort1 trùng mã lớp thì tự động add học viên vào lớp đó
+                    if (cohortCode != null && !cohortCode.isBlank()) {
+                        Optional<com.victory.DAVictory.entity.Class> clazzOpt = classRepository.findByCode(cohortCode);
+                        if (clazzOpt.isPresent()) {
+                            com.victory.DAVictory.entity.Class clazz = clazzOpt.get();
+                            ClassStudent classStudent = classStudentRepository
+                                    .findByClazzIdAndUserId(clazz.getId(), savedUser.getId())
+                                    .orElseGet(ClassStudent::new);
+
+                            classStudent.setClazz(clazz);
+                            classStudent.setUser(savedUser);
+                            classStudent.setStatus("ACTIVE");
+                            classStudent.setDroppedAt(null);
+                            if (classStudent.getEnrolledAt() == null) {
+                                classStudent.setEnrolledAt(LocalDate.now());
+                            }
+                            if (classStudent.getNotes() == null || classStudent.getNotes().isBlank()) {
+                                classStudent.setNotes("Imported from CSV");
+                            }
+                            classStudentRepository.save(classStudent);
+                        } else {
+                            warnings.add("Dòng " + lineNumber + ": Không tìm thấy lớp với mã cohort1='" + cohortCode + "' (đã tạo user + profile)");
+                        }
+                    }
+
                     successCount++;
 
                 } catch (Exception e) {
@@ -250,6 +296,9 @@ public class UserService {
         result.put("total", successCount + failedCount);
         if (!errors.isEmpty()) {
             result.put("errors", errors);
+        }
+        if (!warnings.isEmpty()) {
+            result.put("warnings", warnings);
         }
 
         return result;
