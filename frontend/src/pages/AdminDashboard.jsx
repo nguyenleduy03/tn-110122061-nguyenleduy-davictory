@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Shield,
@@ -9,25 +9,20 @@ import {
   BarChart3,
   Database,
   CheckCircle2,
-  AlertTriangle,
   Activity,
   FileText,
-  UserCheck,
-  Clock,
   TrendingUp,
   AlertCircle,
   Loader2,
-  Eye,
-  Edit,
-  Trash2,
 } from 'lucide-react';
 import Navbar from '../components/layout/Navbar';
 import { authApi } from '../services/authApi';
+import '../styles/adminDashboard.css';
 
 const isAdminOnly = (roles) => {
   if (!roles) return false;
   const rolesArray = Array.isArray(roles) ? roles : Array.from(roles);
-  return rolesArray.includes('ADMIN');
+  return rolesArray.some((r) => (typeof r === 'string' ? r === 'ADMIN' : (r?.name === 'ADMIN' || r?.roleName === 'ADMIN')));
 };
 
 export default function AdminDashboard() {
@@ -98,42 +93,26 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f8fafc' }}>
+    <div className="admin-page">
       <Navbar />
-      
-      {/* Admin Header với gradient background */}
-      <div style={{ 
-        background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #06b6d4 100%)',
-        color: 'white',
-        padding: '40px 24px'
-      }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-            <div style={{ 
-              background: 'rgba(255,255,255,0.2)', 
-              padding: 12, 
-              borderRadius: 12,
-              backdropFilter: 'blur(10px)'
-            }}>
+
+      <section className="admin-hero">
+        <div className="admin-container">
+          <div className="admin-hero-head">
+            <div className="admin-hero-icon">
               <Shield size={28} />
             </div>
-            <div>
-              <h1 style={{ fontSize: 28, fontWeight: 800, margin: 0, textShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+            <div className="admin-hero-copy">
+              <h1>
                 Bảng điều khiển quản trị
               </h1>
-              <p style={{ fontSize: 16, margin: 0, opacity: 0.9, fontWeight: 500 }}>
+              <p>
                 Quản lý toàn bộ hệ thống DAVictory
               </p>
             </div>
           </div>
 
-          {/* Quick Stats */}
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-            gap: 16,
-            marginTop: 24
-          }}>
+          <div className="admin-quick-stats">
             <QuickStat 
               icon={Users} 
               label="Tổng người dùng" 
@@ -164,61 +143,52 @@ export default function AdminDashboard() {
             />
           </div>
         </div>
-      </div>
+      </section>
 
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 24px' }}>
+      <main className="admin-container admin-main">
         {!hasPermission && (
-          <div style={{ textAlign: 'center', padding: '40px', background: '#fff3cd', borderRadius: 12, marginBottom: 24 }}>
-            <h2 style={{ color: '#856404', marginBottom: 12 }}>Không có quyền truy cập</h2>
-            <p style={{ color: '#856404' }}>
+          <div className="admin-alert admin-alert-warning">
+            <h2>Không có quyền truy cập</h2>
+            <p>
               Trang này yêu cầu tài khoản có quyền <strong>ADMIN</strong>.
             </p>
             <button
               onClick={() => window.location.href = '/login'}
-              style={{ marginTop: 16, padding: '10px 24px', background: '#856404', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer' }}
+              className="admin-btn admin-btn-dark"
             >
               Đăng nhập lại
             </button>
           </div>
         )}
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
+        <div className="admin-section-head">
           <div>
-            <h1 style={{ fontSize: 24, fontWeight: 700, color: '#111827', margin: 0 }}>
-              🛡️ Quản trị hệ thống
-            </h1>
-            <p style={{ fontSize: 14, color: '#6b7280', marginTop: 4 }}>
+            <h2>Quản trị hệ thống</h2>
+            <p>
               Quản lý người dùng, hệ thống và cấu hình
             </p>
           </div>
         </div>
 
         {error && (
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px',
-            background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8,
-            color: '#dc2626', fontSize: 14, marginBottom: 16,
-          }}>
+          <div className="admin-alert admin-alert-danger">
             <AlertCircle size={16} />
             {error}
           </div>
         )}
 
         {importResult && (
-          <div style={{
-            padding: '12px 16px', background: '#f0f9ff', border: '1px solid #bae6fd', 
-            borderRadius: 8, marginBottom: 16, fontSize: 14,
-          }}>
-            <div style={{ fontWeight: 600, color: '#0369a1', marginBottom: 8 }}>
+          <div className="admin-alert admin-alert-info admin-import-result">
+            <div className="admin-import-title">
               Kết quả import CSV:
             </div>
-            <div style={{ color: '#0c4a6e' }}>
+            <div className="admin-import-content">
               ✅ Thành công: {importResult.success || 0} học viên<br/>
               {importResult.failed > 0 && `❌ Thất bại: ${importResult.failed} học viên`}
               {importResult.errors && (
-                <details style={{ marginTop: 8 }}>
-                  <summary style={{ cursor: 'pointer', color: '#dc2626' }}>Chi tiết lỗi</summary>
-                  <pre style={{ fontSize: 12, marginTop: 4, color: '#dc2626' }}>
+                <details className="admin-import-errors">
+                  <summary>Chi tiết lỗi</summary>
+                  <pre>
                     {importResult.errors.join('\n')}
                   </pre>
                 </details>
@@ -227,9 +197,8 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: 20 }}>
+        <section className="admin-cards-grid">
           
-          {/* Quản lý người dùng - Card lớn */}
           <AdminCard
             icon={Users}
             title="Quản lý người dùng"
@@ -247,73 +216,43 @@ export default function AdminDashboard() {
             ]}
           />
 
-          {/* Import CSV - Card đặc biệt */}
-          <div style={{
-            background: 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)',
-            borderRadius: 16,
-            padding: 24,
-            color: 'white',
-            position: 'relative',
-            overflow: 'hidden'
-          }}>
-            <div style={{ position: 'relative', zIndex: 2 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+          <div className="admin-card admin-import-card">
+            <div className="admin-import-head">
                 <Upload size={24} />
-                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>
+                <h3>
                   Import học viên hàng loạt
                 </h3>
-              </div>
+            </div>
               
-              <p style={{ margin: '0 0 20px 0', opacity: 0.9, fontSize: 14 }}>
+            <p className="admin-import-sub">
                 Tạo tài khoản học viên từ file CSV với định dạng chuẩn
-              </p>
+            </p>
 
-              <div style={{ marginBottom: 16 }}>
+            <div className="admin-import-actions">
                 <button
                   onClick={handleDownloadTemplate}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 8,
-                    padding: '8px 16px', borderRadius: 8,
-                    border: '1px solid rgba(255,255,255,0.3)', 
-                    background: 'rgba(255,255,255,0.1)',
-                    color: 'white', fontSize: 13, cursor: 'pointer',
-                    width: '100%', justifyContent: 'center',
-                    backdropFilter: 'blur(10px)'
-                  }}
+                  className="admin-btn admin-btn-ghost-light"
                 >
                   <Download size={16} />
                   Tải file mẫu CSV
                 </button>
-              </div>
+            </div>
 
-              <div style={{ position: 'relative' }}>
+            <div className="admin-file-wrap">
                 <input
                   type="file"
                   accept=".csv"
                   onChange={handleCSVImport}
                   disabled={importing}
-                  style={{
-                    position: 'absolute', opacity: 0, width: '100%', height: '100%',
-                    cursor: importing ? 'not-allowed' : 'pointer',
-                  }}
+                  className="admin-file-input"
                 />
                 <button
                   disabled={importing}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 8,
-                    padding: '12px 20px', borderRadius: 10,
-                    border: 'none', 
-                    background: importing ? 'rgba(255,255,255,0.2)' : 'white',
-                    color: importing ? 'rgba(255,255,255,0.7)' : '#7c3aed',
-                    fontSize: 14, fontWeight: 600, width: '100%',
-                    justifyContent: 'center',
-                    cursor: importing ? 'not-allowed' : 'pointer',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-                  }}
+                  className={`admin-btn admin-btn-file ${importing ? 'is-loading' : ''}`}
                 >
                   {importing ? (
                     <>
-                      <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
+                      <Loader2 size={16} className="spin" />
                       Đang import...
                     </>
                   ) : (
@@ -323,23 +262,9 @@ export default function AdminDashboard() {
                     </>
                   )}
                 </button>
-              </div>
             </div>
-            
-            {/* Background decoration */}
-            <div style={{
-              position: 'absolute',
-              top: -20,
-              right: -20,
-              width: 100,
-              height: 100,
-              background: 'rgba(255,255,255,0.1)',
-              borderRadius: '50%',
-              zIndex: 1
-            }} />
           </div>
 
-          {/* Duyệt đề thi */}
           <AdminCard
             icon={CheckCircle2}
             title="Duyệt đề thi"
@@ -351,7 +276,6 @@ export default function AdminDashboard() {
             ]}
           />
 
-          {/* Cấu hình hệ thống */}
           <AdminCard
             icon={Settings}
             title="Cấu hình hệ thống"
@@ -362,7 +286,6 @@ export default function AdminDashboard() {
             ]}
           />
 
-          {/* Thống kê & Báo cáo */}
           <AdminCard
             icon={BarChart3}
             title="Thống kê & Báo cáo"
@@ -373,7 +296,6 @@ export default function AdminDashboard() {
             ]}
           />
 
-          {/* Database & Hệ thống */}
           <AdminCard
             icon={Database}
             title="Quản lý Database"
@@ -385,134 +307,67 @@ export default function AdminDashboard() {
             ]}
           />
 
-        </div>
-      </div>
+        </section>
+      </main>
     </div>
   );
 }
 
-// Component QuickStat cho header
 function QuickStat({ icon: Icon, label, value, change, positive }) {
   return (
-    <div style={{
-      background: 'rgba(255,255,255,0.15)',
-      backdropFilter: 'blur(10px)',
-      borderRadius: 12,
-      padding: 16,
-      border: '1px solid rgba(255,255,255,0.2)'
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+    <div className="admin-quick-stat">
+      <div className="admin-quick-stat-top">
         <Icon size={18} />
-        <span style={{ fontSize: 13, opacity: 0.9 }}>{label}</span>
+        <span>{label}</span>
       </div>
-      <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>{value}</div>
-      <div style={{ 
-        fontSize: 12, 
-        color: positive ? '#10b981' : '#f59e0b',
-        fontWeight: 600
-      }}>
+      <div className="admin-quick-stat-value">{value}</div>
+      <div className={`admin-quick-stat-change ${positive ? 'is-positive' : 'is-warning'}`}>
         {change}
       </div>
     </div>
   );
 }
 
-// Component AdminCard mới
 function AdminCard({ icon: Icon, title, description, color, badge, actions, stats }) {
   return (
-    <div style={{
-      background: '#fff',
-      borderRadius: 16,
-      padding: 24,
-      border: '1px solid #e5e7eb',
-      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-      transition: 'transform 0.2s, box-shadow 0.2s',
-      position: 'relative',
-      overflow: 'hidden',
-      cursor: 'pointer'
-    }}
-    onMouseEnter={(e) => {
-      e.currentTarget.style.transform = 'translateY(-2px)';
-      e.currentTarget.style.boxShadow = '0 10px 25px -3px rgba(0, 0, 0, 0.1)';
-    }}
-    onMouseLeave={(e) => {
-      e.currentTarget.style.transform = 'translateY(0)';
-      e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
-    }}>
-      
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-        <div style={{
-          background: `${color}15`,
-          padding: 12,
-          borderRadius: 12
-        }}>
+    <div className="admin-card">
+      <div className="admin-card-head">
+        <div className="admin-card-icon" style={{ background: `${color}14` }}>
           <Icon size={24} color={color} />
         </div>
-        <div style={{ flex: 1 }}>
-          <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#111827' }}>
+        <div className="admin-card-title-wrap">
+          <h3>
             {title}
           </h3>
           {badge && (
-            <span style={{
-              display: 'inline-block',
-              marginTop: 4,
-              padding: '2px 8px',
-              borderRadius: 12,
-              background: `${badge.color}15`,
-              color: badge.color,
-              fontSize: 11,
-              fontWeight: 600
-            }}>
+            <span className="admin-card-badge" style={{ background: `${badge.color}15`, color: badge.color }}>
               {badge.text}
             </span>
           )}
         </div>
       </div>
 
-      <p style={{ margin: '0 0 20px 0', fontSize: 14, color: '#6b7280' }}>
-        {description}
-      </p>
+      <p className="admin-card-desc">{description}</p>
 
       {stats && (
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(3, 1fr)', 
-          gap: 12, 
-          marginBottom: 20,
-          padding: 16,
-          background: '#f8fafc',
-          borderRadius: 8
-        }}>
+        <div className="admin-card-stats">
           {stats.map((stat, i) => (
-            <div key={i} style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 18, fontWeight: 700, color: '#111827' }}>{stat.value}</div>
-              <div style={{ fontSize: 11, color: '#6b7280' }}>{stat.label}</div>
+            <div key={i} className="admin-card-stat">
+              <div className="admin-card-stat-value">{stat.value}</div>
+              <div className="admin-card-stat-label">{stat.label}</div>
             </div>
           ))}
         </div>
       )}
 
       {actions && (
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div className="admin-card-actions">
           {actions.map((action, i) => (
             <Link
               key={i}
               to={action.href}
-              style={{
-                padding: '10px 16px',
-                borderRadius: 8,
-                fontSize: 13,
-                fontWeight: 600,
-                textDecoration: 'none',
-                ...(action.primary ? {
-                  background: color,
-                  color: 'white'
-                } : {
-                  background: 'transparent',
-                  color: color,
-                  border: `1px solid ${color}30`
-                })
-              }}
+              className={`admin-card-btn ${action.primary ? 'is-primary' : 'is-outline'}`}
+              style={action.primary ? { background: color } : { color, borderColor: `${color}40` }}
             >
               {action.label}
             </Link>

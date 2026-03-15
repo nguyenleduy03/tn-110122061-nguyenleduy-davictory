@@ -14,6 +14,10 @@ import {
   Clock,
   CheckCircle2,
   Layers,
+  Sparkles,
+  Zap,
+  Target,
+  Play,
 } from 'lucide-react';
 import Navbar from '../components/layout/Navbar';
 import '../styles/homePage.css';
@@ -21,37 +25,32 @@ import '../styles/homePage.css';
 // ---- Carousel slides ----
 const SLIDES = [
   {
-    badge: 'Nền tảng luyện thi IELTS #1',
-    titleLine1: 'NỀN TẢNG LUYỆN THI',
-    titleAccent: '#1 VIỆT NAM',
-    titleLine2: 'THI IELTS ONLINE',
-    subtitle: 'Đạt điểm IELTS mơ ước chỉ với một cú nhấp chuột!',
+    badge: '🚀 Nền tảng luyện thi IELTS #1',
+    titleLine1: 'CHINH PHỤC',
+    titleAccent: 'IELTS 8.0+',
+    titleLine2: 'CÙNG AI THÔNG MINH',
+    subtitle: 'Hệ thống AI phân tích lỗi sai và đưa ra lộ trình học cá nhân hóa cho từng học viên',
     image: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=900&h=700&fit=crop&q=80',
+    accentColor: '#0056D2'
   },
   {
-    badge: 'Thư viện đề thi phong phú',
-    titleLine1: 'HƠN 500 ĐỀ THI',
-    titleAccent: 'IELTS THỰC TẾ',
-    titleLine2: 'CÓ GIẢI THÍCH CHI TIẾT',
-    subtitle: 'Luyện tập với đề thi Cambridge, British Council và IDP chuẩn xác nhất.',
+    badge: '⚡ Công nghệ tiên tiến',
+    titleLine1: 'CHẤM ĐIỂM',
+    titleAccent: 'TỰ ĐỘNG',
+    titleLine2: 'BẰNG AI',
+    subtitle: 'Trí tuệ nhân tạo chấm Speaking & Writing với độ chính xác 95%, phản hồi tức thì',
     image: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=900&h=700&fit=crop&q=80',
+    accentColor: '#0F766E'
   },
   {
-    badge: 'Chấm điểm tự động',
-    titleLine1: 'TRẢI NGHIỆM THI',
-    titleAccent: 'IELTS THỰC TẾ',
-    titleLine2: 'NGAY TẠI NHÀ',
-    subtitle: 'Giao diện thi giống thật 100%, chấm điểm tự động ngay lập tức.',
+    badge: '🎯 Học thông minh',
+    titleLine1: 'LỘ TRÌNH',
+    titleAccent: 'CÁ NHÂN HÓA',
+    titleLine2: 'CHO BẠN',
+    subtitle: 'AI phân tích điểm yếu và tạo kế hoạch học tập riêng, tối ưu thời gian đạt mục tiêu',
     image: 'https://images.unsplash.com/photo-1571260899304-425eee4c7efc?w=900&h=700&fit=crop&q=80',
+    accentColor: '#C2410C'
   },
-];
-
-// ---- Stats ----
-const STATS = [
-  { value: '500+', label: 'Đề thi IELTS' },
-  { value: '50,000+', label: 'Học viên đăng ký' },
-  { value: '4.8★', label: 'Đánh giá trung bình' },
-  { value: '100%', label: 'Miễn phí truy cập' },
 ];
 
 // ---- Skill cards ----
@@ -105,34 +104,40 @@ const SKILLS = [
 // ---- Features ----
 const FEATURES = [
   {
+    icon: Sparkles,
+    title: 'AI Phân tích thông minh',
+    desc: 'Trí tuệ nhân tạo phân tích chi tiết từng câu trả lời, chỉ ra lỗi sai và đưa ra gợi ý cải thiện cụ thể.',
+    color: 'from-purple-500 to-pink-500'
+  },
+  {
+    icon: Zap,
+    title: 'Chấm điểm tức thì',
+    desc: 'Hệ thống AI chấm điểm Speaking & Writing với độ chính xác 95%, kết quả ngay sau khi hoàn thành.',
+    color: 'from-yellow-500 to-orange-500'
+  },
+  {
+    icon: Target,
+    title: 'Lộ trình cá nhân hóa',
+    desc: 'AI tạo kế hoạch học tập riêng biệt dựa trên điểm mạnh/yếu, tối ưu hóa thời gian học.',
+    color: 'from-green-500 to-emerald-500'
+  },
+  {
     icon: BarChart3,
-    title: 'Theo dõi tiến độ',
-    desc: 'Thống kê chi tiết từng bài làm, phân tích điểm mạnh/yếu và lộ trình cải thiện cá nhân hóa.',
-  },
-  {
-    icon: CheckCircle2,
-    title: 'Chấm điểm tự động',
-    desc: 'Hệ thống chấm điểm thông minh cho Listening & Reading ngay sau khi nộp bài.',
-  },
-  {
-    icon: Clock,
-    title: 'Thi có đồng hồ đếm giờ',
-    desc: 'Giao diện thi sát với thực tế, đồng hồ tự động, áp lực thật để thi thật không bỡ ngỡ.',
+    title: 'Theo dõi tiến độ real-time',
+    desc: 'Dashboard thông minh hiển thị tiến độ học tập, dự đoán điểm số và thời gian đạt mục tiêu.',
+    color: 'from-blue-500 to-cyan-500'
   },
   {
     icon: BookMarked,
-    title: 'Giải thích đáp án chi tiết',
-    desc: 'Mỗi câu hỏi đều có giải thích đáp án rõ ràng giúp hiểu sâu và không mắc lỗi lần sau.',
-  },
-  {
-    icon: Layers,
-    title: 'Đề thi đa dạng',
-    desc: 'Cambridge, British Council, IDP — hơn 500 đề thi được cập nhật liên tục theo đề thực.',
+    title: 'Ngân hàng đề thi khổng lồ',
+    desc: 'Hơn 2000 đề thi thực tế từ Cambridge, IDP, British Council được cập nhật liên tục.',
+    color: 'from-indigo-500 to-purple-500'
   },
   {
     icon: Trophy,
-    title: 'Bảng xếp hạng',
-    desc: 'So sánh kết quả với học viên toàn quốc, tạo động lực học tập mỗi ngày.',
+    title: 'Gamification học tập',
+    desc: 'Hệ thống điểm thưởng, thành tựu và bảng xếp hạng tạo động lực học tập bền vững.',
+    color: 'from-red-500 to-pink-500'
   },
 ];
 
@@ -176,44 +181,31 @@ const HomePage = () => {
         <div className="hero-inner">
           {/* Left: text */}
           <div className="hero-text-side">
-            <span 
-              className="hero-badge"
-              style={{ animation: 'fadeInUp 0.8s ease-out 0.2s both' }}
-            >
-              {slide.badge}
-            </span>
+            <div key={`hero-content-${activeSlide}`} className="hero-content-anim">
+              <span className="hero-badge">{slide.badge}</span>
 
-            <h1 
-              className="hero-title-line1"
-              style={{ animation: 'slideInLeft 0.8s ease-out 0.4s both' }}
-            >
-              {slide.titleLine1}&nbsp;
-              <span className="hero-title-accent">{slide.titleAccent}</span>
-            </h1>
-            <h1 
-              className="hero-title-line2"
-              style={{ animation: 'slideInLeft 0.8s ease-out 0.6s both' }}
-            >
-              {slide.titleLine2}
-            </h1>
+              <h1 className="hero-title">
+                <span className="hero-title-main">
+                  {slide.titleLine1}&nbsp;
+                  <span className="hero-title-accent" style={{ color: slide.accentColor }}>
+                    {slide.titleAccent}
+                  </span>
+                </span>
+                <span className="hero-title-main">{slide.titleLine2}</span>
+              </h1>
 
-            <p 
-              className="hero-subtitle"
-              style={{ animation: 'fadeInUp 0.8s ease-out 0.8s both' }}
-            >
-              {slide.subtitle}
-            </p>
+              <p className="hero-subtitle">{slide.subtitle}</p>
 
-            <div 
-              className="hero-cta-row"
-              style={{ animation: 'fadeInUp 0.8s ease-out 1s both' }}
-            >
-              <Link to="/exam-library" className="hero-btn-outline">
-                THƯ VIỆN ĐỀ THI <ArrowUpRight size={18} />
-              </Link>
-              <Link to="/exam-library?skill=listening" className="hero-btn-solid">
-                BẮT ĐẦU NGAY <ArrowUpRight size={18} />
-              </Link>
+              <div className="hero-cta-row">
+                <Link to="/exam-library" className="hero-btn-outline group">
+                  <Play size={18} className="group-hover:scale-110 transition-transform" />
+                  XEM DEMO MIỄN PHÍ
+                </Link>
+                <Link to="/exam-library?skill=listening" className="hero-btn-solid group">
+                  <Sparkles size={18} className="group-hover:rotate-12 transition-transform" />
+                  BẮT ĐẦU HỌC AI
+                </Link>
+              </div>
             </div>
 
             {/* Dot indicators */}
@@ -230,47 +222,23 @@ const HomePage = () => {
           </div>
 
           {/* Right: student photo */}
-          <div 
-            className="hero-image-side"
-            style={{ animation: 'slideInRight 0.8s ease-out 0.6s both' }}
-          >
+          <div className="hero-image-side">
             <img
               key={activeSlide}
+              className="hero-image-anim"
               src={slide.image}
               alt="IELTS student studying"
               loading="eager"
-              style={{ 
-                animation: 'fadeInUp 0.8s ease-out both',
-                animationDelay: '0.2s'
-              }}
             />
           </div>
         </div>
       </section>
 
-      {/* ---- STATS BAND ---- */}
-      <div className="stats-band">
-        <div className="stats-band-inner">
-          {STATS.map((s, index) => (
-            <div 
-              key={s.label} 
-              className="stat-item"
-              style={{
-                animation: `fadeInUp 0.6s ease-out ${index * 0.1}s both`
-              }}
-            >
-              <span className="stat-item-value">{s.value}</span>
-              <span className="stat-item-label">{s.label}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* ---- SKILLS SECTION ---- */}
       <section className="skills-section">
         <div className="skills-section-inner">
-          <div className="section-label">LUYỆN THI THEO KỸ NĂNG</div>
-          <h2 className="section-title">Chọn kỹ năng bạn muốn luyện tập</h2>
+          <div className="section-label">🚀 LUYỆN THI THEO KỸ NĂNG</div>
+          <h2 className="section-title">Chọn kỹ năng bạn muốn chinh phục với AI</h2>
           <div className="skills-grid">
             {SKILLS.map((skill) => {
               const Icon = skill.icon;
@@ -308,18 +276,80 @@ const HomePage = () => {
           <div className="section-label">TẠI SAO CHỌN DAVICTORY</div>
           <h2 className="section-title">Tất cả những gì bạn cần để đạt IELTS 7.0+</h2>
           <div className="features-grid">
-            {FEATURES.map((f) => {
+            {FEATURES.map((f, index) => {
               const Icon = f.icon;
               return (
-                <div key={f.title} className="feature-card">
-                  <div className="feature-card-icon">
-                    <Icon size={26} />
+                <div 
+                  key={f.title} 
+                  className="feature-card group"
+                  style={{
+                    animation: `fadeInUp 0.6s ease-out ${index * 0.1}s both`
+                  }}
+                >
+                  <div className={`feature-card-icon bg-gradient-to-r ${f.color}`}>
+                    <Icon size={26} className="text-white group-hover:scale-110 transition-transform" />
                   </div>
                   <h3 className="feature-card-title">{f.title}</h3>
                   <p className="feature-card-desc">{f.desc}</p>
                 </div>
               );
             })}
+          </div>
+        </div>
+      </section>
+
+      {/* ---- TESTIMONIALS SECTION ---- */}
+      <section className="testimonials-section">
+        <div className="testimonials-inner">
+          <div className="section-label">💬 PHẢN HỒI TỪ HỌC VIÊN</div>
+          <h2 className="section-title">Hơn 1 triệu học viên tin tưởng DAVictory</h2>
+          
+          <div className="testimonials-grid">
+            {[
+              {
+                name: "Nguyễn Minh Anh",
+                score: "IELTS 8.5",
+                avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=80&h=80&fit=crop&crop=face&q=80",
+                text: "AI của DAVictory đã giúp tôi cải thiện Writing từ 6.0 lên 8.0 chỉ trong 2 tháng. Phản hồi chi tiết và lộ trình cá nhân hóa thật sự hiệu quả!",
+                gradient: "from-pink-500 to-rose-500"
+              },
+              {
+                name: "Trần Văn Hùng", 
+                score: "IELTS 7.5",
+                avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop&crop=face&q=80",
+                text: "Hệ thống chấm Speaking tự động rất chính xác. Tôi đã luyện tập đều đặn và đạt được band 7.5 như mong muốn để du học Canada.",
+                gradient: "from-blue-500 to-cyan-500"
+              },
+              {
+                name: "Lê Thị Mai",
+                score: "IELTS 8.0", 
+                avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=80&h=80&fit=crop&crop=face&q=80",
+                text: "Giao diện thi giống thật 100%, giúp tôi không bị bỡ ngỡ khi thi thật. Đặc biệt là phần Listening với chất lượng âm thanh cực tốt!",
+                gradient: "from-emerald-500 to-teal-500"
+              }
+            ].map((testimonial, index) => (
+              <div 
+                key={testimonial.name}
+                className="testimonial-card"
+                style={{
+                  animation: `fadeInUp 0.6s ease-out ${index * 0.2}s both`
+                }}
+              >
+                <div className="testimonial-content">
+                  <div className="testimonial-quote">"</div>
+                  <p className="testimonial-text">{testimonial.text}</p>
+                </div>
+                <div className="testimonial-author">
+                  <img src={testimonial.avatar} alt={testimonial.name} className="testimonial-avatar" />
+                  <div>
+                    <div className="testimonial-name">{testimonial.name}</div>
+                    <div className={`testimonial-score bg-gradient-to-r ${testimonial.gradient} bg-clip-text text-transparent`}>
+                      {testimonial.score}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -376,20 +406,54 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* ---- CTA BANNER ---- */}
-      <section className="cta-banner">
-        <div className="cta-banner-inner">
-          <h2 className="cta-banner-title">
-            Bắt đầu luyện thi <span>IELTS miễn phí</span> ngay hôm nay!
-          </h2>
-          <p className="cta-banner-sub">
-            Hơn 50,000 học viên đã tin tưởng DAVictory để đạt mục tiêu IELTS của mình.
-          </p>
-          <Link to="/exam-library" className="cta-banner-btn">
-            VÀO THƯ VIỆN ĐỀ THI <ArrowUpRight size={20} />
-          </Link>
+      {/* ---- SIMPLE CTA + FOOTER ---- */}
+      <section className="footer-cta">
+        <div className="footer-cta-inner">
+          <h2 className="footer-cta-title">Sẵn sàng bắt đầu luyện thi IELTS?</h2>
+          <p className="footer-cta-sub">Truy cập thư viện đề thi và bắt đầu lộ trình học phù hợp với bạn.</p>
+          <div className="footer-cta-actions">
+            <Link to="/exam-library" className="footer-btn-primary">
+              Vào thư viện đề thi <ArrowUpRight size={18} />
+            </Link>
+            <Link to="/register" className="footer-btn-secondary">
+              Tạo tài khoản miễn phí
+            </Link>
+          </div>
         </div>
       </section>
+
+      <footer className="site-footer-home">
+        <div className="site-footer-inner">
+          <div className="site-footer-grid">
+            <div className="site-footer-col">
+              <div className="site-footer-brand">DAVictory</div>
+              <p className="site-footer-text">Nền tảng luyện thi IELTS hiện đại, trực quan và dễ sử dụng.</p>
+            </div>
+
+            <div className="site-footer-col">
+              <h3 className="site-footer-heading">Khám phá</h3>
+              <div className="site-footer-links">
+                <Link to="/">Trang chủ</Link>
+                <Link to="/exam-library">Thư viện đề thi</Link>
+                <Link to="/my-dashboard">Bảng điều khiển</Link>
+              </div>
+            </div>
+
+            <div className="site-footer-col">
+              <h3 className="site-footer-heading">Tài khoản</h3>
+              <div className="site-footer-links">
+                <Link to="/login">Đăng nhập</Link>
+                <Link to="/register">Đăng ký</Link>
+                <Link to="/profile">Hồ sơ cá nhân</Link>
+              </div>
+            </div>
+          </div>
+
+          <div className="site-footer-bottom">
+            <span>© 2026 DAVictory. All rights reserved.</span>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };

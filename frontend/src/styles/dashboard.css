@@ -969,6 +969,24 @@
 }
 .prof-avatar-meta span { display: flex; align-items: center; justify-content: center; gap: 5px; }
 
+.prof-role-tags {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+
+.prof-role-tag {
+  font-size: 11px;
+  font-weight: 700;
+  color: #dbeafe;
+  background: rgba(59, 130, 246, 0.18);
+  border: 1px solid rgba(147, 197, 253, 0.3);
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
 /* Skill card */
 .prof-skill-card {
   background: #fff;
@@ -999,6 +1017,13 @@
 .prof-skill-score { font-size: 14px; font-weight: 800; }
 .prof-score-bar-track { height: 5px; background: #e2e8f0; border-radius: 99px; overflow: hidden; }
 .prof-score-bar-fill  { height: 100%; border-radius: 99px; transition: width .5s ease; }
+
+.prof-account-note {
+  font-size: 13px;
+  color: #475569;
+  line-height: 1.6;
+  margin: 0;
+}
 
 /* Form card */
 .prof-form-card {

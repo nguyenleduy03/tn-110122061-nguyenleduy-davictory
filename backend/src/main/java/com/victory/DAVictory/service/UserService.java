@@ -101,6 +101,12 @@ public class UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy user"));
         if (userDTO.getFullName() != null) user.setFullName(userDTO.getFullName());
+        if (userDTO.getEmail() != null && !userDTO.getEmail().equalsIgnoreCase(user.getEmail())) {
+            if (userRepository.existsByEmail(userDTO.getEmail())) {
+                throw new RuntimeException("Email đã tồn tại");
+            }
+            user.setEmail(userDTO.getEmail());
+        }
         if (userDTO.getPhoneNumber() != null) user.setPhoneNumber(userDTO.getPhoneNumber());
         if (userDTO.getAvatar() != null) user.setAvatar(userDTO.getAvatar());
         if (userDTO.getIsActive() != null) user.setIsActive(userDTO.getIsActive());
@@ -180,8 +186,6 @@ public class UserService {
                     String lastName = parts[2].trim();
                     String email = parts[3].trim();
                     String password = parts[4].trim();
-                    String cohort = parts[5].trim();
-
                     // Validate
                     if (username.isEmpty() || email.isEmpty() || password.isEmpty()) {
                         errors.add("Dòng " + lineNumber + ": Username, email và password không được để trống");
@@ -271,7 +275,10 @@ public class UserService {
             user.setEmail((String) userData.get("email"));
         }
         if (userData.containsKey("roles")) {
-            List<String> roleNames = (List<String>) userData.get("roles");
+            Object rawRoles = userData.get("roles");
+            List<String> roleNames = rawRoles instanceof List<?> list
+                    ? list.stream().map(String::valueOf).toList()
+                    : Collections.emptyList();
             
             // Kiểm tra bảo mật: Không được tạo thêm ADMIN
             boolean hasNewAdmin = roleNames.contains("ADMIN") && 
@@ -325,8 +332,26 @@ public class UserService {
         dto.setUsername(user.getUsername());
         dto.setFullName(user.getFullName());
         dto.setEmail(user.getEmail());
+        dto.setPhoneNumber(user.getPhoneNumber());
+        dto.setAvatar(user.getAvatar());
         dto.setIsActive(user.getIsActive());
         dto.setLastLogin(user.getLastLogin());
+        dto.setCreatedAt(user.getCreatedAt());
+
+        // Profile fields (ưu tiên student profile cho learner dashboard)
+        if (user.getStudentProfile() != null) {
+            dto.setBirthday(user.getStudentProfile().getDateOfBirth());
+            dto.setNationality(user.getStudentProfile().getCountry());
+            dto.setStudyLevel(user.getStudentProfile().getCurrentLevel());
+            dto.setTargetBand(user.getStudentProfile().getTargetBand());
+            dto.setBio(user.getStudentProfile().getNotes());
+        } else if (user.getTeacherProfile() != null) {
+            // fallback cho teacher: dùng một số field tương đương
+            dto.setBio(user.getTeacherProfile().getBio());
+            dto.setStudyLevel(user.getTeacherProfile().getEducation());
+            dto.setTargetBand(user.getTeacherProfile().getIeltsScore());
+        }
+
         dto.setRoles(user.getRoles().stream()
                 .map(role -> role.getName().toString())
                 .collect(Collectors.toList()));

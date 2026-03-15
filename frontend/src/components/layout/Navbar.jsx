@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Bell, ChevronDown, LogOut, User, Settings, FilePlus, Menu, X } from 'lucide-react';
 import { authApi } from '../../services/authApi';
+import logoImage from '../../../logo.png';
 
 const NAV_ITEMS = [
   { label: 'Trang chủ', path: '/' },
@@ -79,10 +80,7 @@ const Navbar = () => {
         </button>
 
         <Link to="/" className="site-logo">
-          <div className="site-logo-mark">DA</div>
-          <span className="site-logo-text">
-            DAVictory<span className="site-logo-dot">.com</span>
-          </span>
+          <img src={logoImage} alt="DAVictory" className="site-logo-image" />
         </Link>
         
         {/* Mobile Menu Overlay */}

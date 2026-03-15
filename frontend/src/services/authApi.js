@@ -138,7 +138,32 @@ export const authApi = {
   // Lấy tất cả người dùng (chỉ Admin)
   getAllUsers: async () => {
     const response = await apiClient.get('/admin/users');
-    return response.data;
+    const payload = response.data;
+
+    // Hỗ trợ nhiều format backend: [] | {content: []} | {data: []}
+    const rawUsers = Array.isArray(payload)
+      ? payload
+      : Array.isArray(payload?.content)
+        ? payload.content
+        : Array.isArray(payload?.data)
+          ? payload.data
+          : [];
+
+    return rawUsers.map((u) => {
+      const rawRoles = Array.isArray(u?.roles) ? u.roles : [];
+      const normalizedRoles = rawRoles.map((r) => {
+        if (typeof r === 'string') return r;
+        return r?.name || r?.roleName || r?.authority || String(r);
+      });
+
+      return {
+        ...u,
+        roles: normalizedRoles,
+        isActive: typeof u?.isActive === 'boolean' ? u.isActive : (typeof u?.active === 'boolean' ? u.active : true),
+        fullName: u?.fullName || [u?.firstName, u?.lastName].filter(Boolean).join(' ') || u?.username || 'Unknown',
+        email: u?.email || '',
+      };
+    });
   },
 
   // Cập nhật trạng thái active của user

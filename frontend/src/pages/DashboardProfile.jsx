@@ -52,6 +52,26 @@ export default function DashboardProfile() {
   // Bản sao để cancel edit
   const [originalForm, setOriginalForm] = useState(null);
 
+  const normalizedRoles = Array.isArray(roles)
+    ? roles.map((r) => (typeof r === 'string' ? r : (r?.name || r?.roleName || String(r))))
+    : [];
+
+  const isAdmin = normalizedRoles.includes('ADMIN');
+  const isManager = normalizedRoles.includes('MANAGER');
+  const isTeacher = normalizedRoles.includes('TEACHER');
+  const isStudent = normalizedRoles.includes('STUDENT');
+
+  const mapUserToForm = (data) => ({
+    name: data?.fullName || data?.username || '',
+    email: data?.email || '',
+    phone: data?.phoneNumber || '',
+    birthday: data?.birthday || '',
+    nationality: data?.nationality || 'Việt Nam',
+    studyLevel: data?.studyLevel || 'Đại học',
+    targetBand: data?.targetBand || '6.5',
+    bio: data?.bio || '',
+  });
+
   // Load thông tin user khi mount
   useEffect(() => {
     const load = async () => {
@@ -59,17 +79,7 @@ export default function DashboardProfile() {
         setLoading(true);
         setError('');
         const data = await authApi.getCurrentUser();
-        // Map từ backend field names → form field names
-        const mapped = {
-          name: data.fullName || data.username || '',
-          email: data.email || '',
-          phone: data.phoneNumber || '',
-          birthday: data.birthday || '',
-          nationality: data.nationality || 'Việt Nam',
-          studyLevel: data.studyLevel || 'Đại học',
-          targetBand: data.targetBand || '6.5',
-          bio: data.bio || '',
-        };
+        const mapped = mapUserToForm(data);
         setForm(mapped);
         setOriginalForm(mapped);
         setUserId(data.id);
@@ -96,17 +106,29 @@ export default function DashboardProfile() {
     setSaving(true);
     setSaveError('');
     try {
-      await authApi.updateProfile(userId, {
+      const payload = {
         fullName: form.name,
         email: form.email,
         phoneNumber: form.phone,
-        birthday: form.birthday ? form.birthday : null,
-        nationality: form.nationality,
-        studyLevel: form.studyLevel,
-        targetBand: form.targetBand,
         bio: form.bio,
-      });
-      setOriginalForm({ ...form });
+      };
+
+      // Chỉ gửi các trường học viên khi user có role STUDENT
+      if (isStudent) {
+        payload.birthday = form.birthday ? form.birthday : null;
+        payload.nationality = form.nationality;
+        payload.studyLevel = form.studyLevel;
+        payload.targetBand = form.targetBand;
+      }
+
+      const updated = await authApi.updateProfile(userId, payload);
+
+      // Đồng bộ lại theo dữ liệu thực tế backend trả về
+      const mapped = mapUserToForm(updated);
+      setForm(mapped);
+      setOriginalForm(mapped);
+      setRoles(Array.isArray(updated?.roles) ? updated.roles : roles);
+
       setEditing(false);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
@@ -127,9 +149,9 @@ export default function DashboardProfile() {
     ? form.name.split(' ').map((w) => w[0]).filter(Boolean).slice(-2).join('').toUpperCase()
     : '?';
 
-  const memberType = roles.includes('ADMIN') ? 'Quản trị viên'
-    : roles.includes('MANAGER') ? 'Quản lý'
-      : roles.includes('TEACHER') ? 'Giảng viên'
+  const memberType = isAdmin ? 'Quản trị viên'
+    : isManager ? 'Quản lý'
+      : isTeacher ? 'Giảng viên'
         : 'Thành viên';
 
   // Loading screen
@@ -212,35 +234,53 @@ export default function DashboardProfile() {
             </span>
             <div className="prof-avatar-meta">
               {joinDate && <span><Calendar size={13} /> Từ {joinDate}</span>}
-              <span><Target size={13} /> Mục tiêu Band {form.targetBand}</span>
+              {isStudent ? (
+                <span><Target size={13} /> Mục tiêu Band {form.targetBand}</span>
+              ) : (
+                <span><Target size={13} /> Vai trò: {memberType}</span>
+              )}
+            </div>
+
+            <div className="prof-role-tags">
+              {normalizedRoles.map((r) => (
+                <span key={r} className="prof-role-tag">{r}</span>
+              ))}
             </div>
           </div>
 
-          {/* Skill score summary */}
-          <div className="prof-skill-card">
-            <h3 className="prof-section-title">Điểm kỹ năng</h3>
-            <div className="prof-skill-list">
-              {SKILL_SCORES.map(({ skill, score, icon: Icon }) => {
-                const meta = SKILL_META[skill];
-                return (
-                  <div className="prof-skill-row" key={skill}>
-                    <div className="prof-skill-icon" style={{ background: meta.bg, color: meta.text }}>
-                      <Icon size={14} />
-                    </div>
-                    <div className="prof-skill-body">
-                      <div className="prof-skill-top">
-                        <span className="prof-skill-name">{meta.label}</span>
-                        <span className="prof-skill-score" style={{ color: meta.text }}>
-                          {score !== null ? score : '—'}
-                        </span>
+          {isStudent ? (
+            <div className="prof-skill-card">
+              <h3 className="prof-section-title">Điểm kỹ năng</h3>
+              <div className="prof-skill-list">
+                {SKILL_SCORES.map(({ skill, score, icon: Icon }) => {
+                  const meta = SKILL_META[skill];
+                  return (
+                    <div className="prof-skill-row" key={skill}>
+                      <div className="prof-skill-icon" style={{ background: meta.bg, color: meta.text }}>
+                        <Icon size={14} />
                       </div>
-                      {score !== null && <ScoreBar score={score} color={meta.text} />}
+                      <div className="prof-skill-body">
+                        <div className="prof-skill-top">
+                          <span className="prof-skill-name">{meta.label}</span>
+                          <span className="prof-skill-score" style={{ color: meta.text }}>
+                            {score !== null ? score : '—'}
+                          </span>
+                        </div>
+                        {score !== null && <ScoreBar score={score} color={meta.text} />}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="prof-skill-card">
+              <h3 className="prof-section-title">Thông tin tài khoản</h3>
+              <p className="prof-account-note">
+                Bạn đang đăng nhập với vai trò <strong>{memberType}</strong>. Một số trường học tập chỉ áp dụng cho học viên sẽ được ẩn.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* ── Right: form ── */}
@@ -272,54 +312,58 @@ export default function DashboardProfile() {
                 : <p className="prof-value">{form.phone}</p>}
             </div>
 
-            {/* Birthday */}
-            <div className="prof-field">
-              <label className="prof-label"><Calendar size={14} /> Ngày sinh</label>
-              {editing
-                ? <input className="prof-input" name="birthday" type="date" value={form.birthday} onChange={handleChange} />
-                : <p className="prof-value">{form.birthday}</p>}
-            </div>
+            {isStudent && (
+              <>
+                {/* Birthday */}
+                <div className="prof-field">
+                  <label className="prof-label"><Calendar size={14} /> Ngày sinh</label>
+                  {editing
+                    ? <input className="prof-input" name="birthday" type="date" value={form.birthday} onChange={handleChange} />
+                    : <p className="prof-value">{form.birthday || '—'}</p>}
+                </div>
 
-            {/* Nationality */}
-            <div className="prof-field">
-              <label className="prof-label"><Globe size={14} /> Quốc tịch</label>
-              {editing
-                ? (
-                  <select className="prof-input" name="nationality" value={form.nationality} onChange={handleChange}>
-                    {NATIONALITIES.map((n) => <option key={n} value={n}>{n}</option>)}
-                  </select>
-                )
-                : <p className="prof-value">{form.nationality}</p>}
-            </div>
+                {/* Nationality */}
+                <div className="prof-field">
+                  <label className="prof-label"><Globe size={14} /> Quốc tịch</label>
+                  {editing
+                    ? (
+                      <select className="prof-input" name="nationality" value={form.nationality} onChange={handleChange}>
+                        {NATIONALITIES.map((n) => <option key={n} value={n}>{n}</option>)}
+                      </select>
+                    )
+                    : <p className="prof-value">{form.nationality || '—'}</p>}
+                </div>
 
-            {/* Study level */}
-            <div className="prof-field">
-              <label className="prof-label"><BookOpen size={14} /> Trình độ học vấn</label>
-              {editing
-                ? (
-                  <select className="prof-input" name="studyLevel" value={form.studyLevel} onChange={handleChange}>
-                    {STUDY_LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
-                  </select>
-                )
-                : <p className="prof-value">{form.studyLevel}</p>}
-            </div>
+                {/* Study level */}
+                <div className="prof-field">
+                  <label className="prof-label"><BookOpen size={14} /> Trình độ học vấn</label>
+                  {editing
+                    ? (
+                      <select className="prof-input" name="studyLevel" value={form.studyLevel} onChange={handleChange}>
+                        {STUDY_LEVELS.map((l) => <option key={l} value={l}>{l}</option>)}
+                      </select>
+                    )
+                    : <p className="prof-value">{form.studyLevel || '—'}</p>}
+                </div>
 
-            {/* Target band */}
-            <div className="prof-field">
-              <label className="prof-label"><Target size={14} /> Mục tiêu Band</label>
-              {editing
-                ? (
-                  <select className="prof-input" name="targetBand" value={form.targetBand} onChange={handleChange}>
-                    {TARGET_BANDS.map((b) => <option key={b} value={b}>{b}</option>)}
-                  </select>
-                )
-                : <p className="prof-value">Band {form.targetBand}</p>}
-            </div>
+                {/* Target band */}
+                <div className="prof-field">
+                  <label className="prof-label"><Target size={14} /> Mục tiêu Band</label>
+                  {editing
+                    ? (
+                      <select className="prof-input" name="targetBand" value={form.targetBand} onChange={handleChange}>
+                        {TARGET_BANDS.map((b) => <option key={b} value={b}>{b}</option>)}
+                      </select>
+                    )
+                    : <p className="prof-value">Band {form.targetBand || '—'}</p>}
+                </div>
+              </>
+            )}
           </div>
 
           {/* Bio */}
           <div className="prof-field" style={{ marginTop: 20 }}>
-            <label className="prof-label"><Edit3 size={14} /> Giới thiệu bản thân</label>
+            <label className="prof-label"><Edit3 size={14} /> {isTeacher ? 'Giới thiệu giảng dạy' : 'Giới thiệu bản thân'}</label>
             {editing
               ? (
                 <textarea

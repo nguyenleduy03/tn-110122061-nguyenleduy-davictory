@@ -34,9 +34,15 @@ const ROLES = {
   STUDENT: { label: 'Học viên', color: '#2563eb', bg: '#eff6ff', icon: BookOpen }
 };
 
+const hasAdminRole = (roles) => {
+  if (!Array.isArray(roles)) return false;
+  return roles.some((r) => (typeof r === 'string' ? r === 'ADMIN' : (r?.name === 'ADMIN' || r?.roleName === 'ADMIN')));
+};
+
 export default function AdminUsers() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('ALL'); // ALL, ADMIN, MANAGER, TEACHER, STUDENT
   const [showModal, setShowModal] = useState(null);
@@ -50,7 +56,7 @@ export default function AdminUsers() {
 
   // Lấy thông tin user hiện tại
   const currentUser = authApi.getStoredUser();
-  const isCurrentUserAdmin = currentUser?.roles?.includes('ADMIN');
+  const isCurrentUserAdmin = hasAdminRole(currentUser?.roles);
 
   // Kiểm tra quyền truy cập
   useEffect(() => {
@@ -68,11 +74,12 @@ export default function AdminUsers() {
   const fetchUsers = async () => {
     try {
       setLoading(true);
+      setLoadError('');
       const data = await authApi.getAllUsers();
-      setUsers(data);
+      setUsers(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching users:', error);
-      // Fallback to empty array if API fails
+      setLoadError(error?.response?.data?.message || 'Không thể tải danh sách người dùng. Vui lòng kiểm tra quyền ADMIN hoặc API backend.');
       setUsers([]);
     } finally {
       setLoading(false);
@@ -80,12 +87,15 @@ export default function AdminUsers() {
   };
 
   const filteredUsers = users.filter(user => {
-    const matchesSearch = user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const fullName = (user.fullName || '').toLowerCase();
+    const username = (user.username || '').toLowerCase();
+    const email = (user.email || '').toLowerCase();
+    const query = searchTerm.toLowerCase();
+
+    const matchesSearch = fullName.includes(query) || username.includes(query) || email.includes(query);
     
     if (activeTab === 'ALL') return matchesSearch;
-    return matchesSearch && user.roles.includes(activeTab);
+    return matchesSearch && Array.isArray(user.roles) && user.roles.includes(activeTab);
   });
 
   const handleToggleActive = async (userId) => {
@@ -388,6 +398,21 @@ export default function AdminUsers() {
           </div>
         </div>
 
+        {loadError && (
+          <div style={{
+            marginBottom: 16,
+            padding: '12px 16px',
+            borderRadius: 10,
+            border: '1px solid #fecaca',
+            background: '#fef2f2',
+            color: '#dc2626',
+            fontSize: 14,
+            fontWeight: 500
+          }}>
+            {loadError}
+          </div>
+        )}
+
         {/* Users Table */}
         {loading ? (
           <div style={{ 
@@ -395,6 +420,17 @@ export default function AdminUsers() {
             padding: 60, textAlign: 'center', color: '#6b7280'
           }}>
             Đang tải dữ liệu người dùng...
+          </div>
+        ) : filteredUsers.length === 0 ? (
+          <div style={{
+            background: 'white',
+            borderRadius: 12,
+            border: '1px solid #e5e7eb',
+            padding: 42,
+            textAlign: 'center',
+            color: '#64748b'
+          }}>
+            Không có dữ liệu người dùng phù hợp.
           </div>
         ) : (
           <div style={{ 
