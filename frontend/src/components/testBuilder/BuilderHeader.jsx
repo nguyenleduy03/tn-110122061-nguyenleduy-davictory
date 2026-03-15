@@ -148,7 +148,7 @@ const BuilderHeader = ({
       <div className="tb-titlebar">
         <div className="tb-header-left">
           <Link to="/" className="tb-back-btn" title="Trang chủ"><ArrowLeft size={16} /></Link>
-          <Link to="/teacher/tests" className="tb-back-btn" title="Danh sách đề thi"><List size={16} /></Link>
+          <Link to="/lms/teacher/tests" className="tb-back-btn" title="Danh sách đề thi"><List size={16} /></Link>
           <div className="tb-divider" />
           <input
             className="tb-title-input"

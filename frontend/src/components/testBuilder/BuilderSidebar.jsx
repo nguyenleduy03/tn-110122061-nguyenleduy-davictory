@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { Headphones, BookOpen, PenLine, Mic } from 'lucide-react';
 
@@ -91,16 +91,27 @@ function DraggablePaletteItem({ item }) {
 
 const BuilderSidebar = ({ parts, sessions, activeSessionKey, selection, onSelectSession, onSelectPart, onSelectGroup, enabledSkills }) => {
   const [openParts, setOpenParts] = useState({});
+  const [paletteQuery, setPaletteQuery] = useState('');
 
   const togglePart = (partId) => setOpenParts((prev) => ({ ...prev, [partId]: !prev[partId] }));
 
   const selectedPartId   = selection?.type === 'part'  ? selection.data.id : null;
   const selectedGroupId  = selection?.type === 'group' ? selection.data.id : null;
 
-  // Filter palette items to only show relevant types for the active skill
-  const filteredPalette = PALETTE_ITEMS.filter(
-    (item) => !item.skills || item.skills.includes(activeSessionKey)
-  );
+  // Filter palette items to only show relevant types for the active skill + search keyword
+  const filteredPalette = useMemo(() => {
+    const bySkill = PALETTE_ITEMS.filter(
+      (item) => !item.skills || item.skills.includes(activeSessionKey)
+    );
+
+    const q = paletteQuery.trim().toLowerCase();
+    if (!q) return bySkill;
+
+    return bySkill.filter((item) => {
+      const text = `${item.label} ${item.contentType}`.toLowerCase();
+      return text.includes(q);
+    });
+  }, [activeSessionKey, paletteQuery]);
 
   return (
     <aside className="tb-sidebar">
@@ -143,11 +154,11 @@ const BuilderSidebar = ({ parts, sessions, activeSessionKey, selection, onSelect
                   <div key={g.id} className={`tb-tree-group-item${isGrpActive ? ' active' : ''}`}
                     onClick={(e) => { e.stopPropagation(); onSelectGroup({ ...g, partId: part.id }); }}>
                     <span className="tb-tree-dot" />
-                    <span style={{ padding: '1px 5px', borderRadius: 3, fontSize: 10, fontWeight: 700, background: meta.bg, color: meta.color }}>{meta.label}</span>
-                    <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <span className="tb-tree-group-badge" style={{ background: meta.bg, color: meta.color }}>{meta.label}</span>
+                    <span className="tb-tree-group-name">
                       {g.title || '(chưa đặt tên)'}
                     </span>
-                    <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{g.questions?.length ?? 0}</span>
+                    <span className="tb-tree-group-count">{g.questions?.length ?? 0}</span>
                   </div>
                 );
               })}
@@ -155,7 +166,7 @@ const BuilderSidebar = ({ parts, sessions, activeSessionKey, selection, onSelect
           );
         })}
         {(parts ?? []).length === 0 && (
-          <div style={{ padding: '16px 14px', fontSize: 12, color: 'rgba(255,255,255,0.3)', textAlign: 'center' }}>
+          <div className="tb-tree-empty">
             Chưa có Part nào
           </div>
         )}
@@ -164,11 +175,30 @@ const BuilderSidebar = ({ parts, sessions, activeSessionKey, selection, onSelect
       {/* Drag palette */}
       <div className="tb-palette">
         <div className="tb-palette-title">Kéo thành phần vào đề</div>
+        <input
+          className="tb-palette-search"
+          value={paletteQuery}
+          onChange={(e) => setPaletteQuery(e.target.value)}
+          placeholder="Tìm nhanh dạng câu hỏi..."
+        />
+
+        <div className="tb-dnd-guide">
+          <p><strong>Kéo-thả nhanh</strong></p>
+          <ul>
+            <li>Kéo loại câu hỏi từ danh sách bên dưới vào vùng canvas.</li>
+            <li>Với Reading, kéo <strong>Reading Passage</strong> vào cột trái trước.</li>
+            <li>Sau đó kéo nhóm câu hỏi vào cột phải để hoàn tất.</li>
+          </ul>
+        </div>
+
         <div className="tb-palette-grid">
           {filteredPalette.map((item) => (
             <DraggablePaletteItem key={item.contentType} item={item} />
           ))}
         </div>
+        {filteredPalette.length === 0 && (
+          <div className="tb-palette-empty">Không có thành phần phù hợp từ khóa.</div>
+        )}
       </div>
     </aside>
   );
