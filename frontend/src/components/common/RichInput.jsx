@@ -120,6 +120,9 @@ const RichInput = ({ value, onChange, placeholder, style, multiline, className, 
     <div
       className={`rich-input-wrap${multiline ? ' rich-input-multiline' : ''}${className ? ` ${className}` : ''}`}
       style={style}
+      onMouseDown={(e) => e.stopPropagation()}
+      onMouseUp={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
     >
       {focused && (
         <div className="rich-input-toolbar" onMouseDown={(e) => e.preventDefault()}>
@@ -151,6 +154,9 @@ const RichInput = ({ value, onChange, placeholder, style, multiline, className, 
         className={`rich-input-content${multiline ? ' rich-input-content--multiline' : ''}`}
         data-placeholder={placeholder}
         style={minHeight ? { minHeight } : undefined}
+        onMouseDown={(e) => e.stopPropagation()}
+        onMouseUp={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
         onFocus={() => { setFocused(true); updateActive(); }}
         onBlur={(e) => { setFocused(false); onChange(e.currentTarget.innerHTML); }}
         onInput={(e) => { onChange(e.currentTarget.innerHTML); updateActive(); }}

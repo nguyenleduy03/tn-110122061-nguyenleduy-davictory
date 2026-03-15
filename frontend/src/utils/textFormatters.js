@@ -13,3 +13,32 @@ export const formatTextWithWhitespace = (text) => {
     .replace(/\u00A0/g, ' ')
     .replace(/\\n|\n/g, '<br/>');
 };
+
+/**
+ * Decode HTML entities if text was stored as escaped HTML.
+ * Example: "&lt;b&gt;Hello&lt;/b&gt;" -> "<b>Hello</b>"
+ */
+export const decodeHtmlEntities = (text) => {
+  if (typeof text !== 'string') return text || '';
+  if (!/[&](lt|gt|amp|quot|#39);/i.test(text)) return text;
+
+  try {
+    const textarea = document.createElement('textarea');
+    textarea.innerHTML = text;
+    return textarea.value;
+  } catch {
+    return text;
+  }
+};
+
+/**
+ * Normalize rich HTML from editor/database so render is consistent.
+ */
+export const normalizeRichHtml = (text) => {
+  if (typeof text !== 'string') return text || '';
+  const decoded = decodeHtmlEntities(text);
+  return decoded
+    .replace(/\u00A0/g, ' ')
+    .replace(/\\t|\/t|\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;')
+    .replace(/\\n|\n/g, '<br/>');
+};

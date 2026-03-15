@@ -4,17 +4,12 @@
  */
 import React, { useState, useMemo } from 'react';
 import { X, Volume2, BookOpen, Headphones, PenLine, Mic, ChevronLeft, ChevronRight, Clock, FileText } from 'lucide-react';
+import { normalizeRichHtml } from '../../utils/textFormatters';
 
 // ---- Helpers (mirrors ExamCanvas) ----
 
 const formatPreviewText = (text) => {
-  if (typeof text !== 'string') return text || '';
-  return text
-    .replace(/\/t/g, '&nbsp;&nbsp;&nbsp;&nbsp;')
-    .replace(/\\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;')
-    .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;')
-    .replace(/\\n/g, '<br/>')
-    .replace(/\n/g, '<br/>');
+  return normalizeRichHtml(text);
 };
 
 const toRoman = (n) => {
@@ -30,14 +25,15 @@ const toRoman = (n) => {
 const toPlainText = (value) => {
   if (!value) return '';
   if (typeof value !== 'string') return String(value);
-  if (!value.includes('<')) return value.trim();
+  const normalized = normalizeRichHtml(value);
+  if (!normalized.includes('<')) return normalized.trim();
 
   try {
     const el = document.createElement('div');
-    el.innerHTML = value;
+    el.innerHTML = normalized;
     return (el.textContent || el.innerText || '').replace(/\s+/g, ' ').trim();
   } catch {
-    return value.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    return normalized.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
   }
 };
 
@@ -426,7 +422,7 @@ const DragMatchingGroup = ({ group, activeQ, onSetActive }) => {
       <div className="pv-dm-layout">
         {/* Left: items + drop zones */}
         <div className="pv-dm-left">
-          {group.leftTitle && <div className="pv-dm-col-header">{group.leftTitle}</div>}
+          {group.leftTitle && <div className="pv-dm-col-header" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.leftTitle) }} />}
           {questions.map((q) => {
             const active = activeQ === q.questionNumber;
             const filled = answers[q.questionNumber];
@@ -455,7 +451,7 @@ const DragMatchingGroup = ({ group, activeQ, onSetActive }) => {
                   title={filled ? 'Click để trả lại' : 'Thả đáp án vào đây'}
                 >
                   {filled
-                    ? <span className="pv-dm-gap-filled">{filled.text}</span>
+                    ? <span className="pv-dm-gap-filled" dangerouslySetInnerHTML={{ __html: formatPreviewText(filled.text) }} />
                     : <span className="pv-dm-gap-num">{q.questionNumber}</span>
                   }
                 </div>
@@ -466,7 +462,7 @@ const DragMatchingGroup = ({ group, activeQ, onSetActive }) => {
 
         {/* Right: word bank */}
         <div className="pv-dm-right">
-          {group.rightTitle && <div className="pv-dm-col-header">{group.rightTitle}</div>}
+          {group.rightTitle && <div className="pv-dm-col-header" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.rightTitle) }} />}
           <div className="pv-dm-bank">
             {bankChips.map((chip) => (
               <div
@@ -480,7 +476,7 @@ const DragMatchingGroup = ({ group, activeQ, onSetActive }) => {
                 }}
                 onDragEnd={() => setDragId(null)}
               >
-                {chip.text}
+                <span dangerouslySetInnerHTML={{ __html: formatPreviewText(chip.text) }} />
               </div>
             ))}
           </div>
@@ -760,7 +756,7 @@ const FlowChartGroup = ({ group, activeQ, onSetActive }) => {
             title={filled ? 'Click để xóa' : `Kéo đáp án vào ô ${qNum}`}
           >
             {filled
-              ? <span className="pv-fc-blank-text">{filled.text}</span>
+              ? <span className="pv-fc-blank-text" dangerouslySetInnerHTML={{ __html: formatPreviewText(filled.text) }} />
               : <span className="pv-fc-blank-num">{qNum ?? '?'}</span>
             }
           </span>
@@ -801,7 +797,7 @@ const FlowChartGroup = ({ group, activeQ, onSetActive }) => {
 
         {/* Right: word bank */}
         <div className="pv-fc-bank">
-          {group.bankTitle && <div className="pv-dm-col-header">{group.bankTitle}</div>}
+          {group.bankTitle && <div className="pv-dm-col-header" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.bankTitle) }} />}
           <div className="pv-dm-bank">
             {bankChips.length === 0
               ? <em style={{ fontSize: 12, color: '#9ca3af' }}>Tất cả đã được đặt</em>
@@ -817,7 +813,7 @@ const FlowChartGroup = ({ group, activeQ, onSetActive }) => {
                   }}
                   onDragEnd={() => setDragId(null)}
                 >
-                  {chip.text}
+                  <span dangerouslySetInnerHTML={{ __html: formatPreviewText(chip.text) }} />
                 </div>
               ))
             }
@@ -892,12 +888,16 @@ const SpeakingCueCardGroup = ({ group }) => {
         </div>
         {(bulletPoints.length > 0 || group.closingSentence) && (
           <>
-            <div className="pv-spk-cc-youshould">{group.shouldSayLabel || 'You should say:'}</div>
+            <div className="pv-spk-cc-youshould">
+              <span dangerouslySetInnerHTML={{ __html: formatPreviewText(group.shouldSayLabel || 'You should say:') }} />
+            </div>
             <ul className="pv-spk-cc-bullets">
-              {bulletPoints.map((bp, i) => <li key={i}>{bp}</li>)}
+              {bulletPoints.map((bp, i) => <li key={i} dangerouslySetInnerHTML={{ __html: formatPreviewText(bp) }} />)}
             </ul>
             {group.closingSentence && (
-              <div className="pv-spk-cc-closing">{group.closingSentence}</div>
+              <div className="pv-spk-cc-closing">
+                <span dangerouslySetInnerHTML={{ __html: formatPreviewText(group.closingSentence) }} />
+              </div>
             )}
           </>
         )}

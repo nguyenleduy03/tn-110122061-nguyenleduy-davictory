@@ -67,6 +67,19 @@ const TYPE_META = {
   SPEAKING_CUECARD:      { label: 'CC', bg: '#fdf4ff', color: '#7e22ce' },
 };
 
+const toTreePlainText = (value) => {
+  if (!value) return '';
+  if (typeof value !== 'string') return String(value);
+
+  try {
+    const el = document.createElement('div');
+    el.innerHTML = value;
+    return (el.textContent || el.innerText || '').replace(/\s+/g, ' ').trim();
+  } catch {
+    return value.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+};
+
 function DraggablePaletteItem({ item }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `palette-${item.contentType}`,
@@ -156,7 +169,7 @@ const BuilderSidebar = ({ parts, sessions, activeSessionKey, selection, onSelect
               <div className={`tb-tree-part-header${isPartActive ? ' active' : ''}`}
                 onClick={() => { togglePart(part.id); onSelectPart(part); }}>
                 <span className={`tb-tree-chevron${isPartOpen ? ' open' : ''}`}>▶</span>
-                <span className="tb-tree-part-name">{part.name || `Part ${part.orderIndex}`}</span>
+                <span className="tb-tree-part-name">{toTreePlainText(part.name) || `Part ${part.orderIndex}`}</span>
                 <span className="tb-tree-part-count">{groups.length} nhóm</span>
               </div>
               {isPartOpen && groups.map((g) => {
@@ -168,7 +181,7 @@ const BuilderSidebar = ({ parts, sessions, activeSessionKey, selection, onSelect
                     <span className="tb-tree-dot" />
                     <span className="tb-tree-group-badge" style={{ background: meta.bg, color: meta.color }}>{meta.label}</span>
                     <span className="tb-tree-group-name">
-                      {g.title || '(chưa đặt tên)'}
+                      {toTreePlainText(g.title) || '(chưa đặt tên)'}
                     </span>
                     <span className="tb-tree-group-count">{g.questions?.length ?? 0}</span>
                   </div>

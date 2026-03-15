@@ -9,6 +9,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { useDroppable } from '@dnd-kit/core';
 import { GripVertical, X, Volume2, Image, Plus, ChevronUp, ChevronDown, FileText, ClipboardList, Mic, PenLine } from 'lucide-react';
 import RichInput from '../common/RichInput';
+import { normalizeRichHtml } from '../../utils/textFormatters';
 
 // ---- Type metadata ----
 const TYPE_META = {
@@ -47,14 +48,15 @@ const toRoman = (n) => {
 const toPlainText = (value) => {
   if (!value) return '';
   if (typeof value !== 'string') return String(value);
-  if (!value.includes('<')) return value.trim();
+  const normalized = normalizeRichHtml(value);
+  if (!normalized.includes('<')) return normalized.trim();
 
   try {
     const el = document.createElement('div');
-    el.innerHTML = value;
+    el.innerHTML = normalized;
     return (el.textContent || el.innerText || '').replace(/\s+/g, ' ').trim();
   } catch {
-    return value.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    return normalized.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
   }
 };
 
@@ -636,15 +638,16 @@ const QuestionItem = ({ question, selected, onClick, onUpdate, onDelete }) => {
               {(question.options ?? []).map((opt, i) => (
                 <div key={i} className="exam-q-option">
                   <input type="checkbox" readOnly checked={false} onChange={() => {}} />
-                  <input className="exam-q-option-text-input"
+                  <RichInput
+                    style={{ flex: 1 }}
                     value={opt.optionText || ''}
                     placeholder={`Lựa chọn ${String.fromCharCode(65 + i)}`}
-                    onChange={(e) => {
+                    onChange={(html) => {
                       const opts = [...(question.options ?? [])];
-                      opts[i] = { ...opts[i], optionText: e.target.value };
+                      opts[i] = { ...opts[i], optionText: html };
                       onUpdate({ options: opts });
                     }}
-                    onClick={(e) => e.stopPropagation()} />
+                  />
                   <input type="checkbox" className="exam-q-option-correct"
                     checked={!!opt.isCorrect} title="Đáp án đúng"
                     onChange={(e) => {
@@ -683,20 +686,24 @@ const QuestionItem = ({ question, selected, onClick, onUpdate, onDelete }) => {
         {(type === 'FILL_IN_BLANK' || type === 'NOTE_COMPLETION') && (
           <div>
             <div style={{ fontSize: 13, color: '#777', marginBottom: 4 }}>Đáp án:</div>
-            <input className="exam-q-fill-answer"
+            <RichInput
+              style={{ minWidth: 220 }}
               value={question.answerText || ''}
               placeholder="đáp án mẫu..."
-              onChange={(e) => onUpdate({ answerText: e.target.value })}
-              onClick={(e) => e.stopPropagation()} />
+              onChange={(html) => onUpdate({ answerText: html })}
+            />
           </div>
         )}
 
         {type === 'SHORT_ANSWER' && (
-          <textarea className="exam-q-answer-area" rows={2}
+          <RichInput
+            multiline
+            rows={2}
+            style={{ width: '100%' }}
             placeholder="Gợi ý đáp án..."
             value={question.answerText || ''}
-            onChange={(e) => onUpdate({ answerText: e.target.value })}
-            onClick={(e) => e.stopPropagation()} />
+            onChange={(html) => onUpdate({ answerText: html })}
+          />
         )}
       </div>
       <button className="exam-group-tool-btn danger" style={{ flexShrink: 0, marginTop: 3 }}
@@ -1293,11 +1300,12 @@ const DragMatchingBlock = ({ group, onUpdate, onDelete, onSelect, selected, drag
         {/* Left column: items */}
         <div className="exam-dm-left">
           <div className="exam-dm-col-header">
-            <input className="exam-dm-col-title-input"
+            <RichInput
+              style={{ width: '100%' }}
               value={group.leftTitle ?? ''}
               placeholder="Cột trái (VD: People)"
-              onChange={(e) => onUpdate(group.id, { leftTitle: e.target.value })}
-              onClick={(e) => e.stopPropagation()} />
+              onChange={(html) => onUpdate(group.id, { leftTitle: html })}
+            />
           </div>
           <div className="exam-q-range-header" style={{ marginTop: 6, marginBottom: 8 }}>
             Câu&nbsp;
@@ -1313,11 +1321,12 @@ const DragMatchingBlock = ({ group, onUpdate, onDelete, onSelect, selected, drag
             <div key={q.id}
               className={`exam-dm-row${selectedQuestionId === q.id ? ' selected' : ''}`}
               onClick={(e) => { e.stopPropagation(); onSelectQuestion(q); }}>
-              <input className="exam-dm-item-name"
+              <RichInput
+                style={{ flex: 1 }}
                 value={q.questionText || ''}
                 placeholder="Tên mục (VD: Mary Brown)"
-                onChange={(e) => onUpdateQuestion(group.id, q.id, { questionText: e.target.value })}
-                onClick={(e) => e.stopPropagation()} />
+                onChange={(html) => onUpdateQuestion(group.id, q.id, { questionText: html })}
+              />
               <div className="exam-dm-gap">
                 <span className="exam-dm-q-num">{q.questionNumber ?? '?'}</span>
               </div>
@@ -1343,24 +1352,25 @@ const DragMatchingBlock = ({ group, onUpdate, onDelete, onSelect, selected, drag
         {/* Right column: word bank */}
         <div className="exam-dm-right">
           <div className="exam-dm-col-header">
-            <input className="exam-dm-col-title-input"
+            <RichInput
+              style={{ width: '100%' }}
               value={group.rightTitle ?? ''}
               placeholder="Cột phải (VD: Staff Responsibilities)"
-              onChange={(e) => onUpdate(group.id, { rightTitle: e.target.value })}
-              onClick={(e) => e.stopPropagation()} />
+              onChange={(html) => onUpdate(group.id, { rightTitle: html })}
+            />
           </div>
           <div className="exam-dm-bank">
             {options.map((o, i) => (
               <div key={i} className="exam-dm-option">
-                <input className="exam-q-text-input" style={{ flex: 1, margin: 0 }}
+                <RichInput style={{ flex: 1 }}
                   value={o.text || ''}
                   placeholder={`Lựa chọn ${i + 1}...`}
-                  onChange={(e) => {
+                  onChange={(html) => {
                     const n = [...options];
-                    n[i] = { ...n[i], text: e.target.value };
+                    n[i] = { ...n[i], text: html };
                     onUpdate(group.id, { optionBank: n });
                   }}
-                  onClick={(e) => e.stopPropagation()} />
+                />
                 <button className="exam-q-del-btn"
                   onClick={(e) => { e.stopPropagation(); onUpdate(group.id, { optionBank: options.filter((_, j) => j !== i) }); }}>
                   ×
@@ -1636,6 +1646,9 @@ const MultipleChoiceBlock = ({ group, onUpdate, onDelete, onSelect, selected, dr
       {/* Optional shared context / instructions */}
       <div contentEditable suppressContentEditableWarning className="exam-mc-context"
         data-placeholder="Ngữ cảnh chung (nếu có, VD: What does the speaker say about...)"
+        onMouseDown={(e) => e.stopPropagation()}
+        onMouseUp={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
         onBlur={(e) => onUpdate(group.id, { title: e.currentTarget.innerHTML })}
         dangerouslySetInnerHTML={{ __html: group.title || '' }}
       />
@@ -1758,6 +1771,9 @@ const MultipleChoiceMultiBlock = ({ group, onUpdate, onDelete, onSelect, selecte
       </div>
       <div contentEditable suppressContentEditableWarning className="exam-mc-context"
         data-placeholder="Ngữ cảnh chung (nếu có)..."
+        onMouseDown={(e) => e.stopPropagation()}
+        onMouseUp={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
         onBlur={(e) => onUpdate(group.id, { title: e.currentTarget.innerHTML })}
         dangerouslySetInnerHTML={{ __html: group.title || '' }}
       />
@@ -1876,6 +1892,9 @@ const TFNGBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandlePr
       </div>
       <div contentEditable suppressContentEditableWarning className="exam-mc-context"
         data-placeholder="Tiêu đề / ngữ cảnh chung (nếu có)..."
+        onMouseDown={(e) => e.stopPropagation()}
+        onMouseUp={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
         onBlur={(e) => onUpdate(group.id, { title: e.currentTarget.innerHTML })}
         dangerouslySetInnerHTML={{ __html: group.title || '' }}
       />
@@ -1939,6 +1958,9 @@ const SentenceCompletionBlock = ({ group, onUpdate, onDelete, onSelect, selected
     </div>
     <div contentEditable suppressContentEditableWarning className="exam-mc-context"
       data-placeholder="Tiêu đề / ngữ cảnh (nếu có)..."
+      onMouseDown={(e) => e.stopPropagation()}
+      onMouseUp={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
       onBlur={(e) => onUpdate(group.id, { title: e.currentTarget.innerHTML })}
       dangerouslySetInnerHTML={{ __html: group.title || '' }}
     />
@@ -1994,6 +2016,9 @@ const ShortAnswerBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragH
     </div>
     <div contentEditable suppressContentEditableWarning className="exam-mc-context"
       data-placeholder="Tiêu đề / ngữ cảnh (nếu có)..."
+      onMouseDown={(e) => e.stopPropagation()}
+      onMouseUp={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
       onBlur={(e) => onUpdate(group.id, { title: e.currentTarget.innerHTML })}
       dangerouslySetInnerHTML={{ __html: group.title || '' }}
     />
@@ -2048,6 +2073,9 @@ const NoteCompletionBlock = ({ group, onUpdate, onDelete, onSelect, selected, dr
 
     {/* Note title (e.g. "Phone call about second-hand furniture") */}
     <div contentEditable suppressContentEditableWarning className="exam-note-form-title"
+      onMouseDown={(e) => e.stopPropagation()}
+      onMouseUp={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
       onBlur={(e) => onUpdate(group.id, { title: e.currentTarget.innerHTML })}
       data-placeholder="Tiêu đề ghi chú (VD: Phone call about furniture)"
       dangerouslySetInnerHTML={{ __html: group.title || '' }}
@@ -2094,6 +2122,9 @@ const SummaryCompletionBlock = ({ group, onUpdate, onDelete, onSelect, selected,
 
     {/* Summary title */}
     <div contentEditable suppressContentEditableWarning className="exam-passage-title"
+      onMouseDown={(e) => e.stopPropagation()}
+      onMouseUp={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
       onBlur={(e) => onUpdate(group.id, { title: e.currentTarget.innerHTML })}
       dangerouslySetInnerHTML={{ __html: group.title || '' }}
     />
@@ -2214,24 +2245,25 @@ function FlowChartBlock({ group, onUpdate, onDelete, onSelect, selected, dragHan
         {/* Right: word bank */}
         <div className="exam-fc-bank">
           <div className="exam-dm-col-header">
-            <input className="exam-dm-col-title-input"
+            <RichInput
+              style={{ width: '100%' }}
               value={group.bankTitle ?? ''}
               placeholder="Tiêu đề ngân từ (tuỳ chọn)"
-              onChange={(e) => onUpdate(group.id, { bankTitle: e.target.value })}
-              onClick={(e) => e.stopPropagation()} />
+              onChange={(html) => onUpdate(group.id, { bankTitle: html })}
+            />
           </div>
           <div className="exam-dm-bank">
             {options.map((o, i) => (
               <div key={i} className="exam-dm-option">
-                <input className="exam-q-text-input" style={{ flex: 1, margin: 0 }}
+                <RichInput style={{ flex: 1 }}
                   value={o.text || ''}
                   placeholder={`Lựa chọn ${i + 1}...`}
-                  onChange={(e) => {
+                  onChange={(html) => {
                     const n = [...options];
-                    n[i] = { ...n[i], text: e.target.value };
+                    n[i] = { ...n[i], text: html };
                     onUpdate(group.id, { optionBank: n });
                   }}
-                  onClick={(e) => e.stopPropagation()} />
+                />
                 <button className="exam-q-del-btn"
                   onClick={(e) => { e.stopPropagation(); onUpdate(group.id, { optionBank: options.filter((_, j) => j !== i) }); }}>
                   ×
@@ -2270,11 +2302,11 @@ function FlowChartBlock({ group, onUpdate, onDelete, onSelect, selected, dragHan
           {questions.map((q) => (
             <div key={q.id} className="exam-ml-answer-row">
               <span className="exam-ml-answer-num">Câu {q.questionNumber}</span>
-              <input className="exam-q-text-input" style={{ flex: 1, margin: 0 }}
+              <RichInput style={{ flex: 1 }}
                 value={q.answerText ?? ''}
                 placeholder="Đáp án đúng..."
-                onChange={(e) => onUpdateQuestion(group.id, q.id, { answerText: e.target.value })}
-                onClick={(e) => e.stopPropagation()} />
+                onChange={(html) => onUpdateQuestion(group.id, q.id, { answerText: html })}
+              />
             </div>
           ))}
         </div>
@@ -2406,10 +2438,9 @@ const SpeakingCueCardBlock = ({ group, onUpdate, onDelete, onSelect, selected, d
           <label className="exam-wt-label" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
             <PenLine size={14} /> Nhãn nhắc
           </label>
-          <input
-            className="exam-spk-instr-input"
+          <RichInput
             value={group.shouldSayLabel ?? 'You should say:'}
-            onChange={(e) => onUpdate(group.id, { shouldSayLabel: e.target.value })}
+            onChange={(html) => onUpdate(group.id, { shouldSayLabel: html })}
           />
         </div>
 
@@ -2418,11 +2449,11 @@ const SpeakingCueCardBlock = ({ group, onUpdate, onDelete, onSelect, selected, d
           {bulletPoints.map((bp, i) => (
             <div key={i} className="exam-spk-qrow">
               <span className="exam-spk-qnum" style={{ fontSize: 16 }}>•</span>
-              <input
-                className="exam-spk-qinput"
+              <RichInput
+                style={{ flex: 1 }}
                 value={bp}
                 placeholder={`VD: who you helped`}
-                onChange={(e) => updateBullet(i, e.target.value)}
+                onChange={(html) => updateBullet(i, html)}
               />
               <button className="exam-spk-qdel" onClick={(e) => removeBullet(i, e)}><X size={12} /></button>
             </div>
@@ -2434,12 +2465,11 @@ const SpeakingCueCardBlock = ({ group, onUpdate, onDelete, onSelect, selected, d
 
         {/* Closing sentence */}
         <div className="exam-wt-section" style={{ marginTop: 8 }}>
-          <label className="exam-wt-label">🔚 Câu kết thúc (tuỳ chọn)</label>
-          <input
-            className="exam-spk-instr-input"
+          <label className="exam-wt-label">Câu kết thúc (tuỳ chọn)</label>
+          <RichInput
             value={group.closingSentence ?? ''}
             placeholder="VD: and explain how you felt about helping this person."
-            onChange={(e) => onUpdate(group.id, { closingSentence: e.target.value })}
+            onChange={(html) => onUpdate(group.id, { closingSentence: html })}
           />
         </div>
 
@@ -2840,6 +2870,7 @@ const ExamCanvas = ({
   );
 
   const activePartInstructionText = toPlainText(activePart?.instructions);
+  const activePartInstructionHtml = normalizeRichHtml(activePart?.instructions || '');
 
   // For Reading: passage pane highlights when dragging a READING_PASSAGE over the left pane
   const isPassagePaneOver = !!dragOverPassagePaneId && (
@@ -2889,7 +2920,7 @@ const ExamCanvas = ({
           <div className="exam-instruction">
             <strong>{activePart.name}</strong>
             {activePartInstructionText
-              ? <> — {activePartInstructionText}</>
+              ? <> — <span dangerouslySetInnerHTML={{ __html: activePartInstructionHtml }} /></>
               : <span style={{ color: '#aaa', fontStyle: 'italic' }}> — Chọn Part để thêm hướng dẫn</span>}
           </div>
 
