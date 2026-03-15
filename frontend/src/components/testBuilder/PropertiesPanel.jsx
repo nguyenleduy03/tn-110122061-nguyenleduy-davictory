@@ -139,7 +139,7 @@ const GroupPanel = ({ group, onChange, onDelete }) => (
         <div style={{ fontSize: 12, color: '#6b7280', padding: '6px 10px', background: '#fefce8', borderRadius: 6, border: '1px solid #fde68a' }}>
           <div>Nhập nội dung ghi chú vào canvas trực tiếp. Dùng <code>[blank]</code> để đánh dấu ô trống.</div>
           <div style={{ marginTop: '8px', padding: '6px', background: '#fff3cd', borderRadius: 4, border: '1px solid #ffeaa7' }}>
-            <strong>📍 Chú thích số thứ tự:</strong><br/>
+            <strong>Chú thích số thứ tự:</strong><br/>
             • Vị trí trong đoạn văn: 1, 2, 3, 4, 5...<br/>
             • Số câu hỏi thực tế: Sẽ tiếp tục từ group trước<br/>
             • Học viên điền đáp án theo số câu hỏi thực tế

@@ -1,6 +1,16 @@
 import React, { useMemo, useState } from 'react';
 import { useDraggable } from '@dnd-kit/core';
-import { Headphones, BookOpen, PenLine, Mic } from 'lucide-react';
+import {
+  Headphones,
+  BookOpen,
+  PenLine,
+  Mic,
+  FileText,
+  ClipboardList,
+  CheckCircle2,
+  List,
+  Image as ImageIcon,
+} from 'lucide-react';
 
 const SESSIONS = [
   { key: 'LISTENING', label: 'Listen',   icon: Headphones, iconBg: '#dbeafe', iconColor: '#1d4ed8', meta: '40 câu • 30p' },
@@ -11,33 +21,33 @@ const SESSIONS = [
 
 const PALETTE_ITEMS = [
   // ── READING only ──
-  { type: 'group', contentType: 'READING_PASSAGE',      label: 'Reading Passage',        icon: '📄', skills: ['READING'] },
-  { type: 'group', contentType: 'MATCHING_HEADING',     label: 'Match Headings',         icon: '🔗', skills: ['READING'] },
-  { type: 'group', contentType: 'TRUE_FALSE_NG',         label: 'True / False / Not Given', icon: '✅', skills: ['READING'] },
-  { type: 'group', contentType: 'MULTIPLE_CHOICE_MULTI',label: 'Multiple Choice (chọn nhiều)', icon: '☑️', skills: ['READING'] },
-  { type: 'group', contentType: 'NOTE_COMPLETION',      label: 'Note / Form',            icon: '📒', skills: ['READING'] },
-  { type: 'image', contentType: 'PARA_IMAGE',           label: 'Ảnh cho đoạn văn',       icon: '🖼️', skills: ['READING'] },
+  { type: 'group', contentType: 'READING_PASSAGE',      label: 'Reading Passage',        icon: FileText, skills: ['READING'] },
+  { type: 'group', contentType: 'MATCHING_HEADING',     label: 'Match Headings',         icon: ClipboardList, skills: ['READING'] },
+  { type: 'group', contentType: 'TRUE_FALSE_NG',        label: 'True / False / Not Given', icon: CheckCircle2, skills: ['READING'] },
+  { type: 'group', contentType: 'MULTIPLE_CHOICE_MULTI',label: 'Multiple Choice (chọn nhiều)', icon: List, skills: ['READING'] },
+  { type: 'group', contentType: 'NOTE_COMPLETION',      label: 'Note / Form',            icon: ClipboardList, skills: ['READING'] },
+  { type: 'image', contentType: 'PARA_IMAGE',           label: 'Ảnh cho đoạn văn',       icon: ImageIcon, skills: ['READING'] },
   // ── LISTENING only ──
-  { type: 'group', contentType: 'AUDIO_TRANSCRIPT',     label: 'Audio / Nghe',           icon: '🎵', skills: ['LISTENING'] },
-  { type: 'group', contentType: 'MAP',                  label: 'Bản đồ',                 icon: '🗺️', skills: ['LISTENING'] },
-  { type: 'group', contentType: 'MAP_LABELLING',        label: 'Map Labelling',          icon: '📍', skills: ['LISTENING'] },
-  { type: 'group', contentType: 'DIAGRAM',              label: 'Sơ đồ / Chart',          icon: '📊', skills: ['LISTENING'] },
-  { type: 'group', contentType: 'TABLE',                label: 'Bảng / Form',            icon: '📋', skills: ['LISTENING', 'WRITING'] },
+  { type: 'group', contentType: 'AUDIO_TRANSCRIPT',     label: 'Audio / Nghe',           icon: Headphones, skills: ['LISTENING'] },
+  { type: 'group', contentType: 'MAP',                  label: 'Bản đồ',                 icon: BookOpen, skills: ['LISTENING'] },
+  { type: 'group', contentType: 'MAP_LABELLING',        label: 'Map Labelling',          icon: BookOpen, skills: ['LISTENING'] },
+  { type: 'group', contentType: 'DIAGRAM',              label: 'Sơ đồ / Chart',          icon: ClipboardList, skills: ['LISTENING'] },
+  { type: 'group', contentType: 'TABLE',                label: 'Bảng / Form',            icon: ClipboardList, skills: ['LISTENING', 'WRITING'] },
   // ── LISTENING only ──
-  { type: 'group', contentType: 'MULTIPLE_CHOICE_GROUP',label: 'Multiple Choice',        icon: '🔘', skills: ['LISTENING'] },
-  { type: 'group', contentType: 'MULTIPLE_CHOICE_MULTI',label: 'Multiple Choice (nhiều)', icon: '☑️', skills: ['LISTENING'] },
-  { type: 'group', contentType: 'SENTENCE_COMPLETION',  label: 'Sentence Completion',    icon: '✏️', skills: ['LISTENING'] },
-  { type: 'group', contentType: 'SHORT_ANSWER_GROUP',   label: 'Short Answer',           icon: '💬', skills: ['LISTENING'] },
-  { type: 'group', contentType: 'NOTE_COMPLETION',      label: 'Note / Form',            icon: '📒', skills: ['LISTENING'] },
-  { type: 'group', contentType: 'DRAG_MATCHING',        label: 'Drag Matching',          icon: '↔️', skills: ['LISTENING'] },
-  { type: 'group', contentType: 'TABLE_COMPLETION',     label: 'Table Completion',       icon: '📊', skills: ['LISTENING'] },
-  { type: 'group', contentType: 'FLOW_CHART',           label: 'Flow-chart Completion',  icon: '🔍', skills: ['LISTENING'] },
+  { type: 'group', contentType: 'MULTIPLE_CHOICE_GROUP',label: 'Multiple Choice',        icon: List, skills: ['LISTENING'] },
+  { type: 'group', contentType: 'MULTIPLE_CHOICE_MULTI',label: 'Multiple Choice (nhiều)', icon: List, skills: ['LISTENING'] },
+  { type: 'group', contentType: 'SENTENCE_COMPLETION',  label: 'Sentence Completion',    icon: PenLine, skills: ['LISTENING'] },
+  { type: 'group', contentType: 'SHORT_ANSWER_GROUP',   label: 'Short Answer',           icon: PenLine, skills: ['LISTENING'] },
+  { type: 'group', contentType: 'NOTE_COMPLETION',      label: 'Note / Form',            icon: ClipboardList, skills: ['LISTENING'] },
+  { type: 'group', contentType: 'DRAG_MATCHING',        label: 'Drag Matching',          icon: List, skills: ['LISTENING'] },
+  { type: 'group', contentType: 'TABLE_COMPLETION',     label: 'Table Completion',       icon: ClipboardList, skills: ['LISTENING'] },
+  { type: 'group', contentType: 'FLOW_CHART',           label: 'Flow-chart Completion',  icon: ClipboardList, skills: ['LISTENING'] },
   // ── WRITING / SPEAKING only ──
-  { type: 'group', contentType: 'STANDALONE',           label: 'Câu độc lập',            icon: '📝', skills: ['LISTENING', 'WRITING', 'SPEAKING'] },
-  { type: 'group', contentType: 'WRITING_TASK',          label: 'Writing Task',            icon: '✍️', skills: ['WRITING'] },
+  { type: 'group', contentType: 'STANDALONE',           label: 'Câu độc lập',            icon: FileText, skills: ['LISTENING', 'WRITING', 'SPEAKING'] },
+  { type: 'group', contentType: 'WRITING_TASK',         label: 'Writing Task',           icon: PenLine, skills: ['WRITING'] },
   // ── SPEAKING only ──
-  { type: 'group', contentType: 'SPEAKING_INTERVIEW',   label: 'Câu hỏi Phỏng vấn',      icon: '🎤', skills: ['SPEAKING'] },
-  { type: 'group', contentType: 'SPEAKING_CUECARD',     label: 'Cue Card (Part 2)',       icon: '🗂️', skills: ['SPEAKING'] },
+  { type: 'group', contentType: 'SPEAKING_INTERVIEW',   label: 'Câu hỏi Phỏng vấn',      icon: Mic, skills: ['SPEAKING'] },
+  { type: 'group', contentType: 'SPEAKING_CUECARD',     label: 'Cue Card (Part 2)',      icon: Mic, skills: ['SPEAKING'] },
 ];
 
 const TYPE_META = {
@@ -63,6 +73,8 @@ function DraggablePaletteItem({ item }) {
     data: { source: 'palette', ...item },
   });
 
+  const Icon = item.icon;
+
   // Image item: use HTML5 native drag so it can drop onto passage paragraphs
   if (item.type === 'image') {
     return (
@@ -74,7 +86,7 @@ function DraggablePaletteItem({ item }) {
           e.dataTransfer.effectAllowed = 'copy';
         }}
       >
-        <span className="tb-palette-item-icon">{item.icon}</span>
+        <span className="tb-palette-item-icon">{Icon ? <Icon size={15} strokeWidth={2} /> : null}</span>
         <span className="tb-palette-item-label">{item.label}</span>
       </div>
     );
@@ -83,7 +95,7 @@ function DraggablePaletteItem({ item }) {
   return (
     <div ref={setNodeRef} {...listeners} {...attributes}
       className={`tb-palette-item${isDragging ? ' dragging' : ''}`}>
-      <span className="tb-palette-item-icon">{item.icon}</span>
+      <span className="tb-palette-item-icon">{Icon ? <Icon size={15} strokeWidth={2} /> : null}</span>
       <span className="tb-palette-item-label">{item.label}</span>
     </div>
   );

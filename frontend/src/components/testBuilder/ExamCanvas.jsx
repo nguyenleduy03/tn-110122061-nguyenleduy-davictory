@@ -7,7 +7,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useDroppable } from '@dnd-kit/core';
-import { GripVertical, X, Volume2, Image, Plus, ChevronUp, ChevronDown } from 'lucide-react';
+import { GripVertical, X, Volume2, Image, Plus, ChevronUp, ChevronDown, FileText, ClipboardList, Mic, PenLine } from 'lucide-react';
 import RichInput from '../common/RichInput';
 
 // ---- Type metadata ----
@@ -42,6 +42,20 @@ const toRoman = (n) => {
   let r = '';
   for (let i = syms.length - 1; i >= 0; i--) { while (n >= nums[i]) { r += syms[i]; n -= nums[i]; } }
   return r;
+};
+
+const toPlainText = (value) => {
+  if (!value) return '';
+  if (typeof value !== 'string') return String(value);
+  if (!value.includes('<')) return value.trim();
+
+  try {
+    const el = document.createElement('div');
+    el.innerHTML = value;
+    return (el.textContent || el.innerText || '').replace(/\s+/g, ' ').trim();
+  } catch {
+    return value.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  }
 };
 
 // ---- Rich Blank Editor ----
@@ -369,13 +383,16 @@ const PassageBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandl
       )}
       {draggingOverPara === para.id && (
         <div className="passage-para-drop-hint">
-          <span>🖼️ Thả để thêm ảnh{isMulti ? ` vào đoạn ${PARA_LABELS[idx]}` : ''}</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <Image size={13} />
+            Thả để thêm ảnh{isMulti ? ` vào đoạn ${PARA_LABELS[idx]}` : ''}
+          </span>
         </div>
       )}
       {pendingImagePara === para.id && !para.imageUrl && (
         <div className="passage-para-img-pick"
           onClick={(e) => { e.stopPropagation(); fileInputRefs.current[para.id]?.click(); }}>
-          <span>🖼️</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center' }}><Image size={14} /></span>
           <span>Click để chọn ảnh{isMulti ? ` cho đoạn ${PARA_LABELS[idx]}` : ''}</span>
           <button className="passage-para-img-pick-cancel"
             onClick={(e) => { e.stopPropagation(); setPendingImagePara(null); }}
@@ -778,7 +795,7 @@ function MapLabellingBlock({ group, onUpdate, onDelete, onSelect, selected, drag
           readOnly={group.imageUrl?.startsWith('data:')}
           onChange={(e) => onUpdate(group.id, { imageUrl: e.target.value })} />
         <label className="exam-ml-upload-btn">
-          📁 Tải lên
+          Tải lên
           <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileUpload} />
         </label>
         {group.imageUrl && (
@@ -792,13 +809,13 @@ function MapLabellingBlock({ group, onUpdate, onDelete, onSelect, selected, drag
       {/* Size controls */}
       <div className="exam-ml-size-bar" onClick={(e) => e.stopPropagation()}>
         <label className="exam-ml-size-label">
-          🖼 Rộng ảnh: <strong>{group.imageWidth ?? 100}%</strong>
+          Rộng ảnh: <strong>{group.imageWidth ?? 100}%</strong>
           <input type="range" min={20} max={100} step={1}
             value={group.imageWidth ?? 100}
             onChange={(e) => onUpdate(group.id, { imageWidth: Number(e.target.value) })} />
         </label>
         <label className="exam-ml-size-label">
-          📦 Cỡ ô: <strong>{group.pinBoxWidth ?? 60}px</strong>
+          Cỡ ô: <strong>{group.pinBoxWidth ?? 60}px</strong>
           <input type="range" min={30} max={180} step={2}
             value={group.pinBoxWidth ?? 60}
             onChange={(e) => onUpdate(group.id, { pinBoxWidth: Number(e.target.value) })} />
@@ -820,7 +837,7 @@ function MapLabellingBlock({ group, onUpdate, onDelete, onSelect, selected, drag
         {group.imageUrl
           ? <img src={group.imageUrl} alt="map" draggable={false}
               style={{ display: 'block', width: `${group.imageWidth ?? 100}%`, height: 'auto', pointerEvents: 'none' }} />
-          : <div className="exam-ml-empty">📸 Tải ảnh lên, sau đó nhấn vào ảnh để thêm ô đánh số</div>
+          : <div className="exam-ml-empty">Tải ảnh lên, sau đó nhấn vào ảnh để thêm ô đánh số</div>
         }
         {questions.map((q) => {
           const x = livePin?.qId === q.id ? livePin.x : (q.pinX ?? 10);
@@ -1439,7 +1456,7 @@ const MatchingHeadingBlock = ({ group, onUpdate, onDelete, onSelect, selected, d
       {/* ── PHẦN 1: List of Headings ── */}
       <div className="exam-mh-section" onClick={(e) => e.stopPropagation()}>
         <div className="exam-mh-section-title">
-          <span>📋 List of Headings</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><ClipboardList size={14} /> List of Headings</span>
           <span className="exam-mh-hint">
             ({headings.length} heading
             {hasSyncedPassage ? ` — ${passageParagraphs.length} đoạn, có thể thêm heading mồi` : ''})
@@ -2299,7 +2316,7 @@ const SpeakingInterviewBlock = ({ group, onUpdate, onDelete, onSelect, selected,
 
       {/* Part type toggle */}
       <div className="exam-spk-type-row" onClick={(e) => e.stopPropagation()}>
-        {[['PART1', '🎤 Part 1 · Interview'], ['PART3', '💬 Part 3 · Discussion']].map(([v, lbl]) => (
+        {[['PART1', 'Part 1 · Interview'], ['PART3', 'Part 3 · Discussion']].map(([v, lbl]) => (
           <button key={v} type="button"
             className={`exam-spk-type-btn${interviewType === v ? ' active' : ''}`}
             onClick={() => onUpdate(group.id, { interviewType: v })}>{lbl}</button>
@@ -2308,7 +2325,9 @@ const SpeakingInterviewBlock = ({ group, onUpdate, onDelete, onSelect, selected,
 
       {/* Instructions */}
       <div className="exam-wt-section" onClick={(e) => e.stopPropagation()}>
-        <label className="exam-wt-label">📋 Hướng dẫn (tuỳ chọn)</label>
+        <label className="exam-wt-label" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <ClipboardList size={14} /> Hướng dẫn (tuỳ chọn)
+        </label>
         <RichInput
           value={group.partInstruction ?? ''}
           placeholder={interviewType === 'PART1'
@@ -2370,7 +2389,9 @@ const SpeakingCueCardBlock = ({ group, onUpdate, onDelete, onSelect, selected, d
       <div className="exam-spk-cc-card" onClick={(e) => e.stopPropagation()}>
         {/* Topic */}
         <div className="exam-wt-section">
-          <label className="exam-wt-label">📌 Chủ đề / Câu hỏi chính (Topic)</label>
+          <label className="exam-wt-label" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <Mic size={14} /> Chủ đề / Câu hỏi chính (Topic)
+          </label>
           <RichInput
             multiline
             rows={2}
@@ -2382,7 +2403,9 @@ const SpeakingCueCardBlock = ({ group, onUpdate, onDelete, onSelect, selected, d
 
         {/* You should say */}
         <div className="exam-wt-section">
-          <label className="exam-wt-label">📝 Nhãn nhắc</label>
+          <label className="exam-wt-label" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <PenLine size={14} /> Nhãn nhắc
+          </label>
           <input
             className="exam-spk-instr-input"
             value={group.shouldSayLabel ?? 'You should say:'}
@@ -2454,7 +2477,9 @@ const WritingTaskBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragH
 
       {/* Task instructions / prompt */}
       <div className="exam-wt-section" onClick={(e) => e.stopPropagation()}>
-        <label className="exam-wt-label">📋 Đề bài / Hướng dẫn</label>
+        <label className="exam-wt-label" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <ClipboardList size={14} /> Đề bài / Hướng dẫn
+        </label>
         <RichInput
           multiline
           rows={7}
@@ -2466,7 +2491,9 @@ const WritingTaskBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragH
 
       {/* Image upload */}
       <div className="exam-wt-section" onClick={(e) => e.stopPropagation()}>
-        <label className="exam-wt-label">🖼 Ảnh / Biểu đồ (tuỳ chọn)</label>
+        <label className="exam-wt-label" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <Image size={14} /> Ảnh / Biểu đồ (tuỳ chọn)
+        </label>
         <div className="exam-ml-upload-bar">
           <input
             className="exam-img-url-field"
@@ -2477,7 +2504,7 @@ const WritingTaskBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragH
             onChange={(e) => onUpdate(group.id, { imageUrl: e.target.value })}
           />
           <label className="exam-ml-upload-btn">
-            📁 Tải lên
+            Tải lên
             <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileUpload} />
           </label>
           {group.imageUrl && (
@@ -2496,7 +2523,9 @@ const WritingTaskBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragH
       {/* Min words + recommended time */}
       <div className="exam-wt-meta-row" onClick={(e) => e.stopPropagation()}>
         <div className="exam-wt-meta-field">
-          <label className="exam-wt-label">📝 Số từ tối thiểu</label>
+          <label className="exam-wt-label" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <FileText size={14} /> Số từ tối thiểu
+          </label>
           <input
             type="number"
             className="exam-q-range-input"
@@ -2674,7 +2703,7 @@ const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUp
       <GroupToolbar group={group} dragHandleProps={dragHandleProps} onDelete={onDeleteGroup} onMoveUp={onMoveGroupUp} onMoveDown={onMoveGroupDown} />
       {ct === 'TABLE' && (
         <div style={{ border: '1px solid #e5e7eb', borderRadius: 4, padding: '8px 12px', marginBottom: 10, background: '#f9fafb', fontSize: 13, color: '#888', textAlign: 'center' }}>
-          📊 Bảng — thêm nội dung bảng trong panel bên phải
+          Bảng — thêm nội dung bảng trong panel bên phải
         </div>
       )}
       {questionList}
@@ -2715,7 +2744,7 @@ const PartView = ({ skill, part, selection, onSelectGroup, onSelectQuestion, onU
         {/* LEFT: passage texts only */}
       <div className={`exam-pane passage${isPassagePaneLocked ? ' pane-locked' : ''}`}>
           {isPassagePaneLocked && (
-            <div className="exam-pane-lock-overlay">🔒 Chỉ nhận <strong>Đoạn văn</strong></div>
+            <div className="exam-pane-lock-overlay">Chỉ nhận <strong>Đoạn văn</strong></div>
           )}
           <SortableContext items={passages.map((g) => `group-${g.id}`)} strategy={verticalListSortingStrategy}>
             {passages.map(renderGroup)}
@@ -2732,7 +2761,7 @@ const PartView = ({ skill, part, selection, onSelectGroup, onSelectQuestion, onU
         {/* RIGHT: question groups */}
         <div className={`exam-pane questions${isMHLocked ? ' pane-locked' : ''}`}>
           {isMHLocked && (
-            <div className="exam-pane-lock-overlay">🔒 Cần bật <strong>chế độ đa đoạn</strong> ở Đoạn văn trước</div>
+            <div className="exam-pane-lock-overlay">Cần bật <strong>chế độ đa đoạn</strong> ở Đoạn văn trước</div>
           )}
           <SortableContext items={qGroups.map((g) => `group-${g.id}`)} strategy={verticalListSortingStrategy}>
             {qGroups.map(renderGroup)}
@@ -2794,7 +2823,7 @@ const ExamCanvas = ({
     return (
       <div className="tb-canvas">
         <div className="tb-canvas-empty">
-          <div className="tb-canvas-empty-icon">📄</div>
+          <div className="tb-canvas-empty-icon"><FileText size={36} /></div>
           <h3>Chưa có Part nào</h3>
           <p>Nhấn nút bên dưới để bắt đầu tạo đề</p>
           <button className="exam-add-btn" style={{ marginTop: 8 }} onClick={onAddPart}>
@@ -2809,6 +2838,8 @@ const ExamCanvas = ({
     dragOverPartId === `part-${activePart?.id}` ||
     dragOverPartId === `canvas-drop-${activePart?.id}`
   );
+
+  const activePartInstructionText = toPlainText(activePart?.instructions);
 
   // For Reading: passage pane highlights when dragging a READING_PASSAGE over the left pane
   const isPassagePaneOver = !!dragOverPassagePaneId && (
@@ -2845,6 +2876,7 @@ const ExamCanvas = ({
               <span>Nguyễn Văn A</span>
               <span style={{ color: '#ddd' }}>|</span>
               <span>ID: 12345678</span>
+              <span style={{ color: '#ddd' }}>|</span>
               <span className="exam-mock-timer">60:00</span>
               <div className="exam-mock-nav">
                 <button className="exam-mock-nav-btn">‹</button>
@@ -2856,8 +2888,8 @@ const ExamCanvas = ({
           {/* Part instruction bar */}
           <div className="exam-instruction">
             <strong>{activePart.name}</strong>
-            {activePart.instructions
-              ? <> — {activePart.instructions}</>
+            {activePartInstructionText
+              ? <> — {activePartInstructionText}</>
               : <span style={{ color: '#aaa', fontStyle: 'italic' }}> — Chọn Part để thêm hướng dẫn</span>}
           </div>
 

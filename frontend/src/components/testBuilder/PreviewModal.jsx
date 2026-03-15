@@ -3,7 +3,7 @@
  * Student-view preview — styled like the real IELTS exam interface.
  */
 import React, { useState, useMemo } from 'react';
-import { X, Volume2, BookOpen, Headphones, PenLine, Mic, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
+import { X, Volume2, BookOpen, Headphones, PenLine, Mic, ChevronLeft, ChevronRight, Clock, FileText } from 'lucide-react';
 
 // ---- Helpers (mirrors ExamCanvas) ----
 
@@ -25,6 +25,20 @@ const toRoman = (n) => {
     while (n >= nums[i]) { r += syms[i]; n -= nums[i]; }
   }
   return r;
+};
+
+const toPlainText = (value) => {
+  if (!value) return '';
+  if (typeof value !== 'string') return String(value);
+  if (!value.includes('<')) return value.trim();
+
+  try {
+    const el = document.createElement('div');
+    el.innerHTML = value;
+    return (el.textContent || el.innerText || '').replace(/\s+/g, ' ').trim();
+  } catch {
+    return value.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  }
 };
 
 // Helper: Hiển thị "Questions X-Y" từ group
@@ -508,7 +522,7 @@ const MapLabellingGroup = ({ group, activeQ, onSetActive }) => {
         <div className="pv-ml-image-wrapper">
           {group.imageUrl
             ? <img src={group.imageUrl} alt="map" draggable={false} style={{ display: 'block', width: `${group.imageWidth ?? 100}%`, height: 'auto' }} />
-            : <div className="pv-diagram-placeholder">🗺️ Bản đồ chưa được tải lên</div>
+            : <div className="pv-diagram-placeholder">Bản đồ chưa được tải lên</div>
           }
           {questions.map((q) => {
             const filled = answers[q.questionNumber] ?? null;
@@ -837,7 +851,7 @@ const SpeakingInterviewGroup = ({ group }) => {
   return (
     <div className="pv-spk-interview">
       <div className={`pv-spk-chip${isP3 ? ' pv-spk-chip--p3' : ' pv-spk-chip--p1'}`}>
-        {isP3 ? '💬 Part 3 · Two-way Discussion' : '🎤 Part 1 · Interview'}
+        {isP3 ? 'Part 3 · Two-way Discussion' : 'Part 1 · Interview'}
       </div>
       {group.partInstruction && (
         <div className="pv-spk-instruction" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.partInstruction) }} />
@@ -854,7 +868,7 @@ const SpeakingInterviewGroup = ({ group }) => {
                     ? <span dangerouslySetInnerHTML={{ __html: formatPreviewText(q.text) }} />
                     : <em className="pv-empty">Chưa có nội dung.</em>}
                 </span>
-                <span className="pv-spk-mic-badge" title="Ghi âm">🎤</span>
+                <span className="pv-spk-mic-badge" title="Ghi âm"><Mic size={12} /></span>
               </div>
             ))}
           </div>
@@ -869,7 +883,7 @@ const SpeakingCueCardGroup = ({ group }) => {
   const prepSec = group.prepSeconds ?? 60;
   return (
     <div className="pv-spk-cuecard-wrapper">
-      <div className="pv-spk-prep-chip">⏳ Thời gian chuẩn bị: {prepSec}s</div>
+      <div className="pv-spk-prep-chip">Thời gian chuẩn bị: {prepSec}s</div>
       <div className="pv-spk-cuecard">
         <div className="pv-spk-cc-topic">
           {group.topic
@@ -888,7 +902,7 @@ const SpeakingCueCardGroup = ({ group }) => {
           </>
         )}
       </div>
-      <div className="pv-spk-cc-hint">🎤 Nói trong 1–2 phút sau khi chuẩn bị xong</div>
+      <div className="pv-spk-cc-hint">Nói trong 1–2 phút sau khi chuẩn bị xong</div>
     </div>
   );
 };
@@ -1008,7 +1022,7 @@ const ImageGroup = ({ group, activeQ, onSetActive }) => {
       {group.title && <div className="pv-group-instructions" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.title) }} />}
       {group.imageUrl
         ? <img src={group.imageUrl} alt="diagram" className="pv-diagram-img" />
-        : <div className="pv-diagram-placeholder">{group.contentType === 'MAP' ? '🗺️ Bản đồ chưa được tải lên' : '📊 Sơ đồ chưa được tải lên'}</div>}
+        : <div className="pv-diagram-placeholder">{group.contentType === 'MAP' ? 'Bản đồ chưa được tải lên' : 'Sơ đồ chưa được tải lên'}</div>}
       {questions.map((q) => renderQuestion(q, activeQ, onSetActive, answers, handleAnswer))}
     </div>
   );
@@ -1194,7 +1208,7 @@ const PreviewModal = ({ test, sessions, onClose }) => {
           <div className="pv-instruction-bar">
             <strong>{activePart.name}</strong>
             {activePart.instructions && (
-              <span className="pv-instruction-text"> — {activePart.instructions}</span>
+              <span className="pv-instruction-text"> — {toPlainText(activePart.instructions)}</span>
             )}
             <span className="pv-instruction-meta">
               {totalQ} câu hỏi · {skillMeta?.durationMinutes ?? 60} phút
@@ -1206,7 +1220,7 @@ const PreviewModal = ({ test, sessions, onClose }) => {
         <div className="pv-main">
           {parts.length === 0 ? (
             <div className="pv-empty-state">
-              <div className="pv-empty-icon">📄</div>
+              <div className="pv-empty-icon"><FileText size={28} /></div>
               <div>Chưa có nội dung cho phần này.<br /><small>Thêm nhóm câu hỏi trong trình tạo đề.</small></div>
             </div>
           ) : (
@@ -1214,7 +1228,7 @@ const PreviewModal = ({ test, sessions, onClose }) => {
               <div key={part.id} className="pv-part-section">
                 <div className="pv-part-banner">
                   <span className="pv-part-banner-name">{part.name}</span>
-                  {part.instructions && <span className="pv-part-banner-inst">{part.instructions}</span>}
+                  {part.instructions && <span className="pv-part-banner-inst">{toPlainText(part.instructions)}</span>}
                 </div>
                 {activeSkill === 'READING'
                   ? <PartReadingLayout part={part} activeQ={activeQ} onSetActive={goToQ} />
