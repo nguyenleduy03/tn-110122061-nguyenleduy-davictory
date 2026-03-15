@@ -208,4 +208,31 @@ VIC009998,Trần Thị,Bình,VIC009998@gmail.com,@VIC009998,VIC260312IE45A`;
     link.click();
     document.body.removeChild(link);
   },
+
+  // Lấy dữ liệu quản lý giảng viên/lớp cho admin
+  getTeacherClassManagement: async () => {
+    const response = await apiClient.get('/admin/users/teacher-class-management');
+    return response.data;
+  },
+
+  // Phân công giáo viên quản lý lớp theo mã lớp
+  assignTeacherByClassCode: async ({ classCode, teacherId, role = 'MAIN_TEACHER', notes = '' }) => {
+    const response = await apiClient.post('/admin/users/assign-teacher-by-class-code', {
+      classCode,
+      teacherId,
+      role,
+      notes,
+    });
+    return response.data;
+  },
+
+  // Bàn giao danh sách học viên vào lớp theo mã lớp
+  assignStudentsByClassCode: async ({ classCode, studentCodes, notes = '' }) => {
+    const response = await apiClient.post('/admin/users/assign-students-by-class-code', {
+      classCode,
+      studentCodes,
+      notes,
+    });
+    return response.data;
+  },
 };

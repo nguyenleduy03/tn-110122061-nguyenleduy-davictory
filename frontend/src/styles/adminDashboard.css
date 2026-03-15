@@ -1,6 +1,131 @@
+.admin-layout-root {
+  min-height: 100vh;
+  background: radial-gradient(circle at 10% 10%, rgba(0, 86, 210, 0.12), transparent 35%),
+    radial-gradient(circle at 80% 0%, rgba(0, 163, 255, 0.1), transparent 35%),
+    #f7f9fc;
+  color: #172b4d;
+  font-family: 'Sora', var(--font-family-base);
+}
+
+.admin-shell {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  min-height: calc(100vh - var(--header-height));
+}
+
+.admin-sidebar {
+  padding: 28px 20px;
+  background: linear-gradient(180deg, #0d2f6f 0%, #0b4bb2 100%);
+  color: #f8fbff;
+  position: sticky;
+  top: var(--header-height);
+  height: calc(100vh - var(--header-height));
+}
+
+.admin-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.admin-brand-mark {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: #fff;
+  color: #0056d2;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+}
+
+.admin-brand-title {
+  display: flex;
+  flex-direction: column;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.admin-brand-sub {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.admin-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  color: inherit;
+  text-decoration: none;
+  font-size: 13px;
+  transition: all 0.2s ease;
+}
+
+.admin-nav-item:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.admin-nav-item.active {
+  background: rgba(255, 255, 255, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+}
+
+.admin-content {
+  padding: 32px 36px 60px;
+}
+
+.admin-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.admin-title {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 800;
+}
+
+.admin-subtitle {
+  margin: 6px 0 0;
+  color: #5e6c84;
+  font-size: 13px;
+}
+
+.admin-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fff;
+  border: 1px solid #d7e5ff;
+  border-radius: 999px;
+  padding: 8px 14px;
+  box-shadow: 0 6px 18px rgba(0, 86, 210, 0.08);
+}
+
+.admin-search input {
+  border: none;
+  outline: none;
+  font-size: 13px;
+  background: transparent;
+  width: 180px;
+}
+
 .admin-page {
   min-height: 100vh;
   background: linear-gradient(180deg, #f6f9ff 0%, #f8fafc 100%);
+  font-family: 'Sora', var(--font-family-base);
 }
 
 .admin-container {
@@ -11,7 +136,7 @@
 
 .admin-hero {
   padding: 32px 0 28px;
-  background: linear-gradient(135deg, #0f2a63 0%, #1d4ed8 45%, #0ea5e9 100%);
+  background: linear-gradient(135deg, #0c3e91 0%, #0056d2 56%, #00a3ff 145%);
   color: #fff;
 }
 
@@ -54,11 +179,11 @@
 }
 
 .admin-quick-stat {
-  background: rgba(255, 255, 255, 0.14);
-  border: 1px solid rgba(255, 255, 255, 0.24);
+  background: #fff;
+  border: 1px solid #dfe1e6;
   border-radius: 12px;
   padding: 14px;
-  backdrop-filter: blur(6px);
+  box-shadow: 0 10px 30px rgba(0, 40, 100, 0.08);
 }
 
 .admin-quick-stat-top {
@@ -66,13 +191,14 @@
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  opacity: 0.9;
+  color: #5e6c84;
 }
 
 .admin-quick-stat-value {
   margin-top: 8px;
   font-size: 21px;
   font-weight: 800;
+  color: #172b4d;
 }
 
 .admin-quick-stat-change {
@@ -182,9 +308,9 @@
 .admin-card {
   background: #fff;
   border: 1px solid #e2e8f0;
-  border-radius: 16px;
+  border-radius: 18px;
   padding: 22px;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+  box-shadow: 0 10px 30px rgba(0, 40, 100, 0.08);
   transition: transform 0.18s ease, box-shadow 0.18s ease;
 }
 
@@ -376,6 +502,15 @@
 }
 
 @media (max-width: 1024px) {
+  .admin-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-sidebar {
+    position: static;
+    height: auto;
+  }
+
   .admin-quick-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -388,6 +523,15 @@
 @media (max-width: 640px) {
   .admin-container {
     padding: 0 16px;
+  }
+
+  .admin-content {
+    padding: 20px 16px 40px;
+  }
+
+  .admin-topbar {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .admin-hero {

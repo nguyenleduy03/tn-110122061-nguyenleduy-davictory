@@ -23,8 +23,11 @@ import {
   CheckCircle,
   XCircle,
   Mail,
+  School,
+  UserPlus,
+  ClipboardList,
 } from 'lucide-react';
-import Navbar from '../components/layout/Navbar';
+import AdminLayout from '../components/admin/AdminLayout';
 import { authApi } from '../services/authApi';
 
 const ROLES = {
@@ -53,6 +56,21 @@ export default function AdminUsers() {
     email: '',
     roles: []
   });
+  const [adminMainTab, setAdminMainTab] = useState('USERS'); // USERS, TEACHER_CLASS
+  const [managementLoading, setManagementLoading] = useState(false);
+  const [managementError, setManagementError] = useState('');
+  const [managementData, setManagementData] = useState({ teachers: [], classes: [] });
+  const [assignTeacherForm, setAssignTeacherForm] = useState({
+    classCode: '',
+    teacherId: '',
+    role: 'MAIN_TEACHER',
+    notes: ''
+  });
+  const [handoverForm, setHandoverForm] = useState({
+    classCode: '',
+    studentCodesText: '',
+    notes: ''
+  });
 
   // Lấy thông tin user hiện tại
   const currentUser = authApi.getStoredUser();
@@ -69,6 +87,7 @@ export default function AdminUsers() {
 
   useEffect(() => {
     fetchUsers();
+    fetchManagementData();
   }, []);
 
   const fetchUsers = async () => {
@@ -83,6 +102,88 @@ export default function AdminUsers() {
       setUsers([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchManagementData = async () => {
+    try {
+      setManagementLoading(true);
+      setManagementError('');
+      const data = await authApi.getTeacherClassManagement();
+      setManagementData({
+        teachers: Array.isArray(data?.teachers) ? data.teachers : [],
+        classes: Array.isArray(data?.classes) ? data.classes : [],
+      });
+    } catch (error) {
+      setManagementError(error?.response?.data?.message || 'Không thể tải dữ liệu quản lý giảng viên/lớp.');
+      setManagementData({ teachers: [], classes: [] });
+    } finally {
+      setManagementLoading(false);
+    }
+  };
+
+  const parseStudentCodes = (rawText) => {
+    return (rawText || '')
+      .split(/[,\n;\t\s]+/g)
+      .map((s) => s.trim())
+      .filter(Boolean);
+  };
+
+  const handleAssignTeacherByClassCode = async () => {
+    if (!assignTeacherForm.classCode.trim()) {
+      alert('Vui lòng nhập mã lớp');
+      return;
+    }
+    if (!assignTeacherForm.teacherId) {
+      alert('Vui lòng chọn giảng viên');
+      return;
+    }
+
+    try {
+      await authApi.assignTeacherByClassCode({
+        classCode: assignTeacherForm.classCode.trim(),
+        teacherId: Number(assignTeacherForm.teacherId),
+        role: assignTeacherForm.role,
+        notes: assignTeacherForm.notes,
+      });
+      alert('Đã phân công giảng viên quản lý lớp thành công');
+      setAssignTeacherForm((prev) => ({ ...prev, notes: '' }));
+      fetchManagementData();
+    } catch (error) {
+      alert(error?.response?.data?.message || 'Phân công giảng viên thất bại');
+    }
+  };
+
+  const handleAssignStudentsByClassCode = async () => {
+    if (!handoverForm.classCode.trim()) {
+      alert('Vui lòng nhập mã lớp');
+      return;
+    }
+
+    const studentCodes = parseStudentCodes(handoverForm.studentCodesText);
+    if (studentCodes.length === 0) {
+      alert('Vui lòng nhập danh sách mã học viên (mỗi mã một dòng hoặc cách nhau bởi dấu phẩy)');
+      return;
+    }
+
+    try {
+      const result = await authApi.assignStudentsByClassCode({
+        classCode: handoverForm.classCode.trim(),
+        studentCodes,
+        notes: handoverForm.notes,
+      });
+
+      const failed = Number(result?.failed || 0);
+      if (failed > 0) {
+        alert(`Đã bàn giao ${result?.success || 0} học viên, thất bại ${failed}. Vui lòng kiểm tra mã học viên.`);
+      } else {
+        alert(`Đã bàn giao thành công ${result?.success || 0} học viên vào lớp ${result?.classCode || handoverForm.classCode}.`);
+      }
+
+      setHandoverForm((prev) => ({ ...prev, studentCodesText: '', notes: '' }));
+      fetchManagementData();
+    } catch (error) {
+      alert(error?.response?.data?.message || 'Bàn giao danh sách học viên thất bại');
     }
   };
 
@@ -195,36 +296,11 @@ export default function AdminUsers() {
   };
 
   return (
-    <div style={{ 
-      minHeight: '100vh', 
-      background: 'radial-gradient(circle at top right, #eef7ff 0%, #f7f9fc 60%)',
-      position: 'relative'
-    }}>
-      {/* Background decorative circles */}
-      <div style={{
-        position: 'absolute',
-        width: 300,
-        height: 300,
-        top: -150,
-        right: -100,
-        background: 'radial-gradient(circle, rgba(0, 163, 255, 0.15) 0%, transparent 70%)',
-        borderRadius: '50%',
-        pointerEvents: 'none'
-      }} />
-      <div style={{
-        position: 'absolute',
-        width: 200,
-        height: 200,
-        bottom: 0,
-        left: -100,
-        background: 'radial-gradient(circle, rgba(0, 86, 210, 0.1) 0%, transparent 70%)',
-        borderRadius: '50%',
-        pointerEvents: 'none'
-      }} />
-      
-      <Navbar />
-      
-      <div style={{ maxWidth: 1400, margin: '0 auto', padding: '24px', position: 'relative', zIndex: 1 }}>
+    <AdminLayout
+      title="Quản trị người dùng"
+      subtitle="Quản lý tài khoản, phân quyền và bàn giao giảng viên/lớp học"
+    >
+      <div style={{ maxWidth: 1400, margin: '0 auto', width: '100%', position: 'relative' }}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
           <Link to="/admin" style={{ 
@@ -299,6 +375,48 @@ export default function AdminUsers() {
           </div>
         </div>
 
+        <div style={{
+          display: 'flex',
+          gap: 8,
+          marginBottom: 20,
+          background: 'white',
+          borderRadius: 14,
+          padding: 8,
+          border: '1px solid #e2e8f0'
+        }}>
+          {[
+            { key: 'USERS', label: 'Người dùng', icon: Users },
+            { key: 'TEACHER_CLASS', label: 'Giảng viên & lớp', icon: School }
+          ].map((tab) => {
+            const IconComponent = tab.icon;
+            const isActive = adminMainTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setAdminMainTab(tab.key)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '10px 16px',
+                  borderRadius: 10,
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontWeight: 700,
+                  fontSize: 14,
+                  background: isActive ? 'linear-gradient(135deg, #0056d2 0%, #003380 100%)' : 'transparent',
+                  color: isActive ? 'white' : '#334155'
+                }}
+              >
+                <IconComponent size={16} />
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {adminMainTab === 'USERS' ? (
+        <React.Fragment>
         {/* Tabs */}
         <div style={{ 
           display: 'flex', gap: 4, marginBottom: 24,
@@ -635,6 +753,174 @@ export default function AdminUsers() {
           </table>
         </div>
         )}
+        </React.Fragment>
+        ) : (
+          <div>
+            {managementError && (
+              <div style={{
+                marginBottom: 16,
+                padding: '12px 16px',
+                borderRadius: 10,
+                border: '1px solid #fecaca',
+                background: '#fef2f2',
+                color: '#dc2626',
+                fontSize: 14,
+                fontWeight: 500
+              }}>
+                {managementError}
+              </div>
+            )}
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1fr', gap: 16, marginBottom: 18 }}>
+              <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 14, padding: 18 }}>
+                <h3 style={{ margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 8, color: '#0f172a' }}>
+                  <UserPlus size={18} />
+                  Phân công giảng viên quản lý lớp theo mã
+                </h3>
+
+                <div style={{ display: 'grid', gap: 10 }}>
+                  <input
+                    type="text"
+                    placeholder="Mã lớp (VD: IELTS-A1-2026)"
+                    value={assignTeacherForm.classCode}
+                    onChange={(e) => setAssignTeacherForm((prev) => ({ ...prev, classCode: e.target.value }))}
+                    style={{ width: '100%', padding: '11px 12px', border: '1px solid #cbd5e1', borderRadius: 10 }}
+                  />
+
+                  <select
+                    value={assignTeacherForm.teacherId}
+                    onChange={(e) => setAssignTeacherForm((prev) => ({ ...prev, teacherId: e.target.value }))}
+                    style={{ width: '100%', padding: '11px 12px', border: '1px solid #cbd5e1', borderRadius: 10 }}
+                  >
+                    <option value="">Chọn giảng viên</option>
+                    {managementData.teachers.map((teacher) => (
+                      <option key={teacher.id} value={teacher.id}>
+                        {teacher.fullName} {teacher.teacherCode ? `(${teacher.teacherCode})` : ''}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={assignTeacherForm.role}
+                    onChange={(e) => setAssignTeacherForm((prev) => ({ ...prev, role: e.target.value }))}
+                    style={{ width: '100%', padding: '11px 12px', border: '1px solid #cbd5e1', borderRadius: 10 }}
+                  >
+                    <option value="MAIN_TEACHER">Giảng viên chính (MAIN_TEACHER)</option>
+                    <option value="ASSISTANT">Trợ giảng (ASSISTANT)</option>
+                    <option value="SUBSTITUTE">Giảng viên thay thế (SUBSTITUTE)</option>
+                  </select>
+
+                  <input
+                    type="text"
+                    placeholder="Ghi chú phân công (tuỳ chọn)"
+                    value={assignTeacherForm.notes}
+                    onChange={(e) => setAssignTeacherForm((prev) => ({ ...prev, notes: e.target.value }))}
+                    style={{ width: '100%', padding: '11px 12px', border: '1px solid #cbd5e1', borderRadius: 10 }}
+                  />
+
+                  <button
+                    onClick={handleAssignTeacherByClassCode}
+                    disabled={managementLoading}
+                    style={{
+                      border: 'none',
+                      borderRadius: 10,
+                      background: 'linear-gradient(135deg, #0056d2 0%, #003380 100%)',
+                      color: 'white',
+                      fontWeight: 700,
+                      padding: '11px 14px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Phân công giảng viên
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 14, padding: 18 }}>
+                <h3 style={{ margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 8, color: '#0f172a' }}>
+                  <ClipboardList size={18} />
+                  Bàn giao danh sách học viên theo mã lớp
+                </h3>
+
+                <div style={{ display: 'grid', gap: 10 }}>
+                  <input
+                    type="text"
+                    placeholder="Mã lớp (VD: IELTS-A1-2026)"
+                    value={handoverForm.classCode}
+                    onChange={(e) => setHandoverForm((prev) => ({ ...prev, classCode: e.target.value }))}
+                    style={{ width: '100%', padding: '11px 12px', border: '1px solid #cbd5e1', borderRadius: 10 }}
+                  />
+
+                  <textarea
+                    rows={6}
+                    placeholder="Nhập danh sách mã học viên / username\nMỗi dòng 1 mã hoặc phân tách bằng dấu phẩy"
+                    value={handoverForm.studentCodesText}
+                    onChange={(e) => setHandoverForm((prev) => ({ ...prev, studentCodesText: e.target.value }))}
+                    style={{ width: '100%', padding: '11px 12px', border: '1px solid #cbd5e1', borderRadius: 10, resize: 'vertical' }}
+                  />
+
+                  <input
+                    type="text"
+                    placeholder="Ghi chú bàn giao (tuỳ chọn)"
+                    value={handoverForm.notes}
+                    onChange={(e) => setHandoverForm((prev) => ({ ...prev, notes: e.target.value }))}
+                    style={{ width: '100%', padding: '11px 12px', border: '1px solid #cbd5e1', borderRadius: 10 }}
+                  />
+
+                  <button
+                    onClick={handleAssignStudentsByClassCode}
+                    disabled={managementLoading}
+                    style={{
+                      border: 'none',
+                      borderRadius: 10,
+                      background: 'linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%)',
+                      color: 'white',
+                      fontWeight: 700,
+                      padding: '11px 14px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Bàn giao danh sách
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 14, padding: 16 }}>
+                <h4 style={{ margin: '0 0 12px', color: '#0f172a' }}>
+                  Danh sách giảng viên ({managementData.teachers.length})
+                </h4>
+                <div style={{ maxHeight: 360, overflow: 'auto' }}>
+                  {managementData.teachers.map((teacher) => (
+                    <div key={teacher.id} style={{ padding: '10px 0', borderBottom: '1px solid #f1f5f9' }}>
+                      <div style={{ fontWeight: 700, color: '#1e293b' }}>{teacher.fullName}</div>
+                      <div style={{ fontSize: 12, color: '#64748b' }}>
+                        {teacher.teacherCode ? `Mã GV: ${teacher.teacherCode}` : 'Chưa có mã GV'} • {teacher.classCount || 0} lớp đang quản lý
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 14, padding: 16 }}>
+                <h4 style={{ margin: '0 0 12px', color: '#0f172a' }}>
+                  Danh sách lớp ({managementData.classes.length})
+                </h4>
+                <div style={{ maxHeight: 360, overflow: 'auto' }}>
+                  {managementData.classes.map((clazz) => (
+                    <div key={clazz.id} style={{ padding: '10px 0', borderBottom: '1px solid #f1f5f9' }}>
+                      <div style={{ fontWeight: 700, color: '#1e293b' }}>{clazz.code} - {clazz.name}</div>
+                      <div style={{ fontSize: 12, color: '#64748b' }}>
+                        {clazz.teacherCount || 0} GV • {clazz.activeStudentCount || 0} học viên active
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Edit User Modal */}
@@ -950,6 +1236,6 @@ export default function AdminUsers() {
           </div>
         </div>
       )}
-    </div>
+    </AdminLayout>
   );
 };

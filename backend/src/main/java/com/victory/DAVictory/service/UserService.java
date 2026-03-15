@@ -4,8 +4,15 @@ import com.victory.DAVictory.dto.RegisterRequest;
 import com.victory.DAVictory.dto.UserDTO;
 import com.victory.DAVictory.entity.Role;
 import com.victory.DAVictory.entity.User;
+import com.victory.DAVictory.entity.ClassStudent;
+import com.victory.DAVictory.entity.ClassTeacher;
 import com.victory.DAVictory.repository.RoleRepository;
 import com.victory.DAVictory.repository.UserRepository;
+import com.victory.DAVictory.repository.ClassRepository;
+import com.victory.DAVictory.repository.ClassStudentRepository;
+import com.victory.DAVictory.repository.ClassTeacherRepository;
+import com.victory.DAVictory.repository.StudentProfileRepository;
+import com.victory.DAVictory.repository.TeacherProfileRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -14,6 +21,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -25,6 +33,11 @@ public class UserService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
+    private final ClassRepository classRepository;
+    private final ClassTeacherRepository classTeacherRepository;
+    private final ClassStudentRepository classStudentRepository;
+    private final StudentProfileRepository studentProfileRepository;
+    private final TeacherProfileRepository teacherProfileRepository;
 
     @Transactional
     public UserDTO registerUser(RegisterRequest request) {
@@ -324,6 +337,207 @@ public class UserService {
         }
         
         userRepository.delete(user);
+    }
+
+    public Map<String, Object> getTeacherClassManagementData() {
+        List<User> teacherUsers = userRepository.findByRoleName("TEACHER");
+        List<com.victory.DAVictory.entity.Class> classes = classRepository.findAll().stream()
+                .filter(c -> Boolean.TRUE.equals(c.getIsActive()))
+                .sorted(Comparator.comparing(com.victory.DAVictory.entity.Class::getStartDate,
+                        Comparator.nullsLast(Comparator.reverseOrder())))
+                .collect(Collectors.toList());
+
+        List<Map<String, Object>> teacherItems = teacherUsers.stream().map(teacher -> {
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("id", teacher.getId());
+            item.put("fullName", teacher.getFullName());
+            item.put("email", teacher.getEmail());
+            item.put("isActive", teacher.getIsActive());
+
+            String teacherCode = teacherProfileRepository.findByUserId(teacher.getId())
+                    .map(tp -> tp.getTeacherCode())
+                    .orElse(null);
+            item.put("teacherCode", teacherCode);
+
+            List<ClassTeacher> assignments = classTeacherRepository.findByUserIdAndIsActiveTrueOrderByAssignedAtDesc(teacher.getId());
+            item.put("classCount", assignments.size());
+            item.put("classes", assignments.stream().map(a -> {
+                Map<String, Object> classItem = new LinkedHashMap<>();
+                classItem.put("id", a.getClazz().getId());
+                classItem.put("code", a.getClazz().getCode());
+                classItem.put("name", a.getClazz().getName());
+                classItem.put("role", a.getRole());
+                classItem.put("assignedAt", a.getAssignedAt());
+                return classItem;
+            }).collect(Collectors.toList()));
+
+            return item;
+        }).collect(Collectors.toList());
+
+        List<Map<String, Object>> classItems = classes.stream().map(clazz -> {
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("id", clazz.getId());
+            item.put("code", clazz.getCode());
+            item.put("name", clazz.getName());
+            item.put("status", clazz.getStatus());
+            item.put("startDate", clazz.getStartDate());
+            item.put("endDate", clazz.getEndDate());
+            item.put("activeStudentCount", classStudentRepository.countByClazzIdAndStatus(clazz.getId(), "ACTIVE"));
+
+            List<ClassTeacher> teachers = classTeacherRepository.findByClazzIdAndIsActiveTrueOrderByRole(clazz.getId());
+            item.put("teacherCount", teachers.size());
+            item.put("teachers", teachers.stream().map(t -> {
+                Map<String, Object> tItem = new LinkedHashMap<>();
+                tItem.put("id", t.getUser().getId());
+                tItem.put("fullName", t.getUser().getFullName());
+                tItem.put("email", t.getUser().getEmail());
+                tItem.put("role", t.getRole());
+                tItem.put("assignedAt", t.getAssignedAt());
+                return tItem;
+            }).collect(Collectors.toList()));
+
+            return item;
+        }).collect(Collectors.toList());
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("teachers", teacherItems);
+        result.put("classes", classItems);
+        return result;
+    }
+
+    @Transactional
+    public Map<String, Object> assignTeacherToClassByCode(String classCode, Long teacherId, String role, String notes) {
+        if (classCode == null || classCode.isBlank()) {
+            throw new RuntimeException("Mã lớp không được để trống");
+        }
+        if (teacherId == null) {
+            throw new RuntimeException("Thiếu giáo viên cần phân công");
+        }
+
+        com.victory.DAVictory.entity.Class clazz = classRepository.findByCode(classCode.trim())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp với mã: " + classCode));
+
+        User teacher = userRepository.findById(teacherId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy giáo viên"));
+
+        boolean isTeacher = teacher.getRoles().stream().anyMatch(r -> "TEACHER".equals(r.getName()));
+        if (!isTeacher) {
+            throw new RuntimeException("User được chọn không có vai trò TEACHER");
+        }
+
+        String normalizedRole = Optional.ofNullable(role)
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .orElse("MAIN_TEACHER");
+
+        Set<String> validRoles = Set.of("MAIN_TEACHER", "ASSISTANT", "SUBSTITUTE");
+        if (!validRoles.contains(normalizedRole)) {
+            normalizedRole = "MAIN_TEACHER";
+        }
+
+        ClassTeacher assignment = classTeacherRepository.findByClazzIdAndUserId(clazz.getId(), teacherId)
+                .orElseGet(ClassTeacher::new);
+
+        assignment.setClazz(clazz);
+        assignment.setUser(teacher);
+        assignment.setRole(normalizedRole);
+        assignment.setAssignedAt(LocalDate.now());
+        assignment.setReleasedAt(null);
+        assignment.setIsActive(true);
+        if (notes != null) {
+            assignment.setNotes(notes.trim());
+        }
+
+        ClassTeacher saved = classTeacherRepository.save(assignment);
+
+        if ("MAIN_TEACHER".equals(normalizedRole)) {
+            classTeacherRepository.findByClazzIdAndRoleAndIsActiveTrue(clazz.getId(), "MAIN_TEACHER")
+                    .filter(existingMain -> !existingMain.getId().equals(saved.getId()))
+                    .ifPresent(existingMain -> {
+                        existingMain.setIsActive(false);
+                        existingMain.setReleasedAt(LocalDate.now());
+                        classTeacherRepository.save(existingMain);
+                    });
+        }
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("message", "Đã phân công giáo viên thành công");
+        result.put("classCode", clazz.getCode());
+        result.put("className", clazz.getName());
+        result.put("teacherId", teacher.getId());
+        result.put("teacherName", teacher.getFullName());
+        result.put("role", saved.getRole());
+        return result;
+    }
+
+    @Transactional
+    public Map<String, Object> assignStudentListToClassByCode(String classCode, List<String> studentCodeList, String notes) {
+        if (classCode == null || classCode.isBlank()) {
+            throw new RuntimeException("Mã lớp không được để trống");
+        }
+        if (studentCodeList == null || studentCodeList.isEmpty()) {
+            throw new RuntimeException("Danh sách mã học viên không được để trống");
+        }
+
+        com.victory.DAVictory.entity.Class clazz = classRepository.findByCode(classCode.trim())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp với mã: " + classCode));
+
+        Set<String> normalizedCodes = studentCodeList.stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+
+        int success = 0;
+        List<String> failedCodes = new ArrayList<>();
+        List<String> messages = new ArrayList<>();
+
+        for (String code : normalizedCodes) {
+            User student = studentProfileRepository.findByStudentCode(code)
+                    .map(sp -> sp.getUser())
+                    .or(() -> userRepository.findByUsername(code))
+                    .orElse(null);
+
+            if (student == null) {
+                failedCodes.add(code);
+                messages.add("Không tìm thấy học viên với mã/username: " + code);
+                continue;
+            }
+
+            boolean isStudent = student.getRoles().stream().anyMatch(r -> "STUDENT".equals(r.getName()));
+            if (!isStudent) {
+                failedCodes.add(code);
+                messages.add("User không có vai trò STUDENT: " + code);
+                continue;
+            }
+
+            ClassStudent classStudent = classStudentRepository.findByClazzIdAndUserId(clazz.getId(), student.getId())
+                    .orElseGet(ClassStudent::new);
+
+            classStudent.setClazz(clazz);
+            classStudent.setUser(student);
+            classStudent.setStatus("ACTIVE");
+            classStudent.setDroppedAt(null);
+            if (classStudent.getEnrolledAt() == null) {
+                classStudent.setEnrolledAt(LocalDate.now());
+            }
+            if (notes != null && !notes.isBlank()) {
+                classStudent.setNotes(notes.trim());
+            }
+
+            classStudentRepository.save(classStudent);
+            success++;
+        }
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("message", "Đã bàn giao danh sách học viên vào lớp");
+        result.put("classCode", clazz.getCode());
+        result.put("className", clazz.getName());
+        result.put("success", success);
+        result.put("failed", failedCodes.size());
+        result.put("failedCodes", failedCodes);
+        result.put("messages", messages);
+        return result;
     }
 
     private UserDTO convertToDTO(User user) {

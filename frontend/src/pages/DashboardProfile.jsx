@@ -4,6 +4,9 @@ import {
   Target, Edit3, Save, X, Camera,
   Headphones, PenLine, Mic,
   CheckCircle2, AlertCircle, Loader2,
+  ShieldCheck,
+  Gauge,
+  Sparkles,
 } from 'lucide-react';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import { SKILL_META } from '../data/dashboardData';
@@ -149,6 +152,21 @@ export default function DashboardProfile() {
     ? form.name.split(' ').map((w) => w[0]).filter(Boolean).slice(-2).join('').toUpperCase()
     : '?';
 
+  const profileCompletion = (() => {
+    const checks = [
+      !!form.name,
+      !!form.email,
+      !!form.phone,
+      !!form.bio,
+      !isStudent || !!form.birthday,
+      !isStudent || !!form.nationality,
+      !isStudent || !!form.studyLevel,
+      !isStudent || !!form.targetBand,
+    ];
+    const done = checks.filter(Boolean).length;
+    return Math.round((done / checks.length) * 100);
+  })();
+
   const memberType = isAdmin ? 'Quản trị viên'
     : isManager ? 'Quản lý'
       : isTeacher ? 'Giảng viên'
@@ -180,24 +198,53 @@ export default function DashboardProfile() {
 
   return (
     <DashboardLayout>
-      {/* ── Header ── */}
-      <div className="hist-header">
-        <div>
-          <h1 className="hist-title">Hồ sơ cá nhân</h1>
-          <p className="hist-sub">Quản lý thông tin tài khoản và mục tiêu học tập của bạn.</p>
-        </div>
-        {!editing ? (
-          <button className="prof-edit-btn" onClick={() => setEditing(true)}>
-            <Edit3 size={16} /> Chỉnh sửa
-          </button>
-        ) : (
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button className="prof-cancel-btn" onClick={handleCancel} disabled={saving}><X size={15} /> Huỷ</button>
-            <button className="prof-save-btn" onClick={handleSave} disabled={saving}>
-              {saving ? <><Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> Đang lưu...</> : <><Save size={15} /> Lưu thay đổi</>}
-            </button>
+      <div className="prof-hero">
+        <div className="prof-hero-left">
+          <span className="prof-hero-chip">
+            <Sparkles size={14} /> Profile Center
+          </span>
+          <h1 className="prof-hero-title">Hồ sơ cá nhân</h1>
+          <p className="prof-hero-sub">Cập nhật thông tin tài khoản, mục tiêu học tập và tối ưu lộ trình IELTS của bạn.</p>
+
+          <div className="prof-kpi-row">
+            <div className="prof-kpi-card">
+              <ShieldCheck size={16} />
+              <div>
+                <p className="prof-kpi-label">Vai trò</p>
+                <p className="prof-kpi-value">{memberType}</p>
+              </div>
+            </div>
+            <div className="prof-kpi-card">
+              <Target size={16} />
+              <div>
+                <p className="prof-kpi-label">Mục tiêu</p>
+                <p className="prof-kpi-value">{isStudent ? `Band ${form.targetBand || '—'}` : 'Theo vai trò'}</p>
+              </div>
+            </div>
+            <div className="prof-kpi-card">
+              <Gauge size={16} />
+              <div>
+                <p className="prof-kpi-label">Hoàn thiện hồ sơ</p>
+                <p className="prof-kpi-value">{profileCompletion}%</p>
+              </div>
+            </div>
           </div>
-        )}
+        </div>
+
+        <div className="prof-hero-actions">
+          {!editing ? (
+            <button className="prof-edit-btn" onClick={() => setEditing(true)}>
+              <Edit3 size={16} /> Chỉnh sửa hồ sơ
+            </button>
+          ) : (
+            <>
+              <button className="prof-cancel-btn" onClick={handleCancel} disabled={saving}><X size={15} /> Huỷ</button>
+              <button className="prof-save-btn" onClick={handleSave} disabled={saving}>
+                {saving ? <><Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> Đang lưu...</> : <><Save size={15} /> Lưu thay đổi</>}
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* ── Toasts ── */}

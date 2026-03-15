@@ -453,47 +453,6 @@ export default function ExamLibrary() {
           )}
         </div>
 
-        {/* Sidebar */}
-        <aside className="exam-library-sidebar">
-          <div className="sidebar-promo-card">
-            <div className="sidebar-promo-badge">IELTS</div>
-            <h3 className="sidebar-promo-title">
-              Luyện thi IELTS<br />
-              hiệu quả cùng<br />
-              DAVictory
-            </h3>
-            <ul className="sidebar-promo-list">
-              <li>✔ Đề thi cập nhật thường xuyên</li>
-              <li>✔ Chấm điểm tự động chính xác</li>
-              <li>✔ Phân tích kết quả chi tiết</li>
-              <li>✔ Giải thích đáp án đầy đủ</li>
-              <li>✔ Luyện tập mọi lúc mọi nơi</li>
-            </ul>
-            <button className="sidebar-promo-btn">Bắt đầu ngay →</button>
-          </div>
-
-          <div className="sidebar-stats-card">
-            <h4 className="sidebar-stats-title">Thống kê</h4>
-            <div className="sidebar-stats-grid">
-              <div className="sidebar-stat">
-                <span className="stat-value">500+</span>
-                <span className="stat-label">Đề thi</span>
-              </div>
-              <div className="sidebar-stat">
-                <span className="stat-value">50K+</span>
-                <span className="stat-label">Học viên</span>
-              </div>
-              <div className="sidebar-stat">
-                <span className="stat-value">4</span>
-                <span className="stat-label">Kỹ năng</span>
-              </div>
-              <div className="sidebar-stat">
-                <span className="stat-value">Free</span>
-                <span className="stat-label">Miễn phí</span>
-              </div>
-            </div>
-          </div>
-        </aside>
       </div>
       )}
     </div>

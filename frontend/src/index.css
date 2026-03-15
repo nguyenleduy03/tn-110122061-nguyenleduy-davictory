@@ -111,6 +111,7 @@ button {
   color: var(--text-secondary);
   font-weight: 600;
   font-size: 15px;
+  line-height: 1.2;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -201,6 +202,29 @@ button {
   cursor: pointer;
   transition: all 0.2s;
   outline: none;
+  font-family: var(--font-family-base);
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.site-navbar,
+.site-navbar * {
+  font-family: var(--font-family-base);
+}
+
+.site-navbar .nav-link,
+.site-navbar .btn-login,
+.site-navbar .btn-register,
+.site-navbar .nav-user-btn,
+.site-navbar .mobile-nav-link,
+.site-navbar .user-dropdown-item {
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.site-navbar .nav-user-btn span {
+  font-size: 14px;
+  line-height: 1.2;
 }
 
 .nav-user-btn:hover {

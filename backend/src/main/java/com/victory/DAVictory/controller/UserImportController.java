@@ -5,10 +5,10 @@ import com.victory.DAVictory.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -115,6 +115,63 @@ public class UserImportController {
 
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("message", "Lỗi khi xử lý file: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Admin lấy dữ liệu quản lý giảng viên và lớp học
+     */
+    @GetMapping("/teacher-class-management")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getTeacherClassManagement() {
+        try {
+            return ResponseEntity.ok(userService.getTeacherClassManagementData());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Lỗi khi tải dữ liệu quản lý lớp: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Admin phân công giáo viên quản lý lớp theo mã lớp
+     */
+    @PostMapping("/assign-teacher-by-class-code")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> assignTeacherByClassCode(@RequestBody Map<String, Object> request) {
+        try {
+            String classCode = request.get("classCode") != null ? String.valueOf(request.get("classCode")) : null;
+            Long teacherId = request.get("teacherId") != null ? Long.valueOf(String.valueOf(request.get("teacherId"))) : null;
+            String role = request.get("role") != null ? String.valueOf(request.get("role")) : null;
+            String notes = request.get("notes") != null ? String.valueOf(request.get("notes")) : null;
+
+            return ResponseEntity.ok(userService.assignTeacherToClassByCode(classCode, teacherId, role, notes));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Lỗi khi phân công giáo viên: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Admin bàn giao danh sách học viên vào lớp theo mã lớp + danh sách mã học viên
+     */
+    @PostMapping("/assign-students-by-class-code")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> assignStudentsByClassCode(@RequestBody Map<String, Object> request) {
+        try {
+            String classCode = request.get("classCode") != null ? String.valueOf(request.get("classCode")) : null;
+            String notes = request.get("notes") != null ? String.valueOf(request.get("notes")) : null;
+
+            List<String> codes = new ArrayList<>();
+            Object codeList = request.get("studentCodes");
+            if (codeList instanceof List<?> list) {
+                for (Object c : list) {
+                    if (c != null) {
+                        codes.add(String.valueOf(c));
+                    }
+                }
+            }
+
+            return ResponseEntity.ok(userService.assignStudentListToClassByCode(classCode, codes, notes));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Lỗi khi bàn giao danh sách học viên: " + e.getMessage()));
         }
     }
 }

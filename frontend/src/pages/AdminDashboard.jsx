@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Shield,
   Users,
   Upload,
   Download,
@@ -15,7 +14,7 @@ import {
   AlertCircle,
   Loader2,
 } from 'lucide-react';
-import Navbar from '../components/layout/Navbar';
+import AdminLayout from '../components/admin/AdminLayout';
 import { authApi } from '../services/authApi';
 import '../styles/adminDashboard.css';
 
@@ -93,59 +92,42 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="admin-page">
-      <Navbar />
+    <AdminLayout
+      title="Bảng điều khiển quản trị"
+      subtitle="Quản lý toàn bộ hệ thống DAVictory theo thời gian thực"
+    >
+      <div className="admin-quick-stats" style={{ marginBottom: 20 }}>
+        <QuickStat 
+          icon={Users} 
+          label="Tổng người dùng" 
+          value={stats.totalUsers.toLocaleString()} 
+          change="+12%" 
+          positive={true}
+        />
+        <QuickStat 
+          icon={Activity} 
+          label="Hoạt động hôm nay" 
+          value={stats.todayLogins.toLocaleString()} 
+          change="+8%" 
+          positive={true}
+        />
+        <QuickStat 
+          icon={FileText} 
+          label="Đề thi chờ duyệt" 
+          value={stats.pendingApproval} 
+          change="-3" 
+          positive={false}
+        />
+        <QuickStat 
+          icon={TrendingUp} 
+          label="Tình trạng hệ thống" 
+          value={`${stats.systemHealth}%`} 
+          change="Tốt" 
+          positive={true}
+        />
+      </div>
 
-      <section className="admin-hero">
-        <div className="admin-container">
-          <div className="admin-hero-head">
-            <div className="admin-hero-icon">
-              <Shield size={28} />
-            </div>
-            <div className="admin-hero-copy">
-              <h1>
-                Bảng điều khiển quản trị
-              </h1>
-              <p>
-                Quản lý toàn bộ hệ thống DAVictory
-              </p>
-            </div>
-          </div>
-
-          <div className="admin-quick-stats">
-            <QuickStat 
-              icon={Users} 
-              label="Tổng người dùng" 
-              value={stats.totalUsers.toLocaleString()} 
-              change="+12%" 
-              positive={true}
-            />
-            <QuickStat 
-              icon={Activity} 
-              label="Hoạt động hôm nay" 
-              value={stats.todayLogins.toLocaleString()} 
-              change="+8%" 
-              positive={true}
-            />
-            <QuickStat 
-              icon={FileText} 
-              label="Đề thi chờ duyệt" 
-              value={stats.pendingApproval} 
-              change="-3" 
-              positive={false}
-            />
-            <QuickStat 
-              icon={TrendingUp} 
-              label="Tình trạng hệ thống" 
-              value={`${stats.systemHealth}%`} 
-              change="Tốt" 
-              positive={true}
-            />
-          </div>
-        </div>
-      </section>
-
-      <main className="admin-container admin-main">
+      <main className="admin-main" style={{ paddingTop: 0 }}>
         {!hasPermission && (
           <div className="admin-alert admin-alert-warning">
             <h2>Không có quyền truy cập</h2>
@@ -309,7 +291,7 @@ export default function AdminDashboard() {
 
         </section>
       </main>
-    </div>
+    </AdminLayout>
   );
 }
 
