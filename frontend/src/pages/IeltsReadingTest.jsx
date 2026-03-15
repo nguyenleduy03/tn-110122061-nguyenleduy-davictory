@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { Check, ArrowLeft, ArrowRight, ArrowLeftRight, Bookmark } from "lucide-react";
 import { useSearchParams, useNavigate, useParams } from "react-router-dom";
 import "../styles/ieltsTest.css";
@@ -82,24 +82,10 @@ const PassageRenderer = ({ part, answers, handleAnswerChange, activeQuestion, se
     const startQuestionNumber = part.fromQuestion || 1;
     const containerRef = React.useRef(null);
 
-    React.useEffect(() => {
-        // Clear existing gaps immediately when content changes to prevent portalling into old nodes
-        setGaps([]);
-        setBookmarkNodes([]);
+    useLayoutEffect(() => {
+        if (!containerRef.current) return undefined;
 
-        const findAndSetGaps = () => {
-            if (!containerRef.current) return false;
-            const nodes = Array.from(containerRef.current.querySelectorAll('.heading-gap'));
-            if (nodes.length > 0) {
-                console.log(`[PassageRenderer] Found ${nodes.length} heading gaps. Setting up portals...`);
-                setGaps(nodes);
-                processGaps(nodes);
-                return true;
-            }
-            return false;
-        };
-
-        function processGaps(nodes) {
+        const processGaps = (nodes) => {
             const bNodes = [];
             nodes.forEach(node => {
                 let p = node.nextElementSibling || node.parentElement;
@@ -120,24 +106,39 @@ const PassageRenderer = ({ part, answers, handleAnswerChange, activeQuestion, se
                 }
             });
             setBookmarkNodes(bNodes);
-        }
+        };
 
-        // Delay detection to ensure PassageContentStatic has finished rendering
-        console.log('[PassageRenderer] Content changed, waiting for DOM stable...');
-        let attempts = 0;
-        const interval = setInterval(() => {
-            attempts++;
-            if (findAndSetGaps()) {
-                console.log(`[PassageRenderer] Gaps found on attempt ${attempts}`);
-                clearInterval(interval);
-            } else if (attempts > 20) { // 4 seconds
-                clearInterval(interval);
-                console.warn('[PassageRenderer] Failed to find heading gaps after 4 seconds.');
+        const mountGaps = () => {
+            if (!containerRef.current) return false;
+            const nodes = Array.from(containerRef.current.querySelectorAll('.heading-gap'));
+            if (nodes.length === 0) {
+                setGaps([]);
+                setBookmarkNodes([]);
+                return false;
             }
-        }, 200);
 
-        return () => clearInterval(interval);
-    }, [part.passageTitle, part.passageContent]);
+            setGaps(nodes);
+            processGaps(nodes);
+            return true;
+        };
+
+        // Try immediately so portals are ready in the same paint.
+        if (mountGaps()) return undefined;
+
+        // Fallback for async HTML updates from external effects.
+        if (typeof MutationObserver === 'undefined') return undefined;
+        const observer = new MutationObserver(() => {
+            if (mountGaps()) observer.disconnect();
+        });
+
+        observer.observe(containerRef.current, { childList: true, subtree: true });
+        const timeoutId = window.setTimeout(() => observer.disconnect(), 2000);
+
+        return () => {
+            observer.disconnect();
+            window.clearTimeout(timeoutId);
+        };
+    }, [part?.id, part?.passageTitle, part?.passageContent]);
 
     return (
         <div className="passage-renderer-wrapper" ref={containerRef}>
@@ -179,7 +180,7 @@ const PassageRenderer = ({ part, answers, handleAnswerChange, activeQuestion, se
             {bookmarkNodes.map((bNode, i) => (
                 createPortal(
                     <span onClick={(e) => { e.stopPropagation(); toggleBookmark?.(bNode.num); }} className="bookmark-portal-container">
-                        <Bookmark size={18} fill={bookmarks?.[bNode.num] ? "#1a73e8" : "none"} color={bookmarks?.[bNode.num] ? "#1a73e8" : "#ccc"} />
+                        <Bookmark size={16} fill={bookmarks?.[bNode.num] ? "#1a73e8" : "none"} color={bookmarks?.[bNode.num] ? "#1a73e8" : "#ccc"} />
                     </span>,
                     bNode.container
                 )
@@ -348,6 +349,36 @@ const IeltsReadingTest = () => {
     const summaryCompletionQuestions = part.questions.filter(q => q.type === 'summary-completion');
     const imageDragDropQuestions = part.questions.filter(q => q.type === 'image-drag-drop');
 
+    const matchingHeadingOptions = part.questions
+        .filter(q => q.type === 'matching_heading')
+        .flatMap(q => q.bankOptions || [])
+        .map(opt => String(opt || '').trim())
+        .filter(Boolean);
+
+    const matchingHeadingZoneWidth = (() => {
+        if (matchingHeadingOptions.length === 0) return 220;
+        let longestWidth = 0;
+
+        if (typeof document !== 'undefined') {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+                ctx.font = '700 15px Arial';
+                longestWidth = matchingHeadingOptions.reduce(
+                    (max, option) => Math.max(max, ctx.measureText(option).width),
+                    0
+                );
+            }
+        }
+
+        if (longestWidth === 0) {
+            longestWidth = matchingHeadingOptions.reduce((max, option) => Math.max(max, option.length * 8.5), 0);
+        }
+
+        const paddedWidth = Math.ceil(longestWidth + 28);
+        return Math.max(220, Math.min(720, paddedWidth));
+    })();
+
     // Group consecutive questions of the same type for sequential rendering
     const questionGroups = [];
     let currentGroup = null;
@@ -388,7 +419,8 @@ const IeltsReadingTest = () => {
                 width: '100%',
                 flex: '1',
                 minHeight: 0,
-                overflow: 'hidden'
+                overflow: 'hidden',
+                '--mh-dropzone-width': `${matchingHeadingZoneWidth}px`
             }}>
                 <div className="passage-section" style={{ minWidth: 0, width: '100%' }}>
                     {part.passageTitle && !part.passageTitle.toLowerCase().startsWith('nhóm') && (

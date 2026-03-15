@@ -26,11 +26,8 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
                 const qId = subQ ? subQ.id : `q${qNum}`;
                 const isActive = activeQuestion === qNum;
                 const answer = answers?.[qId] || '';
-                
-                blankIndex++; // Tăng index cho ô trống tiếp theo
 
-                // Chỉ thêm số thứ tự × cho Note Completion
-                const showOrderNumber = q.type === 'note-completion';
+                blankIndex++; // Tăng index cho ô trống tiếp theo
 
                 return (
                     <span key={index}>
@@ -45,16 +42,6 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
                             >
                                 <Bookmark size={15} fill={bookmarks?.[qNum] ? "#1a73e8" : "none"} color={bookmarks?.[qNum] ? "#1a73e8" : "#ccc"} />
                             </span>
-                            {showOrderNumber && (
-                                <span style={{ 
-                                    fontSize: '12px', 
-                                    fontWeight: 'bold', 
-                                    color: '#2563eb', 
-                                    marginRight: '4px' 
-                                }}>
-                                    {blankIndex}×
-                                </span>
-                            )}
                             <input
                                 ref={(el) => { if (inputRefs?.current) inputRefs.current[qNum] = el; }}
                                 type="text"
@@ -85,9 +72,6 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
                 const isActive = activeQuestion === qNum;
                 const answer = answers?.[qId] || '';
 
-                // Chỉ thêm số thứ tự × cho Note Completion
-                const showOrderNumber = q.type === 'note-completion';
-
                 return (
                     <span
                         key={index}
@@ -100,16 +84,6 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
                         >
                             <Bookmark size={15} fill={bookmarks?.[qNum] ? "#1a73e8" : "none"} color={bookmarks?.[qNum] ? "#1a73e8" : "#ccc"} />
                         </span>
-                        {showOrderNumber && (
-                            <span style={{ 
-                                fontSize: '12px', 
-                                fontWeight: 'bold', 
-                                color: '#2563eb', 
-                                marginRight: '4px' 
-                            }}>
-                                {qNum}×
-                            </span>
-                        )}
                         <input
                             ref={(el) => { if (inputRefs?.current) inputRefs.current[qNum] = el; }}
                             type="text"

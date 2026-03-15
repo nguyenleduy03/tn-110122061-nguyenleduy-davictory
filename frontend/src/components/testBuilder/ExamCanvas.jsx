@@ -7,7 +7,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useDroppable } from '@dnd-kit/core';
-import { GripVertical, X, Volume2, Image, Plus } from 'lucide-react';
+import { GripVertical, X, Volume2, Image, Plus, ChevronUp, ChevronDown } from 'lucide-react';
 import RichInput from '../common/RichInput';
 
 // ---- Type metadata ----
@@ -245,13 +245,19 @@ const GroupDropZone = ({ partId, isOver, onAddGroup, part, paneType = 'part', la
 };
 
 // ---- Group toolbar ----
-const GroupToolbar = ({ group, dragHandleProps, onDelete }) => {
+const GroupToolbar = ({ group, dragHandleProps, onDelete, onMoveUp, onMoveDown }) => {
   const meta = TYPE_META[group.contentType] || TYPE_META.STANDALONE;
   return (
-    <div className="exam-group-toolbar">
-      <span className="exam-group-drag-handle" {...dragHandleProps}><GripVertical size={13} /></span>
+    <div className="exam-group-toolbar exam-group-toolbar-draggable" {...dragHandleProps}>
+      <span className="exam-group-drag-handle"><GripVertical size={13} /></span>
       <span className="exam-type-badge" style={{ background: meta.bg, color: meta.color }}>{meta.label}</span>
-      <button className="exam-group-tool-btn danger" onClick={(e) => { e.stopPropagation(); onDelete(group.id); }} title="Xóa nhóm">
+        <button className="exam-group-tool-btn" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); onMoveUp?.(group.id); }} title="Di chuyển lên">
+          <ChevronUp size={12} />
+        </button>
+        <button className="exam-group-tool-btn" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); onMoveDown?.(group.id); }} title="Di chuyển xuống">
+          <ChevronDown size={12} />
+        </button>
+      <button className="exam-group-tool-btn danger" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); onDelete(group.id); }} title="Xóa nhóm">
         <X size={12} />
       </button>
     </div>
@@ -2519,7 +2525,7 @@ const WritingTaskBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragH
 };
 
 // ---- Group renderer (dispatches by contentType) ----
-const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUpdateGroup, onUpdateQuestion, onDeleteGroup, onDeleteQuestion, onAddQuestion, dragHandleProps, allGroups }) => {
+const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUpdateGroup, onUpdateQuestion, onDeleteGroup, onDeleteQuestion, onAddQuestion, onMoveGroupUp, onMoveGroupDown, dragHandleProps, allGroups }) => {
   const selectedGroupId = selection?.type === 'group' ? selection.data.id : null;
   const selectedQuestionId = selection?.type === 'question' ? selection.data.id : null;
   const isSelected = selectedGroupId === group.id;
@@ -2665,7 +2671,7 @@ const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUp
   return (
     <div className={`exam-group${isSelected ? ' selected' : ''}`}
       onClick={(e) => { e.stopPropagation(); onSelectGroup(group, group.partId); }}>
-      <GroupToolbar group={group} dragHandleProps={dragHandleProps} onDelete={onDeleteGroup} />
+      <GroupToolbar group={group} dragHandleProps={dragHandleProps} onDelete={onDeleteGroup} onMoveUp={onMoveGroupUp} onMoveDown={onMoveGroupDown} />
       {ct === 'TABLE' && (
         <div style={{ border: '1px solid #e5e7eb', borderRadius: 4, padding: '8px 12px', marginBottom: 10, background: '#f9fafb', fontSize: 13, color: '#888', textAlign: 'center' }}>
           📊 Bảng — thêm nội dung bảng trong panel bên phải
@@ -2677,7 +2683,7 @@ const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUp
 };
 
 // ---- Per-Part content view ----
-const PartView = ({ skill, part, selection, onSelectGroup, onSelectQuestion, onUpdateGroup, onUpdateQuestion, onDeleteGroup, onDeleteQuestion, onAddQuestion, onAddGroup, isDropOver, isPassagePaneOver, isPassagePaneLocked, isMHLocked }) => {
+const PartView = ({ skill, part, selection, onSelectGroup, onSelectQuestion, onUpdateGroup, onUpdateQuestion, onDeleteGroup, onDeleteQuestion, onAddQuestion, onAddGroup, onMoveGroupUp, onMoveGroupDown, isDropOver, isPassagePaneOver, isPassagePaneLocked, isMHLocked }) => {
   const groups = part.questionGroups ?? [];
 
   const renderGroup = (group) => (
@@ -2694,6 +2700,8 @@ const PartView = ({ skill, part, selection, onSelectGroup, onSelectQuestion, onU
           onDeleteGroup={onDeleteGroup}
           onDeleteQuestion={onDeleteQuestion}
           onAddQuestion={onAddQuestion}
+          onMoveGroupUp={onMoveGroupUp}
+          onMoveGroupDown={onMoveGroupDown}
           dragHandleProps={dragHandleProps} />
       )}
     </SortableGroupWrapper>
@@ -2766,6 +2774,8 @@ const ExamCanvas = ({
   onAddQuestion,
   onAddPart,
   onAddGroup,
+  onMoveGroupUp,
+  onMoveGroupDown,
   dragOverPartId,
   dragOverPassagePaneId,
   draggingContentType,
@@ -2865,6 +2875,8 @@ const ExamCanvas = ({
               onDeleteQuestion={onDeleteQuestion}
               onAddQuestion={onAddQuestion}
               onAddGroup={onAddGroup}
+              onMoveGroupUp={onMoveGroupUp}
+              onMoveGroupDown={onMoveGroupDown}
               isDropOver={isDropOver}
               isPassagePaneOver={isPassagePaneOver}
               isPassagePaneLocked={isPassagePaneLocked}

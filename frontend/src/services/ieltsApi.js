@@ -189,6 +189,21 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
 
   // ─── TABLE_COMPLETION → 1 group question ────────────────────────────
   if (feType === 'table-completion') {
+    let tableTitle = group.title || '';
+    let columns = [];
+    let tableRows = [];
+
+    if (group.passageText) {
+      try {
+        const parsed = JSON.parse(group.passageText);
+        tableTitle = parsed.tableTitle || tableTitle;
+        columns = Array.isArray(parsed.columns) ? parsed.columns : [];
+        tableRows = Array.isArray(parsed.tableRows) ? parsed.tableRows : [];
+      } catch {
+        // keep fallback values when passageText is plain text or invalid JSON
+      }
+    }
+
     const subQuestions = questions.map((q) => {
       const num = q.questionNumber || globalCounterRef.counter++;
       globalCounterRef.counter = Math.max(globalCounterRef.counter, num + 1);
@@ -196,11 +211,23 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
       return { id: `q${q.id}`, number: num, text: q.questionText || '', correctAnswer };
     });
 
+    const numbers = subQuestions.map((sq) => sq.number).filter((n) => Number.isFinite(n));
+    const minNum = numbers.length ? Math.min(...numbers) : null;
+    const maxNum = numbers.length ? Math.max(...numbers) : null;
+    const heading = (minNum !== null && maxNum !== null)
+      ? (minNum === maxNum ? `Question ${minNum}` : `Questions ${minNum}-${maxNum}`)
+      : '';
+
     return [{
       id: `group-${group.questionGroupId || group.id}`,
       type: 'table-completion',
       questionTypeCode: typeCode,
+      heading,
+      instruction: group.instructions || 'Complete the table. Write ONE WORD ONLY for each answer.',
       title: group.title || '',
+      tableTitle,
+      columns,
+      tableRows,
       subQuestions,
     }];
   }

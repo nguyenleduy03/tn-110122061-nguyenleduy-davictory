@@ -718,6 +718,9 @@
 .exam-group:hover .exam-group-toolbar,
 .exam-group.selected .exam-group-toolbar { display: flex; }
 
+.exam-group-toolbar-draggable { cursor: grab; }
+.exam-group-toolbar-draggable:active { cursor: grabbing; }
+
 .exam-group-drag-handle { cursor: grab; color: #aaa; display: flex; align-items: center; padding: 2px; }
 .exam-group-drag-handle:active { cursor: grabbing; }
 .exam-group-tool-btn {

@@ -544,6 +544,22 @@ const TestBuilder = () => {
     if (selection?.type === 'group' && selection.data.id === groupId) setSelection(null);
   };
 
+  const moveGroupByStep = (partId, groupId, direction) => {
+    setParts((prev) => {
+      const groups = prev.find((p) => p.id === partId)?.questionGroups ?? [];
+      const idx = groups.findIndex((g) => g.id === groupId);
+      if (idx === -1) return prev;
+
+      const targetIdx = idx + direction;
+      if (targetIdx < 0 || targetIdx >= groups.length) return prev;
+
+      return prev.map((p) => {
+        if (p.id !== partId) return p;
+        return { ...p, questionGroups: arrayMove(groups, idx, targetIdx) };
+      });
+    });
+  };
+
   const addQuestion = (group) => {
     const ct = group.contentType;
     // Determine default questionType and options based on group contentType
@@ -717,17 +733,94 @@ const TestBuilder = () => {
       return;
     }
 
-    // 5. Reorder groups within same part
-    if (activeData?.type === 'group' && overData?.type === 'group') {
-      setParts((prev) =>
-        prev.map((p) => {
-          const groups = p.questionGroups ?? [];
-          const aIdx = groups.findIndex((g) => `group-${g.id}` === active.id);
-          const bIdx = groups.findIndex((g) => `group-${g.id}` === over.id);
-          if (aIdx === -1 || bIdx === -1 || aIdx === bIdx) return p;
-          return { ...p, questionGroups: arrayMove(groups, aIdx, bIdx) };
-        })
-      );
+    // 5. Reorder/move existing groups
+    if (activeData?.type === 'group') {
+      // 5a) Drop group onto another group
+      if (overData?.type === 'group') {
+        const sourcePartId = Number(activeData.partId);
+        const targetPartId = Number(overData.partId);
+
+        if (!Number.isFinite(sourcePartId) || !Number.isFinite(targetPartId)) return;
+
+        setParts((prev) => {
+          const srcPart = prev.find((p) => p.id === sourcePartId);
+          const dstPart = prev.find((p) => p.id === targetPartId);
+          if (!srcPart || !dstPart) return prev;
+
+          const srcGroups = srcPart.questionGroups ?? [];
+          const dstGroups = dstPart.questionGroups ?? [];
+          const srcIdx = srcGroups.findIndex((g) => `group-${g.id}` === active.id);
+          const dstIdx = dstGroups.findIndex((g) => `group-${g.id}` === over.id);
+          if (srcIdx === -1 || dstIdx === -1) return prev;
+
+          // Same part: reorder only
+          if (sourcePartId === targetPartId) {
+            if (srcIdx === dstIdx) return prev;
+            return prev.map((p) =>
+              p.id === sourcePartId
+                ? { ...p, questionGroups: arrayMove(srcGroups, srcIdx, dstIdx) }
+                : p
+            );
+          }
+
+          // Different part: move to target part at drop index
+          const movingGroup = srcGroups[srcIdx];
+          if (!movingGroup) return prev;
+
+          const nextSrc = srcGroups.filter((_, i) => i !== srcIdx);
+          const nextDst = [...dstGroups];
+          nextDst.splice(dstIdx, 0, movingGroup);
+
+          return prev.map((p) => {
+            if (p.id === sourcePartId) return { ...p, questionGroups: nextSrc };
+            if (p.id === targetPartId) return { ...p, questionGroups: nextDst };
+            return p;
+          });
+        });
+        return;
+      }
+
+      // 5b) Drop group onto pane/part drop-zone => move group to end of target part
+      if (overData?.type === 'part' || overData?.type === 'question-pane' || overData?.type === 'passage-pane') {
+        const sourcePartId = Number(activeData.partId);
+        const targetPartId = Number(overData.partId ?? overData.part?.id);
+        if (!Number.isFinite(sourcePartId) || !Number.isFinite(targetPartId)) return;
+
+        setParts((prev) => {
+          const srcPart = prev.find((p) => p.id === sourcePartId);
+          const dstPart = prev.find((p) => p.id === targetPartId);
+          if (!srcPart || !dstPart) return prev;
+
+          const srcGroups = srcPart.questionGroups ?? [];
+          const dstGroups = dstPart.questionGroups ?? [];
+          const srcIdx = srcGroups.findIndex((g) => `group-${g.id}` === active.id);
+          if (srcIdx === -1) return prev;
+
+          const movingGroup = srcGroups[srcIdx];
+          if (!movingGroup) return prev;
+
+          // Reading split-pane constraints
+          if (overData.type === 'passage-pane' && movingGroup.contentType !== 'READING_PASSAGE') {
+            return prev;
+          }
+          if (overData.type === 'question-pane' && movingGroup.contentType === 'READING_PASSAGE') {
+            return prev;
+          }
+
+          // Same part and dropped to end with no order change
+          if (sourcePartId === targetPartId && srcIdx === srcGroups.length - 1) return prev;
+
+          const nextSrc = srcGroups.filter((_, i) => i !== srcIdx);
+          const nextDst = sourcePartId === targetPartId ? nextSrc : [...dstGroups];
+          nextDst.push(movingGroup);
+
+          return prev.map((p) => {
+            if (p.id === sourcePartId) return { ...p, questionGroups: nextSrc };
+            if (p.id === targetPartId) return { ...p, questionGroups: nextDst };
+            return p;
+          });
+        });
+      }
     }
   };
 
@@ -917,6 +1010,14 @@ const TestBuilder = () => {
             dragOverPartId={dragOverPartId}
             dragOverPassagePaneId={dragOverPassagePaneId}
             draggingContentType={activeOverlayItem?.contentType ?? null}
+            onMoveGroupUp={(groupId) => {
+              const part = parts.find((p) => p.questionGroups?.some((g) => g.id === groupId));
+              if (part) moveGroupByStep(part.id, groupId, -1);
+            }}
+            onMoveGroupDown={(groupId) => {
+              const part = parts.find((p) => p.questionGroups?.some((g) => g.id === groupId));
+              if (part) moveGroupByStep(part.id, groupId, 1);
+            }}
             onSelectGroup={(g, partId) => setSelection({ type: 'group', data: { ...g, partId } })}
             onSelectQuestion={(q) => {
               const ctx = findQuestionContext(q.id);

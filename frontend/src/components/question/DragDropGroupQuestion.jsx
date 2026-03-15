@@ -67,7 +67,6 @@ const DragDropGroupQuestion = ({ q, activeQuestion, setActiveQuestion, answers, 
                             onDragStart={(e) => { if (!isReview) handleDragStart(e, opt, null); }}
                             className={`bank-option ${isUsed ? 'used' : ''} ${isMatchingHeading ? 'bank-option-heading' : ''}`}
                             style={{
-                                height: '32px',
                                 width: isMatchingInfo ? dropZoneWidth : undefined
                             }}
                         >
