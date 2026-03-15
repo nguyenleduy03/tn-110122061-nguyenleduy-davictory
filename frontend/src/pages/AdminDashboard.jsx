@@ -14,7 +14,7 @@ import {
   AlertCircle,
   Loader2,
 } from 'lucide-react';
-import AdminLayout from '../components/admin/AdminLayout';
+import AdminLayout from '../components/admin/AdminLayout.jsx';
 import { authApi } from '../services/authApi';
 import '../styles/adminDashboard.css';
 

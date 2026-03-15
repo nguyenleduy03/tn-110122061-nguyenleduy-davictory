@@ -27,7 +27,7 @@ import {
   UserPlus,
   ClipboardList,
 } from 'lucide-react';
-import AdminLayout from '../components/admin/AdminLayout';
+import AdminLayout from '../components/admin/AdminLayout.jsx';
 import { authApi } from '../services/authApi';
 
 const ROLES = {
