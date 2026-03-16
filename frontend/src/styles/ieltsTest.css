@@ -243,6 +243,29 @@
     background-color: #ffffff;
 }
 
+.review-score-banner {
+    margin-top: 10px;
+    background: #f0f7ff;
+    border: 1px solid #c7ddff;
+    padding: 8px 12px;
+    border-radius: 6px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    color: #0b2a4a;
+    font-size: 13px;
+}
+
+.review-score-main {
+    font-weight: 700;
+}
+
+.review-score-sub {
+    font-weight: 600;
+    color: #2d5a9e;
+}
+
 /* Header Styles */
 .ielts-header {
     flex-shrink: 0;
@@ -485,6 +508,17 @@
     font-size: 15px;
 }
 
+.instruction-bar p strong,
+.instruction-bar p b,
+.question-instruction strong,
+.question-instruction b,
+.summary-title strong,
+.summary-title b,
+.summary-text strong,
+.summary-text b {
+    font-weight: 700;
+}
+
 /* Listening Audio Overlay */
 .listening-audio-overlay {
     position: absolute;
@@ -719,6 +753,7 @@
     padding: 0 10px;
     height: 20px;
     font-size: 15px;
+    font-weight: 400;
     outline: none;
     width: 140px;
     text-align: center;
@@ -732,6 +767,7 @@
 
 .inline-input::placeholder {
     color: #000;
+    font-weight: 700;
 
     opacity: 1;
     text-align: center;
@@ -1259,7 +1295,7 @@
 .bank-option {
     display: inline-flex;
     align-items: center;
-    padding: 6px 12px;
+    padding: 2px 6px;
 
     background-color: white;
     border: 1px solid #ccc;
@@ -1342,6 +1378,29 @@
     margin-bottom: 20px;
 }
 
+.bank-section.bank-drop-target {
+    width: var(--dd-bank-fixed-width, 320px);
+    min-width: var(--dd-bank-fixed-width, 320px);
+    max-width: 100%;
+    min-height: var(--dd-bank-fixed-height, 180px);
+    border: none;
+    border-radius: 8px;
+    padding: 0 12px 10px;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    align-content: flex-start;
+    box-sizing: border-box;
+    overflow: visible;
+}
+
+.bank-section.bank-drop-target .options-bank {
+    width: 100%;
+    align-content: flex-start;
+}
+
 .bank-section.bank-heading {
     flex-direction: column;
 }
@@ -1352,11 +1411,15 @@
     align-items: flex-start;
 }
 
+.bank-section.bank-drop-target.bank-heading .options-bank {
+    width: 100%;
+}
+
 .bank-option-heading {
     width: fit-content;
     max-width: min(100%, var(--mh-dropzone-width, 720px));
     min-height: 25px;
-    height: 25px !important;
+    height: auto !important;
     white-space: nowrap;
 }
 
@@ -1370,6 +1433,12 @@
     font-size: 18px;
     font-weight: bold;
     line-height: 20px;
+}
+
+.drag-drop-group.matching-info .bank-section-title.info-title {
+    display: flex;
+    align-items: center;
+    min-height: 40px;
 }
 
 /* Sub questions area */
@@ -1486,11 +1555,16 @@
     font-size: 18px;
     font-weight: bold;
     box-shadow: 0 0 0 2px #3498db33;
+    cursor: grab;
+}
+
+.dd-drop-zone.dd-drop-filled:active {
+    cursor: grabbing;
 }
 
 .dd-drop-zone.dd-drop-info {
     border: 1px dashed #999;
-    height: 32px;
+    height: 25px;
 }
 
 
@@ -1519,7 +1593,7 @@
 
 .dd-drop-answer {
     font-weight: normal;
-    cursor: grab;
+    cursor: inherit;
 }
 
 .dd-drop-clear {
@@ -2334,7 +2408,7 @@
 .summary-input {
     width: 120px;
     text-align: center;
-    font-weight: bold;
+    font-weight: 400;
 }
 
 /* Image Drag Drop Question */
@@ -2953,6 +3027,11 @@ body.theme-white-black .bank-option {
     border-color: #fff;
 }
 
+body.theme-white-black .bank-section.bank-drop-target {
+    background-color: #000;
+    border-color: #555;
+}
+
 body.theme-white-black .dd-drop-zone {
     background-color: #000;
     border-color: #555 !important;
@@ -3071,6 +3150,11 @@ body.theme-yellow-black .q-wrapper:hover .q-num:not(.active) {
 
 body.theme-yellow-black .bank-option {
     border-color: #e5ff00;
+}
+
+body.theme-yellow-black .bank-section.bank-drop-target {
+    background-color: #000;
+    border-color: #666;
 }
 
 body.theme-yellow-black .dd-drop-zone {
@@ -3335,7 +3419,7 @@ body.text-size-xlarge .options-fs-overlay {
     background-color: #bff3d3 !important;
     border: none !important;
     border-radius: 4px;
-    color: #004d1f !important;
+    color: #008134 !important;
 }
 
 .review-choice-wrong {
@@ -3343,6 +3427,19 @@ body.text-size-xlarge .options-fs-overlay {
     border: none !important;
     border-radius: 4px;
     color: #7d1010 !important;
+}
+
+.inline-input.review-correct,
+.inline-input.review-wrong,
+.dd-drop-zone.review-correct .dd-drop-answer,
+.dd-drop-zone.review-wrong .dd-drop-answer,
+.heading-gap-zone.review-correct .heading-gap-answer,
+.heading-gap-zone.review-wrong .heading-gap-answer,
+.fc-blank.review-correct .fc-blank-answer,
+.fc-blank.review-wrong .fc-blank-answer,
+.drop-zone.review-correct .dz-answered,
+.drop-zone.review-wrong .dz-answered {
+    font-weight: 400 !important;
 }
 
 .review-correct-label {
@@ -3426,16 +3523,16 @@ body.text-size-xlarge .options-fs-overlay {
     text-align: center;
     margin: 0 3px;
     font-size: 12.5px;
-    padding: 1px 4px;
-    border: none;
-    border-bottom: 1.5px solid #555;
-    border-radius: 0;
-    background: transparent;
+    padding: 2px 6px;
+    border: 1px solid #111;
+    border-radius: 3px;
+    background: #fff;
+    box-sizing: border-box;
 }
 
 .tc-inline-input:focus {
-    border-bottom-color: #1a73e8;
-    background: #f0f7ff;
+    border-color: #1a73e8;
+    box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.15);
 }
 
 .table-inline-wrap {
@@ -3475,6 +3572,7 @@ body.text-size-xlarge .options-fs-overlay {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    font-size: 18px;
     width: 1em;
     height: 1em;
     line-height: 1em;

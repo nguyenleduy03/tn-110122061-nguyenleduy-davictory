@@ -16,6 +16,8 @@ public interface AttemptAnswerRepository extends JpaRepository<AttemptAnswer, Lo
 
     Optional<AttemptAnswer> findByExamAttemptIdAndQuestionId(Long examAttemptId, Long questionId);
 
+    boolean existsByQuestionQuestionGroupId(Long questionGroupId);
+
     // Tất cả câu đã trả lời (không bỏ trống)
     List<AttemptAnswer> findByExamAttemptIdAndIsAnsweredTrue(Long examAttemptId);
 

@@ -10,6 +10,7 @@ import { useParams } from "react-router-dom";
 import "../styles/ieltsTest.css";
 import TestHeader from "../components/common/TestHeader";
 import { ieltsApi } from "../services/ieltsApi";
+import { formatTextWithWhitespace } from "../utils/textFormatters";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const fmtTime = (sec) => {
@@ -66,20 +67,20 @@ const Waveform = ({ analyser }) => {
 const CueCard = ({ question }) => (
   <div className="spk-cuecard">
     {question.topic
-      ? <div className="spk-cuecard-topic" dangerouslySetInnerHTML={{ __html: question.topic }} />
+      ? <div className="spk-cuecard-topic" dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(question.topic) }} />
       : <div className="spk-cuecard-topic" />}
     {question.instruction && (
-      <div className="spk-cuecard-desc" dangerouslySetInnerHTML={{ __html: question.instruction }} />
+      <div className="spk-cuecard-desc" dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(question.instruction) }} />
     )}
     {question.bulletPoints?.length > 0 && (
       <ul className="spk-cuecard-bullets">
         {question.bulletPoints.map((bp, i) => (
-          <li key={i} dangerouslySetInnerHTML={{ __html: bp }} />
+          <li key={i} dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(bp) }} />
         ))}
       </ul>
     )}
     {question.closingSentence && (
-      <div className="spk-cuecard-closing" dangerouslySetInnerHTML={{ __html: question.closingSentence }} />
+      <div className="spk-cuecard-closing" dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(question.closingSentence) }} />
     )}
   </div>
 );
@@ -100,6 +101,7 @@ const IeltsSpeakingTest = () => {
   const [prepSeconds, setPrepSeconds] = useState(PREP_SECONDS);
   const [recSeconds, setRecSeconds] = useState(0);
   const [partSecondsLeft, setPartSecondsLeft] = useState(0);
+  const [startTime] = useState(() => Date.now());
 
   // stage: mic-test | part | part-review
   const [stage, setStage] = useState('mic-test');
@@ -335,6 +337,13 @@ const IeltsSpeakingTest = () => {
 
   const submitTest = useCallback(() => {
     const isFullTest = new URLSearchParams(window.location.search).get('fullTest') === 'true';
+    const timeSpentSeconds = Math.floor((Date.now() - startTime) / 1000);
+    const recordedAnswers = Object.keys(audioUrls).reduce((acc, qid) => {
+      acc[qid] = 'RECORDED';
+      return acc;
+    }, {});
+    const submitPromise = ieltsApi.submitAnswers(testId, 'SPEAKING', recordedAnswers, timeSpentSeconds);
+
     if (isFullTest) {
       try {
         const session = JSON.parse(sessionStorage.getItem('ieltsFullTest') || 'null');
@@ -344,24 +353,28 @@ const IeltsSpeakingTest = () => {
             const updated = { ...session, currentSection: nextIdx };
             sessionStorage.setItem('ieltsFullTest', JSON.stringify(updated));
             const next = updated.sections[nextIdx];
-            window.location.href = `/test/${next.skill}/${next.testId}?fullTest=true&mode=${session.mode || 'practice'}`;
+            submitPromise.finally(() => {
+              window.location.href = `/test/${next.skill}/${next.testId}?fullTest=true&mode=${session.mode || 'practice'}`;
+            });
             return;
           } else {
             sessionStorage.removeItem('ieltsFullTest');
-            window.location.href = `/test/complete?mode=${session.mode || 'practice'}&skill=speaking&fullTest=true&testId=${testId}`;
+            submitPromise.finally(() => {
+              window.location.href = `/test/complete?mode=${session.mode || 'practice'}&skill=speaking&fullTest=true&testId=${testId}`;
+            });
             return;
           }
         }
       } catch { window.location.href = '/exam-library'; return; }
     }
     const count = Object.keys(audioUrls).length;
-    setSubmitted(true);
-    // After setSubmitted(true), we don't automatically navigate, but if the user finishes, they might need a way to go to complete page.
-    // However, looking at the UI, the submit 버튼 calls this. Let's redirect to complete page after submitted.
-    setTimeout(() => {
+    submitPromise.finally(() => {
+      setSubmitted(true);
+      setTimeout(() => {
         window.location.href = `/test/complete?mode=practice&skill=speaking&testId=${testId}`;
-    }, 2000);
-  }, [audioUrls, testData]);
+      }, 2000);
+    });
+  }, [audioUrls, startTime, testId]);
 
   // ── Render ─────────────────────────────────────────────────────────────────
   if (loading)
@@ -416,8 +429,8 @@ const IeltsSpeakingTest = () => {
       />
 
       <div className="instruction-bar">
-          <h3 dangerouslySetInnerHTML={{ __html: currentPart?.title }} />
-          {currentPart?.instruction && <p dangerouslySetInnerHTML={{ __html: currentPart.instruction }} />}
+        <h3 dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(currentPart?.title || '') }} />
+        {currentPart?.instruction && <p dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(currentPart.instruction) }} />}
       </div>
 
       {/* Main card ──────────────────────────────────────────────────────── */}
@@ -494,7 +507,7 @@ const IeltsSpeakingTest = () => {
           <div className="spk-card">
             {/* Part label */}
             <div className="spk-part-label">
-              Part {currentPart.partNumber} · <span dangerouslySetInnerHTML={{ __html: currentPart.title }} />
+              Part {currentPart.partNumber} · <span dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(currentPart.title || '') }} />
               <span className="spk-part-meta">
                 ({currentPart.questions.length} questions) · {fmtTime(partSecondsLeft)}
               </span>
@@ -509,7 +522,7 @@ const IeltsSpeakingTest = () => {
             ) : (
               <div className="spk-question-text">
                 <span className="spk-q-number">Q{currentQIdx + 1}.</span>{" "}
-                <span dangerouslySetInnerHTML={{ __html: currentQ.text }} />
+                <span dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(currentQ.text || '') }} />
               </div>
             )}
 

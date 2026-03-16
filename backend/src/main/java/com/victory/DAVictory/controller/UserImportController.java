@@ -132,6 +132,19 @@ public class UserImportController {
     }
 
     /**
+     * Admin tạo lớp nhanh trong màn quản lý giảng viên/lớp
+     */
+    @PostMapping("/create-class")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> createClass(@RequestBody Map<String, Object> request) {
+        try {
+            return ResponseEntity.ok(userService.createClassForAdmin(request));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Lỗi khi tạo lớp: " + e.getMessage()));
+        }
+    }
+
+    /**
      * Admin phân công giáo viên quản lý lớp theo mã lớp
      */
     @PostMapping("/assign-teacher-by-class-code")

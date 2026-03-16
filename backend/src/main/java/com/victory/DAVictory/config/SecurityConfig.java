@@ -92,7 +92,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/tests/**").hasAnyRole("STUDENT", "TEACHER", "MANAGER", "ADMIN")
 
                 // ===== TEST BUILDER =====
-                // TEACHER, MANAGER, ADMIN dùng được test builder
+                // Cho phép STUDENT tải đề thi để làm bài (chỉ GET)
+                .requestMatchers(HttpMethod.GET, "/api/test-builder/**").hasAnyRole("STUDENT", "TEACHER", "MANAGER", "ADMIN")
+                // TEACHER, MANAGER, ADMIN dùng được test builder (write)
                 .requestMatchers("/api/test-builder/**").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
 
                 // ===== TEST STRUCTURE =====

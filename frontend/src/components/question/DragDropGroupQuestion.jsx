@@ -44,20 +44,32 @@ const DragDropGroupQuestion = ({ q, activeQuestion, setActiveQuestion, answers, 
     const isMatchingInfo = q.type === 'matching_info';
 
     // Calculate max length of bank options for sizing dropzones
-    const maxOptionChars = Math.max(0, ...(q.bankOptions || []).map(opt => String(opt).length));
-    const dropZoneWidth = isMatchingInfo ? `max(150px, ${maxOptionChars * 8 + 30}px)` : '150px';
+    const bankOptions = q.bankOptions || [];
+    const maxOptionChars = Math.max(0, ...bankOptions.map(opt => String(opt).length));
+    const fixedBankWidth = Math.max(220, Math.min(720, Math.ceil(maxOptionChars * 8 + 30)));
+    const rowHeight = isMatchingHeading ? 52 : 48;
+    const titleHeight = (isMatchingHeading || isMatchingInfo) ? 44 : 0;
+    const fixedBankHeight = Math.max(180, bankOptions.length * rowHeight + titleHeight + 16);
+    const dropZoneWidth = isMatchingInfo ? `${fixedBankWidth}px` : '150px';
 
     // Gather all currently used options to highlight or disable them
     const usedOptions = (q.subQuestions || []).map(subQ => answers[subQ.id]).filter(Boolean);
 
     const renderBank = () => (
-        <div className={`bank-section ${isMatchingHeading ? 'bank-heading' : ''}`}
+        <div className={`bank-section ${isMatchingHeading ? 'bank-heading' : ''} ${(isMatchingHeading || isMatchingInfo) ? 'bank-drop-target' : ''}`}
             onDragOver={handleDragOver}
-            onDrop={handleBankDrop}>
+            onDrop={handleBankDrop}
+            style={(isMatchingHeading || isMatchingInfo)
+                ? {
+                    '--dd-bank-fixed-width': `${fixedBankWidth}px`,
+                    '--dd-bank-fixed-height': `${fixedBankHeight}px`
+                }
+                : undefined}
+        >
             {isMatchingHeading && <h4 className="bank-section-title">List of Headings</h4>}
             {isMatchingInfo && <h4 className="bank-section-title info-title">{q.rightHeader || 'Options'}</h4>}
             <div className="options-bank">
-                {q.bankOptions.map((opt, idx) => {
+                {bankOptions.map((opt, idx) => {
                     const isUsed = usedOptions.includes(opt);
                     if (isUsed && !isReview) return null; // Ẩn heading đã được thả
                     return (
@@ -85,6 +97,13 @@ const DragDropGroupQuestion = ({ q, activeQuestion, setActiveQuestion, answers, 
                 {(q.subQuestions || []).map((subQ) => {
                     const isActive = activeQuestion === subQ.number;
                     const answer = answers[subQ.id];
+                    const normalizedAnswer = String(answer || '').trim().toLowerCase();
+                    const normalizedCorrect = String(subQ.correctAnswer || '').trim().toLowerCase();
+                    const isCorrect = normalizedAnswer === normalizedCorrect;
+                    const displayAnswer = (isReview && !isCorrect)
+                        ? String(subQ.correctAnswer || '')
+                        : String(answer || '');
+                    const hasDisplayAnswer = displayAnswer.trim() !== '';
 
                     return (
                         <div
@@ -95,37 +114,40 @@ const DragDropGroupQuestion = ({ q, activeQuestion, setActiveQuestion, answers, 
                         >
                             {isMatchingInfo && subQ.text ? (
                                 <div className="dd-info-text">
-                                    <span onClick={(e) => { e.stopPropagation(); toggleBookmark?.(subQ.number); }} className="dd-bookmark-btn">
-                                        <Bookmark size={15} fill={bookmarks?.[subQ.number] ? "#1a73e8" : "none"} color={bookmarks?.[subQ.number] ? "#1a73e8" : "#ccc"} />
-                                    </span>
+                                    {!isReview && (
+                                        <span onClick={(e) => { e.stopPropagation(); toggleBookmark?.(subQ.number); }} className="dd-bookmark-btn">
+                                            <Bookmark size={18} fill={bookmarks?.[subQ.number] ? "#1a73e8" : "none"} color={bookmarks?.[subQ.number] ? "#1a73e8" : "#ccc"} />
+                                        </span>
+                                    )}
                                     <span>{subQ.text}</span>
                                 </div>
                             ) : null}
 
                             <div className="dd-default-meta">
                                 {!isMatchingInfo && <div className="dd-default-label">
-                                    <span onClick={(e) => { e.stopPropagation(); toggleBookmark?.(subQ.number); }} className="dd-bookmark-btn">
-                                        <Bookmark size={15} fill={bookmarks?.[subQ.number] ? "#1a73e8" : "none"} color={bookmarks?.[subQ.number] ? "#1a73e8" : "#ccc"} />
-                                    </span>
+                                    {!isReview && (
+                                        <span onClick={(e) => { e.stopPropagation(); toggleBookmark?.(subQ.number); }} className="dd-bookmark-btn">
+                                            <Bookmark size={18} fill={bookmarks?.[subQ.number] ? "#1a73e8" : "none"} color={bookmarks?.[subQ.number] ? "#1a73e8" : "#ccc"} />
+                                        </span>
+                                    )}
                                     <span className="dd-question-num">{subQ.number}</span>
                                 </div>}
                                 {!isMatchingInfo && <span className="dd-question-text">{subQ.text}</span>}
 
                                 <div
                                     onDrop={isReview ? undefined : (e) => handleDrop(e, subQ.id)}
-                                    className={`dd-drop-zone ${isMatchingInfo ? 'dd-drop-info' : ''} ${answer ? 'dd-drop-filled' : ''} ${isActive && !answer ? 'dd-drop-active' : ''} ${isReview ? (answer?.trim() === subQ.correctAnswer?.trim() ? 'review-correct' : 'review-wrong') : ''} relative-pos`}
+                                    onDragOver={isReview ? undefined : handleDragOver}
+                                    draggable={!isReview && hasDisplayAnswer}
+                                    onDragStart={(e) => {
+                                        if (isReview || !hasDisplayAnswer) return;
+                                        handleDragStart(e, displayAnswer, subQ.id);
+                                    }}
+                                    className={`dd-drop-zone ${isMatchingInfo ? 'dd-drop-info' : ''} ${hasDisplayAnswer ? 'dd-drop-filled' : ''} ${isActive && !hasDisplayAnswer ? 'dd-drop-active' : ''} ${isReview ? (isCorrect ? 'review-correct' : 'review-wrong') : ''} relative-pos`}
                                 >
-                                    {answer ? (
+                                    {hasDisplayAnswer ? (
                                         <>
-                                            <span
-                                                draggable={!isReview}
-                                                onDragStart={(e) => {
-                                                    if (isReview) return;
-                                                    handleDragStart(e, answer, subQ.id);
-                                                }}
-                                                className="dd-drop-answer"
-                                            >
-                                                {answer}
+                                            <span className="dd-drop-answer">
+                                                {displayAnswer}
                                             </span>
                                             {!isReview && (
                                                 <button
@@ -146,11 +168,6 @@ const DragDropGroupQuestion = ({ q, activeQuestion, setActiveQuestion, answers, 
                                         )
                                     )}
                                 </div>
-                                {isReview && answer?.trim() !== subQ.correctAnswer?.trim() && (
-                                    <span className="review-correct-label">
-                                        <span dangerouslySetInnerHTML={{ __html: subQ.correctAnswer }} />
-                                    </span>
-                                )}
                             </div>
                         </div>
                     );

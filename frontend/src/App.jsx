@@ -57,6 +57,7 @@ function App() {
         <Route path="/my-dashboard/settings" element={<ProtectedRoute><DashboardSettings /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
         <Route path="/admin/users" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />
+        <Route path="/admin/teacher-class" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />
         <Route path="/teacher/manage" element={<ProtectedRoute><TeacherManage /></ProtectedRoute>} />
         <Route path="/teacher/writing" element={<ProtectedRoute><TeacherWritingSubmissions /></ProtectedRoute>} />
         <Route path="/teacher/writing/:id" element={<ProtectedRoute><TeacherWritingDetail /></ProtectedRoute>} />

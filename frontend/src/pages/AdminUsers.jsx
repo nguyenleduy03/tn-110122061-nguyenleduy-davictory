@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import {
   Users,
   Search,
@@ -43,6 +43,8 @@ const hasAdminRole = (roles) => {
 };
 
 export default function AdminUsers() {
+  const location = useLocation();
+  const isTeacherClassPage = location.pathname.startsWith('/admin/teacher-class');
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -56,10 +58,19 @@ export default function AdminUsers() {
     email: '',
     roles: []
   });
-  const [adminMainTab, setAdminMainTab] = useState('USERS'); // USERS, TEACHER_CLASS
+  const [adminMainTab, setAdminMainTab] = useState(isTeacherClassPage ? 'TEACHER_CLASS' : 'USERS'); // USERS, TEACHER_CLASS
   const [managementLoading, setManagementLoading] = useState(false);
   const [managementError, setManagementError] = useState('');
   const [managementData, setManagementData] = useState({ teachers: [], classes: [] });
+  const [createClassLoading, setCreateClassLoading] = useState(false);
+  const [createClassForm, setCreateClassForm] = useState({
+    classCode: '',
+    className: '',
+    startDate: '',
+    teacherId: '',
+    teacherRole: 'MAIN_TEACHER',
+    notes: ''
+  });
   const [assignTeacherForm, setAssignTeacherForm] = useState({
     classCode: '',
     teacherId: '',
@@ -89,6 +100,10 @@ export default function AdminUsers() {
     fetchUsers();
     fetchManagementData();
   }, []);
+
+  useEffect(() => {
+    setAdminMainTab(isTeacherClassPage ? 'TEACHER_CLASS' : 'USERS');
+  }, [isTeacherClassPage]);
 
   const fetchUsers = async () => {
     try {
@@ -151,6 +166,73 @@ export default function AdminUsers() {
       fetchManagementData();
     } catch (error) {
       alert(error?.response?.data?.message || 'Phân công giảng viên thất bại');
+    }
+  };
+
+  const handleCreateClassAndAssignTeacher = async () => {
+    const classCode = createClassForm.classCode.trim();
+    const className = createClassForm.className.trim();
+
+    if (!classCode) {
+      alert('Vui lòng nhập mã lớp');
+      return;
+    }
+    if (!className) {
+      alert('Vui lòng nhập tên lớp');
+      return;
+    }
+
+    try {
+      setCreateClassLoading(true);
+
+      const createdClass = await authApi.createClassForAdmin({
+        classCode,
+        className,
+        startDate: createClassForm.startDate || undefined,
+        notes: createClassForm.notes || undefined,
+      });
+
+      if (createClassForm.teacherId) {
+        await authApi.assignTeacherByClassCode({
+          classCode,
+          teacherId: Number(createClassForm.teacherId),
+          role: createClassForm.teacherRole,
+          notes: 'Auto-assign từ form tạo lớp'
+        });
+      }
+
+      setAssignTeacherForm((prev) => ({
+        ...prev,
+        classCode,
+        teacherId: createClassForm.teacherId || prev.teacherId,
+        role: createClassForm.teacherRole || prev.role,
+      }));
+
+      setHandoverForm((prev) => ({
+        ...prev,
+        classCode,
+      }));
+
+      setCreateClassForm({
+        classCode: '',
+        className: '',
+        startDate: '',
+        teacherId: '',
+        teacherRole: 'MAIN_TEACHER',
+        notes: ''
+      });
+
+      await fetchManagementData();
+
+      alert(
+        createClassForm.teacherId
+          ? `Đã tạo lớp ${createdClass?.code || classCode} và gán giảng viên thành công.`
+          : `Đã tạo lớp ${createdClass?.code || classCode} thành công. Bạn có thể tải danh sách học viên ngay ở khung bên dưới.`
+      );
+    } catch (error) {
+      alert(error?.response?.data?.message || 'Tạo lớp thất bại');
+    } finally {
+      setCreateClassLoading(false);
     }
   };
 
@@ -297,8 +379,10 @@ export default function AdminUsers() {
 
   return (
     <AdminLayout
-      title="Quản trị người dùng"
-      subtitle="Quản lý tài khoản, phân quyền và bàn giao giảng viên/lớp học"
+      title={adminMainTab === 'USERS' ? 'Quản trị người dùng' : 'Quản trị giảng viên & lớp'}
+      subtitle={adminMainTab === 'USERS'
+        ? 'Quản lý tài khoản và phân quyền người dùng'
+        : 'Phân công giảng viên, tạo lớp và bàn giao học viên'}
     >
       <div style={{ maxWidth: 1400, margin: '0 auto', width: '100%', position: 'relative' }}>
         {/* Header */}
@@ -323,96 +407,72 @@ export default function AdminUsers() {
               fontSize: 32, fontWeight: 800, color: '#111827', margin: 0,
               display: 'flex', alignItems: 'center', gap: 12
             }}>
-              <Users size={32} style={{ color: '#0056d2' }} />
+              {adminMainTab === 'USERS' ? (
+                <Users size={32} style={{ color: '#0056d2' }} />
+              ) : (
+                <School size={32} style={{ color: '#0056d2' }} />
+              )}
               <span style={{
                 background: 'linear-gradient(135deg, #0056d2 0%, #003380 100%)',
                 WebkitBackgroundClip: 'text', 
                 WebkitTextFillColor: 'transparent'
               }}>
-                Quản lý người dùng
+                {adminMainTab === 'USERS' ? 'Quản lý người dùng' : 'Quản lý giảng viên & lớp'}
               </span>
             </h1>
             <p style={{ color: '#6b7280', marginTop: 8, fontSize: 16 }}>
-              Tổng cộng <strong>{users.length}</strong> người dùng • {users.filter(u => u.isActive).length} đang hoạt động
+              {adminMainTab === 'USERS'
+                ? (
+                  <>
+                    Tổng cộng <strong>{users.length}</strong> người dùng • {users.filter(u => u.isActive).length} đang hoạt động
+                  </>
+                )
+                : (
+                  <>
+                    <strong>{managementData.teachers.length}</strong> giảng viên • <strong>{managementData.classes.length}</strong> lớp học
+                  </>
+                )}
             </p>
           </div>
           
-          <div style={{ display: 'flex', gap: 12 }}>
-            <button style={{
-              display: 'flex', alignItems: 'center', gap: 8,
-              padding: '12px 20px', 
-              background: 'linear-gradient(135deg, #0056d2 0%, #003380 100%)', 
-              color: 'white', border: 'none', borderRadius: 12, cursor: 'pointer', 
-              fontWeight: 600, fontSize: 14, 
-              boxShadow: '0 4px 15px rgba(0, 86, 210, 0.4)',
-              transition: 'all 0.3s ease'
-            }}
-            onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
-            onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
-            >
-              <Plus size={18} />
-              Thêm người dùng
-            </button>
-            
-            <button style={{
-              display: 'flex', alignItems: 'center', gap: 8,
-              padding: '12px 20px', background: 'white', color: '#374151',
-              border: '2px solid #e5e7eb', borderRadius: 12, cursor: 'pointer', 
-              fontWeight: 600, fontSize: 14, transition: 'all 0.3s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.borderColor = '#0056d2';
-              e.target.style.color = '#0056d2';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.borderColor = '#e5e7eb';
-              e.target.style.color = '#374151';
-            }}
-            >
-              <BarChart3 size={18} />
-              Thống kê
-            </button>
-          </div>
-        </div>
-
-        <div style={{
-          display: 'flex',
-          gap: 8,
-          marginBottom: 20,
-          background: 'white',
-          borderRadius: 14,
-          padding: 8,
-          border: '1px solid #e2e8f0'
-        }}>
-          {[
-            { key: 'USERS', label: 'Người dùng', icon: Users },
-            { key: 'TEACHER_CLASS', label: 'Giảng viên & lớp', icon: School }
-          ].map((tab) => {
-            const IconComponent = tab.icon;
-            const isActive = adminMainTab === tab.key;
-            return (
-              <button
-                key={tab.key}
-                onClick={() => setAdminMainTab(tab.key)}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  padding: '10px 16px',
-                  borderRadius: 10,
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontWeight: 700,
-                  fontSize: 14,
-                  background: isActive ? 'linear-gradient(135deg, #0056d2 0%, #003380 100%)' : 'transparent',
-                  color: isActive ? 'white' : '#334155'
-                }}
+          {adminMainTab === 'USERS' && (
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '12px 20px', 
+                background: 'linear-gradient(135deg, #0056d2 0%, #003380 100%)', 
+                color: 'white', border: 'none', borderRadius: 12, cursor: 'pointer', 
+                fontWeight: 600, fontSize: 14, 
+                boxShadow: '0 4px 15px rgba(0, 86, 210, 0.4)',
+                transition: 'all 0.3s ease'
+              }}
+              onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
+              onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
               >
-                <IconComponent size={16} />
-                {tab.label}
+                <Plus size={18} />
+                Thêm người dùng
               </button>
-            );
-          })}
+              
+              <button style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '12px 20px', background: 'white', color: '#374151',
+                border: '2px solid #e5e7eb', borderRadius: 12, cursor: 'pointer', 
+                fontWeight: 600, fontSize: 14, transition: 'all 0.3s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.borderColor = '#0056d2';
+                e.target.style.color = '#0056d2';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.borderColor = '#e5e7eb';
+                e.target.style.color = '#374151';
+              }}
+              >
+                <BarChart3 size={18} />
+                Thống kê
+              </button>
+            </div>
+          )}
         </div>
 
         {adminMainTab === 'USERS' ? (
@@ -770,6 +830,98 @@ export default function AdminUsers() {
                 {managementError}
               </div>
             )}
+
+            <div style={{
+              background: 'white',
+              border: '1px solid #e2e8f0',
+              borderRadius: 14,
+              padding: 18,
+              marginBottom: 16
+            }}>
+              <h3 style={{ margin: '0 0 6px', display: 'flex', alignItems: 'center', gap: 8, color: '#0f172a' }}>
+                <School size={18} />
+                Tạo lớp nhanh và gán giảng viên
+              </h3>
+              <p style={{ margin: '0 0 12px', color: '#64748b', fontSize: 13 }}>
+                Sau khi tạo lớp, mã lớp sẽ tự điền vào phần phân công và bàn giao học viên ngay bên dưới.
+              </p>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr 1fr 1fr 1fr', gap: 10 }}>
+                <input
+                  type="text"
+                  placeholder="Mã lớp (VD: IELTS-A1-2026)"
+                  value={createClassForm.classCode}
+                  onChange={(e) => setCreateClassForm((prev) => ({ ...prev, classCode: e.target.value }))}
+                  style={{ width: '100%', padding: '11px 12px', border: '1px solid #cbd5e1', borderRadius: 10 }}
+                />
+
+                <input
+                  type="text"
+                  placeholder="Tên lớp"
+                  value={createClassForm.className}
+                  onChange={(e) => setCreateClassForm((prev) => ({ ...prev, className: e.target.value }))}
+                  style={{ width: '100%', padding: '11px 12px', border: '1px solid #cbd5e1', borderRadius: 10 }}
+                />
+
+                <input
+                  type="date"
+                  value={createClassForm.startDate}
+                  onChange={(e) => setCreateClassForm((prev) => ({ ...prev, startDate: e.target.value }))}
+                  style={{ width: '100%', padding: '11px 12px', border: '1px solid #cbd5e1', borderRadius: 10 }}
+                />
+
+                <select
+                  value={createClassForm.teacherId}
+                  onChange={(e) => setCreateClassForm((prev) => ({ ...prev, teacherId: e.target.value }))}
+                  style={{ width: '100%', padding: '11px 12px', border: '1px solid #cbd5e1', borderRadius: 10 }}
+                >
+                  <option value="">(Tuỳ chọn) Chọn giảng viên</option>
+                  {managementData.teachers.map((teacher) => (
+                    <option key={teacher.id} value={teacher.id}>
+                      {teacher.fullName} {teacher.teacherCode ? `(${teacher.teacherCode})` : ''}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  value={createClassForm.teacherRole}
+                  onChange={(e) => setCreateClassForm((prev) => ({ ...prev, teacherRole: e.target.value }))}
+                  style={{ width: '100%', padding: '11px 12px', border: '1px solid #cbd5e1', borderRadius: 10 }}
+                  disabled={!createClassForm.teacherId}
+                >
+                  <option value="MAIN_TEACHER">Giảng viên chính</option>
+                  <option value="ASSISTANT">Trợ giảng</option>
+                  <option value="SUBSTITUTE">Giảng viên thay thế</option>
+                </select>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 10, marginTop: 10 }}>
+                <input
+                  type="text"
+                  placeholder="Ghi chú lớp (tuỳ chọn)"
+                  value={createClassForm.notes}
+                  onChange={(e) => setCreateClassForm((prev) => ({ ...prev, notes: e.target.value }))}
+                  style={{ width: '100%', padding: '11px 12px', border: '1px solid #cbd5e1', borderRadius: 10 }}
+                />
+
+                <button
+                  onClick={handleCreateClassAndAssignTeacher}
+                  disabled={createClassLoading || managementLoading}
+                  style={{
+                    border: 'none',
+                    borderRadius: 10,
+                    background: 'linear-gradient(135deg, #10b981 0%, #047857 100%)',
+                    color: 'white',
+                    fontWeight: 700,
+                    padding: '11px 16px',
+                    cursor: 'pointer',
+                    minWidth: 190
+                  }}
+                >
+                  {createClassLoading ? 'Đang tạo lớp...' : 'Tạo lớp / gán GV'}
+                </button>
+              </div>
+            </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1fr', gap: 16, marginBottom: 18 }}>
               <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 14, padding: 18 }}>

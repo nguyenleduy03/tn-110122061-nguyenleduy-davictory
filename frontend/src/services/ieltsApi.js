@@ -107,9 +107,8 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
   } else if (contentType === 'SPEAKING_CUECARD' || contentType === 'SPEAKING_INTERVIEW') {
     // SPEAKING: keep raw question data for custom rendering
     // Return questions as-is with additional metadata from group
-    return questions.map((q, idx) => {
-      const num = q.questionNumber || globalCounterRef.counter++;
-      globalCounterRef.counter = Math.max(globalCounterRef.counter, num + 1);
+    return questions.map((q) => {
+      const num = globalCounterRef.counter++;
       return {
         id: `q${q.id}`,
         number: num,
@@ -145,14 +144,13 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
       const isMultiSelect = feType === 'multiple-choice' && correctOpts.length > 1;
       const selectCount = isMultiSelect ? correctOpts.length : 0;
 
-      const num = q.questionNumber || globalCounterRef.counter;
-
+      const num = globalCounterRef.counter;
       let numberRange = null;
       if (isMultiSelect) {
         numberRange = Array.from({ length: selectCount }, (_, i) => num + i);
-        globalCounterRef.counter = Math.max(globalCounterRef.counter, num + selectCount);
+        globalCounterRef.counter += selectCount;
       } else {
-        globalCounterRef.counter = Math.max(globalCounterRef.counter, num + 1);
+        globalCounterRef.counter += 1;
       }
 
       const optionsList = (q.options || []).length > 0
@@ -205,8 +203,7 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
     }
 
     const subQuestions = questions.map((q) => {
-      const num = q.questionNumber || globalCounterRef.counter++;
-      globalCounterRef.counter = Math.max(globalCounterRef.counter, num + 1);
+      const num = globalCounterRef.counter++;
       const correctAnswer = (q.answers || [])[0]?.answerText || '';
       return { id: `q${q.id}`, number: num, text: q.questionText || '', correctAnswer };
     });
@@ -234,20 +231,24 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
 
   // ─── NOTE_COMPLETION → 1 group question ────────────────────────────
   if (feType === 'note-completion') {
-    const subQuestions = questions.map((q) => {
-      const num = q.questionNumber || globalCounterRef.counter++;
-      globalCounterRef.counter = Math.max(globalCounterRef.counter, num + 1);
-      const correctAnswer = (q.answers || [])[0]?.answerText || '';
-      return { id: `q${q.id}`, number: num, correctAnswer };
-    });
-
     const noteText = group.passageText || group.title || '';
+
+    const blankCount = (noteText.match(/\[blank\]/gi) || []).length;
+    const totalBlanks = Math.max(blankCount, questions.length);
+    const subQuestions = Array.from({ length: totalBlanks }, (_, idx) => {
+      const q = questions[idx] || null;
+      const num = globalCounterRef.counter++;
+      const correctAnswer = q ? ((q.answers || [])[0]?.answerText || '') : '';
+      const id = q ? `q${q.id}` : `tmp-note-${group.questionGroupId || group.id}-${idx + 1}`;
+      return { id, number: num, correctAnswer };
+    });
 
     return [{
       id: `group-${group.questionGroupId || group.id}`,
       type: 'note-completion',
       questionTypeCode: typeCode,
-      title: group.title || group.instructions || '',
+      title: group.title || '',
+      instruction: group.instructions || '',
       text: noteText,
       subQuestions,
     }];
@@ -255,20 +256,24 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
 
   // ─── SUMMARY_COMPLETION → 1 group question ────────────────────────────
   if (feType === 'summary-completion') {
-    const subQuestions = questions.map((q) => {
-      const num = q.questionNumber || globalCounterRef.counter++;
-      globalCounterRef.counter = Math.max(globalCounterRef.counter, num + 1);
-      const correctAnswer = (q.answers || [])[0]?.answerText || '';
-      return { id: `q${q.id}`, number: num, correctAnswer };
-    });
-
     const summaryText = group.passageText || group.title || '';
+
+    const blankCount = (summaryText.match(/\[blank\]/gi) || []).length;
+    const totalBlanks = Math.max(blankCount, questions.length);
+    const subQuestions = Array.from({ length: totalBlanks }, (_, idx) => {
+      const q = questions[idx] || null;
+      const num = globalCounterRef.counter++;
+      const correctAnswer = q ? ((q.answers || [])[0]?.answerText || '') : '';
+      const id = q ? `q${q.id}` : `tmp-summary-${group.questionGroupId || group.id}-${idx + 1}`;
+      return { id, number: num, correctAnswer };
+    });
 
     return [{
       id: `group-${group.questionGroupId || group.id}`,
       type: 'summary-completion',
       questionTypeCode: typeCode,
-      title: group.title || group.instructions || '',
+      title: group.title || '',
+      instruction: group.instructions || '',
       text: summaryText,
       subQuestions,
     }];
@@ -277,8 +282,7 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
   // ─── FLOW_CHART → 1 group question ───────────────────────────────
   if (feType === 'flow_chart') {
     const subQuestions = questions.map((q) => {
-      const num = q.questionNumber || globalCounterRef.counter++;
-      globalCounterRef.counter = Math.max(globalCounterRef.counter, num + 1);
+      const num = globalCounterRef.counter++;
       const correctAnswer = (q.answers || [])[0]?.answerText || '';
       return { id: `q${q.id}`, number: num, correctAnswer };
     });
@@ -368,8 +372,7 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
     }
 
     const subQuestions = questions.map((q) => {
-      const num = q.questionNumber || globalCounterRef.counter++;
-      globalCounterRef.counter = Math.max(globalCounterRef.counter, num + 1);
+      const num = globalCounterRef.counter++;
       const correctAnswer = (q.answers || [])[0]?.answerText
         || (q.options || []).find(o => o.isCorrect)?.optionText
         || '';
@@ -446,8 +449,7 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
     }
 
     const subQuestions = questions.map((q) => {
-      const num = q.questionNumber || globalCounterRef.counter++;
-      globalCounterRef.counter = Math.max(globalCounterRef.counter, num + 1);
+      const num = globalCounterRef.counter++;
 
       const correctAnswer = (q.answers || [])[0]?.answerText
         || (q.options || []).find(o => o.isCorrect)?.optionText
@@ -474,8 +476,7 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
 
   // Fallback: đối xử như fill-in-the-blank
   return questions.map((q) => {
-    const num = q.questionNumber || globalCounterRef.counter++;
-    globalCounterRef.counter = Math.max(globalCounterRef.counter, num + 1);
+    const num = globalCounterRef.counter++;
     return {
       id: `q${q.id}`,
       number: num,
@@ -510,8 +511,9 @@ export const ieltsApi = {
     const globalCounterRef = { counter: 1 };
 
     // 3. Transform parts — giữ nguyên group structure, transform questions bên trong
-    const populatedParts = await Promise.all(
-      targetSession.parts.map(async (part, index) => {
+    const populatedParts = [];
+    for (let index = 0; index < (targetSession.parts || []).length; index++) {
+      const part = targetSession.parts[index];
         let mergedPassageContent = '';
         let mergedPassageTitle = '';
         let mergedAudioUrl = null;
@@ -525,8 +527,8 @@ export const ieltsApi = {
         let taskImageSvg = null;
 
         // Transform questionGroups — preserve group structure nhưng transform các questions bên trong
-        const transformedGroups = await Promise.all(
-          (part.questionGroups || []).map(async (group) => {
+        const transformedGroups = [];
+        for (const group of (part.questionGroups || [])) {
             const groupType = (group.contentType || '').toUpperCase();
             // Lấy metadata từ group
             if (groupType === 'READING_PASSAGE' && group.passageText && !mergedPassageContent) {
@@ -570,7 +572,7 @@ export const ieltsApi = {
             // Transform group's questions using transformGroup()
             const transformedQuestions = await transformGroup(baseUrl, group, globalCounterRef);
 
-            return {
+            transformedGroups.push({
               ...group,
               // Keep raw group data
               id: group.id,
@@ -582,19 +584,18 @@ export const ieltsApi = {
               instructions: group.instructions,
               // Provide transformed questions
               questions: transformedQuestions,
-            };
-          })
-        );
+            });
+        }
 
         // Flatten transformed questions for backward compatibility
         const flattenedQuestions = transformedGroups.flatMap(g => g.questions || []);
 
         // --- NEW: Inject Heading Gaps for Matching Heading questions ---
         // Find the group containing matching_heading questions
-        const mhGroupFound = transformedGroups.find(g => 
+        const mhGroupFound = transformedGroups.find(g =>
           g.questions && g.questions.some(q => q.type === 'matching_heading')
         );
-        
+
         // Find the group containing the passage - specifically look for READING_PASSAGE or paragraphs JSON
         let sourceParagraphs = [];
         const passageGroup = transformedGroups.find(g => {
@@ -619,22 +620,22 @@ export const ieltsApi = {
           try {
             let paragraphs = sourceParagraphs;
             if (paragraphs.length === 0 && passageGroup?.passageText) {
-               const text = passageGroup.passageText.trim();
-               // Split by double newlines or single newlines if they look like paragraph breaks
-               paragraphs = text.split(/\r?\n\s*\r?\n/).map(t => ({ text: t.trim() }));
+              const text = passageGroup.passageText.trim();
+              // Split by double newlines or single newlines if they look like paragraph breaks
+              paragraphs = text.split(/\r?\n\s*\r?\n/).map(t => ({ text: t.trim() }));
             }
 
             if (paragraphs.length > 0) {
               const mhGroup = (mhGroupFound.questions || []).find(q => q.type === 'matching_heading');
               const mhSubQs = mhGroup?.subQuestions || [];
-              
+
               // More robust extraction of starting question number
               let startPartNum = 1;
               if (flattenedQuestions && flattenedQuestions.length > 0) {
                 const firstQ = flattenedQuestions[0];
-                startPartNum = firstQ.number || 
-                               (firstQ.subQuestions && firstQ.subQuestions[0]?.number) || 
-                               1;
+                startPartNum = firstQ.number ||
+                  (firstQ.subQuestions && firstQ.subQuestions[0]?.number) ||
+                  1;
               }
 
               console.log(`[ieltsApi] Injecting into ${paragraphs.length} paragraphs. Matching against ${mhSubQs.length} sub-questions.`);
@@ -649,21 +650,21 @@ export const ieltsApi = {
                 const rawLabel = p.label || String.fromCharCode(65 + pIdx);
                 const coreLabel = getCoreLabel(rawLabel);
                 const posNum = startPartNum + pIdx;
-                
+
                 // Tiered matching
                 const matchedQ = mhSubQs.find(sq => {
                   const qText = stripHtml(sq.text);
                   const qCore = getCoreLabel(qText);
-                  return qCore === coreLabel || 
-                         sq.number === posNum || 
-                         (qCore && coreLabel && (qCore.includes(coreLabel) || coreLabel.includes(qCore)));
+                  return qCore === coreLabel ||
+                    sq.number === posNum ||
+                    (qCore && coreLabel && (qCore.includes(coreLabel) || coreLabel.includes(qCore)));
                 });
 
                 // Add unique ID and &nbsp; to ensure span is not collapsed or ignored
                 const gapHtml = matchedQ ? `<div class="heading-gap" id="gap-${matchedQ.number}" data-id="${matchedQ.id}" data-number="${matchedQ.number}">&nbsp;</div>` : '';
                 return `${gapHtml}<p>${formatTextWithWhitespace(p.text || p.content || p)}</p>`;
               }).join('');
-              
+
               const gapCount = (mergedPassageContent.match(/class="heading-gap"/g) || []).length;
               console.log(`[ieltsApi] Injection result: ${gapCount} gaps injected into passage.`);
             }
@@ -706,9 +707,8 @@ export const ieltsApi = {
           totalQuestions: part.totalQuestions || 0,
         };
 
-        return partObj;
-      })
-    );
+        populatedParts.push(partObj);
+    }
 
     return {
       sessionId: targetSession.testSessionId,
@@ -765,10 +765,55 @@ export const ieltsApi = {
     };
   },
 
-  submitAnswers: async (sessionId, answers) => {
-    console.log('Submitting answers for session:', sessionId, answers);
-    // TODO: kết nối với exam-attempts endpoint khi BE sẵn sàng
-    return { success: true, message: 'Submitted' };
+  submitAnswers: async (testId, skillType, answers, timeSpentSeconds = null) => {
+    const baseUrl = API_CONFIG.BASE_URL;
+
+    const normalizeQuestionId = (rawId) => {
+      if (rawId == null) return null;
+      const str = String(rawId);
+      if (str.startsWith('q')) return Number(str.slice(1));
+      const num = Number(str);
+      return Number.isFinite(num) ? num : null;
+    };
+
+    const answerPayloads = Object.entries(answers || {}).map(([qid, value]) => {
+      const questionId = normalizeQuestionId(qid);
+      if (!questionId) return null;
+
+      let textAnswer = null;
+      let selectedOptionLabel = null;
+      let matchingAnswer = null;
+
+      if (Array.isArray(value)) {
+        matchingAnswer = JSON.stringify(value);
+      } else if (value && typeof value === 'object') {
+        matchingAnswer = JSON.stringify(value);
+      } else if (typeof value === 'string') {
+        textAnswer = value;
+        selectedOptionLabel = value;
+      }
+
+      return {
+        questionId,
+        textAnswer,
+        selectedOptionLabel,
+        matchingAnswer,
+      };
+    }).filter(Boolean);
+
+    const startResp = await apiFetch(`${baseUrl}/exam-attempts/start`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ testId, skillType, timeLimitSeconds: null }),
+    });
+
+    const submitResp = await apiFetch(`${baseUrl}/exam-attempts/${startResp.id}/submit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ timeSpentSeconds, answers: answerPayloads }),
+    });
+
+    return submitResp;
   },
 
   // ─── Nộp bài Writing thực sự vào CSDL ──────────────────────────

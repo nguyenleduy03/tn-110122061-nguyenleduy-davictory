@@ -6,13 +6,25 @@ export function useTestNavigation(testData) {
 
     const part = testData?.parts[currentPartIndex];
 
+    const getQuestionNumbers = () => {
+        const nums = [];
+        if (!part?.questions) return nums;
+        for (const q of part.questions) {
+            if (q?.numberRange?.length) {
+                nums.push(...q.numberRange);
+            } else if (q?.subQuestions?.length) {
+                nums.push(...q.subQuestions.map((sq) => sq.number).filter((n) => n != null));
+            } else if (q?.number != null) {
+                nums.push(q.number);
+            }
+        }
+        return nums;
+    };
+
     // Auto-focus first question and scroll to top when part changes
     useEffect(() => {
-        if (part?.questions?.length) {
-            const firstQ = part.questions[0];
-            const firstNum = firstQ.subQuestions ? firstQ.subQuestions[0].number : firstQ.number;
-            setActiveQuestion(firstNum);
-        }
+        const nums = getQuestionNumbers();
+        if (nums.length > 0) setActiveQuestion(nums[0]);
         document.querySelector('.passage-section')?.scrollTo(0, 0);
         document.querySelector('.questions-section')?.scrollTo(0, 0);
         document.querySelector('.ielts-main')?.scrollTo(0, 0);
@@ -20,38 +32,53 @@ export function useTestNavigation(testData) {
 
     const goNext = () => {
         if (!part || !testData) return;
-        const questions = part.questions.map(q => q.number);
+        const questions = getQuestionNumbers();
         const currIdx = questions.indexOf(activeQuestion);
         if (currIdx > -1 && currIdx < questions.length - 1) {
             setActiveQuestion(questions[currIdx + 1]);
         } else if (currIdx === questions.length - 1 && currentPartIndex < testData.parts.length - 1) {
             setCurrentPartIndex(currentPartIndex + 1);
-            setActiveQuestion(testData.parts[currentPartIndex + 1].questions[0].number);
+            const nextPart = testData.parts[currentPartIndex + 1];
+            const nextNums = nextPart?.questions
+                ? nextPart.questions.flatMap((q) => q.numberRange?.length
+                    ? q.numberRange
+                    : (q.subQuestions?.length
+                        ? q.subQuestions.map((sq) => sq.number)
+                        : (q.number != null ? [q.number] : [])))
+                : [];
+            setActiveQuestion(nextNums[0] ?? null);
         }
     };
 
     const goPrev = () => {
         if (!part || !testData) return;
-        const questions = part.questions.map(q => q.number);
+        const questions = getQuestionNumbers();
         const currIdx = questions.indexOf(activeQuestion);
         if (currIdx > 0) {
             setActiveQuestion(questions[currIdx - 1]);
         } else if (currIdx === 0 && currentPartIndex > 0) {
             setCurrentPartIndex(currentPartIndex - 1);
             const prevPart = testData.parts[currentPartIndex - 1];
-            setActiveQuestion(prevPart.questions[prevPart.questions.length - 1].number);
+            const prevNums = prevPart?.questions
+                ? prevPart.questions.flatMap((q) => q.numberRange?.length
+                    ? q.numberRange
+                    : (q.subQuestions?.length
+                        ? q.subQuestions.map((sq) => sq.number)
+                        : (q.number != null ? [q.number] : [])))
+                : [];
+            setActiveQuestion(prevNums.length ? prevNums[prevNums.length - 1] : null);
         }
     };
 
     const isFirstQuestion =
         testData &&
         currentPartIndex === 0 &&
-        activeQuestion === part?.questions?.[0]?.number;
+        activeQuestion === getQuestionNumbers()[0];
 
     const isLastQuestion =
         testData &&
         currentPartIndex === testData.parts.length - 1 &&
-        activeQuestion === part?.questions?.[part.questions.length - 1]?.number;
+        activeQuestion === getQuestionNumbers().slice(-1)[0];
 
     return {
         currentPartIndex,

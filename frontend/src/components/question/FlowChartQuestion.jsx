@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatTextWithWhitespace } from '../../utils/textFormatters';
 
 /**
  * FlowChartQuestion — renders the flow-chart completion question for test-takers.
@@ -103,7 +104,7 @@ const FlowChartQuestion = ({
         <div className="fc-container">
             <div className="fc-header">
                 {heading && <h4 className="fc-heading">{heading}</h4>}
-                {instruction && <p className="fc-instruction">{instruction}</p>}
+                {instruction && <p className="fc-instruction" dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(instruction) }} />}
             </div>
 
             <div className="fc-layout">
@@ -121,12 +122,19 @@ const FlowChartQuestion = ({
                                             }
                                             const subQ = part.subQ;
                                             const answer = subQ ? answers[subQ.id] : undefined;
+                                            const normalizedAnswer = String(answer || '').trim().toLowerCase();
+                                            const normalizedCorrect = String(subQ?.correctAnswer || '').trim().toLowerCase();
+                                            const isCorrect = normalizedAnswer === normalizedCorrect;
+                                            const displayAnswer = (isReview && !isCorrect)
+                                                ? String(subQ?.correctAnswer || '')
+                                                : String(answer || '');
+                                            const hasDisplayAnswer = displayAnswer.trim() !== '';
                                             const isActive = subQ ? activeQuestion === subQ.number : false;
                                             return (
                                                 <span
                                                     key={pidx}
                                                     id={subQ ? `question-${subQ.number}` : undefined}
-                                                    className={`fc-blank${answer ? ' fc-blank-filled' : ''}${isActive ? ' fc-blank-active' : ''} ${isReview && subQ ? (answer?.trim() === subQ.correctAnswer?.trim() ? 'review-correct' : 'review-wrong') : ''} relative-pos`}
+                                                    className={`fc-blank${hasDisplayAnswer ? ' fc-blank-filled' : ''}${isActive ? ' fc-blank-active' : ''} ${isReview && subQ ? (isCorrect ? 'review-correct' : 'review-wrong') : ''} relative-pos`}
                                                     onClick={(e) => { e.stopPropagation(); if (subQ && !isReview) setActiveQuestion(subQ.number); }}
                                                     onDragOver={isReview ? undefined : handleDragOver}
                                                     onDrop={isReview ? undefined : (e) => subQ && handleDrop(e, subQ.id)}
@@ -134,12 +142,7 @@ const FlowChartQuestion = ({
                                                     onDragStart={(e) => { if (!isReview && answer) handleDragStart(e, answer, subQ?.id); }}
                                                 >
                                                     <strong className="fc-blank-num">{subQ?.number}</strong>
-                                                    {answer && <span className="fc-blank-answer">{answer}</span>}
-                                                    {isReview && subQ && answer?.trim() !== subQ.correctAnswer?.trim() && (
-                                                        <div className="review-correct-label">
-                                                            <span dangerouslySetInnerHTML={{ __html: subQ.correctAnswer }} />
-                                                        </div>
-                                                    )}
+                                                    {hasDisplayAnswer && <span className="fc-blank-answer">{displayAnswer}</span>}
                                                 </span>
                                             );
                                         })}

@@ -5,6 +5,7 @@ import "../styles/ieltsTest.css";
 import TestHeader from "../components/common/TestHeader";
 import { useDividerResize } from "../hooks/useDividerResize";
 import { ieltsApi } from "../services/ieltsApi";
+import { formatTextWithWhitespace } from "../utils/textFormatters";
 
 const countWords = (text) => {
     if (!text || !text.trim()) return 0;
@@ -16,10 +17,10 @@ const WritingTaskPane = ({ part, style }) => {
     return (
         <div className="writing-task-pane" style={style}>
             <div className="writing-task-inner">
-                <h2 className="writing-task-title" dangerouslySetInnerHTML={{ __html: part.taskLabel || part.title }} />
+                <h2 className="writing-task-title" dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(part.taskLabel || part.title || '') }} />
                 <div
                     className="writing-task-instruction"
-                    dangerouslySetInnerHTML={{ __html: part.instruction || 'No instructions provided.' }}
+                    dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(part.instruction || 'No instructions provided.') }}
                 />
                 {part.taskImageSvg && (
                     <div
@@ -114,11 +115,14 @@ const IeltsWritingTest = () => {
     };
 
     const submitTest = () => {
-        if (isFullTest) { handleFullTestNext(); return; }
         const timeTakenSeconds = Math.floor((Date.now() - startTime) / 1000);
         const parts = testData?.parts || [];
-        ieltsApi.submitWriting(parts, writingAnswers, timeTakenSeconds)
+        Promise.allSettled([
+            ieltsApi.submitWriting(parts, writingAnswers, timeTakenSeconds),
+            ieltsApi.submitAnswers(testId, 'WRITING', {}, timeTakenSeconds),
+        ])
             .then(() => {
+                if (isFullTest) { handleFullTestNext(); return; }
                 navigate(`/test/complete?mode=${mode}&skill=writing&testId=${testId}`);
             })
             .catch((err) => {
@@ -159,8 +163,8 @@ const IeltsWritingTest = () => {
             />
 
             <div className="instruction-bar">
-                <h3 dangerouslySetInnerHTML={{ __html: part.title }} />
-                {part.instruction && <p dangerouslySetInnerHTML={{ __html: part.instruction }} />}
+                <h3 dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(part.title || '') }} />
+                {part.instruction && <p dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(part.instruction) }} />}
                 <p>
                     {`Recommended time: ${part.recommendedMinutes} minutes — Write at least ${part.minWords} words.`}
                 </p>

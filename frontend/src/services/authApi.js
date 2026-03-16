@@ -215,6 +215,12 @@ VIC009998,Trần Thị,Bình,VIC009998@gmail.com,@VIC009998,VIC260312IE45A`;
     return response.data;
   },
 
+  // Tạo lớp nhanh từ màn quản lý admin
+  createClassForAdmin: async (payload) => {
+    const response = await apiClient.post('/admin/users/create-class', payload);
+    return response.data;
+  },
+
   // Phân công giáo viên quản lý lớp theo mã lớp
   assignTeacherByClassCode: async ({ classCode, teacherId, role = 'MAIN_TEACHER', notes = '' }) => {
     const response = await apiClient.post('/admin/users/assign-teacher-by-class-code', {

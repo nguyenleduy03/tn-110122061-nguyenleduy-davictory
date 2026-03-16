@@ -6,6 +6,7 @@ import TestHeader from "../components/common/TestHeader";
 import QuestionRenderer from "../components/question/QuestionRenderer";
 import { useTestNavigation } from "../hooks/useTestNavigation";
 import { ieltsApi } from "../services/ieltsApi";
+import { formatTextWithWhitespace } from "../utils/textFormatters";
 
 const IeltsListeningTest = () => {
     const [testData, setTestData] = useState(null);
@@ -13,7 +14,10 @@ const IeltsListeningTest = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [bookmarks, setBookmarks] = useState({});
+    const [scoreInfo, setScoreInfo] = useState(null);
     const [audioStarted, setAudioStarted] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [startTime] = useState(() => Date.now());
     const audioRef = useRef(null);
 
     const [searchParams] = useSearchParams();
@@ -55,6 +59,10 @@ const IeltsListeningTest = () => {
                 if (savedAnswers) {
                     setAnswers(JSON.parse(savedAnswers));
                 }
+                const savedScore = sessionStorage.getItem('lastScore_listening');
+                if (savedScore) {
+                    setScoreInfo(JSON.parse(savedScore));
+                }
             }
         }).catch((err) => {
             console.error('[Listening] Lỗi tải bài thi:', err);
@@ -93,13 +101,32 @@ const IeltsListeningTest = () => {
     };
 
     const submitTest = () => {
+        if (isSubmitting) return;
+        const timeSpentSeconds = Math.floor((Date.now() - startTime) / 1000);
         sessionStorage.setItem('lastAnswers_listening', JSON.stringify(answers));
+        setIsSubmitting(true);
 
-        if (isFullTest) { handleFullTestNext(); return; }
-
-        ieltsApi.submitAnswers(testId || "mock-session-id", answers).then(() => {
-            navigate(`/test/complete?mode=${mode}&skill=listening&testId=${testId}`);
-        });
+        ieltsApi.submitAnswers(testId, 'LISTENING', answers, timeSpentSeconds)
+            .then((resp) => {
+                if (resp) {
+                    sessionStorage.setItem('lastScore_listening', JSON.stringify(resp));
+                }
+                if (isFullTest) { handleFullTestNext(); return; }
+                if (mode !== 'exam') {
+                    navigate(`/test/listening/${testId}?mode=${mode}&review=true`);
+                    return;
+                }
+                navigate(`/test/complete?mode=${mode}&skill=listening&testId=${testId}`);
+            })
+            .catch((err) => {
+                console.error('[Listening] Submit failed:', err);
+                setError(err.message === 'AUTH_REQUIRED'
+                    ? 'Bạn cần đăng nhập để nộp bài. Vui lòng đăng nhập lại.'
+                    : `Nộp bài thất bại: ${err.message}`);
+            })
+            .finally(() => {
+                setIsSubmitting(false);
+            });
     };
 
     const getAnsweredCount = (partIndex) => {
@@ -185,8 +212,20 @@ const IeltsListeningTest = () => {
             )}
 
             <div className="instruction-bar">
-                <h3 dangerouslySetInnerHTML={{ __html: part.title }} />
-                <p dangerouslySetInnerHTML={{ __html: part.instruction || "Listen and answer questions." }} />
+                <h3 dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(part.title || '') }} />
+                <p dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(part.instruction || "Listen and answer questions.") }} />
+                {isReview && scoreInfo && (
+                    <div className="review-score-banner">
+                        <div className="review-score-main">
+                            Score: {Number.isFinite(scoreInfo.totalCorrect) ? scoreInfo.totalCorrect : 0}
+                            {' / '}
+                            {testData ? testData.parts.reduce((sum, _, idx) => sum + getTotalCount(idx), 0) : (scoreInfo.totalAnswered || 0)}
+                        </div>
+                        {Number.isFinite(scoreInfo.rawScore) && (
+                            <div className="review-score-sub">Raw score: {scoreInfo.rawScore % 1 === 0 ? scoreInfo.rawScore : scoreInfo.rawScore.toFixed(2)}</div>
+                        )}
+                    </div>
+                )}
             </div>
 
             <main className="ielts-main" style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
@@ -280,6 +319,7 @@ const IeltsListeningTest = () => {
                                                 ? (Array.isArray(ans) && ans.length >= q.selectCount)
                                                 : (typeof ans === "string" ? ans.trim() !== "" : Array.isArray(ans) ? ans.length > 0 : !!ans);
                                             const isActive = nums.includes(activeQuestion);
+                                            const hasBookmarked = !isReview && nums.some(n => bookmarks[n]);
 
                                             return (
                                                 <div
@@ -297,13 +337,13 @@ const IeltsListeningTest = () => {
                                                         }, 50);
                                                     }}
                                                 >
-                                                    {nums.some(n => bookmarks[n]) && (
+                                                    {hasBookmarked && (
                                                         <div className="q-bookmark-flag">
                                                             <Bookmark size={16} fill="#1a73e8" color="#1a73e8" />
                                                         </div>
                                                     )}
-                                                    <div className={`status-dash${isAnswered ? " answered-dash" : ""}${nums.some(n => bookmarks[n]) ? " bookmarked-dash" : ""}`} />
-                                                    <span className={`q-num${isActive ? " active" : ""}${isRange ? " q-num-range" : ""}${nums.some(n => bookmarks[n]) ? " bookmarked" : ""}`}>
+                                                    <div className={`status-dash${isAnswered ? " answered-dash" : ""}${hasBookmarked ? " bookmarked-dash" : ""}`} />
+                                                    <span className={`q-num${isActive ? " active" : ""}${isRange ? " q-num-range" : ""}${hasBookmarked ? " bookmarked" : ""}`}>
                                                         {isRange ? `${nums[0]}–${nums[nums.length - 1]}` : q.number}
                                                     </span>
                                                 </div>

@@ -32,15 +32,15 @@ const MultipleChoiceQuestion = ({ q, activeQuestion, setActiveQuestion, answer, 
         <div className="tfng-question relative-pos">
             {/* Group instruction cho MCQ multiple */}
             {hasGroupInstruction && (
-                <div className="mcq-group-instruction">
-                    {q.groupInstruction}
-                </div>
+                <div className="mcq-group-instruction" dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(q.groupInstruction) }} />
             )}
 
             <div className="tfng-text">
-                <span className="tfng-bookmark" onClick={(e) => { e.stopPropagation(); nums.forEach(n => toggleBookmark?.(n)); }} >
-                    <Bookmark size={18} fill={nums.some(n => bookmarks?.[n]) ? "#1a73e8" : "none"} color={nums.some(n => bookmarks?.[n]) ? "#1a73e8" : "#ccc"} />
-                </span>
+                {!isReview && (
+                    <span className="tfng-bookmark" onClick={(e) => { e.stopPropagation(); nums.forEach(n => toggleBookmark?.(n)); }} >
+                        <Bookmark size={18} fill={nums.some(n => bookmarks?.[n]) ? "#1a73e8" : "none"} color={nums.some(n => bookmarks?.[n]) ? "#1a73e8" : "#ccc"} />
+                    </span>
+                )}
                 <div className="tfng-question-content">
                     <span className="tfng-number">{displayNumber}</span>
                     <span className="tfng-question-text" dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(q.text) || '' }} />
@@ -56,7 +56,7 @@ const MultipleChoiceQuestion = ({ q, activeQuestion, setActiveQuestion, answer, 
                         const correctArr = Array.isArray(q.correctAnswer) ? q.correctAnswer : [q.correctAnswer];
                         const normalizedOpt = String(opt).trim().toLowerCase();
                         const isCorrectOpt = correctArr.some(ans => String(ans).trim().toLowerCase() === normalizedOpt);
-                        
+
                         if (isCorrectOpt) {
                             reviewClass = 'review-choice-correct';
                         } else if (isChecked) {

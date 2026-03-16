@@ -89,13 +89,19 @@ const ImageDragDropQuestion = ({ q, activeQuestion, setActiveQuestion, answers, 
                     {/* Render Drop Zones on top of the image */}
                     {(q.subQuestions || []).map((subQ) => {
                         const answer = answers[subQ.id];
-                        const hasAnswer = Boolean(answer);
+                        const normalizedAnswer = String(answer || '').trim().toLowerCase();
+                        const normalizedCorrect = String(subQ.correctAnswer || '').trim().toLowerCase();
+                        const isCorrect = normalizedAnswer === normalizedCorrect;
+                        const displayAnswer = (isReview && !isCorrect)
+                            ? String(subQ.correctAnswer || '')
+                            : String(answer || '');
+                        const hasAnswer = displayAnswer.trim() !== '';
                         const isActive = activeQuestion === subQ.number;
 
                         return (
                             <div
                                 key={subQ.id}
-                                className={`drop-zone ml-drop-zone ${isActive ? 'active' : ''} ${isReview ? (answer?.trim() === subQ.correctAnswer?.trim() ? 'review-correct' : 'review-wrong') : ''}`}
+                                className={`drop-zone ml-drop-zone ${isActive ? 'active' : ''} ${isReview ? (isCorrect ? 'review-correct' : 'review-wrong') : ''}`}
                                 onClick={() => { if (!isReview) setActiveQuestion?.(subQ.number); }}
                                 onDrop={isReview ? undefined : (e) => handleDrop(e, subQ.id)}
                                 onDragOver={isReview ? undefined : handleDragOver}
@@ -107,12 +113,14 @@ const ImageDragDropQuestion = ({ q, activeQuestion, setActiveQuestion, answers, 
                                 }}
                             >
                                 {/* Bookmark Icon */}
-                                <span
-                                    className="drop-zone-bookmark"
-                                    onClick={(e) => { e.stopPropagation(); toggleBookmark?.(subQ.number); }}
-                                >
-                                    <Bookmark size={18} fill={bookmarks?.[subQ.number] ? "#1a73e8" : "none"} color={bookmarks?.[subQ.number] ? "#1a73e8" : "#ccc"} />
-                                </span>
+                                {!isReview && (
+                                    <span
+                                        className="drop-zone-bookmark"
+                                        onClick={(e) => { e.stopPropagation(); toggleBookmark?.(subQ.number); }}
+                                    >
+                                        <Bookmark size={18} fill={bookmarks?.[subQ.number] ? "#1a73e8" : "none"} color={bookmarks?.[subQ.number] ? "#1a73e8" : "#ccc"} />
+                                    </span>
+                                )}
 
                                 {/* Number label */}
                                 <strong className={`drop-zone-number${hasAnswer ? ' with-answer' : ''}`}>{subQ.number}</strong>
@@ -127,7 +135,7 @@ const ImageDragDropQuestion = ({ q, activeQuestion, setActiveQuestion, answers, 
                                             handleDragStartFromZone(e, answer, subQ.id)
                                         }}
                                     >
-                                        {answer}
+                                        {displayAnswer}
                                         {!isReview && (
                                             <span
                                                 className="dz-clear"
@@ -138,11 +146,6 @@ const ImageDragDropQuestion = ({ q, activeQuestion, setActiveQuestion, answers, 
                                         )}
                                     </div>
                                 ) : null}
-                                {isReview && answer?.trim() !== subQ.correctAnswer?.trim() && (
-                                    <div className="review-correct-label">
-                                        <span dangerouslySetInnerHTML={{ __html: subQ.correctAnswer }} />
-                                    </div>
-                                )}
                             </div>
                         );
                     })}

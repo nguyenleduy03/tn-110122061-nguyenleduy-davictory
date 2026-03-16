@@ -3,15 +3,27 @@ import { Bookmark } from 'lucide-react';
 import { formatTextWithWhitespace } from '../../utils/textFormatters';
 
 const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answers, handleAnswerChange, inputRefs, bookmarks, toggleBookmark, isReview }) => {
+    const instructionText = q.instruction || q.title;
+
+    const normalizeBlankTokens = (text) => {
+        let s = String(text || '');
+        // Replace editor blank chips with [blank]
+        s = s.replace(/<span[^>]*data-blank=["']true["'][^>]*>[\s\S]*?<\/span>/gi, '[blank]');
+        // Normalize token form
+        s = s.replace(/\[\s*blank\s*\]/gi, '[blank]');
+        return s;
+    };
 
     // Parse text to find placeholders like [blank] or [24]
     const renderParagraph = () => {
         if (!q.text) return null;
 
-        const hasBlank = /\[blank\]/i.test(q.text);
+        const normalizedText = normalizeBlankTokens(q.text);
+
+        const hasBlank = /\[blank\]/i.test(normalizedText);
         const parts = hasBlank
-            ? q.text.split(/\[blank\]/gi)
-            : q.text.split(/(\[\d+\])/g);
+            ? normalizedText.split(/\[blank\]/gi)
+            : normalizedText.split(/(\[\d+\])/g);
 
         let blankIndex = 0; // Đếm ô trống từ 0
 
@@ -26,9 +38,14 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
                 const qId = subQ ? subQ.id : `q${qNum}`;
                 const isActive = activeQuestion === qNum;
                 const answer = answers?.[qId] || '';
+                const normalizedAnswer = String(answer || '').trim().toLowerCase();
+                const normalizedCorrect = String(subQ?.correctAnswer || '').trim().toLowerCase();
+                const isCorrect = normalizedAnswer === normalizedCorrect;
+                const displayAnswer = (isReview && !isCorrect)
+                    ? String(subQ?.correctAnswer || '')
+                    : String(answer || '');
 
                 blankIndex++; // Tăng index cho ô trống tiếp theo
-
                 return (
                     <span key={index}>
                         <span dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(part) }} />
@@ -36,29 +53,26 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
                             className={`inline-question summary-inline-item ${isActive ? 'active-question-input' : ''} relative-pos`}
                             onClick={() => setActiveQuestion?.(qNum)}
                         >
-                            <span
-                                className="summary-bookmark"
-                                onClick={(e) => { e.stopPropagation(); toggleBookmark?.(qNum); }}
-                            >
-                                <Bookmark size={15} fill={bookmarks?.[qNum] ? "#1a73e8" : "none"} color={bookmarks?.[qNum] ? "#1a73e8" : "#ccc"} />
-                            </span>
+                            {!isReview && (
+                                <span
+                                    className="summary-bookmark"
+                                    onClick={(e) => { e.stopPropagation(); toggleBookmark?.(qNum); }}
+                                >
+                                    <Bookmark size={18} fill={bookmarks?.[qNum] ? "#1a73e8" : "none"} color={bookmarks?.[qNum] ? "#1a73e8" : "#ccc"} />
+                                </span>
+                            )}
                             <input
                                 ref={(el) => { if (inputRefs?.current) inputRefs.current[qNum] = el; }}
                                 type="text"
-                                className={`inline-input summary-input ${isReview ? (answer?.trim().toLowerCase() === subQ?.correctAnswer?.trim().toLowerCase() ? 'review-correct' : 'review-wrong') : ''}`}
+                                className={`inline-input summary-input ${isReview ? (isCorrect ? 'review-correct' : 'review-wrong') : ''}`}
                                 placeholder={qNum.toString()}
-                                value={answer}
+                                value={displayAnswer}
                                 onChange={(e) => { if (!isReview) handleAnswerChange?.(qId, e.target.value); }}
                                 onFocus={() => { if (!isReview) setActiveQuestion?.(qNum); }}
                                 autoComplete="off"
                                 spellCheck="false"
                                 readOnly={isReview}
                             />
-                            {isReview && answer?.trim().toLowerCase() !== subQ?.correctAnswer?.trim().toLowerCase() && (
-                                <span className="review-correct-label">
-                                    <span dangerouslySetInnerHTML={{ __html: subQ?.correctAnswer }} />
-                                </span>
-                            )}
                         </span>
                     </span>
                 );
@@ -71,6 +85,12 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
                 const qId = subQ ? subQ.id : `q${qNum}`;
                 const isActive = activeQuestion === qNum;
                 const answer = answers?.[qId] || '';
+                const normalizedAnswer = String(answer || '').trim().toLowerCase();
+                const normalizedCorrect = String(subQ?.correctAnswer || '').trim().toLowerCase();
+                const isCorrect = normalizedAnswer === normalizedCorrect;
+                const displayAnswer = (isReview && !isCorrect)
+                    ? String(subQ?.correctAnswer || '')
+                    : String(answer || '');
 
                 return (
                     <span
@@ -78,29 +98,26 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
                         className={`inline-question summary-inline-item ${isActive ? 'active-question-input' : ''} relative-pos`}
                         onClick={() => setActiveQuestion?.(qNum)}
                     >
-                        <span
-                            className="summary-bookmark"
-                            onClick={(e) => { e.stopPropagation(); toggleBookmark?.(qNum); }}
-                        >
-                            <Bookmark size={15} fill={bookmarks?.[qNum] ? "#1a73e8" : "none"} color={bookmarks?.[qNum] ? "#1a73e8" : "#ccc"} />
-                        </span>
+                        {!isReview && (
+                            <span
+                                className="summary-bookmark"
+                                onClick={(e) => { e.stopPropagation(); toggleBookmark?.(qNum); }}
+                            >
+                                <Bookmark size={18} fill={bookmarks?.[qNum] ? "#1a73e8" : "none"} color={bookmarks?.[qNum] ? "#1a73e8" : "#ccc"} />
+                            </span>
+                        )}
                         <input
                             ref={(el) => { if (inputRefs?.current) inputRefs.current[qNum] = el; }}
                             type="text"
-                            className={`inline-input summary-input ${isReview ? (answer?.trim().toLowerCase() === subQ?.correctAnswer?.trim().toLowerCase() ? 'review-correct' : 'review-wrong') : ''}`}
+                            className={`inline-input summary-input ${isReview ? (isCorrect ? 'review-correct' : 'review-wrong') : ''}`}
                             placeholder={qNum.toString()}
-                            value={answer}
+                            value={displayAnswer}
                             onChange={(e) => { if (!isReview) handleAnswerChange?.(qId, e.target.value); }}
                             onFocus={() => { if (!isReview) setActiveQuestion?.(qNum); }}
                             autoComplete="off"
                             spellCheck="false"
                             readOnly={isReview}
                         />
-                        {isReview && answer?.trim().toLowerCase() !== subQ?.correctAnswer?.trim().toLowerCase() && (
-                            <span className="review-correct-label">
-                                <span dangerouslySetInnerHTML={{ __html: subQ?.correctAnswer }} />
-                            </span>
-                        )}
                     </span>
                 );
             }
@@ -110,7 +127,7 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
 
     return (
         <div className="summary-completion-container">
-            {q.title && <p className="summary-title" dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(q.title) }} />}
+            {instructionText && <p className="summary-title" dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(instructionText) }} />}
             <div className="summary-text">
                 {renderParagraph()}
             </div>

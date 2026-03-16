@@ -119,7 +119,7 @@ export default function TeacherManage() {
           </div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <Link
-              to="/teacher/tests/new"
+              to="/lms/teacher/tests/new"
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 8,
                 padding: '9px 18px', borderRadius: 8,

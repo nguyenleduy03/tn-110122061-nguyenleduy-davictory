@@ -6,6 +6,7 @@ import DragDropGroupQuestion from './DragDropGroupQuestion';
 import FlowChartQuestion from './FlowChartQuestion';
 import SummaryCompletionQuestion from './SummaryCompletionQuestion';
 import ImageDragDropQuestion from './ImageDragDropQuestion';
+import { formatTextWithWhitespace } from '../../utils/textFormatters';
 
 const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answer, handleAnswerChange, inputRefs, bookmarks, toggleBookmark, isReview }) => {
     if (!q) return null;
@@ -148,9 +149,9 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
             return s;
         };
 
-        const parseBold = (text) => String(text || '').split(/\*\*(.*?)\*\*/).map((chunk, i) => (
-            i % 2 === 1 ? <strong key={i}>{chunk}</strong> : <React.Fragment key={i}>{chunk}</React.Fragment>
-        ));
+        const renderFormattedText = (text) => (
+            <span dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(text || '') }} />
+        );
 
         const blankMap = [];
         for (const row of tableRows) {
@@ -187,7 +188,9 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
             const subQ = info.subQ;
             const currentValue = answerMap[subQ.id] || '';
             const isCorrect = String(currentValue).trim().toLowerCase() === String(subQ.correctAnswer || '').trim().toLowerCase();
-            const isWrongInReview = isReview && String(currentValue).trim() !== '' && !isCorrect;
+            const displayValue = (isReview && !isCorrect)
+                ? String(subQ.correctAnswer || '')
+                : String(currentValue || '');
 
             return (
                 <span className="table-inline-wrap relative-pos" key={`tc-${subQ.id}`}>
@@ -196,16 +199,11 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
                         type="text"
                         className={`inline-input tc-inline-input ${activeQuestion === subQ.number ? 'active-question-input' : ''} ${isReview ? (isCorrect ? 'review-correct' : 'review-wrong') : ''}`}
                         placeholder={String(subQ.number || '')}
-                        value={currentValue}
+                        value={displayValue}
                         onClick={() => setActiveQuestion?.(subQ.number)}
                         onChange={(e) => { if (!isReview) handleAnswerChange?.(subQ.id, e.target.value); }}
                         readOnly={isReview}
                     />
-                    {isWrongInReview && (
-                        <span className="review-correct-label">
-                            <span dangerouslySetInnerHTML={{ __html: subQ.correctAnswer }} />
-                        </span>
-                    )}
                 </span>
             );
         };
@@ -218,7 +216,7 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
                 const info = blankMap[offset + i];
                 return (
                     <React.Fragment key={`${rowId}-${colId}-${i}`}>
-                        {parseBold(part)}
+                        {renderFormattedText(part)}
                         {i < parts.length - 1 && renderBlankInput(info)}
                     </React.Fragment>
                 );
@@ -237,22 +235,31 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
                 <div className="table-completion-container">
                     <div className="question-header-container">
                         <p className="question-heading">{heading}</p>
-                        <p className="question-instruction">{instruction}</p>
+                        <p className="question-instruction" dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(instruction) }} />
                     </div>
                     <div className="table-completion-grid">
                         {subQuestions.map((subQ) => (
                             <div key={subQ.id} className="table-cell-input relative-pos">
                                 <label>Q{subQ.number}</label>
-                                <input
-                                    ref={(el) => { if (inputRefs?.current) inputRefs.current[subQ.id] = el; }}
-                                    type="text"
-                                    className={`inline-input ${isReview ? ((answerMap[subQ.id] || '').trim().toLowerCase() === (subQ.correctAnswer || '').trim().toLowerCase() ? 'review-correct' : 'review-wrong') : ''}`}
-                                    placeholder={`Q${subQ.number}`}
-                                    value={answerMap[subQ.id] || ''}
-                                    onClick={() => setActiveQuestion?.(subQ.number)}
-                                    onChange={(e) => { if (!isReview) handleAnswerChange?.(subQ.id, e.target.value); }}
-                                    readOnly={isReview}
-                                />
+                                {(() => {
+                                    const rawValue = answerMap[subQ.id] || '';
+                                    const isCorrect = String(rawValue).trim().toLowerCase() === String(subQ.correctAnswer || '').trim().toLowerCase();
+                                    const displayValue = (isReview && !isCorrect)
+                                        ? String(subQ.correctAnswer || '')
+                                        : String(rawValue || '');
+                                    return (
+                                        <input
+                                            ref={(el) => { if (inputRefs?.current) inputRefs.current[subQ.id] = el; }}
+                                            type="text"
+                                            className={`inline-input ${isReview ? (isCorrect ? 'review-correct' : 'review-wrong') : ''}`}
+                                            placeholder={`Q${subQ.number}`}
+                                            value={displayValue}
+                                            onClick={() => setActiveQuestion?.(subQ.number)}
+                                            onChange={(e) => { if (!isReview) handleAnswerChange?.(subQ.id, e.target.value); }}
+                                            readOnly={isReview}
+                                        />
+                                    );
+                                })()}
                             </div>
                         ))}
                     </div>
@@ -264,7 +271,7 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
             <div className="table-completion-container">
                 <div className="question-header-container">
                     <p className="question-heading">{heading}</p>
-                    <p className="question-instruction">{instruction}</p>
+                    <p className="question-instruction" dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(instruction) }} />
                 </div>
                 <div className="tc-table-wrap">
                     <table className="tc-table">

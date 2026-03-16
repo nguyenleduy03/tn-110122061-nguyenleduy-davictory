@@ -4,12 +4,15 @@ import com.victory.DAVictory.dto.RegisterRequest;
 import com.victory.DAVictory.dto.UserDTO;
 import com.victory.DAVictory.entity.Role;
 import com.victory.DAVictory.entity.User;
+import com.victory.DAVictory.entity.Center;
+import com.victory.DAVictory.entity.Class;
 import com.victory.DAVictory.entity.ClassStudent;
 import com.victory.DAVictory.entity.ClassTeacher;
 import com.victory.DAVictory.entity.StudentProfile;
 import com.victory.DAVictory.repository.RoleRepository;
 import com.victory.DAVictory.repository.UserRepository;
 import com.victory.DAVictory.repository.ClassRepository;
+import com.victory.DAVictory.repository.CenterRepository;
 import com.victory.DAVictory.repository.ClassStudentRepository;
 import com.victory.DAVictory.repository.ClassTeacherRepository;
 import com.victory.DAVictory.repository.StudentProfileRepository;
@@ -34,6 +37,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
+    private final CenterRepository centerRepository;
     private final ClassRepository classRepository;
     private final ClassTeacherRepository classTeacherRepository;
     private final ClassStudentRepository classStudentRepository;
@@ -455,6 +459,66 @@ public class UserService {
     }
 
     @Transactional
+    public Map<String, Object> createClassForAdmin(Map<String, Object> request) {
+        String classCode = request.get("classCode") != null ? String.valueOf(request.get("classCode")).trim() : "";
+        String className = request.get("className") != null ? String.valueOf(request.get("className")).trim() : "";
+
+        if (classCode.isBlank()) {
+            throw new RuntimeException("Mã lớp không được để trống");
+        }
+        if (className.isBlank()) {
+            throw new RuntimeException("Tên lớp không được để trống");
+        }
+        if (classRepository.existsByCode(classCode)) {
+            throw new RuntimeException("Mã lớp đã tồn tại: " + classCode);
+        }
+
+        final Long centerId = (request.get("centerId") != null && !String.valueOf(request.get("centerId")).isBlank())
+            ? Long.valueOf(String.valueOf(request.get("centerId")))
+            : null;
+
+        Center center;
+        if (centerId != null) {
+            center = centerRepository.findById(centerId)
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy trung tâm với id=" + centerId));
+        } else {
+            center = centerRepository.findByIsActiveTrueOrderByNameAsc().stream().findFirst()
+                    .orElseGet(() -> centerRepository.findAll().stream().findFirst()
+                            .orElseThrow(() -> new RuntimeException("Chưa có trung tâm nào trong hệ thống. Vui lòng tạo trung tâm trước khi tạo lớp.")));
+        }
+
+        Class clazz = new Class();
+        clazz.setCenter(center);
+        clazz.setCode(classCode);
+        clazz.setName(className);
+        clazz.setLevel(request.get("level") != null ? String.valueOf(request.get("level")).trim() : null);
+        clazz.setTargetBand(request.get("targetBand") != null ? String.valueOf(request.get("targetBand")).trim() : null);
+        clazz.setClassType(request.get("classType") != null ? String.valueOf(request.get("classType")).trim() : "OFFLINE");
+        clazz.setMaxStudents(parseIntegerOrNull(request.get("maxStudents")));
+        clazz.setSchedule(request.get("schedule") != null ? String.valueOf(request.get("schedule")).trim() : null);
+        clazz.setRoomLocation(request.get("roomLocation") != null ? String.valueOf(request.get("roomLocation")).trim() : null);
+        clazz.setNotes(request.get("notes") != null ? String.valueOf(request.get("notes")).trim() : null);
+        clazz.setStatus(request.get("status") != null ? String.valueOf(request.get("status")).trim() : "UPCOMING");
+
+        clazz.setStartDate(parseDateOrDefault(request.get("startDate"), LocalDate.now()));
+        clazz.setEndDate(parseDateOrNull(request.get("endDate")));
+        clazz.setIsActive(true);
+
+        Class saved = classRepository.save(clazz);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("message", "Đã tạo lớp thành công");
+        result.put("id", saved.getId());
+        result.put("code", saved.getCode());
+        result.put("name", saved.getName());
+        result.put("startDate", saved.getStartDate());
+        result.put("status", saved.getStatus());
+        result.put("centerId", center.getId());
+        result.put("centerName", center.getName());
+        return result;
+    }
+
+    @Transactional
     public Map<String, Object> assignTeacherToClassByCode(String classCode, Long teacherId, String role, String notes) {
         if (classCode == null || classCode.isBlank()) {
             throw new RuntimeException("Mã lớp không được để trống");
@@ -619,6 +683,33 @@ public class UserService {
                 .map(role -> role.getName().toString())
                 .collect(Collectors.toList()));
         return dto;
+    }
+
+    private Integer parseIntegerOrNull(Object value) {
+        if (value == null) return null;
+        String text = String.valueOf(value).trim();
+        if (text.isEmpty()) return null;
+        try {
+            return Integer.valueOf(text);
+        } catch (NumberFormatException e) {
+            throw new RuntimeException("Giá trị số không hợp lệ: " + text);
+        }
+    }
+
+    private LocalDate parseDateOrDefault(Object value, LocalDate defaultValue) {
+        LocalDate parsed = parseDateOrNull(value);
+        return parsed != null ? parsed : defaultValue;
+    }
+
+    private LocalDate parseDateOrNull(Object value) {
+        if (value == null) return null;
+        String text = String.valueOf(value).trim();
+        if (text.isEmpty()) return null;
+        try {
+            return LocalDate.parse(text);
+        } catch (Exception e) {
+            throw new RuntimeException("Định dạng ngày không hợp lệ, cần yyyy-MM-dd: " + text);
+        }
     }
 }
 

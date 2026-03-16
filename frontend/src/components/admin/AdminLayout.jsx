@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   Users,
+  School,
   Settings,
   Database,
 } from 'lucide-react';
@@ -11,7 +12,8 @@ import '../../styles/adminDashboard.css';
 
 const NAV_ITEMS = [
   { label: 'Tổng quan', path: '/admin', icon: LayoutDashboard },
-  { label: 'Người dùng & lớp', path: '/admin/users', icon: Users },
+  { label: 'Người dùng', path: '/admin/users', icon: Users },
+  { label: 'Giảng viên & lớp', path: '/admin/teacher-class', icon: School },
   { label: 'Hệ thống', path: '/debug', icon: Database },
   { label: 'Cài đặt', path: '/admin/settings', icon: Settings },
 ];
@@ -39,7 +41,8 @@ export default function AdminLayout({ title, subtitle, children }) {
                 location.pathname === item.path ||
                 (item.path === '/admin' &&
                   location.pathname.startsWith('/admin') &&
-                  location.pathname !== '/admin/users');
+                  !location.pathname.startsWith('/admin/users') &&
+                  !location.pathname.startsWith('/admin/teacher-class'));
 
               return (
                 <Link key={item.path} to={item.path} className={`admin-nav-item${active ? ' active' : ''}`}>

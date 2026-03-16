@@ -139,11 +139,16 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
     let sessionQuestionNumber = 1;
     const partsWithQuestionNumbers = parts.map(part => {
       const partStartNumber = sessionQuestionNumber;
-      const totalQuestionsInPart = (part.questionGroups || []).reduce((sum, group) => {
+      const calculatedQuestionsInPart = (part.questionGroups || []).reduce((sum, group) => {
         return sum + (group.questions || []).reduce((qSum, q) => {
           return qSum + (q.questionCount || 1); // Tính theo questionCount
         }, 0);
       }, 0);
+      const configuredQuestionsInPart = Number(part.totalQuestions || 0);
+      const totalQuestionsInPart = Math.max(
+        calculatedQuestionsInPart,
+        Number.isFinite(configuredQuestionsInPart) ? configuredQuestionsInPart : 0
+      );
       sessionQuestionNumber += totalQuestionsInPart;
       
       return { ...part, startQuestionNumber: partStartNumber };

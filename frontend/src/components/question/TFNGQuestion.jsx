@@ -23,9 +23,11 @@ const TFNGQuestion = ({ q, activeQuestion, setActiveQuestion, answer, handleAnsw
         >
 
             <div className="tfng-text">
-                <span className="tfng-bookmark" onClick={(e) => { e.stopPropagation(); nums.forEach(n => toggleBookmark?.(n)); }} >
-                    <Bookmark size={18} fill={nums.some(n => bookmarks?.[n]) ? "#1a73e8" : "none"} color={nums.some(n => bookmarks?.[n]) ? "#1a73e8" : "#ccc"} />
-                </span>
+                {!isReview && (
+                    <span className="tfng-bookmark" onClick={(e) => { e.stopPropagation(); nums.forEach(n => toggleBookmark?.(n)); }} >
+                        <Bookmark size={18} fill={nums.some(n => bookmarks?.[n]) ? "#1a73e8" : "none"} color={nums.some(n => bookmarks?.[n]) ? "#1a73e8" : "#ccc"} />
+                    </span>
+                )}
                 <div className="tfng-question-content">
                     <span className="tfng-number">{displayNumber}</span>
                     <span className="tfng-question-text" dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(q.text) || '' }} />

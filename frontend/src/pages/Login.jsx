@@ -52,7 +52,7 @@ const Login = () => {
       } else if (userRoles.includes('TEACHER') || userRoles.includes('MANAGER')) {
         targetPath = '/lms/teacher';
       } else if (userRoles.includes('STUDENT')) {
-        targetPath = '/my-dashboard';
+        targetPath = '/';
       }
 
       navigate(targetPath, { replace: true });

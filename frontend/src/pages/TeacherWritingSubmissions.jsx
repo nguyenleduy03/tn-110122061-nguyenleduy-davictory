@@ -33,6 +33,33 @@ const isTeacherOrAbove = (roles) => {
   return ['ADMIN', 'MANAGER', 'TEACHER'].some(r => rolesArray.includes(r));
 };
 
+const isAdminOrManager = (roles) => {
+  if (!roles) return false;
+  const rolesArray = Array.isArray(roles) ? roles : Array.from(roles);
+  return ['ADMIN', 'MANAGER'].some(r => rolesArray.includes(r));
+};
+
+const normalizeSet = (values) => new Set((Array.isArray(values) ? values : [])
+  .map((v) => String(v).trim())
+  .filter(Boolean));
+
+const extractTeacherScope = (user) => ({
+  classIds: normalizeSet(user?.managedClassIds || user?.teacherClassIds || user?.classIds),
+  classCodes: normalizeSet(user?.managedClassCodes || user?.teacherClassCodes || user?.classCodes),
+});
+
+const getSubmissionClassId = (s) => {
+  const value = s?.classId ?? s?.clazzId ?? s?.assignmentClassId;
+  return value != null ? String(value) : '';
+};
+
+const getSubmissionClassCode = (s) => {
+  const value = s?.classCode ?? s?.clazzCode;
+  return value != null ? String(value).trim() : '';
+};
+
+const getSubmissionClassName = (s) => s?.className || s?.clazzName || '—';
+
 export default function TeacherWritingSubmissions() {
   const user = authApi.getStoredUser();
   const hasPermission = isTeacherOrAbove(user?.roles);
@@ -42,6 +69,8 @@ export default function TeacherWritingSubmissions() {
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+
+  const teacherScope = useMemo(() => extractTeacherScope(user), [user]);
 
   const fetchSubmissions = useCallback(async () => {
     if (!hasPermission) {
@@ -72,15 +101,33 @@ export default function TeacherWritingSubmissions() {
     fetchSubmissions();
   }, [fetchSubmissions]);
 
+  const scopedSubmissions = useMemo(() => {
+    if (isAdminOrManager(user?.roles)) return submissions;
+
+    const hasScope = teacherScope.classIds.size > 0 || teacherScope.classCodes.size > 0;
+    if (!hasScope) return [];
+
+    return submissions.filter((s) => {
+      const sid = getSubmissionClassId(s);
+      const scode = getSubmissionClassCode(s);
+      return teacherScope.classIds.has(sid) || teacherScope.classCodes.has(scode);
+    });
+  }, [submissions, teacherScope, user]);
+
   const filtered = useMemo(() => {
     const keyword = search.trim().toLowerCase();
-    if (!keyword) return submissions;
-    return submissions.filter((s) => {
+    if (!keyword) return scopedSubmissions;
+    return scopedSubmissions.filter((s) => {
       const name = (s.username || '').toLowerCase();
       const title = (s.groupTitle || '').toLowerCase();
-      return name.includes(keyword) || title.includes(keyword);
+      const className = getSubmissionClassName(s).toLowerCase();
+      return name.includes(keyword) || title.includes(keyword) || className.includes(keyword);
     });
-  }, [search, submissions]);
+  }, [search, scopedSubmissions]);
+
+  const hasClassMetadata = useMemo(() => submissions.some((s) => (
+    getSubmissionClassId(s) || getSubmissionClassCode(s) || s?.className || s?.clazzName
+  )), [submissions]);
 
   const statusCounts = useMemo(() => {
     const counts = { SUBMITTED: 0, UNDER_REVIEW: 0, GRADED: 0, RETURNED: 0, DRAFT: 0 };
@@ -171,6 +218,28 @@ export default function TeacherWritingSubmissions() {
           </div>
         )}
 
+        {!isAdminOrManager(user?.roles) && !hasClassMetadata && submissions.length > 0 && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px',
+            background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 8,
+            color: '#9a3412', fontSize: 14, marginBottom: 16,
+          }}>
+            <AlertCircle size={16} />
+            Backend chua tra thong tin lop cho bai nop. FE dang khoa danh sach de dam bao giao vien chi cham bai trong lop cua minh.
+          </div>
+        )}
+
+        {!isAdminOrManager(user?.roles) && hasClassMetadata && teacherScope.classIds.size === 0 && teacherScope.classCodes.size === 0 && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px',
+            background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 8,
+            color: '#9a3412', fontSize: 14, marginBottom: 16,
+          }}>
+            <AlertCircle size={16} />
+            Tai khoan giao vien chua co danh sach lop duoc gan trong profile, nen he thong tam thoi khong mo quyen cham.
+          </div>
+        )}
+
         {loading ? (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '60px 0', gap: 10, color: '#6b7280' }}>
             <Loader2 size={20} style={{ animation: 'spin 1s linear infinite' }} />
@@ -191,8 +260,9 @@ export default function TeacherWritingSubmissions() {
           </div>
         ) : (
           <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 2fr 1.2fr 1fr 1fr 1.2fr 1fr', gap: 0, background: '#f9fafb', padding: '10px 16px', fontSize: 12, fontWeight: 600, color: '#6b7280' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.4fr 1.8fr 1.2fr 0.8fr 0.8fr 1.1fr 0.9fr', gap: 0, background: '#f9fafb', padding: '10px 16px', fontSize: 12, fontWeight: 600, color: '#6b7280' }}>
               <div>Hoc vien</div>
+              <div>Lop</div>
               <div>De bai</div>
               <div>Trang thai</div>
               <div>So tu</div>
@@ -203,9 +273,10 @@ export default function TeacherWritingSubmissions() {
             {filtered.map((s) => (
               <div
                 key={s.id}
-                style={{ display: 'grid', gridTemplateColumns: '2fr 2fr 1.2fr 1fr 1fr 1.2fr 1fr', gap: 0, padding: '12px 16px', borderTop: '1px solid #eef2f7', alignItems: 'center' }}
+                style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.4fr 1.8fr 1.2fr 0.8fr 0.8fr 1.1fr 0.9fr', gap: 0, padding: '12px 16px', borderTop: '1px solid #eef2f7', alignItems: 'center' }}
               >
                 <div style={{ fontWeight: 600, color: '#111827' }}>{s.username || '—'}</div>
+                <div style={{ color: '#374151' }}>{getSubmissionClassName(s)}</div>
                 <div style={{ color: '#374151' }}>{s.groupTitle || 'Writing task'}</div>
                 <div>
                   <StatusBadge status={s.status} />

@@ -9,6 +9,7 @@ import { useTestNavigation } from "../hooks/useTestNavigation";
 import { ieltsApi } from "../services/ieltsApi";
 import TextHighlighter from "../components/common/TextHighlighter";
 import { createPortal } from "react-dom";
+import { formatTextWithWhitespace } from "../utils/textFormatters";
 
 const HeadingGap = ({ qId, number, answer, correctAnswer, handleAnswerChange, isActive, setActiveQuestion, bookmarks, toggleBookmark, isReview }) => {
     const handleDragOver = (e) => { if (isReview) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
@@ -41,7 +42,13 @@ const HeadingGap = ({ qId, number, answer, correctAnswer, handleAnswerChange, is
         e.dataTransfer.effectAllowed = 'move';
     };
 
-    const isFilled = !!answer;
+    const normalizedAnswer = String(answer || '').trim().toLowerCase();
+    const normalizedCorrect = String(correctAnswer || '').trim().toLowerCase();
+    const isCorrect = normalizedAnswer === normalizedCorrect;
+    const displayAnswer = (isReview && !isCorrect)
+        ? String(correctAnswer || '')
+        : String(answer || '');
+    const isFilled = displayAnswer.trim() !== '';
 
     return (
         <div id={`question-${number}`}
@@ -58,12 +65,7 @@ const HeadingGap = ({ qId, number, answer, correctAnswer, handleAnswerChange, is
                 </div>
             ) : (
                 <div className="heading-gap-answer">
-                    <span>{answer}</span>
-                </div>
-            )}
-            {isReview && answer?.trim() !== correctAnswer?.trim() && (
-                <div className="review-correct-label">
-                    <span dangerouslySetInnerHTML={{ __html: correctAnswer }} />
+                    <span>{displayAnswer}</span>
                 </div>
             )}
         </div>
@@ -85,7 +87,17 @@ const PassageRenderer = ({ part, answers, handleAnswerChange, activeQuestion, se
     useLayoutEffect(() => {
         if (!containerRef.current) return undefined;
 
+        if (isReview) {
+            const existingTargets = containerRef.current.querySelectorAll('.bookmark-portal-target');
+            existingTargets.forEach((target) => target.remove());
+            setBookmarkNodes([]);
+        }
+
         const processGaps = (nodes) => {
+            if (isReview) {
+                setBookmarkNodes([]);
+                return;
+            }
             const bNodes = [];
             nodes.forEach(node => {
                 let p = node.nextElementSibling || node.parentElement;
@@ -138,7 +150,7 @@ const PassageRenderer = ({ part, answers, handleAnswerChange, activeQuestion, se
             observer.disconnect();
             window.clearTimeout(timeoutId);
         };
-    }, [part?.id, part?.passageTitle, part?.passageContent]);
+    }, [part?.id, part?.passageTitle, part?.passageContent, isReview]);
 
     return (
         <div className="passage-renderer-wrapper" ref={containerRef}>
@@ -177,10 +189,10 @@ const PassageRenderer = ({ part, answers, handleAnswerChange, activeQuestion, se
                     node
                 );
             })}
-            {bookmarkNodes.map((bNode, i) => (
+            {!isReview && bookmarkNodes.map((bNode, i) => (
                 createPortal(
                     <span onClick={(e) => { e.stopPropagation(); toggleBookmark?.(bNode.num); }} className="bookmark-portal-container">
-                        <Bookmark size={16} fill={bookmarks?.[bNode.num] ? "#1a73e8" : "none"} color={bookmarks?.[bNode.num] ? "#1a73e8" : "#ccc"} />
+                        <Bookmark size={18} fill={bookmarks?.[bNode.num] ? "#1a73e8" : "none"} color={bookmarks?.[bNode.num] ? "#1a73e8" : "#ccc"} />
                     </span>,
                     bNode.container
                 )
@@ -195,6 +207,8 @@ const IeltsReadingTest = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [bookmarks, setBookmarks] = useState({});
+    const [scoreInfo, setScoreInfo] = useState(null);
+    const [startTime] = useState(() => Date.now());
 
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
@@ -231,6 +245,10 @@ const IeltsReadingTest = () => {
                 const savedAnswers = sessionStorage.getItem('lastAnswers_reading');
                 if (savedAnswers) {
                     setAnswers(JSON.parse(savedAnswers));
+                }
+                const savedScore = sessionStorage.getItem('lastScore_reading');
+                if (savedScore) {
+                    setScoreInfo(JSON.parse(savedScore));
                 }
             }
         }).catch((err) => {
@@ -296,12 +314,19 @@ const IeltsReadingTest = () => {
     };
 
     const submitTest = () => {
+        const timeSpentSeconds = Math.floor((Date.now() - startTime) / 1000);
         // Lưu lại đáp án để lát review
         sessionStorage.setItem('lastAnswers_reading', JSON.stringify(answers));
 
-        if (isFullTest) { handleFullTestNext(); return; }
-
-        ieltsApi.submitAnswers(testId || "mock-session-id", answers).then(() => {
+        ieltsApi.submitAnswers(testId, 'READING', answers, timeSpentSeconds).then((resp) => {
+            if (resp) {
+                sessionStorage.setItem('lastScore_reading', JSON.stringify(resp));
+            }
+            if (isFullTest) { handleFullTestNext(); return; }
+            if (mode !== 'exam') {
+                navigate(`/test/reading/${testId}?mode=${mode}&review=true`);
+                return;
+            }
             navigate(`/test/complete?mode=${mode}&skill=reading&testId=${testId}`);
         });
     };
@@ -407,8 +432,20 @@ const IeltsReadingTest = () => {
             />
 
             <div className="instruction-bar">
-                <h3 dangerouslySetInnerHTML={{ __html: part.title }} />
-                {part.instruction && <p dangerouslySetInnerHTML={{ __html: part.instruction }} />}
+                <h3 dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(part.title || '') }} />
+                {part.instruction && <p dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(part.instruction) }} />}
+                {isReview && scoreInfo && (
+                    <div className="review-score-banner">
+                        <div className="review-score-main">
+                            Score: {Number.isFinite(scoreInfo.totalCorrect) ? scoreInfo.totalCorrect : 0}
+                            {' / '}
+                            {testData ? testData.parts.reduce((sum, _, idx) => sum + getTotalCount(idx), 0) : (scoreInfo.totalAnswered || 0)}
+                        </div>
+                        {Number.isFinite(scoreInfo.rawScore) && (
+                            <div className="review-score-sub">Raw score: {scoreInfo.rawScore % 1 === 0 ? scoreInfo.rawScore : scoreInfo.rawScore.toFixed(2)}</div>
+                        )}
+                    </div>
+                )}
             </div>
 
             <main className="ielts-main" ref={containerRef} style={{
@@ -525,6 +562,7 @@ const IeltsReadingTest = () => {
                                                 ? (Array.isArray(ans) && ans.length >= q.selectCount)
                                                 : (typeof ans === "string" ? ans.trim() !== "" : Array.isArray(ans) ? ans.length > 0 : !!ans);
                                             const isActive = nums.includes(activeQuestion);
+                                            const hasBookmarked = !isReview && nums.some(n => bookmarks[n]);
 
                                             return (
                                                 <div
@@ -543,13 +581,13 @@ const IeltsReadingTest = () => {
                                                         }, 50);
                                                     }}
                                                 >
-                                                    {nums.some(n => bookmarks[n]) && (
+                                                    {hasBookmarked && (
                                                         <div className="q-bookmark-flag">
                                                             <Bookmark size={16} fill="#1a73e8" color="#1a73e8" />
                                                         </div>
                                                     )}
-                                                    <div className={`status-dash${isAnswered ? " answered-dash" : ""}${nums.some(n => bookmarks[n]) ? " bookmarked-dash" : ""}`} />
-                                                    <span className={`q-num${isActive ? " active" : ""}${isRange ? " q-num-range" : ""}${nums.some(n => bookmarks[n]) ? " bookmarked" : ""}`}>
+                                                    <div className={`status-dash${isAnswered ? " answered-dash" : ""}${hasBookmarked ? " bookmarked-dash" : ""}`} />
+                                                    <span className={`q-num${isActive ? " active" : ""}${isRange ? " q-num-range" : ""}${hasBookmarked ? " bookmarked" : ""}`}>
                                                         {isRange ? `${nums[0]}–${nums[nums.length - 1]}` : q.number}
                                                     </span>
                                                 </div>

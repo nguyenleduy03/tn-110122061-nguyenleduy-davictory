@@ -1397,6 +1397,10 @@
   border: 1px solid #d1d5db; border-radius: 6px;
   font-size: 13px; color: #1e293b; background: #fff;
   outline: none; line-height: 1.5;
+  max-width: 100%;
+  overflow-x: hidden;
+  overflow-wrap: anywhere;
+  word-break: break-word;
   transition: border-color 0.15s;
 }
 .rich-input-content:focus { border-color: #3b82f6; box-shadow: 0 0 0 2px #bfdbfe; }
@@ -1410,8 +1414,17 @@
   min-height: 90px;
   line-height: 1.7;
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
   resize: vertical;
   overflow-y: auto;
+}
+
+/* Prevent pasted inline styles/long tokens from forcing horizontal scroll */
+.rich-input-content * {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 /* PropertiesPanel variant — match tb-textarea look */

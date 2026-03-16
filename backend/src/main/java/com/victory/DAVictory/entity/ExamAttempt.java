@@ -34,6 +34,10 @@ public class ExamAttempt {
     @JoinColumn(name = "session_id", nullable = false)
     private Session session; // Kỳ thi (Listening / Reading / Writing / Speaking)
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "test_id")
+    private Test test; // Đề thi gốc (để lọc theo đề)
+
     @Column(nullable = false, length = 20)
     private String status;
     // IN_PROGRESS, SUBMITTED, TIMED_OUT, ABANDONED, GRADED
