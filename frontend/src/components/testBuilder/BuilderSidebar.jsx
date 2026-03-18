@@ -49,6 +49,8 @@ const PALETTE_ITEMS = [
   // ── SPEAKING only ──
   { type: 'group', contentType: 'SPEAKING_INTERVIEW',   label: 'Câu hỏi Phỏng vấn',      icon: Mic, skills: ['SPEAKING'] },
   { type: 'group', contentType: 'SPEAKING_CUECARD',     label: 'Cue Card (Part 2)',      icon: Mic, skills: ['SPEAKING'] },
+  // ── CUSTOM (all) ──
+  { type: 'group', contentType: 'CUSTOM',              label: 'Tự thiết kế (Custom)',    icon: ClipboardList, skills: ['READING', 'LISTENING', 'WRITING', 'SPEAKING'] },
 ];
 
 const TYPE_META = {
@@ -67,6 +69,7 @@ const TYPE_META = {
   SPEAKING_INTERVIEW:    { label: 'IV', bg: '#fce7f3', color: '#be185d' },
   SPEAKING_CUECARD:      { label: 'CC', bg: '#fdf4ff', color: '#7e22ce' },
   MATCHING_FEATURES:     { label: 'MF', bg: '#f3e8ff', color: '#7c3aed' },
+  CUSTOM:                { label: 'CT', bg: '#fff7ed', color: '#c2410c' },
 };
 
 const toTreePlainText = (value) => {

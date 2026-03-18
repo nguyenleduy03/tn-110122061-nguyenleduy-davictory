@@ -93,7 +93,11 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
     // Calculate max length of bank options for sizing dropzones
     const bankOptions = q.bankOptions || [];
     const totalDropZones = (q.subQuestions || []).length;
-    const allowOptionReuse = hasFewerOptionsThanZones(bankOptions, totalDropZones);
+    // Reuse cards by default for "machine" drag/drop styles.
+    // You can explicitly override per-question/group via q.allowOptionReuse (boolean).
+    const allowOptionReuse = (typeof q.allowOptionReuse === 'boolean')
+        ? q.allowOptionReuse
+        : true;
     const maxOptionChars = Math.max(0, ...bankOptions.map(opt => String(opt).length));
     const fixedBankWidth = Math.max(220, Math.min(720, Math.ceil(maxOptionChars * 8 + 30)));
     const rowHeight = isMatchingHeading ? 52 : 48;
@@ -287,7 +291,7 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
         });
 
         const usedAnswers = Object.values(answers || {}).filter(Boolean);
-        const allowReuse = hasFewerOptionsThanZones(q.bankOptions || [], subQuestions.length);
+        const allowReuse = (typeof q.allowOptionReuse === 'boolean') ? q.allowOptionReuse : true;
 
         return (
             <div className="fc-container">
@@ -393,7 +397,7 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
         const imageWidth = Number.isFinite(Number(q.imageWidth)) ? Number(q.imageWidth) : 100;
         const pinBoxWidth = Number.isFinite(Number(q.pinBoxWidth)) ? Number(q.pinBoxWidth) : 60;
         const constrainHalfPage = Boolean(q.constrainHalfPage);
-        const allowReuse = hasFewerOptionsThanZones(q.bankOptions || [], subQuestions.length);
+        const allowReuse = (typeof q.allowOptionReuse === 'boolean') ? q.allowOptionReuse : true;
 
         return (
             <div className="image-drag-drop-container">

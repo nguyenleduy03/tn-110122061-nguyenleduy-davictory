@@ -7,6 +7,51 @@ function authHeaders() {
   return token ? { 'Authorization': `Bearer ${token}` } : {};
 }
 
+function hasAuthToken() {
+  return Boolean(localStorage.getItem('authToken'));
+}
+
+let fullTestProgressApiBlocked = false;
+
+function parseUserRoles() {
+  const raw = localStorage.getItem('user');
+  if (!raw) return [];
+
+  try {
+    const parsed = JSON.parse(raw);
+    const roles = Array.isArray(parsed?.roles) ? parsed.roles : [];
+    return roles.map((r) => {
+      const role = typeof r === 'string' ? r : (r?.name || r?.roleName || r?.authority || '');
+      return String(role || '').toUpperCase().replace(/^ROLE_/, '');
+    }).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+function canCallFullTestProgressApi() {
+  if (!hasAuthToken() || fullTestProgressApiBlocked) return false;
+
+  const roles = parseUserRoles();
+  if (roles.length === 0) return true;
+
+  return roles.some((r) => ['STUDENT', 'TEACHER', 'MANAGER', 'ADMIN'].includes(r));
+}
+
+async function runFullTestProgressRequest(requestFn, fallbackValue) {
+  if (!canCallFullTestProgressApi()) return fallbackValue;
+
+  try {
+    return await requestFn();
+  } catch (err) {
+    if (err?.message === 'AUTH_REQUIRED' || String(err?.message || '').includes('HTTP 403')) {
+      fullTestProgressApiBlocked = true;
+      return fallbackValue;
+    }
+    throw err;
+  }
+}
+
 // ─── Helper: fetch với timeout + auth ───────────────────────────────
 async function apiFetch(url, options = {}) {
   const res = await fetch(url, {
@@ -906,27 +951,27 @@ export const ieltsApi = {
 
   saveFullTestProgress: async (testId, payload) => {
     const baseUrl = API_CONFIG.BASE_URL;
-    return apiFetch(`${baseUrl}/full-test-progress/${testId}`, {
+    return runFullTestProgressRequest(() => apiFetch(`${baseUrl}/full-test-progress/${testId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload || {}),
-    });
+    }), null);
   },
 
   getFullTestProgress: async (testId) => {
     const baseUrl = API_CONFIG.BASE_URL;
-    return apiFetch(`${baseUrl}/full-test-progress/${testId}`);
+    return runFullTestProgressRequest(() => apiFetch(`${baseUrl}/full-test-progress/${testId}`), null);
   },
 
   getMyFullTestProgress: async () => {
     const baseUrl = API_CONFIG.BASE_URL;
-    return apiFetch(`${baseUrl}/full-test-progress/my`);
+    return runFullTestProgressRequest(() => apiFetch(`${baseUrl}/full-test-progress/my`), []);
   },
 
   clearFullTestProgress: async (testId) => {
     const baseUrl = API_CONFIG.BASE_URL;
-    return apiFetch(`${baseUrl}/full-test-progress/${testId}`, {
+    return runFullTestProgressRequest(() => apiFetch(`${baseUrl}/full-test-progress/${testId}`, {
       method: 'DELETE',
-    });
+    }), null);
   },
 };

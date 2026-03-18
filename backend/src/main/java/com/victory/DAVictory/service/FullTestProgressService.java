@@ -27,20 +27,20 @@ public class FullTestProgressService {
     @Transactional
     public FullTestProgressResponse saveProgress(String username, Long testId, FullTestProgressSaveRequest request) {
         User user = userRepository.findByUsername(username)
-            .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng: " + username));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng: " + username));
 
         Test test = testRepository.findById(testId)
-            .orElseThrow(() -> new RuntimeException("Không tìm thấy đề thi ID=" + testId));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đề thi ID=" + testId));
 
         FullTestProgress progress = fullTestProgressRepository
-            .findByUserIdAndTestId(user.getId(), test.getId())
-            .orElseGet(FullTestProgress::new);
+                .findByUserIdAndTestId(user.getId(), test.getId())
+                .orElseGet(FullTestProgress::new);
 
         progress.setUser(user);
         progress.setTest(test);
         progress.setStatus((request.getStatus() == null || request.getStatus().isBlank())
-            ? STATUS_IN_PROGRESS
-            : request.getStatus());
+                ? STATUS_IN_PROGRESS
+                : request.getStatus());
         progress.setMode(request.getMode());
         progress.setCurrentSection(request.getCurrentSection());
         progress.setCurrentSkill(request.getCurrentSkill());
@@ -57,33 +57,32 @@ public class FullTestProgressService {
     @Transactional(readOnly = true)
     public FullTestProgressResponse getProgress(String username, Long testId) {
         User user = userRepository.findByUsername(username)
-            .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng: " + username));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng: " + username));
 
         return fullTestProgressRepository.findByUserIdAndTestId(user.getId(), testId)
-            .map(this::toResponse)
-            .orElse(null);
+                .map(this::toResponse)
+                .orElse(null);
     }
 
     @Transactional(readOnly = true)
     public List<FullTestProgressResponse> getMyInProgress(String username) {
         User user = userRepository.findByUsername(username)
-            .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng: " + username));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng: " + username));
 
         return fullTestProgressRepository.findByUserIdAndStatusOrderByUpdatedAtDesc(
-                user.getId(), STATUS_IN_PROGRESS
-            )
-            .stream()
-            .map(this::toResponse)
-            .toList();
+                user.getId(), STATUS_IN_PROGRESS)
+                .stream()
+                .map(this::toResponse)
+                .toList();
     }
 
     @Transactional
     public void clearProgress(String username, Long testId) {
         User user = userRepository.findByUsername(username)
-            .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng: " + username));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng: " + username));
 
         fullTestProgressRepository.findByUserIdAndTestId(user.getId(), testId)
-            .ifPresent(fullTestProgressRepository::delete);
+                .ifPresent(fullTestProgressRepository::delete);
     }
 
     private FullTestProgressResponse toResponse(FullTestProgress p) {

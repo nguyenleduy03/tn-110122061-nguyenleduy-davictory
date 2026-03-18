@@ -352,13 +352,19 @@ const IeltsSpeakingTest = () => {
     };
 
     persistProgress();
-    const intervalId = setInterval(persistProgress, 10000);
-
-    return () => {
-      clearInterval(intervalId);
-      persistProgress();
-    };
-  }, [isFullTest, testData, testId, mode, queryString]);
+  }, [
+    isFullTest,
+    testData,
+    testId,
+    mode,
+    queryString,
+    currentPartIdx,
+    currentQIdx,
+    stage,
+    phase,
+    audioUrls,
+    micTested,
+  ]);
 
   const getPartDurationSec = useCallback((part) => {
     if (!part) return 0;

@@ -15,6 +15,7 @@ public class UserDTO {
     private String avatar;
     private Boolean isActive;
     private LocalDateTime lastLogin;
+    private LocalDateTime deletedAt;
     private LocalDateTime createdAt;
     private LocalDate birthday;
     private String nationality;

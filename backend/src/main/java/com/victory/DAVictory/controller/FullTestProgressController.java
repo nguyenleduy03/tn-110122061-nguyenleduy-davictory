@@ -20,10 +20,10 @@ public class FullTestProgressController {
     private final FullTestProgressService fullTestProgressService;
 
     @PutMapping("/{testId}")
-    @PreAuthorize("hasAnyRole('STUDENT', 'TEACHER', 'MANAGER', 'ADMIN')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> saveProgress(@PathVariable Long testId,
-                                          @RequestBody FullTestProgressSaveRequest request,
-                                          Authentication authentication) {
+            @RequestBody FullTestProgressSaveRequest request,
+            Authentication authentication) {
         try {
             String username = authentication.getName();
             FullTestProgressResponse response = fullTestProgressService.saveProgress(username, testId, request);
@@ -34,7 +34,7 @@ public class FullTestProgressController {
     }
 
     @GetMapping("/{testId}")
-    @PreAuthorize("hasAnyRole('STUDENT', 'TEACHER', 'MANAGER', 'ADMIN')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getProgress(@PathVariable Long testId, Authentication authentication) {
         try {
             String username = authentication.getName();
@@ -46,7 +46,7 @@ public class FullTestProgressController {
     }
 
     @GetMapping("/my")
-    @PreAuthorize("hasAnyRole('STUDENT', 'TEACHER', 'MANAGER', 'ADMIN')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> getMyInProgress(Authentication authentication) {
         try {
             String username = authentication.getName();
@@ -58,7 +58,7 @@ public class FullTestProgressController {
     }
 
     @DeleteMapping("/{testId}")
-    @PreAuthorize("hasAnyRole('STUDENT', 'TEACHER', 'MANAGER', 'ADMIN')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> clearProgress(@PathVariable Long testId, Authentication authentication) {
         try {
             String username = authentication.getName();

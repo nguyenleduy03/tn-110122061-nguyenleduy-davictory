@@ -208,12 +208,12 @@ const BuilderHeader = ({
             >
               {builderMode === 'format' ? (
                 <>
-                  <Zap size={14} />
+                  <Settings size={14} />
                   <span>Định dạng</span>
                 </>
               ) : (
                 <>
-                  <Zones size={14} />
+                  <Settings size={14} />
                   <span>Tạo đề</span>
                 </>
               )}
@@ -231,7 +231,7 @@ const BuilderHeader = ({
                     disabled={tool.disabled}
                     title={tool.label}
                   >
-                    <Zones size={14} />
+                    <Settings size={14} />
                     <span>{tool.label}</span>
                   </button>
                 ))}

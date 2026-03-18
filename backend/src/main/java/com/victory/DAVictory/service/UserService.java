@@ -309,7 +309,13 @@ public class UserService {
     }
 
     public List<UserDTO> getAllUsers() {
-        List<User> users = userRepository.findAll();
+        return getAllUsers(false);
+    }
+
+    public List<UserDTO> getAllUsers(boolean includeDeleted) {
+        List<User> users = userRepository.findAll().stream()
+                .filter(user -> includeDeleted || user.getDeletedAt() == null)
+                .collect(Collectors.toList());
         return users.stream().map(this::convertToDTO).collect(Collectors.toList());
     }
 
@@ -376,9 +382,21 @@ public class UserService {
     }
 
     @Transactional
-    public void deleteUser(Long userId) {
+    public void deleteUser(String adminUsername, Long userId, String adminPassword) {
+        if (adminPassword == null || adminPassword.isBlank()) {
+            throw new RuntimeException("Vui lòng nhập mật khẩu admin để xác nhận xóa user");
+        }
+
+        User currentAdmin = userRepository.findByUsername(adminUsername)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy admin hiện tại"));
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy user"));
+
+        // Xác thực mật khẩu của chính admin đang thao tác
+        if (!passwordEncoder.matches(adminPassword, currentAdmin.getPassword())) {
+            throw new RuntimeException("Mật khẩu admin không đúng");
+        }
         
         // Kiểm tra không được xóa ADMIN cuối cùng
         boolean isAdmin = user.getRoles().stream().anyMatch(r -> "ADMIN".equals(r.getName()));
@@ -388,46 +406,40 @@ public class UserService {
                 throw new RuntimeException("Không thể xóa Admin cuối cùng trong hệ thống!");
             }
         }
-        
-        // Kiểm tra nếu là giảng viên đang dạy lớp nào
+
+        // Soft delete để tránh lỗi khóa ngoại từ dữ liệu lịch sử
         boolean isTeacher = user.getRoles().stream().anyMatch(r -> "TEACHER".equals(r.getName()));
         if (isTeacher) {
-            List<ClassTeacher> activeClasses = classTeacherRepository.findByUserIdAndIsActiveTrue(userId);
-            if (!activeClasses.isEmpty()) {
-                String classNames = activeClasses.stream()
-                    .map(ct -> ct.getClazz().getName())
-                    .collect(java.util.stream.Collectors.joining(", "));
-                throw new RuntimeException("Không thể xóa giảng viên đang dạy các lớp: " + classNames + 
-                    ". Cần thực hiện: 1) Chuyển giao lớp cho giảng viên khác, hoặc 2) Đặt trạng thái lớp thành 'Hoàn thành/Tạm dừng' trước khi xóa.");
+            List<ClassTeacher> activeAssignments = classTeacherRepository.findByUserIdAndIsActiveTrue(userId);
+            for (ClassTeacher assignment : activeAssignments) {
+                assignment.setIsActive(false);
+                assignment.setReleasedAt(LocalDate.now());
             }
+            classTeacherRepository.saveAll(activeAssignments);
         }
-        
-        // Kiểm tra nếu là học sinh đang học lớp nào
+
         boolean isStudent = user.getRoles().stream().anyMatch(r -> "STUDENT".equals(r.getName()));
         if (isStudent) {
-            List<ClassStudent> activeClasses = classStudentRepository.findByUserIdAndStatus(userId, "ACTIVE");
-            if (!activeClasses.isEmpty()) {
-                String classNames = activeClasses.stream()
-                    .map(cs -> cs.getClazz().getName())
-                    .collect(java.util.stream.Collectors.joining(", "));
-                throw new RuntimeException("Không thể xóa học sinh đang học các lớp: " + classNames + 
-                    ". Cần thực hiện: 1) Chuyển học sinh sang lớp khác, hoặc 2) Đặt trạng thái học sinh thành 'Hoàn thành/Nghỉ học' trước khi xóa.");
+            List<ClassStudent> activeEnrollments = classStudentRepository.findByUserIdAndStatus(userId, "ACTIVE");
+            for (ClassStudent enrollment : activeEnrollments) {
+                enrollment.setStatus("DROPPED");
+                enrollment.setDroppedAt(LocalDate.now());
             }
+            classStudentRepository.saveAll(activeEnrollments);
         }
-        
-        // Xóa các liên kết trước khi xóa user
-        try {
-            // Xóa class_teachers
-            classTeacherRepository.deleteByUserId(userId);
-            
-            // Xóa class_students  
-            classStudentRepository.deleteByUserId(userId);
-            
-            // Cuối cùng xóa user (profiles sẽ cascade delete)
-            userRepository.delete(user);
-        } catch (Exception e) {
-            throw new RuntimeException("Không thể xóa người dùng: " + e.getMessage());
-        }
+
+        user.setIsActive(false);
+        user.setDeletedAt(LocalDateTime.now());
+        userRepository.save(user);
+    }
+
+    @Transactional
+    public UserDTO restoreUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy user"));
+        user.setDeletedAt(null);
+        user.setIsActive(true);
+        return convertToDTO(userRepository.save(user));
     }
 
     public void addStudentsToClass(Long classId, List<Long> studentIds) {
@@ -910,6 +922,67 @@ public class UserService {
         return result;
     }
 
+    @Transactional
+    public Map<String, Object> deleteClassForAdmin(String username, Long classId, String password) {
+        User currentUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng hiện tại"));
+        if (!hasRole(currentUser, "ADMIN")) {
+            throw new RuntimeException("Chỉ ADMIN mới được xóa lớp");
+        }
+
+        if (password == null || password.isBlank()) {
+            throw new RuntimeException("Vui lòng nhập mật khẩu admin để xác nhận xóa lớp");
+        }
+        if (!passwordEncoder.matches(password, currentUser.getPassword())) {
+            throw new RuntimeException("Mật khẩu admin không đúng");
+        }
+
+        com.victory.DAVictory.entity.Class clazz = classRepository.findById(classId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp với id=" + classId));
+
+        List<ClassTeacher> teacherAssignments = classTeacherRepository.findByClazzIdAndIsActiveTrueOrderByRole(classId);
+        for (ClassTeacher assignment : teacherAssignments) {
+            assignment.setIsActive(false);
+            assignment.setReleasedAt(LocalDate.now());
+            if (assignment.getNotes() == null || assignment.getNotes().isBlank()) {
+                assignment.setNotes("Đã gỡ phân công do xóa lớp bởi ADMIN");
+            }
+        }
+        classTeacherRepository.saveAll(teacherAssignments);
+
+        List<ClassStudent> activeStudents = classStudentRepository.findByClazzIdAndStatusOrderByEnrolledAtAsc(classId, "ACTIVE");
+        for (ClassStudent student : activeStudents) {
+            student.setStatus("DROPPED");
+            student.setDroppedAt(LocalDate.now());
+            if (student.getDropReason() == null || student.getDropReason().isBlank()) {
+                student.setDropReason("Lớp đã bị xóa bởi ADMIN");
+            }
+        }
+        classStudentRepository.saveAll(activeStudents);
+
+        if (clazz.getAssignments() != null) {
+            for (com.victory.DAVictory.entity.Assignment assignment : clazz.getAssignments()) {
+                assignment.setIsActive(false);
+                if (assignment.getStatus() == null || !"CLOSED".equalsIgnoreCase(assignment.getStatus())) {
+                    assignment.setStatus("CLOSED");
+                }
+            }
+        }
+
+        clazz.setIsActive(false);
+        clazz.setStatus("CANCELLED");
+        classRepository.save(clazz);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("message", "Đã xóa lớp thành công");
+        result.put("id", clazz.getId());
+        result.put("code", clazz.getCode());
+        result.put("name", clazz.getName());
+        result.put("releasedTeachers", teacherAssignments.size());
+        result.put("droppedStudents", activeStudents.size());
+        return result;
+    }
+
     private String stringOrNull(Object value) {
         if (value == null) return null;
         String text = String.valueOf(value).trim();
@@ -926,6 +999,7 @@ public class UserService {
         dto.setAvatar(user.getAvatar());
         dto.setIsActive(user.getIsActive());
         dto.setLastLogin(user.getLastLogin());
+        dto.setDeletedAt(user.getDeletedAt());
         dto.setCreatedAt(user.getCreatedAt());
 
         // Profile fields (ưu tiên student profile cho learner dashboard)

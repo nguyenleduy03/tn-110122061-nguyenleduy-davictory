@@ -70,6 +70,9 @@ public class QuestionGroup {
     @Column(nullable = false)
     private Boolean isActive = true;
 
+    @Column(nullable = false)
+    private Boolean allowOptionReuse = true; // true = thẻ có thể dùng lại, false = mỗi thẻ chỉ dùng 1 lần
+
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;

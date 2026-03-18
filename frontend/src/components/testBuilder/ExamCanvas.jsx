@@ -35,6 +35,395 @@ const TYPE_META = {
   SPEAKING_INTERVIEW:     { label: 'Phỏng vấn',            bg: '#fce7f3', color: '#be185d' },
   SPEAKING_CUECARD:       { label: 'Cue Card',             bg: '#fdf4ff', color: '#7e22ce' },
   MATCHING_FEATURES:      { label: 'Matching Features',    bg: '#f3e8ff', color: '#7c3aed' },
+  CUSTOM:                 { label: 'Custom',              bg: '#fff7ed', color: '#c2410c' },
+};
+
+const countBlankTokens = (htmlOrText) => {
+  const s = String(htmlOrText || '');
+  return (s.match(/\[\s*blank\s*\]/gi) || []).length;
+};
+
+// ---- Custom (IELTS toolset) block ----
+const CustomBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps, onUpdateQuestion }) => {
+  const schema = group.customSchema || {
+    version: 2,
+    mode: 'BLANKS', // BLANKS | MCQ_SINGLE | MCQ_MULTI | DRAG_DROP
+    promptHtml: '',
+    optionBank: [],
+    leftItems: [],
+    chooseCount: 2,
+  };
+  const mode = schema.mode || 'BLANKS';
+
+  const updateSchema = (updates) => onUpdate(group.id, { customSchema: { ...schema, ...updates } });
+
+  const updateQuestionNumbers = (fromQ) => {
+    const fq = Number.isFinite(fromQ) ? fromQ : null;
+    const qs = (group.questions || []).map((q, idx) => ({ ...q, questionNumber: (fq || 1) + idx }));
+    onUpdate(group.id, {
+      fromQuestion: fq,
+      toQuestion: fq ? fq + Math.max(0, qs.length - 1) : group.toQuestion,
+      questions: qs,
+    });
+  };
+
+  const ensureBlankQuestions = () => {
+    const blanks = countBlankTokens(schema.promptHtml) || 1;
+    const safeCount = Math.max(1, blanks);
+    const fq = group.fromQuestion || 1;
+    const current = group.questions || [];
+    const next = Array.from({ length: safeCount }, (_, idx) => {
+      const existing = current[idx];
+      return {
+        id: existing?.id ?? `cb-${Date.now()}-${idx}`,
+        groupId: group.id,
+        partId: group.partId,
+        questionNumber: fq + idx,
+        questionText: existing?.questionText || '',
+        answerText: existing?.answerText || '',
+        questionType: { typeName: 'FILL_IN_BLANK' },
+        options: [],
+        answers: existing?.answers || [],
+        points: existing?.points ?? 1,
+        orderIndex: idx + 1,
+      };
+    });
+    onUpdate(group.id, { questions: next, toQuestion: fq + safeCount - 1 });
+  };
+
+  const ensureMcqQuestion = () => {
+    const fq = group.fromQuestion || 1;
+    const first = (group.questions || [])[0];
+    const opts = (schema.optionBank || []).map((o, i) => {
+      const existing = first?.options?.[i];
+      return {
+        id: existing?.id ?? o.id ?? `co-${Date.now()}-${i}`,
+        optionLabel: String.fromCharCode(65 + i),
+        optionText: o.text || '',
+        isCorrect: Boolean(existing?.isCorrect),
+        orderIndex: i,
+      };
+    });
+
+    const typeName = mode === 'MCQ_MULTI' ? 'MULTIPLE_CHOICE_MULTIPLE' : 'MULTIPLE_CHOICE';
+    const q = {
+      id: first?.id ?? `cm-${Date.now()}`,
+      groupId: group.id,
+      partId: group.partId,
+      questionNumber: fq,
+      questionText: first?.questionText || '',
+      answerText: first?.answerText || '',
+      questionType: { typeName },
+      options: opts,
+      answers: first?.answers || [],
+      points: first?.points ?? 1,
+      orderIndex: 1,
+      chooseCount: mode === 'MCQ_MULTI' ? (schema.chooseCount ?? 2) : undefined,
+      questionCount: 1,
+    };
+    onUpdate(group.id, { questions: [q], toQuestion: fq });
+  };
+
+  const ensureDragDropQuestions = () => {
+    const items = schema.leftItems || [];
+    const safeCount = Math.max(1, items.length || 1);
+    const fq = group.fromQuestion || 1;
+    const current = group.questions || [];
+    const next = Array.from({ length: safeCount }, (_, idx) => {
+      const existing = current[idx];
+      const it = items[idx] || { id: `li-${idx}`, text: '' };
+      return {
+        id: existing?.id ?? `cd-${Date.now()}-${idx}`,
+        groupId: group.id,
+        partId: group.partId,
+        questionNumber: fq + idx,
+        questionText: it.text || '',
+        // answerText sẽ là giá trị lựa chọn đúng (plain/rich ok)
+        answerText: existing?.answerText || '',
+        questionType: { typeName: 'FILL_IN_BLANK' },
+        options: [],
+        answers: existing?.answers || [],
+        points: existing?.points ?? 1,
+        orderIndex: idx + 1,
+      };
+    });
+    onUpdate(group.id, { questions: next, toQuestion: fq + safeCount - 1 });
+  };
+
+  useEffect(() => {
+    if (mode === 'BLANKS') ensureBlankQuestions();
+    else if (mode === 'DRAG_DROP') ensureDragDropQuestions();
+    else ensureMcqQuestion();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, schema.promptHtml, JSON.stringify(schema.optionBank || []), JSON.stringify(schema.leftItems || []), schema.chooseCount]);
+
+  const blanks = countBlankTokens(schema.promptHtml) || 1;
+  const optionBank = schema.optionBank || [];
+  const leftItems = schema.leftItems || [];
+  const questions = group.questions || [];
+
+  const setCorrectSingle = (optIdx) => {
+    const q = questions[0];
+    if (!q) return;
+    const nextOpts = (q.options || []).map((o, i) => ({ ...o, isCorrect: i === optIdx }));
+    onUpdate(group.id, { questions: [{ ...q, options: nextOpts }] });
+  };
+
+  const toggleCorrectMulti = (optIdx, checked) => {
+    const q = questions[0];
+    if (!q) return;
+    const nextOpts = (q.options || []).map((o, i) => (i === optIdx ? { ...o, isCorrect: checked } : o));
+    onUpdate(group.id, { questions: [{ ...q, options: nextOpts }] });
+  };
+
+  return (
+    <div className={`exam-group${selected ? ' selected' : ''}`}
+      onClick={(e) => { e.stopPropagation(); onSelect(group); }}>
+      <GroupToolbar group={group} dragHandleProps={dragHandleProps} onDelete={onDelete} />
+
+      <div className="exam-group-body" onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 10, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 12, color: '#6b7280' }}>
+            <strong>Custom IELTS</strong>
+            {mode === 'BLANKS' && <> • {blanks} ô trống</>}
+            {mode === 'DRAG_DROP' && <> • {Math.max(1, leftItems.length)} mục kéo thả</>}
+          </span>
+          <div style={{ flex: 1 }} />
+
+          <div className="exam-q-range-header" style={{ margin: 0 }}>
+            Câu&nbsp;
+            <input
+              className="exam-q-range-input"
+              value={group.fromQuestion ?? ''}
+              placeholder="1"
+              onChange={(e) => {
+                const fq = e.target.value ? Number(e.target.value) : null;
+                updateQuestionNumbers(fq);
+              }}
+            />
+            &nbsp;–&nbsp;
+            <input className="exam-q-range-input" value={group.toQuestion ?? ''} readOnly
+              style={{ background: '#f9fafb', color: '#9ca3af' }} />
+          </div>
+
+          <select
+            className="exam-q-range-input"
+            style={{ width: 260 }}
+            value={mode}
+            onChange={(e) => updateSchema({ mode: e.target.value })}
+          >
+            <option value="BLANKS">Điền khuyết (Note/Summary/Completion)</option>
+            <option value="MCQ_SINGLE">Trắc nghiệm (1 đáp án)</option>
+            <option value="MCQ_MULTI">Trắc nghiệm (nhiều đáp án)</option>
+            <option value="DRAG_DROP">Kéo thả (Matching / Drag-drop)</option>
+          </select>
+        </div>
+
+        {/* PROMPT */}
+        {(mode === 'BLANKS') && (
+          <div style={{ marginBottom: 10 }}>
+            <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 6 }}>
+              Nhập đoạn văn và dùng <code>[blank]</code> để tạo ô trống (giống IELTS completion).
+            </div>
+            <RichInput
+              multiline
+              rows={5}
+              value={schema.promptHtml || ''}
+              onChange={(html) => updateSchema({ promptHtml: html })}
+              placeholder="VD: The capital of France is [blank]."
+            />
+          </div>
+        )}
+
+        {(mode === 'MCQ_SINGLE' || mode === 'MCQ_MULTI') && (
+          <>
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 6 }}>Câu hỏi</div>
+              <RichInput
+                multiline
+                rows={3}
+                value={questions[0]?.questionText || ''}
+                onChange={(html) => onUpdateQuestion?.(group.id, questions[0]?.id, { questionText: html })}
+                placeholder="Nhập nội dung câu hỏi..."
+              />
+            </div>
+
+            {mode === 'MCQ_MULTI' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                <div style={{ fontSize: 12, color: '#6b7280' }}>Số đáp án cần chọn</div>
+                <input
+                  className="exam-q-range-input"
+                  style={{ width: 72 }}
+                  type="number"
+                  min={1}
+                  value={schema.chooseCount ?? 2}
+                  onChange={(e) => updateSchema({ chooseCount: Number(e.target.value) })}
+                />
+              </div>
+            )}
+
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 6 }}>Lựa chọn (tick đáp án đúng)</div>
+              <div style={{ display: 'grid', gap: 8 }}>
+                {(questions[0]?.options || []).map((opt, idx) => (
+                  <div key={opt.id ?? idx} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <div style={{ width: 22, height: 22, borderRadius: 6, background: '#fff7ed', border: '1px solid #fed7aa', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: '#9a3412' }}>
+                      {opt.optionLabel || String.fromCharCode(65 + idx)}
+                    </div>
+                    <input
+                      className="exam-q-range-input"
+                      style={{ width: '100%' }}
+                      value={opt.optionText || ''}
+                      onChange={(e) => {
+                        const next = optionBank.map((o, i) => (i === idx ? { ...o, text: e.target.value } : o));
+                        updateSchema({ optionBank: next });
+                      }}
+                      placeholder="Nội dung lựa chọn..."
+                    />
+                    {mode === 'MCQ_SINGLE' ? (
+                      <input type="radio" name={`mcq-${group.id}`} checked={Boolean(opt.isCorrect)} onChange={() => setCorrectSingle(idx)} />
+                    ) : (
+                      <input type="checkbox" checked={Boolean(opt.isCorrect)} onChange={(e) => toggleCorrectMulti(idx, e.target.checked)} />
+                    )}
+                    <button
+                      className="exam-icon-btn danger"
+                      title="Xóa lựa chọn"
+                      onClick={() => {
+                        const next = optionBank.filter((_, i) => i !== idx);
+                        updateSchema({ optionBank: next });
+                      }}
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))}
+                <button className="exam-add-btn" onClick={() => updateSchema({ optionBank: [...optionBank, { id: Date.now(), text: '' }] })}>
+                  <Plus size={14} /> Thêm lựa chọn
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+
+        {(mode === 'DRAG_DROP') && (
+          <>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 10 }}>
+              <div>
+                <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 6 }}>Danh sách mục (cột trái)</div>
+                <div style={{ display: 'grid', gap: 8 }}>
+                  {(leftItems.length ? leftItems : [{ id: 'li-1', text: '' }]).map((it, idx) => (
+                    <div key={it.id ?? idx} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <div style={{ width: 22, height: 22, borderRadius: 6, background: '#f0fdf4', border: '1px solid #86efac', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: '#166534' }}>
+                        {idx + 1}
+                      </div>
+                      <input
+                        className="exam-q-range-input"
+                        style={{ width: '100%' }}
+                        value={it.text || ''}
+                        onChange={(e) => {
+                          const next = (leftItems.length ? leftItems : [{ id: 'li-1', text: '' }]).map((o, i) => i === idx ? { ...o, text: e.target.value } : o);
+                          updateSchema({ leftItems: next });
+                        }}
+                        placeholder="VD: A, B, C / People / Places..."
+                      />
+                      <button
+                        className="exam-icon-btn danger"
+                        title="Xóa mục"
+                        onClick={() => updateSchema({ leftItems: leftItems.filter((_, i) => i !== idx) })}
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
+                  <button className="exam-add-btn" onClick={() => updateSchema({ leftItems: [...leftItems, { id: Date.now(), text: '' }] })}>
+                    <Plus size={14} /> Thêm mục
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 6 }}>Ngân lựa chọn (cột phải)</div>
+                <div style={{ display: 'grid', gap: 8 }}>
+                  {(optionBank.length ? optionBank : [{ id: 'ob-1', text: '' }]).map((opt, idx) => (
+                    <div key={opt.id ?? idx} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <div style={{ width: 22, height: 22, borderRadius: 6, background: '#fff7ed', border: '1px solid #fed7aa', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: '#9a3412' }}>
+                        {String.fromCharCode(65 + idx)}
+                      </div>
+                      <input
+                        className="exam-q-range-input"
+                        style={{ width: '100%' }}
+                        value={opt.text || ''}
+                        onChange={(e) => {
+                          const next = (optionBank.length ? optionBank : [{ id: 'ob-1', text: '' }]).map((o, i) => i === idx ? { ...o, text: e.target.value } : o);
+                          updateSchema({ optionBank: next });
+                        }}
+                        placeholder="VD: i, ii, iii / Features..."
+                      />
+                      <button
+                        className="exam-icon-btn danger"
+                        title="Xóa lựa chọn"
+                        onClick={() => updateSchema({ optionBank: optionBank.filter((_, i) => i !== idx) })}
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
+                  <button className="exam-add-btn" onClick={() => updateSchema({ optionBank: [...optionBank, { id: Date.now(), text: '' }] })}>
+                    <Plus size={14} /> Thêm lựa chọn
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {questions.length > 0 && (
+              <div style={{ borderTop: '1px dashed #e5e7eb', paddingTop: 10 }}>
+                <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 8 }}>
+                  Chọn đáp án đúng cho từng mục (giống IELTS matching/drag-drop).
+                </div>
+                {questions.map((q, idx) => (
+                  <div key={q.id} style={{ display: 'grid', gridTemplateColumns: '72px 1fr 220px', gap: 10, alignItems: 'center', marginBottom: 8 }}>
+                    <div style={{ fontSize: 12, color: '#374151' }}>Câu {q.questionNumber}</div>
+                    <div style={{ fontSize: 12, color: '#6b7280' }}>{toPlainText(q.questionText) || `Mục ${idx + 1}`}</div>
+                    <select
+                      className="exam-q-range-input"
+                      value={q.answerText || ''}
+                      onChange={(e) => onUpdateQuestion?.(group.id, q.id, { answerText: e.target.value })}
+                    >
+                      <option value="">— Chọn —</option>
+                      {(optionBank || []).map((o, i) => (
+                        <option key={o.id ?? i} value={o.text || ''}>{toPlainText(o.text) || `Option ${i + 1}`}</option>
+                      ))}
+                    </select>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Answer keys for BLANKS */}
+        {mode === 'BLANKS' && questions.length > 0 && (
+          <div style={{ borderTop: '1px dashed #e5e7eb', paddingTop: 10 }}>
+            <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 8 }}>
+              Đáp án theo thứ tự ô trống
+            </div>
+            {questions.map((q) => (
+              <div key={q.id} style={{ display: 'grid', gridTemplateColumns: '72px 1fr', gap: 10, alignItems: 'center', marginBottom: 8 }}>
+                <div style={{ fontSize: 12, color: '#374151' }}>Câu {q.questionNumber}</div>
+                <input
+                  className="exam-q-range-input"
+                  style={{ width: '100%' }}
+                  value={q.answerText || ''}
+                  onChange={(e) => onUpdateQuestion?.(group.id, q.id, { answerText: e.target.value })}
+                  placeholder="Đáp án đúng..."
+                />
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 };
 
 // ---- Helper ----
@@ -2863,6 +3252,15 @@ const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUp
   if (ct === 'SPEAKING_CUECARD') {
     return <SpeakingCueCardBlock group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
       onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps} />;
+  }
+  if (ct === 'CUSTOM') {
+    return <CustomBlock group={group}
+      onUpdate={onUpdateGroup}
+      onUpdateQuestion={(groupId, questionId, upd) => onUpdateQuestion?.(groupId, questionId, upd)}
+      onDelete={onDeleteGroup}
+      onSelect={(g) => onSelectGroup(g, g.partId)}
+      selected={isSelected}
+      dragHandleProps={dragHandleProps} />;
   }
   if (ct === 'READING_PASSAGE') {
     // Collect heading bank + answers from all MATCHING_HEADING groups in this part

@@ -492,6 +492,31 @@ const TestBuilder = () => {
             questions: [makeQ(1, 'SPEAKING_CUECARD', { questionText: '' })],
           };
 
+        case 'CUSTOM':
+          return {
+            title: `Custom ${groupIdx}`,
+            fromQuestion: null, toQuestion: null,
+            // Schema v2: bộ công cụ IELTS (completion, MCQ, drag-drop)
+            customSchema: {
+              version: 2,
+              mode: 'BLANKS', // BLANKS | MCQ_SINGLE | MCQ_MULTI | DRAG_DROP
+              promptHtml: '',
+              optionBank: [
+                { id: nextId(), text: '' },
+                { id: nextId(), text: '' },
+                { id: nextId(), text: '' },
+                { id: nextId(), text: '' },
+              ],
+              leftItems: [
+                { id: nextId(), text: '' },
+                { id: nextId(), text: '' },
+                { id: nextId(), text: '' },
+              ],
+              chooseCount: 2,
+            },
+            questions: [makeQ(1, 'FILL_IN_BLANK', { questionText: '' })],
+          };
+
         default: // STANDALONE, TABLE…
           return {
             title: `Nhóm ${groupIdx}`,

@@ -96,6 +96,7 @@ const IeltsWritingTest = () => {
         currentPartIndex: 0,
         testData: null,
     });
+    const previousWritingAnswersRef = useRef(writingAnswers);
 
     useEffect(() => {
         if (!testId) { setError('Không tìm thấy ID bài thi.'); setLoading(false); return; }
@@ -202,6 +203,8 @@ const IeltsWritingTest = () => {
 
     useEffect(() => {
         if (!isFullTest || !testData || !testId) return undefined;
+        const answersChanged = previousWritingAnswersRef.current !== writingAnswers;
+        let debounceTimer = null;
 
         const persistProgress = async () => {
             const state = autosaveStateRef.current;
@@ -247,14 +250,30 @@ const IeltsWritingTest = () => {
             }
         };
 
-        persistProgress();
-        const intervalId = setInterval(persistProgress, 10000);
+        if (answersChanged) {
+            debounceTimer = setTimeout(() => {
+                persistProgress();
+            }, 450);
+        } else {
+            persistProgress();
+        }
+
+        previousWritingAnswersRef.current = writingAnswers;
 
         return () => {
-            clearInterval(intervalId);
-            persistProgress();
+            if (debounceTimer) {
+                clearTimeout(debounceTimer);
+            }
         };
-    }, [isFullTest, testData, testId, mode, queryString]);
+    }, [
+        isFullTest,
+        testData,
+        testId,
+        mode,
+        queryString,
+        writingAnswers,
+        currentPartIndex,
+    ]);
 
     const handleAnswerChange = useCallback((partId, value) => {
         setWritingAnswers((prev) => ({ ...prev, [partId]: value }));

@@ -448,13 +448,18 @@ const IeltsReadingTest = () => {
         };
 
         persistProgress();
-        const intervalId = setInterval(persistProgress, 10000);
-
-        return () => {
-            clearInterval(intervalId);
-            persistProgress();
-        };
-    }, [isFullTest, isReview, testData, testId, mode, queryString]);
+    }, [
+        isFullTest,
+        isReview,
+        testData,
+        testId,
+        mode,
+        queryString,
+        answers,
+        bookmarks,
+        currentPartIndex,
+        activeQuestion,
+    ]);
 
     const handleHighlightChange = () => {
         // Find the passage portion to avoid capturing the entire layout including portals

@@ -30,6 +30,7 @@ import DashboardProfile from './pages/DashboardProfile'
 import DashboardSettings from './pages/DashboardSettings'
 import ApiDebugPage from './pages/ApiDebugPage'
 import ProtectedRoute from './components/common/ProtectedRoute'
+import ErrorBoundary from './components/common/ErrorBoundary'
 import TestApiPage from './pages/TestApiPage';
 import './App.css'
 
@@ -59,9 +60,9 @@ function App() {
         <Route path="/my-dashboard/history" element={<ProtectedRoute><DashboardHistory /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><DashboardProfile /></ProtectedRoute>} />
         <Route path="/my-dashboard/settings" element={<ProtectedRoute><DashboardSettings /></ProtectedRoute>} />
-        <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
-        <Route path="/admin/users" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />
-        <Route path="/admin/teacher-class" element={<ProtectedRoute><ClassManagement /></ProtectedRoute>} />
+        <Route path="/admin" element={<ProtectedRoute><ErrorBoundary><AdminDashboard /></ErrorBoundary></ProtectedRoute>} />
+        <Route path="/admin/users" element={<ProtectedRoute><ErrorBoundary><AdminUsers /></ErrorBoundary></ProtectedRoute>} />
+        <Route path="/admin/teacher-class" element={<ProtectedRoute><ErrorBoundary><ClassManagement /></ErrorBoundary></ProtectedRoute>} />
         <Route path="/teacher/manage" element={<ProtectedRoute><TeacherManage /></ProtectedRoute>} />
         <Route path="/teacher/writing" element={<ProtectedRoute><TeacherWritingSubmissions /></ProtectedRoute>} />
         <Route path="/teacher/writing/:id" element={<ProtectedRoute><TeacherWritingDetail /></ProtectedRoute>} />

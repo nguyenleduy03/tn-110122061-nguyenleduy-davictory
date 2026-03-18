@@ -45,6 +45,9 @@ public class User {
     
     @Column
     private LocalDateTime lastLogin;
+
+    @Column
+    private LocalDateTime deletedAt;
     
     @CreationTimestamp
     @Column(nullable = false, updatable = false)

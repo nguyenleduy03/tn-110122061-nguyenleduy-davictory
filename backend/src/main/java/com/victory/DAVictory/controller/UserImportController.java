@@ -24,9 +24,9 @@ public class UserImportController {
      */
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> getAllUsers() {
+    public ResponseEntity<?> getAllUsers(@RequestParam(defaultValue = "false") boolean includeDeleted) {
         try {
-            List<UserDTO> users = userService.getAllUsers();
+            List<UserDTO> users = userService.getAllUsers(includeDeleted);
             return ResponseEntity.ok(users);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("message", "Lỗi khi lấy danh sách người dùng: " + e.getMessage()));
@@ -85,12 +85,29 @@ public class UserImportController {
      */
     @DeleteMapping("/{userId}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> deleteUser(@PathVariable Long userId) {
+    public ResponseEntity<?> deleteUser(@PathVariable Long userId,
+                                       @RequestBody Map<String, String> request,
+                                       org.springframework.security.core.Authentication authentication) {
         try {
-            userService.deleteUser(userId);
+            String password = request != null ? request.get("password") : null;
+            userService.deleteUser(authentication.getName(), userId, password);
             return ResponseEntity.ok(Map.of("message", "Đã xóa người dùng thành công"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("message", "Lỗi khi xóa người dùng: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Khôi phục user đã xóa
+     */
+    @PutMapping("/{userId}/restore")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> restoreUser(@PathVariable Long userId) {
+        try {
+            UserDTO user = userService.restoreUser(userId);
+            return ResponseEntity.ok(user);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Lỗi khi khôi phục người dùng: " + e.getMessage()));
         }
     }
 

@@ -379,6 +379,12 @@ function serializeGroupContent(group, part) {
       prepSeconds: group.prepSeconds ?? 60,
     });
   }
+  // Custom schema-driven group
+  if (ct === 'CUSTOM') {
+    return JSON.stringify({
+      schema: group.customSchema || { version: 2, mode: 'BLANKS', promptHtml: '', optionBank: [], leftItems: [], chooseCount: 2 },
+    });
+  }
   // Map / Diagram
   if (ct === 'MAP' || ct === 'DIAGRAM') {
     return group.passageText || '';
@@ -629,6 +635,31 @@ function deserializeGroupContent(contentType, passageText) {
         bulletPoints: parsed.bulletPoints || [],
         closingSentence: parsed.closingSentence || '',
         prepSeconds: parsed.prepSeconds ?? 60,
+      };
+    }
+    if (contentType === 'CUSTOM') {
+      const parsed = JSON.parse(passageText);
+      const schema = parsed.schema || parsed.customSchema || {};
+      // Backward compat: v1 answerKind -> v2 mode
+      const v2 = schema?.answerKind
+        ? {
+            version: 2,
+            mode: schema.answerKind === 'TEXT' ? 'BLANKS' : (schema.answerKind === 'MCQ_MULTI' ? 'MCQ_MULTI' : 'MCQ_SINGLE'),
+            promptHtml: schema.promptHtml || '',
+            optionBank: schema.optionBank || [],
+            leftItems: [],
+            chooseCount: 2,
+          }
+        : schema;
+      return {
+        customSchema: {
+          version: 2,
+          mode: v2.mode || 'BLANKS',
+          promptHtml: v2.promptHtml || '',
+          optionBank: v2.optionBank || [],
+          leftItems: v2.leftItems || [],
+          chooseCount: v2.chooseCount ?? 2,
+        },
       };
     }
   } catch {

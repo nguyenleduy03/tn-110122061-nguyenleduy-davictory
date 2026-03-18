@@ -136,8 +136,10 @@ export const authApi = {
   },
 
   // Lấy tất cả người dùng (chỉ Admin)
-  getAllUsers: async () => {
-    const response = await apiClient.get('/admin/users');
+  getAllUsers: async (includeDeleted = false) => {
+    const response = await apiClient.get('/admin/users', {
+      params: { includeDeleted },
+    });
     const payload = response.data;
 
     // Hỗ trợ nhiều format backend: [] | {content: []} | {data: []}
@@ -187,8 +189,16 @@ export const authApi = {
   },
 
   // Xóa user (Admin)
-  deleteUser: async (userId) => {
-    const response = await apiClient.delete(`/admin/users/${userId}`);
+  deleteUser: async (userId, password) => {
+    const response = await apiClient.delete(`/admin/users/${userId}`, {
+      data: { password },
+    });
+    return response.data;
+  },
+
+  // Khôi phục user đã xóa
+  restoreUser: async (userId) => {
+    const response = await apiClient.put(`/admin/users/${userId}/restore`);
     return response.data;
   },
 
@@ -289,6 +299,14 @@ VIC009998,Trần Thị,Bình,VIC009998@gmail.com,@VIC009998,VIC260312IE45A`;
   // Cập nhật giảng viên cho lớp
   updateClassTeacher: async (classId, teacherId) => {
     const response = await apiClient.put(`/class-management/classes/${classId}/teacher`, { teacherId });
+    return response.data;
+  },
+
+  // Xóa lớp (ADMIN, yêu cầu mật khẩu)
+  deleteClass: async (classId, password) => {
+    const response = await apiClient.delete(`/class-management/classes/${classId}`, {
+      data: { password },
+    });
     return response.data;
   },
 };

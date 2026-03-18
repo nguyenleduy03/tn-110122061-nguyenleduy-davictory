@@ -62,4 +62,17 @@ public class ClassManagementController {
             return ResponseEntity.badRequest().body(Map.of("message", "Lỗi khi cập nhật lớp: " + e.getMessage()));
         }
     }
+
+    @DeleteMapping("/classes/{classId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> deleteClass(@PathVariable Long classId,
+                                         @RequestBody Map<String, String> request,
+                                         Authentication authentication) {
+        try {
+            String password = request != null ? request.get("password") : null;
+            return ResponseEntity.ok(userService.deleteClassForAdmin(authentication.getName(), classId, password));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Lỗi khi xóa lớp: " + e.getMessage()));
+        }
+    }
 }

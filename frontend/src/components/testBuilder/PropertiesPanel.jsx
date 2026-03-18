@@ -6,6 +6,7 @@ const CONTENT_TYPES = [
   'READING_PASSAGE', 'AUDIO_TRANSCRIPT', 'STANDALONE',
   'DIAGRAM', 'MAP', 'MAP_LABELLING', 'TABLE', 'TABLE_COMPLETION', 'MATCHING_HEADING', 'DRAG_MATCHING', 'SUMMARY_COMPLETION', 'NOTE_COMPLETION', 'FLOW_CHART', 'WRITING_TASK',
   'SPEAKING_INTERVIEW', 'SPEAKING_CUECARD',
+  'CUSTOM',
 ];
 const QUESTION_TYPES = [
   { value: 'MULTIPLE_CHOICE',          label: 'Multiple Choice (1 đáp án)' },
@@ -153,6 +154,22 @@ const GroupPanel = ({ group, onChange, onDelete }) => (
         <label className="tb-label">ℹ️ Flow-chart Completion</label>
         <div style={{ fontSize: 12, color: '#6b7280', padding: '6px 10px', background: '#f0fdfa', borderRadius: 6, border: '1px solid #99f6e4' }}>
           Nhập tiêu đề sơ đồ → Thêm các ô (bước) → Dùng <code>[blank]</code> trong ô để tạo ô trống có số. Thêm từ ngân ở cột phải → Điền đáp án cho từng ô bên dưới.
+        </div>
+      </div>
+    )}
+
+    {(['DRAG_MATCHING', 'FLOW_CHART', 'MAP_LABELLING', 'MATCHING_HEADING'].includes(group.contentType)) && (
+      <div className="tb-field">
+        <label className="tb-label">Kéo thả: dùng lại thẻ</label>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 10px', border: '1px solid #e5e7eb', borderRadius: 8, background: '#fff' }}>
+          <input
+            type="checkbox"
+            checked={group.allowOptionReuse !== false}
+            onChange={(e) => onChange({ allowOptionReuse: e.target.checked })}
+          />
+          <div style={{ fontSize: 12, color: '#6b7280', lineHeight: 1.4 }}>
+            Bật để <strong>thẻ không bị mất</strong> sau khi kéo (có thể dùng cho nhiều ô). Tắt để mỗi thẻ chỉ dùng 1 lần.
+          </div>
         </div>
       </div>
     )}

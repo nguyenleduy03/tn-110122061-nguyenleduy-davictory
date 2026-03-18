@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Users,
@@ -6,6 +6,7 @@ import {
   Plus,
   Edit,
   Trash2,
+  AlertCircle,
   Key,
   Eye,
   EyeOff,
@@ -63,6 +64,9 @@ export default function AdminUsers() {
   const [managementError, setManagementError] = useState('');
   const [managementData, setManagementData] = useState({ teachers: [], classes: [] });
   const [createClassLoading, setCreateClassLoading] = useState(false);
+  const [deleteClassTarget, setDeleteClassTarget] = useState(null);
+  const [deleteClassPassword, setDeleteClassPassword] = useState('');
+  const [deletingClass, setDeletingClass] = useState(false);
   const [createClassForm, setCreateClassForm] = useState({
     classCode: '',
     className: '',
@@ -85,16 +89,34 @@ export default function AdminUsers() {
   const [csvPreviewCodes, setCsvPreviewCodes] = useState([]);
   const [csvFileName, setCsvFileName] = useState('');
   const [csvParseError, setCsvParseError] = useState('');
+  const [notification, setNotification] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [handoverWarning, setHandoverWarning] = useState(null);
   const csvInputRef = useRef(null);
 
   // Lấy thông tin user hiện tại
   const currentUser = authApi.getStoredUser();
   const isCurrentUserAdmin = hasAdminRole(currentUser?.roles);
 
+  const notify = useCallback((type, title, message) => {
+    setNotification({
+      id: Date.now(),
+      type,
+      title,
+      message,
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!notification) return undefined;
+    const timer = setTimeout(() => setNotification(null), 4200);
+    return () => clearTimeout(timer);
+  }, [notification]);
+
   // Kiểm tra quyền truy cập
   useEffect(() => {
     if (!isCurrentUserAdmin) {
-      alert('Bạn không có quyền truy cập trang này!');
+      notify('error', 'Không có quyền truy cập', 'Bạn không có quyền truy cập trang này.');
       window.location.href = '/';
       return;
     }
@@ -227,11 +249,11 @@ export default function AdminUsers() {
 
   const handleAssignTeacherByClassCode = async () => {
     if (!assignTeacherForm.classCode.trim()) {
-      alert('Vui lòng nhập mã lớp');
+      notify('warning', 'Thiếu mã lớp', 'Vui lòng nhập mã lớp.');
       return;
     }
     if (!assignTeacherForm.teacherId) {
-      alert('Vui lòng chọn giảng viên');
+      notify('warning', 'Thiếu giảng viên', 'Vui lòng chọn giảng viên.');
       return;
     }
 
@@ -242,11 +264,11 @@ export default function AdminUsers() {
         role: assignTeacherForm.role,
         notes: assignTeacherForm.notes,
       });
-      alert('Đã phân công giảng viên quản lý lớp thành công');
+      notify('success', 'Phân công thành công', 'Đã phân công giảng viên quản lý lớp thành công.');
       setAssignTeacherForm((prev) => ({ ...prev, notes: '' }));
       fetchManagementData();
     } catch (error) {
-      alert(error?.response?.data?.message || 'Phân công giảng viên thất bại');
+      notify('error', 'Phân công thất bại', error?.response?.data?.message || 'Không thể phân công giảng viên.');
     }
   };
 
@@ -255,11 +277,11 @@ export default function AdminUsers() {
     const className = createClassForm.className.trim();
 
     if (!classCode) {
-      alert('Vui lòng nhập mã lớp');
+      notify('warning', 'Thiếu mã lớp', 'Vui lòng nhập mã lớp.');
       return;
     }
     if (!className) {
-      alert('Vui lòng nhập tên lớp');
+      notify('warning', 'Thiếu tên lớp', 'Vui lòng nhập tên lớp.');
       return;
     }
 
@@ -305,13 +327,15 @@ export default function AdminUsers() {
 
       await fetchManagementData();
 
-      alert(
+      notify(
+        'success',
+        'Tạo lớp thành công',
         createClassForm.teacherId
           ? `Đã tạo lớp ${createdClass?.code || classCode} và gán giảng viên thành công.`
           : `Đã tạo lớp ${createdClass?.code || classCode} thành công. Bạn có thể tải danh sách học viên ngay ở khung bên dưới.`
       );
     } catch (error) {
-      alert(error?.response?.data?.message || 'Tạo lớp thất bại');
+      notify('error', 'Tạo lớp thất bại', error?.response?.data?.message || 'Không thể tạo lớp.');
     } finally {
       setCreateClassLoading(false);
     }
@@ -319,7 +343,7 @@ export default function AdminUsers() {
 
   const handleAssignStudentsByClassCode = async () => {
     if (!handoverForm.classCode.trim()) {
-      alert('Vui lòng nhập mã lớp');
+      notify('warning', 'Thiếu mã lớp', 'Vui lòng nhập mã lớp.');
       return;
     }
 
@@ -327,7 +351,7 @@ export default function AdminUsers() {
     const studentCodes = [...new Set([...(manualCodes || []), ...(csvPreviewCodes || [])])];
 
     if (studentCodes.length === 0) {
-      alert('Vui lòng nhập mã học viên thủ công hoặc upload CSV trước khi bàn giao');
+      notify('warning', 'Chưa có học viên', 'Vui lòng nhập mã học viên thủ công hoặc upload CSV trước khi bàn giao.');
       return;
     }
 
@@ -340,16 +364,47 @@ export default function AdminUsers() {
 
       const failed = Number(result?.failed || 0);
       if (failed > 0) {
-        alert(`Đã bàn giao ${result?.success || 0} học viên, thất bại ${failed}. Vui lòng kiểm tra mã học viên.`);
+        notify('warning', 'Bàn giao một phần', `Đã bàn giao ${result?.success || 0} học viên, thất bại ${failed}. Vui lòng kiểm tra mã học viên.`);
       } else {
-        alert(`Đã bàn giao thành công ${result?.success || 0} học viên vào lớp ${result?.classCode || handoverForm.classCode}.`);
+        notify('success', 'Bàn giao thành công', `Đã bàn giao thành công ${result?.success || 0} học viên vào lớp ${result?.classCode || handoverForm.classCode}.`);
       }
 
       setHandoverForm((prev) => ({ ...prev, studentCodesText: '', notes: '' }));
       clearCsvPreview();
       fetchManagementData();
     } catch (error) {
-      alert(error?.response?.data?.message || 'Bàn giao danh sách học viên thất bại');
+      notify('error', 'Bàn giao thất bại', error?.response?.data?.message || 'Không thể bàn giao danh sách học viên.');
+    }
+  };
+
+  const handleRequestDeleteClass = (clazz) => {
+    if (!clazz) return;
+    setDeleteClassTarget(clazz);
+    setDeleteClassPassword('');
+  };
+
+  const handleDeleteClass = async () => {
+    if (!deleteClassTarget) return;
+    if (!deleteClassPassword.trim()) {
+      notify('warning', 'Thiếu mật khẩu', 'Vui lòng nhập mật khẩu admin để xác nhận.');
+      return;
+    }
+
+    try {
+      setDeletingClass(true);
+      const result = await authApi.deleteClass(deleteClassTarget.id, deleteClassPassword.trim());
+      notify(
+        'success',
+        'Xóa lớp thành công',
+        `Đã xóa lớp ${result?.code || deleteClassTarget.code || ''}${result?.name ? ` - ${result.name}` : ''}.`
+      );
+      setDeleteClassTarget(null);
+      setDeleteClassPassword('');
+      await fetchManagementData();
+    } catch (error) {
+      notify('error', 'Xóa lớp thất bại', error?.response?.data?.message || error?.message || 'Không thể xóa lớp.');
+    } finally {
+      setDeletingClass(false);
     }
   };
 
@@ -372,29 +427,52 @@ export default function AdminUsers() {
         user.id === userId ? { ...user, isActive: !user.isActive } : user
       ));
     } catch (error) {
-      alert('Lỗi khi thay đổi trạng thái: ' + error.message);
+      notify('error', 'Đổi trạng thái thất bại', error?.message || 'Không thể thay đổi trạng thái.');
     }
+  };
+
+  const getActiveTeacherAssignments = (userId) => {
+    const fromTeachers = (managementData.teachers || []).find((item) => Number(item.id) === Number(userId));
+    const teacherClasses = Array.isArray(fromTeachers?.classes) ? fromTeachers.classes : [];
+
+    const fromClasses = (managementData.classes || [])
+      .filter((clazz) => Array.isArray(clazz?.teachers) && clazz.teachers.some((teacher) => Number(teacher.id) === Number(userId)))
+      .map((clazz) => ({
+        id: clazz.id,
+        code: clazz.code,
+        name: clazz.name,
+      }));
+
+    const merged = [...teacherClasses, ...fromClasses];
+    const seen = new Set();
+
+    return merged.filter((item) => {
+      const key = `${item.id || ''}-${item.code || ''}-${item.name || ''}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
   };
 
   const handleChangePassword = async () => {
     if (!newPassword || newPassword.length < 6) {
-      alert('Mật khẩu phải có ít nhất 6 ký tự');
+      notify('warning', 'Mật khẩu quá ngắn', 'Mật khẩu phải có ít nhất 6 ký tự.');
       return;
     }
     try {
       await authApi.adminChangePassword(selectedUser.id, newPassword);
-      alert(`Đã đổi mật khẩu cho ${selectedUser.fullName}`);
+      notify('success', 'Đổi mật khẩu thành công', `Đã đổi mật khẩu cho ${selectedUser.fullName}.`);
       setShowModal(null);
       setNewPassword('');
     } catch (error) {
-      alert('Lỗi khi đổi mật khẩu: ' + error.message);
+      notify('error', 'Đổi mật khẩu thất bại', error?.message || 'Không thể đổi mật khẩu.');
     }
   };
 
   const handleEditUser = (user) => {
     // Không cho phép sửa chính mình
     if (user.id === currentUser?.id) {
-      alert('Bạn không thể chỉnh sửa thông tin của chính mình tại đây!');
+      notify('warning', 'Không thể chỉnh sửa', 'Bạn không thể chỉnh sửa thông tin của chính mình tại đây.');
       return;
     }
 
@@ -410,14 +488,14 @@ export default function AdminUsers() {
   const handleSaveEdit = async () => {
     // Kiểm tra không được phép tạo thêm Admin
     if (editForm.roles.includes('ADMIN') && !selectedUser.roles.includes('ADMIN')) {
-      alert('Không được phép nâng cấp tài khoản lên ADMIN!');
+      notify('warning', 'Không được phép nâng cấp', 'Không được phép nâng cấp tài khoản lên ADMIN!');
       return;
     }
 
     // Kiểm tra không được hạ cấp Admin cuối cùng
     const adminUsers = users.filter(u => u.roles.includes('ADMIN'));
     if (selectedUser.roles.includes('ADMIN') && !editForm.roles.includes('ADMIN') && adminUsers.length <= 1) {
-      alert('Không thể hạ cấp Admin cuối cùng trong hệ thống!');
+      notify('warning', 'Giữ lại Admin cuối cùng', 'Không thể hạ cấp Admin cuối cùng trong hệ thống!');
       return;
     }
 
@@ -429,38 +507,62 @@ export default function AdminUsers() {
           : user
       ));
       setShowModal(null);
-      alert('Đã cập nhật thông tin thành công');
+      notify('success', 'Cập nhật thành công', 'Đã cập nhật thông tin thành công.');
     } catch (error) {
-      alert('Lỗi khi cập nhật: ' + error.message);
+      notify('error', 'Cập nhật thất bại', error?.message || 'Không thể cập nhật thông tin.');
     }
   };
 
   const handleDeleteUser = async (userId) => {
     // Không cho phép xóa chính mình
     if (userId === currentUser?.id) {
-      alert('Bạn không thể xóa chính mình!');
+      notify('warning', 'Không thể xóa', 'Bạn không thể xóa chính mình.');
+      return;
+    }
+
+    const userToDelete = users.find(u => u.id === userId);
+
+    // Đảm bảo dữ liệu quản lý lớp đã được tải trước khi kiểm tra
+    if (managementLoading) {
+      await fetchManagementData();
+    }
+
+    const activeTeacherClasses = getActiveTeacherAssignments(userId);
+
+    // Nếu là giảng viên đang quản lý lớp thì bắt buộc bàn giao trước khi xóa
+    if (userToDelete?.roles.includes('TEACHER') && activeTeacherClasses.length > 0) {
+      setHandoverWarning({
+        user: userToDelete,
+        classes: activeTeacherClasses,
+      });
       return;
     }
 
     // Không cho phép xóa Admin cuối cùng
-    const userToDelete = users.find(u => u.id === userId);
     const adminUsers = users.filter(u => u.roles.includes('ADMIN'));
     if (userToDelete?.roles.includes('ADMIN') && adminUsers.length <= 1) {
-      alert('Không thể xóa Admin cuối cùng trong hệ thống!');
+      notify('warning', 'Giữ lại Admin cuối cùng', 'Không thể xóa Admin cuối cùng trong hệ thống!');
       return;
     }
 
-    if (confirm('Bạn có chắc chắn muốn xóa người dùng này?')) {
-      try {
-        await authApi.deleteUser(userId);
-        setUsers(users.filter(user => user.id !== userId));
-        alert('Đã xóa người dùng thành công');
-      } catch (error) {
-        console.error('Delete user error:', error);
-        console.error('Error response:', error.response?.data);
-        const errorMessage = error.response?.data?.error || error.message;
-        alert('Lỗi khi xóa người dùng: ' + errorMessage);
-      }
+    setDeleteTarget(userToDelete);
+  };
+
+  const closeHandoverWarning = () => setHandoverWarning(null);
+
+  const confirmDeleteUser = async () => {
+    if (!deleteTarget) return;
+
+    try {
+      await authApi.deleteUser(deleteTarget.id);
+      setUsers(users.filter(user => user.id !== deleteTarget.id));
+      notify('success', 'Xóa người dùng thành công', `Đã xóa ${deleteTarget.fullName || deleteTarget.username || 'người dùng'} thành công.`);
+      setDeleteTarget(null);
+    } catch (error) {
+      console.error('Delete user error:', error);
+      console.error('Error response:', error.response?.data);
+      const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message;
+      notify('error', 'Xóa người dùng thất bại', errorMessage);
     }
   };
 
@@ -471,6 +573,26 @@ export default function AdminUsers() {
         ? 'Quản lý tài khoản và phân quyền người dùng'
         : 'Phân công giảng viên, tạo lớp và bàn giao học viên'}
     >
+      {notification && (
+        <div className={`admin-toast admin-toast-${notification.type}`} key={notification.id}>
+          <div className="admin-toast-icon">
+            {notification.type === 'success' ? (
+              <CheckCircle size={18} />
+            ) : notification.type === 'error' ? (
+              <XCircle size={18} />
+            ) : (
+              <AlertCircle size={18} />
+            )}
+          </div>
+          <div className="admin-toast-body">
+            <div className="admin-toast-title">{notification.title}</div>
+            <div className="admin-toast-message">{notification.message}</div>
+          </div>
+          <button className="admin-toast-close" onClick={() => setNotification(null)} aria-label="Đóng thông báo">
+            ×
+          </button>
+        </div>
+      )}
       <div style={{ maxWidth: 1400, margin: '0 auto', width: '100%', position: 'relative' }}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
@@ -663,6 +785,130 @@ export default function AdminUsers() {
           </div>
         </div>
 
+
+      {/* Delete User Confirmation Modal */}
+      {deleteTarget && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(15, 23, 42, 0.62)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1100,
+          backdropFilter: 'blur(10px)',
+          padding: 20,
+        }} onClick={() => setDeleteTarget(null)}>
+          <div style={{
+            width: '100%',
+            maxWidth: 520,
+            background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
+            borderRadius: 24,
+            boxShadow: '0 30px 80px rgba(15, 23, 42, 0.25)',
+            border: '1px solid rgba(255,255,255,0.6)',
+            overflow: 'hidden',
+          }} onClick={(e) => e.stopPropagation()}>
+            <div style={{
+              padding: '22px 24px',
+              background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
+              color: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+            }}>
+              <div style={{
+                width: 42,
+                height: 42,
+                borderRadius: '50%',
+                background: 'rgba(255,255,255,0.18)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <Trash2 size={20} />
+              </div>
+              <div>
+                <div style={{ fontSize: 18, fontWeight: 800 }}>Xác nhận xóa người dùng</div>
+                <div style={{ fontSize: 13, opacity: 0.9 }}>Hành động này không thể hoàn tác</div>
+              </div>
+            </div>
+
+            <div style={{ padding: 24 }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 12,
+                padding: '14px 16px',
+                borderRadius: 16,
+                background: '#fef2f2',
+                border: '1px solid #fecaca',
+                color: '#991b1b',
+                marginBottom: 18,
+              }}>
+                <AlertCircle size={18} style={{ marginTop: 2, flexShrink: 0 }} />
+                <div style={{ fontSize: 14, lineHeight: 1.6 }}>
+                  Bạn sắp xóa <strong>{deleteTarget.fullName || deleteTarget.username}</strong>.
+                  {deleteTarget.roles?.includes('TEACHER') && (
+                    <>
+                      <br />Giảng viên phải bàn giao lớp trước khi xóa. Nếu còn quản lý lớp, hệ thống sẽ từ chối thao tác.
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: 12,
+                marginBottom: 16,
+                fontSize: 13,
+                color: '#475569',
+              }}>
+                <div style={{ padding: 14, borderRadius: 14, background: 'white', border: '1px solid #e2e8f0' }}>
+                  <div style={{ color: '#94a3b8', marginBottom: 4 }}>Username</div>
+                  <strong>{deleteTarget.username}</strong>
+                </div>
+                <div style={{ padding: 14, borderRadius: 14, background: 'white', border: '1px solid #e2e8f0' }}>
+                  <div style={{ color: '#94a3b8', marginBottom: 4 }}>Vai trò</div>
+                  <strong>{(deleteTarget.roles || []).join(', ')}</strong>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+                <button
+                  onClick={() => setDeleteTarget(null)}
+                  style={{
+                    padding: '12px 18px',
+                    background: '#fff',
+                    border: '1.5px solid #e2e8f0',
+                    borderRadius: 14,
+                    cursor: 'pointer',
+                    fontWeight: 700,
+                    color: '#334155',
+                  }}
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  onClick={confirmDeleteUser}
+                  style={{
+                    padding: '12px 18px',
+                    background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 14,
+                    cursor: 'pointer',
+                    fontWeight: 800,
+                    boxShadow: '0 12px 24px rgba(220, 38, 38, 0.25)',
+                  }}
+                >
+                  Xóa ngay
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
         {loadError && (
           <div style={{
             marginBottom: 16,
@@ -1192,10 +1438,34 @@ export default function AdminUsers() {
                 </h4>
                 <div style={{ maxHeight: 360, overflow: 'auto' }}>
                   {managementData.classes.map((clazz) => (
-                    <div key={clazz.id} style={{ padding: '10px 0', borderBottom: '1px solid #f1f5f9' }}>
-                      <div style={{ fontWeight: 700, color: '#1e293b' }}>{clazz.code} - {clazz.name}</div>
-                      <div style={{ fontSize: 12, color: '#64748b' }}>
-                        {clazz.teacherCount || 0} GV • {clazz.activeStudentCount || 0} học viên active
+                    <div key={clazz.id} style={{ padding: '12px 0', borderBottom: '1px solid #f1f5f9' }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+                        <div>
+                          <div style={{ fontWeight: 800, color: '#1e293b' }}>{clazz.code} - {clazz.name}</div>
+                          <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
+                            {clazz.teacherCount || 0} GV • {clazz.activeStudentCount || 0} học viên active
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleRequestDeleteClass(clazz)}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 6,
+                            border: '1px solid #fecaca',
+                            background: '#fef2f2',
+                            color: '#b91c1c',
+                            borderRadius: 10,
+                            padding: '8px 10px',
+                            cursor: 'pointer',
+                            fontWeight: 700,
+                            fontSize: 12,
+                          }}
+                          title="Xóa lớp"
+                        >
+                          <Trash2 size={14} />
+                          Xóa lớp
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -1515,6 +1785,383 @@ export default function AdminUsers() {
               >
                 Đổi mật khẩu
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete User Confirmation Modal */}
+      {deleteTarget && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(15, 23, 42, 0.62)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1100,
+          backdropFilter: 'blur(10px)',
+          padding: 20,
+        }} onClick={() => setDeleteTarget(null)}>
+          <div style={{
+            width: '100%',
+            maxWidth: 520,
+            background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
+            borderRadius: 24,
+            boxShadow: '0 30px 80px rgba(15, 23, 42, 0.25)',
+            border: '1px solid rgba(255,255,255,0.6)',
+            overflow: 'hidden',
+          }} onClick={(e) => e.stopPropagation()}>
+            <div style={{
+              padding: '22px 24px',
+              background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
+              color: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+            }}>
+              <div style={{
+                width: 42,
+                height: 42,
+                borderRadius: '50%',
+                background: 'rgba(255,255,255,0.18)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <Trash2 size={20} />
+              </div>
+              <div>
+                <div style={{ fontSize: 18, fontWeight: 800 }}>Xác nhận xóa người dùng</div>
+                <div style={{ fontSize: 13, opacity: 0.9 }}>Hành động này không thể hoàn tác</div>
+              </div>
+            </div>
+
+            <div style={{ padding: 24 }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 12,
+                padding: '14px 16px',
+                borderRadius: 16,
+                background: '#fef2f2',
+                border: '1px solid #fecaca',
+                color: '#991b1b',
+                marginBottom: 18,
+              }}>
+                <AlertCircle size={18} style={{ marginTop: 2, flexShrink: 0 }} />
+                <div style={{ fontSize: 14, lineHeight: 1.6 }}>
+                  Bạn sắp xóa <strong>{deleteTarget.fullName || deleteTarget.username}</strong>.
+                  {deleteTarget.roles?.includes('TEACHER') && (
+                    <>
+                      <br />Giảng viên phải bàn giao lớp trước khi xóa. Nếu còn quản lý lớp, hệ thống sẽ từ chối thao tác.
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: 12,
+                marginBottom: 16,
+                fontSize: 13,
+                color: '#475569',
+              }}>
+                <div style={{ padding: 14, borderRadius: 14, background: 'white', border: '1px solid #e2e8f0' }}>
+                  <div style={{ color: '#94a3b8', marginBottom: 4 }}>Username</div>
+                  <strong>{deleteTarget.username}</strong>
+                </div>
+                <div style={{ padding: 14, borderRadius: 14, background: 'white', border: '1px solid #e2e8f0' }}>
+                  <div style={{ color: '#94a3b8', marginBottom: 4 }}>Vai trò</div>
+                  <strong>{(deleteTarget.roles || []).join(', ')}</strong>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+                <button
+                  onClick={() => setDeleteTarget(null)}
+                  style={{
+                    padding: '12px 18px',
+                    background: '#fff',
+                    border: '1.5px solid #e2e8f0',
+                    borderRadius: 14,
+                    cursor: 'pointer',
+                    fontWeight: 700,
+                    color: '#334155',
+                  }}
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  onClick={confirmDeleteUser}
+                  style={{
+                    padding: '12px 18px',
+                    background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 14,
+                    cursor: 'pointer',
+                    fontWeight: 800,
+                    boxShadow: '0 12px 24px rgba(220, 38, 38, 0.25)',
+                  }}
+                >
+                  Xóa ngay
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Handover Warning Modal */}
+      {handoverWarning && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(15, 23, 42, 0.68)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1200,
+          backdropFilter: 'blur(10px)',
+          padding: 20,
+        }} onClick={closeHandoverWarning}>
+          <div style={{
+            width: '100%',
+            maxWidth: 620,
+            background: 'linear-gradient(180deg, #ffffff 0%, #fffbeb 100%)',
+            borderRadius: 24,
+            boxShadow: '0 30px 80px rgba(15, 23, 42, 0.30)',
+            border: '1px solid rgba(253, 230, 138, 0.85)',
+            overflow: 'hidden',
+          }} onClick={(e) => e.stopPropagation()}>
+            <div style={{
+              padding: '22px 24px',
+              background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+              color: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+            }}>
+              <div style={{
+                width: 42,
+                height: 42,
+                borderRadius: '50%',
+                background: 'rgba(255,255,255,0.18)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <AlertCircle size={20} />
+              </div>
+              <div>
+                <div style={{ fontSize: 18, fontWeight: 800 }}>Giảng viên đang quản lý lớp</div>
+                <div style={{ fontSize: 13, opacity: 0.92 }}>Cần bàn giao hoặc gỡ phân công trước khi xóa</div>
+              </div>
+            </div>
+
+            <div style={{ padding: 24 }}>
+              <div style={{
+                padding: '14px 16px',
+                borderRadius: 16,
+                background: '#fff7ed',
+                border: '1px solid #fdba74',
+                color: '#9a3412',
+                marginBottom: 18,
+                lineHeight: 1.6,
+              }}>
+                <strong>{handoverWarning.user?.fullName || handoverWarning.user?.username}</strong>
+                {' '}đang quản lý <strong>{handoverWarning.classes.length}</strong> lớp học.
+                Vui lòng bàn giao hết lớp hoặc gỡ phân công giảng viên trước khi xóa.
+              </div>
+
+              <div style={{
+                display: 'grid',
+                gap: 10,
+                marginBottom: 18,
+                maxHeight: 220,
+                overflow: 'auto',
+              }}>
+                {handoverWarning.classes.map((clazz) => (
+                  <div key={`${clazz.id}-${clazz.code}`} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 12,
+                    padding: '12px 14px',
+                    borderRadius: 14,
+                    background: 'white',
+                    border: '1px solid #fde68a',
+                  }}>
+                    <div>
+                      <div style={{ fontWeight: 800, color: '#111827' }}>{clazz.code || '—'} </div>
+                      <div style={{ fontSize: 13, color: '#475569' }}>{clazz.name || 'Không có tên lớp'}</div>
+                    </div>
+                    <div style={{
+                      padding: '6px 10px',
+                      borderRadius: 999,
+                      background: '#fef3c7',
+                      color: '#92400e',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      flexShrink: 0,
+                    }}>
+                      Đang quản lý
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                <Link
+                  to="/admin/teacher-class"
+                  onClick={closeHandoverWarning}
+                  style={{
+                    padding: '12px 18px',
+                    background: 'linear-gradient(135deg, #0056d2 0%, #003380 100%)',
+                    color: 'white',
+                    borderRadius: 14,
+                    textDecoration: 'none',
+                    fontWeight: 800,
+                    boxShadow: '0 12px 24px rgba(0, 86, 210, 0.22)',
+                  }}
+                >
+                  Đi tới quản lý lớp
+                </Link>
+                <button
+                  onClick={closeHandoverWarning}
+                  style={{
+                    padding: '12px 18px',
+                    background: 'white',
+                    border: '1.5px solid #e2e8f0',
+                    borderRadius: 14,
+                    cursor: 'pointer',
+                    fontWeight: 700,
+                    color: '#334155',
+                  }}
+                >
+                  Đóng
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Class Confirmation Modal */}
+      {deleteClassTarget && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(15, 23, 42, 0.72)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1300,
+          backdropFilter: 'blur(10px)',
+          padding: 20,
+        }} onClick={() => !deletingClass && setDeleteClassTarget(null)}>
+          <div style={{
+            width: '100%',
+            maxWidth: 560,
+            background: 'linear-gradient(180deg, #ffffff 0%, #fff7ed 100%)',
+            borderRadius: 24,
+            boxShadow: '0 30px 80px rgba(15, 23, 42, 0.35)',
+            border: '1px solid rgba(253, 186, 116, 0.8)',
+            overflow: 'hidden',
+          }} onClick={(e) => e.stopPropagation()}>
+            <div style={{
+              padding: '22px 24px',
+              background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)',
+              color: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+            }}>
+              <div style={{
+                width: 42,
+                height: 42,
+                borderRadius: '50%',
+                background: 'rgba(255,255,255,0.18)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>
+                <Trash2 size={20} />
+              </div>
+              <div>
+                <div style={{ fontSize: 18, fontWeight: 800 }}>Xác nhận xóa lớp</div>
+                <div style={{ fontSize: 13, opacity: 0.92 }}>Cần nhập mật khẩu admin để xác nhận thao tác</div>
+              </div>
+            </div>
+
+            <div style={{ padding: 24 }}>
+              <div style={{
+                padding: '14px 16px',
+                borderRadius: 16,
+                background: '#fff7ed',
+                border: '1px solid #fdba74',
+                color: '#9a3412',
+                marginBottom: 18,
+                lineHeight: 1.65,
+              }}>
+                Bạn sắp xóa lớp <strong>{deleteClassTarget.code}</strong>
+                {deleteClassTarget.name ? ` - ${deleteClassTarget.name}` : ''}.<br />
+                Hệ thống sẽ ngắt phân công giáo viên và đánh dấu học viên của lớp là đã rời lớp.
+              </div>
+
+              <div style={{ display: 'grid', gap: 10, marginBottom: 16 }}>
+                <div style={{ fontSize: 13, color: '#475569', fontWeight: 700 }}>Mật khẩu admin xác nhận</div>
+                <input
+                  type="password"
+                  value={deleteClassPassword}
+                  onChange={(e) => setDeleteClassPassword(e.target.value)}
+                  placeholder="Nhập mật khẩu admin"
+                  style={{
+                    width: '100%',
+                    padding: '13px 14px',
+                    border: '1.5px solid #fdba74',
+                    borderRadius: 12,
+                    outline: 'none',
+                    fontSize: 14,
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => setDeleteClassTarget(null)}
+                  disabled={deletingClass}
+                  style={{
+                    padding: '12px 18px',
+                    background: '#fff',
+                    border: '1.5px solid #e2e8f0',
+                    borderRadius: 14,
+                    cursor: 'pointer',
+                    fontWeight: 700,
+                    color: '#334155',
+                  }}
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  onClick={handleDeleteClass}
+                  disabled={deletingClass}
+                  style={{
+                    padding: '12px 18px',
+                    background: deletingClass ? '#ef4444aa' : 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 14,
+                    cursor: deletingClass ? 'not-allowed' : 'pointer',
+                    fontWeight: 800,
+                    boxShadow: '0 12px 24px rgba(220, 38, 38, 0.25)',
+                  }}
+                >
+                  {deletingClass ? 'Đang xóa...' : 'Xóa lớp'}
+                </button>
+              </div>
             </div>
           </div>
         </div>

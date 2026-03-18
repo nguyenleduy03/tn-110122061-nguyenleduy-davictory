@@ -44,7 +44,7 @@ class ErrorBoundary extends React.Component {
               <br />
               <strong>Stack trace:</strong>
               <pre style={{ fontSize: '12px', overflow: 'auto' }}>
-                {this.state.errorInfo.componentStack}
+                {this.state.errorInfo?.componentStack || 'Không có stack trace chi tiết'}
               </pre>
             </div>
           </details>
