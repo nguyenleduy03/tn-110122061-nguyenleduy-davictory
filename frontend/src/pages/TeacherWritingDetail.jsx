@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useLocation } from 'react-router-dom';
 import { AlertCircle, ArrowLeft, FileText, Loader2 } from 'lucide-react';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import { authApi } from '../services/authApi';
@@ -48,6 +48,7 @@ const getSubmissionClassName = (s) => s?.className || s?.clazzName || '—';
 
 export default function TeacherWritingDetail() {
   const { id } = useParams();
+  const location = useLocation();
   const user = authApi.getStoredUser();
   const hasPermission = isTeacherOrAbove(user?.roles);
 
@@ -143,7 +144,7 @@ export default function TeacherWritingDetail() {
     <DashboardLayout>
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '28px 24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-          <Link to="/teacher/writing" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#2563eb', textDecoration: 'none', fontWeight: 600 }}>
+          <Link to={`/teacher/writing${location.search || ''}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#2563eb', textDecoration: 'none', fontWeight: 600 }}>
             <ArrowLeft size={16} /> Quay lai
           </Link>
         </div>

@@ -15,11 +15,13 @@ import TeacherWritingSubmissions from './pages/TeacherWritingSubmissions'
 import TeacherWritingDetail from './pages/TeacherWritingDetail'
 import TeacherAssignments from './pages/TeacherAssignments'
 import LmsTeacherDashboard from './pages/lms/LmsTeacherDashboard'
+import ClassManagement from './pages/ClassManagement'
 import LmsTeacherClasses from './pages/lms/LmsTeacherClasses'
 import LmsTeacherTests from './pages/lms/LmsTeacherTests'
 import LmsTeacherAssignments from './pages/lms/LmsTeacherAssignments'
 import LmsTeacherSubmissions from './pages/lms/LmsTeacherSubmissions'
 import LmsTeacherAnalytics from './pages/lms/LmsTeacherAnalytics'
+import LmsTeacherClassDetail from './pages/lms/LmsTeacherClassDetail'
 import LmsTeacherSettings from './pages/lms/LmsTeacherSettings'
 import MyDashboard from './pages/MyDashboard'
 import TestComplete from './pages/TestComplete'
@@ -57,7 +59,7 @@ function App() {
         <Route path="/my-dashboard/settings" element={<ProtectedRoute><DashboardSettings /></ProtectedRoute>} />
         <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
         <Route path="/admin/users" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />
-        <Route path="/admin/teacher-class" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />
+        <Route path="/admin/teacher-class" element={<ProtectedRoute><ClassManagement /></ProtectedRoute>} />
         <Route path="/teacher/manage" element={<ProtectedRoute><TeacherManage /></ProtectedRoute>} />
         <Route path="/teacher/writing" element={<ProtectedRoute><TeacherWritingSubmissions /></ProtectedRoute>} />
         <Route path="/teacher/writing/:id" element={<ProtectedRoute><TeacherWritingDetail /></ProtectedRoute>} />
@@ -68,6 +70,7 @@ function App() {
 
         <Route path="/lms/teacher" element={<ProtectedRoute><LmsTeacherDashboard /></ProtectedRoute>} />
         <Route path="/lms/teacher/classes" element={<ProtectedRoute><LmsTeacherClasses /></ProtectedRoute>} />
+        <Route path="/lms/teacher/classes/:id" element={<ProtectedRoute><LmsTeacherClassDetail /></ProtectedRoute>} />
         <Route path="/lms/teacher/tests" element={<ProtectedRoute><LmsTeacherTests /></ProtectedRoute>} />
         <Route path="/lms/teacher/assignments" element={<ProtectedRoute><LmsTeacherAssignments /></ProtectedRoute>} />
         <Route path="/lms/teacher/submissions" element={<ProtectedRoute><LmsTeacherSubmissions /></ProtectedRoute>} />

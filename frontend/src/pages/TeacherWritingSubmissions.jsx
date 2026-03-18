@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   AlertCircle,
   CheckCircle2,
@@ -63,12 +63,17 @@ const getSubmissionClassName = (s) => s?.className || s?.clazzName || '—';
 export default function TeacherWritingSubmissions() {
   const user = authApi.getStoredUser();
   const hasPermission = isTeacherOrAbove(user?.roles);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+
+  const classFilterId = searchParams.get('classId') || '';
+  const classFilterCode = (searchParams.get('classCode') || '').trim();
+  const classFilterName = (searchParams.get('className') || '').trim();
 
   const teacherScope = useMemo(() => extractTeacherScope(user), [user]);
 
@@ -124,6 +129,24 @@ export default function TeacherWritingSubmissions() {
       return name.includes(keyword) || title.includes(keyword) || className.includes(keyword);
     });
   }, [search, scopedSubmissions]);
+
+  const classScopedFiltered = useMemo(() => {
+    const hasClassFilter = Boolean(classFilterId || classFilterCode || classFilterName);
+    if (!hasClassFilter) return filtered;
+
+    return filtered.filter((s) => {
+      const sid = getSubmissionClassId(s);
+      const scode = getSubmissionClassCode(s);
+      const sname = getSubmissionClassName(s);
+
+      if (classFilterId && sid === classFilterId) return true;
+      if (classFilterCode && scode.toLowerCase() === classFilterCode.toLowerCase()) return true;
+      if (classFilterName && sname.toLowerCase() === classFilterName.toLowerCase()) return true;
+      return false;
+    });
+  }, [filtered, classFilterId, classFilterCode, classFilterName]);
+
+  const activeClassLabel = classFilterName || classFilterCode || classFilterId;
 
   const hasClassMetadata = useMemo(() => submissions.some((s) => (
     getSubmissionClassId(s) || getSubmissionClassCode(s) || s?.className || s?.clazzName
@@ -191,9 +214,29 @@ export default function TeacherWritingSubmissions() {
             ))}
           </select>
           <span style={{ fontSize: 13, color: '#6b7280', marginLeft: 'auto' }}>
-            {filtered.length} bai
+            {classScopedFiltered.length} bai
           </span>
         </div>
+
+        {activeClassLabel && (
+          <div style={{
+            display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16,
+            background: '#ecfeff', border: '1px solid #a5f3fc', borderRadius: 8, padding: '10px 12px',
+            color: '#155e75', fontSize: 13,
+          }}>
+            <span>Dang loc theo lop: <strong>{activeClassLabel}</strong></span>
+            <button
+              type="button"
+              onClick={() => setSearchParams({})}
+              style={{
+                marginLeft: 'auto', border: '1px solid #67e8f9', background: '#fff', color: '#0e7490',
+                borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 12, fontWeight: 600,
+              }}
+            >
+              Bo loc lop
+            </button>
+          </div>
+        )}
 
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
           {Object.keys(STATUS_META).map((key) => (
@@ -245,7 +288,7 @@ export default function TeacherWritingSubmissions() {
             <Loader2 size={20} style={{ animation: 'spin 1s linear infinite' }} />
             <span>Dang tai...</span>
           </div>
-        ) : filtered.length === 0 ? (
+        ) : classScopedFiltered.length === 0 ? (
           <div style={{
             textAlign: 'center', padding: '60px 24px',
             background: '#fff', borderRadius: 12, border: '1px dashed #d1d5db',
@@ -270,7 +313,7 @@ export default function TeacherWritingSubmissions() {
               <div>Ngay nop</div>
               <div>Thao tac</div>
             </div>
-            {filtered.map((s) => (
+            {classScopedFiltered.map((s) => (
               <div
                 key={s.id}
                 style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.4fr 1.8fr 1.2fr 0.8fr 0.8fr 1.1fr 0.9fr', gap: 0, padding: '12px 16px', borderTop: '1px solid #eef2f7', alignItems: 'center' }}
@@ -289,7 +332,7 @@ export default function TeacherWritingSubmissions() {
                 <div style={{ color: '#6b7280' }}>{formatDate(s.submittedAt)}</div>
                 <div>
                   <Link
-                    to={`/teacher/writing/${s.id}`}
+                    to={`/teacher/writing/${s.id}${activeClassLabel ? `?${searchParams.toString()}` : ''}`}
                     style={{
                       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                       padding: '6px 10px', borderRadius: 6, border: '1px solid #e5e7eb',

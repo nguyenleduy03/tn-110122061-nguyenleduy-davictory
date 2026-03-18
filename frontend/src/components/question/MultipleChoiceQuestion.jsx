@@ -80,7 +80,7 @@ const MultipleChoiceQuestion = ({ q, activeQuestion, setActiveQuestion, answer, 
                                 disabled={isDisabled}
                                 onChange={() => handleChange(opt)}
                             />
-                            <span className="opt-text" dangerouslySetInnerHTML={{ __html: opt || '' }} />
+                            <span className="opt-text" dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(opt || '') }} />
                         </label>
                     );
                 })}

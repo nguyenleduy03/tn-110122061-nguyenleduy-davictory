@@ -8,6 +8,7 @@ import {
   FileText,
   BarChart3,
   Settings,
+  GraduationCap,
 } from 'lucide-react';
 import Navbar from '../layout/Navbar';
 import '../../styles/lms.css';
@@ -31,7 +32,9 @@ export default function LmsLayout({ title, subtitle, children }) {
       <div className="lms-shell">
         <aside className="lms-sidebar">
           <div className="lms-brand">
-            <div className="lms-brand-mark">DA</div>
+            <div className="lms-brand-mark" aria-label="DAVictory LMS logo">
+              <GraduationCap size={20} strokeWidth={2.2} />
+            </div>
             <div className="lms-brand-title">
               DAVictory LMS
               <span className="lms-brand-sub">Không gian giảng viên</span>

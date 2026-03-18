@@ -1,4 +1,5 @@
 import React from 'react';
+import { Bookmark } from 'lucide-react';
 import { formatTextWithWhitespace } from '../../utils/textFormatters';
 
 /**
@@ -130,18 +131,30 @@ const FlowChartQuestion = ({
                                                 : String(answer || '');
                                             const hasDisplayAnswer = displayAnswer.trim() !== '';
                                             const isActive = subQ ? activeQuestion === subQ.number : false;
+                                            const showQuestionNumber = !hasDisplayAnswer;
+                                            const hasBookmark = !isReview && !!subQ;
                                             return (
                                                 <span
                                                     key={pidx}
                                                     id={subQ ? `question-${subQ.number}` : undefined}
-                                                    className={`fc-blank${hasDisplayAnswer ? ' fc-blank-filled' : ''}${isActive ? ' fc-blank-active' : ''} ${isReview && subQ ? (isCorrect ? 'review-correct' : 'review-wrong') : ''} relative-pos`}
+                                                    className={`fc-blank${hasDisplayAnswer ? ' fc-blank-filled' : ''}${isActive && showQuestionNumber ? ' fc-blank-active' : ''}${hasBookmark ? ' fc-blank-has-bookmark' : ''} ${isReview && subQ ? (isCorrect ? 'review-correct' : 'review-wrong') : ''} relative-pos`}
                                                     onClick={(e) => { e.stopPropagation(); if (subQ && !isReview) setActiveQuestion(subQ.number); }}
                                                     onDragOver={isReview ? undefined : handleDragOver}
                                                     onDrop={isReview ? undefined : (e) => subQ && handleDrop(e, subQ.id)}
                                                     draggable={!isReview && !!answer}
                                                     onDragStart={(e) => { if (!isReview && answer) handleDragStart(e, answer, subQ?.id); }}
+                                                    tabIndex={subQ && !isReview ? 0 : -1}
+                                                    onFocus={() => { if (subQ && !isReview) setActiveQuestion(subQ.number); }}
                                                 >
-                                                    <strong className="fc-blank-num">{subQ?.number}</strong>
+                                                    {hasBookmark && (
+                                                        <span
+                                                            className="fc-blank-bookmark"
+                                                            onClick={(e) => { e.stopPropagation(); toggleBookmark?.(subQ.number); }}
+                                                        >
+                                                            <Bookmark size={18} fill={bookmarks?.[subQ.number] ? '#1a73e8' : 'none'} color={bookmarks?.[subQ.number] ? '#1a73e8' : '#ccc'} />
+                                                        </span>
+                                                    )}
+                                                    {showQuestionNumber && <strong className="fc-blank-num">{subQ?.number}</strong>}
                                                     {hasDisplayAnswer && <span className="fc-blank-answer">{displayAnswer}</span>}
                                                 </span>
                                             );

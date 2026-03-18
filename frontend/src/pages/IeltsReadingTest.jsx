@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
+import React, { useState, useEffect, useLayoutEffect, useRef, useMemo } from "react";
 import { Check, ArrowLeft, ArrowRight, ArrowLeftRight, Bookmark } from "lucide-react";
 import { useSearchParams, useNavigate, useParams } from "react-router-dom";
 import "../styles/ieltsTest.css";
@@ -216,6 +216,19 @@ const IeltsReadingTest = () => {
     const isFullTest = searchParams.get('fullTest') === 'true';
     const mode = searchParams.get('mode') || 'practice';
     const isReview = searchParams.get('review') === 'true';
+    const selectedPartsParam = searchParams.get('parts') || '';
+    const startPartNumber = Number.parseInt(searchParams.get('startPart') || '', 10);
+    const durationOverrideMinutes = Number.parseInt(searchParams.get('duration') || '', 10);
+    const noTimeLimit = searchParams.get('noTimeLimit') === 'true' || searchParams.get('duration') === '0';
+    const allowReviewInExam = searchParams.get('allowReview') === 'true';
+    const selectedPracticeParts = useMemo(() => {
+        return Array.from(new Set(
+            selectedPartsParam
+                .split(',')
+                .map((v) => Number.parseInt(v.trim(), 10))
+                .filter((v) => Number.isFinite(v) && v > 0)
+        )).sort((a, b) => a - b);
+    }, [selectedPartsParam]);
 
     const toggleBookmark = (num) => {
         setBookmarks(prev => ({ ...prev, [num]: !prev[num] }));
@@ -238,7 +251,54 @@ const IeltsReadingTest = () => {
     useEffect(() => {
         if (!testId) { setError('Không tìm thấy ID bài thi.'); setLoading(false); return; }
         ieltsApi.getTestSession(testId, "READING").then((data) => {
-            setTestData(data);
+            const shouldApplyPracticeConfig = mode === 'practice' && !isFullTest && !isReview;
+            let configuredData = data;
+
+            if (shouldApplyPracticeConfig) {
+                let configuredParts = data.parts;
+
+                if (selectedPracticeParts.length > 0) {
+                    const filteredParts = data.parts.filter((p, idx) => {
+                        const parsedPartNo = Number.parseInt(String(p?.partNumber ?? ''), 10);
+                        const partNo = Number.isFinite(parsedPartNo) && parsedPartNo > 0 ? parsedPartNo : (idx + 1);
+                        return selectedPracticeParts.includes(partNo);
+                    });
+                    configuredParts = filteredParts.length ? filteredParts : data.parts;
+                }
+
+                configuredData = {
+                    ...data,
+                    parts: configuredParts,
+                };
+
+                if (Number.isFinite(durationOverrideMinutes) && durationOverrideMinutes > 0) {
+                    configuredData = {
+                        ...configuredData,
+                        totalMinutes: durationOverrideMinutes,
+                    };
+                } else if (noTimeLimit) {
+                    configuredData = {
+                        ...configuredData,
+                        totalMinutes: 0,
+                    };
+                }
+            }
+
+            const resolvedStartPartIndex = Number.isFinite(startPartNumber) && startPartNumber > 0
+                ? configuredData.parts.findIndex((p, idx) => {
+                    const parsedPartNo = Number.parseInt(String(p?.partNumber ?? ''), 10);
+                    const partNo = Number.isFinite(parsedPartNo) && parsedPartNo > 0 ? parsedPartNo : (idx + 1);
+                    return partNo === startPartNumber;
+                })
+                : -1;
+
+            if (resolvedStartPartIndex >= 0) {
+                setCurrentPartIndex(resolvedStartPartIndex);
+            } else {
+                setCurrentPartIndex(0);
+            }
+
+            setTestData(configuredData);
             setLoading(false);
 
             if (isReview) {
@@ -258,7 +318,7 @@ const IeltsReadingTest = () => {
                 : `Không thể tải bài thi: ${err.message}`);
             setLoading(false);
         });
-    }, [testId, isReview]);
+    }, [testId, isReview, mode, isFullTest, selectedPracticeParts, startPartNumber, durationOverrideMinutes, noTimeLimit, setCurrentPartIndex]);
 
     const handleHighlightChange = () => {
         // Find the passage portion to avoid capturing the entire layout including portals
@@ -323,11 +383,15 @@ const IeltsReadingTest = () => {
                 sessionStorage.setItem('lastScore_reading', JSON.stringify(resp));
             }
             if (isFullTest) { handleFullTestNext(); return; }
-            if (mode !== 'exam') {
-                navigate(`/test/reading/${testId}?mode=${mode}&review=true`);
-                return;
+            const completeParams = new URLSearchParams({
+                mode,
+                skill: 'reading',
+                testId: String(testId),
+            });
+            if (mode === 'exam' && allowReviewInExam) {
+                completeParams.set('allowReview', 'true');
             }
-            navigate(`/test/complete?mode=${mode}&skill=reading&testId=${testId}`);
+            navigate(`/test/complete?${completeParams.toString()}`);
         });
     };
 
@@ -424,6 +488,7 @@ const IeltsReadingTest = () => {
                 candidateId={testData?.candidateId}
                 submitTest={submitTest}
                 isReview={isReview}
+                noTimeLimit={noTimeLimit && !isReview}
                 isFullTest={isFullTest}
                 skill="reading"
                 navigate={navigate}
@@ -478,20 +543,32 @@ const IeltsReadingTest = () => {
                     <div className="questions-content" style={{ paddingBottom: '80px' }}>
                         {questionGroups.map((group, gi) => (
                             <div key={gi} style={{ marginBottom: '40px' }}>
-                                {group.questions.map(q => (
-                                    <QuestionRenderer
-                                        key={q.id}
-                                        q={q}
-                                        activeQuestion={activeQuestion}
-                                        setActiveQuestion={setActiveQuestion}
-                                        answers={answers}
-                                        handleAnswerChange={isReview ? () => { } : handleAnswerChange}
-                                        bookmarks={bookmarks}
-                                        toggleBookmark={toggleBookmark}
-                                        inputRefs={inputRefs}
-                                        isReview={isReview}
-                                    />
-                                ))}
+                                {group.questions.map(q => {
+                                    const questionNumbers = q?.numberRange?.length
+                                        ? q.numberRange
+                                        : q?.subQuestions?.length
+                                            ? q.subQuestions.map((sq) => sq.number).filter((n) => n != null)
+                                            : (q?.number != null ? [q.number] : []);
+
+                                    return (
+                                        <div
+                                            key={q.id}
+                                            data-question-numbers={questionNumbers.length ? questionNumbers.join(' ') : undefined}
+                                        >
+                                            <QuestionRenderer
+                                                q={q}
+                                                activeQuestion={activeQuestion}
+                                                setActiveQuestion={setActiveQuestion}
+                                                answers={answers}
+                                                handleAnswerChange={isReview ? () => { } : handleAnswerChange}
+                                                bookmarks={bookmarks}
+                                                toggleBookmark={toggleBookmark}
+                                                inputRefs={inputRefs}
+                                                isReview={isReview}
+                                            />
+                                        </div>
+                                    );
+                                })}
 
                                 {/* Chú thích cho Fill Blank questions */}
                                 {group.type === 'fill-in-the-blank' && group.questions.length > 0 && (
@@ -534,6 +611,10 @@ const IeltsReadingTest = () => {
                         const answeredCount = getAnsweredCount(index);
                         const totalCount = getTotalCount(index);
                         const flatQuestions = p.questions?.flatMap(q => q.subQuestions ? q.subQuestions : q) || [];
+                        const partHasBookmarked = !isReview && flatQuestions.some((q) => {
+                            const nums = q.numberRange || [q.number];
+                            return nums.some((n) => bookmarks[n]);
+                        });
 
                         return (
                             <div
@@ -542,6 +623,11 @@ const IeltsReadingTest = () => {
                                 onClick={() => setCurrentPartIndex(index)}
                             >
                                 <div className="part-status-container">
+                                    {partHasBookmarked && !isActivePart && (
+                                        <span className="part-title-bookmark" aria-hidden="true">
+                                            <Bookmark size={13} fill="currentColor" color="currentColor" strokeWidth={2.25} />
+                                        </span>
+                                    )}
                                     <h4 className="part-title hover-pointer"
                                         dangerouslySetInnerHTML={{ __html: p.title }}
                                     />

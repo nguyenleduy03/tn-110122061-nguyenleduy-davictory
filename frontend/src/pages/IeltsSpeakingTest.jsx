@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   Mic,
   MicOff,
@@ -6,7 +6,7 @@ import {
   ChevronRight,
   Volume2,
 } from "lucide-react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import "../styles/ieltsTest.css";
 import TestHeader from "../components/common/TestHeader";
 import { ieltsApi } from "../services/ieltsApi";
@@ -92,6 +92,23 @@ const IeltsSpeakingTest = () => {
   const [error, setError] = useState(null);
 
   const { id: testId } = useParams();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const isFullTest = searchParams.get('fullTest') === 'true';
+  const mode = searchParams.get('mode') || 'practice';
+  const selectedPartsParam = searchParams.get('parts') || '';
+  const startPartNumber = Number.parseInt(searchParams.get('startPart') || '', 10);
+  const durationOverrideMinutes = Number.parseInt(searchParams.get('duration') || '', 10);
+  const noTimeLimit = searchParams.get('noTimeLimit') === 'true' || searchParams.get('duration') === '0';
+  const allowReviewInExam = searchParams.get('allowReview') === 'true';
+  const selectedPracticeParts = useMemo(() => {
+    return Array.from(new Set(
+      selectedPartsParam
+        .split(',')
+        .map((v) => Number.parseInt(v.trim(), 10))
+        .filter((v) => Number.isFinite(v) && v > 0)
+    )).sort((a, b) => a - b);
+  }, [selectedPartsParam]);
 
   const [currentPartIdx, setCurrentPartIdx] = useState(0);
   const [currentQIdx, setCurrentQIdx] = useState(0);
@@ -125,7 +142,40 @@ const IeltsSpeakingTest = () => {
   useEffect(() => {
     if (!testId) { setError('Không tìm thấy ID bài thi.'); setLoading(false); return; }
     ieltsApi.getTestSession(testId, "SPEAKING").then((data) => {
-      setTestData(data);
+      const shouldApplyPracticeConfig = mode === 'practice' && !isFullTest;
+      let configuredData = data;
+
+      if (shouldApplyPracticeConfig) {
+        let configuredParts = data.parts;
+
+        if (selectedPracticeParts.length > 0) {
+          const filteredParts = data.parts.filter((p, idx) => {
+            const parsedPartNo = Number.parseInt(String(p?.partNumber ?? ''), 10);
+            const partNo = Number.isFinite(parsedPartNo) && parsedPartNo > 0 ? parsedPartNo : (idx + 1);
+            return selectedPracticeParts.includes(partNo);
+          });
+          configuredParts = filteredParts.length ? filteredParts : data.parts;
+        }
+
+        configuredData = {
+          ...data,
+          parts: configuredParts,
+        };
+
+        if (Number.isFinite(durationOverrideMinutes) && durationOverrideMinutes > 0) {
+          configuredData = {
+            ...configuredData,
+            totalMinutes: durationOverrideMinutes,
+          };
+        } else if (noTimeLimit) {
+          configuredData = {
+            ...configuredData,
+            totalMinutes: 0,
+          };
+        }
+      }
+
+      setTestData(configuredData);
       setLoading(false);
     }).catch((err) => {
       console.error('[Speaking] Lỗi tải bài thi:', err);
@@ -134,7 +184,7 @@ const IeltsSpeakingTest = () => {
         : `Không thể tải bài thi: ${err.message}`);
       setLoading(false);
     });
-  }, [testId]);
+  }, [testId, mode, isFullTest, selectedPracticeParts, durationOverrideMinutes, noTimeLimit]);
 
   // ── Cleanup on unmount ─────────────────────────────────────────────────────
   useEffect(() => {
@@ -154,6 +204,18 @@ const IeltsSpeakingTest = () => {
   const currentQ = currentPart?.questions?.[currentQIdx];
   const isPartTwo = currentPart?.partNumber === 2;
   const totalParts = testData?.parts?.length ?? 0;
+  const initialPartIndex = useMemo(() => {
+    if (!Number.isFinite(startPartNumber) || startPartNumber <= 0 || !testData?.parts?.length) {
+      return 0;
+    }
+    const idx = testData.parts.findIndex((p, i) => {
+      const parsedPartNo = Number.parseInt(String(p?.partNumber ?? ''), 10);
+      const partNo = Number.isFinite(parsedPartNo) && parsedPartNo > 0 ? parsedPartNo : (i + 1);
+      return partNo === startPartNumber;
+    });
+    return idx >= 0 ? idx : 0;
+  }, [startPartNumber, testData]);
+  const initialPartLabel = testData?.parts?.[initialPartIndex]?.partNumber || (initialPartIndex + 1);
   const questionId = currentQ?.id;
   const hasRecording = !!audioUrls[questionId];
   const isCueCard = isPartTwo && currentQ?.bulletPoints;
@@ -163,9 +225,10 @@ const IeltsSpeakingTest = () => {
 
   const getPartDurationSec = useCallback((part) => {
     if (!part) return 0;
+    if (noTimeLimit) return 0;
     if (part.durationMinutes && part.durationMinutes > 0) return part.durationMinutes * 60;
     return PART_DURATION_SECONDS[part.partNumber] ?? 0;
-  }, []);
+  }, [noTimeLimit]);
 
   // ── Mic setup ──────────────────────────────────────────────────────────────
   const ensureMic = async () => {
@@ -306,6 +369,7 @@ const IeltsSpeakingTest = () => {
     setAnalyser(null);
     setCurrentPartIdx(partIdx);
     setCurrentQIdx(0);
+    if (durationSec <= 0) return;
     partTimerRef.current = setInterval(() => {
       setPartSecondsLeft((s) => {
         if (s <= 1) {
@@ -336,7 +400,6 @@ const IeltsSpeakingTest = () => {
   }, []);
 
   const submitTest = useCallback(() => {
-    const isFullTest = new URLSearchParams(window.location.search).get('fullTest') === 'true';
     const timeSpentSeconds = Math.floor((Date.now() - startTime) / 1000);
     const recordedAnswers = Object.keys(audioUrls).reduce((acc, qid) => {
       acc[qid] = 'RECORDED';
@@ -354,27 +417,34 @@ const IeltsSpeakingTest = () => {
             sessionStorage.setItem('ieltsFullTest', JSON.stringify(updated));
             const next = updated.sections[nextIdx];
             submitPromise.finally(() => {
-              window.location.href = `/test/${next.skill}/${next.testId}?fullTest=true&mode=${session.mode || 'practice'}`;
+              navigate(`/test/${next.skill}/${next.testId}?fullTest=true&mode=${session.mode || mode}`);
             });
             return;
           } else {
             sessionStorage.removeItem('ieltsFullTest');
             submitPromise.finally(() => {
-              window.location.href = `/test/complete?mode=${session.mode || 'practice'}&skill=speaking&fullTest=true&testId=${testId}`;
+              navigate(`/test/complete?mode=${session.mode || mode}&skill=speaking&fullTest=true&testId=${testId}`);
             });
             return;
           }
         }
-      } catch { window.location.href = '/exam-library'; return; }
+      } catch { navigate('/exam-library'); return; }
     }
-    const count = Object.keys(audioUrls).length;
     submitPromise.finally(() => {
       setSubmitted(true);
       setTimeout(() => {
-        window.location.href = `/test/complete?mode=practice&skill=speaking&testId=${testId}`;
+        const completeParams = new URLSearchParams({
+          mode,
+          skill: 'speaking',
+          testId: String(testId),
+        });
+        if (mode === 'exam' && allowReviewInExam) {
+          completeParams.set('allowReview', 'true');
+        }
+        navigate(`/test/complete?${completeParams.toString()}`);
       }, 2000);
     });
-  }, [audioUrls, startTime, testId]);
+  }, [audioUrls, startTime, testId, isFullTest, navigate, mode, allowReviewInExam]);
 
   // ── Render ─────────────────────────────────────────────────────────────────
   if (loading)
@@ -389,7 +459,7 @@ const IeltsSpeakingTest = () => {
     return (
       <div style={{ padding: '40px', textAlign: 'center', color: '#dc2626' }}>
         <p style={{ fontSize: '18px', fontWeight: 600 }}>⚠️ {error}</p>
-        <button onClick={() => window.location.href = '/exam-library'} style={{ marginTop: '16px', padding: '8px 20px', borderRadius: '6px', border: 'none', background: '#1e3a8a', color: '#fff', cursor: 'pointer' }}>← Quay lại thư viện</button>
+        <button onClick={() => navigate('/exam-library')} style={{ marginTop: '16px', padding: '8px 20px', borderRadius: '6px', border: 'none', background: '#1e3a8a', color: '#fff', cursor: 'pointer' }}>← Quay lại thư viện</button>
       </div>
     );
   if (!testData)
@@ -425,6 +495,7 @@ const IeltsSpeakingTest = () => {
         candidateId={testData.candidateId}
         submitTest={submitTest}
         duration={testData.totalMinutes}
+        noTimeLimit={noTimeLimit}
         onTimeUp={submitTest}
       />
 
@@ -448,9 +519,9 @@ const IeltsSpeakingTest = () => {
               <button
                 className="spk-start-btn"
                 disabled={!micTested}
-                onClick={() => startPartWithIndex(0)}
+                onClick={() => startPartWithIndex(initialPartIndex)}
               >
-                Bắt đầu Part 1
+                Bắt đầu Part {initialPartLabel}
               </button>
             </div>
             {micTested && analyser && (
@@ -509,7 +580,7 @@ const IeltsSpeakingTest = () => {
             <div className="spk-part-label">
               Part {currentPart.partNumber} · <span dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(currentPart.title || '') }} />
               <span className="spk-part-meta">
-                ({currentPart.questions.length} questions) · {fmtTime(partSecondsLeft)}
+                ({currentPart.questions.length} questions) · {noTimeLimit ? 'No time limit' : fmtTime(partSecondsLeft)}
               </span>
               <span className="spk-q-counter">
                 Q{currentQIdx + 1} / {currentPart.questions.length}

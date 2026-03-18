@@ -2,11 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Wifi, Bell, Menu, Send, ChevronRight, ChevronLeft, X, Contrast, ZoomIn, Check, LogOut, ArrowLeftRight } from 'lucide-react';
 
-const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isReview, isFullTest, skill, navigate, duration = 60, onTimeUp }) => {
+const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isReview, isFullTest, skill, navigate, duration = 60, noTimeLimit = false, onTimeUp }) => {
     const [isOptionsOpen, setIsOptionsOpen] = useState(false);
     const [optionsView, setOptionsView] = useState('main'); // 'main', 'contrast', 'text-size'
     const [showSubmitModal, setShowSubmitModal] = useState(false);
-    const [timeLeft, setTimeLeft] = useState(duration * 60);
+    const [timeLeft, setTimeLeft] = useState(() => {
+        const safeDuration = Number.isFinite(duration) ? duration : 0;
+        return Math.max(0, safeDuration * 60);
+    });
 
     // State to track current theme/size for radio buttons
     const [currentTheme, setCurrentTheme] = useState('standard');
@@ -63,7 +66,14 @@ const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isRevie
 
     // Timer logic
     useEffect(() => {
+        if (noTimeLimit) return;
+        const safeDuration = Number.isFinite(duration) ? duration : 0;
+        setTimeLeft(Math.max(0, safeDuration * 60));
+    }, [duration, noTimeLimit]);
+
+    useEffect(() => {
         if (isReview) return;
+        if (noTimeLimit) return;
         if (timeLeft <= 0) {
             if (onTimeUp) onTimeUp();
             return;
@@ -74,7 +84,7 @@ const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isRevie
         }, 1000);
 
         return () => clearInterval(timer);
-    }, [timeLeft, isReview, onTimeUp]);
+    }, [timeLeft, isReview, noTimeLimit, onTimeUp]);
 
     const formatTime = (seconds) => {
         const h = Math.floor(seconds / 3600);
@@ -144,10 +154,17 @@ const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isRevie
                     </div>
                 </div>
 
-                {!isReview && (
+                {!isReview && !noTimeLimit && (
                     <div className={`header-timer ${timeLeft < 300 ? 'timer-low' : ''}`}>
                         <span className="timer-label">Time left:</span>
                         <span className="timer-value">{formatTime(timeLeft)}</span>
+                    </div>
+                )}
+
+                {!isReview && noTimeLimit && (
+                    <div className="header-timer">
+                        <span className="timer-label">Time:</span>
+                        <span className="timer-value">No limit</span>
                     </div>
                 )}
 
@@ -160,7 +177,6 @@ const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isRevie
                         >
                             <Send size={14} />
                             <span>{"Submit test"}</span>
-                            <ChevronRight size={14} />
                         </button>
                     )}
                     {isReview && isFullTest && navigate && (

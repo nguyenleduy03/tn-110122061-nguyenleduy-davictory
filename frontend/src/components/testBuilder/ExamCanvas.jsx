@@ -34,6 +34,7 @@ const TYPE_META = {
   WRITING_TASK:           { label: 'Writing',              bg: '#fef9c3', color: '#a16207' },
   SPEAKING_INTERVIEW:     { label: 'Phỏng vấn',            bg: '#fce7f3', color: '#be185d' },
   SPEAKING_CUECARD:       { label: 'Cue Card',             bg: '#fdf4ff', color: '#7e22ce' },
+  MATCHING_FEATURES:      { label: 'Matching Features',    bg: '#f3e8ff', color: '#7c3aed' },
 };
 
 // ---- Helper ----
@@ -199,20 +200,27 @@ const RichBlankEditor = ({ value, onChange, placeholder, preWrap = false, blankC
           if (![...e.dataTransfer.types].includes('text/x-rbe')) return;
           e.preventDefault();
           setDragOver(false);
-          let range = document.caretRangeFromPoint?.(e.clientX, e.clientY);
-          if (!range && document.caretPositionFromPoint) {
-            const pos = document.caretPositionFromPoint(e.clientX, e.clientY);
-            if (pos) { range = document.createRange(); range.setStart(pos.offsetNode, pos.offset); }
+          try {
+            let range = document.caretRangeFromPoint?.(e.clientX, e.clientY);
+            if (!range && document.caretPositionFromPoint) {
+              const pos = document.caretPositionFromPoint(e.clientX, e.clientY);
+              if (pos) {
+                range = document.createRange();
+                range.setStart(pos.offsetNode, pos.offset);
+              }
+            }
+            if (!range) return;
+            const cont = range.startContainer?.nodeType === 1
+              ? range.startContainer
+              : range.startContainer?.parentElement;
+            if (cont?.closest?.('[data-blank="true"]')) return;
+            range.deleteContents();
+            range.insertNode(createChip());
+            renumber();
+            if (editorRef.current) onChange(toText(editorRef.current));
+          } catch (err) {
+            console.error('RBE drop failed', err);
           }
-          if (!range) return;
-          const cont = range.startContainer.nodeType === 1
-            ? range.startContainer
-            : range.startContainer.parentElement;
-          if (cont?.closest('[data-blank="true"]')) return;
-          range.deleteContents();
-          range.insertNode(createChip());
-          renumber();
-          onChange(toText(editorRef.current));
         }}
         onClick={(e) => {
           if (e.target.dataset.del === 'true' || e.target.closest?.('[data-del]')) {
@@ -1100,18 +1108,22 @@ function TcCellEditor({ value, onChange, startQNum }) {
         onDrop={(e) => {
           if (![...e.dataTransfer.types].includes('text/x-rbe')) return;
           e.preventDefault(); setDragOver(false);
-          let range = document.caretRangeFromPoint?.(e.clientX, e.clientY);
-          if (!range && document.caretPositionFromPoint) {
-            const pos = document.caretPositionFromPoint(e.clientX, e.clientY);
-            if (pos) { range = document.createRange(); range.setStart(pos.offsetNode, pos.offset); }
+          try {
+            let range = document.caretRangeFromPoint?.(e.clientX, e.clientY);
+            if (!range && document.caretPositionFromPoint) {
+              const pos = document.caretPositionFromPoint(e.clientX, e.clientY);
+              if (pos) { range = document.createRange(); range.setStart(pos.offsetNode, pos.offset); }
+            }
+            if (!range) return;
+            const cont = range.startContainer?.nodeType === 1 ? range.startContainer : range.startContainer?.parentElement;
+            if (cont?.closest?.('[data-blank="true"]')) return;
+            range.deleteContents();
+            range.insertNode(createChip());
+            renumber();
+            if (editorRef.current) onChange(toText(editorRef.current));
+          } catch (err) {
+            console.error('RBE cell drop failed', err);
           }
-          if (!range) return;
-          const cont = range.startContainer.nodeType === 1 ? range.startContainer : range.startContainer.parentElement;
-          if (cont?.closest('[data-blank="true"]')) return;
-          range.deleteContents();
-          range.insertNode(createChip());
-          renumber();
-          onChange(toText(editorRef.current));
         }}
         onClick={(e) => {
           if (e.target.dataset?.del === 'true' || e.target.closest?.('[data-del]')) {
@@ -1282,6 +1294,152 @@ function TableCompletionBlock({ group, onUpdate, onDelete, onSelect, selected, d
     </div>
   );
 }
+
+
+// ---- Matching Features Block ----
+// Học sinh chọn 1 ký tự (A, B, C...) từ danh sách categories cho mỗi item.
+// categories lưu trong group.passageText dạng JSON: { categoryTitle, categories: [{label, text}] }
+const MatchingFeaturesBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps,
+  onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onAddQuestion, selectedQuestionId }) => {
+  const questions = group.questions ?? [];
+
+  // Parse & save categories from JSON inside passageText
+  let parsedMeta = { categoryTitle: '', categories: [] };
+  try { if (group.passageText) parsedMeta = JSON.parse(group.passageText); } catch { /**/ }
+
+  const categoryTitle = parsedMeta.categoryTitle ?? '';
+  const categories = Array.isArray(parsedMeta.categories) ? parsedMeta.categories : [];
+
+  const saveMeta = (update) => {
+    const next = { ...parsedMeta, ...update };
+    onUpdate(group.id, { passageText: JSON.stringify(next) });
+  };
+
+  const updateCategory = (idx, field, value) => {
+    const next = categories.map((c, i) => i === idx ? { ...c, [field]: value } : c);
+    saveMeta({ categories: next });
+  };
+
+  const addCategory = () => {
+    const labels = 'ABCDEFGHIJ';
+    const nextLabel = labels[categories.length] || String(categories.length + 1);
+    saveMeta({ categories: [...categories, { label: nextLabel, text: '' }] });
+  };
+
+  const removeCategory = (idx) => {
+    saveMeta({ categories: categories.filter((_, i) => i !== idx) });
+  };
+
+  return (
+    <div className={`exam-group${selected ? ' selected' : ''}`}
+      onClick={(e) => { e.stopPropagation(); onSelect(group); }}>
+      <GroupToolbar group={group} dragHandleProps={dragHandleProps} onDelete={onDelete} />
+
+      {/* Instructions */}
+      <div className="exam-field" onClick={(e) => e.stopPropagation()} style={{ marginBottom: 10 }}>
+        <label className="exam-field-label">Hướng dẫn (Instruction)</label>
+        <RichInput
+          multiline rows={2}
+          value={group.instructions || ''}
+          onChange={(html) => onUpdate(group.id, { instructions: html })}
+          placeholder="VD: Choose the correct group (A–E) for each item. You may choose any group more than once."
+        />
+      </div>
+
+      {/* Category title */}
+      <div className="exam-field" onClick={(e) => e.stopPropagation()} style={{ marginBottom: 10 }}>
+        <label className="exam-field-label">Tiêu đề bảng nhóm</label>
+        <input
+          className="exam-img-url-field"
+          style={{ width: '100%' }}
+          value={categoryTitle}
+          placeholder="VD: First invented or used by"
+          onChange={(e) => saveMeta({ categoryTitle: e.target.value })}
+        />
+      </div>
+
+      {/* Categories editor */}
+      <div className="exam-field" onClick={(e) => e.stopPropagation()} style={{ marginBottom: 12 }}>
+        <label className="exam-field-label">Danh sách nhóm (A, B, C...)</label>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {categories.map((cat, idx) => (
+            <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input
+                className="exam-q-range-input"
+                style={{ width: 40, textAlign: 'center', fontWeight: 700 }}
+                value={cat.label}
+                placeholder="A"
+                onChange={(e) => updateCategory(idx, 'label', e.target.value)}
+              />
+              <input
+                className="exam-img-url-field"
+                style={{ flex: 1 }}
+                value={cat.text}
+                placeholder={`Nội dung nhóm ${cat.label || idx + 1}...`}
+                onChange={(e) => updateCategory(idx, 'text', e.target.value)}
+              />
+              <button className="exam-q-del-btn" title="Xóa nhóm"
+                onClick={(e) => { e.stopPropagation(); removeCategory(idx); }}>×</button>
+            </div>
+          ))}
+          <button className="exam-add-btn" style={{ marginTop: 4 }}
+            onClick={(e) => { e.stopPropagation(); addCategory(); }}>
+            <Plus size={11} /> Thêm nhóm
+          </button>
+        </div>
+      </div>
+
+      {/* Question range */}
+      <div className="exam-q-range-header" onClick={(e) => e.stopPropagation()}>
+        Câu&nbsp;
+        <input className="exam-q-range-input" value={group.fromQuestion ?? ''} placeholder="1"
+          onChange={(e) => onUpdate(group.id, { fromQuestion: e.target.value ? Number(e.target.value) : null })}
+          onClick={(e) => e.stopPropagation()} />
+        &nbsp;–&nbsp;
+        <input className="exam-q-range-input" value={group.toQuestion ?? ''} placeholder="4"
+          onChange={(e) => onUpdate(group.id, { toQuestion: e.target.value ? Number(e.target.value) : null })}
+          onClick={(e) => e.stopPropagation()} />
+      </div>
+
+      {/* Items (questions) */}
+      <div style={{ marginTop: 10 }}>
+        {questions.map((q) => (
+          <div key={q.id}
+            className={`exam-dm-row${selectedQuestionId === q.id ? ' selected' : ''}`}
+            onClick={(e) => { e.stopPropagation(); onSelectQuestion(q); }}>
+            <span className="exam-dm-q-num" style={{ color: '#7c3aed', minWidth: 28, textAlign: 'center' }}>
+              {q.questionNumber ?? '?'}
+            </span>
+            <RichInput
+              style={{ flex: 1 }}
+              value={q.questionText || ''}
+              placeholder="Tên mục (VD: black powder)..."
+              onChange={(html) => onUpdateQuestion(group.id, q.id, { questionText: html })}
+            />
+            <select className="exam-heading-select"
+              value={q.answerText || ''}
+              onChange={(e) => onUpdateQuestion(group.id, q.id, { answerText: e.target.value })}
+              onClick={(e) => e.stopPropagation()}
+              style={{ minWidth: 70 }}>
+              <option value="">— ĐA —</option>
+              {categories.map((cat) => (
+                <option key={cat.label} value={cat.label}>{cat.label}: {cat.text}</option>
+              ))}
+            </select>
+            <button className="exam-group-tool-btn danger"
+              onClick={(e) => { e.stopPropagation(); onDeleteQuestion(group.id, q.id); }}>
+              <X size={11} />
+            </button>
+          </div>
+        ))}
+        <button className="exam-add-btn" style={{ marginTop: 6 }}
+          onClick={(e) => { e.stopPropagation(); onAddQuestion(group); }}>
+          <Plus size={12} /> Thêm mục
+        </button>
+      </div>
+    </div>
+  );
+};
 
 
 // ---- Drag Matching Block ----
@@ -2645,6 +2803,13 @@ const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUp
   }
   if (ct === 'DRAG_MATCHING') {
     return <DragMatchingBlock group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
+      onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps}
+      onSelectQuestion={(q) => onSelectQuestion(q, group.id)}
+      onUpdateQuestion={onUpdateQuestion} onDeleteQuestion={onDeleteQuestion} onAddQuestion={onAddQuestion}
+      selectedQuestionId={selectedQuestionId} />;
+  }
+  if (ct === 'MATCHING_FEATURES') {
+    return <MatchingFeaturesBlock group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
       onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps}
       onSelectQuestion={(q) => onSelectQuestion(q, group.id)}
       onUpdateQuestion={onUpdateQuestion} onDeleteQuestion={onDeleteQuestion} onAddQuestion={onAddQuestion}

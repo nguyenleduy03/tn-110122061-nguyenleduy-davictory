@@ -23,6 +23,7 @@ const PALETTE_ITEMS = [
   // ── READING only ──
   { type: 'group', contentType: 'READING_PASSAGE',      label: 'Reading Passage',        icon: FileText, skills: ['READING'] },
   { type: 'group', contentType: 'MATCHING_HEADING',     label: 'Match Headings',         icon: ClipboardList, skills: ['READING'] },
+  { type: 'group', contentType: 'MATCHING_FEATURES',    label: 'Matching Features',      icon: List,          skills: ['READING', 'LISTENING'] },
   { type: 'group', contentType: 'TRUE_FALSE_NG',        label: 'True / False / Not Given', icon: CheckCircle2, skills: ['READING'] },
   { type: 'group', contentType: 'MULTIPLE_CHOICE_MULTI',label: 'Multiple Choice (chọn nhiều)', icon: List, skills: ['READING'] },
   { type: 'group', contentType: 'NOTE_COMPLETION',      label: 'Note / Form',            icon: ClipboardList, skills: ['READING'] },
@@ -65,6 +66,7 @@ const TYPE_META = {
   WRITING_TASK:          { label: 'WT', bg: '#fef9c3', color: '#a16207' },
   SPEAKING_INTERVIEW:    { label: 'IV', bg: '#fce7f3', color: '#be185d' },
   SPEAKING_CUECARD:      { label: 'CC', bg: '#fdf4ff', color: '#7e22ce' },
+  MATCHING_FEATURES:     { label: 'MF', bg: '#f3e8ff', color: '#7c3aed' },
 };
 
 const toTreePlainText = (value) => {
@@ -81,37 +83,56 @@ const toTreePlainText = (value) => {
 };
 
 function DraggablePaletteItem({ item }) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id: `palette-${item.contentType}`,
-    data: { source: 'palette', ...item },
-  });
+  try {
+    const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+      id: `palette-${item.contentType}`,
+      data: { source: 'palette', ...item },
+    });
 
-  const Icon = item.icon;
+    const Icon = item.icon;
 
-  // Image item: use HTML5 native drag so it can drop onto passage paragraphs
-  if (item.type === 'image') {
+    // Image item: use HTML5 native drag so it can drop onto passage paragraphs
+    if (item.type === 'image') {
+      return (
+        <div
+          className="tb-palette-item tb-palette-item--image"
+          draggable
+          onDragStart={(e) => {
+            try {
+              e.dataTransfer.setData('application/para-image', '1');
+              e.dataTransfer.effectAllowed = 'copy';
+            } catch (error) {
+              console.error('Error in image drag start:', error);
+            }
+          }}
+        >
+          <span className="tb-palette-item-icon">{Icon ? <Icon size={15} strokeWidth={2} /> : null}</span>
+          <span className="tb-palette-item-label">{item.label}</span>
+        </div>
+      );
+    }
+
     return (
-      <div
-        className="tb-palette-item tb-palette-item--image"
-        draggable
-        onDragStart={(e) => {
-          e.dataTransfer.setData('application/para-image', '1');
-          e.dataTransfer.effectAllowed = 'copy';
+      <div ref={setNodeRef} {...listeners} {...attributes}
+        className={`tb-palette-item${isDragging ? ' dragging' : ''}`}
+        onMouseDown={(e) => {
+          console.log('Palette item mouse down:', item.contentType);
         }}
-      >
+        onDragStart={(e) => {
+          console.log('Palette item drag start:', item.contentType);
+        }}>
         <span className="tb-palette-item-icon">{Icon ? <Icon size={15} strokeWidth={2} /> : null}</span>
         <span className="tb-palette-item-label">{item.label}</span>
       </div>
     );
+  } catch (error) {
+    console.error('Error in DraggablePaletteItem:', error);
+    return (
+      <div className="tb-palette-item tb-palette-item--error">
+        <span className="tb-palette-item-label">Error: {item.label}</span>
+      </div>
+    );
   }
-
-  return (
-    <div ref={setNodeRef} {...listeners} {...attributes}
-      className={`tb-palette-item${isDragging ? ' dragging' : ''}`}>
-      <span className="tb-palette-item-icon">{Icon ? <Icon size={15} strokeWidth={2} /> : null}</span>
-      <span className="tb-palette-item-label">{item.label}</span>
-    </div>
-  );
 }
 
 const BuilderSidebar = ({ parts, sessions, activeSessionKey, selection, onSelectSession, onSelectPart, onSelectGroup, enabledSkills }) => {

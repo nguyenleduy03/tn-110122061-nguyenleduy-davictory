@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { ArrowLeft, ArrowRight, ArrowLeftRight } from "lucide-react";
 import { useSearchParams, useNavigate, useParams } from "react-router-dom";
 import "../styles/ieltsTest.css";
@@ -73,11 +73,69 @@ const IeltsWritingTest = () => {
     const [startTime] = useState(() => Date.now()); // theo dõi thời gian làm bài
     const { leftWidth, containerRef, handleDragStart } = useDividerResize(50);
     const { id: testId } = useParams();
+    const [searchParams] = useSearchParams();
+    const navigate = useNavigate();
+    const isFullTest = searchParams.get('fullTest') === 'true';
+    const mode = searchParams.get('mode') || 'practice';
+    const selectedPartsParam = searchParams.get('parts') || '';
+    const startPartNumber = Number.parseInt(searchParams.get('startPart') || '', 10);
+    const durationOverrideMinutes = Number.parseInt(searchParams.get('duration') || '', 10);
+    const noTimeLimit = searchParams.get('noTimeLimit') === 'true' || searchParams.get('duration') === '0';
+    const selectedPracticeParts = useMemo(() => {
+        return Array.from(new Set(
+            selectedPartsParam
+                .split(',')
+                .map((v) => Number.parseInt(v.trim(), 10))
+                .filter((v) => Number.isFinite(v) && v > 0)
+        )).sort((a, b) => a - b);
+    }, [selectedPartsParam]);
 
     useEffect(() => {
         if (!testId) { setError('Không tìm thấy ID bài thi.'); setLoading(false); return; }
         ieltsApi.getTestSession(testId, 'WRITING').then((data) => {
-            setTestData(data);
+            const shouldApplyPracticeConfig = mode === 'practice' && !isFullTest;
+            let configuredData = data;
+
+            if (shouldApplyPracticeConfig) {
+                let configuredParts = data.parts;
+
+                if (selectedPracticeParts.length > 0) {
+                    const filteredParts = data.parts.filter((p, idx) => {
+                        const parsedPartNo = Number.parseInt(String(p?.partNumber ?? ''), 10);
+                        const partNo = Number.isFinite(parsedPartNo) && parsedPartNo > 0 ? parsedPartNo : (idx + 1);
+                        return selectedPracticeParts.includes(partNo);
+                    });
+                    configuredParts = filteredParts.length ? filteredParts : data.parts;
+                }
+
+                configuredData = {
+                    ...data,
+                    parts: configuredParts,
+                };
+
+                if (Number.isFinite(durationOverrideMinutes) && durationOverrideMinutes > 0) {
+                    configuredData = {
+                        ...configuredData,
+                        totalMinutes: durationOverrideMinutes,
+                    };
+                } else if (noTimeLimit) {
+                    configuredData = {
+                        ...configuredData,
+                        totalMinutes: 0,
+                    };
+                }
+            }
+
+            const resolvedStartPartIndex = Number.isFinite(startPartNumber) && startPartNumber > 0
+                ? configuredData.parts.findIndex((p, idx) => {
+                    const parsedPartNo = Number.parseInt(String(p?.partNumber ?? ''), 10);
+                    const partNo = Number.isFinite(parsedPartNo) && parsedPartNo > 0 ? parsedPartNo : (idx + 1);
+                    return partNo === startPartNumber;
+                })
+                : -1;
+
+            setTestData(configuredData);
+            setCurrentPartIndex(resolvedStartPartIndex >= 0 ? resolvedStartPartIndex : 0);
             setLoading(false);
         }).catch((err) => {
             console.error('[Writing] Lỗi tải bài thi:', err);
@@ -86,16 +144,18 @@ const IeltsWritingTest = () => {
                 : `Không thể tải bài thi: ${err.message}`);
             setLoading(false);
         });
-    }, [testId]);
+    }, [testId, mode, isFullTest, selectedPracticeParts, startPartNumber, durationOverrideMinutes, noTimeLimit]);
 
     const handleAnswerChange = useCallback((partId, value) => {
         setWritingAnswers((prev) => ({ ...prev, [partId]: value }));
     }, []);
 
-    const [searchParams] = useSearchParams();
-    const navigate = useNavigate();
-    const isFullTest = searchParams.get('fullTest') === 'true';
-    const mode = searchParams.get('mode') || 'practice';
+    useEffect(() => {
+        if (!testData?.parts?.length) return;
+        if (currentPartIndex > testData.parts.length - 1) {
+            setCurrentPartIndex(0);
+        }
+    }, [testData, currentPartIndex]);
 
     const handleFullTestNext = () => {
         try {
@@ -159,6 +219,7 @@ const IeltsWritingTest = () => {
                 candidateId={testData.candidateId}
                 submitTest={submitTest}
                 duration={testData.totalMinutes}
+                noTimeLimit={noTimeLimit}
                 onTimeUp={submitTest}
             />
 
@@ -212,7 +273,7 @@ const IeltsWritingTest = () => {
                                 onClick={() => setCurrentPartIndex(index)}
                             >
                                 <div className="part-status-container">
-                                    <h4 className="part-title hover-pointer">Part {index + 1}</h4>
+                                    <h4 className="part-title hover-pointer">Part {p.partNumber || (index + 1)}</h4>
                                     {!isActive && (
                                         <span className="part-status" style={{ marginLeft: "10px" }}>
                                             {done ? 1 : 0} of 1

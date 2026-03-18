@@ -9,6 +9,7 @@ const TestComplete = () => {
     const mode = searchParams.get('mode') || 'practice';
     const skill = searchParams.get('skill') || '';
     const isExam = mode === 'exam';
+    const allowReview = searchParams.get('allowReview') === 'true';
     const isFullTest = searchParams.get('fullTest') === 'true';
     const testId = searchParams.get('testId');
 
@@ -39,7 +40,7 @@ const TestComplete = () => {
                 </div>
 
                 <div className="test-complete-body">
-                    {isExam ? (
+                    {isExam && !allowReview ? (
                         <>
                             <p className="test-complete-msg">
                                 Your answers have been submitted successfully.
@@ -51,25 +52,27 @@ const TestComplete = () => {
                     ) : (
                         <>
                             <p className="test-complete-msg">
-                                Your answers have been saved successfully.
+                                {isExam ? 'Simulation submitted successfully.' : 'Your answers have been saved successfully.'}
                             </p>
                             <p className="test-complete-sub">
-                                In practice mode you can review your answers and see the correct answers at any time.
+                                {isExam
+                                    ? 'You can now review your answers and compare with correct answers.'
+                                    : 'In practice mode you can review your answers and see the correct answers at any time.'}
                             </p>
-                            
+
                             <div style={{ display: 'flex', gap: '10px', marginTop: '20px', flexDirection: 'column' }}>
                                 {/* Hiện nút review cho kỹ năng vừa làm. Nếu full test thì hiện list nút tùy logic, ở đây tạm hỗ trợ xem lại cái vừa làm */}
                                 {isFullTest ? (
                                     <>
-                                        <button 
-                                            className="test-complete-btn" 
+                                        <button
+                                            className="test-complete-btn"
                                             onClick={() => navigate(`/test/reading/${testId}?fullTest=true&mode=practice&review=true`)}
                                             style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}
                                         >
                                             <Eye size={16} /> Review Reading
                                         </button>
-                                        <button 
-                                            className="test-complete-btn" 
+                                        <button
+                                            className="test-complete-btn"
                                             onClick={() => navigate(`/test/listening/${testId}?fullTest=true&mode=practice&review=true`)}
                                             style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}
                                         >
@@ -78,8 +81,8 @@ const TestComplete = () => {
                                     </>
                                 ) : (
                                     (skill.toLowerCase() === 'reading' || skill.toLowerCase() === 'listening') && (
-                                        <button 
-                                            className="test-complete-btn" 
+                                        <button
+                                            className="test-complete-btn"
                                             onClick={() => handleReview(skill.toLowerCase())}
                                             style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}
                                         >

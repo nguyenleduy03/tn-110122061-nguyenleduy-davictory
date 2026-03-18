@@ -6,6 +6,7 @@
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/config/SwaggerConfig.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/config/TestStructureInitializer.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/AuthController.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/ClassManagementController.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/ExamAttemptController.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/QuestionGroupController.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/TestBuilderController.java

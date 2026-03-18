@@ -8,14 +8,17 @@ import {
   Mic,
   Search,
   ChevronDown,
+  ChevronRight,
   ListFilter,
   GraduationCap,
   Users,
-  ArrowLeft,
   Zap,
   X,
   MonitorCheck,
   HelpCircle,
+  Timer,
+  Target,
+  Laptop,
 } from 'lucide-react';
 import Navbar from '../components/layout/Navbar';
 import { API_CONFIG } from '../config/api';
@@ -51,6 +54,36 @@ const SKILL_META = {
   READING: { Icon: BookOpen, color: '#16a34a', btnColor: '#15803d', label: 'Reading' },
   WRITING: { Icon: PenLine, color: '#d97706', btnColor: '#b45309', label: 'Writing' },
   SPEAKING: { Icon: Mic, color: '#9f1239', btnColor: '#881337', label: 'Speaking' },
+};
+
+const SKILL_MODE_META = {
+  LISTENING: {
+    estimatedTime: '30 mins',
+    practiceHint: 'Train with instant feedback and review answers after submitting.',
+    examHint: 'Run a full simulation flow and still review your answers after submission.',
+  },
+  READING: {
+    estimatedTime: '60 mins',
+    practiceHint: 'Practice by section and analyze mistakes immediately.',
+    examHint: 'Full exam condition with fixed timer and review available after finishing.',
+  },
+  WRITING: {
+    estimatedTime: '60 mins',
+    practiceHint: 'Focus on structure and ideas with flexible practice flow.',
+    examHint: 'Timed writing simulation with full exam pacing.',
+  },
+  SPEAKING: {
+    estimatedTime: '12-15 mins',
+    practiceHint: 'Practice each speaking part with comfortable pacing.',
+    examHint: 'Simulated speaking flow with realistic examiner timing.',
+  },
+};
+
+const SKILL_PRACTICE_SETUP = {
+  LISTENING: { parts: [1, 2, 3, 4], timeOptions: [10, 20, 30, 32, 0], defaultTime: 32 },
+  READING: { parts: [1, 2, 3], timeOptions: [20, 40, 60, 0], defaultTime: 60 },
+  WRITING: { parts: [1, 2], timeOptions: [20, 40, 60, 0], defaultTime: 60 },
+  SPEAKING: { parts: [1, 2, 3], timeOptions: [6, 10, 15, 0], defaultTime: 15 },
 };
 
 function BookCover({ series, index, small }) {
@@ -116,7 +149,8 @@ function TestGrid({ tests }) {
 
 /* ── SERIES DETAIL view ── */
 function SeriesDetail({ series, index, onBack }) {
-  const [showModal, setShowModal] = useState(false);
+  const [showFullTestModal, setShowFullTestModal] = useState(false);
+  const [skillModeModal, setSkillModeModal] = useState(null);
   const navigate = useNavigate();
 
   const skillGroups = useMemo(() => {
@@ -145,8 +179,66 @@ function SeriesDetail({ series, index, onBack }) {
       currentSection: 0,
       mode: 'practice',
     }));
-    setShowModal(false);
+    setShowFullTestModal(false);
     navigate(`/test/${sections[0].skill}/${sections[0].testId}?fullTest=true&mode=practice`);
+  };
+
+  const openSkillModeModal = (skill, testId) => {
+    const setup = SKILL_PRACTICE_SETUP[skill] || SKILL_PRACTICE_SETUP.READING;
+    setSkillModeModal({
+      skill,
+      testId,
+      selectedParts: [...setup.parts],
+      practiceDuration: setup.defaultTime,
+    });
+  };
+
+  const closeSkillModeModal = () => {
+    setSkillModeModal(null);
+  };
+
+  const togglePracticePart = (partNo) => {
+    setSkillModeModal((prev) => {
+      if (!prev) return prev;
+      const exists = prev.selectedParts.includes(partNo);
+      return {
+        ...prev,
+        selectedParts: exists
+          ? prev.selectedParts.filter((p) => p !== partNo)
+          : [...prev.selectedParts, partNo].sort((a, b) => a - b),
+      };
+    });
+  };
+
+  const setPracticeDuration = (minutes) => {
+    setSkillModeModal((prev) => {
+      if (!prev) return prev;
+      return { ...prev, practiceDuration: minutes };
+    });
+  };
+
+  const handleStartSkillMode = (mode) => {
+    if (!skillModeModal) return;
+    const { skill, testId, selectedParts, practiceDuration } = skillModeModal;
+    if (mode === 'practice' && (!selectedParts || selectedParts.length === 0)) return;
+
+    const params = new URLSearchParams();
+    params.set('mode', mode);
+    if (mode === 'practice') {
+      const sortedParts = [...selectedParts].sort((a, b) => a - b);
+      params.set('parts', sortedParts.join(','));
+      params.set('startPart', String(sortedParts[0]));
+      if (Number.isFinite(practiceDuration) && practiceDuration > 0) {
+        params.set('duration', String(practiceDuration));
+      } else {
+        params.set('noTimeLimit', 'true');
+      }
+    } else if (mode === 'exam') {
+      params.set('allowReview', 'true');
+    }
+
+    closeSkillModeModal();
+    navigate(`/test/${skill.toLowerCase()}/${testId}?${params.toString()}`);
   };
 
   return (
@@ -164,13 +256,14 @@ function SeriesDetail({ series, index, onBack }) {
                 <span className="skill-card-label">{m.label}</span>
               </div>
               <div className="skill-card-spacer" />
-              <Link
-                to={`/test/${skill.toLowerCase()}/${tests[0].id}?mode=practice`}
+              <button
+                type="button"
                 className="skill-card-btn"
                 style={{ background: m.btnColor }}
+                onClick={() => openSkillModeModal(skill, tests[0].id)}
               >
                 <Zap size={15} fill="white" color="white" /> Làm bài
-              </Link>
+              </button>
             </div>
           );
         })}
@@ -189,16 +282,16 @@ function SeriesDetail({ series, index, onBack }) {
             <span className="full-test-progress-text">0%</span>
           </div>
         </div>
-        <button className="full-test-start-btn" onClick={() => setShowModal(true)}>
+        <button className="full-test-start-btn" onClick={() => setShowFullTestModal(true)}>
           <Zap size={15} fill="white" color="white" /> Start
         </button>
       </div>
 
       {/* Full Test Modal */}
-      {showModal && (
-        <div className="ft-overlay" onClick={() => setShowModal(false)}>
+      {showFullTestModal && (
+        <div className="ft-overlay" onClick={() => setShowFullTestModal(false)}>
           <div className="ft-modal" onClick={e => e.stopPropagation()}>
-            <button className="ft-modal-close" onClick={() => setShowModal(false)}>
+            <button className="ft-modal-close" onClick={() => setShowFullTestModal(false)}>
               <X size={20} />
             </button>
             <div className="ft-modal-icon">
@@ -221,6 +314,111 @@ function SeriesDetail({ series, index, onBack }) {
           </div>
         </div>
       )}
+
+      {/* Skill Mode Modal */}
+      {skillModeModal && (() => {
+        const modalSkill = skillModeModal.skill;
+        const meta = SKILL_META[modalSkill];
+        const modeMeta = SKILL_MODE_META[modalSkill] || SKILL_MODE_META.READING;
+        const practiceSetup = SKILL_PRACTICE_SETUP[modalSkill] || SKILL_PRACTICE_SETUP.READING;
+        const selectedParts = skillModeModal.selectedParts || [];
+        const practiceDuration = Number.isFinite(skillModeModal.practiceDuration)
+          ? skillModeModal.practiceDuration
+          : practiceSetup.defaultTime;
+        const canStartPractice = selectedParts.length > 0;
+        const noTimeLimit = practiceDuration === 0;
+        const heading = `${meta?.label || 'Skill'} mode`;
+
+        return (
+          <div className="sm-overlay" onClick={closeSkillModeModal}>
+            <div className="sm-modal" onClick={(e) => e.stopPropagation()}>
+              <button className="sm-close" onClick={closeSkillModeModal}>
+                <X size={20} />
+              </button>
+
+              <div className="sm-head" style={{ '--sm-accent': meta?.btnColor || '#1e3a8a' }}>
+                {meta?.Icon ? <meta.Icon size={30} /> : <LayoutGrid size={30} />}
+                <h3>Choose your {heading}</h3>
+                <p>Select a mode that fits your current training goal.</p>
+              </div>
+
+              <div className="sm-cards">
+                <div className="sm-card practice" style={{ '--sm-accent': meta?.color || '#1e3a8a' }}>
+                  <div className="sm-card-title-row">
+                    <Target size={19} />
+                    <h4>Practice Mode</h4>
+                  </div>
+                  <p>{modeMeta.practiceHint}</p>
+
+                  <div className="sm-practice-step">
+                    <div className="sm-practice-label">1. Choose part(s) to practice:</div>
+                    <div className="sm-part-grid">
+                      {practiceSetup.parts.map((partNo) => {
+                        const checked = selectedParts.includes(partNo);
+                        return (
+                          <button
+                            type="button"
+                            key={partNo}
+                            className={`sm-part-chip${checked ? ' active' : ''}`}
+                            onClick={() => togglePracticePart(partNo)}
+                          >
+                            <span>Part {partNo}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="sm-practice-step">
+                    <div className="sm-practice-label">2. Choose a time limit:</div>
+                    <div className="sm-time-select-wrap">
+                      <select
+                        className="sm-time-select"
+                        value={practiceDuration}
+                        onChange={(e) => setPracticeDuration(Number(e.target.value))}
+                      >
+                        {practiceSetup.timeOptions.map((mins) => (
+                          <option key={mins} value={mins}>
+                            {mins === 0 ? 'No time limit' : `${mins} mins`}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown size={16} className="sm-time-caret" />
+                    </div>
+                  </div>
+
+                  <div className="sm-meta">
+                    <span><Timer size={14} /> {noTimeLimit ? 'No time limit' : `${practiceDuration} mins`}</span>
+                    <span><HelpCircle size={14} /> Review enabled</span>
+                  </div>
+                  <button
+                    className="sm-start-btn"
+                    onClick={() => handleStartSkillMode('practice')}
+                    disabled={!canStartPractice}
+                  >
+                    Start practice <ChevronRight size={16} />
+                  </button>
+                </div>
+
+                <div className="sm-card exam" style={{ '--sm-accent': meta?.btnColor || '#1e3a8a' }}>
+                  <div className="sm-card-title-row">
+                    <Laptop size={19} />
+                    <h4>Simulation Mode</h4>
+                  </div>
+                  <p>{modeMeta.examHint}</p>
+                  <div className="sm-meta">
+                    <span><Timer size={14} /> {modeMeta.estimatedTime}</span>
+                    <span><HelpCircle size={14} /> Strict exam mode</span>
+                  </div>
+                  <button className="sm-start-btn" onClick={() => handleStartSkillMode('exam')}>
+                    Start simulation <ChevronRight size={16} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
@@ -267,15 +465,15 @@ export default function ExamLibrary() {
           year: test.publishedAt ? new Date(test.publishedAt).getFullYear() : new Date().getFullYear(),
           tests: test.isFullTest
             ? SKILL_ORDER.map((skill) => ({
-                id: test.id,
-                name: `${test.title} – ${skill.charAt(0) + skill.slice(1).toLowerCase()}`,
-                skill,
-              }))
+              id: test.id,
+              name: `${test.title} – ${skill.charAt(0) + skill.slice(1).toLowerCase()}`,
+              skill,
+            }))
             : (test.sessions || []).map((s) => ({
-                id: test.id,
-                name: `${test.title} – ${s.skillType || 'Test'}`,
-                skill: s.skillType || 'READING',
-              })),
+              id: test.id,
+              name: `${test.title} – ${s.skillType || 'Test'}`,
+              skill: s.skillType || 'READING',
+            })),
         }));
 
         console.log('[ExamLibrary] Mapped data:', mapped);
@@ -309,7 +507,7 @@ export default function ExamLibrary() {
   const filteredSeries = useMemo(() => {
     console.log('[ExamLibrary] Filtering - testSeries:', testSeries.length);
     console.log('[ExamLibrary] Filtering - activeType:', activeType, 'activeSkill:', activeSkill, 'searchQuery:', searchQuery);
-    
+
     const filtered = testSeries.filter(series => {
       if (activeType !== 'ALL' && series.type !== activeType) {
         console.log('[ExamLibrary] Filtered out by type:', series.title, 'type:', series.type);
@@ -328,7 +526,7 @@ export default function ExamLibrary() {
       }
       return true;
     });
-    
+
     console.log('[ExamLibrary] Filtered result:', filtered.length, 'series');
     return filtered;
   }, [testSeries, activeType, activeSkill, searchQuery]);
@@ -360,8 +558,8 @@ export default function ExamLibrary() {
           <div style={{ textAlign: 'center', padding: '40px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', margin: '20px' }}>
             <p style={{ color: '#dc2626', marginBottom: '16px' }}>❌ Lỗi kết nối backend: {fetchError}</p>
             <p style={{ color: '#6b7280', marginBottom: '16px' }}>API URL: {API_CONFIG.BASE_URL}/tests/published</p>
-            <button 
-              onClick={() => window.location.reload()} 
+            <button
+              onClick={() => window.location.reload()}
               style={{ padding: '8px 16px', backgroundColor: '#dc2626', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
             >
               Thử lại
@@ -370,90 +568,90 @@ export default function ExamLibrary() {
         </div>
       ) : (
         <div className="exam-library-wrapper">
-        <div className="exam-library-main">
-          <nav className="el-breadcrumb">
-            <Link to="/">Home</Link>
-            <span className="el-breadcrumb-sep"> / </span>
-            <span>IELTS Exam Library</span>
-          </nav>
+          <div className="exam-library-main">
+            <nav className="el-breadcrumb">
+              <Link to="/">Home</Link>
+              <span className="el-breadcrumb-sep"> / </span>
+              <span>IELTS Exam Library</span>
+            </nav>
 
-          <h1 className="el-title">IELTS Exam Library</h1>
+            <h1 className="el-title">IELTS Exam Library</h1>
 
-          {/* Type tabs */}
-          {!selectedSeries && (
-            <div className="el-type-tabs">
-              {TYPE_TABS.map(({ key, label, Icon }) => (
-                <button
-                  key={key}
-                  className={`el-type-tab${activeType === key ? ' active' : ''}`}
-                  onClick={() => { setActiveType(key); setSelectedSeries(null); }}
-                >
-                  <Icon size={16} /> {label}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Skill pills */}
-          {!selectedSeries && (
-            <div className="el-skill-pills">
-              {SKILL_PILLS.map(({ key, label, Icon }) => (
-                <button
-                  key={key}
-                  className={`el-skill-pill${activeSkill === key ? ' active' : ''}`}
-                  onClick={() => setActiveSkill(key)}
-                >
-                  <Icon size={14} /> {label}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Search + Sort */}
-          {!selectedSeries && (
-            <div className="el-search-row">
-              <div className="el-search-box">
-                <Search size={16} color="#9ca3af" />
-                <input
-                  type="text"
-                  placeholder="Search..."
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                />
+            {/* Type tabs */}
+            {!selectedSeries && (
+              <div className="el-type-tabs">
+                {TYPE_TABS.map(({ key, label, Icon }) => (
+                  <button
+                    key={key}
+                    className={`el-type-tab${activeType === key ? ' active' : ''}`}
+                    onClick={() => { setActiveType(key); setSelectedSeries(null); }}
+                  >
+                    <Icon size={16} /> {label}
+                  </button>
+                ))}
               </div>
-              <button className="el-sort-btn">
-                Newest <ChevronDown size={14} />
-              </button>
-            </div>
-          )}
+            )}
 
-          {/* Content */}
-          {selectedSeries ? (
-            <SeriesDetail
-              series={selectedSeries}
-              index={selectedSeriesIndex}
-              onBack={() => setSelectedSeries(null)}
-            />
-          ) : activeSkill === 'ALL' ? (
-            <div className="el-series-list">
-              {fetchError ? (
-                <div className="el-empty">
-                  <p>⚠️ Không kết nối được backend.</p>
-                  <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>{fetchError}</p>
+            {/* Skill pills */}
+            {!selectedSeries && (
+              <div className="el-skill-pills">
+                {SKILL_PILLS.map(({ key, label, Icon }) => (
+                  <button
+                    key={key}
+                    className={`el-skill-pill${activeSkill === key ? ' active' : ''}`}
+                    onClick={() => setActiveSkill(key)}
+                  >
+                    <Icon size={14} /> {label}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Search + Sort */}
+            {!selectedSeries && (
+              <div className="el-search-row">
+                <div className="el-search-box">
+                  <Search size={16} color="#9ca3af" />
+                  <input
+                    type="text"
+                    placeholder="Search..."
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                  />
                 </div>
-              ) : filteredSeries.length === 0 ? (
-                <div className="el-empty">Chưa có đề thi nào được xuất bản.</div>
-              ) : filteredSeries.map((series, idx) => (
-                <SeriesCard key={series.id} series={series} index={idx} onSelect={handleSelectSeries} />
-              ))
-              }
-            </div>
-          ) : (
-            <TestGrid tests={flatTests} />
-          )}
-        </div>
+                <button className="el-sort-btn">
+                  Newest <ChevronDown size={14} />
+                </button>
+              </div>
+            )}
 
-      </div>
+            {/* Content */}
+            {selectedSeries ? (
+              <SeriesDetail
+                series={selectedSeries}
+                index={selectedSeriesIndex}
+                onBack={() => setSelectedSeries(null)}
+              />
+            ) : activeSkill === 'ALL' ? (
+              <div className="el-series-list">
+                {fetchError ? (
+                  <div className="el-empty">
+                    <p>⚠️ Không kết nối được backend.</p>
+                    <p style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>{fetchError}</p>
+                  </div>
+                ) : filteredSeries.length === 0 ? (
+                  <div className="el-empty">Chưa có đề thi nào được xuất bản.</div>
+                ) : filteredSeries.map((series, idx) => (
+                  <SeriesCard key={series.id} series={series} index={idx} onSelect={handleSelectSeries} />
+                ))
+                }
+              </div>
+            ) : (
+              <TestGrid tests={flatTests} />
+            )}
+          </div>
+
+        </div>
       )}
     </div>
   );

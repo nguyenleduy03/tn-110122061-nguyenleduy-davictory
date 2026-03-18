@@ -21,6 +21,7 @@ import BuilderSidebar from '../components/testBuilder/BuilderSidebar';
 import ExamCanvas from '../components/testBuilder/ExamCanvas';
 import PropertiesPanel from '../components/testBuilder/PropertiesPanel';
 import PreviewModal from '../components/testBuilder/PreviewModal';
+import ErrorBoundary from '../components/common/ErrorBoundary';
 import { testBuilderApi, buildSavePayload, parseLoadedTest } from '../services/testBuilderApi';
 import { authApi } from '../services/authApi';
 import '../styles/testBuilder.css';
@@ -164,7 +165,13 @@ const TestBuilder = () => {
   }, [editTestId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
+    useSensor(PointerSensor, { 
+      activationConstraint: { distance: 6 },
+      // Add error handling
+      onActivation: (event) => {
+        console.log('Sensor activated:', event);
+      }
+    })
   );
 
   const parts = sessions[activeSkill] ?? [];
@@ -666,165 +673,207 @@ const TestBuilder = () => {
   // ------------ DnD handlers ------------
 
   const handleDragStart = ({ active }) => {
-    setActiveOverlayItem(active.data.current ?? null);
+    try {
+      console.log('Drag start:', active.id, active.data.current);
+      setActiveOverlayItem(active.data.current ?? null);
+    } catch (error) {
+      console.error('Error in handleDragStart:', error);
+    }
   };
 
   const handleDragOver = ({ active, over }) => {
-    const overData = over?.data?.current;
-    const activeData = active?.data?.current;
-    const isPassageItem = activeData?.contentType === 'READING_PASSAGE';
-    if (overData?.type === 'passage-pane' && isPassageItem) {
-      setDragOverPassagePaneId(over.id);
-      setDragOverPartId(null);
-    } else if (overData?.type === 'question-pane' || overData?.type === 'part') {
-      setDragOverPartId(over.id);
-      setDragOverPassagePaneId(null);
-    } else {
-      setDragOverPartId(null);
-      setDragOverPassagePaneId(null);
+    try {
+      const overData = over?.data?.current;
+      const activeData = active?.data?.current;
+      const isPassageItem = activeData?.contentType === 'READING_PASSAGE';
+      
+      console.log('Drag over:', {
+        activeId: active.id,
+        overId: over?.id,
+        activeData,
+        overData,
+        isPassageItem
+      });
+      
+      if (overData?.type === 'passage-pane' && isPassageItem) {
+        setDragOverPassagePaneId(over.id);
+        setDragOverPartId(null);
+      } else if (overData?.type === 'question-pane' || overData?.type === 'part') {
+        setDragOverPartId(over.id);
+        setDragOverPassagePaneId(null);
+      } else {
+        setDragOverPartId(null);
+        setDragOverPassagePaneId(null);
+      }
+    } catch (error) {
+      console.error('Error in handleDragOver:', error);
     }
   };
 
   const handleDragEnd = ({ active, over }) => {
-    setActiveOverlayItem(null);
-    setDragOverPartId(null);
-    setDragOverPassagePaneId(null);
-    if (!over) return;
+    try {
+      console.log('Drag end:', {
+        activeId: active.id,
+        overId: over?.id,
+        activeData: active.data.current,
+        overData: over?.data?.current
+      });
+      
+      setActiveOverlayItem(null);
+      setDragOverPartId(null);
+      setDragOverPassagePaneId(null);
+      if (!over) return;
 
-    const activeData = active.data.current;
-    const overData = over?.data?.current;
+      const activeData = active.data.current;
+      const overData = over?.data?.current;
 
-    // 1. Palette item dropped onto passage pane → only allow READING_PASSAGE
-    if (activeData?.source === 'palette' && overData?.type === 'passage-pane') {
-      if (activeData.contentType !== 'READING_PASSAGE') return; // block non-passage items
-      const partId = Number(overData.partId);
-      const part = parts.find((p) => p.id === partId);
-      if (part) addGroup(part, 'READING_PASSAGE');
-      return;
-    }
-
-    // 2. Palette item dropped onto question pane → use dragged contentType (block READING_PASSAGE)
-    if (activeData?.source === 'palette' && overData?.type === 'question-pane') {
-      const partId = Number(overData.partId);
-      const part = parts.find((p) => p.id === partId);
-      if (part) {
-        // Don't allow dropping READING_PASSAGE into question pane
-        const ct = activeData.contentType === 'READING_PASSAGE' ? 'STANDALONE' : activeData.contentType;
-        addGroup(part, ct);
-      }
-      return;
-    }
-
-    // 3. Palette item dropped onto generic part drop zone (Listening/Writing/Speaking)
-    if (activeData?.source === 'palette' && overData?.type === 'part') {
-      const partId = Number(overData.partId ?? overData.part?.id);
-      const part = parts.find((p) => p.id === partId);
-      if (part) addGroup(part, activeData.contentType);
-      return;
-    }
-
-    // 4. Reorder parts
-    if (activeData?.type === 'part' && overData?.type === 'part') {
-      const oldIdx = parts.findIndex((p) => `part-${p.id}` === active.id);
-      const newIdx = parts.findIndex((p) => `part-${p.id}` === over.id);
-      if (oldIdx !== -1 && newIdx !== -1 && oldIdx !== newIdx) {
-        setParts(arrayMove(parts, oldIdx, newIdx));
-      }
-      return;
-    }
-
-    // 5. Reorder/move existing groups
-    if (activeData?.type === 'group') {
-      // 5a) Drop group onto another group
-      if (overData?.type === 'group') {
-        const sourcePartId = Number(activeData.partId);
-        const targetPartId = Number(overData.partId);
-
-        if (!Number.isFinite(sourcePartId) || !Number.isFinite(targetPartId)) return;
-
-        setParts((prev) => {
-          const srcPart = prev.find((p) => p.id === sourcePartId);
-          const dstPart = prev.find((p) => p.id === targetPartId);
-          if (!srcPart || !dstPart) return prev;
-
-          const srcGroups = srcPart.questionGroups ?? [];
-          const dstGroups = dstPart.questionGroups ?? [];
-          const srcIdx = srcGroups.findIndex((g) => `group-${g.id}` === active.id);
-          const dstIdx = dstGroups.findIndex((g) => `group-${g.id}` === over.id);
-          if (srcIdx === -1 || dstIdx === -1) return prev;
-
-          // Same part: reorder only
-          if (sourcePartId === targetPartId) {
-            if (srcIdx === dstIdx) return prev;
-            return prev.map((p) =>
-              p.id === sourcePartId
-                ? { ...p, questionGroups: arrayMove(srcGroups, srcIdx, dstIdx) }
-                : p
-            );
-          }
-
-          // Different part: move to target part at drop index
-          const movingGroup = srcGroups[srcIdx];
-          if (!movingGroup) return prev;
-
-          const nextSrc = srcGroups.filter((_, i) => i !== srcIdx);
-          const nextDst = [...dstGroups];
-          nextDst.splice(dstIdx, 0, movingGroup);
-
-          return prev.map((p) => {
-            if (p.id === sourcePartId) return { ...p, questionGroups: nextSrc };
-            if (p.id === targetPartId) return { ...p, questionGroups: nextDst };
-            return p;
-          });
-        });
+      // 1. Palette item dropped onto passage pane → only allow READING_PASSAGE
+      if (activeData?.source === 'palette' && overData?.type === 'passage-pane') {
+        if (activeData.contentType !== 'READING_PASSAGE') return; // block non-passage items
+        const partId = Number(overData.partId);
+        const part = parts.find((p) => p.id === partId);
+        if (part) addGroup(part, 'READING_PASSAGE');
         return;
       }
 
-      // 5b) Drop group onto pane/part drop-zone => move group to end of target part
-      if (overData?.type === 'part' || overData?.type === 'question-pane' || overData?.type === 'passage-pane') {
-        const sourcePartId = Number(activeData.partId);
-        const targetPartId = Number(overData.partId ?? overData.part?.id);
-        if (!Number.isFinite(sourcePartId) || !Number.isFinite(targetPartId)) return;
-
-        setParts((prev) => {
-          const srcPart = prev.find((p) => p.id === sourcePartId);
-          const dstPart = prev.find((p) => p.id === targetPartId);
-          if (!srcPart || !dstPart) return prev;
-
-          const srcGroups = srcPart.questionGroups ?? [];
-          const dstGroups = dstPart.questionGroups ?? [];
-          const srcIdx = srcGroups.findIndex((g) => `group-${g.id}` === active.id);
-          if (srcIdx === -1) return prev;
-
-          const movingGroup = srcGroups[srcIdx];
-          if (!movingGroup) return prev;
-
-          // Reading split-pane constraints
-          if (overData.type === 'passage-pane' && movingGroup.contentType !== 'READING_PASSAGE') {
-            return prev;
-          }
-          if (overData.type === 'question-pane' && movingGroup.contentType === 'READING_PASSAGE') {
-            return prev;
-          }
-
-          // Same part and dropped to end with no order change
-          if (sourcePartId === targetPartId && srcIdx === srcGroups.length - 1) return prev;
-
-          const nextSrc = srcGroups.filter((_, i) => i !== srcIdx);
-          const nextDst = sourcePartId === targetPartId ? nextSrc : [...dstGroups];
-          nextDst.push(movingGroup);
-
-          return prev.map((p) => {
-            if (p.id === sourcePartId) return { ...p, questionGroups: nextSrc };
-            if (p.id === targetPartId) return { ...p, questionGroups: nextDst };
-            return p;
-          });
-        });
+      // 2. Palette item dropped onto question pane → use dragged contentType (block READING_PASSAGE)
+      if (activeData?.source === 'palette' && overData?.type === 'question-pane') {
+        const partId = Number(overData.partId);
+        const part = parts.find((p) => p.id === partId);
+        if (part) {
+          // Don't allow dropping READING_PASSAGE into question pane
+          const ct = activeData.contentType === 'READING_PASSAGE' ? 'STANDALONE' : activeData.contentType;
+          addGroup(part, ct);
+        }
+        return;
       }
+
+      // 3. Palette item dropped onto generic part drop zone (Listening/Writing/Speaking)
+      if (activeData?.source === 'palette' && overData?.type === 'part') {
+        const partId = Number(overData.partId ?? overData.part?.id);
+        const part = parts.find((p) => p.id === partId);
+        if (part) addGroup(part, activeData.contentType);
+        return;
+      }
+
+      // 4. Reorder parts
+      if (activeData?.type === 'part' && overData?.type === 'part') {
+        const oldIdx = parts.findIndex((p) => `part-${p.id}` === active.id);
+        const newIdx = parts.findIndex((p) => `part-${p.id}` === over.id);
+        if (oldIdx !== -1 && newIdx !== -1 && oldIdx !== newIdx) {
+          setParts(arrayMove(parts, oldIdx, newIdx));
+        }
+        return;
+      }
+
+      // 5. Reorder/move existing groups
+      if (activeData?.type === 'group') {
+        // 5a) Drop group onto another group
+        if (overData?.type === 'group') {
+          const sourcePartId = Number(activeData.partId);
+          const targetPartId = Number(overData.partId);
+
+          if (!Number.isFinite(sourcePartId) || !Number.isFinite(targetPartId)) return;
+
+          setParts((prev) => {
+            const srcPart = prev.find((p) => p.id === sourcePartId);
+            const dstPart = prev.find((p) => p.id === targetPartId);
+            if (!srcPart || !dstPart) return prev;
+
+            const srcGroups = srcPart.questionGroups ?? [];
+            const dstGroups = dstPart.questionGroups ?? [];
+            const srcIdx = srcGroups.findIndex((g) => `group-${g.id}` === active.id);
+            const dstIdx = dstGroups.findIndex((g) => `group-${g.id}` === over.id);
+            if (srcIdx === -1 || dstIdx === -1) return prev;
+
+            // Same part: reorder only
+            if (sourcePartId === targetPartId) {
+              if (srcIdx === dstIdx) return prev;
+              return prev.map((p) =>
+                p.id === sourcePartId
+                  ? { ...p, questionGroups: arrayMove(srcGroups, srcIdx, dstIdx) }
+                  : p
+              );
+            }
+
+            // Different part: move to target part at drop index
+            const movingGroup = srcGroups[srcIdx];
+            if (!movingGroup) return prev;
+
+            const nextSrc = srcGroups.filter((_, i) => i !== srcIdx);
+            const nextDst = [...dstGroups];
+            nextDst.splice(dstIdx, 0, movingGroup);
+
+            return prev.map((p) => {
+              if (p.id === sourcePartId) return { ...p, questionGroups: nextSrc };
+              if (p.id === targetPartId) return { ...p, questionGroups: nextDst };
+              return p;
+            });
+          });
+          return;
+        }
+
+        // 5b) Drop group onto pane/part drop-zone => move group to end of target part
+        if (overData?.type === 'part' || overData?.type === 'question-pane' || overData?.type === 'passage-pane') {
+          const sourcePartId = Number(activeData.partId);
+          const targetPartId = Number(overData.partId ?? overData.part?.id);
+          if (!Number.isFinite(sourcePartId) || !Number.isFinite(targetPartId)) return;
+
+          setParts((prev) => {
+            const srcPart = prev.find((p) => p.id === sourcePartId);
+            const dstPart = prev.find((p) => p.id === targetPartId);
+            if (!srcPart || !dstPart) return prev;
+
+            const srcGroups = srcPart.questionGroups ?? [];
+            const dstGroups = dstPart.questionGroups ?? [];
+            const srcIdx = srcGroups.findIndex((g) => `group-${g.id}` === active.id);
+            if (srcIdx === -1) return prev;
+
+            const movingGroup = srcGroups[srcIdx];
+            if (!movingGroup) return prev;
+
+            // Reading split-pane constraints
+            if (overData.type === 'passage-pane' && movingGroup.contentType !== 'READING_PASSAGE') {
+              return prev;
+            }
+            if (overData.type === 'question-pane' && movingGroup.contentType === 'READING_PASSAGE') {
+              return prev;
+            }
+
+            // Same part and dropped to end with no order change
+            if (sourcePartId === targetPartId && srcIdx === srcGroups.length - 1) return prev;
+
+            const nextSrc = srcGroups.filter((_, i) => i !== srcIdx);
+            const nextDst = sourcePartId === targetPartId ? nextSrc : [...dstGroups];
+            nextDst.push(movingGroup);
+
+            return prev.map((p) => {
+              if (p.id === sourcePartId) return { ...p, questionGroups: nextSrc };
+              if (p.id === targetPartId) return { ...p, questionGroups: nextDst };
+              return p;
+            });
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error in handleDragEnd:', error);
+      // Reset state on error
+      setActiveOverlayItem(null);
+      setDragOverPartId(null);
+      setDragOverPassagePaneId(null);
     }
   };
 
-  const handleDragCancel = () => { setActiveOverlayItem(null); setDragOverPartId(null); setDragOverPassagePaneId(null); };
+  const handleDragCancel = () => { 
+    try {
+      console.log('Drag cancelled');
+      setActiveOverlayItem(null); 
+      setDragOverPartId(null); 
+      setDragOverPassagePaneId(null); 
+    } catch (error) {
+      console.error('Error in handleDragCancel:', error);
+    }
+  };
 
   // ------------ Save ------------
 
@@ -955,130 +1004,148 @@ const TestBuilder = () => {
   }
 
   return (
-    <div className="tb-page">
-      {previewOpen && (
-        <PreviewModal
-          test={test}
-          sessions={sessions}
-          onClose={() => setPreviewOpen(false)}
-        />
-      )}
-
-      <BuilderHeader
-        test={test}
-        onTestChange={updateTest}
-        onSave={handleSave}
-        onPreview={() => setPreviewOpen(true)}
-        onSubmitReview={handleSubmitReview}
-        saving={saving}
-        onShuffle={handleShuffle}
-        shuffling={shuffling}
-        saveMessage={saveMessage}
-        onSkillModeChange={handleSkillModeChange}
-      />
-
-      <div className="tb-workspace">
-        <DndContext
-          sensors={sensors}
-          collisionDetection={({ active, droppableContainers, ...rest }) => {
-            // For palette items use rectIntersection so empty panes are detectable
-            if (active.data.current?.source === 'palette') {
-              return rectIntersection({ active, droppableContainers, ...rest });
-            }
-            return closestCenter({ active, droppableContainers, ...rest });
-          }}
-          onDragStart={handleDragStart}
-          onDragOver={handleDragOver}
-          onDragEnd={handleDragEnd}
-          onDragCancel={handleDragCancel}
-        >
-          <BuilderSidebar
-            parts={parts}
+    <ErrorBoundary>
+      <div className="tb-page">
+        {previewOpen && (
+          <PreviewModal
+            test={test}
             sessions={sessions}
-            activeSessionKey={activeSkill}
-            selection={selection}
-            enabledSkills={enabledSkills}
-            onSelectSession={(key) => { setActiveSkill(key); setSelection(null); }}
-            onSelectPart={(p) => setSelection({ type: 'part', data: p })}
-            onSelectGroup={(g) => setSelection({ type: 'group', data: { ...g } })}
+            onClose={() => setPreviewOpen(false)}
           />
+        )}
 
-          <ExamCanvas
-            skill={activeSkill}
-            parts={parts}
-            selection={selection}
-            dragOverPartId={dragOverPartId}
-            dragOverPassagePaneId={dragOverPassagePaneId}
-            draggingContentType={activeOverlayItem?.contentType ?? null}
-            onMoveGroupUp={(groupId) => {
-              const part = parts.find((p) => p.questionGroups?.some((g) => g.id === groupId));
-              if (part) moveGroupByStep(part.id, groupId, -1);
-            }}
-            onMoveGroupDown={(groupId) => {
-              const part = parts.find((p) => p.questionGroups?.some((g) => g.id === groupId));
-              if (part) moveGroupByStep(part.id, groupId, 1);
-            }}
-            onSelectGroup={(g, partId) => setSelection({ type: 'group', data: { ...g, partId } })}
-            onSelectQuestion={(q) => {
-              const ctx = findQuestionContext(q.id);
-              if (ctx) {
-                setSelection({
-                  type: 'question',
-                  data: {
-                    ...q,
-                    partId: ctx.part.id,
-                    groupId: ctx.group.id,
-                    groupContentType: ctx.group.contentType,
-                  },
-                });
-              } else {
-                setSelection({ type: 'question', data: q });
-              }
-            }}
-            onUpdateGroup={(groupId, upd) => {
-              const part = parts.find((p) => p.questionGroups?.some((g) => g.id === groupId));
-              if (part) updateGroup(part.id, groupId, upd);
-            }}
-            onUpdateQuestion={(groupId, questionId, upd) => {
-              const part = parts.find((p) => p.questionGroups?.some((g) => g.id === groupId));
-              if (part) updateQuestion(part.id, groupId, questionId, upd);
-            }}
-            onDeleteGroup={(groupId) => {
-              const part = parts.find((p) => p.questionGroups?.some((g) => g.id === groupId));
-              if (part) deleteGroup(part.id, groupId);
-            }}
-            onDeleteQuestion={(groupId, questionId) => {
-              const part = parts.find((p) => p.questionGroups?.some((g) => g.id === groupId));
-              if (part) deleteQuestion(part.id, groupId, questionId);
-            }}
-            onAddQuestion={(group) => addQuestion(group)}
-            onAddGroup={(part, contentType) => addGroup(part, contentType)}
-            onAddPart={addPart}
-          />
-
-          {/* Drag overlay */}
-          <DragOverlay>
-            {activeOverlayItem?.source === 'palette' && (
-              <div className="tb-drag-preview">
-                <span style={{ fontSize: 16 }}>{activeOverlayItem.icon}</span>
-                <span>{activeOverlayItem.label}</span>
-              </div>
-            )}
-            {activeOverlayItem?.type === 'group' && (
-              <div className="tb-drag-preview">
-                <GripVertical size={14} /> Nhóm câu hỏi
-              </div>
-            )}
-          </DragOverlay>
-        </DndContext>
-
-        <PropertiesPanel
-          selection={selection}
-          onChange={handlePanelChange}
-          onDelete={handlePanelDelete}
+        <BuilderHeader
+          test={test}
+          onTestChange={updateTest}
+          onSave={handleSave}
+          onPreview={() => setPreviewOpen(true)}
+          onSubmitReview={handleSubmitReview}
+          saving={saving}
+          onShuffle={handleShuffle}
+          shuffling={shuffling}
+          saveMessage={saveMessage}
+          onSkillModeChange={handleSkillModeChange}
         />
+
+        <div className="tb-workspace">
+          <ErrorBoundary>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={({ active, droppableContainers, ...rest }) => {
+                try {
+                  // For palette items use rectIntersection so empty panes are detectable
+                  if (active?.data?.current?.source === 'palette') {
+                    return rectIntersection({ active, droppableContainers, ...rest });
+                  }
+                  return closestCenter({ active, droppableContainers, ...rest });
+                } catch (error) {
+                  console.error('Error in collision detection:', error);
+                  // Fallback to closestCenter
+                  return closestCenter({ active, droppableContainers, ...rest });
+                }
+              }}
+              onDragStart={handleDragStart}
+              onDragOver={handleDragOver}
+              onDragEnd={handleDragEnd}
+              onDragCancel={handleDragCancel}
+            >
+              <ErrorBoundary>
+                <BuilderSidebar
+                  parts={parts}
+                  sessions={sessions}
+                  activeSessionKey={activeSkill}
+                  selection={selection}
+                  enabledSkills={enabledSkills}
+                  onSelectSession={(key) => { setActiveSkill(key); setSelection(null); }}
+                  onSelectPart={(p) => setSelection({ type: 'part', data: p })}
+                  onSelectGroup={(g) => setSelection({ type: 'group', data: { ...g } })}
+                />
+              </ErrorBoundary>
+
+              <ErrorBoundary>
+                <ExamCanvas
+                  skill={activeSkill}
+                  parts={parts}
+                  selection={selection}
+                  dragOverPartId={dragOverPartId}
+                  dragOverPassagePaneId={dragOverPassagePaneId}
+                  draggingContentType={activeOverlayItem?.contentType ?? null}
+                  onMoveGroupUp={(groupId) => {
+                    const part = parts.find((p) => p.questionGroups?.some((g) => g.id === groupId));
+                    if (part) moveGroupByStep(part.id, groupId, -1);
+                  }}
+                  onMoveGroupDown={(groupId) => {
+                    const part = parts.find((p) => p.questionGroups?.some((g) => g.id === groupId));
+                    if (part) moveGroupByStep(part.id, groupId, 1);
+                  }}
+                  onSelectGroup={(g, partId) => setSelection({ type: 'group', data: { ...g, partId } })}
+                  onSelectQuestion={(q) => {
+                    const ctx = findQuestionContext(q.id);
+                    if (ctx) {
+                      setSelection({
+                        type: 'question',
+                        data: {
+                          ...q,
+                          partId: ctx.part.id,
+                          groupId: ctx.group.id,
+                          groupContentType: ctx.group.contentType,
+                        },
+                      });
+                    } else {
+                      setSelection({ type: 'question', data: q });
+                    }
+                  }}
+                  onUpdateGroup={(groupId, upd) => {
+                    const part = parts.find((p) => p.questionGroups?.some((g) => g.id === groupId));
+                    if (part) updateGroup(part.id, groupId, upd);
+                  }}
+                  onUpdateQuestion={(groupId, questionId, upd) => {
+                    const part = parts.find((p) => p.questionGroups?.some((g) => g.id === groupId));
+                    if (part) updateQuestion(part.id, groupId, questionId, upd);
+                  }}
+                  onDeleteGroup={(groupId) => {
+                    const part = parts.find((p) => p.questionGroups?.some((g) => g.id === groupId));
+                    if (part) deleteGroup(part.id, groupId);
+                  }}
+                  onDeleteQuestion={(groupId, questionId) => {
+                    const part = parts.find((p) => p.questionGroups?.some((g) => g.id === groupId));
+                    if (part) deleteQuestion(part.id, groupId, questionId);
+                  }}
+                  onAddQuestion={(group) => addQuestion(group)}
+                  onAddGroup={(part, contentType) => addGroup(part, contentType)}
+                  onAddPart={addPart}
+                />
+              </ErrorBoundary>
+
+              {/* Drag overlay */}
+              <DragOverlay>
+                {activeOverlayItem?.source === 'palette' && (
+                  <div className="tb-drag-preview">
+                    <span style={{ fontSize: 16 }}>
+                      {activeOverlayItem.icon ? React.createElement(activeOverlayItem.icon, { size: 16 }) : '📄'}
+                    </span>
+                    <span>{activeOverlayItem.label || 'Unknown Item'}</span>
+                  </div>
+                )}
+                {activeOverlayItem?.type === 'group' && (
+                  <div className="tb-drag-preview">
+                    <GripVertical size={14} /> Nhóm câu hỏi
+                  </div>
+                )}
+              </DragOverlay>
+            </DndContext>
+          </ErrorBoundary>
+
+          <ErrorBoundary>
+            <PropertiesPanel
+              selection={selection}
+              onChange={handlePanelChange}
+              onDelete={handlePanelDelete}
+            />
+          </ErrorBoundary>
+        </div>
       </div>
-    </div>
+    </ErrorBoundary>
   );
 };
 

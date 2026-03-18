@@ -1028,6 +1028,100 @@ const ImageGroup = ({ group, activeQ, onSetActive }) => {
   );
 };
 
+// Matching Features group — bảng lưới chọn ký tự A/B/C...
+const MatchingFeaturesGroup = ({ group, activeQ, onSetActive }) => {
+  const questions = group.questions ?? [];
+  const [answers, setAnswers] = useState({});
+
+  let parsedMeta = { categoryTitle: '', categories: [] };
+  try { if (group.passageText) parsedMeta = JSON.parse(group.passageText); } catch { /**/ }
+  const categories = Array.isArray(parsedMeta.categories) ? parsedMeta.categories : [];
+  const categoryTitle = parsedMeta.categoryTitle || '';
+
+  const toggle = (qNum, label) => {
+    setAnswers(prev => ({ ...prev, [qNum]: prev[qNum] === label ? '' : label }));
+    onSetActive(qNum);
+  };
+
+  if (questions.length === 0) {
+    return (
+      <div className="pv-group-block">
+        <QuestionRange group={group} />
+        <em className="pv-empty">Chưa có câu hỏi.</em>
+      </div>
+    );
+  }
+
+  return (
+    <div className="pv-group-block" onClick={(e) => e.stopPropagation()}>
+      <QuestionRange group={group} />
+      {group.instructions && (
+        <div className="pv-group-instructions" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.instructions) }} />
+      )}
+
+      {/* Categories reference */}
+      {categories.length > 0 && (
+        <div className="pv-mf-categories-box">
+          {categoryTitle && <div className="pv-mf-category-title">{categoryTitle}</div>}
+          <div className="pv-mf-category-list">
+            {categories.map((cat) => (
+              <div key={cat.label} className="pv-mf-category-row">
+                <span className="pv-mf-cat-label">{cat.label}</span>
+                <span className="pv-mf-cat-text">{cat.text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Questions table */}
+      <div className="pv-mf-table-wrap">
+        <table className="pv-mf-table">
+          <thead>
+            <tr className="pv-mf-header-row">
+              <th className="pv-mf-th-item"></th>
+              {categories.map((cat) => (
+                <th key={cat.label} className="pv-mf-th-cat">{cat.label}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {questions.map((q) => {
+              const qNum = q.questionNumber;
+              const isActive = activeQ === qNum;
+              const selected = answers[qNum] || '';
+              return (
+                <tr key={q.id}
+                  className={`pv-mf-question-row${isActive ? ' pv-mf-row-active' : ''}`}
+                  onClick={() => onSetActive(qNum)}>
+                  <td className="pv-mf-td-item">
+                    <div className="pv-mf-item-inner">
+                      <span className={`pv-q-num-badge${isActive ? ' active' : ''}`}>{qNum}</span>
+                      <span className="pv-mf-q-text">
+                        {q.questionText
+                          ? <span dangerouslySetInnerHTML={{ __html: formatPreviewText(q.questionText) }} />
+                          : <em className="pv-empty">...</em>}
+                      </span>
+                    </div>
+                  </td>
+                  {categories.map((cat) => (
+                    <td key={cat.label}
+                      className={`pv-mf-choice-cell${selected === cat.label ? ' pv-mf-selected' : ''}`}
+                      onClick={(e) => { e.stopPropagation(); toggle(qNum, cat.label); }}
+                      title={`Chọn ${cat.label}`}>
+                      {selected === cat.label && <span className="pv-mf-check">✓</span>}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
 const renderGroup = (group, activeQ, onSetActive) => {
   const ct = group.contentType;
   const props = { key: group.id, group, activeQ, onSetActive };
@@ -1036,6 +1130,7 @@ const renderGroup = (group, activeQ, onSetActive) => {
   if (ct === 'AUDIO_TRANSCRIPT') return <AudioGroup {...props} />;
   if (ct === 'MATCHING_HEADING') return <MatchingHeadingGroup {...props} />;
   if (ct === 'DRAG_MATCHING') return <DragMatchingGroup {...props} />;
+  if (ct === 'MATCHING_FEATURES') return <MatchingFeaturesGroup {...props} />;
   if (ct === 'TABLE_COMPLETION') return <TableCompletionGroup {...props} />;
   if (ct === 'MAP_LABELLING') return <MapLabellingGroup {...props} />;
   if (ct === 'SUMMARY_COMPLETION') return <SummaryGroup {...props} />;

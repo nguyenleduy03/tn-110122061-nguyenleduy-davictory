@@ -30,6 +30,63 @@ export function useTestNavigation(testData) {
         document.querySelector('.ielts-main')?.scrollTo(0, 0);
     }, [currentPartIndex, part]);
 
+    const findActiveQuestionElement = (questionNumber) => {
+        const byId = document.getElementById(`question-${questionNumber}`);
+        if (byId) return byId;
+
+        return document.querySelector(`[data-question-numbers~="${questionNumber}"]`);
+    };
+
+    const scrollElementIntoQuestionsSection = (el) => {
+        if (!el) return false;
+        const questionsSection = el.closest('.questions-section') || document.querySelector('.questions-section');
+
+        if (!questionsSection) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+            return true;
+        }
+
+        const containerRect = questionsSection.getBoundingClientRect();
+        const elRect = el.getBoundingClientRect();
+        const targetTop = questionsSection.scrollTop
+            + (elRect.top - containerRect.top)
+            - (questionsSection.clientHeight / 2)
+            + (elRect.height / 2);
+
+        questionsSection.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+        return true;
+    };
+
+    // Keep viewport in sync with current question when navigating via Next/Prev.
+    useEffect(() => {
+        if (activeQuestion == null) return;
+
+        let isCancelled = false;
+        let attempts = 0;
+        let retryTimerId = null;
+
+        const scrollToActiveQuestion = () => {
+            if (isCancelled) return;
+
+            const el = findActiveQuestionElement(activeQuestion);
+            if (el && scrollElementIntoQuestionsSection(el)) {
+                return;
+            }
+
+            if (attempts < 20) {
+                attempts += 1;
+                retryTimerId = window.setTimeout(scrollToActiveQuestion, 50);
+            }
+        };
+
+        const startTimer = window.setTimeout(scrollToActiveQuestion, 0);
+        return () => {
+            isCancelled = true;
+            window.clearTimeout(startTimer);
+            if (retryTimerId) window.clearTimeout(retryTimerId);
+        };
+    }, [activeQuestion, currentPartIndex]);
+
     const goNext = () => {
         if (!part || !testData) return;
         const questions = getQuestionNumbers();

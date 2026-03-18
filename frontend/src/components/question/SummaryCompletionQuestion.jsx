@@ -50,6 +50,7 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
                     <span key={index}>
                         <span dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(part) }} />
                         <span
+                            id={`question-${qNum}`}
                             className={`inline-question summary-inline-item ${isActive ? 'active-question-input' : ''} relative-pos`}
                             onClick={() => setActiveQuestion?.(qNum)}
                         >
@@ -95,6 +96,7 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
                 return (
                     <span
                         key={index}
+                        id={`question-${qNum}`}
                         className={`inline-question summary-inline-item ${isActive ? 'active-question-input' : ''} relative-pos`}
                         onClick={() => setActiveQuestion?.(qNum)}
                     >

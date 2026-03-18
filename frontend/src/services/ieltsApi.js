@@ -92,6 +92,8 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
     feType = 'matching_heading';
   } else if (contentType === 'DRAG_MATCHING' || contentType === 'MATCHING' || contentType === 'MATCHING_INFO') {
     feType = 'matching_info';
+  } else if (contentType === 'MATCHING_FEATURES') {
+    feType = 'matching_features';
   } else if (contentType === 'AUDIO_TRANSCRIPT') {
     // Audio transcript groups - skip questions, just extract audio
     return [];
@@ -470,6 +472,52 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
       leftHeader: parsedBank?.leftTitle || group.leftTitle || 'Questions',
       rightHeader: parsedBank?.rightTitle || group.rightTitle || 'Options',
       bankOptions,
+      subQuestions,
+    }];
+  }
+
+  // ─── MATCHING_FEATURES → 1 group question ─────────────────────────────
+  if (feType === 'matching_features') {
+    let categories = [];
+    let categoryTitle = '';
+    if (group.passageText) {
+      try {
+        const parsed = JSON.parse(group.passageText);
+        categories = Array.isArray(parsed.categories) ? parsed.categories : [];
+        categoryTitle = parsed.categoryTitle || '';
+      } catch {
+        categories = [];
+      }
+    }
+
+    const subQuestions = questions.map((q) => {
+      const num = globalCounterRef.counter++;
+      const correctAnswer = (q.answers || [])[0]?.answerText
+        || (q.options || []).find(o => o.isCorrect)?.optionText
+        || '';
+      return {
+        id: `q${q.id}`,
+        number: num,
+        text: q.questionText || q.blankContext || '',
+        correctAnswer,
+      };
+    });
+
+    const numbers = subQuestions.map((sq) => sq.number).filter((n) => Number.isFinite(n));
+    const minNum = numbers.length ? Math.min(...numbers) : null;
+    const maxNum = numbers.length ? Math.max(...numbers) : null;
+    const heading = (minNum !== null && maxNum !== null)
+      ? (minNum === maxNum ? `Question ${minNum}` : `Questions ${minNum}–${maxNum}`)
+      : '';
+
+    return [{
+      id: `group-${group.questionGroupId || group.id}`,
+      type: 'matching_features',
+      questionTypeCode: typeCode,
+      heading,
+      instruction: group.instructions || `Choose the correct group (${categories.map(c => c.label).join('–') || 'A–E'}) for each item. You may choose any group more than once.`,
+      categoryTitle,
+      categories,
       subQuestions,
     }];
   }

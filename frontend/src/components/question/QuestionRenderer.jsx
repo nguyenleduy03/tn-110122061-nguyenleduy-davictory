@@ -1,4 +1,5 @@
 import React from 'react';
+import { Bookmark } from 'lucide-react';
 import FillInBlankQuestion from './FillInBlankQuestion';
 import MultipleChoiceQuestion from './MultipleChoiceQuestion';
 import TFNGQuestion from './TFNGQuestion';
@@ -6,6 +7,7 @@ import DragDropGroupQuestion from './DragDropGroupQuestion';
 import FlowChartQuestion from './FlowChartQuestion';
 import SummaryCompletionQuestion from './SummaryCompletionQuestion';
 import ImageDragDropQuestion from './ImageDragDropQuestion';
+import MatchingFeaturesQuestion from './MatchingFeaturesQuestion';
 import { formatTextWithWhitespace } from '../../utils/textFormatters';
 
 const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answer, handleAnswerChange, inputRefs, bookmarks, toggleBookmark, isReview }) => {
@@ -119,6 +121,21 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
         );
     }
 
+    if (q.type === 'matching_features') {
+        return (
+            <MatchingFeaturesQuestion
+                q={q}
+                activeQuestion={activeQuestion}
+                setActiveQuestion={setActiveQuestion}
+                answers={answers || {}}
+                handleAnswerChange={handleAnswerChange}
+                bookmarks={bookmarks}
+                toggleBookmark={toggleBookmark}
+                isReview={isReview}
+            />
+        );
+    }
+
     if (q.type === 'image-drag-drop') {
         return (
             <ImageDragDropQuestion
@@ -186,6 +203,7 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
         const renderBlankInput = (info) => {
             if (!info?.subQ) return null;
             const subQ = info.subQ;
+            const isActive = activeQuestion === subQ.number;
             const currentValue = answerMap[subQ.id] || '';
             const isCorrect = String(currentValue).trim().toLowerCase() === String(subQ.correctAnswer || '').trim().toLowerCase();
             const displayValue = (isReview && !isCorrect)
@@ -193,14 +211,27 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
                 : String(currentValue || '');
 
             return (
-                <span className="table-inline-wrap relative-pos" key={`tc-${subQ.id}`}>
+                <span
+                    id={`question-${subQ.number}`}
+                    className={`table-inline-wrap inline-question ${isActive ? 'active-question-input' : ''} relative-pos`}
+                    key={`tc-${subQ.id}`}
+                >
+                    {!isReview && (
+                        <span
+                            className="tc-bookmark"
+                            onClick={(e) => { e.stopPropagation(); toggleBookmark?.(subQ.number); }}
+                        >
+                            <Bookmark size={18} fill={bookmarks?.[subQ.number] ? '#1a73e8' : 'none'} color={bookmarks?.[subQ.number] ? '#1a73e8' : '#ccc'} />
+                        </span>
+                    )}
                     <input
                         ref={(el) => { if (inputRefs?.current) inputRefs.current[subQ.id] = el; }}
                         type="text"
-                        className={`inline-input tc-inline-input ${activeQuestion === subQ.number ? 'active-question-input' : ''} ${isReview ? (isCorrect ? 'review-correct' : 'review-wrong') : ''}`}
+                        className={`inline-input tc-inline-input ${isReview ? (isCorrect ? 'review-correct' : 'review-wrong') : ''}`}
                         placeholder={String(subQ.number || '')}
                         value={displayValue}
                         onClick={() => setActiveQuestion?.(subQ.number)}
+                        onFocus={() => { if (!isReview) setActiveQuestion?.(subQ.number); }}
                         onChange={(e) => { if (!isReview) handleAnswerChange?.(subQ.id, e.target.value); }}
                         readOnly={isReview}
                     />
@@ -241,6 +272,14 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
                         {subQuestions.map((subQ) => (
                             <div key={subQ.id} className="table-cell-input relative-pos">
                                 <label>Q{subQ.number}</label>
+                                {!isReview && (
+                                    <span
+                                        className="tc-bookmark"
+                                        onClick={(e) => { e.stopPropagation(); toggleBookmark?.(subQ.number); }}
+                                    >
+                                        <Bookmark size={18} fill={bookmarks?.[subQ.number] ? '#1a73e8' : 'none'} color={bookmarks?.[subQ.number] ? '#1a73e8' : '#ccc'} />
+                                    </span>
+                                )}
                                 {(() => {
                                     const rawValue = answerMap[subQ.id] || '';
                                     const isCorrect = String(rawValue).trim().toLowerCase() === String(subQ.correctAnswer || '').trim().toLowerCase();

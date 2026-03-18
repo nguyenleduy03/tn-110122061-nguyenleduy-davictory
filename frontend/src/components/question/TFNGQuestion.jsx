@@ -63,7 +63,7 @@ const TFNGQuestion = ({ q, activeQuestion, setActiveQuestion, answer, handleAnsw
                                 className="tfng-input-no-margin"
                                 onChange={() => handleChange(opt)}
                             />
-                            <span className="opt-text" dangerouslySetInnerHTML={{ __html: opt || '' }} />
+                            <span className="opt-text" dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(opt || '') }} />
                         </label>
                     );
                 })}

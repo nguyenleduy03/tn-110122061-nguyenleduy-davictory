@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Users,
@@ -82,6 +82,10 @@ export default function AdminUsers() {
     studentCodesText: '',
     notes: ''
   });
+  const [csvPreviewCodes, setCsvPreviewCodes] = useState([]);
+  const [csvFileName, setCsvFileName] = useState('');
+  const [csvParseError, setCsvParseError] = useState('');
+  const csvInputRef = useRef(null);
 
   // Lấy thông tin user hiện tại
   const currentUser = authApi.getStoredUser();
@@ -142,6 +146,83 @@ export default function AdminUsers() {
       .split(/[,\n;\t\s]+/g)
       .map((s) => s.trim())
       .filter(Boolean);
+  };
+
+  const parseCodesFromCsv = (csvText) => {
+    const cleanText = String(csvText || '').replace(/^\uFEFF/, '');
+    const lines = cleanText
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    if (lines.length === 0) return [];
+
+    const parseRow = (line) => line
+      .split(',')
+      .map((cell) => cell.trim().replace(/^"|"$/g, ''));
+
+    const firstRow = parseRow(lines[0]);
+    const normalizedHeader = firstRow.map((h) => h.toLowerCase());
+    const codeColIndex = normalizedHeader.findIndex((h) =>
+      ['studentcode', 'student_code', 'username', 'code', 'mahv', 'mshv'].includes(h)
+    );
+
+    const dataStartIndex = codeColIndex >= 0 ? 1 : 0;
+    const extracted = [];
+
+    for (let i = dataStartIndex; i < lines.length; i += 1) {
+      const row = parseRow(lines[i]);
+      if (row.length === 0) continue;
+
+      const rawCode = codeColIndex >= 0
+        ? row[codeColIndex]
+        : row[0];
+
+      if (rawCode && rawCode.trim()) {
+        extracted.push(rawCode.trim());
+      }
+    }
+
+    return [...new Set(extracted)];
+  };
+
+  const handleCsvUploadForHandover = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setCsvParseError('');
+    setCsvFileName(file.name || '');
+
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+      setCsvPreviewCodes([]);
+      setCsvParseError('Chỉ chấp nhận file .csv');
+      return;
+    }
+
+    try {
+      const text = await file.text();
+      const parsedCodes = parseCodesFromCsv(text);
+
+      if (parsedCodes.length === 0) {
+        setCsvPreviewCodes([]);
+        setCsvParseError('Không đọc được mã học viên từ file CSV. Hãy kiểm tra cột username/studentCode.');
+        return;
+      }
+
+      setCsvPreviewCodes(parsedCodes);
+    } catch (error) {
+      setCsvPreviewCodes([]);
+      setCsvParseError('Không thể đọc file CSV. Vui lòng thử lại.');
+    }
+  };
+
+  const clearCsvPreview = () => {
+    setCsvPreviewCodes([]);
+    setCsvFileName('');
+    setCsvParseError('');
+    if (csvInputRef.current) {
+      csvInputRef.current.value = '';
+    }
   };
 
   const handleAssignTeacherByClassCode = async () => {
@@ -242,9 +323,11 @@ export default function AdminUsers() {
       return;
     }
 
-    const studentCodes = parseStudentCodes(handoverForm.studentCodesText);
+    const manualCodes = parseStudentCodes(handoverForm.studentCodesText);
+    const studentCodes = [...new Set([...(manualCodes || []), ...(csvPreviewCodes || [])])];
+
     if (studentCodes.length === 0) {
-      alert('Vui lòng nhập danh sách mã học viên (mỗi mã một dòng hoặc cách nhau bởi dấu phẩy)');
+      alert('Vui lòng nhập mã học viên thủ công hoặc upload CSV trước khi bàn giao');
       return;
     }
 
@@ -263,6 +346,7 @@ export default function AdminUsers() {
       }
 
       setHandoverForm((prev) => ({ ...prev, studentCodesText: '', notes: '' }));
+      clearCsvPreview();
       fetchManagementData();
     } catch (error) {
       alert(error?.response?.data?.message || 'Bàn giao danh sách học viên thất bại');
@@ -1003,9 +1087,53 @@ export default function AdminUsers() {
                     style={{ width: '100%', padding: '11px 12px', border: '1px solid #cbd5e1', borderRadius: 10 }}
                   />
 
+                  <div style={{ display: 'grid', gap: 8, padding: 10, border: '1px solid #e2e8f0', borderRadius: 10, background: '#f8fafc' }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>
+                      Upload CSV để xem trước danh sách học viên
+                    </div>
+                    <input
+                      ref={csvInputRef}
+                      type="file"
+                      accept=".csv,text/csv"
+                      onChange={handleCsvUploadForHandover}
+                      style={{ width: '100%' }}
+                    />
+
+                    {csvParseError && (
+                      <div style={{ fontSize: 12, color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '8px 10px' }}>
+                        {csvParseError}
+                      </div>
+                    )}
+
+                    {csvPreviewCodes.length > 0 && (
+                      <div style={{ border: '1px solid #bfdbfe', borderRadius: 8, background: '#eff6ff', padding: 10 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                          <div style={{ fontSize: 12, color: '#1e3a8a', fontWeight: 700 }}>
+                            Xem trước từ file: {csvFileName || 'CSV'} • {csvPreviewCodes.length} mã học viên
+                          </div>
+                          <button
+                            type="button"
+                            onClick={clearCsvPreview}
+                            style={{ border: '1px solid #93c5fd', background: 'white', color: '#1d4ed8', borderRadius: 6, fontSize: 12, padding: '4px 8px', cursor: 'pointer' }}
+                          >
+                            Xóa file
+                          </button>
+                        </div>
+                        <div style={{ maxHeight: 130, overflowY: 'auto', fontSize: 12, color: '#1e293b', display: 'grid', gap: 4 }}>
+                          {csvPreviewCodes.slice(0, 150).map((code) => (
+                            <div key={code} style={{ fontFamily: 'monospace' }}>{code}</div>
+                          ))}
+                          {csvPreviewCodes.length > 150 && (
+                            <div style={{ color: '#64748b' }}>... và {csvPreviewCodes.length - 150} mã khác</div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                   <textarea
                     rows={6}
-                    placeholder="Nhập danh sách mã học viên / username\nMỗi dòng 1 mã hoặc phân tách bằng dấu phẩy"
+                    placeholder="Thêm thủ công: nhập mã học viên / username\nMỗi dòng 1 mã hoặc phân tách bằng dấu phẩy"
                     value={handoverForm.studentCodesText}
                     onChange={(e) => setHandoverForm((prev) => ({ ...prev, studentCodesText: e.target.value }))}
                     style={{ width: '100%', padding: '11px 12px', border: '1px solid #cbd5e1', borderRadius: 10, resize: 'vertical' }}

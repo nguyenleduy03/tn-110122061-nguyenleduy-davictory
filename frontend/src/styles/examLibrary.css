@@ -687,6 +687,7 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
+  border: none;
   color: white;
   font-size: 14px;
   font-weight: 600;
@@ -925,6 +926,225 @@
 
 .ft-modal-confirm-btn:hover {
   opacity: 0.88;
+}
+
+/* ============================================================
+   SKILL MODE MODAL
+   ============================================================ */
+.sm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(14, 23, 40, 0.5);
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 22px;
+}
+
+.sm-modal {
+  width: min(980px, 96vw);
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 24px 70px rgba(10, 20, 40, 0.28);
+  position: relative;
+  padding: 28px 24px 24px;
+}
+
+.sm-close {
+  position: absolute;
+  right: 14px;
+  top: 14px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+}
+
+.sm-close:hover {
+  color: #0f172a;
+}
+
+.sm-head {
+  text-align: center;
+  margin-bottom: 18px;
+  color: var(--sm-accent, #1e3a8a);
+}
+
+.sm-head h3 {
+  margin: 8px 0 6px;
+  font-size: 38px;
+  line-height: 1.05;
+  font-weight: 800;
+  letter-spacing: -0.4px;
+}
+
+.sm-head p {
+  margin: 0;
+  color: #64748b;
+  font-size: 15px;
+}
+
+.sm-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.sm-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 18px 18px 16px;
+  background: #f8fbff;
+}
+
+.sm-card.practice {
+  background: linear-gradient(180deg, #f1fbff 0%, #f8fbff 100%);
+}
+
+.sm-card.exam {
+  background: linear-gradient(180deg, #f7f8ff 0%, #f8fbff 100%);
+}
+
+.sm-card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--sm-accent, #1e3a8a);
+  margin-bottom: 8px;
+}
+
+.sm-card-title-row h4 {
+  margin: 0;
+  font-size: 28px;
+  line-height: 1.1;
+  letter-spacing: -0.2px;
+}
+
+.sm-card p {
+  margin: 0 0 14px;
+  font-size: 14px;
+  color: #334155;
+  line-height: 1.6;
+  min-height: 34px;
+}
+
+.sm-practice-step {
+  margin-bottom: 12px;
+}
+
+.sm-practice-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e3a8a;
+  margin-bottom: 8px;
+}
+
+.sm-part-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(86px, 1fr));
+  gap: 8px;
+}
+
+.sm-part-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 999px;
+  background: #fff;
+  color: #334155;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  outline: none;
+}
+
+.sm-part-chip:hover {
+  border-color: #94a3b8;
+}
+
+.sm-part-chip.active {
+  border-color: var(--sm-accent, #1e3a8a);
+  background: color-mix(in srgb, var(--sm-accent, #1e3a8a) 14%, white);
+  color: #0f172a;
+}
+
+.sm-time-select-wrap {
+  position: relative;
+}
+
+.sm-time-select {
+  width: 100%;
+  appearance: none;
+  border: 1px solid #bfdbfe;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 10px 38px 10px 12px;
+  outline: none;
+  cursor: pointer;
+}
+
+.sm-time-select:focus {
+  border-color: var(--sm-accent, #1e3a8a);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--sm-accent, #1e3a8a) 16%, transparent);
+}
+
+.sm-time-caret {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #475569;
+  pointer-events: none;
+}
+
+.sm-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.sm-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #475569;
+}
+
+.sm-start-btn {
+  width: 100%;
+  border: none;
+  border-radius: 999px;
+  background: var(--sm-accent, #1e3a8a);
+  color: #fff;
+  font-weight: 700;
+  font-size: 15px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 18px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.sm-start-btn:hover {
+  opacity: 0.9;
+}
+
+.sm-start-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 /* ============================================================
@@ -1215,5 +1435,28 @@
 
   .exam-library-wrapper {
     padding: 16px 12px 32px;
+  }
+
+  .sm-modal {
+    padding: 22px 14px 14px;
+    border-radius: 12px;
+  }
+
+  .sm-head h3 {
+    font-size: 30px;
+  }
+
+  .sm-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .sm-card-title-row h4 {
+    font-size: 24px;
+  }
+}
+
+@media (max-width: 960px) {
+  .sm-cards {
+    grid-template-columns: 1fr;
   }
 }

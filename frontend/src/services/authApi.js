@@ -241,4 +241,42 @@ VIC009998,Trần Thị,Bình,VIC009998@gmail.com,@VIC009998,VIC260312IE45A`;
     });
     return response.data;
   },
+
+  // API quản lý lớp dùng chung cho ADMIN/TEACHER
+  getMyClassManagement: async () => {
+    const response = await apiClient.get('/class-management/my');
+    return response.data;
+  },
+
+  // Tạo lớp học mới
+  createClass: async (classData) => {
+    const response = await apiClient.post('/class-management/create', classData);
+    return response.data;
+  },
+
+  assignStudentsByClassCodeScoped: async ({ classCode, studentCodes, notes = '' }) => {
+    const response = await apiClient.post('/class-management/assign-students-by-class-code', {
+      classCode,
+      studentCodes,
+      notes,
+    });
+    return response.data;
+  },
+
+  updateClassInfo: async (classId, payload) => {
+    const response = await apiClient.put(`/class-management/classes/${classId}`, payload);
+    return response.data;
+  },
+
+  // Xóa học viên khỏi lớp
+  removeStudentFromClass: async (classId, studentId) => {
+    const response = await apiClient.delete(`/class-management/classes/${classId}/students/${studentId}`);
+    return response.data;
+  },
+
+  // Cập nhật giảng viên cho lớp
+  updateClassTeacher: async (classId, teacherId) => {
+    const response = await apiClient.put(`/class-management/classes/${classId}/teacher`, { teacherId });
+    return response.data;
+  },
 };
