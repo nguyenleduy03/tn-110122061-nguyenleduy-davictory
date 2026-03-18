@@ -64,6 +64,8 @@ export default function AdminUsers() {
   const [handoverWarning, setHandoverWarning] = useState(null);
   const [deleteClassTarget, setDeleteClassTarget] = useState(null);
   const [deleteClassPassword, setDeleteClassPassword] = useState('');
+  const [managementLoading, setManagementLoading] = useState(false);
+  const [managementData, setManagementData] = useState({ classes: [], teachers: [] });
 
   // Lấy thông tin user hiện tại
   const currentUser = authApi.getStoredUser();
@@ -537,11 +539,22 @@ export default function AdminUsers() {
     // Không cho phép xóa Admin cuối cùng
     const adminUsers = users.filter(u => u.roles.includes('ADMIN'));
     if (userToDelete?.roles.includes('ADMIN') && adminUsers.length <= 1) {
-      notify('warning', 'Giữ lại Admin cuối cùng', 'Không thể xóa Admin cuối cùng trong hệ thống!');
+      alert('Không thể xóa Admin cuối cùng trong hệ thống');
       return;
     }
 
     setDeleteTarget(userToDelete);
+    setDeletePassword('');
+  };
+
+  const handleRestoreUser = async (userId) => {
+    try {
+      await authApi.restoreUser(userId);
+      notify('success', 'Khôi phục thành công', 'User đã được khôi phục');
+      fetchUsers();
+    } catch (error) {
+      notify('error', 'Khôi phục thất bại', error?.response?.data?.message || 'Không thể khôi phục user');
+    }
   };
 
   const closeHandoverWarning = () => setHandoverWarning(null);
@@ -979,6 +992,7 @@ export default function AdminUsers() {
                     Vai trò
                   </div>
                 </th>
+                {activeTab !== 'DELETED' && (
                 <th style={{ 
                   padding: 20, textAlign: 'left', fontWeight: 700, color: '#1e293b',
                   fontSize: 14, letterSpacing: '0.5px', textTransform: 'uppercase'
@@ -988,6 +1002,7 @@ export default function AdminUsers() {
                     Trạng thái
                   </div>
                 </th>
+                )}
                 <th style={{ 
                   padding: 20, textAlign: 'left', fontWeight: 700, color: '#1e293b',
                   fontSize: 14, letterSpacing: '0.5px', textTransform: 'uppercase'
@@ -1061,6 +1076,7 @@ export default function AdminUsers() {
                       })}
                     </div>
                   </td>
+                  {activeTab !== 'DELETED' && (
                   <td style={{ padding: 20 }}>
                     <button
                       onClick={() => handleToggleActive(user.id)}
@@ -1083,6 +1099,7 @@ export default function AdminUsers() {
                       {user.isActive ? 'Hoạt động' : 'Tạm khóa'}
                     </button>
                   </td>
+                  )}
                   <td style={{ padding: 20, fontSize: 13, color: '#6b7280' }}>
                     {user.lastLogin ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1095,6 +1112,8 @@ export default function AdminUsers() {
                   </td>
                   <td style={{ padding: 20, textAlign: 'center' }}>
                     <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+                      {/* Nút Đổi mật khẩu - ẩn khi ở tab Đã xóa */}
+                      {activeTab !== 'DELETED' && (
                       <button
                         onClick={() => {
                           setSelectedUser(user);
@@ -1112,9 +1131,10 @@ export default function AdminUsers() {
                       >
                         <Key size={16} />
                       </button>
+                      )}
                       
-                      {/* Chỉ hiển thị nút Edit nếu không phải chính mình */}
-                      {user.id !== currentUser?.id && (
+                      {/* Nút Chỉnh sửa - ẩn khi ở tab Đã xóa hoặc là chính mình */}
+                      {activeTab !== 'DELETED' && user.id !== currentUser?.id && (
                         <button
                           onClick={() => handleEditUser(user)}
                           style={{
@@ -1131,22 +1151,41 @@ export default function AdminUsers() {
                         </button>
                       )}
                       
-                      {/* Chỉ hiển thị nút Delete nếu không phải chính mình và không phải Admin cuối */}
-                      {user.id !== currentUser?.id && !(user.roles.includes('ADMIN') && users.filter(u => u.roles.includes('ADMIN')).length <= 1) && (
+                      {/* Nút Khôi phục cho user đã xóa, nút Xóa cho user active */}
+                      {user.deletedAt ? (
                         <button
-                          onClick={() => handleDeleteUser(user.id)}
+                          onClick={() => handleRestoreUser(user.id)}
                           style={{
-                            padding: 10, background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', 
+                            padding: 10, background: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)', 
                             border: 'none', borderRadius: 10, cursor: 'pointer', color: 'white',
-                            boxShadow: '0 4px 12px rgba(239, 68, 68, 0.4)',
+                            boxShadow: '0 4px 12px rgba(22, 163, 74, 0.4)',
                             transition: 'all 0.3s ease'
                           }}
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                            <path d="M21 3v5h-5"/>
+                            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                            <path d="M3 21v-5h5"/>
+                          </svg>
+                        </button>
+                      ) : (
+                        user.id !== currentUser?.id && !(user.roles.includes('ADMIN') && users.filter(u => u.roles.includes('ADMIN')).length <= 1) && (
+                          <button
+                            onClick={() => handleDeleteUser(user.id)}
+                            style={{
+                              padding: 10, background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', 
+                              border: 'none', borderRadius: 10, cursor: 'pointer', color: 'white',
+                              boxShadow: '0 4px 12px rgba(239, 68, 68, 0.4)',
+                              transition: 'all 0.3s ease'
+                            }}
                           title="Xóa"
                           onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
                           onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
                         >
                           <Trash2 size={16} />
                         </button>
+                        )
                       )}
                     </div>
                   </td>
@@ -1727,4 +1766,4 @@ export default function AdminUsers() {
       </div>
     </AdminLayout>
   );
-};
+}
