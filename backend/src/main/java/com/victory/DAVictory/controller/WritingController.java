@@ -75,4 +75,51 @@ public class WritingController {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
+
+    /**
+     * Lấy danh sách bài nộp của học viên trong các lớp mà giáo viên dạy.
+     */
+    @GetMapping("/teacher/submissions")
+    @PreAuthorize("hasAnyRole('TEACHER', 'MANAGER', 'ADMIN')")
+    public ResponseEntity<?> getSubmissionsForTeacher(Authentication authentication) {
+        try {
+            String teacherUsername = authentication.getName();
+            List<WritingSubmissionResponse> list = writingService.getSubmissionsForTeacher(teacherUsername);
+            return ResponseEntity.ok(list);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Lấy chi tiết bài viết cho giáo viên.
+     */
+    @GetMapping("/teacher/submissions/{id}")
+    @PreAuthorize("hasAnyRole('TEACHER', 'MANAGER', 'ADMIN')")
+    public ResponseEntity<?> getSubmissionForTeacher(
+            @PathVariable Long id,
+            Authentication authentication) {
+        try {
+            String teacherUsername = authentication.getName();
+            WritingSubmissionResponse response = writingService.getSubmissionForTeacher(id, teacherUsername);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Lấy tất cả bài làm (exam attempts) của học viên trong các lớp mà giáo viên dạy.
+     */
+    @GetMapping("/teacher/all-submissions")
+    @PreAuthorize("hasAnyRole('TEACHER', 'MANAGER', 'ADMIN')")
+    public ResponseEntity<?> getAllSubmissionsForTeacher(Authentication authentication) {
+        try {
+            String teacherUsername = authentication.getName();
+            Map<String, Object> result = writingService.getAllSubmissionsForTeacher(teacherUsername);
+            return ResponseEntity.ok(result);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
 }

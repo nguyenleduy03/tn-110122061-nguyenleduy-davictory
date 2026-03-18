@@ -6,16 +6,19 @@ import com.victory.DAVictory.entity.QuestionGroup;
 import com.victory.DAVictory.entity.ClassStudent;
 import com.victory.DAVictory.entity.StudentWritingSubmission;
 import com.victory.DAVictory.entity.User;
+import com.victory.DAVictory.entity.ExamAttempt;
 import com.victory.DAVictory.repository.QuestionGroupRepository;
 import com.victory.DAVictory.repository.StudentWritingSubmissionRepository;
 import com.victory.DAVictory.repository.UserRepository;
 import com.victory.DAVictory.repository.ClassStudentRepository;
+import com.victory.DAVictory.repository.ExamAttemptRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -25,6 +28,7 @@ public class WritingService {
     private final UserRepository userRepository;
     private final QuestionGroupRepository questionGroupRepository;
     private final ClassStudentRepository classStudentRepository;
+    private final ExamAttemptRepository examAttemptRepository;
 
     // ─── Nộp bài Writing ────────────────────────────────────────────
     @Transactional
@@ -68,6 +72,58 @@ public class WritingService {
                 .toList();
     }
 
+    // ─── Lấy bài nộp cho giáo viên ────────────────────────────────────────────
+    @Transactional(readOnly = true)
+    public List<WritingSubmissionResponse> getSubmissionsForTeacher(String teacherUsername) {
+        User teacher = userRepository.findByUsername(teacherUsername)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy giáo viên: " + teacherUsername));
+
+        // Lấy tất cả học viên trong các lớp mà giáo viên này dạy
+        List<Long> studentIds = classStudentRepository.findStudentIdsByTeacherUsername(teacherUsername);
+        
+        if (studentIds.isEmpty()) {
+            return List.of();
+        }
+
+        List<StudentWritingSubmission> submissions = submissionRepository.findByUserIdInOrderBySubmittedAtDesc(studentIds);
+        return submissions.stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    // ─── Lấy tất cả bài làm (writing + exam attempts) cho giáo viên ────────────────────────────────────────────
+    @Transactional(readOnly = true)
+    public Map<String, Object> getAllSubmissionsForTeacher(String teacherUsername) {
+        List<Long> studentIds = classStudentRepository.findStudentIdsByTeacherUsername(teacherUsername);
+        
+        if (studentIds.isEmpty()) {
+            return Map.of("writingSubmissions", List.of(), "examAttempts", List.of());
+        }
+
+        // Lấy writing submissions
+        List<StudentWritingSubmission> writings = submissionRepository.findByUserIdInOrderBySubmittedAtDesc(studentIds);
+        List<WritingSubmissionResponse> writingResponses = writings.stream().map(this::toResponse).toList();
+
+        // Lấy exam attempts (Reading, Listening, Speaking)
+        List<ExamAttempt> attempts = examAttemptRepository.findByUserIdInOrderByStartedAtDesc(studentIds);
+        List<Map<String, Object>> attemptResponses = attempts.stream().map(a -> Map.of(
+            "id", (Object) a.getId(),
+            "userId", (Object) a.getUser().getId(),
+            "username", (Object) a.getUser().getUsername(),
+            "examType", (Object) (a.getSession() != null && a.getSession().getSkillType() != null ? a.getSession().getSkillType().toString() : "UNKNOWN"),
+            "examTitle", (Object) (a.getTest() != null ? a.getTest().getTitle() : "N/A"),
+            "status", (Object) a.getStatus(),
+            "bandScore", (Object) (a.getBandScore() != null ? a.getBandScore() : 0.0),
+            "startedAt", (Object) a.getStartedAt(),
+            "submittedAt", (Object) a.getSubmittedAt()
+        )).toList();
+
+        return Map.of(
+            "writingSubmissions", writingResponses,
+            "examAttempts", attemptResponses
+        );
+    }
+
     // ─── Lấy chi tiết một bài viết ─────────────────────────────────
     @Transactional(readOnly = true)
     public WritingSubmissionResponse getSubmission(Long submissionId, String username) {
@@ -78,6 +134,21 @@ public class WritingService {
         if (!submission.getUser().getUsername().equals(username)) {
             throw new RuntimeException("Không có quyền xem bài này");
         }
+        return toResponse(submission);
+    }
+
+    // ─── Lấy chi tiết bài viết cho giáo viên ─────────────────────────────────
+    @Transactional(readOnly = true)
+    public WritingSubmissionResponse getSubmissionForTeacher(Long submissionId, String teacherUsername) {
+        StudentWritingSubmission submission = submissionRepository.findById(submissionId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy bài nộp ID=" + submissionId));
+
+        // Kiểm tra giáo viên có quyền xem bài này không (học viên phải trong lớp của GV)
+        List<Long> studentIds = classStudentRepository.findStudentIdsByTeacherUsername(teacherUsername);
+        if (!studentIds.contains(submission.getUser().getId())) {
+            throw new RuntimeException("Không có quyền xem bài này");
+        }
+        
         return toResponse(submission);
     }
 

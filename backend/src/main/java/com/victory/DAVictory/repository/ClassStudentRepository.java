@@ -40,4 +40,11 @@ public interface ClassStudentRepository extends JpaRepository<ClassStudent, Long
 
     // Kiểm tra học viên có trong lớp không
     boolean existsByUserIdAndClazzId(Long userId, Long classId);
+
+    // Lấy danh sách student IDs trong các lớp mà giáo viên dạy
+    @Query("SELECT DISTINCT cs.user.id FROM ClassStudent cs " +
+           "JOIN ClassTeacher ct ON cs.clazz.id = ct.clazz.id " +
+           "JOIN User u ON ct.user.id = u.id " +
+           "WHERE u.username = :teacherUsername AND cs.status = 'ACTIVE'")
+    List<Long> findStudentIdsByTeacherUsername(@Param("teacherUsername") String teacherUsername);
 }

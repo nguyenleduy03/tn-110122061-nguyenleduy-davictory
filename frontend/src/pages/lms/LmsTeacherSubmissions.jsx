@@ -14,8 +14,15 @@ export default function LmsTeacherSubmissions() {
   useEffect(() => {
     const fetchSubmissions = async () => {
       try {
-        const data = await teacherApi.getWritingSubmissions();
-        setSubmissions(Array.isArray(data) ? data : (data.content ?? []));
+        const data = await teacherApi.getAllSubmissions();
+        console.log('📊 All Submissions:', data);
+        
+        const allSubmissions = [
+          ...(data.writingSubmissions || []).map(s => ({ ...s, type: 'WRITING' })),
+          ...(data.examAttempts || []).map(a => ({ ...a, type: a.examType }))
+        ].sort((a, b) => new Date(b.submittedAt || b.startedAt) - new Date(a.submittedAt || a.startedAt));
+        
+        setSubmissions(allSubmissions);
       } catch (err) {
         setError('Không thể tải danh sách bài nộp');
         console.error(err);
@@ -114,8 +121,8 @@ export default function LmsTeacherSubmissions() {
               <thead>
                 <tr>
                   <th>Học viên</th>
+                  <th>Loại bài</th>
                   <th>Bài làm</th>
-                  <th>Số từ</th>
                   <th>Ngày nộp</th>
                   <th>Trạng thái</th>
                   <th>Điểm</th>
@@ -123,35 +130,45 @@ export default function LmsTeacherSubmissions() {
                 </tr>
               </thead>
               <tbody>
-                {filteredSubmissions.map((s) => (
-                  <tr key={s.id || `${s.username}-${s.groupTitle}`}>
+                {filteredSubmissions.map((s, idx) => (
+                  <tr key={s.id || idx}>
                     <td style={{ fontWeight: 600 }}>{s.username || 'N/A'}</td>
-                    <td>{s.groupTitle || 'N/A'}</td>
-                    <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{s.wordCount || '—'}</td>
+                    <td>
+                      <span className={`lms-pill ${
+                        s.type === 'WRITING' ? 'neutral' :
+                        s.type === 'READING' ? 'success' :
+                        s.type === 'LISTENING' ? 'warn' : 'neutral'
+                      }`}>
+                        {s.type}
+                      </span>
+                    </td>
+                    <td>{s.groupTitle || s.examTitle || 'N/A'}</td>
                     <td style={{ fontSize: 12, color: '#6b7280' }}>
-                      {s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('vi-VN') : '—'}
+                      {(s.submittedAt || s.startedAt) ? new Date(s.submittedAt || s.startedAt).toLocaleDateString('vi-VN') : '—'}
                     </td>
                     <td>
                       <span className={`lms-pill ${
                         s.status === 'SUBMITTED' ? 'warn' : 
                         s.status === 'GRADED' ? 'success' : 
-                        s.status === 'UNDER_REVIEW' ? 'neutral' : 'neutral'
+                        'neutral'
                       }`}>
                         {s.status === 'SUBMITTED' ? 'Chờ chấm' : 
                          s.status === 'GRADED' ? 'Đã chấm' : 
-                         s.status === 'UNDER_REVIEW' ? 'Đang chấm' : 
                          s.status || 'N/A'}
                       </span>
                     </td>
-                    <td style={{ fontWeight: 600, color: s.score ? '#16a34a' : '#9ca3af' }}>
-                      {s.score || '—'}
+                    <td style={{ fontWeight: 600, color: (s.score || s.bandScore || s.overallBandScore) ? '#16a34a' : '#9ca3af' }}>
+                      {s.score || s.bandScore || s.overallBandScore || '—'}
                     </td>
                     <td>
                       <button 
                         className="lms-cta ghost"
-                        onClick={() => navigate(`/teacher/writing/${s.id}`)}
+                        onClick={() => {
+                          if (s.type === 'WRITING') navigate(`/lms/submission/writing/${s.id}`);
+                          else navigate(`/lms/submission/exam/${s.id}`);
+                        }}
                       >
-                        <FileText size={14} /> {s.status === 'GRADED' ? 'Xem' : 'Chấm'}
+                        <FileText size={14} /> Xem bài
                       </button>
                     </td>
                   </tr>

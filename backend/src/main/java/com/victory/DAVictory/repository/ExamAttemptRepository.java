@@ -54,4 +54,8 @@ public interface ExamAttemptRepository extends JpaRepository<ExamAttempt, Long> 
            "AND EXISTS (SELECT 1 FROM ClassStudent cs WHERE cs.user.id = :studentId AND cs.clazz.id = :classId) " +
            "ORDER BY e.createdAt DESC")
     List<ExamAttempt> findByStudentIdAndClassId(@Param("studentId") Long studentId, @Param("classId") Long classId);
+
+    // Tất cả attempts của danh sách học viên
+    @Query("SELECT e FROM ExamAttempt e WHERE e.user.id IN :userIds ORDER BY e.startedAt DESC")
+    List<ExamAttempt> findByUserIdInOrderByStartedAtDesc(@Param("userIds") List<Long> userIds);
 }

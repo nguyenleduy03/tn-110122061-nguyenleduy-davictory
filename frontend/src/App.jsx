@@ -11,15 +11,14 @@ import TestBuilder from './pages/TestBuilder'
 import TeacherManage from './pages/TeacherManage'
 import AdminDashboard from './pages/AdminDashboard'
 import AdminUsers from './pages/AdminUsers'
-import TeacherWritingSubmissions from './pages/TeacherWritingSubmissions'
-import TeacherWritingDetail from './pages/TeacherWritingDetail'
-import TeacherAssignments from './pages/TeacherAssignments'
 import LmsTeacherDashboard from './pages/lms/LmsTeacherDashboard'
 import ClassManagement from './pages/ClassManagement'
 import LmsTeacherClasses from './pages/lms/LmsTeacherClasses'
 import LmsTeacherTests from './pages/lms/LmsTeacherTests'
 import LmsTeacherAssignments from './pages/lms/LmsTeacherAssignments'
 import LmsTeacherSubmissions from './pages/lms/LmsTeacherSubmissions'
+import LmsSubmissionDetail from './pages/lms/LmsSubmissionDetail'
+import LmsGradeSubmission from './pages/lms/LmsGradeSubmission'
 import LmsTeacherAnalytics from './pages/lms/LmsTeacherAnalytics'
 import LmsTeacherClassDetail from './pages/lms/LmsTeacherClassDetail'
 import LmsTeacherSettings from './pages/lms/LmsTeacherSettings'
@@ -64,9 +63,7 @@ function App() {
         <Route path="/admin/users" element={<ProtectedRoute><ErrorBoundary><AdminUsers /></ErrorBoundary></ProtectedRoute>} />
         <Route path="/admin/teacher-class" element={<ProtectedRoute><ErrorBoundary><ClassManagement /></ErrorBoundary></ProtectedRoute>} />
         <Route path="/teacher/manage" element={<ProtectedRoute><TeacherManage /></ProtectedRoute>} />
-        <Route path="/teacher/writing" element={<ProtectedRoute><TeacherWritingSubmissions /></ProtectedRoute>} />
-        <Route path="/teacher/writing/:id" element={<ProtectedRoute><TeacherWritingDetail /></ProtectedRoute>} />
-        <Route path="/teacher/assignments" element={<ProtectedRoute><TeacherAssignments /></ProtectedRoute>} />
+        {/* Teacher routes - removed old pages, use LMS instead */}
         <Route path="/teacher/tests" element={<Navigate to="/lms/teacher/tests" replace />} />
         <Route path="/teacher/tests/new" element={<ProtectedRoute><TestBuilder /></ProtectedRoute>} />
         <Route path="/teacher/tests/:id/edit" element={<ProtectedRoute><TestBuilder /></ProtectedRoute>} />
@@ -77,6 +74,8 @@ function App() {
         <Route path="/lms/teacher/tests" element={<ProtectedRoute><LmsTeacherTests /></ProtectedRoute>} />
         <Route path="/lms/teacher/assignments" element={<ProtectedRoute><LmsTeacherAssignments /></ProtectedRoute>} />
         <Route path="/lms/teacher/submissions" element={<ProtectedRoute><LmsTeacherSubmissions /></ProtectedRoute>} />
+        <Route path="/lms/submission/:type/:id" element={<ProtectedRoute><LmsSubmissionDetail /></ProtectedRoute>} />
+        <Route path="/lms/grade/:type/:id" element={<ProtectedRoute><LmsGradeSubmission /></ProtectedRoute>} />
         <Route path="/lms/teacher/analytics" element={<ProtectedRoute><LmsTeacherAnalytics /></ProtectedRoute>} />
         <Route path="/lms/teacher/settings" element={<ProtectedRoute><LmsTeacherSettings /></ProtectedRoute>} />
       </Routes>

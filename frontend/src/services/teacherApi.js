@@ -18,12 +18,17 @@ apiClient.interceptors.request.use((config) => {
 
 export const teacherApi = {
   getWritingSubmissions: async (params = {}) => {
-    const res = await apiClient.get('/writing/submissions', { params });
+    const res = await apiClient.get('/writing/teacher/submissions', { params });
+    return res.data;
+  },
+
+  getAllSubmissions: async (params = {}) => {
+    const res = await apiClient.get('/writing/teacher/all-submissions', { params });
     return res.data;
   },
 
   getWritingSubmission: async (submissionId) => {
-    const res = await apiClient.get(`/writing/submissions/${submissionId}`);
+    const res = await apiClient.get(`/writing/teacher/submissions/${submissionId}`);
     return res.data;
   },
 

@@ -22,8 +22,10 @@ export default function LmsTeacherDashboard() {
         setLoading(true);
         const [classResponse, submissionResponse] = await Promise.all([
           authApi.getMyClassManagement(),
-          teacherApi.getWritingSubmissions().catch(() => ({ content: [] }))
+          teacherApi.getAllSubmissions().catch(() => ({ writingSubmissions: [], examAttempts: [] }))
         ]);
+        
+        console.log('📊 Submission Response:', submissionResponse);
         
         setData({
           classes: classResponse?.classes || [],
@@ -31,7 +33,14 @@ export default function LmsTeacherDashboard() {
           currentUser: classResponse?.teacher || classResponse?.currentUser || null
         });
         
-        setSubmissions(Array.isArray(submissionResponse) ? submissionResponse : (submissionResponse.content || []));
+        const allSubmissions = [
+          ...(submissionResponse.writingSubmissions || []).map(s => ({ ...s, type: 'WRITING' })),
+          ...(submissionResponse.examAttempts || []).map(a => ({ ...a, type: a.examType }))
+        ].sort((a, b) => new Date(b.submittedAt || b.startedAt) - new Date(a.submittedAt || a.startedAt));
+        
+        console.log('📝 All Submissions:', allSubmissions.length, allSubmissions);
+        
+        setSubmissions(allSubmissions);
       } catch (error) {
         console.error('Error loading dashboard data:', error);
       } finally {
@@ -247,8 +256,8 @@ export default function LmsTeacherDashboard() {
                   <thead>
                     <tr>
                       <th>Học viên</th>
+                      <th>Loại bài</th>
                       <th>Bài làm</th>
-                      <th>Số từ</th>
                       <th>Ngày nộp</th>
                       <th>Trạng thái</th>
                       <th>Điểm</th>
@@ -256,35 +265,46 @@ export default function LmsTeacherDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {submissions.slice(0, 10).map((s) => (
-                      <tr key={s.id || `${s.username}-${s.groupTitle}`}>
+                    {submissions.slice(0, 10).map((s, idx) => (
+                      <tr key={s.id || idx}>
                         <td style={{ fontWeight: 600 }}>{s.username || 'N/A'}</td>
-                        <td>{s.groupTitle || 'N/A'}</td>
-                        <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{s.wordCount || '—'}</td>
+                        <td>
+                          <span className={`lms-pill ${
+                            s.type === 'WRITING' ? 'neutral' :
+                            s.type === 'READING' ? 'success' :
+                            s.type === 'LISTENING' ? 'warn' : 'neutral'
+                          }`}>
+                            {s.type}
+                          </span>
+                        </td>
+                        <td>{s.groupTitle || s.examTitle || 'N/A'}</td>
                         <td style={{ fontSize: 12, color: '#6b7280' }}>
-                          {s.submittedAt ? new Date(s.submittedAt).toLocaleDateString('vi-VN') : '—'}
+                          {(s.submittedAt || s.startedAt) ? new Date(s.submittedAt || s.startedAt).toLocaleDateString('vi-VN') : '—'}
                         </td>
                         <td>
                           <span className={`lms-pill ${
                             s.status === 'SUBMITTED' ? 'warn' : 
                             s.status === 'GRADED' ? 'success' : 
-                            s.status === 'UNDER_REVIEW' ? 'neutral' : 'neutral'
+                            s.status === 'IN_PROGRESS' ? 'neutral' : 'neutral'
                           }`}>
                             {s.status === 'SUBMITTED' ? 'Chờ chấm' : 
                              s.status === 'GRADED' ? 'Đã chấm' : 
-                             s.status === 'UNDER_REVIEW' ? 'Đang chấm' : 
+                             s.status === 'IN_PROGRESS' ? 'Đang làm' :
                              s.status || 'N/A'}
                           </span>
                         </td>
-                        <td style={{ fontWeight: 600, color: s.score ? '#16a34a' : '#9ca3af' }}>
-                          {s.score || '—'}
+                        <td style={{ fontWeight: 600, color: (s.score || s.bandScore) ? '#16a34a' : '#9ca3af' }}>
+                          {s.score || s.bandScore || '—'}
                         </td>
                         <td>
                           <button 
                             className="lms-cta ghost"
-                            onClick={() => navigate(`/teacher/writing/${s.id}`)}
+                            onClick={() => {
+                              if (s.type === 'WRITING') navigate(`/lms/submission/writing/${s.id}`);
+                              else navigate(`/lms/submission/exam/${s.id}`);
+                            }}
                           >
-                            <FileText size={14} /> {s.status === 'GRADED' ? 'Xem' : 'Chấm'}
+                            <FileText size={14} /> Xem bài
                           </button>
                         </td>
                       </tr>
