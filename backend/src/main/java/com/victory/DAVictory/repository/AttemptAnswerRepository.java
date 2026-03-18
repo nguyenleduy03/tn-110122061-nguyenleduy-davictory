@@ -33,4 +33,7 @@ public interface AttemptAnswerRepository extends JpaRepository<AttemptAnswer, Lo
     // Tổng điểm của một lần thi
     @Query("SELECT COALESCE(SUM(a.pointsEarned), 0) FROM AttemptAnswer a WHERE a.examAttempt.id = :attemptId")
     Double sumPointsByAttemptId(@Param("attemptId") Long attemptId);
+
+    // Lấy tất cả câu trả lời theo thứ tự questionId
+    List<AttemptAnswer> findByExamAttemptIdOrderByQuestionIdAsc(Long examAttemptId);
 }

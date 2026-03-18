@@ -1,101 +1,125 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { GraduationCap, Search, Settings2, UserPlus, Users, PlusCircle, ClipboardList, School, RefreshCw } from 'lucide-react';
+import { GraduationCap, Search, Settings2, UserPlus, Users, School } from 'lucide-react';
 import AdminLayout from '../components/admin/AdminLayout';
 import { authApi } from '../services/authApi';
 
 const panelStyle = {
   background: '#fff',
-  border: '1px solid #e2e8f0',
-  borderRadius: 12,
-  padding: 14,
+  border: '1px solid #e5e7eb',
+  borderRadius: 16,
+  padding: 20,
+  boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
 };
 
 const inputStyle = {
   width: '100%',
-  border: '1px solid #cbd5e1',
-  borderRadius: 8,
-  padding: '9px 10px',
+  border: '1px solid #d1d5db',
+  borderRadius: 10,
+  padding: '10px 14px',
   fontSize: 14,
   boxSizing: 'border-box',
+  transition: 'all 0.2s',
+  outline: 'none',
 };
 
 const buttonPrimary = {
   border: 0,
-  borderRadius: 8,
-  background: '#2563eb',
+  borderRadius: 10,
+  background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
   color: '#fff',
-  padding: '9px 12px',
+  padding: '10px 16px',
   cursor: 'pointer',
   fontWeight: 600,
+  fontSize: 14,
+  transition: 'all 0.2s',
+  boxShadow: '0 2px 4px rgba(37, 99, 235, 0.2)',
 };
 
 const buttonSecondary = {
-  border: '1px solid #cbd5e1',
-  borderRadius: 8,
+  border: '1px solid #d1d5db',
+  borderRadius: 10,
   background: '#fff',
-  color: '#0f172a',
-  padding: '9px 12px',
+  color: '#374151',
+  padding: '10px 16px',
   cursor: 'pointer',
   fontWeight: 600,
+  fontSize: 14,
+  transition: 'all 0.2s',
 };
-
-function parseCsvCodes(text) {
-  const lines = String(text || '').split(/\r?\n/).map((v) => v.trim()).filter(Boolean);
-  if (!lines.length) return { header: null, rows: [] };
-  const header = lines[0].split(',').map((v) => v.trim());
-  const rows = lines.slice(1).map((line) => {
-    const cols = line.split(',').map((v) => v.trim());
-    const obj = {};
-    header.forEach((h, i) => {
-      obj[h] = cols[i] || '';
-    });
-    return obj;
-  });
-  return { header, rows };
-}
 
 export default function ClassManagement() {
   const [managementData, setManagementData] = useState({ classes: [], teachers: [], currentUser: null });
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [refreshTick, setRefreshTick] = useState(0);
   const [selectedClassId, setSelectedClassId] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const [createClassForm, setCreateClassForm] = useState({ className: '', classCode: '', startDate: '', teacherId: '' });
-  const [assignTeacherForm, setAssignTeacherForm] = useState({ classCode: '', teacherId: '', role: 'MAIN_TEACHER' });
-  const [handoverForm, setHandoverForm] = useState({ classCode: '', studentCodesText: '', notes: '' });
-  const [classEditForm, setClassEditForm] = useState({
-    name: '', status: 'ACTIVE', startDate: '', endDate: '', level: '', targetBand: '', classType: '', maxStudents: '', schedule: '', roomLocation: '', notes: '',
+  const [createForm, setCreateForm] = useState({ 
+    className: '', 
+    classCode: '', 
+    level: '',
+    targetBand: '',
+    classType: 'OFFLINE',
+    maxStudents: '', 
+    startDate: '',
+    endDate: '',
+    schedule: '',
+    roomLocation: '',
+    notes: '',
+    studentCodes: [] 
   });
+  const [createCsvFile, setCreateCsvFile] = useState(null);
+  const [createCsvError, setCreateCsvError] = useState('');
+  const createCsvInputRef = useRef(null);
+  const [assignForm, setAssignForm] = useState({ classId: '', teacherId: '' });
+  const [handoverForm, setHandoverForm] = useState({ classCode: '', studentCodesText: '', notes: '' });
 
-  const [createClassLoading, setCreateClassLoading] = useState(false);
+  const [createLoading, setCreateLoading] = useState(false);
   const [assignLoading, setAssignLoading] = useState(false);
   const [handoverLoading, setHandoverLoading] = useState(false);
-  const [classEditLoading, setClassEditLoading] = useState(false);
-  const classDetailRef = useRef(null);
+  const [editLoading, setEditLoading] = useState(false);
 
-  const [csvCodes, setCsvCodes] = useState([]);
-  const [csvFileName, setCsvFileName] = useState('');
-  const [csvError, setCsvError] = useState('');
-  const csvInputRef = useRef(null);
+  const [editForm, setEditForm] = useState({
+    status: '',
+    teacherId: '',
+    notes: '',
+    classCode: '',
+    className: '',
+    level: '',
+    targetBand: '',
+    classType: '',
+    maxStudents: '',
+    startDate: '',
+    endDate: '',
+    schedule: '',
+    roomLocation: ''
+  });
 
   const [expandedPanels, setExpandedPanels] = useState({
     createClass: false,
     assignTeacher: false,
     handoverStudents: false,
-    editClass: true,
-    showTeachers: false,
-    showStudents: false,
   });
+
+  const [showAddStudents, setShowAddStudents] = useState(false);
+  const [studentSearch, setStudentSearch] = useState('');
+  const [availableStudents, setAvailableStudents] = useState([]);
+  const [selectedStudents, setSelectedStudents] = useState([]);
+  
+  const [deleteClassTarget, setDeleteClassTarget] = useState(null);
+  const [deleteClassPassword, setDeleteClassPassword] = useState('');
+  const [deletingClass, setDeletingClass] = useState(false);
 
   useEffect(() => {
     let mounted = true;
     const loadData = async () => {
       try {
         setLoading(true);
-        setError('');
-        const res = await authApi.getTeacherClassManagement();
+        console.log('🔄 Loading class management data...');
+        
+        const res = await authApi.getMyClassManagement();
+        console.log('✅ Class management data loaded:', res);
+        
         if (!mounted) return;
         const nextData = {
           classes: Array.isArray(res?.classes) ? res.classes : [],
@@ -103,12 +127,11 @@ export default function ClassManagement() {
           currentUser: res?.currentUser || null,
         };
         setManagementData(nextData);
-        if (!selectedClassId && nextData.classes.length) {
-          setSelectedClassId(nextData.classes[0].id);
-        }
+        console.log('📊 Management data set:', nextData);
       } catch (e) {
+        console.error('❌ Error loading class management data:', e);
         if (mounted) {
-          setError(e?.response?.data?.message || 'Không tải được dữ liệu quản lý lớp');
+          alert(e?.response?.data?.message || 'Không tải được dữ liệu quản lý lớp');
         }
       } finally {
         if (mounted) setLoading(false);
@@ -118,128 +141,174 @@ export default function ClassManagement() {
     return () => {
       mounted = false;
     };
-  }, [refreshTick, selectedClassId]);
+  }, [refreshTick]);
 
   const isAdmin = authApi.hasRole('ADMIN') || authApi.hasRole('MANAGER');
 
-  const teachers = useMemo(() => managementData?.teachers || [], [managementData]);
-  const classes = useMemo(() => managementData?.classes || [], [managementData]);
-
-  const filteredClasses = useMemo(() => {
-    const list = classes;
+  const classes = useMemo(() => {
+    const list = managementData?.classes || [];
     const q = searchTerm.trim().toLowerCase();
     if (!q) return list;
-    return list.filter((c) => `${c.name || ''} ${c.code || ''} ${c.classCode || ''}`.toLowerCase().includes(q));
-  }, [classes, searchTerm]);
+    return list.filter((c) => `${c.name || ''} ${c.classCode || ''}`.toLowerCase().includes(q));
+  }, [managementData, searchTerm]);
 
   const selectedClass = useMemo(() => {
-    const list = classes;
+    const list = managementData?.classes || [];
     return list.find((c) => c.id === selectedClassId) || null;
-  }, [classes, selectedClassId]);
-
-  const allActiveStudents = useMemo(() => {
-    return classes.reduce((acc, c) => acc + Number(c.activeStudentCount || c.studentCount || 0), 0);
-  }, [classes]);
+  }, [managementData, selectedClassId]);
 
   useEffect(() => {
-    if (!selectedClass) return;
-    setClassEditForm({
-      name: selectedClass.name || '',
-      status: selectedClass.status || 'ACTIVE',
-      startDate: selectedClass.startDate || '',
-      endDate: selectedClass.endDate || '',
-      level: selectedClass.level || '',
-      targetBand: selectedClass.targetBand || '',
-      classType: selectedClass.classType || '',
-      maxStudents: selectedClass.maxStudents ?? '',
-      schedule: selectedClass.schedule || '',
-      roomLocation: selectedClass.roomLocation || '',
-      notes: selectedClass.notes || '',
-    });
+    if (selectedClass) {
+      setEditForm({
+        status: selectedClass.status || '',
+        teacherId: String(selectedClass.teachers?.[0]?.id || ''),
+        notes: selectedClass.notes || '',
+        classCode: selectedClass.code || '',
+        className: selectedClass.name || '',
+        level: selectedClass.level || '',
+        targetBand: selectedClass.targetBand || '',
+        classType: selectedClass.classType || 'OFFLINE',
+        maxStudents: String(selectedClass.maxStudents || ''),
+        startDate: selectedClass.startDate || '',
+        endDate: selectedClass.endDate || '',
+        schedule: selectedClass.schedule || '',
+        roomLocation: selectedClass.roomLocation || ''
+      });
+    }
   }, [selectedClass]);
 
-  const statusBadgeStyle = (status) => {
-    const map = {
-      ACTIVE: { bg: '#dcfce7', color: '#166534' },
-      UPCOMING: { bg: '#dbeafe', color: '#1e40af' },
-      COMPLETED: { bg: '#e2e8f0', color: '#334155' },
-      CANCELLED: { bg: '#fee2e2', color: '#991b1b' },
-    };
-    const s = map[String(status || '').toUpperCase()] || { bg: '#f1f5f9', color: '#334155' };
-    return {
-      display: 'inline-flex',
-      padding: '2px 8px',
-      borderRadius: 999,
-      fontSize: 11,
-      fontWeight: 700,
-      background: s.bg,
-      color: s.color,
-    };
+  const loadAvailableStudents = async () => {
+    try {
+      const res = await authApi.getAllStudents();
+      setAvailableStudents(res || []);
+    } catch (err) {
+      console.error('Error loading students:', err);
+      setAvailableStudents([]);
+    }
+  };
+
+  const handleAddStudents = async () => {
+    if (selectedStudents.length === 0) return;
+    try {
+      console.log('Adding students:', { classId: selectedClassId, studentIds: selectedStudents });
+      
+      // Call API to add students to class
+      const payload = {
+        classId: selectedClassId,
+        studentIds: selectedStudents
+      };
+      const result = await authApi.addStudentsToClass(payload);
+      console.log('Add students result:', result);
+      
+      alert('Đã thêm học viên thành công!');
+      setSelectedStudents([]);
+      setShowAddStudents(false);
+      // Reload data
+      window.location.reload();
+    } catch (err) {
+      console.error('Add students error:', err);
+      console.error('Error response:', err.response?.data);
+      alert('Lỗi: ' + (err.response?.data?.error || err.message));
+    }
+  };
+
+  const togglePanel = (panelName) => {
+    setExpandedPanels(prev => ({
+      ...prev,
+      [panelName]: !prev[panelName]
+    }));
   };
 
   const handleCreateClass = async () => {
-    if (!createClassForm.className.trim()) {
+    if (!createForm.className.trim()) {
       alert('Vui lòng nhập tên lớp');
       return;
     }
+    
     try {
-      setCreateClassLoading(true);
-      await authApi.createClassForAdmin({
-        className: createClassForm.className.trim(),
-        classCode: createClassForm.classCode.trim() || undefined,
-        startDate: createClassForm.startDate || undefined,
-      });
+      setCreateLoading(true);
       
-      if (createClassForm.teacherId) {
-        await authApi.assignTeacherByClassCode({
-          classCode: createClassForm.classCode.trim(),
-          teacherId: Number(createClassForm.teacherId),
-          role: 'MAIN_TEACHER',
-        });
+      // Bước 1: Nếu có file CSV, import học viên trước
+      let importedCount = 0;
+      if (createCsvInputRef.current?.files?.[0]) {
+        try {
+          console.log('Đang import học viên từ CSV...');
+          const importResult = await authApi.importStudentsFromCSV(createCsvInputRef.current.files[0]);
+          importedCount = importResult?.success || importResult?.created || 0;
+          console.log('Import thành công:', importedCount, 'học viên');
+        } catch (err) {
+          console.error('Lỗi import CSV:', err);
+          alert(`Lỗi khi import học viên: ${err?.response?.data?.message || err.message}`);
+          setCreateLoading(false);
+          return;
+        }
       }
       
-      setCreateClassForm({ className: '', classCode: '', startDate: '', teacherId: '' });
-      setRefreshTick((v) => v + 1);
-      alert('Tạo lớp thành công');
-    } catch (e) {
-      alert(e?.response?.data?.message || 'Tạo lớp thất bại');
-    } finally {
-      setCreateClassLoading(false);
-    }
-  };
-
-  const handleAssignTeacher = async () => {
-    if (!assignTeacherForm.classCode.trim() || !assignTeacherForm.teacherId) {
-      alert('Vui lòng nhập mã lớp và chọn giảng viên');
-      return;
-    }
-    try {
-      setAssignLoading(true);
-      await authApi.assignTeacherByClassCode({
-        classCode: assignTeacherForm.classCode.trim(),
-        teacherId: Number(assignTeacherForm.teacherId),
-        role: assignTeacherForm.role,
+      // Bước 2: Tạo lớp
+      const payload = {
+        className: createForm.className,
+        classCode: createForm.classCode || null,
+        maxStudents: createForm.maxStudents ? Number(createForm.maxStudents) : null,
+      };
+      
+      console.log('Payload tạo lớp:', payload);
+      const result = await authApi.createClassForAdmin(payload);
+      console.log('Kết quả tạo lớp:', result);
+      
+      // Bước 3: Nếu có học viên từ CSV, gán vào lớp
+      if (createForm.studentCodes.length > 0 && result?.code) {
+        try {
+          const assignResult = await authApi.assignStudentsByClassCode({
+            classCode: result.code,
+            studentCodes: createForm.studentCodes,
+            notes: 'Thêm khi tạo lớp'
+          });
+          alert(`✅ Tạo lớp thành công!\n📥 Import: ${importedCount} học viên\n✓ Đã gán: ${assignResult?.success || createForm.studentCodes.length} học viên vào lớp`);
+        } catch (err) {
+          alert(`Tạo lớp thành công nhưng lỗi khi gán học viên vào lớp:\n${err?.response?.data?.message || err.message}`);
+        }
+      } else {
+        alert(importedCount > 0 ? `✅ Tạo lớp thành công và import ${importedCount} học viên!` : '✅ Tạo lớp thành công!');
+      }
+      
+      setCreateForm({ 
+        className: '', 
+        classCode: '', 
+        level: '',
+        targetBand: '',
+        classType: 'OFFLINE',
+        maxStudents: '', 
+        startDate: '',
+        endDate: '',
+        schedule: '',
+        roomLocation: '',
+        notes: '',
+        studentCodes: [] 
       });
-      setAssignTeacherForm({ classCode: '', teacherId: '', role: 'MAIN_TEACHER' });
-      setRefreshTick((v) => v + 1);
-      alert('Gán giảng viên thành công');
-    } catch (e) {
-      alert(e?.response?.data?.message || 'Gán giảng viên thất bại');
+      setCreateCsvFile(null);
+      setCreateCsvError('');
+      if (createCsvInputRef.current) createCsvInputRef.current.value = '';
+      
+      // Refresh data từ server thay vì update local state
+      setRefreshTick(prev => prev + 1);
+      
+    } catch (error) {
+      console.error('Lỗi tạo lớp:', error);
+      alert('Lỗi tạo lớp: ' + (error?.response?.data?.message || error.message));
     } finally {
-      setAssignLoading(false);
+      setCreateLoading(false);
     }
   };
 
-  const handleCsvUpload = async (event) => {
-    const file = event.target.files?.[0];
+  const handleCreateCsvFile = async (file) => {
     if (!file) return;
     
-    setCsvError('');
-    setCsvFileName(file.name || '');
+    setCreateCsvError('');
+    setCreateCsvFile(file.name);
     
     if (!file.name.toLowerCase().endsWith('.csv')) {
-      setCsvCodes([]);
-      setCsvError('Chỉ chấp nhận file .csv');
+      setCreateForm(p => ({ ...p, studentCodes: [] }));
+      setCreateCsvError('Chỉ chấp nhận file .csv');
       return;
     }
     
@@ -248,845 +317,1084 @@ export default function ClassManagement() {
       const parsedCodes = parseCodesFromCsv(text);
       
       if (parsedCodes.length === 0) {
-        setCsvCodes([]);
-        setCsvError('Không đọc được mã học viên từ file CSV');
+        setCreateForm(p => ({ ...p, studentCodes: [] }));
+        setCreateCsvError('Không đọc được mã học viên từ file CSV');
         return;
       }
       
-      setCsvCodes(parsedCodes);
+      setCreateForm(p => ({ ...p, studentCodes: parsedCodes }));
     } catch (error) {
-      setCsvCodes([]);
-      setCsvError('Không thể đọc file CSV');
+      setCreateForm(p => ({ ...p, studentCodes: [] }));
+      setCreateCsvError('Không thể đọc file CSV');
     }
   };
 
-  const clearCsv = () => {
-    setCsvCodes([]);
-    setCsvFileName('');
-    setCsvError('');
-    if (csvInputRef.current) {
-      csvInputRef.current.value = '';
-    }
-  };
-
-  const handleAssignStudents = async () => {
-    if (!handoverForm.classCode.trim()) {
-      alert('Vui lòng nhập mã lớp');
-      return;
-    }
-
-    const manualCodes = parseCodes(handoverForm.studentCodesText);
-    const studentCodes = [...new Set([...manualCodes, ...csvCodes])];
-
-    if (studentCodes.length === 0) {
-      alert('Vui lòng nhập danh sách mã học viên hoặc tải CSV');
-      return;
-    }
-
-    try {
-      setHandoverLoading(true);
-      const result = await authApi.assignStudentsByClassCode({
-        classCode: handoverForm.classCode.trim(),
-        studentCodes,
-        notes: handoverForm.notes,
-      });
-      const failed = Number(result?.failed || 0);
-      if (failed > 0) {
-        alert(`Đã thêm ${result?.success || 0}, thất bại ${failed}.`);
-      } else {
-        alert(`Đã thêm thành công ${result?.success || 0} học viên.`);
-      }
-      setHandoverForm((prev) => ({ ...prev, studentCodesText: '', notes: '' }));
-      clearCsv();
-      setRefreshTick((v) => v + 1);
-    } catch (e) {
-      alert(e?.response?.data?.message || 'Thêm học viên thất bại');
-    } finally {
-      setHandoverLoading(false);
-    }
-  };
-
-  const handleSaveClassInfo = async () => {
+  const handleUpdateClass = async () => {
     if (!selectedClass?.id) return;
-    if (!classEditForm.name.trim()) {
-      alert('Tên lớp không được để trống');
+    
+    try {
+      setEditLoading(true);
+      
+      const payload = {
+        status: editForm.status,
+        notes: editForm.notes,
+        name: editForm.className
+      };
+      
+      console.log('Payload cập nhật lớp:', payload);
+      
+      const result = await authApi.updateClassInfo(selectedClass.id, payload);
+      console.log('Kết quả cập nhật:', result);
+      
+      alert('Cập nhật thành công!');
+      
+      // Refresh data từ server thay vì update local state
+      setRefreshTick(prev => prev + 1);
+      
+    } catch (error) {
+      console.error('Lỗi cập nhật:', error);
+      alert('Lỗi cập nhật: ' + (error?.response?.data?.message || error.message));
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const handleDeleteClass = async () => {
+    if (!deleteClassTarget) return;
+    
+    if (!deleteClassPassword.trim()) {
+      alert('Vui lòng nhập mật khẩu admin để xác nhận xóa lớp');
       return;
     }
+    
     try {
-      setClassEditLoading(true);
-      await authApi.updateClassInfo(selectedClass.id, {
-        name: classEditForm.name,
-        status: classEditForm.status,
-        startDate: classEditForm.startDate || null,
-        endDate: classEditForm.endDate || null,
-        level: classEditForm.level,
-        targetBand: classEditForm.targetBand,
-        classType: classEditForm.classType,
-        maxStudents: classEditForm.maxStudents === '' ? null : Number(classEditForm.maxStudents),
-        schedule: classEditForm.schedule,
-        roomLocation: classEditForm.roomLocation,
-        notes: classEditForm.notes,
-      });
-      setRefreshTick((v) => v + 1);
-      alert('Đã cập nhật thông tin lớp');
-    } catch (e) {
-      alert(e?.response?.data?.message || 'Cập nhật lớp thất bại');
+      setDeletingClass(true);
+      await authApi.deleteClass(deleteClassTarget.id, deleteClassPassword.trim());
+      alert('✅ Đã xóa lớp thành công');
+      setDeleteClassTarget(null);
+      setDeleteClassPassword('');
+      setRefreshTick(prev => prev + 1);
+      if (selectedClassId === deleteClassTarget.id) {
+        setSelectedClassId(null);
+      }
+    } catch (error) {
+      alert('❌ Lỗi xóa lớp: ' + (error?.response?.data?.message || error.message));
     } finally {
-      setClassEditLoading(false);
+      setDeletingClass(false);
     }
   };
 
-  const handleSelectClass = (classId) => {
-    setSelectedClassId(classId);
-    requestAnimationFrame(() => {
-      classDetailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
+  const handleChangeTeacher = async () => {
+    if (!selectedClass) {
+      alert('Không tìm thấy thông tin lớp');
+      return;
+    }
+    
+    if (!editForm.teacherId) {
+      alert('Vui lòng chọn giảng viên');
+      return;
+    }
+    
+    try {
+      setEditLoading(true);
+      
+      // Thử dùng API assignTeacherByClassCode nếu có classCode
+      if (selectedClass.classCode) {
+        await authApi.assignTeacherByClassCode({
+          classCode: selectedClass.classCode,
+          teacherId: editForm.teacherId,
+          role: 'MAIN_TEACHER'
+        });
+      } else {
+        // Fallback: Cập nhật qua updateClassInfo
+        await authApi.updateClassInfo(selectedClass.id, {
+          teacherId: editForm.teacherId
+        });
+      }
+      
+      // Tìm thông tin giảng viên mới
+      const newTeacher = managementData.teachers.find(t => String(t.id) === String(editForm.teacherId));
+      
+      // Cập nhật state local
+      setManagementData(prev => ({
+        ...prev,
+        classes: prev.classes.map(c => 
+          c.id === selectedClass.id 
+            ? { 
+                ...c, 
+                teachers: newTeacher ? [{ ...newTeacher, role: 'MAIN_TEACHER' }] : []
+              }
+            : c
+        )
+      }));
+      
+      alert('Đã thay đổi giảng viên!');
+    } catch (error) {
+      console.error('Chi tiết lỗi:', error);
+      alert('Lỗi thay đổi giảng viên: ' + (error?.response?.data?.message || error.message));
+    } finally {
+      setEditLoading(false);
+    }
   };
 
-  const togglePanel = (key) => {
-    setExpandedPanels((prev) => ({ ...prev, [key]: !prev[key] }));
+  const handleRemoveStudent = async (studentId) => {
+    if (!confirm('Xác nhận xóa học viên khỏi lớp?')) return;
+    
+    try {
+      await authApi.removeStudentFromClass(selectedClass.id, studentId);
+      
+      // Cập nhật state local
+      setManagementData(prev => ({
+        ...prev,
+        classes: prev.classes.map(c => 
+          c.id === selectedClass.id 
+            ? { 
+                ...c, 
+                students: c.students.filter(s => s.id !== studentId),
+                studentCount: (c.studentCount || 0) - 1
+              }
+            : c
+        )
+      }));
+      
+      alert('Đã xóa học viên');
+    } catch (error) {
+      alert('Lỗi xóa học viên: ' + (error?.response?.data?.message || error.message));
+    }
   };
 
   if (loading) {
     return (
       <AdminLayout title="Quản lý giảng viên & lớp" subtitle="Đang tải dữ liệu...">
-        <div style={{ ...panelStyle }}>Đang tải...</div>
+        <div>Đang tải...</div>
       </AdminLayout>
     );
   }
 
   if (!isAdmin) {
     return (
-      <AdminLayout title="Quản lý giảng viên & lớp" subtitle="Chỉ quản trị viên được truy cập trang này.">
-        <div style={{ ...panelStyle, color: '#b91c1c' }}>Bạn không có quyền truy cập.</div>
+      <AdminLayout title="Quản lý giảng viên & lớp">
+        <div style={{ textAlign: 'center', padding: 40 }}>
+          <p style={{ color: '#dc2626' }}>Bạn không có quyền truy cập trang này!</p>
+        </div>
       </AdminLayout>
     );
   }
 
   return (
-    <AdminLayout title="Quản lý giảng viên & lớp" subtitle="Luồng quản trị tách bạch: tạo lớp, gán giảng viên, bàn giao học viên, chỉnh sửa lớp.">
-      <div style={{ display: 'grid', gap: 16 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }}>
-          <div style={{ ...panelStyle, background: 'linear-gradient(135deg, #eff6ff, #ffffff)' }}>
-            <div style={{ fontSize: 12, color: '#64748b' }}>Tổng lớp</div>
-            <div style={{ fontSize: 28, fontWeight: 800, color: '#1e3a8a' }}>{managementData.classes.length}</div>
+    <AdminLayout title="Quản lý giảng viên & lớp" subtitle={`${classes.length} lớp học • ${managementData.teachers.length} giảng viên`}>
+      <div style={{ display: 'grid', gap: 20 }}>
+        {/* Stats Cards */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+          <div style={{ ...panelStyle, background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', border: 'none' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ fontSize: 28, fontWeight: 800, color: '#1e40af', marginBottom: 4 }}>{classes.length}</div>
+                <div style={{ fontSize: 13, color: '#3b82f6', fontWeight: 600 }}>Tổng lớp học</div>
+              </div>
+              <div style={{ width: 48, height: 48, borderRadius: 12, background: 'rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <School size={24} color="#3b82f6" />
+              </div>
+            </div>
           </div>
-          <div style={{ ...panelStyle, background: 'linear-gradient(135deg, #ecfeff, #ffffff)' }}>
-            <div style={{ fontSize: 12, color: '#64748b' }}>Học viên active</div>
-            <div style={{ fontSize: 28, fontWeight: 800, color: '#0f766e' }}>{allActiveStudents}</div>
+          <div style={{ ...panelStyle, background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', border: 'none' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ fontSize: 28, fontWeight: 800, color: '#15803d', marginBottom: 4 }}>{managementData.teachers.length}</div>
+                <div style={{ fontSize: 13, color: '#16a34a', fontWeight: 600 }}>Giảng viên</div>
+              </div>
+              <div style={{ width: 48, height: 48, borderRadius: 12, background: 'rgba(22, 163, 74, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <GraduationCap size={24} color="#16a34a" />
+              </div>
+            </div>
           </div>
-          <div style={{ ...panelStyle, background: 'linear-gradient(135deg, #f5f3ff, #ffffff)' }}>
-            <div style={{ fontSize: 12, color: '#64748b' }}>Giảng viên</div>
-            <div style={{ fontSize: 28, fontWeight: 800, color: '#6d28d9' }}>{managementData.teachers.length}</div>
+          <div style={{ ...panelStyle, background: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)', border: 'none' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ fontSize: 28, fontWeight: 800, color: '#991b1b', marginBottom: 4 }}>
+                  {classes.reduce((sum, c) => sum + (c.studentCount || 0), 0)}
+                </div>
+                <div style={{ fontSize: 13, color: '#dc2626', fontWeight: 600 }}>Tổng học viên</div>
+              </div>
+              <div style={{ width: 48, height: 48, borderRadius: 12, background: 'rgba(220, 38, 38, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Users size={24} color="#dc2626" />
+              </div>
+            </div>
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1.4fr', gap: 12 }}>
-          <div style={{ ...panelStyle }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, marginBottom: 8 }}><Search size={15} /> Danh sách lớp</div>
-            <input style={{ ...inputStyle, marginBottom: 10 }} placeholder="Tìm lớp theo tên hoặc mã" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-            <div style={{ display: 'grid', gap: 8, maxHeight: 520, overflowY: 'auto' }}>
-              {classes.map((c) => {
-                const isSelected = selectedClassId === c.id;
-                return (
-                  <div key={c.id} style={{ border: isSelected ? '1px solid #2563eb' : '1px solid #e2e8f0', borderRadius: 10, padding: 10, background: isSelected ? '#eff6ff' : '#fff' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                      <div>
-                        <div style={{ fontWeight: 700 }}>{c.name}</div>
-                        <div style={{ fontSize: 12, color: '#64748b' }}>{c.classCode} • {c.studentCount || 0} học viên</div>
+        {/* Actions */}
+        <div style={panelStyle}>
+          <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+            <button style={buttonSecondary} onClick={() => togglePanel('createClass')}>
+              + Tạo lớp mới
+            </button>
+            <button style={buttonSecondary} onClick={() => togglePanel('assignTeacher')}>
+              Gán giảng viên
+            </button>
+            <button style={buttonSecondary} onClick={() => togglePanel('handoverStudents')}>
+              Bàn giao học viên
+            </button>
+          </div>
+
+          {expandedPanels.createClass && (
+            <div style={{ border: '1px solid #e5e7eb', borderRadius: 16, padding: 20, marginBottom: 16, background: 'linear-gradient(135deg, #f9fafb 0%, #ffffff 100%)', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 10, background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <GraduationCap size={20} color="#fff" />
+                </div>
+                <h4 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#111827' }}>Tạo lớp mới</h4>
+              </div>
+              
+              <div style={{ display: 'grid', gap: 12 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Tên lớp <span style={{ color: '#ef4444' }}>*</span></label>
+                  <input 
+                    style={{ ...inputStyle, background: '#fff' }} 
+                    placeholder="VD: IELTS 6.5 - Sáng thứ 2, 4, 6" 
+                    value={createForm.className} 
+                    onChange={(e) => setCreateForm(p => ({ ...p, className: e.target.value }))} 
+                  />
+                </div>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Mã lớp</label>
+                    <input 
+                      style={{ ...inputStyle, background: '#fff' }} 
+                      placeholder="VD: IELTS-001" 
+                      value={createForm.classCode} 
+                      onChange={(e) => setCreateForm(p => ({ ...p, classCode: e.target.value }))} 
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Sĩ số tối đa</label>
+                    <input 
+                      type="number" 
+                      min="1" 
+                      style={{ ...inputStyle, background: '#fff' }} 
+                      placeholder="VD: 20" 
+                      value={createForm.maxStudents} 
+                      onChange={(e) => setCreateForm(p => ({ ...p, maxStudents: e.target.value }))} 
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Trình độ</label>
+                    <select 
+                      style={{ ...inputStyle, background: '#fff' }} 
+                      value={createForm.level} 
+                      onChange={(e) => setCreateForm(p => ({ ...p, level: e.target.value }))}
+                    >
+                      <option value="">Chọn trình độ</option>
+                      <option value="BEGINNER">Beginner</option>
+                      <option value="ELEMENTARY">Elementary</option>
+                      <option value="INTERMEDIATE">Intermediate</option>
+                      <option value="UPPER_INTERMEDIATE">Upper Intermediate</option>
+                      <option value="ADVANCED">Advanced</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Mục tiêu Band</label>
+                    <select 
+                      style={{ ...inputStyle, background: '#fff' }} 
+                      value={createForm.targetBand} 
+                      onChange={(e) => setCreateForm(p => ({ ...p, targetBand: e.target.value }))}
+                    >
+                      <option value="">Chọn band</option>
+                      <option value="4.0">Band 4.0</option>
+                      <option value="4.5">Band 4.5</option>
+                      <option value="5.0">Band 5.0</option>
+                      <option value="5.5">Band 5.5</option>
+                      <option value="6.0">Band 6.0</option>
+                      <option value="6.5">Band 6.5</option>
+                      <option value="7.0">Band 7.0</option>
+                      <option value="7.5">Band 7.5</option>
+                      <option value="8.0">Band 8.0+</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Loại lớp</label>
+                    <select 
+                      style={{ ...inputStyle, background: '#fff' }} 
+                      value={createForm.classType} 
+                      onChange={(e) => setCreateForm(p => ({ ...p, classType: e.target.value }))}
+                    >
+                      <option value="OFFLINE">Offline</option>
+                      <option value="ONLINE">Online</option>
+                      <option value="HYBRID">Hybrid</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Ngày khai giảng</label>
+                    <input 
+                      type="date" 
+                      style={{ ...inputStyle, background: '#fff' }} 
+                      value={createForm.startDate} 
+                      onChange={(e) => setCreateForm(p => ({ ...p, startDate: e.target.value }))} 
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Ngày bế giảng (dự kiến)</label>
+                    <input 
+                      type="date" 
+                      style={{ ...inputStyle, background: '#fff' }} 
+                      value={createForm.endDate} 
+                      onChange={(e) => setCreateForm(p => ({ ...p, endDate: e.target.value }))} 
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Lịch học</label>
+                  <input 
+                    style={{ ...inputStyle, background: '#fff' }} 
+                    placeholder="VD: Thứ 2,4,6 - 18:00-20:00" 
+                    value={createForm.schedule} 
+                    onChange={(e) => setCreateForm(p => ({ ...p, schedule: e.target.value }))} 
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Phòng học / Link online</label>
+                  <input 
+                    style={{ ...inputStyle, background: '#fff' }} 
+                    placeholder="VD: Phòng 101 hoặc link online" 
+                    value={createForm.roomLocation} 
+                    onChange={(e) => setCreateForm(p => ({ ...p, roomLocation: e.target.value }))} 
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Ghi chú</label>
+                  <textarea 
+                    style={{ ...inputStyle, background: '#fff', minHeight: 80, resize: 'vertical' }} 
+                    placeholder="Ghi chú thêm về lớp học..." 
+                    value={createForm.notes} 
+                    onChange={(e) => setCreateForm(p => ({ ...p, notes: e.target.value }))} 
+                  />
+                </div>
+                
+                <div style={{ border: '2px dashed #d1d5db', borderRadius: 12, padding: 16, background: '#f9fafb', marginTop: 4 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                    <Users size={16} color="#6b7280" />
+                    <div style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>Thêm học viên (tùy chọn)</div>
+                  </div>
+                  <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 10 }}>Upload file CSV với cột: studentCode, fullName, email</div>
+                  
+                  <label style={{ 
+                    display: 'inline-flex', 
+                    alignItems: 'center', 
+                    gap: 8, 
+                    padding: '10px 16px', 
+                    background: '#fff', 
+                    border: '1px solid #d1d5db', 
+                    borderRadius: 10, 
+                    cursor: 'pointer',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: '#374151',
+                    transition: 'all 0.2s',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#f9fafb';
+                    e.currentTarget.style.borderColor = '#3b82f6';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = '#fff';
+                    e.currentTarget.style.borderColor = '#d1d5db';
+                  }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                    </svg>
+                    {createCsvFile ? createCsvFile : 'Chọn file CSV'}
+                    <input 
+                      type="file" 
+                      accept=".csv" 
+                      ref={createCsvInputRef}
+                      style={{ display: 'none' }} 
+                      onChange={(e) => handleCreateCsvFile(e.target.files?.[0])} 
+                    />
+                  </label>
+                  
+                  {createCsvError && (
+                    <div style={{ marginTop: 10, padding: '10px 12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, color: '#dc2626', fontSize: 12 }}>
+                      ⚠️ {createCsvError}
+                    </div>
+                  )}
+                  {createForm.studentCodes.length > 0 && (
+                    <div style={{ marginTop: 10, padding: '10px 12px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, color: '#16a34a', fontSize: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ width: 20, height: 20, borderRadius: '50%', background: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 11, fontWeight: 700 }}>✓</div>
+                      <span style={{ fontWeight: 600 }}>{createForm.studentCodes.length} học viên</span> sẽ được thêm vào lớp
+                    </div>
+                  )}
+                </div>
+                
+                <button 
+                  style={{ ...buttonPrimary, marginTop: 8, height: 44, fontSize: 15 }} 
+                  onClick={handleCreateClass} 
+                  disabled={createLoading}
+                >
+                  {createLoading ? 'Đang tạo lớp...' : '✨ Tạo lớp ngay'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Class List */}
+        <div style={{ display: 'grid', gridTemplateColumns: selectedClassId ? '400px 1fr' : '1fr', gap: 16 }}>
+          <div style={panelStyle}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+              <Search size={16} />
+              <input
+                style={{ ...inputStyle, margin: 0 }}
+                placeholder="Tìm kiếm lớp học..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            
+            <div style={{ maxHeight: 400, overflowY: 'auto' }}>
+              {classes.map((c) => (
+                <div 
+                  key={c.id} 
+                  style={{ 
+                    border: '1px solid #e5e7eb', 
+                    borderRadius: 10, 
+                    padding: 12, 
+                    marginBottom: 10,
+                    background: selectedClassId === c.id ? '#eff6ff' : '#fff',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                  onClick={() => setSelectedClassId(selectedClassId === c.id ? null : c.id)}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 14 }}>{c.name}</div>
+                      <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+                        {c.code || 'Chưa có mã'} • {c.activeStudentCount || 0} học viên
                       </div>
-                      <button
-                        type="button"
-                        style={{ ...buttonSecondary, padding: '6px 10px' }}
-                        onClick={() => handleSelectClass(c.id)}
+                    </div>
+                    <button
+                      type="button"
+                      style={{ 
+                        padding: '4px 8px',
+                        fontSize: 12,
+                        background: '#fee2e2',
+                        color: '#dc2626',
+                        border: '1px solid #fecaca',
+                        borderRadius: 6,
+                        cursor: 'pointer',
+                        fontWeight: 600
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeleteClassTarget(c);
+                        setDeleteClassPassword('');
+                      }}
+                    >
+                      Xóa
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {selectedClassId && selectedClass && (
+            <div style={panelStyle}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>
+                  Chi tiết: {selectedClass.name}
+                </h2>
+                <button 
+                  style={{ 
+                    padding: '6px 12px', 
+                    fontSize: 12, 
+                    background: '#dc2626', 
+                    color: 'white',
+                    border: 'none', 
+                    borderRadius: 4, 
+                    cursor: 'pointer' 
+                  }}
+                  onClick={() => setSelectedClassId(null)}
+                >
+                  ✕ Đóng
+                </button>
+              </div>
+
+              <div style={{ display: 'grid', gap: 20 }}>
+                {/* Thông tin cơ bản */}
+                <div>
+                  <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 600, color: '#1f2937' }}>
+                    Chỉnh sửa thông tin
+                  </h3>
+                  <div style={{ background: '#f9fafb', padding: 12, borderRadius: 6, border: '1px solid #e5e7eb' }}>
+                    <div style={{ display: 'grid', gap: 8 }}>
+                      <div>
+                        <label style={{ fontSize: 12, color: '#6b7280', marginBottom: 4, display: 'block' }}>Tên lớp:</label>
+                        <input 
+                          value={editForm.className} 
+                          onChange={(e) => setEditForm(prev => ({...prev, className: e.target.value}))}
+                          style={{ ...inputStyle, margin: 0 }}
+                          placeholder="Tên lớp học"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label style={{ fontSize: 12, color: '#6b7280', marginBottom: 4, display: 'block' }}>Mã lớp:</label>
+                        <input 
+                          value={editForm.classCode} 
+                          onChange={(e) => setEditForm(prev => ({...prev, classCode: e.target.value}))}
+                          style={{ ...inputStyle, margin: 0 }}
+                          placeholder="Mã lớp (VD: IELTS65-S01)"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label style={{ fontSize: 12, color: '#6b7280', marginBottom: 4, display: 'block' }}>Trạng thái:</label>
+                        <select 
+                          value={editForm.status} 
+                          onChange={(e) => setEditForm(prev => ({...prev, status: e.target.value}))}
+                          style={{ ...inputStyle, margin: 0 }}
+                        >
+                          <option value="ACTIVE">Hoạt động</option>
+                          <option value="INACTIVE">Tạm dừng</option>
+                          <option value="COMPLETED">Hoàn thành</option>
+                          <option value="CANCELLED">Hủy</option>
+                        </select>
+                      </div>
+                      
+                      <div>
+                        <label style={{ fontSize: 12, color: '#6b7280', marginBottom: 4, display: 'block' }}>Giảng viên chính:</label>
+                        
+                        {/* Hiển thị giảng viên hiện tại */}
+                        <div style={{ 
+                          padding: '8px 12px', 
+                          background: '#f3f4f6', 
+                          border: '1px solid #e5e7eb', 
+                          borderRadius: 6, 
+                          marginBottom: 8,
+                          fontSize: 13
+                        }}>
+                          <span style={{ color: '#6b7280' }}>Hiện tại: </span>
+                          <span style={{ fontWeight: 600, color: '#1f2937' }}>
+                            {selectedClass.teachers?.[0]?.fullName || 'Chưa có giảng viên'}
+                          </span>
+                        </div>
+                        
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <select 
+                            value={editForm.teacherId} 
+                            onChange={(e) => setEditForm(prev => ({...prev, teacherId: e.target.value}))}
+                            style={{ ...inputStyle, margin: 0, flex: 1 }}
+                          >
+                            <option value="">Chọn giảng viên mới</option>
+                            {managementData.teachers.map(t => (
+                              <option key={t.id} value={t.id}>{t.fullName}</option>
+                            ))}
+                          </select>
+                          <button 
+                            onClick={handleChangeTeacher}
+                            disabled={editLoading || !editForm.teacherId}
+                            style={{ 
+                              padding: '8px 12px',
+                              fontSize: 12,
+                              background: editLoading ? '#9ca3af' : (!editForm.teacherId ? '#9ca3af' : '#2563eb'),
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: 4,
+                              cursor: (editLoading || !editForm.teacherId) ? 'not-allowed' : 'pointer'
+                            }}
+                          >
+                            Đổi GV
+                          </button>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                        <div>
+                          <label style={{ fontSize: 12, color: '#6b7280', marginBottom: 4, display: 'block' }}>Trình độ:</label>
+                          <select 
+                            value={editForm.level} 
+                            onChange={(e) => setEditForm(prev => ({...prev, level: e.target.value}))}
+                            style={{ ...inputStyle, margin: 0, fontSize: 12 }}
+                          >
+                            <option value="">Chọn trình độ</option>
+                            <option value="BEGINNER">Beginner</option>
+                            <option value="ELEMENTARY">Elementary</option>
+                            <option value="INTERMEDIATE">Intermediate</option>
+                            <option value="UPPER_INTERMEDIATE">Upper Intermediate</option>
+                            <option value="ADVANCED">Advanced</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label style={{ fontSize: 12, color: '#6b7280', marginBottom: 4, display: 'block' }}>Mục tiêu Band:</label>
+                          <select 
+                            value={editForm.targetBand} 
+                            onChange={(e) => setEditForm(prev => ({...prev, targetBand: e.target.value}))}
+                            style={{ ...inputStyle, margin: 0, fontSize: 12 }}
+                          >
+                            <option value="">Chọn band</option>
+                            <option value="4.0">Band 4.0</option>
+                            <option value="4.5">Band 4.5</option>
+                            <option value="5.0">Band 5.0</option>
+                            <option value="5.5">Band 5.5</option>
+                            <option value="6.0">Band 6.0</option>
+                            <option value="6.5">Band 6.5</option>
+                            <option value="7.0">Band 7.0</option>
+                            <option value="7.5">Band 7.5</option>
+                            <option value="8.0">Band 8.0+</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label style={{ fontSize: 12, color: '#6b7280', marginBottom: 4, display: 'block' }}>Loại lớp:</label>
+                          <select 
+                            value={editForm.classType} 
+                            onChange={(e) => setEditForm(prev => ({...prev, classType: e.target.value}))}
+                            style={{ ...inputStyle, margin: 0, fontSize: 12 }}
+                          >
+                            <option value="OFFLINE">Offline</option>
+                            <option value="ONLINE">Online</option>
+                            <option value="HYBRID">Hybrid</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                        <div>
+                          <label style={{ fontSize: 12, color: '#6b7280', marginBottom: 4, display: 'block' }}>Sĩ số tối đa:</label>
+                          <input 
+                            type="number"
+                            value={editForm.maxStudents} 
+                            onChange={(e) => setEditForm(prev => ({...prev, maxStudents: e.target.value}))}
+                            style={{ ...inputStyle, margin: 0, fontSize: 12 }}
+                            placeholder="20"
+                          />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: 12, color: '#6b7280', marginBottom: 4, display: 'block' }}>Ngày khai giảng:</label>
+                          <input 
+                            type="date"
+                            value={editForm.startDate} 
+                            onChange={(e) => setEditForm(prev => ({...prev, startDate: e.target.value}))}
+                            style={{ ...inputStyle, margin: 0, fontSize: 12 }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: 12, color: '#6b7280', marginBottom: 4, display: 'block' }}>Ngày bế giảng:</label>
+                          <input 
+                            type="date"
+                            value={editForm.endDate} 
+                            onChange={(e) => setEditForm(prev => ({...prev, endDate: e.target.value}))}
+                            style={{ ...inputStyle, margin: 0, fontSize: 12 }}
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: 12, color: '#6b7280', marginBottom: 4, display: 'block' }}>Lịch học:</label>
+                        <input 
+                          value={editForm.schedule} 
+                          onChange={(e) => setEditForm(prev => ({...prev, schedule: e.target.value}))}
+                          style={{ ...inputStyle, margin: 0, fontSize: 12 }}
+                          placeholder="VD: Thứ 2,4,6 - 18:00-20:00"
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: 12, color: '#6b7280', marginBottom: 4, display: 'block' }}>Phòng học / Link:</label>
+                        <input 
+                          value={editForm.roomLocation} 
+                          onChange={(e) => setEditForm(prev => ({...prev, roomLocation: e.target.value}))}
+                          style={{ ...inputStyle, margin: 0, fontSize: 12 }}
+                          placeholder="Phòng 101 hoặc link online"
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: 12, color: '#6b7280', marginBottom: 4, display: 'block' }}>Ghi chú:</label>
+                        <textarea 
+                          value={editForm.notes} 
+                          onChange={(e) => setEditForm(prev => ({...prev, notes: e.target.value}))}
+                          style={{ ...inputStyle, margin: 0, fontSize: 12, minHeight: 60, resize: 'vertical' }}
+                          placeholder="Ghi chú về lớp học..."
+                        />
+                      </div>
+                    </div>
+                      
+                      <button 
+                        onClick={handleUpdateClass}
+                        disabled={editLoading}
+                        style={{ 
+                          ...buttonPrimary, 
+                          margin: 0, 
+                          background: editLoading ? '#9ca3af' : '#059669',
+                          fontSize: 13
+                        }}
                       >
-                        Xem chi tiết
+                        {editLoading ? 'Đang lưu...' : 'Lưu thông tin lớp'}
                       </button>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <div style={{ ...panelStyle }} ref={classDetailRef}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}><Settings2 size={15} /> Chi tiết lớp</div>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <button style={buttonSecondary} onClick={() => togglePanel('createClass')}>+ Thêm lớp</button>
-                <button style={buttonSecondary} onClick={() => togglePanel('assignTeacher')}>Gán giảng viên</button>
-                <button style={buttonSecondary} onClick={() => togglePanel('handoverStudents')}>Bàn giao học viên</button>
-              </div>
-            </div>
-
-            {expandedPanels.createClass && (
-              <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 10, marginBottom: 10 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, marginBottom: 8 }}><GraduationCap size={16} /> Tạo lớp mới</div>
-                <div style={{ display: 'grid', gap: 8 }}>
-                  <input style={inputStyle} placeholder="Tên lớp" value={createForm.className} onChange={(e) => setCreateForm((p) => ({ ...p, className: e.target.value }))} />
-                  <input style={inputStyle} placeholder="Mã lớp (tuỳ chọn)" value={createForm.classCode} onChange={(e) => setCreateForm((p) => ({ ...p, classCode: e.target.value }))} />
-                  <input type="number" min="1" style={inputStyle} placeholder="Sĩ số tối đa" value={createForm.maxStudents} onChange={(e) => setCreateForm((p) => ({ ...p, maxStudents: e.target.value }))} />
-                  <button style={buttonPrimary} onClick={handleCreateClass} disabled={createLoading}>{createLoading ? 'Đang tạo...' : 'Tạo lớp'}</button>
                 </div>
-              </div>
-            )}
 
-            {expandedPanels.assignTeacher && (
-              <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 10, marginBottom: 10 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, marginBottom: 8 }}><UserPlus size={16} /> Gán giảng viên vào lớp</div>
-                <div style={{ display: 'grid', gap: 8 }}>
-                  <select style={inputStyle} value={assignForm.classId} onChange={(e) => setAssignForm((p) => ({ ...p, classId: e.target.value }))}>
-                    <option value="">Chọn lớp</option>
-                    {(managementData.classes || []).map((c) => <option key={c.id} value={c.id}>{c.name} ({c.classCode})</option>)}
-                  </select>
-                  <select style={inputStyle} value={assignForm.teacherId} onChange={(e) => setAssignForm((p) => ({ ...p, teacherId: e.target.value }))}>
-                    <option value="">Chọn giảng viên</option>
-                    {(managementData.teachers || []).map((t) => <option key={t.id} value={t.id}>{t.fullName} ({t.email})</option>)}
-                  </select>
-                  <button style={buttonPrimary} onClick={handleAssignTeacher} disabled={assignLoading}>{assignLoading ? 'Đang gán...' : 'Gán giảng viên'}</button>
+                {/* Giảng viên */}
+                <div>
+                  <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 600, color: '#1f2937' }}>
+                    Giảng viên ({(selectedClass.teachers || []).length})
+                  </h3>
+                  <div style={{ maxHeight: 200, overflowY: 'auto', border: '1px solid #e5e7eb', borderRadius: 6 }}>
+                    {(selectedClass.teachers || []).length > 0 ? (
+                      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead>
+                          <tr style={{ background: '#f3f4f6' }}>
+                            <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 12, fontWeight: 600 }}>Họ tên</th>
+                            <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 12, fontWeight: 600 }}>Vai trò</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {selectedClass.teachers.map((t) => (
+                            <tr key={`${t.id}-${t.role}`} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                              <td style={{ padding: '8px 12px', fontSize: 13 }}>{t.fullName}</td>
+                              <td style={{ padding: '8px 12px', fontSize: 13 }}>
+                                <span style={{ 
+                                  padding: '2px 6px', 
+                                  background: '#dbeafe', 
+                                  color: '#1e40af', 
+                                  borderRadius: 3, 
+                                  fontSize: 11, 
+                                  fontWeight: 600 
+                                }}>
+                                  {t.role}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    ) : (
+                      <div style={{ padding: 16, textAlign: 'center', color: '#6b7280', fontSize: 13 }}>
+                        Chưa có giảng viên
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
 
-            {expandedPanels.handoverStudents && (
-              <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 10, marginBottom: 10 }}>
-                <div style={{ fontWeight: 700, marginBottom: 8 }}>Bàn giao học viên theo mã lớp</div>
-                <div style={{ display: 'grid', gap: 8 }}>
-                  <input style={inputStyle} placeholder="Mã lớp" value={handoverForm.classCode} onChange={(e) => setHandoverForm((p) => ({ ...p, classCode: e.target.value }))} />
-                  <textarea rows={3} style={inputStyle} placeholder="Mã học viên thủ công (phân tách bởi dấu phẩy, khoảng trắng hoặc xuống dòng)" value={handoverForm.studentCodesText} onChange={(e) => setHandoverForm((p) => ({ ...p, studentCodesText: e.target.value }))} />
-                  <input type="file" accept=".csv" onChange={(e) => handleCsvFile(e.target.files?.[0])} />
-                  {csvError && <div style={{ color: '#b91c1c', fontSize: 13 }}>{csvError}</div>}
-                  {!!csvPreview.length && (
-                    <div style={{ border: '1px solid #e2e8f0', borderRadius: 8, padding: 8, maxHeight: 150, overflowY: 'auto' }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Xem trước CSV: {csvPreview.length} học viên</div>
-                      {csvPreview.slice(0, 20).map((r, i) => (
-                        <div key={`${r.studentCode}-${i}`} style={{ fontSize: 13, borderBottom: '1px solid #f1f5f9', padding: '4px 0' }}>
-                          {r.studentCode} {r.fullName ? `• ${r.fullName}` : ''} {r.email ? `• ${r.email}` : ''}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  <textarea rows={2} style={inputStyle} placeholder="Ghi chú (tuỳ chọn)" value={handoverForm.notes} onChange={(e) => setHandoverForm((p) => ({ ...p, notes: e.target.value }))} />
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button style={buttonPrimary} onClick={handleStudentHandover} disabled={handoverLoading}>{handoverLoading ? 'Đang bàn giao...' : 'Thêm học viên vào lớp'}</button>
-                    <button style={buttonSecondary} onClick={clearCsv}>Xoá CSV</button>
+                {/* Học viên */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                    <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#1f2937' }}>
+                      Học viên ({(selectedClass.students || []).length})
+                    </h3>
+                    <button
+                      onClick={() => {
+                        setShowAddStudents(true);
+                        loadAvailableStudents();
+                      }}
+                      style={{
+                        ...buttonSecondary,
+                        padding: '4px 8px',
+                        fontSize: 12
+                      }}
+                    >
+                      + Thêm học viên
+                    </button>
+                  </div>
+                  <div style={{ maxHeight: 300, overflowY: 'auto', border: '1px solid #e5e7eb', borderRadius: 6 }}>
+                    {(selectedClass.students || []).length > 0 ? (
+                      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead>
+                          <tr style={{ background: '#f3f4f6' }}>
+                            <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 12, fontWeight: 600 }}>STT</th>
+                            <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 12, fontWeight: 600 }}>Họ tên</th>
+                            <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 12, fontWeight: 600 }}>Mã HV</th>
+                            <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 12, fontWeight: 600 }}>Thao tác</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {selectedClass.students.map((s, index) => (
+                            <tr key={s.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                              <td style={{ padding: '8px 12px', fontSize: 12, color: '#6b7280' }}>{index + 1}</td>
+                              <td style={{ padding: '8px 12px', fontSize: 13, fontWeight: 600 }}>
+                                {s.fullName || s.email || s.studentCode || 'N/A'}
+                              </td>
+                              <td style={{ padding: '8px 12px', fontSize: 12, fontFamily: 'monospace' }}>
+                                {s.studentCode || '-'}
+                              </td>
+                              <td style={{ padding: '8px 12px' }}>
+                                <button
+                                  onClick={() => handleRemoveStudent(s.id)}
+                                  style={{
+                                    padding: '2px 6px',
+                                    fontSize: 11,
+                                    background: '#fee2e2',
+                                    color: '#dc2626',
+                                    border: '1px solid #fecaca',
+                                    borderRadius: 3,
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  Xóa
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    ) : (
+                      <div style={{ padding: 16, textAlign: 'center', color: '#6b7280', fontSize: 13 }}>
+                        Chưa có học viên
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
-            )}
+            </div>
+          )}
+        </div>
 
-            {!selectedClass ? (
-              <div style={{ color: '#64748b' }}>Chọn lớp để xem chi tiết.</div>
-            ) : (
-              <>
-                <div style={{ fontWeight: 700, marginBottom: 8 }}>{selectedClass.name} ({selectedClass.classCode})</div>
+        {/* Add Students Modal */}
+        {showAddStudents && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000
+          }}>
+            <div style={{
+              background: 'white',
+              borderRadius: 8,
+              padding: 24,
+              width: '90%',
+              maxWidth: 600,
+              maxHeight: '80vh',
+              overflow: 'auto'
+            }}>
+              <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 600 }}>
+                Thêm học viên vào lớp: {selectedClass?.name}
+              </h3>
+              
+              {/* Search */}
+              <input
+                type="text"
+                placeholder="Tìm theo mã học viên hoặc tên..."
+                value={studentSearch}
+                onChange={(e) => setStudentSearch(e.target.value)}
+                style={{ ...inputStyle, margin: '0 0 16px 0' }}
+              />
+
+              {/* Student List */}
+              <div style={{ maxHeight: 300, overflowY: 'auto', border: '1px solid #e5e7eb', borderRadius: 6, marginBottom: 16 }}>
+                {availableStudents
+                  .filter(s => 
+                    !studentSearch || 
+                    s.username?.toLowerCase().includes(studentSearch.toLowerCase()) ||
+                    s.fullName?.toLowerCase().includes(studentSearch.toLowerCase())
+                  )
+                  .map(student => (
+                    <div key={student.id} style={{ 
+                      padding: 12, 
+                      borderBottom: '1px solid #f3f4f6',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}>
+                      <div>
+                        <div style={{ fontWeight: 500, fontSize: 14 }}>{student.fullName}</div>
+                        <div style={{ fontSize: 12, color: '#6b7280' }}>Mã: {student.username}</div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (selectedStudents.includes(student.id)) {
+                            setSelectedStudents(prev => prev.filter(id => id !== student.id));
+                          } else {
+                            setSelectedStudents(prev => [...prev, student.id]);
+                          }
+                        }}
+                        style={{
+                          ...buttonSecondary,
+                          padding: '4px 8px',
+                          fontSize: 12,
+                          background: selectedStudents.includes(student.id) ? '#dbeafe' : '#f3f4f6'
+                        }}
+                      >
+                        {selectedStudents.includes(student.id) ? 'Bỏ chọn' : 'Chọn'}
+                      </button>
+                    </div>
+                  ))
+                }
+              </div>
+
+              {/* Selected Count */}
+              {selectedStudents.length > 0 && (
+                <div style={{ marginBottom: 16, fontSize: 14, color: '#1f2937' }}>
+                  Đã chọn: {selectedStudents.length} học viên
+                </div>
+              )}
+
+              {/* Actions */}
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                 <button
-                  type="button"
-                  style={{ ...buttonSecondary, marginBottom: 8 }}
-                  onClick={() => togglePanel('editClass')}
+                  onClick={() => {
+                    setShowAddStudents(false);
+                    setSelectedStudents([]);
+                    setStudentSearch('');
+                  }}
+                  style={buttonSecondary}
                 >
-                  {expandedPanels.editClass ? 'Ẩn chỉnh sửa lớp' : 'Chỉnh sửa thông tin lớp'}
+                  Hủy
                 </button>
+                <button
+                  onClick={handleAddStudents}
+                  disabled={selectedStudents.length === 0}
+                  style={{ 
+                    ...buttonPrimary, 
+                    opacity: selectedStudents.length === 0 ? 0.5 : 1 
+                  }}
+                >
+                  Thêm {selectedStudents.length} học viên
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
 
-                {expandedPanels.editClass && (
-                  <>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                      <input style={inputStyle} placeholder="Tên lớp" value={classEditForm.name} onChange={(e) => setClassEditForm((p) => ({ ...p, name: e.target.value }))} />
-                      <select style={inputStyle} value={classEditForm.status} onChange={(e) => setClassEditForm((p) => ({ ...p, status: e.target.value }))}>
-                        <option value="ACTIVE">ACTIVE</option>
-                        <option value="UPCOMING">UPCOMING</option>
-                        <option value="COMPLETED">COMPLETED</option>
-                        <option value="PAUSED">PAUSED</option>
-                      </select>
-                      <input type="date" style={inputStyle} value={classEditForm.startDate} onChange={(e) => setClassEditForm((p) => ({ ...p, startDate: e.target.value }))} />
-                      <input type="date" style={inputStyle} value={classEditForm.endDate} onChange={(e) => setClassEditForm((p) => ({ ...p, endDate: e.target.value }))} />
-                      <input style={inputStyle} placeholder="Level" value={classEditForm.level} onChange={(e) => setClassEditForm((p) => ({ ...p, level: e.target.value }))} />
-                      <input style={inputStyle} placeholder="Target band" value={classEditForm.targetBand} onChange={(e) => setClassEditForm((p) => ({ ...p, targetBand: e.target.value }))} />
-                      <input style={inputStyle} placeholder="Loại lớp" value={classEditForm.classType} onChange={(e) => setClassEditForm((p) => ({ ...p, classType: e.target.value }))} />
-                      <input type="number" min="1" style={inputStyle} placeholder="Sĩ số tối đa" value={classEditForm.maxStudents} onChange={(e) => setClassEditForm((p) => ({ ...p, maxStudents: e.target.value }))} />
-                    </div>
-                    <textarea rows={2} style={{ ...inputStyle, marginTop: 8 }} placeholder="Lịch học" value={classEditForm.schedule} onChange={(e) => setClassEditForm((p) => ({ ...p, schedule: e.target.value }))} />
-                    <input style={{ ...inputStyle, marginTop: 8 }} placeholder="Phòng học / địa điểm" value={classEditForm.roomLocation} onChange={(e) => setClassEditForm((p) => ({ ...p, roomLocation: e.target.value }))} />
-                    <textarea rows={3} style={{ ...inputStyle, marginTop: 8 }} placeholder="Ghi chú" value={classEditForm.notes} onChange={(e) => setClassEditForm((p) => ({ ...p, notes: e.target.value }))} />
-                    <div style={{ marginTop: 8 }}>
-                      <button style={buttonPrimary} onClick={handleSaveClassInfo} disabled={classEditLoading}>{classEditLoading ? 'Đang lưu...' : 'Lưu thông tin lớp'}</button>
-                    </div>
-                  </>
-                )}
+      {/* Modal xác nhận xóa lớp */}
+      {deleteClassTarget && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }} onClick={() => !deletingClass && setDeleteClassTarget(null)}>
+          <div style={{ background: 'white', borderRadius: 16, padding: 24, maxWidth: 450, width: '90%', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 12, background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                  <line x1="12" y1="9" x2="12" y2="13"/>
+                  <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#111827' }}>Xác nhận xóa lớp</h3>
+                <p style={{ margin: '4px 0 0', fontSize: 13, color: '#6b7280' }}>Hành động này không thể hoàn tác</p>
+              </div>
+            </div>
+            
+            <div style={{ padding: 16, background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 12, marginBottom: 16 }}>
+              <p style={{ margin: 0, fontSize: 14, color: '#991b1b' }}>
+                Bạn sắp xóa lớp <strong>{deleteClassTarget.name}</strong> ({deleteClassTarget.code || 'Chưa có mã'})
+              </p>
+              <p style={{ margin: '8px 0 0', fontSize: 13, color: '#dc2626' }}>
+                • Tất cả học viên sẽ bị gỡ khỏi lớp<br/>
+                • Giảng viên sẽ bị hủy phân công<br/>
+                • Dữ liệu lớp sẽ bị xóa vĩnh viễn
+              </p>
+            </div>
 
-                <div style={{ marginTop: 12 }}>
-                  <button type="button" style={buttonSecondary} onClick={() => togglePanel('showTeachers')}>
-                    {expandedPanels.showTeachers ? 'Ẩn giảng viên' : `Xem giảng viên (${(selectedClass.teachers || []).length})`}
-                  </button>
-                  {expandedPanels.showTeachers && (
-                    <div style={{ display: 'grid', gap: 6, maxHeight: 140, overflowY: 'auto', marginTop: 8 }}>
-                      {(selectedClass.teachers || []).map((t) => (
-                        <div key={`${t.id}-${t.role}`} style={{ fontSize: 13, border: '1px solid #e2e8f0', borderRadius: 8, padding: '6px 8px' }}>
-                          {t.fullName} • {t.role}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+                Nhập mật khẩu admin để xác nhận <span style={{ color: '#ef4444' }}>*</span>
+              </label>
+              <input
+                type="password"
+                value={deleteClassPassword}
+                onChange={(e) => setDeleteClassPassword(e.target.value)}
+                placeholder="Mật khẩu admin"
+                disabled={deletingClass}
+                style={{ 
+                  width: '100%', 
+                  padding: '10px 14px', 
+                  borderRadius: 10, 
+                  border: '1px solid #d1d5db',
+                  fontSize: 14,
+                  boxSizing: 'border-box'
+                }}
+                onKeyPress={(e) => e.key === 'Enter' && handleDeleteClass()}
+              />
+            </div>
 
-                <div style={{ marginTop: 12 }}>
-                  <button type="button" style={buttonSecondary} onClick={() => togglePanel('showStudents')}>
-                    {expandedPanels.showStudents ? 'Ẩn học viên' : `Xem học viên (${(selectedClass.students || []).length})`}
-                  </button>
-                  {expandedPanels.showStudents && (
-                    <div style={{ maxHeight: 180, overflowY: 'auto', border: '1px solid #f1f5f9', borderRadius: 8, marginTop: 8 }}>
-                      {(selectedClass.students || []).map((s) => (
-                        <div key={s.id} style={{ padding: '7px 8px', borderBottom: '1px solid #f8fafc' }}>
-                          <div style={{ fontSize: 13, fontWeight: 600 }}>{s.fullName || s.email || s.studentCode}</div>
-                          <div style={{ fontSize: 12, color: '#64748b' }}>{s.studentCode ? `Mã: ${s.studentCode} • ` : ''}{s.email || ''}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button 
+                onClick={() => setDeleteClassTarget(null)} 
+                disabled={deletingClass}
+                style={{ 
+                  flex: 1,
+                  padding: '10px 16px', 
+                  borderRadius: 10, 
+                  border: '1px solid #d1d5db', 
+                  background: '#fff', 
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  fontSize: 14
+                }}
+              >
+                Hủy
+              </button>
+              <button 
+                onClick={handleDeleteClass} 
+                disabled={deletingClass}
+                style={{ 
+                  flex: 1,
+                  padding: '10px 16px', 
+                  borderRadius: 10, 
+                  border: 'none', 
+                  background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)', 
+                  color: 'white', 
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  fontSize: 14,
+                  opacity: deletingClass ? 0.6 : 1
+                }}
+              >
+                {deletingClass ? 'Đang xóa...' : 'Xác nhận xóa'}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </AdminLayout>
   );
-}
-
-/*
-import { School, Users, UserPlus, ClipboardList, PlusCircle, RefreshCw } from 'lucide-react';
-import AdminLayout from '../components/admin/AdminLayout';
-import { authApi } from '../services/authApi';
-
-const panelStyle = {
-  background: 'white',
-  border: '1px solid #e2e8f0',
-  borderRadius: 14,
-  padding: 16,
-};
-
-const sectionTitleStyle = {
-  margin: '0 0 12px',
-  display: 'flex',
-  alignItems: 'center',
-  gap: 8,
-  color: '#0f172a',
-};
-
-function statusBadgeStyle(status) {
-  const map = {
-    ACTIVE: { bg: '#dcfce7', color: '#166534' },
-    UPCOMING: { bg: '#dbeafe', color: '#1e40af' },
-    COMPLETED: { bg: '#e2e8f0', color: '#334155' },
-    CANCELLED: { bg: '#fee2e2', color: '#991b1b' },
-  };
-  const s = map[String(status || '').toUpperCase()] || { bg: '#f1f5f9', color: '#334155' };
-  return {
-    display: 'inline-flex',
-    padding: '2px 8px',
-    borderRadius: 999,
-    fontSize: 11,
-    fontWeight: 700,
-    background: s.bg,
-    color: s.color,
-  };
-}
-
-function parseCodes(rawText) {
-  return (rawText || '')
-    .split(/[,\n;\t\s]+/g)
-    .map((s) => s.trim())
-    .filter(Boolean);
 }
 
 function parseCodesFromCsv(csvText) {
-  const cleanText = String(csvText || '').replace(/^\uFEFF/, '');
-  const lines = cleanText
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
-
+  const cleanText = String(csvText || '').replace(/^\uFEFF/, ''); // Remove BOM
+  const lines = cleanText.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+  
   if (lines.length === 0) return [];
-
-  const parseRow = (line) => line.split(',').map((cell) => cell.trim().replace(/^"|"$/g, ''));
-  const first = parseRow(lines[0]);
-  const normalizedHeader = first.map((h) => h.toLowerCase());
-  const codeCol = normalizedHeader.findIndex((h) =>
-    ['studentcode', 'student_code', 'username', 'code', 'mahv', 'mshv'].includes(h)
-  );
-
-  const startIndex = codeCol >= 0 ? 1 : 0;
-  const out = [];
-  for (let i = startIndex; i < lines.length; i += 1) {
-    const row = parseRow(lines[i]);
-    const raw = codeCol >= 0 ? row[codeCol] : row[0];
-    if (raw && raw.trim()) out.push(raw.trim());
+  
+  const parseRow = (line) => line.split(',').map(cell => cell.trim().replace(/^"|"$/g, ''));
+  const header = parseRow(lines[0]).map(h => h.toLowerCase());
+  
+  // Tìm cột username (studentCode)
+  const usernameCol = header.findIndex(h => ['username', 'studentcode', 'student_code', 'code', 'mahv'].includes(h));
+  
+  if (usernameCol === -1) {
+    console.warn('Không tìm thấy cột username/studentCode trong CSV');
+    return [];
   }
-
-  return [...new Set(out)];
-}
-
-export default function ClassManagement() {
-  const isAdmin = authApi.hasRole('ADMIN');
-
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [refreshTick, setRefreshTick] = useState(0);
-  const [data, setData] = useState({ classes: [], teachers: [], teacher: null });
-  const [search, setSearch] = useState('');
-  const [selectedClassId, setSelectedClassId] = useState(null);
-  const [classEditLoading, setClassEditLoading] = useState(false);
-  const body = (
-    <div style={{ display: 'grid', gap: 16 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }}>
-        <div style={{ ...panelStyle, background: 'linear-gradient(135deg, #eff6ff, #ffffff)' }}>
-          <div style={{ fontSize: 12, color: '#64748b' }}>Tổng lớp</div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: '#1e3a8a' }}>{classes.length}</div>
-        </div>
-        <div style={{ ...panelStyle, background: 'linear-gradient(135deg, #ecfeff, #ffffff)' }}>
-          <div style={{ fontSize: 12, color: '#64748b' }}>Học viên active</div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: '#0f766e' }}>{allActiveStudents}</div>
-        </div>
-        <div style={{ ...panelStyle, background: 'linear-gradient(135deg, #f5f3ff, #ffffff)' }}>
-          <div style={{ fontSize: 12, color: '#64748b' }}>Giảng viên</div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: '#5b21b6' }}>{teachers.length}</div>
-        </div>
-      </div>
-
-      {error && <div style={{ ...panelStyle, color: '#dc2626', background: '#fef2f2', borderColor: '#fecaca' }}>{error}</div>}
-
-      <div style={panelStyle}>
-        <h3 style={sectionTitleStyle}><PlusCircle size={18} /> 1) Tạo lớp & phân công giảng viên</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-          <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 12 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Tạo lớp mới</div>
-            <div style={{ display: 'grid', gap: 10 }}>
-              <input value={createClassForm.classCode} onChange={(e) => setCreateClassForm((p) => ({ ...p, classCode: e.target.value }))} placeholder="Mã lớp" style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
-              <input value={createClassForm.className} onChange={(e) => setCreateClassForm((p) => ({ ...p, className: e.target.value }))} placeholder="Tên lớp" style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
-              <input type="date" value={createClassForm.startDate} onChange={(e) => setCreateClassForm((p) => ({ ...p, startDate: e.target.value }))} style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
-              <select value={createClassForm.teacherId} onChange={(e) => setCreateClassForm((p) => ({ ...p, teacherId: e.target.value }))} style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }}>
-                <option value="">(Tuỳ chọn) Chọn GV chính</option>
-                {teachers.map((t) => <option key={t.id} value={t.id}>{t.fullName} {t.teacherCode ? `(${t.teacherCode})` : ''}</option>)}
-              </select>
-              <button onClick={handleCreateClass} disabled={createClassLoading} style={{ border: 'none', borderRadius: 10, padding: '10px 12px', color: 'white', fontWeight: 700, background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', cursor: 'pointer' }}>
-                {createClassLoading ? 'Đang tạo...' : 'Tạo lớp'}
-              </button>
-            </div>
-          </div>
-
-          <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 12 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Phân công giảng viên theo mã lớp</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <input value={assignTeacherForm.classCode} onChange={(e) => setAssignTeacherForm((p) => ({ ...p, classCode: e.target.value }))} placeholder="Mã lớp" style={{ gridColumn: '1 / span 2', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
-              <select value={assignTeacherForm.teacherId} onChange={(e) => setAssignTeacherForm((p) => ({ ...p, teacherId: e.target.value }))} style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }}>
-                <option value="">Chọn giảng viên</option>
-                {teachers.map((t) => <option key={t.id} value={t.id}>{t.fullName}</option>)}
-              </select>
-              <select value={assignTeacherForm.role} onChange={(e) => setAssignTeacherForm((p) => ({ ...p, role: e.target.value }))} style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }}>
-                <option value="MAIN_TEACHER">MAIN_TEACHER</option>
-                <option value="ASSISTANT">ASSISTANT</option>
-                <option value="SUBSTITUTE">SUBSTITUTE</option>
-              </select>
-              <button onClick={handleAssignTeacher} style={{ gridColumn: '1 / span 2', border: 'none', borderRadius: 10, padding: '10px 14px', color: 'white', fontWeight: 700, background: 'linear-gradient(135deg, #16a34a, #15803d)', cursor: 'pointer' }}>Gán GV</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div style={panelStyle}>
-        <h3 style={sectionTitleStyle}><ClipboardList size={18} /> 2) Bàn giao học viên vào lớp</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-          <div style={{ display: 'grid', gap: 10 }}>
-            <input value={handoverForm.classCode} onChange={(e) => setHandoverForm((p) => ({ ...p, classCode: e.target.value }))} placeholder="Mã lớp" style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
-            <textarea rows={6} value={handoverForm.studentCodesText} onChange={(e) => setHandoverForm((p) => ({ ...p, studentCodesText: e.target.value }))} placeholder="Nhập thủ công mã học viên/username (mỗi dòng một mã)" style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', resize: 'vertical' }} />
-            <input value={handoverForm.notes} onChange={(e) => setHandoverForm((p) => ({ ...p, notes: e.target.value }))} placeholder="Ghi chú (tuỳ chọn)" style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
-            <button onClick={handleAssignStudents} disabled={handoverLoading} style={{ border: 'none', borderRadius: 10, padding: '10px 12px', color: 'white', fontWeight: 700, background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', cursor: 'pointer' }}>
-              {handoverLoading ? 'Đang xử lý...' : 'Thêm vào lớp'}
-            </button>
-          </div>
-          <div style={{ border: '1px solid #e2e8f0', borderRadius: 8, padding: 10, background: '#f8fafc' }}>
-            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Upload CSV và xem trước</div>
-            <input ref={csvInputRef} type="file" accept=".csv,text/csv" onChange={handleCsvUpload} />
-            {csvError && <div style={{ marginTop: 8, fontSize: 12, color: '#dc2626' }}>{csvError}</div>}
-            {csvCodes.length > 0 && (
-              <div style={{ marginTop: 8 }}>
-                <div style={{ fontSize: 12, color: '#1e3a8a', fontWeight: 700 }}>{csvFileName} • {csvCodes.length} mã</div>
-                <div style={{ maxHeight: 190, overflowY: 'auto', fontSize: 12, marginTop: 6 }}>
-                  {csvCodes.slice(0, 120).map((code) => <div key={code} style={{ fontFamily: 'monospace' }}>{code}</div>)}
-                </div>
-                <button type="button" onClick={clearCsv} style={{ marginTop: 8, border: '1px solid #cbd5e1', borderRadius: 6, padding: '4px 8px', background: 'white', cursor: 'pointer' }}>Xóa file</button>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div style={{ ...panelStyle, paddingBottom: 10 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-          <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}><School size={18} /> 3) Danh sách lớp & quản lý chi tiết</h3>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Tìm lớp theo mã/tên..." style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
-            <button onClick={() => setRefreshTick((v) => v + 1)} style={{ border: '1px solid #cbd5e1', borderRadius: 8, padding: '8px 10px', background: 'white', cursor: 'pointer' }}><RefreshCw size={14} /></button>
-          </div>
-        </div>
-
-        {loading ? (
-          <div>Đang tải dữ liệu...</div>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.25fr', gap: 12 }}>
-            <div style={{ maxHeight: 560, overflowY: 'auto', paddingRight: 4, display: 'grid', gap: 10 }}>
-              {filteredClasses.map((c) => (
-                <div key={c.id} style={{ border: c.id === selectedClass?.id ? '2px solid #3b82f6' : '1px solid #e2e8f0', borderRadius: 12, padding: 12, background: '#fff' }}>
-                  <div style={{ fontWeight: 800, color: '#0f172a', marginBottom: 4 }}>{c.code}</div>
-                  <div style={{ fontWeight: 600, color: '#1e293b', marginBottom: 6 }}>{c.name}</div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={statusBadgeStyle(c.status)}>{c.status || 'N/A'}</span>
-                    <span style={{ fontSize: 12, color: '#64748b' }}>{c.activeStudentCount || 0} học viên</span>
-                  </div>
-                  <button onClick={() => setSelectedClassId(c.id)} style={{ marginTop: 10, width: '100%', border: 'none', borderRadius: 9, padding: '9px 10px', background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', color: 'white', fontWeight: 700, cursor: 'pointer' }}>Quản lý lớp này</button>
-                </div>
-              ))}
-            </div>
-
-            <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 12 }}>
-              {!selectedClass ? (
-                <div style={{ color: '#64748b' }}>Chọn một module lớp để quản lý.</div>
-              ) : (
-                <>
-                  <div style={{ fontWeight: 800, fontSize: 16, color: '#0f172a' }}>Quản lý: {selectedClass.code} - {selectedClass.name}</div>
-                  <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10 }}>
-                    <input value={classEditForm.name} onChange={(e) => setClassEditForm((p) => ({ ...p, name: e.target.value }))} placeholder="Tên lớp" style={{ padding: '9px 10px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
-                    <select value={classEditForm.status} onChange={(e) => setClassEditForm((p) => ({ ...p, status: e.target.value }))} style={{ padding: '9px 10px', borderRadius: 8, border: '1px solid #cbd5e1' }}>
-                      <option value="UPCOMING">UPCOMING</option>
-                      <option value="ACTIVE">ACTIVE</option>
-                      <option value="COMPLETED">COMPLETED</option>
-                      <option value="CANCELLED">CANCELLED</option>
-                    </select>
-                    <input type="date" value={classEditForm.startDate || ''} onChange={(e) => setClassEditForm((p) => ({ ...p, startDate: e.target.value }))} style={{ padding: '9px 10px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
-                    <input type="date" value={classEditForm.endDate || ''} onChange={(e) => setClassEditForm((p) => ({ ...p, endDate: e.target.value }))} style={{ padding: '9px 10px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
-                    <input value={classEditForm.schedule || ''} onChange={(e) => setClassEditForm((p) => ({ ...p, schedule: e.target.value }))} placeholder="Lịch học" style={{ gridColumn: '1 / span 2', padding: '9px 10px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
-                    <textarea rows={3} value={classEditForm.notes || ''} onChange={(e) => setClassEditForm((p) => ({ ...p, notes: e.target.value }))} placeholder="Ghi chú lớp" style={{ gridColumn: '1 / span 2', resize: 'vertical', padding: '9px 10px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
-                    <button onClick={handleSaveClassInfo} disabled={classEditLoading} style={{ gridColumn: '1 / span 2', border: 'none', borderRadius: 10, padding: '10px 12px', color: 'white', fontWeight: 700, background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', cursor: 'pointer' }}>
-                      {classEditLoading ? 'Đang lưu...' : 'Lưu thay đổi thông tin lớp'}
-                    </button>
-                  </div>
-
-                  <div style={{ marginTop: 12 }}>
-                    <div style={{ fontWeight: 700, marginBottom: 6 }}>Giảng viên ({(selectedClass.teachers || []).length})</div>
-                    <div style={{ display: 'grid', gap: 6, maxHeight: 120, overflowY: 'auto' }}>
-                      {(selectedClass.teachers || []).map((t) => (
-                        <div key={`${t.id}-${t.role}`} style={{ fontSize: 13, border: '1px solid #e2e8f0', borderRadius: 8, padding: '6px 8px' }}>{t.fullName} • {t.role}</div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div style={{ marginTop: 12 }}>
-                    <div style={{ fontWeight: 700, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}><Users size={14} /> Học viên ({(selectedClass.students || []).length})</div>
-                    <div style={{ maxHeight: 180, overflowY: 'auto', border: '1px solid #f1f5f9', borderRadius: 8 }}>
-                      {(selectedClass.students || []).map((s) => (
-                        <div key={s.id} style={{ padding: '7px 8px', borderBottom: '1px solid #f8fafc' }}>
-                          <div style={{ fontSize: 13, fontWeight: 600 }}>{s.fullName || s.email || s.studentCode}</div>
-                          <div style={{ fontSize: 12, color: '#64748b' }}>{s.studentCode ? `Mã: ${s.studentCode} • ` : ''}{s.email || ''}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
-  return (
-    <AdminLayout title="Quản lý giảng viên & lớp" subtitle="Trang quản trị theo luồng: tạo lớp → gán giảng viên → bàn giao học viên → quản lý chi tiết.">
-      {body}
-    </AdminLayout>
-  );
-}
-
-    try {
-      setHandoverLoading(true);
-      const result = await authApi.assignStudentsByClassCodeScoped({
-        classCode: handoverForm.classCode.trim(),
-        studentCodes,
-        notes: handoverForm.notes,
-      });
-
-      const failed = Number(result?.failed || 0);
-      if (failed > 0) {
-        alert(`Đã thêm ${result?.success || 0}, thất bại ${failed}.`);
-      } else {
-        alert(`Đã thêm thành công ${result?.success || 0} học viên.`);
-      }
-
-      setHandoverForm((prev) => ({ ...prev, studentCodesText: '', notes: '' }));
-      clearCsv();
-      setRefreshTick((v) => v + 1);
-    } catch (e) {
-      alert(e?.response?.data?.message || 'Thêm học viên thất bại');
-    } finally {
-      setHandoverLoading(false);
+  
+  const codes = [];
+  for (let i = 1; i < lines.length; i++) {
+    const row = parseRow(lines[i]);
+    const code = row[usernameCol];
+    if (code && code.trim()) {
+      codes.push(code.trim());
     }
-  };
-
-  const handleSaveClassInfo = async () => {
-    if (!isAdmin || !selectedClass?.id) return;
-    if (!classEditForm.name.trim()) {
-      alert('Tên lớp không được để trống');
-      return;
-    }
-
-    try {
-      setClassEditLoading(true);
-      await authApi.updateClassInfo(selectedClass.id, {
-        name: classEditForm.name,
-        status: classEditForm.status,
-        startDate: classEditForm.startDate || null,
-        endDate: classEditForm.endDate || null,
-        level: classEditForm.level,
-        targetBand: classEditForm.targetBand,
-        classType: classEditForm.classType,
-        maxStudents: classEditForm.maxStudents === '' ? null : Number(classEditForm.maxStudents),
-        schedule: classEditForm.schedule,
-        roomLocation: classEditForm.roomLocation,
-        notes: classEditForm.notes,
-      });
-      alert('Đã cập nhật thông tin lớp');
-      setRefreshTick((v) => v + 1);
-    } catch (e) {
-      alert(e?.response?.data?.message || 'Cập nhật lớp thất bại');
-    } finally {
-      setClassEditLoading(false);
-    }
-  };
-
-  const body = (
-    <div style={{ display: 'grid', gap: 16 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }}>
-        <div style={{ ...panelStyle, background: 'linear-gradient(135deg, #eff6ff, #ffffff)' }}>
-          <div style={{ fontSize: 12, color: '#64748b' }}>Tổng lớp</div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: '#1e3a8a' }}>{classes.length}</div>
-        </div>
-        <div style={{ ...panelStyle, background: 'linear-gradient(135deg, #ecfeff, #ffffff)' }}>
-          <div style={{ fontSize: 12, color: '#64748b' }}>Học viên active</div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: '#0f766e' }}>{allActiveStudents}</div>
-        </div>
-        <div style={{ ...panelStyle, background: 'linear-gradient(135deg, #f5f3ff, #ffffff)' }}>
-          <div style={{ fontSize: 12, color: '#64748b' }}>Giảng viên</div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: '#5b21b6' }}>{teachers.length}</div>
-        </div>
-      </div>
-
-      {error && (
-        <div style={{ ...panelStyle, color: '#dc2626', background: '#fef2f2', borderColor: '#fecaca' }}>{error}</div>
-      )}
-
-      <div style={panelStyle}>
-        <h3 style={sectionTitleStyle}><PlusCircle size={18} /> 1) Tạo lớp & phân công giảng viên</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-          <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 12 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8, color: '#1e293b' }}>Tạo lớp mới</div>
-            <div style={{ display: 'grid', gap: 10 }}>
-              <input value={createClassForm.classCode} onChange={(e) => setCreateClassForm((p) => ({ ...p, classCode: e.target.value }))} placeholder="Mã lớp" style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
-              <input value={createClassForm.className} onChange={(e) => setCreateClassForm((p) => ({ ...p, className: e.target.value }))} placeholder="Tên lớp" style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
-              <input type="date" value={createClassForm.startDate} onChange={(e) => setCreateClassForm((p) => ({ ...p, startDate: e.target.value }))} style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
-              <select value={createClassForm.teacherId} onChange={(e) => setCreateClassForm((p) => ({ ...p, teacherId: e.target.value }))} style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }}>
-                <option value="">(Tuỳ chọn) Chọn GV chính</option>
-                {teachers.map((t) => <option key={t.id} value={t.id}>{t.fullName} {t.teacherCode ? `(${t.teacherCode})` : ''}</option>)}
-              </select>
-              <button onClick={handleCreateClass} disabled={createClassLoading} style={{ border: 'none', borderRadius: 10, padding: '10px 12px', color: 'white', fontWeight: 700, background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', cursor: 'pointer' }}>
-                {createClassLoading ? 'Đang tạo...' : 'Tạo lớp'}
-              </button>
-            </div>
-          </div>
-
-          <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 12 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8, color: '#1e293b' }}>Phân công giảng viên theo mã lớp</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <input value={assignTeacherForm.classCode} onChange={(e) => setAssignTeacherForm((p) => ({ ...p, classCode: e.target.value }))} placeholder="Mã lớp" style={{ gridColumn: '1 / span 2', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
-              <select value={assignTeacherForm.teacherId} onChange={(e) => setAssignTeacherForm((p) => ({ ...p, teacherId: e.target.value }))} style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }}>
-                <option value="">Chọn giảng viên</option>
-                {teachers.map((t) => <option key={t.id} value={t.id}>{t.fullName}</option>)}
-              </select>
-              <select value={assignTeacherForm.role} onChange={(e) => setAssignTeacherForm((p) => ({ ...p, role: e.target.value }))} style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }}>
-                <option value="MAIN_TEACHER">MAIN_TEACHER</option>
-                <option value="ASSISTANT">ASSISTANT</option>
-                <option value="SUBSTITUTE">SUBSTITUTE</option>
-              </select>
-              <button onClick={handleAssignTeacher} style={{ gridColumn: '1 / span 2', border: 'none', borderRadius: 10, padding: '10px 14px', color: 'white', fontWeight: 700, background: 'linear-gradient(135deg, #16a34a, #15803d)', cursor: 'pointer' }}>Gán GV</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div style={panelStyle}>
-        <h3 style={sectionTitleStyle}><ClipboardList size={18} /> 2) Bàn giao học viên vào lớp</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-          <div style={{ display: 'grid', gap: 10 }}>
-            <input value={handoverForm.classCode} onChange={(e) => setHandoverForm((p) => ({ ...p, classCode: e.target.value }))} placeholder="Mã lớp" style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
-            <textarea rows={6} value={handoverForm.studentCodesText} onChange={(e) => setHandoverForm((p) => ({ ...p, studentCodesText: e.target.value }))} placeholder="Nhập thủ công mã học viên/username (mỗi dòng một mã)" style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', resize: 'vertical' }} />
-            <input value={handoverForm.notes} onChange={(e) => setHandoverForm((p) => ({ ...p, notes: e.target.value }))} placeholder="Ghi chú (tuỳ chọn)" style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
-            <button onClick={handleAssignStudents} disabled={handoverLoading} style={{ border: 'none', borderRadius: 10, padding: '10px 12px', color: 'white', fontWeight: 700, background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', cursor: 'pointer' }}>
-              {handoverLoading ? 'Đang xử lý...' : 'Thêm vào lớp'}
-            </button>
-          </div>
-
-          <div style={{ border: '1px solid #e2e8f0', borderRadius: 8, padding: 10, background: '#f8fafc' }}>
-            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Upload CSV và xem trước</div>
-            <input ref={csvInputRef} type="file" accept=".csv,text/csv" onChange={handleCsvUpload} />
-            {csvError && <div style={{ marginTop: 8, fontSize: 12, color: '#dc2626' }}>{csvError}</div>}
-            {csvCodes.length > 0 && (
-              <div style={{ marginTop: 8 }}>
-                <div style={{ fontSize: 12, color: '#1e3a8a', fontWeight: 700 }}>{csvFileName} • {csvCodes.length} mã</div>
-                <div style={{ maxHeight: 190, overflowY: 'auto', fontSize: 12, marginTop: 6 }}>
-                  {csvCodes.slice(0, 120).map((code) => <div key={code} style={{ fontFamily: 'monospace' }}>{code}</div>)}
-                  {csvCodes.length > 120 && <div style={{ color: '#64748b' }}>... và {csvCodes.length - 120} mã khác</div>}
-                </div>
-                <button type="button" onClick={clearCsv} style={{ marginTop: 8, border: '1px solid #cbd5e1', borderRadius: 6, padding: '4px 8px', background: 'white', cursor: 'pointer' }}>Xóa file</button>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div style={{ ...panelStyle, paddingBottom: 10 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-          <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}><School size={18} /> 3) Danh sách lớp & quản lý chi tiết</h3>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Tìm lớp theo mã/tên..." style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
-            <button onClick={() => setRefreshTick((v) => v + 1)} style={{ border: '1px solid #cbd5e1', borderRadius: 8, padding: '8px 10px', background: 'white', cursor: 'pointer' }}><RefreshCw size={14} /></button>
-          </div>
-        </div>
-
-        {loading ? (
-          <div>Đang tải dữ liệu...</div>
-        ) : (
-          <>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.25fr', gap: 12 }}>
-              <div style={{ maxHeight: 560, overflowY: 'auto', paddingRight: 4 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 10 }}>
-              {filteredClasses.map((c) => (
-                <div
-                  key={c.id}
-                  style={{
-                    border: c.id === selectedClass?.id ? '2px solid #3b82f6' : '1px solid #e2e8f0',
-                    borderRadius: 12,
-                    padding: 12,
-                    background: '#fff',
-                  }}
-                >
-                  <div style={{ fontWeight: 800, color: '#0f172a', marginBottom: 4 }}>{c.code}</div>
-                  <div style={{ fontWeight: 600, color: '#1e293b', marginBottom: 6 }}>{c.name}</div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={statusBadgeStyle(c.status)}>{c.status || 'N/A'}</span>
-                    <span style={{ fontSize: 12, color: '#64748b' }}>{c.activeStudentCount || 0} học viên</span>
-                  </div>
-                  <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>Bắt đầu: {c.startDate || 'N/A'}</div>
-                  <button
-                    onClick={() => setSelectedClassId(c.id)}
-                    style={{
-                      marginTop: 10,
-                      width: '100%',
-                      border: 'none',
-                      borderRadius: 9,
-                      padding: '9px 10px',
-                      background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
-                      color: 'white',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Quản lý lớp này
-                  </button>
-                </div>
-              ))}
-              {filteredClasses.length === 0 && <div style={{ color: '#64748b' }}>Không có lớp phù hợp</div>}
-            </div>
-
-            <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 12 }}>
-              {!selectedClass ? (
-                <div style={{ color: '#64748b' }}>Chọn một module lớp để quản lý.</div>
-              ) : (
-                <>
-                  <div style={{ fontWeight: 800, fontSize: 16, color: '#0f172a' }}>Quản lý: {selectedClass.code} - {selectedClass.name}</div>
-
-                  {isAdmin && (
-                    <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10 }}>
-                      <input value={classEditForm.name} onChange={(e) => setClassEditForm((p) => ({ ...p, name: e.target.value }))} placeholder="Tên lớp" style={{ padding: '9px 10px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
-                      <select value={classEditForm.status} onChange={(e) => setClassEditForm((p) => ({ ...p, status: e.target.value }))} style={{ padding: '9px 10px', borderRadius: 8, border: '1px solid #cbd5e1' }}>
-                        <option value="UPCOMING">UPCOMING</option>
-                        <option value="ACTIVE">ACTIVE</option>
-                        <option value="COMPLETED">COMPLETED</option>
-                        <option value="CANCELLED">CANCELLED</option>
-                      </select>
-                      <input type="date" value={classEditForm.startDate || ''} onChange={(e) => setClassEditForm((p) => ({ ...p, startDate: e.target.value }))} style={{ padding: '9px 10px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
-                      <input type="date" value={classEditForm.endDate || ''} onChange={(e) => setClassEditForm((p) => ({ ...p, endDate: e.target.value }))} style={{ padding: '9px 10px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
-                      <input value={classEditForm.level || ''} onChange={(e) => setClassEditForm((p) => ({ ...p, level: e.target.value }))} placeholder="Level" style={{ padding: '9px 10px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
-                      <input value={classEditForm.targetBand || ''} onChange={(e) => setClassEditForm((p) => ({ ...p, targetBand: e.target.value }))} placeholder="Target band" style={{ padding: '9px 10px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
-                      <select value={classEditForm.classType || ''} onChange={(e) => setClassEditForm((p) => ({ ...p, classType: e.target.value }))} style={{ padding: '9px 10px', borderRadius: 8, border: '1px solid #cbd5e1' }}>
-                        <option value="">Class type</option>
-                        <option value="OFFLINE">OFFLINE</option>
-                        <option value="ONLINE">ONLINE</option>
-                        <option value="HYBRID">HYBRID</option>
-                      </select>
-                      <input type="number" min={1} value={classEditForm.maxStudents} onChange={(e) => setClassEditForm((p) => ({ ...p, maxStudents: e.target.value }))} placeholder="Sĩ số tối đa" style={{ padding: '9px 10px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
-                      <input value={classEditForm.schedule || ''} onChange={(e) => setClassEditForm((p) => ({ ...p, schedule: e.target.value }))} placeholder="Lịch học" style={{ gridColumn: '1 / span 2', padding: '9px 10px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
-                      <input value={classEditForm.roomLocation || ''} onChange={(e) => setClassEditForm((p) => ({ ...p, roomLocation: e.target.value }))} placeholder="Phòng học / Link" style={{ gridColumn: '1 / span 2', padding: '9px 10px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
-                      <textarea rows={3} value={classEditForm.notes || ''} onChange={(e) => setClassEditForm((p) => ({ ...p, notes: e.target.value }))} placeholder="Ghi chú lớp" style={{ gridColumn: '1 / span 2', resize: 'vertical', padding: '9px 10px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
-                      <button onClick={handleSaveClassInfo} disabled={classEditLoading} style={{ gridColumn: '1 / span 2', border: 'none', borderRadius: 10, padding: '10px 12px', color: 'white', fontWeight: 700, background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', cursor: 'pointer' }}>
-                        {classEditLoading ? 'Đang lưu...' : 'Lưu thay đổi thông tin lớp'}
-                      </button>
-                    </div>
-                  )}
-
-                  <div style={{ marginTop: 12 }}>
-                    <div style={{ fontWeight: 700, marginBottom: 6 }}>Giảng viên ({(selectedClass.teachers || []).length})</div>
-                    <div style={{ display: 'grid', gap: 6, maxHeight: 120, overflowY: 'auto' }}>
-                      {(selectedClass.teachers || []).map((t) => (
-                        <div key={`${t.id}-${t.role}`} style={{ fontSize: 13, border: '1px solid #e2e8f0', borderRadius: 8, padding: '6px 8px' }}>
-                          {t.fullName} • {t.role}
-                        </div>
-                      ))}
-                      {(selectedClass.teachers || []).length === 0 && <div style={{ fontSize: 12, color: '#64748b' }}>Chưa có giảng viên</div>}
-                    </div>
-                  </div>
-
-                  <div style={{ marginTop: 12 }}>
-                    <div style={{ fontWeight: 700, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <Users size={14} /> Học viên ({(selectedClass.students || []).length})
-                    </div>
-                    <div style={{ maxHeight: 180, overflowY: 'auto', border: '1px solid #f1f5f9', borderRadius: 8 }}>
-                      {(selectedClass.students || []).map((s) => (
-                        <div key={s.id} style={{ padding: '7px 8px', borderBottom: '1px solid #f8fafc' }}>
-                          <div style={{ fontSize: 13, fontWeight: 600 }}>{s.fullName || s.email || s.studentCode}</div>
-                          <div style={{ fontSize: 12, color: '#64748b' }}>
-                            {s.studentCode ? `Mã: ${s.studentCode} • ` : ''}
-                            {s.email || ''}
-                          </div>
-                        </div>
-                      ))}
-                      {(selectedClass.students || []).length === 0 && <div style={{ padding: 8, fontSize: 12, color: '#64748b' }}>Chưa có học viên</div>}
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
-
-                </div>
-              </div>
-  return (
-            <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 12 }}>
-      {body}
-    </AdminLayout>
-  );
+  }
+  
+  return [...new Set(codes)]; // Remove duplicates
 }
-
-*/

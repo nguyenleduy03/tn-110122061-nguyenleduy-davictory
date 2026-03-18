@@ -483,6 +483,105 @@ public class UserService {
         );
     }
 
+    @Transactional
+    public Map<String, Object> removeStudentFromClass(String username, Long classId, Long studentId) {
+        User currentUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
+
+        // Kiểm tra quyền: ADMIN/MANAGER hoặc GV dạy lớp này
+        boolean isAdmin = hasRole(currentUser, "ADMIN") || hasRole(currentUser, "MANAGER");
+        boolean isTeacher = classTeacherRepository.existsByUserIdAndClazzIdAndIsActiveTrue(currentUser.getId(), classId);
+
+        if (!isAdmin && !isTeacher) {
+            throw new RuntimeException("Bạn không có quyền xóa học viên khỏi lớp này");
+        }
+
+        com.victory.DAVictory.entity.Class clazz = classRepository.findById(classId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp"));
+
+        ClassStudent classStudent = classStudentRepository.findByClazzIdAndUserId(classId, studentId)
+                .orElseThrow(() -> new RuntimeException("Học viên không thuộc lớp này"));
+
+        // Đánh dấu học viên rời lớp
+        classStudent.setStatus("LEFT");
+        classStudent.setDroppedAt(LocalDate.now());
+        classStudentRepository.save(classStudent);
+
+        return Map.of(
+            "message", "Đã xóa học viên khỏi lớp",
+            "studentId", studentId,
+            "classId", classId
+        );
+    }
+
+
+    // Helper method để build class item với đầy đủ thông tin
+    private Map<String, Object> buildClassItemMap(com.victory.DAVictory.entity.Class clazz) {
+        Map<String, Object> item = new LinkedHashMap<>();
+        item.put("id", clazz.getId());
+        item.put("code", clazz.getCode());
+        item.put("classCode", clazz.getCode());
+        item.put("name", clazz.getName());
+        item.put("status", clazz.getStatus());
+        item.put("startDate", clazz.getStartDate());
+        item.put("endDate", clazz.getEndDate());
+        item.put("level", clazz.getLevel());
+        item.put("targetBand", clazz.getTargetBand());
+        item.put("classType", clazz.getClassType());
+        item.put("maxStudents", clazz.getMaxStudents());
+        item.put("schedule", clazz.getSchedule());
+        item.put("roomLocation", clazz.getRoomLocation());
+        item.put("notes", clazz.getNotes());
+        item.put("isActive", clazz.getIsActive());
+        item.put("createdAt", clazz.getCreatedAt());
+        item.put("updatedAt", clazz.getUpdatedAt());
+        
+        // Thông tin trung tâm
+        if (clazz.getCenter() != null) {
+            Map<String, Object> centerInfo = new LinkedHashMap<>();
+            centerInfo.put("id", clazz.getCenter().getId());
+            centerInfo.put("name", clazz.getCenter().getName());
+            centerInfo.put("code", clazz.getCenter().getCode());
+            item.put("center", centerInfo);
+        } else {
+            item.put("center", null);
+        }
+        
+        item.put("activeStudentCount", classStudentRepository.countByClazzIdAndStatus(clazz.getId(), "ACTIVE"));
+        item.put("studentCount", classStudentRepository.countByClazzIdAndStatus(clazz.getId(), "ACTIVE"));
+
+        // Danh sách giảng viên
+        List<ClassTeacher> teachers = classTeacherRepository.findByClazzIdAndIsActiveTrueOrderByRole(clazz.getId());
+        item.put("teacherCount", teachers.size());
+        item.put("teachers", teachers.stream().map(t -> {
+            Map<String, Object> tItem = new LinkedHashMap<>();
+            tItem.put("id", t.getUser().getId());
+            tItem.put("fullName", t.getUser().getFullName());
+            tItem.put("email", t.getUser().getEmail());
+            tItem.put("role", t.getRole());
+            tItem.put("assignedAt", t.getAssignedAt());
+            return tItem;
+        }).collect(Collectors.toList()));
+
+        // Danh sách học viên
+        List<ClassStudent> activeStudents = classStudentRepository.findByClazzIdAndStatusOrderByEnrolledAtAsc(clazz.getId(), "ACTIVE");
+        item.put("students", activeStudents.stream().map(cs -> {
+            Map<String, Object> sItem = new LinkedHashMap<>();
+            sItem.put("id", cs.getUser().getId());
+            sItem.put("fullName", cs.getUser().getFullName());
+            sItem.put("email", cs.getUser().getEmail());
+            sItem.put("enrolledAt", cs.getEnrolledAt());
+            sItem.put("status", cs.getStatus());
+            String studentCode = studentProfileRepository.findByUserId(cs.getUser().getId())
+                    .map(StudentProfile::getStudentCode)
+                    .orElse(null);
+            sItem.put("studentCode", studentCode);
+            return sItem;
+        }).collect(Collectors.toList()));
+
+        return item;
+    }
+
     public Map<String, Object> getTeacherClassManagementData() {
         List<User> teacherUsers = userRepository.findByRoleName("TEACHER");
         List<com.victory.DAVictory.entity.Class> classes = classRepository.findAll().stream()
@@ -518,52 +617,9 @@ public class UserService {
             return item;
         }).collect(Collectors.toList());
 
-        List<Map<String, Object>> classItems = classes.stream().map(clazz -> {
-            Map<String, Object> item = new LinkedHashMap<>();
-            item.put("id", clazz.getId());
-            item.put("code", clazz.getCode());
-            item.put("name", clazz.getName());
-            item.put("status", clazz.getStatus());
-            item.put("startDate", clazz.getStartDate());
-            item.put("endDate", clazz.getEndDate());
-            item.put("level", clazz.getLevel());
-            item.put("targetBand", clazz.getTargetBand());
-            item.put("classType", clazz.getClassType());
-            item.put("maxStudents", clazz.getMaxStudents());
-            item.put("schedule", clazz.getSchedule());
-            item.put("roomLocation", clazz.getRoomLocation());
-            item.put("notes", clazz.getNotes());
-            item.put("activeStudentCount", classStudentRepository.countByClazzIdAndStatus(clazz.getId(), "ACTIVE"));
-
-            List<ClassTeacher> teachers = classTeacherRepository.findByClazzIdAndIsActiveTrueOrderByRole(clazz.getId());
-            item.put("teacherCount", teachers.size());
-            item.put("teachers", teachers.stream().map(t -> {
-                Map<String, Object> tItem = new LinkedHashMap<>();
-                tItem.put("id", t.getUser().getId());
-                tItem.put("fullName", t.getUser().getFullName());
-                tItem.put("email", t.getUser().getEmail());
-                tItem.put("role", t.getRole());
-                tItem.put("assignedAt", t.getAssignedAt());
-                return tItem;
-            }).collect(Collectors.toList()));
-
-            List<ClassStudent> activeStudents = classStudentRepository.findByClazzIdAndStatusOrderByEnrolledAtAsc(clazz.getId(), "ACTIVE");
-            item.put("students", activeStudents.stream().map(cs -> {
-                Map<String, Object> sItem = new LinkedHashMap<>();
-                sItem.put("id", cs.getUser().getId());
-                sItem.put("fullName", cs.getUser().getFullName());
-                sItem.put("email", cs.getUser().getEmail());
-                sItem.put("enrolledAt", cs.getEnrolledAt());
-                sItem.put("status", cs.getStatus());
-                String studentCode = studentProfileRepository.findByUserId(cs.getUser().getId())
-                        .map(StudentProfile::getStudentCode)
-                        .orElse(null);
-                sItem.put("studentCode", studentCode);
-                return sItem;
-            }).collect(Collectors.toList()));
-
-            return item;
-        }).collect(Collectors.toList());
+        List<Map<String, Object>> classItems = classes.stream()
+                .map(this::buildClassItemMap)
+                .collect(Collectors.toList());
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("teachers", teacherItems);
@@ -590,52 +646,9 @@ public class UserService {
                         Comparator.nullsLast(Comparator.reverseOrder())))
                 .collect(Collectors.toList());
 
-        List<Map<String, Object>> classItems = classes.stream().map(clazz -> {
-            Map<String, Object> item = new LinkedHashMap<>();
-            item.put("id", clazz.getId());
-            item.put("code", clazz.getCode());
-            item.put("name", clazz.getName());
-            item.put("status", clazz.getStatus());
-            item.put("startDate", clazz.getStartDate());
-            item.put("endDate", clazz.getEndDate());
-            item.put("level", clazz.getLevel());
-            item.put("targetBand", clazz.getTargetBand());
-            item.put("classType", clazz.getClassType());
-            item.put("maxStudents", clazz.getMaxStudents());
-            item.put("schedule", clazz.getSchedule());
-            item.put("roomLocation", clazz.getRoomLocation());
-            item.put("notes", clazz.getNotes());
-            item.put("activeStudentCount", classStudentRepository.countByClazzIdAndStatus(clazz.getId(), "ACTIVE"));
-
-            List<ClassTeacher> teachers = classTeacherRepository.findByClazzIdAndIsActiveTrueOrderByRole(clazz.getId());
-            item.put("teacherCount", teachers.size());
-            item.put("teachers", teachers.stream().map(t -> {
-                Map<String, Object> tItem = new LinkedHashMap<>();
-                tItem.put("id", t.getUser().getId());
-                tItem.put("fullName", t.getUser().getFullName());
-                tItem.put("email", t.getUser().getEmail());
-                tItem.put("role", t.getRole());
-                tItem.put("assignedAt", t.getAssignedAt());
-                return tItem;
-            }).collect(Collectors.toList()));
-
-            List<ClassStudent> activeStudents = classStudentRepository.findByClazzIdAndStatusOrderByEnrolledAtAsc(clazz.getId(), "ACTIVE");
-            item.put("students", activeStudents.stream().map(cs -> {
-                Map<String, Object> sItem = new LinkedHashMap<>();
-                sItem.put("id", cs.getUser().getId());
-                sItem.put("fullName", cs.getUser().getFullName());
-                sItem.put("email", cs.getUser().getEmail());
-                sItem.put("enrolledAt", cs.getEnrolledAt());
-                sItem.put("status", cs.getStatus());
-                String studentCode = studentProfileRepository.findByUserId(cs.getUser().getId())
-                        .map(StudentProfile::getStudentCode)
-                        .orElse(null);
-                sItem.put("studentCode", studentCode);
-                return sItem;
-            }).collect(Collectors.toList()));
-
-            return item;
-        }).collect(Collectors.toList());
+        List<Map<String, Object>> classItems = classes.stream()
+                .map(this::buildClassItemMap)
+                .collect(Collectors.toList());
 
         Map<String, Object> teacherInfo = new LinkedHashMap<>();
         teacherInfo.put("id", currentUser.getId());

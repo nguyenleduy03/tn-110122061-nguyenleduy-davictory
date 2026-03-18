@@ -81,4 +81,42 @@ public class ExamAttemptController {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
+
+    @GetMapping("/class/{classId}")
+    @PreAuthorize("hasAnyRole('TEACHER', 'MANAGER', 'ADMIN')")
+    public ResponseEntity<?> getAttemptsByClass(@PathVariable Long classId, Authentication authentication) {
+        try {
+            String username = authentication.getName();
+            List<ExamAttemptResponse> list = examAttemptService.getAttemptsByClass(username, classId);
+            return ResponseEntity.ok(list);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/class/{classId}/student/{studentId}")
+    @PreAuthorize("hasAnyRole('TEACHER', 'MANAGER', 'ADMIN')")
+    public ResponseEntity<?> getStudentAttempts(@PathVariable Long classId, 
+                                                 @PathVariable Long studentId,
+                                                 Authentication authentication) {
+        try {
+            String username = authentication.getName();
+            List<ExamAttemptResponse> list = examAttemptService.getStudentAttemptsByClass(username, classId, studentId);
+            return ResponseEntity.ok(list);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/{id}/detail")
+    @PreAuthorize("hasAnyRole('TEACHER', 'MANAGER', 'ADMIN')")
+    public ResponseEntity<?> getAttemptDetailForTeacher(@PathVariable Long id, Authentication authentication) {
+        try {
+            String username = authentication.getName();
+            ExamAttemptResponse response = examAttemptService.getAttemptDetailForTeacher(username, id);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
 }

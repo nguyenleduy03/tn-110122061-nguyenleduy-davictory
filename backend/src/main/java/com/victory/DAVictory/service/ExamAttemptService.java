@@ -32,6 +32,8 @@ public class ExamAttemptService {
     private final QuestionOptionRepository questionOptionRepository;
     private final AnswerRepository answerRepository;
     private final UserRepository userRepository;
+    private final ClassTeacherRepository classTeacherRepository;
+    private final ClassStudentRepository classStudentRepository;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -122,6 +124,77 @@ public class ExamAttemptService {
         }
 
         return toResponse(attempt);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ExamAttemptResponse> getAttemptsByClass(String teacherUsername, Long classId) {
+        User teacher = userRepository.findByUsername(teacherUsername)
+            .orElseThrow(() -> new RuntimeException("Không tìm thấy giáo viên"));
+
+        // Kiểm tra GV có dạy lớp này không (hoặc là ADMIN/MANAGER)
+        boolean isTeacher = classTeacherRepository.existsByUserIdAndClazzIdAndIsActiveTrue(teacher.getId(), classId);
+        boolean isAdmin = teacher.getRoles().stream()
+            .anyMatch(r -> r.getName().equals("ADMIN") || r.getName().equals("MANAGER"));
+
+        if (!isTeacher && !isAdmin) {
+            throw new RuntimeException("Bạn không có quyền xem bài làm của lớp này");
+        }
+
+        return examAttemptRepository.findByClassId(classId).stream()
+            .map(this::toResponse)
+            .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ExamAttemptResponse> getStudentAttemptsByClass(String teacherUsername, Long classId, Long studentId) {
+        User teacher = userRepository.findByUsername(teacherUsername)
+            .orElseThrow(() -> new RuntimeException("Không tìm thấy giáo viên"));
+
+        // Kiểm tra GV có dạy lớp này không
+        boolean isTeacher = classTeacherRepository.existsByUserIdAndClazzIdAndIsActiveTrue(teacher.getId(), classId);
+        boolean isAdmin = teacher.getRoles().stream()
+            .anyMatch(r -> r.getName().equals("ADMIN") || r.getName().equals("MANAGER"));
+
+        if (!isTeacher && !isAdmin) {
+            throw new RuntimeException("Bạn không có quyền xem bài làm của lớp này");
+        }
+
+        // Kiểm tra học viên có trong lớp không
+        boolean isStudentInClass = classStudentRepository.existsByUserIdAndClazzId(studentId, classId);
+        if (!isStudentInClass) {
+            throw new RuntimeException("Học viên không thuộc lớp này");
+        }
+
+        return examAttemptRepository.findByStudentIdAndClassId(studentId, classId).stream()
+            .map(this::toResponse)
+            .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public ExamAttemptResponse getAttemptDetailForTeacher(String teacherUsername, Long attemptId) {
+        User teacher = userRepository.findByUsername(teacherUsername)
+            .orElseThrow(() -> new RuntimeException("Không tìm thấy giáo viên"));
+
+        ExamAttempt attempt = examAttemptRepository.findById(attemptId)
+            .orElseThrow(() -> new RuntimeException("Không tìm thấy attempt ID=" + attemptId));
+
+        // Kiểm tra GV có dạy học viên này không
+        Long studentId = attempt.getUser().getId();
+        boolean isTeachingStudent = classTeacherRepository.existsByUserIdAndClazzIdInAndIsActiveTrue(
+            teacher.getId(),
+            classStudentRepository.findByUserIdOrderByEnrolledAtDesc(studentId).stream()
+                .map(cs -> cs.getClazz().getId())
+                .toList()
+        );
+
+        boolean isAdmin = teacher.getRoles().stream()
+            .anyMatch(r -> r.getName().equals("ADMIN") || r.getName().equals("MANAGER"));
+
+        if (!isTeachingStudent && !isAdmin) {
+            throw new RuntimeException("Bạn không có quyền xem bài làm của học viên này");
+        }
+
+        return toResponseWithAnswers(attempt);
     }
 
     @Transactional
@@ -300,6 +373,24 @@ public class ExamAttemptService {
         r.setRawScore(attempt.getRawScore());
         r.setBandScore(attempt.getBandScore());
         r.setAttemptNumber(attempt.getAttemptNumber());
+        return r;
+    }
+
+    private ExamAttemptResponse toResponseWithAnswers(ExamAttempt attempt) {
+        ExamAttemptResponse r = toResponse(attempt);
+        
+        // Thêm chi tiết câu trả lời
+        List<AttemptAnswer> answers = attemptAnswerRepository.findByExamAttemptIdOrderByQuestionIdAsc(attempt.getId());
+        r.setAnswers(answers.stream().map(ans -> {
+            var dto = new AttemptAnswerSave();
+            dto.setQuestionId(ans.getQuestion().getId());
+            dto.setTextAnswer(ans.getTextAnswer());
+            dto.setSelectedOptionLabel(ans.getSelectedOptionLabel());
+            dto.setMatchingAnswer(ans.getMatchingAnswer());
+            dto.setIsFlagged(ans.getIsFlagged());
+            return dto;
+        }).toList());
+        
         return r;
     }
 }

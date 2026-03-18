@@ -42,4 +42,16 @@ public interface ExamAttemptRepository extends JpaRepository<ExamAttempt, Long> 
 
     @Query("SELECT COALESCE(MAX(e.attemptNumber), 0) + 1 FROM ExamAttempt e WHERE e.user.id = :userId AND e.test.id = :testId AND e.session.id = :sessionId")
     Integer getNextAttemptNumberByTest(@Param("userId") Long userId, @Param("testId") Long testId, @Param("sessionId") Long sessionId);
+
+    // Tất cả attempts của học viên trong lớp
+    @Query("SELECT e FROM ExamAttempt e WHERE e.user.id IN " +
+           "(SELECT cs.user.id FROM ClassStudent cs WHERE cs.clazz.id = :classId AND cs.status = 'ACTIVE') " +
+           "ORDER BY e.createdAt DESC")
+    List<ExamAttempt> findByClassId(@Param("classId") Long classId);
+
+    // Attempts của một học viên cụ thể (để GV xem)
+    @Query("SELECT e FROM ExamAttempt e WHERE e.user.id = :studentId " +
+           "AND EXISTS (SELECT 1 FROM ClassStudent cs WHERE cs.user.id = :studentId AND cs.clazz.id = :classId) " +
+           "ORDER BY e.createdAt DESC")
+    List<ExamAttempt> findByStudentIdAndClassId(@Param("studentId") Long studentId, @Param("classId") Long classId);
 }

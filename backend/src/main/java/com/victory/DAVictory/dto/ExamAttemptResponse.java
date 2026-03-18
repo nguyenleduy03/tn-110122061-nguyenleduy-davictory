@@ -4,6 +4,7 @@ import com.victory.DAVictory.enums.SkillType;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 public class ExamAttemptResponse {
@@ -31,4 +32,7 @@ public class ExamAttemptResponse {
     private Double bandScore;
 
     private Integer attemptNumber;
+    
+    // Chi tiết câu trả lời (chỉ có khi GV xem)
+    private List<AttemptAnswerSave> answers;
 }

@@ -35,4 +35,12 @@ public interface ClassTeacherRepository extends JpaRepository<ClassTeacher, Long
     @Modifying
     @Query("DELETE FROM ClassTeacher ct WHERE ct.user.id = :userId")
     void deleteByUserId(@Param("userId") Long userId);
+
+    // Kiểm tra GV có dạy lớp này không
+    boolean existsByUserIdAndClazzIdAndIsActiveTrue(Long userId, Long classId);
+
+    // Kiểm tra GV có dạy bất kỳ lớp nào trong danh sách không
+    @Query("SELECT CASE WHEN COUNT(ct) > 0 THEN true ELSE false END FROM ClassTeacher ct " +
+           "WHERE ct.user.id = :userId AND ct.clazz.id IN :classIds AND ct.isActive = true")
+    boolean existsByUserIdAndClazzIdInAndIsActiveTrue(@Param("userId") Long userId, @Param("classIds") List<Long> classIds);
 }

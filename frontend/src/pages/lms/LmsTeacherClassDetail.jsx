@@ -20,6 +20,7 @@ export default function LmsTeacherClassDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedClass, setSelectedClass] = useState(null);
+  const [showStudents, setShowStudents] = useState(false);
 
   useEffect(() => {
     // Nếu có state truyền từ trang danh sách → dùng luôn (nhanh hơn)
@@ -135,7 +136,13 @@ export default function LmsTeacherClassDetail() {
             </div>
             <div className="lms-class-option-value">{studentCount} học viên</div>
             <p className="lms-subtitle">Học viên đang active trong lớp</p>
-            <button type="button" className="lms-cta ghost">Xem danh sách</button>
+            <button 
+              type="button" 
+              className="lms-cta ghost"
+              onClick={() => setShowStudents(!showStudents)}
+            >
+              {showStudents ? 'Ẩn danh sách' : 'Xem danh sách'}
+            </button>
           </article>
 
           <article className="lms-panel lms-class-option-card">
@@ -220,6 +227,68 @@ export default function LmsTeacherClassDetail() {
               Xem đề thi
             </button>
           </div>
+
+          {/* Danh sách học viên */}
+          {showStudents && selectedClass.students && selectedClass.students.length > 0 && (
+            <div style={{ marginTop: 20 }}>
+              <h4 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 600 }}>
+                Danh sách học viên ({selectedClass.students.length})
+              </h4>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ background: '#f3f4f6', borderBottom: '2px solid #e5e7eb' }}>
+                      <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600 }}>STT</th>
+                      <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600 }}>Mã HV</th>
+                      <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600 }}>Họ tên</th>
+                      <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600 }}>Email</th>
+                      <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600 }}>Ngày vào lớp</th>
+                      <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600 }}>Trạng thái</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedClass.students.map((student, index) => (
+                      <tr key={student.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                        <td style={{ padding: '10px 12px' }}>{index + 1}</td>
+                        <td style={{ padding: '10px 12px', fontFamily: 'monospace', fontSize: 12 }}>
+                          {student.studentCode || '-'}
+                        </td>
+                        <td style={{ padding: '10px 12px', fontWeight: 600 }}>
+                          {student.fullName || student.email || 'N/A'}
+                        </td>
+                        <td style={{ padding: '10px 12px', color: '#6b7280' }}>
+                          {student.email || '-'}
+                        </td>
+                        <td style={{ padding: '10px 12px', color: '#6b7280', fontSize: 12 }}>
+                          {student.enrolledAt ? new Date(student.enrolledAt).toLocaleDateString('vi-VN') : '-'}
+                        </td>
+                        <td style={{ padding: '10px 12px' }}>
+                          <span style={{
+                            padding: '3px 8px',
+                            borderRadius: 4,
+                            fontSize: 11,
+                            fontWeight: 600,
+                            background: student.status === 'ACTIVE' ? '#dcfce7' : '#fee2e2',
+                            color: student.status === 'ACTIVE' ? '#166534' : '#991b1b'
+                          }}>
+                            {student.status || 'N/A'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {showStudents && (!selectedClass.students || selectedClass.students.length === 0) && (
+            <div style={{ marginTop: 20, padding: 16, background: '#f9fafb', borderRadius: 8, textAlign: 'center' }}>
+              <p style={{ margin: 0, color: '#6b7280', fontSize: 13 }}>
+                Chưa có học viên nào trong lớp
+              </p>
+            </div>
+          )}
 
           {/* Thông tin chi tiết lớp nếu backend trả về thêm */}
           {selectedClass.description && (

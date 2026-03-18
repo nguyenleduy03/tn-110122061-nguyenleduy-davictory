@@ -75,4 +75,16 @@ public class ClassManagementController {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
     }
+
+    @DeleteMapping("/classes/{classId}/students/{studentId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'TEACHER')")
+    public ResponseEntity<?> removeStudentFromClass(@PathVariable Long classId,
+                                                     @PathVariable Long studentId,
+                                                     Authentication authentication) {
+        try {
+            return ResponseEntity.ok(userService.removeStudentFromClass(authentication.getName(), classId, studentId));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
 }

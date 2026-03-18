@@ -37,4 +37,7 @@ public interface ClassStudentRepository extends JpaRepository<ClassStudent, Long
     @Modifying
     @Query("DELETE FROM ClassStudent cs WHERE cs.user.id = :userId")
     void deleteByUserId(@Param("userId") Long userId);
+
+    // Kiểm tra học viên có trong lớp không
+    boolean existsByUserIdAndClazzId(Long userId, Long classId);
 }
