@@ -7,7 +7,10 @@ import com.victory.DAVictory.enums.TestStatus;
 import com.victory.DAVictory.service.TestBuilderService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -40,10 +43,14 @@ public class TestBuilderController {
      * Tải toàn bộ đề thi bao gồm câu hỏi lồng sâu.
      */
     @GetMapping("/{id}/full")
-    @PreAuthorize("hasAnyRole('TEACHER', 'MANAGER', 'ADMIN')")
-    public ResponseEntity<?> loadFullTest(@PathVariable Long id) {
+    @PreAuthorize("hasAnyRole('STUDENT', 'TEACHER', 'MANAGER', 'ADMIN')")
+    public ResponseEntity<?> loadFullTest(@PathVariable Long id, Authentication authentication) {
         try {
             TestFullResponse result = testBuilderService.loadFullTest(id);
+            if (isStudentOnly(authentication) && result.getStatus() != TestStatus.PUBLISHED) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Bạn không có quyền xem đề thi này"));
+            }
             return ResponseEntity.ok(result);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -99,5 +106,24 @@ public class TestBuilderController {
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
+    }
+
+    private boolean isStudentOnly(Authentication authentication) {
+        if (authentication == null) return false;
+        boolean isStudent = hasRole(authentication, "STUDENT");
+        boolean isStaff = hasRole(authentication, "TEACHER")
+                || hasRole(authentication, "MANAGER")
+                || hasRole(authentication, "ADMIN");
+        return isStudent && !isStaff;
+    }
+
+    private boolean hasRole(Authentication authentication, String role) {
+        String target = "ROLE_" + role;
+        for (GrantedAuthority authority : authentication.getAuthorities()) {
+            if (target.equals(authority.getAuthority())) {
+                return true;
+            }
+        }
+        return false;
     }
 }

@@ -137,9 +137,16 @@ export const authApi = {
 
   // Lấy tất cả người dùng (chỉ Admin)
   getAllUsers: async (includeDeleted = false) => {
+    console.log('[authApi] getAllUsers called with includeDeleted:', includeDeleted);
+    const token = localStorage.getItem('authToken');
+    console.log('[authApi] Token exists:', !!token);
+    
     const response = await apiClient.get('/admin/users', {
       params: { includeDeleted },
     });
+    console.log('[authApi] Response status:', response.status);
+    console.log('[authApi] Response data:', response.data);
+    
     const payload = response.data;
 
     // Hỗ trợ nhiều format backend: [] | {content: []} | {data: []}

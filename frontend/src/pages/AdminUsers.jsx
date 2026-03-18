@@ -45,12 +45,11 @@ const hasAdminRole = (roles) => {
 
 export default function AdminUsers() {
   const location = useLocation();
-  const isTeacherClassPage = location.pathname.startsWith('/admin/teacher-class');
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState('ALL'); // ALL, ADMIN, MANAGER, TEACHER, STUDENT
+  const [activeTab, setActiveTab] = useState('ALL');
   const [showModal, setShowModal] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
   const [newPassword, setNewPassword] = useState('');
@@ -59,40 +58,12 @@ export default function AdminUsers() {
     email: '',
     roles: []
   });
-  const [adminMainTab, setAdminMainTab] = useState(isTeacherClassPage ? 'TEACHER_CLASS' : 'USERS'); // USERS, TEACHER_CLASS
-  const [managementLoading, setManagementLoading] = useState(false);
-  const [managementError, setManagementError] = useState('');
-  const [managementData, setManagementData] = useState({ teachers: [], classes: [] });
-  const [createClassLoading, setCreateClassLoading] = useState(false);
-  const [deleteClassTarget, setDeleteClassTarget] = useState(null);
-  const [deleteClassPassword, setDeleteClassPassword] = useState('');
-  const [deletingClass, setDeletingClass] = useState(false);
-  const [createClassForm, setCreateClassForm] = useState({
-    classCode: '',
-    className: '',
-    startDate: '',
-    teacherId: '',
-    teacherRole: 'MAIN_TEACHER',
-    notes: ''
-  });
-  const [assignTeacherForm, setAssignTeacherForm] = useState({
-    classCode: '',
-    teacherId: '',
-    role: 'MAIN_TEACHER',
-    notes: ''
-  });
-  const [handoverForm, setHandoverForm] = useState({
-    classCode: '',
-    studentCodesText: '',
-    notes: ''
-  });
-  const [csvPreviewCodes, setCsvPreviewCodes] = useState([]);
-  const [csvFileName, setCsvFileName] = useState('');
-  const [csvParseError, setCsvParseError] = useState('');
   const [notification, setNotification] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deletePassword, setDeletePassword] = useState('');
   const [handoverWarning, setHandoverWarning] = useState(null);
-  const csvInputRef = useRef(null);
+  const [deleteClassTarget, setDeleteClassTarget] = useState(null);
+  const [deleteClassPassword, setDeleteClassPassword] = useState('');
 
   // Lấy thông tin user hiện tại
   const currentUser = authApi.getStoredUser();
@@ -127,19 +98,37 @@ export default function AdminUsers() {
     fetchManagementData();
   }, []);
 
-  useEffect(() => {
-    setAdminMainTab(isTeacherClassPage ? 'TEACHER_CLASS' : 'USERS');
-  }, [isTeacherClassPage]);
-
   const fetchUsers = async () => {
     try {
       setLoading(true);
       setLoadError('');
-      const data = await authApi.getAllUsers();
+      console.log('[AdminUsers] Fetching users with includeDeleted=true...');
+      
+      // Kiểm tra token trước
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        throw new Error('Chưa đăng nhập. Vui lòng đăng nhập lại.');
+      }
+      
+      const data = await authApi.getAllUsers(true);
+      console.log('[AdminUsers] Received users:', data);
       setUsers(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error('Error fetching users:', error);
-      setLoadError(error?.response?.data?.message || 'Không thể tải danh sách người dùng. Vui lòng kiểm tra quyền ADMIN hoặc API backend.');
+      console.error('[AdminUsers] Error fetching users:', error);
+      console.error('[AdminUsers] Error response:', error.response);
+      
+      let errorMsg = 'Không thể tải danh sách người dùng.';
+      if (error.response?.status === 401) {
+        errorMsg = 'Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.';
+      } else if (error.response?.status === 403) {
+        errorMsg = 'Bạn không có quyền ADMIN để truy cập trang này.';
+      } else if (error.message) {
+        errorMsg = error.message;
+      } else if (error.response?.data?.message) {
+        errorMsg = error.response.data.message;
+      }
+      
+      setLoadError(errorMsg);
       setUsers([]);
     } finally {
       setLoading(false);
@@ -408,6 +397,8 @@ export default function AdminUsers() {
     }
   };
 
+  const isDeletedUser = (user) => Boolean(user?.deletedAt);
+
   const filteredUsers = users.filter(user => {
     const fullName = (user.fullName || '').toLowerCase();
     const username = (user.username || '').toLowerCase();
@@ -416,6 +407,11 @@ export default function AdminUsers() {
 
     const matchesSearch = fullName.includes(query) || username.includes(query) || email.includes(query);
     
+    if (activeTab === 'DELETED') {
+      return matchesSearch && isDeletedUser(user);
+    }
+    
+    if (isDeletedUser(user)) return false;
     if (activeTab === 'ALL') return matchesSearch;
     return matchesSearch && Array.isArray(user.roles) && user.roles.includes(activeTab);
   });
@@ -552,12 +548,28 @@ export default function AdminUsers() {
 
   const confirmDeleteUser = async () => {
     if (!deleteTarget) return;
+    if (!deletePassword.trim()) {
+      notify('warning', 'Thiếu mật khẩu', 'Vui lòng nhập mật khẩu admin để xác nhận xóa.');
+      return;
+    }
 
     try {
-      await authApi.deleteUser(deleteTarget.id);
-      setUsers(users.filter(user => user.id !== deleteTarget.id));
+      const deleted = await authApi.deleteUser(deleteTarget.id, deletePassword.trim());
+      const deletedData = deleted && typeof deleted === 'object' ? deleted : {};
+      const deletedAtValue = deleted?.deletedAt || new Date().toISOString();
+      setUsers((prev) => prev.map((user) => (
+        user.id === deleteTarget.id
+          ? {
+              ...user,
+              ...deletedData,
+              deletedAt: deletedAtValue,
+              isActive: deleted?.isActive ?? false,
+            }
+          : user
+      )));
       notify('success', 'Xóa người dùng thành công', `Đã xóa ${deleteTarget.fullName || deleteTarget.username || 'người dùng'} thành công.`);
       setDeleteTarget(null);
+      setDeletePassword('');
     } catch (error) {
       console.error('Delete user error:', error);
       console.error('Error response:', error.response?.data);
@@ -568,10 +580,8 @@ export default function AdminUsers() {
 
   return (
     <AdminLayout
-      title={adminMainTab === 'USERS' ? 'Quản trị người dùng' : 'Quản trị giảng viên & lớp'}
-      subtitle={adminMainTab === 'USERS'
-        ? 'Quản lý tài khoản và phân quyền người dùng'
-        : 'Phân công giảng viên, tạo lớp và bàn giao học viên'}
+      title="Quản trị người dùng"
+      subtitle="Quản lý tài khoản và phân quyền người dùng"
     >
       {notification && (
         <div className={`admin-toast admin-toast-${notification.type}`} key={notification.id}>
@@ -616,41 +626,26 @@ export default function AdminUsers() {
               fontSize: 32, fontWeight: 800, color: '#111827', margin: 0,
               display: 'flex', alignItems: 'center', gap: 12
             }}>
-              {adminMainTab === 'USERS' ? (
-                <Users size={32} style={{ color: '#0056d2' }} />
-              ) : (
-                <School size={32} style={{ color: '#0056d2' }} />
-              )}
+              <Users size={32} style={{ color: '#0056d2' }} />
               <span style={{
                 background: 'linear-gradient(135deg, #0056d2 0%, #003380 100%)',
                 WebkitBackgroundClip: 'text', 
                 WebkitTextFillColor: 'transparent'
               }}>
-                {adminMainTab === 'USERS' ? 'Quản lý người dùng' : 'Quản lý giảng viên & lớp'}
+                Quản lý người dùng
               </span>
             </h1>
             <p style={{ color: '#6b7280', marginTop: 8, fontSize: 16 }}>
-              {adminMainTab === 'USERS'
-                ? (
-                  <>
-                    Tổng cộng <strong>{users.length}</strong> người dùng • {users.filter(u => u.isActive).length} đang hoạt động
-                  </>
-                )
-                : (
-                  <>
-                    <strong>{managementData.teachers.length}</strong> giảng viên • <strong>{managementData.classes.length}</strong> lớp học
-                  </>
-                )}
+              Tổng cộng <strong>{users.length}</strong> người dùng • {users.filter(u => u.isActive).length} đang hoạt động
             </p>
           </div>
           
-          {adminMainTab === 'USERS' && (
-            <div style={{ display: 'flex', gap: 12 }}>
-              <button style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                padding: '12px 20px', 
-                background: 'linear-gradient(135deg, #0056d2 0%, #003380 100%)', 
-                color: 'white', border: 'none', borderRadius: 12, cursor: 'pointer', 
+          <div style={{ display: 'flex', gap: 12 }}>
+            <button style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '12px 20px', 
+              background: 'linear-gradient(135deg, #0056d2 0%, #003380 100%)', 
+              color: 'white', border: 'none', borderRadius: 12, cursor: 'pointer',
                 fontWeight: 600, fontSize: 14, 
                 boxShadow: '0 4px 15px rgba(0, 86, 210, 0.4)',
                 transition: 'all 0.3s ease'
@@ -681,11 +676,8 @@ export default function AdminUsers() {
                 Thống kê
               </button>
             </div>
-          )}
         </div>
 
-        {adminMainTab === 'USERS' ? (
-        <React.Fragment>
         {/* Tabs */}
         <div style={{ 
           display: 'flex', gap: 4, marginBottom: 24,
@@ -693,11 +685,12 @@ export default function AdminUsers() {
           boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)'
         }}>
           {[
-            { key: 'ALL', label: 'Tất cả', icon: Users, count: users.length },
-            { key: 'ADMIN', label: 'Quản trị viên', icon: Shield, count: users.filter(u => u.roles.includes('ADMIN')).length },
-            { key: 'MANAGER', label: 'Quản lý', icon: Target, count: users.filter(u => u.roles.includes('MANAGER')).length },
-            { key: 'TEACHER', label: 'Giáo viên', icon: GraduationCap, count: users.filter(u => u.roles.includes('TEACHER')).length },
-            { key: 'STUDENT', label: 'Học viên', icon: BookOpen, count: users.filter(u => u.roles.includes('STUDENT')).length }
+            { key: 'ALL', label: 'Tất cả', icon: Users, count: users.filter(u => !isDeletedUser(u)).length },
+            { key: 'ADMIN', label: 'Quản trị viên', icon: Shield, count: users.filter(u => !isDeletedUser(u) && Array.isArray(u.roles) && u.roles.includes('ADMIN')).length },
+            { key: 'MANAGER', label: 'Quản lý', icon: Target, count: users.filter(u => !isDeletedUser(u) && Array.isArray(u.roles) && u.roles.includes('MANAGER')).length },
+            { key: 'TEACHER', label: 'Giáo viên', icon: GraduationCap, count: users.filter(u => !isDeletedUser(u) && Array.isArray(u.roles) && u.roles.includes('TEACHER')).length },
+            { key: 'STUDENT', label: 'Học viên', icon: BookOpen, count: users.filter(u => !isDeletedUser(u) && Array.isArray(u.roles) && u.roles.includes('STUDENT')).length },
+            { key: 'DELETED', label: 'Đã xóa', icon: XCircle, count: users.filter(u => isDeletedUser(u)).length }
           ].map(tab => {
             const IconComponent = tab.icon;
             const isActive = activeTab === tab.key;
@@ -846,13 +839,30 @@ export default function AdminUsers() {
                 marginBottom: 18,
               }}>
                 <AlertCircle size={18} style={{ marginTop: 2, flexShrink: 0 }} />
-                <div style={{ fontSize: 14, lineHeight: 1.6 }}>
+                <div style={{ fontSize: 14, lineHeight: 1.6, width: '100%' }}>
                   Bạn sắp xóa <strong>{deleteTarget.fullName || deleteTarget.username}</strong>.
                   {deleteTarget.roles?.includes('TEACHER') && (
                     <>
-                      <br />Giảng viên phải bàn giao lớp trước khi xóa. Nếu còn quản lý lớp, hệ thống sẽ từ chối thao tác.
+                      <br />Giảng viên phải bàn giao lớp trước khi xóa.
                     </>
                   )}
+                  <div style={{ marginTop: 12 }}>
+                    <input
+                      type="password"
+                      value={deletePassword}
+                      onChange={(e) => setDeletePassword(e.target.value)}
+                      placeholder="Nhập mật khẩu admin để xác nhận"
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        borderRadius: 8,
+                        border: '1.5px solid #fca5a5',
+                        outline: 'none',
+                        fontSize: 14,
+                        background: 'white'
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -1146,335 +1156,6 @@ export default function AdminUsers() {
           </table>
         </div>
         )}
-        </React.Fragment>
-        ) : (
-          <div>
-            {managementError && (
-              <div style={{
-                marginBottom: 16,
-                padding: '12px 16px',
-                borderRadius: 10,
-                border: '1px solid #fecaca',
-                background: '#fef2f2',
-                color: '#dc2626',
-                fontSize: 14,
-                fontWeight: 500
-              }}>
-                {managementError}
-              </div>
-            )}
-
-            <div style={{
-              background: 'white',
-              border: '1px solid #e2e8f0',
-              borderRadius: 14,
-              padding: 18,
-              marginBottom: 16
-            }}>
-              <h3 style={{ margin: '0 0 6px', display: 'flex', alignItems: 'center', gap: 8, color: '#0f172a' }}>
-                <School size={18} />
-                Tạo lớp nhanh và gán giảng viên
-              </h3>
-              <p style={{ margin: '0 0 12px', color: '#64748b', fontSize: 13 }}>
-                Sau khi tạo lớp, mã lớp sẽ tự điền vào phần phân công và bàn giao học viên ngay bên dưới.
-              </p>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.4fr 1fr 1fr 1fr', gap: 10 }}>
-                <input
-                  type="text"
-                  placeholder="Mã lớp (VD: IELTS-A1-2026)"
-                  value={createClassForm.classCode}
-                  onChange={(e) => setCreateClassForm((prev) => ({ ...prev, classCode: e.target.value }))}
-                  style={{ width: '100%', padding: '11px 12px', border: '1px solid #cbd5e1', borderRadius: 10 }}
-                />
-
-                <input
-                  type="text"
-                  placeholder="Tên lớp"
-                  value={createClassForm.className}
-                  onChange={(e) => setCreateClassForm((prev) => ({ ...prev, className: e.target.value }))}
-                  style={{ width: '100%', padding: '11px 12px', border: '1px solid #cbd5e1', borderRadius: 10 }}
-                />
-
-                <input
-                  type="date"
-                  value={createClassForm.startDate}
-                  onChange={(e) => setCreateClassForm((prev) => ({ ...prev, startDate: e.target.value }))}
-                  style={{ width: '100%', padding: '11px 12px', border: '1px solid #cbd5e1', borderRadius: 10 }}
-                />
-
-                <select
-                  value={createClassForm.teacherId}
-                  onChange={(e) => setCreateClassForm((prev) => ({ ...prev, teacherId: e.target.value }))}
-                  style={{ width: '100%', padding: '11px 12px', border: '1px solid #cbd5e1', borderRadius: 10 }}
-                >
-                  <option value="">(Tuỳ chọn) Chọn giảng viên</option>
-                  {managementData.teachers.map((teacher) => (
-                    <option key={teacher.id} value={teacher.id}>
-                      {teacher.fullName} {teacher.teacherCode ? `(${teacher.teacherCode})` : ''}
-                    </option>
-                  ))}
-                </select>
-
-                <select
-                  value={createClassForm.teacherRole}
-                  onChange={(e) => setCreateClassForm((prev) => ({ ...prev, teacherRole: e.target.value }))}
-                  style={{ width: '100%', padding: '11px 12px', border: '1px solid #cbd5e1', borderRadius: 10 }}
-                  disabled={!createClassForm.teacherId}
-                >
-                  <option value="MAIN_TEACHER">Giảng viên chính</option>
-                  <option value="ASSISTANT">Trợ giảng</option>
-                  <option value="SUBSTITUTE">Giảng viên thay thế</option>
-                </select>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 10, marginTop: 10 }}>
-                <input
-                  type="text"
-                  placeholder="Ghi chú lớp (tuỳ chọn)"
-                  value={createClassForm.notes}
-                  onChange={(e) => setCreateClassForm((prev) => ({ ...prev, notes: e.target.value }))}
-                  style={{ width: '100%', padding: '11px 12px', border: '1px solid #cbd5e1', borderRadius: 10 }}
-                />
-
-                <button
-                  onClick={handleCreateClassAndAssignTeacher}
-                  disabled={createClassLoading || managementLoading}
-                  style={{
-                    border: 'none',
-                    borderRadius: 10,
-                    background: 'linear-gradient(135deg, #10b981 0%, #047857 100%)',
-                    color: 'white',
-                    fontWeight: 700,
-                    padding: '11px 16px',
-                    cursor: 'pointer',
-                    minWidth: 190
-                  }}
-                >
-                  {createClassLoading ? 'Đang tạo lớp...' : 'Tạo lớp / gán GV'}
-                </button>
-              </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1fr', gap: 16, marginBottom: 18 }}>
-              <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 14, padding: 18 }}>
-                <h3 style={{ margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 8, color: '#0f172a' }}>
-                  <UserPlus size={18} />
-                  Phân công giảng viên quản lý lớp theo mã
-                </h3>
-
-                <div style={{ display: 'grid', gap: 10 }}>
-                  <input
-                    type="text"
-                    placeholder="Mã lớp (VD: IELTS-A1-2026)"
-                    value={assignTeacherForm.classCode}
-                    onChange={(e) => setAssignTeacherForm((prev) => ({ ...prev, classCode: e.target.value }))}
-                    style={{ width: '100%', padding: '11px 12px', border: '1px solid #cbd5e1', borderRadius: 10 }}
-                  />
-
-                  <select
-                    value={assignTeacherForm.teacherId}
-                    onChange={(e) => setAssignTeacherForm((prev) => ({ ...prev, teacherId: e.target.value }))}
-                    style={{ width: '100%', padding: '11px 12px', border: '1px solid #cbd5e1', borderRadius: 10 }}
-                  >
-                    <option value="">Chọn giảng viên</option>
-                    {managementData.teachers.map((teacher) => (
-                      <option key={teacher.id} value={teacher.id}>
-                        {teacher.fullName} {teacher.teacherCode ? `(${teacher.teacherCode})` : ''}
-                      </option>
-                    ))}
-                  </select>
-
-                  <select
-                    value={assignTeacherForm.role}
-                    onChange={(e) => setAssignTeacherForm((prev) => ({ ...prev, role: e.target.value }))}
-                    style={{ width: '100%', padding: '11px 12px', border: '1px solid #cbd5e1', borderRadius: 10 }}
-                  >
-                    <option value="MAIN_TEACHER">Giảng viên chính (MAIN_TEACHER)</option>
-                    <option value="ASSISTANT">Trợ giảng (ASSISTANT)</option>
-                    <option value="SUBSTITUTE">Giảng viên thay thế (SUBSTITUTE)</option>
-                  </select>
-
-                  <input
-                    type="text"
-                    placeholder="Ghi chú phân công (tuỳ chọn)"
-                    value={assignTeacherForm.notes}
-                    onChange={(e) => setAssignTeacherForm((prev) => ({ ...prev, notes: e.target.value }))}
-                    style={{ width: '100%', padding: '11px 12px', border: '1px solid #cbd5e1', borderRadius: 10 }}
-                  />
-
-                  <button
-                    onClick={handleAssignTeacherByClassCode}
-                    disabled={managementLoading}
-                    style={{
-                      border: 'none',
-                      borderRadius: 10,
-                      background: 'linear-gradient(135deg, #0056d2 0%, #003380 100%)',
-                      color: 'white',
-                      fontWeight: 700,
-                      padding: '11px 14px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Phân công giảng viên
-                  </button>
-                </div>
-              </div>
-
-              <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 14, padding: 18 }}>
-                <h3 style={{ margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 8, color: '#0f172a' }}>
-                  <ClipboardList size={18} />
-                  Bàn giao danh sách học viên theo mã lớp
-                </h3>
-
-                <div style={{ display: 'grid', gap: 10 }}>
-                  <input
-                    type="text"
-                    placeholder="Mã lớp (VD: IELTS-A1-2026)"
-                    value={handoverForm.classCode}
-                    onChange={(e) => setHandoverForm((prev) => ({ ...prev, classCode: e.target.value }))}
-                    style={{ width: '100%', padding: '11px 12px', border: '1px solid #cbd5e1', borderRadius: 10 }}
-                  />
-
-                  <div style={{ display: 'grid', gap: 8, padding: 10, border: '1px solid #e2e8f0', borderRadius: 10, background: '#f8fafc' }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>
-                      Upload CSV để xem trước danh sách học viên
-                    </div>
-                    <input
-                      ref={csvInputRef}
-                      type="file"
-                      accept=".csv,text/csv"
-                      onChange={handleCsvUploadForHandover}
-                      style={{ width: '100%' }}
-                    />
-
-                    {csvParseError && (
-                      <div style={{ fontSize: 12, color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '8px 10px' }}>
-                        {csvParseError}
-                      </div>
-                    )}
-
-                    {csvPreviewCodes.length > 0 && (
-                      <div style={{ border: '1px solid #bfdbfe', borderRadius: 8, background: '#eff6ff', padding: 10 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                          <div style={{ fontSize: 12, color: '#1e3a8a', fontWeight: 700 }}>
-                            Xem trước từ file: {csvFileName || 'CSV'} • {csvPreviewCodes.length} mã học viên
-                          </div>
-                          <button
-                            type="button"
-                            onClick={clearCsvPreview}
-                            style={{ border: '1px solid #93c5fd', background: 'white', color: '#1d4ed8', borderRadius: 6, fontSize: 12, padding: '4px 8px', cursor: 'pointer' }}
-                          >
-                            Xóa file
-                          </button>
-                        </div>
-                        <div style={{ maxHeight: 130, overflowY: 'auto', fontSize: 12, color: '#1e293b', display: 'grid', gap: 4 }}>
-                          {csvPreviewCodes.slice(0, 150).map((code) => (
-                            <div key={code} style={{ fontFamily: 'monospace' }}>{code}</div>
-                          ))}
-                          {csvPreviewCodes.length > 150 && (
-                            <div style={{ color: '#64748b' }}>... và {csvPreviewCodes.length - 150} mã khác</div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <textarea
-                    rows={6}
-                    placeholder="Thêm thủ công: nhập mã học viên / username\nMỗi dòng 1 mã hoặc phân tách bằng dấu phẩy"
-                    value={handoverForm.studentCodesText}
-                    onChange={(e) => setHandoverForm((prev) => ({ ...prev, studentCodesText: e.target.value }))}
-                    style={{ width: '100%', padding: '11px 12px', border: '1px solid #cbd5e1', borderRadius: 10, resize: 'vertical' }}
-                  />
-
-                  <input
-                    type="text"
-                    placeholder="Ghi chú bàn giao (tuỳ chọn)"
-                    value={handoverForm.notes}
-                    onChange={(e) => setHandoverForm((prev) => ({ ...prev, notes: e.target.value }))}
-                    style={{ width: '100%', padding: '11px 12px', border: '1px solid #cbd5e1', borderRadius: 10 }}
-                  />
-
-                  <button
-                    onClick={handleAssignStudentsByClassCode}
-                    disabled={managementLoading}
-                    style={{
-                      border: 'none',
-                      borderRadius: 10,
-                      background: 'linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%)',
-                      color: 'white',
-                      fontWeight: 700,
-                      padding: '11px 14px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Bàn giao danh sách
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-              <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 14, padding: 16 }}>
-                <h4 style={{ margin: '0 0 12px', color: '#0f172a' }}>
-                  Danh sách giảng viên ({managementData.teachers.length})
-                </h4>
-                <div style={{ maxHeight: 360, overflow: 'auto' }}>
-                  {managementData.teachers.map((teacher) => (
-                    <div key={teacher.id} style={{ padding: '10px 0', borderBottom: '1px solid #f1f5f9' }}>
-                      <div style={{ fontWeight: 700, color: '#1e293b' }}>{teacher.fullName}</div>
-                      <div style={{ fontSize: 12, color: '#64748b' }}>
-                        {teacher.teacherCode ? `Mã GV: ${teacher.teacherCode}` : 'Chưa có mã GV'} • {teacher.classCount || 0} lớp đang quản lý
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 14, padding: 16 }}>
-                <h4 style={{ margin: '0 0 12px', color: '#0f172a' }}>
-                  Danh sách lớp ({managementData.classes.length})
-                </h4>
-                <div style={{ maxHeight: 360, overflow: 'auto' }}>
-                  {managementData.classes.map((clazz) => (
-                    <div key={clazz.id} style={{ padding: '12px 0', borderBottom: '1px solid #f1f5f9' }}>
-                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-                        <div>
-                          <div style={{ fontWeight: 800, color: '#1e293b' }}>{clazz.code} - {clazz.name}</div>
-                          <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
-                            {clazz.teacherCount || 0} GV • {clazz.activeStudentCount || 0} học viên active
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => handleRequestDeleteClass(clazz)}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 6,
-                            border: '1px solid #fecaca',
-                            background: '#fef2f2',
-                            color: '#b91c1c',
-                            borderRadius: 10,
-                            padding: '8px 10px',
-                            cursor: 'pointer',
-                            fontWeight: 700,
-                            fontSize: 12,
-                          }}
-                          title="Xóa lớp"
-                        >
-                          <Trash2 size={14} />
-                          Xóa lớp
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
 
       {/* Edit User Modal */}
       {showModal === 'edit' && selectedUser && (
@@ -1790,129 +1471,6 @@ export default function AdminUsers() {
         </div>
       )}
 
-      {/* Delete User Confirmation Modal */}
-      {deleteTarget && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(15, 23, 42, 0.62)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1100,
-          backdropFilter: 'blur(10px)',
-          padding: 20,
-        }} onClick={() => setDeleteTarget(null)}>
-          <div style={{
-            width: '100%',
-            maxWidth: 520,
-            background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
-            borderRadius: 24,
-            boxShadow: '0 30px 80px rgba(15, 23, 42, 0.25)',
-            border: '1px solid rgba(255,255,255,0.6)',
-            overflow: 'hidden',
-          }} onClick={(e) => e.stopPropagation()}>
-            <div style={{
-              padding: '22px 24px',
-              background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
-              color: 'white',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-            }}>
-              <div style={{
-                width: 42,
-                height: 42,
-                borderRadius: '50%',
-                background: 'rgba(255,255,255,0.18)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
-                <Trash2 size={20} />
-              </div>
-              <div>
-                <div style={{ fontSize: 18, fontWeight: 800 }}>Xác nhận xóa người dùng</div>
-                <div style={{ fontSize: 13, opacity: 0.9 }}>Hành động này không thể hoàn tác</div>
-              </div>
-            </div>
-
-            <div style={{ padding: 24 }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: 12,
-                padding: '14px 16px',
-                borderRadius: 16,
-                background: '#fef2f2',
-                border: '1px solid #fecaca',
-                color: '#991b1b',
-                marginBottom: 18,
-              }}>
-                <AlertCircle size={18} style={{ marginTop: 2, flexShrink: 0 }} />
-                <div style={{ fontSize: 14, lineHeight: 1.6 }}>
-                  Bạn sắp xóa <strong>{deleteTarget.fullName || deleteTarget.username}</strong>.
-                  {deleteTarget.roles?.includes('TEACHER') && (
-                    <>
-                      <br />Giảng viên phải bàn giao lớp trước khi xóa. Nếu còn quản lý lớp, hệ thống sẽ từ chối thao tác.
-                    </>
-                  )}
-                </div>
-              </div>
-
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: 12,
-                marginBottom: 16,
-                fontSize: 13,
-                color: '#475569',
-              }}>
-                <div style={{ padding: 14, borderRadius: 14, background: 'white', border: '1px solid #e2e8f0' }}>
-                  <div style={{ color: '#94a3b8', marginBottom: 4 }}>Username</div>
-                  <strong>{deleteTarget.username}</strong>
-                </div>
-                <div style={{ padding: 14, borderRadius: 14, background: 'white', border: '1px solid #e2e8f0' }}>
-                  <div style={{ color: '#94a3b8', marginBottom: 4 }}>Vai trò</div>
-                  <strong>{(deleteTarget.roles || []).join(', ')}</strong>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
-                <button
-                  onClick={() => setDeleteTarget(null)}
-                  style={{
-                    padding: '12px 18px',
-                    background: '#fff',
-                    border: '1.5px solid #e2e8f0',
-                    borderRadius: 14,
-                    cursor: 'pointer',
-                    fontWeight: 700,
-                    color: '#334155',
-                  }}
-                >
-                  Hủy bỏ
-                </button>
-                <button
-                  onClick={confirmDeleteUser}
-                  style={{
-                    padding: '12px 18px',
-                    background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: 14,
-                    cursor: 'pointer',
-                    fontWeight: 800,
-                    boxShadow: '0 12px 24px rgba(220, 38, 38, 0.25)',
-                  }}
-                >
-                  Xóa ngay
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Handover Warning Modal */}
       {handoverWarning && (
@@ -2166,6 +1724,7 @@ export default function AdminUsers() {
           </div>
         </div>
       )}
+      </div>
     </AdminLayout>
   );
 };

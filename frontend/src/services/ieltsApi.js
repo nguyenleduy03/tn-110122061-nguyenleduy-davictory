@@ -7,51 +7,6 @@ function authHeaders() {
   return token ? { 'Authorization': `Bearer ${token}` } : {};
 }
 
-function hasAuthToken() {
-  return Boolean(localStorage.getItem('authToken'));
-}
-
-let fullTestProgressApiBlocked = false;
-
-function parseUserRoles() {
-  const raw = localStorage.getItem('user');
-  if (!raw) return [];
-
-  try {
-    const parsed = JSON.parse(raw);
-    const roles = Array.isArray(parsed?.roles) ? parsed.roles : [];
-    return roles.map((r) => {
-      const role = typeof r === 'string' ? r : (r?.name || r?.roleName || r?.authority || '');
-      return String(role || '').toUpperCase().replace(/^ROLE_/, '');
-    }).filter(Boolean);
-  } catch {
-    return [];
-  }
-}
-
-function canCallFullTestProgressApi() {
-  if (!hasAuthToken() || fullTestProgressApiBlocked) return false;
-
-  const roles = parseUserRoles();
-  if (roles.length === 0) return true;
-
-  return roles.some((r) => ['STUDENT', 'TEACHER', 'MANAGER', 'ADMIN'].includes(r));
-}
-
-async function runFullTestProgressRequest(requestFn, fallbackValue) {
-  if (!canCallFullTestProgressApi()) return fallbackValue;
-
-  try {
-    return await requestFn();
-  } catch (err) {
-    if (err?.message === 'AUTH_REQUIRED' || String(err?.message || '').includes('HTTP 403')) {
-      fullTestProgressApiBlocked = true;
-      return fallbackValue;
-    }
-    throw err;
-  }
-}
-
 // ─── Helper: fetch với timeout + auth ───────────────────────────────
 async function apiFetch(url, options = {}) {
   const res = await fetch(url, {
@@ -608,14 +563,13 @@ export const ieltsApi = {
     const globalCounterRef = { counter: 1 };
 
     // 3. Transform parts — giữ nguyên group structure, transform questions bên trong
-    const populatedParts = [];
-    for (let index = 0; index < (targetSession.parts || []).length; index++) {
-      const part = targetSession.parts[index];
-      let mergedPassageContent = '';
-      let mergedPassageTitle = '';
-      let mergedAudioUrl = null;
-      let mergedImageUrl = null;
-      let mergedInstructions = '';
+    const populatedParts = await Promise.all(
+      targetSession.parts.map(async (part, index) => {
+        let mergedPassageContent = '';
+        let mergedPassageTitle = '';
+        let mergedAudioUrl = null;
+        let mergedImageUrl = null;
+        let mergedInstructions = '';
 
       // Special handling for WRITING skill
       let taskLabel = part.name || `Task ${part.orderIndex || index + 1}`;
@@ -804,11 +758,12 @@ export const ieltsApi = {
         totalQuestions: part.totalQuestions || 0,
       };
 
-      populatedParts.push(partObj);
-    }
+      return partObj;
+      })
+    );
 
     return {
-      sessionId: targetSession.testSessionId,
+      testSessionId: targetSession.testSessionId,
       candidateName: 'Guest Student',
       candidateId: 'DEFAULT-ID',
       testType: testData.testType || `Academic ${targetMode.charAt(0) + targetMode.slice(1).toLowerCase()}`,
@@ -947,31 +902,5 @@ export const ieltsApi = {
     }
 
     return results;
-  },
-
-  saveFullTestProgress: async (testId, payload) => {
-    const baseUrl = API_CONFIG.BASE_URL;
-    return runFullTestProgressRequest(() => apiFetch(`${baseUrl}/full-test-progress/${testId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload || {}),
-    }), null);
-  },
-
-  getFullTestProgress: async (testId) => {
-    const baseUrl = API_CONFIG.BASE_URL;
-    return runFullTestProgressRequest(() => apiFetch(`${baseUrl}/full-test-progress/${testId}`), null);
-  },
-
-  getMyFullTestProgress: async () => {
-    const baseUrl = API_CONFIG.BASE_URL;
-    return runFullTestProgressRequest(() => apiFetch(`${baseUrl}/full-test-progress/my`), []);
-  },
-
-  clearFullTestProgress: async (testId) => {
-    const baseUrl = API_CONFIG.BASE_URL;
-    return runFullTestProgressRequest(() => apiFetch(`${baseUrl}/full-test-progress/${testId}`, {
-      method: 'DELETE',
-    }), null);
   },
 };

@@ -1,0 +1,1092 @@
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { GraduationCap, Search, Settings2, UserPlus, Users, PlusCircle, ClipboardList, School, RefreshCw } from 'lucide-react';
+import AdminLayout from '../components/admin/AdminLayout';
+import { authApi } from '../services/authApi';
+
+const panelStyle = {
+  background: '#fff',
+  border: '1px solid #e2e8f0',
+  borderRadius: 12,
+  padding: 14,
+};
+
+const inputStyle = {
+  width: '100%',
+  border: '1px solid #cbd5e1',
+  borderRadius: 8,
+  padding: '9px 10px',
+  fontSize: 14,
+  boxSizing: 'border-box',
+};
+
+const buttonPrimary = {
+  border: 0,
+  borderRadius: 8,
+  background: '#2563eb',
+  color: '#fff',
+  padding: '9px 12px',
+  cursor: 'pointer',
+  fontWeight: 600,
+};
+
+const buttonSecondary = {
+  border: '1px solid #cbd5e1',
+  borderRadius: 8,
+  background: '#fff',
+  color: '#0f172a',
+  padding: '9px 12px',
+  cursor: 'pointer',
+  fontWeight: 600,
+};
+
+function parseCsvCodes(text) {
+  const lines = String(text || '').split(/\r?\n/).map((v) => v.trim()).filter(Boolean);
+  if (!lines.length) return { header: null, rows: [] };
+  const header = lines[0].split(',').map((v) => v.trim());
+  const rows = lines.slice(1).map((line) => {
+    const cols = line.split(',').map((v) => v.trim());
+    const obj = {};
+    header.forEach((h, i) => {
+      obj[h] = cols[i] || '';
+    });
+    return obj;
+  });
+  return { header, rows };
+}
+
+export default function ClassManagement() {
+  const [managementData, setManagementData] = useState({ classes: [], teachers: [], currentUser: null });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [refreshTick, setRefreshTick] = useState(0);
+  const [selectedClassId, setSelectedClassId] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const [createClassForm, setCreateClassForm] = useState({ className: '', classCode: '', startDate: '', teacherId: '' });
+  const [assignTeacherForm, setAssignTeacherForm] = useState({ classCode: '', teacherId: '', role: 'MAIN_TEACHER' });
+  const [handoverForm, setHandoverForm] = useState({ classCode: '', studentCodesText: '', notes: '' });
+  const [classEditForm, setClassEditForm] = useState({
+    name: '', status: 'ACTIVE', startDate: '', endDate: '', level: '', targetBand: '', classType: '', maxStudents: '', schedule: '', roomLocation: '', notes: '',
+  });
+
+  const [createClassLoading, setCreateClassLoading] = useState(false);
+  const [assignLoading, setAssignLoading] = useState(false);
+  const [handoverLoading, setHandoverLoading] = useState(false);
+  const [classEditLoading, setClassEditLoading] = useState(false);
+  const classDetailRef = useRef(null);
+
+  const [csvCodes, setCsvCodes] = useState([]);
+  const [csvFileName, setCsvFileName] = useState('');
+  const [csvError, setCsvError] = useState('');
+  const csvInputRef = useRef(null);
+
+  const [expandedPanels, setExpandedPanels] = useState({
+    createClass: false,
+    assignTeacher: false,
+    handoverStudents: false,
+    editClass: true,
+    showTeachers: false,
+    showStudents: false,
+  });
+
+  useEffect(() => {
+    let mounted = true;
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        setError('');
+        const res = await authApi.getTeacherClassManagement();
+        if (!mounted) return;
+        const nextData = {
+          classes: Array.isArray(res?.classes) ? res.classes : [],
+          teachers: Array.isArray(res?.teachers) ? res.teachers : [],
+          currentUser: res?.currentUser || null,
+        };
+        setManagementData(nextData);
+        if (!selectedClassId && nextData.classes.length) {
+          setSelectedClassId(nextData.classes[0].id);
+        }
+      } catch (e) {
+        if (mounted) {
+          setError(e?.response?.data?.message || 'Không tải được dữ liệu quản lý lớp');
+        }
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+    loadData();
+    return () => {
+      mounted = false;
+    };
+  }, [refreshTick, selectedClassId]);
+
+  const isAdmin = authApi.hasRole('ADMIN') || authApi.hasRole('MANAGER');
+
+  const teachers = useMemo(() => managementData?.teachers || [], [managementData]);
+  const classes = useMemo(() => managementData?.classes || [], [managementData]);
+
+  const filteredClasses = useMemo(() => {
+    const list = classes;
+    const q = searchTerm.trim().toLowerCase();
+    if (!q) return list;
+    return list.filter((c) => `${c.name || ''} ${c.code || ''} ${c.classCode || ''}`.toLowerCase().includes(q));
+  }, [classes, searchTerm]);
+
+  const selectedClass = useMemo(() => {
+    const list = classes;
+    return list.find((c) => c.id === selectedClassId) || null;
+  }, [classes, selectedClassId]);
+
+  const allActiveStudents = useMemo(() => {
+    return classes.reduce((acc, c) => acc + Number(c.activeStudentCount || c.studentCount || 0), 0);
+  }, [classes]);
+
+  useEffect(() => {
+    if (!selectedClass) return;
+    setClassEditForm({
+      name: selectedClass.name || '',
+      status: selectedClass.status || 'ACTIVE',
+      startDate: selectedClass.startDate || '',
+      endDate: selectedClass.endDate || '',
+      level: selectedClass.level || '',
+      targetBand: selectedClass.targetBand || '',
+      classType: selectedClass.classType || '',
+      maxStudents: selectedClass.maxStudents ?? '',
+      schedule: selectedClass.schedule || '',
+      roomLocation: selectedClass.roomLocation || '',
+      notes: selectedClass.notes || '',
+    });
+  }, [selectedClass]);
+
+  const statusBadgeStyle = (status) => {
+    const map = {
+      ACTIVE: { bg: '#dcfce7', color: '#166534' },
+      UPCOMING: { bg: '#dbeafe', color: '#1e40af' },
+      COMPLETED: { bg: '#e2e8f0', color: '#334155' },
+      CANCELLED: { bg: '#fee2e2', color: '#991b1b' },
+    };
+    const s = map[String(status || '').toUpperCase()] || { bg: '#f1f5f9', color: '#334155' };
+    return {
+      display: 'inline-flex',
+      padding: '2px 8px',
+      borderRadius: 999,
+      fontSize: 11,
+      fontWeight: 700,
+      background: s.bg,
+      color: s.color,
+    };
+  };
+
+  const handleCreateClass = async () => {
+    if (!createClassForm.className.trim()) {
+      alert('Vui lòng nhập tên lớp');
+      return;
+    }
+    try {
+      setCreateClassLoading(true);
+      await authApi.createClassForAdmin({
+        className: createClassForm.className.trim(),
+        classCode: createClassForm.classCode.trim() || undefined,
+        startDate: createClassForm.startDate || undefined,
+      });
+      
+      if (createClassForm.teacherId) {
+        await authApi.assignTeacherByClassCode({
+          classCode: createClassForm.classCode.trim(),
+          teacherId: Number(createClassForm.teacherId),
+          role: 'MAIN_TEACHER',
+        });
+      }
+      
+      setCreateClassForm({ className: '', classCode: '', startDate: '', teacherId: '' });
+      setRefreshTick((v) => v + 1);
+      alert('Tạo lớp thành công');
+    } catch (e) {
+      alert(e?.response?.data?.message || 'Tạo lớp thất bại');
+    } finally {
+      setCreateClassLoading(false);
+    }
+  };
+
+  const handleAssignTeacher = async () => {
+    if (!assignTeacherForm.classCode.trim() || !assignTeacherForm.teacherId) {
+      alert('Vui lòng nhập mã lớp và chọn giảng viên');
+      return;
+    }
+    try {
+      setAssignLoading(true);
+      await authApi.assignTeacherByClassCode({
+        classCode: assignTeacherForm.classCode.trim(),
+        teacherId: Number(assignTeacherForm.teacherId),
+        role: assignTeacherForm.role,
+      });
+      setAssignTeacherForm({ classCode: '', teacherId: '', role: 'MAIN_TEACHER' });
+      setRefreshTick((v) => v + 1);
+      alert('Gán giảng viên thành công');
+    } catch (e) {
+      alert(e?.response?.data?.message || 'Gán giảng viên thất bại');
+    } finally {
+      setAssignLoading(false);
+    }
+  };
+
+  const handleCsvUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    setCsvError('');
+    setCsvFileName(file.name || '');
+    
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+      setCsvCodes([]);
+      setCsvError('Chỉ chấp nhận file .csv');
+      return;
+    }
+    
+    try {
+      const text = await file.text();
+      const parsedCodes = parseCodesFromCsv(text);
+      
+      if (parsedCodes.length === 0) {
+        setCsvCodes([]);
+        setCsvError('Không đọc được mã học viên từ file CSV');
+        return;
+      }
+      
+      setCsvCodes(parsedCodes);
+    } catch (error) {
+      setCsvCodes([]);
+      setCsvError('Không thể đọc file CSV');
+    }
+  };
+
+  const clearCsv = () => {
+    setCsvCodes([]);
+    setCsvFileName('');
+    setCsvError('');
+    if (csvInputRef.current) {
+      csvInputRef.current.value = '';
+    }
+  };
+
+  const handleAssignStudents = async () => {
+    if (!handoverForm.classCode.trim()) {
+      alert('Vui lòng nhập mã lớp');
+      return;
+    }
+
+    const manualCodes = parseCodes(handoverForm.studentCodesText);
+    const studentCodes = [...new Set([...manualCodes, ...csvCodes])];
+
+    if (studentCodes.length === 0) {
+      alert('Vui lòng nhập danh sách mã học viên hoặc tải CSV');
+      return;
+    }
+
+    try {
+      setHandoverLoading(true);
+      const result = await authApi.assignStudentsByClassCode({
+        classCode: handoverForm.classCode.trim(),
+        studentCodes,
+        notes: handoverForm.notes,
+      });
+      const failed = Number(result?.failed || 0);
+      if (failed > 0) {
+        alert(`Đã thêm ${result?.success || 0}, thất bại ${failed}.`);
+      } else {
+        alert(`Đã thêm thành công ${result?.success || 0} học viên.`);
+      }
+      setHandoverForm((prev) => ({ ...prev, studentCodesText: '', notes: '' }));
+      clearCsv();
+      setRefreshTick((v) => v + 1);
+    } catch (e) {
+      alert(e?.response?.data?.message || 'Thêm học viên thất bại');
+    } finally {
+      setHandoverLoading(false);
+    }
+  };
+
+  const handleSaveClassInfo = async () => {
+    if (!selectedClass?.id) return;
+    if (!classEditForm.name.trim()) {
+      alert('Tên lớp không được để trống');
+      return;
+    }
+    try {
+      setClassEditLoading(true);
+      await authApi.updateClassInfo(selectedClass.id, {
+        name: classEditForm.name,
+        status: classEditForm.status,
+        startDate: classEditForm.startDate || null,
+        endDate: classEditForm.endDate || null,
+        level: classEditForm.level,
+        targetBand: classEditForm.targetBand,
+        classType: classEditForm.classType,
+        maxStudents: classEditForm.maxStudents === '' ? null : Number(classEditForm.maxStudents),
+        schedule: classEditForm.schedule,
+        roomLocation: classEditForm.roomLocation,
+        notes: classEditForm.notes,
+      });
+      setRefreshTick((v) => v + 1);
+      alert('Đã cập nhật thông tin lớp');
+    } catch (e) {
+      alert(e?.response?.data?.message || 'Cập nhật lớp thất bại');
+    } finally {
+      setClassEditLoading(false);
+    }
+  };
+
+  const handleSelectClass = (classId) => {
+    setSelectedClassId(classId);
+    requestAnimationFrame(() => {
+      classDetailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  };
+
+  const togglePanel = (key) => {
+    setExpandedPanels((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  if (loading) {
+    return (
+      <AdminLayout title="Quản lý giảng viên & lớp" subtitle="Đang tải dữ liệu...">
+        <div style={{ ...panelStyle }}>Đang tải...</div>
+      </AdminLayout>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <AdminLayout title="Quản lý giảng viên & lớp" subtitle="Chỉ quản trị viên được truy cập trang này.">
+        <div style={{ ...panelStyle, color: '#b91c1c' }}>Bạn không có quyền truy cập.</div>
+      </AdminLayout>
+    );
+  }
+
+  return (
+    <AdminLayout title="Quản lý giảng viên & lớp" subtitle="Luồng quản trị tách bạch: tạo lớp, gán giảng viên, bàn giao học viên, chỉnh sửa lớp.">
+      <div style={{ display: 'grid', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }}>
+          <div style={{ ...panelStyle, background: 'linear-gradient(135deg, #eff6ff, #ffffff)' }}>
+            <div style={{ fontSize: 12, color: '#64748b' }}>Tổng lớp</div>
+            <div style={{ fontSize: 28, fontWeight: 800, color: '#1e3a8a' }}>{managementData.classes.length}</div>
+          </div>
+          <div style={{ ...panelStyle, background: 'linear-gradient(135deg, #ecfeff, #ffffff)' }}>
+            <div style={{ fontSize: 12, color: '#64748b' }}>Học viên active</div>
+            <div style={{ fontSize: 28, fontWeight: 800, color: '#0f766e' }}>{allActiveStudents}</div>
+          </div>
+          <div style={{ ...panelStyle, background: 'linear-gradient(135deg, #f5f3ff, #ffffff)' }}>
+            <div style={{ fontSize: 12, color: '#64748b' }}>Giảng viên</div>
+            <div style={{ fontSize: 28, fontWeight: 800, color: '#6d28d9' }}>{managementData.teachers.length}</div>
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 1.4fr', gap: 12 }}>
+          <div style={{ ...panelStyle }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, marginBottom: 8 }}><Search size={15} /> Danh sách lớp</div>
+            <input style={{ ...inputStyle, marginBottom: 10 }} placeholder="Tìm lớp theo tên hoặc mã" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+            <div style={{ display: 'grid', gap: 8, maxHeight: 520, overflowY: 'auto' }}>
+              {classes.map((c) => {
+                const isSelected = selectedClassId === c.id;
+                return (
+                  <div key={c.id} style={{ border: isSelected ? '1px solid #2563eb' : '1px solid #e2e8f0', borderRadius: 10, padding: 10, background: isSelected ? '#eff6ff' : '#fff' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                      <div>
+                        <div style={{ fontWeight: 700 }}>{c.name}</div>
+                        <div style={{ fontSize: 12, color: '#64748b' }}>{c.classCode} • {c.studentCount || 0} học viên</div>
+                      </div>
+                      <button
+                        type="button"
+                        style={{ ...buttonSecondary, padding: '6px 10px' }}
+                        onClick={() => handleSelectClass(c.id)}
+                      >
+                        Xem chi tiết
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div style={{ ...panelStyle }} ref={classDetailRef}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}><Settings2 size={15} /> Chi tiết lớp</div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button style={buttonSecondary} onClick={() => togglePanel('createClass')}>+ Thêm lớp</button>
+                <button style={buttonSecondary} onClick={() => togglePanel('assignTeacher')}>Gán giảng viên</button>
+                <button style={buttonSecondary} onClick={() => togglePanel('handoverStudents')}>Bàn giao học viên</button>
+              </div>
+            </div>
+
+            {expandedPanels.createClass && (
+              <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 10, marginBottom: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, marginBottom: 8 }}><GraduationCap size={16} /> Tạo lớp mới</div>
+                <div style={{ display: 'grid', gap: 8 }}>
+                  <input style={inputStyle} placeholder="Tên lớp" value={createForm.className} onChange={(e) => setCreateForm((p) => ({ ...p, className: e.target.value }))} />
+                  <input style={inputStyle} placeholder="Mã lớp (tuỳ chọn)" value={createForm.classCode} onChange={(e) => setCreateForm((p) => ({ ...p, classCode: e.target.value }))} />
+                  <input type="number" min="1" style={inputStyle} placeholder="Sĩ số tối đa" value={createForm.maxStudents} onChange={(e) => setCreateForm((p) => ({ ...p, maxStudents: e.target.value }))} />
+                  <button style={buttonPrimary} onClick={handleCreateClass} disabled={createLoading}>{createLoading ? 'Đang tạo...' : 'Tạo lớp'}</button>
+                </div>
+              </div>
+            )}
+
+            {expandedPanels.assignTeacher && (
+              <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 10, marginBottom: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, marginBottom: 8 }}><UserPlus size={16} /> Gán giảng viên vào lớp</div>
+                <div style={{ display: 'grid', gap: 8 }}>
+                  <select style={inputStyle} value={assignForm.classId} onChange={(e) => setAssignForm((p) => ({ ...p, classId: e.target.value }))}>
+                    <option value="">Chọn lớp</option>
+                    {(managementData.classes || []).map((c) => <option key={c.id} value={c.id}>{c.name} ({c.classCode})</option>)}
+                  </select>
+                  <select style={inputStyle} value={assignForm.teacherId} onChange={(e) => setAssignForm((p) => ({ ...p, teacherId: e.target.value }))}>
+                    <option value="">Chọn giảng viên</option>
+                    {(managementData.teachers || []).map((t) => <option key={t.id} value={t.id}>{t.fullName} ({t.email})</option>)}
+                  </select>
+                  <button style={buttonPrimary} onClick={handleAssignTeacher} disabled={assignLoading}>{assignLoading ? 'Đang gán...' : 'Gán giảng viên'}</button>
+                </div>
+              </div>
+            )}
+
+            {expandedPanels.handoverStudents && (
+              <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 10, marginBottom: 10 }}>
+                <div style={{ fontWeight: 700, marginBottom: 8 }}>Bàn giao học viên theo mã lớp</div>
+                <div style={{ display: 'grid', gap: 8 }}>
+                  <input style={inputStyle} placeholder="Mã lớp" value={handoverForm.classCode} onChange={(e) => setHandoverForm((p) => ({ ...p, classCode: e.target.value }))} />
+                  <textarea rows={3} style={inputStyle} placeholder="Mã học viên thủ công (phân tách bởi dấu phẩy, khoảng trắng hoặc xuống dòng)" value={handoverForm.studentCodesText} onChange={(e) => setHandoverForm((p) => ({ ...p, studentCodesText: e.target.value }))} />
+                  <input type="file" accept=".csv" onChange={(e) => handleCsvFile(e.target.files?.[0])} />
+                  {csvError && <div style={{ color: '#b91c1c', fontSize: 13 }}>{csvError}</div>}
+                  {!!csvPreview.length && (
+                    <div style={{ border: '1px solid #e2e8f0', borderRadius: 8, padding: 8, maxHeight: 150, overflowY: 'auto' }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Xem trước CSV: {csvPreview.length} học viên</div>
+                      {csvPreview.slice(0, 20).map((r, i) => (
+                        <div key={`${r.studentCode}-${i}`} style={{ fontSize: 13, borderBottom: '1px solid #f1f5f9', padding: '4px 0' }}>
+                          {r.studentCode} {r.fullName ? `• ${r.fullName}` : ''} {r.email ? `• ${r.email}` : ''}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <textarea rows={2} style={inputStyle} placeholder="Ghi chú (tuỳ chọn)" value={handoverForm.notes} onChange={(e) => setHandoverForm((p) => ({ ...p, notes: e.target.value }))} />
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button style={buttonPrimary} onClick={handleStudentHandover} disabled={handoverLoading}>{handoverLoading ? 'Đang bàn giao...' : 'Thêm học viên vào lớp'}</button>
+                    <button style={buttonSecondary} onClick={clearCsv}>Xoá CSV</button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {!selectedClass ? (
+              <div style={{ color: '#64748b' }}>Chọn lớp để xem chi tiết.</div>
+            ) : (
+              <>
+                <div style={{ fontWeight: 700, marginBottom: 8 }}>{selectedClass.name} ({selectedClass.classCode})</div>
+                <button
+                  type="button"
+                  style={{ ...buttonSecondary, marginBottom: 8 }}
+                  onClick={() => togglePanel('editClass')}
+                >
+                  {expandedPanels.editClass ? 'Ẩn chỉnh sửa lớp' : 'Chỉnh sửa thông tin lớp'}
+                </button>
+
+                {expandedPanels.editClass && (
+                  <>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                      <input style={inputStyle} placeholder="Tên lớp" value={classEditForm.name} onChange={(e) => setClassEditForm((p) => ({ ...p, name: e.target.value }))} />
+                      <select style={inputStyle} value={classEditForm.status} onChange={(e) => setClassEditForm((p) => ({ ...p, status: e.target.value }))}>
+                        <option value="ACTIVE">ACTIVE</option>
+                        <option value="UPCOMING">UPCOMING</option>
+                        <option value="COMPLETED">COMPLETED</option>
+                        <option value="PAUSED">PAUSED</option>
+                      </select>
+                      <input type="date" style={inputStyle} value={classEditForm.startDate} onChange={(e) => setClassEditForm((p) => ({ ...p, startDate: e.target.value }))} />
+                      <input type="date" style={inputStyle} value={classEditForm.endDate} onChange={(e) => setClassEditForm((p) => ({ ...p, endDate: e.target.value }))} />
+                      <input style={inputStyle} placeholder="Level" value={classEditForm.level} onChange={(e) => setClassEditForm((p) => ({ ...p, level: e.target.value }))} />
+                      <input style={inputStyle} placeholder="Target band" value={classEditForm.targetBand} onChange={(e) => setClassEditForm((p) => ({ ...p, targetBand: e.target.value }))} />
+                      <input style={inputStyle} placeholder="Loại lớp" value={classEditForm.classType} onChange={(e) => setClassEditForm((p) => ({ ...p, classType: e.target.value }))} />
+                      <input type="number" min="1" style={inputStyle} placeholder="Sĩ số tối đa" value={classEditForm.maxStudents} onChange={(e) => setClassEditForm((p) => ({ ...p, maxStudents: e.target.value }))} />
+                    </div>
+                    <textarea rows={2} style={{ ...inputStyle, marginTop: 8 }} placeholder="Lịch học" value={classEditForm.schedule} onChange={(e) => setClassEditForm((p) => ({ ...p, schedule: e.target.value }))} />
+                    <input style={{ ...inputStyle, marginTop: 8 }} placeholder="Phòng học / địa điểm" value={classEditForm.roomLocation} onChange={(e) => setClassEditForm((p) => ({ ...p, roomLocation: e.target.value }))} />
+                    <textarea rows={3} style={{ ...inputStyle, marginTop: 8 }} placeholder="Ghi chú" value={classEditForm.notes} onChange={(e) => setClassEditForm((p) => ({ ...p, notes: e.target.value }))} />
+                    <div style={{ marginTop: 8 }}>
+                      <button style={buttonPrimary} onClick={handleSaveClassInfo} disabled={classEditLoading}>{classEditLoading ? 'Đang lưu...' : 'Lưu thông tin lớp'}</button>
+                    </div>
+                  </>
+                )}
+
+                <div style={{ marginTop: 12 }}>
+                  <button type="button" style={buttonSecondary} onClick={() => togglePanel('showTeachers')}>
+                    {expandedPanels.showTeachers ? 'Ẩn giảng viên' : `Xem giảng viên (${(selectedClass.teachers || []).length})`}
+                  </button>
+                  {expandedPanels.showTeachers && (
+                    <div style={{ display: 'grid', gap: 6, maxHeight: 140, overflowY: 'auto', marginTop: 8 }}>
+                      {(selectedClass.teachers || []).map((t) => (
+                        <div key={`${t.id}-${t.role}`} style={{ fontSize: 13, border: '1px solid #e2e8f0', borderRadius: 8, padding: '6px 8px' }}>
+                          {t.fullName} • {t.role}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ marginTop: 12 }}>
+                  <button type="button" style={buttonSecondary} onClick={() => togglePanel('showStudents')}>
+                    {expandedPanels.showStudents ? 'Ẩn học viên' : `Xem học viên (${(selectedClass.students || []).length})`}
+                  </button>
+                  {expandedPanels.showStudents && (
+                    <div style={{ maxHeight: 180, overflowY: 'auto', border: '1px solid #f1f5f9', borderRadius: 8, marginTop: 8 }}>
+                      {(selectedClass.students || []).map((s) => (
+                        <div key={s.id} style={{ padding: '7px 8px', borderBottom: '1px solid #f8fafc' }}>
+                          <div style={{ fontSize: 13, fontWeight: 600 }}>{s.fullName || s.email || s.studentCode}</div>
+                          <div style={{ fontSize: 12, color: '#64748b' }}>{s.studentCode ? `Mã: ${s.studentCode} • ` : ''}{s.email || ''}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </AdminLayout>
+  );
+}
+
+/*
+import { School, Users, UserPlus, ClipboardList, PlusCircle, RefreshCw } from 'lucide-react';
+import AdminLayout from '../components/admin/AdminLayout';
+import { authApi } from '../services/authApi';
+
+const panelStyle = {
+  background: 'white',
+  border: '1px solid #e2e8f0',
+  borderRadius: 14,
+  padding: 16,
+};
+
+const sectionTitleStyle = {
+  margin: '0 0 12px',
+  display: 'flex',
+  alignItems: 'center',
+  gap: 8,
+  color: '#0f172a',
+};
+
+function statusBadgeStyle(status) {
+  const map = {
+    ACTIVE: { bg: '#dcfce7', color: '#166534' },
+    UPCOMING: { bg: '#dbeafe', color: '#1e40af' },
+    COMPLETED: { bg: '#e2e8f0', color: '#334155' },
+    CANCELLED: { bg: '#fee2e2', color: '#991b1b' },
+  };
+  const s = map[String(status || '').toUpperCase()] || { bg: '#f1f5f9', color: '#334155' };
+  return {
+    display: 'inline-flex',
+    padding: '2px 8px',
+    borderRadius: 999,
+    fontSize: 11,
+    fontWeight: 700,
+    background: s.bg,
+    color: s.color,
+  };
+}
+
+function parseCodes(rawText) {
+  return (rawText || '')
+    .split(/[,\n;\t\s]+/g)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function parseCodesFromCsv(csvText) {
+  const cleanText = String(csvText || '').replace(/^\uFEFF/, '');
+  const lines = cleanText
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (lines.length === 0) return [];
+
+  const parseRow = (line) => line.split(',').map((cell) => cell.trim().replace(/^"|"$/g, ''));
+  const first = parseRow(lines[0]);
+  const normalizedHeader = first.map((h) => h.toLowerCase());
+  const codeCol = normalizedHeader.findIndex((h) =>
+    ['studentcode', 'student_code', 'username', 'code', 'mahv', 'mshv'].includes(h)
+  );
+
+  const startIndex = codeCol >= 0 ? 1 : 0;
+  const out = [];
+  for (let i = startIndex; i < lines.length; i += 1) {
+    const row = parseRow(lines[i]);
+    const raw = codeCol >= 0 ? row[codeCol] : row[0];
+    if (raw && raw.trim()) out.push(raw.trim());
+  }
+
+  return [...new Set(out)];
+}
+
+export default function ClassManagement() {
+  const isAdmin = authApi.hasRole('ADMIN');
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [refreshTick, setRefreshTick] = useState(0);
+  const [data, setData] = useState({ classes: [], teachers: [], teacher: null });
+  const [search, setSearch] = useState('');
+  const [selectedClassId, setSelectedClassId] = useState(null);
+  const [classEditLoading, setClassEditLoading] = useState(false);
+  const body = (
+    <div style={{ display: 'grid', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }}>
+        <div style={{ ...panelStyle, background: 'linear-gradient(135deg, #eff6ff, #ffffff)' }}>
+          <div style={{ fontSize: 12, color: '#64748b' }}>Tổng lớp</div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: '#1e3a8a' }}>{classes.length}</div>
+        </div>
+        <div style={{ ...panelStyle, background: 'linear-gradient(135deg, #ecfeff, #ffffff)' }}>
+          <div style={{ fontSize: 12, color: '#64748b' }}>Học viên active</div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: '#0f766e' }}>{allActiveStudents}</div>
+        </div>
+        <div style={{ ...panelStyle, background: 'linear-gradient(135deg, #f5f3ff, #ffffff)' }}>
+          <div style={{ fontSize: 12, color: '#64748b' }}>Giảng viên</div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: '#5b21b6' }}>{teachers.length}</div>
+        </div>
+      </div>
+
+      {error && <div style={{ ...panelStyle, color: '#dc2626', background: '#fef2f2', borderColor: '#fecaca' }}>{error}</div>}
+
+      <div style={panelStyle}>
+        <h3 style={sectionTitleStyle}><PlusCircle size={18} /> 1) Tạo lớp & phân công giảng viên</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 12 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Tạo lớp mới</div>
+            <div style={{ display: 'grid', gap: 10 }}>
+              <input value={createClassForm.classCode} onChange={(e) => setCreateClassForm((p) => ({ ...p, classCode: e.target.value }))} placeholder="Mã lớp" style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
+              <input value={createClassForm.className} onChange={(e) => setCreateClassForm((p) => ({ ...p, className: e.target.value }))} placeholder="Tên lớp" style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
+              <input type="date" value={createClassForm.startDate} onChange={(e) => setCreateClassForm((p) => ({ ...p, startDate: e.target.value }))} style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
+              <select value={createClassForm.teacherId} onChange={(e) => setCreateClassForm((p) => ({ ...p, teacherId: e.target.value }))} style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }}>
+                <option value="">(Tuỳ chọn) Chọn GV chính</option>
+                {teachers.map((t) => <option key={t.id} value={t.id}>{t.fullName} {t.teacherCode ? `(${t.teacherCode})` : ''}</option>)}
+              </select>
+              <button onClick={handleCreateClass} disabled={createClassLoading} style={{ border: 'none', borderRadius: 10, padding: '10px 12px', color: 'white', fontWeight: 700, background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', cursor: 'pointer' }}>
+                {createClassLoading ? 'Đang tạo...' : 'Tạo lớp'}
+              </button>
+            </div>
+          </div>
+
+          <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 12 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Phân công giảng viên theo mã lớp</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <input value={assignTeacherForm.classCode} onChange={(e) => setAssignTeacherForm((p) => ({ ...p, classCode: e.target.value }))} placeholder="Mã lớp" style={{ gridColumn: '1 / span 2', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
+              <select value={assignTeacherForm.teacherId} onChange={(e) => setAssignTeacherForm((p) => ({ ...p, teacherId: e.target.value }))} style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }}>
+                <option value="">Chọn giảng viên</option>
+                {teachers.map((t) => <option key={t.id} value={t.id}>{t.fullName}</option>)}
+              </select>
+              <select value={assignTeacherForm.role} onChange={(e) => setAssignTeacherForm((p) => ({ ...p, role: e.target.value }))} style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }}>
+                <option value="MAIN_TEACHER">MAIN_TEACHER</option>
+                <option value="ASSISTANT">ASSISTANT</option>
+                <option value="SUBSTITUTE">SUBSTITUTE</option>
+              </select>
+              <button onClick={handleAssignTeacher} style={{ gridColumn: '1 / span 2', border: 'none', borderRadius: 10, padding: '10px 14px', color: 'white', fontWeight: 700, background: 'linear-gradient(135deg, #16a34a, #15803d)', cursor: 'pointer' }}>Gán GV</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style={panelStyle}>
+        <h3 style={sectionTitleStyle}><ClipboardList size={18} /> 2) Bàn giao học viên vào lớp</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <div style={{ display: 'grid', gap: 10 }}>
+            <input value={handoverForm.classCode} onChange={(e) => setHandoverForm((p) => ({ ...p, classCode: e.target.value }))} placeholder="Mã lớp" style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
+            <textarea rows={6} value={handoverForm.studentCodesText} onChange={(e) => setHandoverForm((p) => ({ ...p, studentCodesText: e.target.value }))} placeholder="Nhập thủ công mã học viên/username (mỗi dòng một mã)" style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', resize: 'vertical' }} />
+            <input value={handoverForm.notes} onChange={(e) => setHandoverForm((p) => ({ ...p, notes: e.target.value }))} placeholder="Ghi chú (tuỳ chọn)" style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
+            <button onClick={handleAssignStudents} disabled={handoverLoading} style={{ border: 'none', borderRadius: 10, padding: '10px 12px', color: 'white', fontWeight: 700, background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', cursor: 'pointer' }}>
+              {handoverLoading ? 'Đang xử lý...' : 'Thêm vào lớp'}
+            </button>
+          </div>
+          <div style={{ border: '1px solid #e2e8f0', borderRadius: 8, padding: 10, background: '#f8fafc' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Upload CSV và xem trước</div>
+            <input ref={csvInputRef} type="file" accept=".csv,text/csv" onChange={handleCsvUpload} />
+            {csvError && <div style={{ marginTop: 8, fontSize: 12, color: '#dc2626' }}>{csvError}</div>}
+            {csvCodes.length > 0 && (
+              <div style={{ marginTop: 8 }}>
+                <div style={{ fontSize: 12, color: '#1e3a8a', fontWeight: 700 }}>{csvFileName} • {csvCodes.length} mã</div>
+                <div style={{ maxHeight: 190, overflowY: 'auto', fontSize: 12, marginTop: 6 }}>
+                  {csvCodes.slice(0, 120).map((code) => <div key={code} style={{ fontFamily: 'monospace' }}>{code}</div>)}
+                </div>
+                <button type="button" onClick={clearCsv} style={{ marginTop: 8, border: '1px solid #cbd5e1', borderRadius: 6, padding: '4px 8px', background: 'white', cursor: 'pointer' }}>Xóa file</button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div style={{ ...panelStyle, paddingBottom: 10 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+          <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}><School size={18} /> 3) Danh sách lớp & quản lý chi tiết</h3>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Tìm lớp theo mã/tên..." style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
+            <button onClick={() => setRefreshTick((v) => v + 1)} style={{ border: '1px solid #cbd5e1', borderRadius: 8, padding: '8px 10px', background: 'white', cursor: 'pointer' }}><RefreshCw size={14} /></button>
+          </div>
+        </div>
+
+        {loading ? (
+          <div>Đang tải dữ liệu...</div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.25fr', gap: 12 }}>
+            <div style={{ maxHeight: 560, overflowY: 'auto', paddingRight: 4, display: 'grid', gap: 10 }}>
+              {filteredClasses.map((c) => (
+                <div key={c.id} style={{ border: c.id === selectedClass?.id ? '2px solid #3b82f6' : '1px solid #e2e8f0', borderRadius: 12, padding: 12, background: '#fff' }}>
+                  <div style={{ fontWeight: 800, color: '#0f172a', marginBottom: 4 }}>{c.code}</div>
+                  <div style={{ fontWeight: 600, color: '#1e293b', marginBottom: 6 }}>{c.name}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={statusBadgeStyle(c.status)}>{c.status || 'N/A'}</span>
+                    <span style={{ fontSize: 12, color: '#64748b' }}>{c.activeStudentCount || 0} học viên</span>
+                  </div>
+                  <button onClick={() => setSelectedClassId(c.id)} style={{ marginTop: 10, width: '100%', border: 'none', borderRadius: 9, padding: '9px 10px', background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', color: 'white', fontWeight: 700, cursor: 'pointer' }}>Quản lý lớp này</button>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 12 }}>
+              {!selectedClass ? (
+                <div style={{ color: '#64748b' }}>Chọn một module lớp để quản lý.</div>
+              ) : (
+                <>
+                  <div style={{ fontWeight: 800, fontSize: 16, color: '#0f172a' }}>Quản lý: {selectedClass.code} - {selectedClass.name}</div>
+                  <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10 }}>
+                    <input value={classEditForm.name} onChange={(e) => setClassEditForm((p) => ({ ...p, name: e.target.value }))} placeholder="Tên lớp" style={{ padding: '9px 10px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
+                    <select value={classEditForm.status} onChange={(e) => setClassEditForm((p) => ({ ...p, status: e.target.value }))} style={{ padding: '9px 10px', borderRadius: 8, border: '1px solid #cbd5e1' }}>
+                      <option value="UPCOMING">UPCOMING</option>
+                      <option value="ACTIVE">ACTIVE</option>
+                      <option value="COMPLETED">COMPLETED</option>
+                      <option value="CANCELLED">CANCELLED</option>
+                    </select>
+                    <input type="date" value={classEditForm.startDate || ''} onChange={(e) => setClassEditForm((p) => ({ ...p, startDate: e.target.value }))} style={{ padding: '9px 10px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
+                    <input type="date" value={classEditForm.endDate || ''} onChange={(e) => setClassEditForm((p) => ({ ...p, endDate: e.target.value }))} style={{ padding: '9px 10px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
+                    <input value={classEditForm.schedule || ''} onChange={(e) => setClassEditForm((p) => ({ ...p, schedule: e.target.value }))} placeholder="Lịch học" style={{ gridColumn: '1 / span 2', padding: '9px 10px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
+                    <textarea rows={3} value={classEditForm.notes || ''} onChange={(e) => setClassEditForm((p) => ({ ...p, notes: e.target.value }))} placeholder="Ghi chú lớp" style={{ gridColumn: '1 / span 2', resize: 'vertical', padding: '9px 10px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
+                    <button onClick={handleSaveClassInfo} disabled={classEditLoading} style={{ gridColumn: '1 / span 2', border: 'none', borderRadius: 10, padding: '10px 12px', color: 'white', fontWeight: 700, background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', cursor: 'pointer' }}>
+                      {classEditLoading ? 'Đang lưu...' : 'Lưu thay đổi thông tin lớp'}
+                    </button>
+                  </div>
+
+                  <div style={{ marginTop: 12 }}>
+                    <div style={{ fontWeight: 700, marginBottom: 6 }}>Giảng viên ({(selectedClass.teachers || []).length})</div>
+                    <div style={{ display: 'grid', gap: 6, maxHeight: 120, overflowY: 'auto' }}>
+                      {(selectedClass.teachers || []).map((t) => (
+                        <div key={`${t.id}-${t.role}`} style={{ fontSize: 13, border: '1px solid #e2e8f0', borderRadius: 8, padding: '6px 8px' }}>{t.fullName} • {t.role}</div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: 12 }}>
+                    <div style={{ fontWeight: 700, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}><Users size={14} /> Học viên ({(selectedClass.students || []).length})</div>
+                    <div style={{ maxHeight: 180, overflowY: 'auto', border: '1px solid #f1f5f9', borderRadius: 8 }}>
+                      {(selectedClass.students || []).map((s) => (
+                        <div key={s.id} style={{ padding: '7px 8px', borderBottom: '1px solid #f8fafc' }}>
+                          <div style={{ fontSize: 13, fontWeight: 600 }}>{s.fullName || s.email || s.studentCode}</div>
+                          <div style={{ fontSize: 12, color: '#64748b' }}>{s.studentCode ? `Mã: ${s.studentCode} • ` : ''}{s.email || ''}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  return (
+    <AdminLayout title="Quản lý giảng viên & lớp" subtitle="Trang quản trị theo luồng: tạo lớp → gán giảng viên → bàn giao học viên → quản lý chi tiết.">
+      {body}
+    </AdminLayout>
+  );
+}
+
+    try {
+      setHandoverLoading(true);
+      const result = await authApi.assignStudentsByClassCodeScoped({
+        classCode: handoverForm.classCode.trim(),
+        studentCodes,
+        notes: handoverForm.notes,
+      });
+
+      const failed = Number(result?.failed || 0);
+      if (failed > 0) {
+        alert(`Đã thêm ${result?.success || 0}, thất bại ${failed}.`);
+      } else {
+        alert(`Đã thêm thành công ${result?.success || 0} học viên.`);
+      }
+
+      setHandoverForm((prev) => ({ ...prev, studentCodesText: '', notes: '' }));
+      clearCsv();
+      setRefreshTick((v) => v + 1);
+    } catch (e) {
+      alert(e?.response?.data?.message || 'Thêm học viên thất bại');
+    } finally {
+      setHandoverLoading(false);
+    }
+  };
+
+  const handleSaveClassInfo = async () => {
+    if (!isAdmin || !selectedClass?.id) return;
+    if (!classEditForm.name.trim()) {
+      alert('Tên lớp không được để trống');
+      return;
+    }
+
+    try {
+      setClassEditLoading(true);
+      await authApi.updateClassInfo(selectedClass.id, {
+        name: classEditForm.name,
+        status: classEditForm.status,
+        startDate: classEditForm.startDate || null,
+        endDate: classEditForm.endDate || null,
+        level: classEditForm.level,
+        targetBand: classEditForm.targetBand,
+        classType: classEditForm.classType,
+        maxStudents: classEditForm.maxStudents === '' ? null : Number(classEditForm.maxStudents),
+        schedule: classEditForm.schedule,
+        roomLocation: classEditForm.roomLocation,
+        notes: classEditForm.notes,
+      });
+      alert('Đã cập nhật thông tin lớp');
+      setRefreshTick((v) => v + 1);
+    } catch (e) {
+      alert(e?.response?.data?.message || 'Cập nhật lớp thất bại');
+    } finally {
+      setClassEditLoading(false);
+    }
+  };
+
+  const body = (
+    <div style={{ display: 'grid', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }}>
+        <div style={{ ...panelStyle, background: 'linear-gradient(135deg, #eff6ff, #ffffff)' }}>
+          <div style={{ fontSize: 12, color: '#64748b' }}>Tổng lớp</div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: '#1e3a8a' }}>{classes.length}</div>
+        </div>
+        <div style={{ ...panelStyle, background: 'linear-gradient(135deg, #ecfeff, #ffffff)' }}>
+          <div style={{ fontSize: 12, color: '#64748b' }}>Học viên active</div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: '#0f766e' }}>{allActiveStudents}</div>
+        </div>
+        <div style={{ ...panelStyle, background: 'linear-gradient(135deg, #f5f3ff, #ffffff)' }}>
+          <div style={{ fontSize: 12, color: '#64748b' }}>Giảng viên</div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: '#5b21b6' }}>{teachers.length}</div>
+        </div>
+      </div>
+
+      {error && (
+        <div style={{ ...panelStyle, color: '#dc2626', background: '#fef2f2', borderColor: '#fecaca' }}>{error}</div>
+      )}
+
+      <div style={panelStyle}>
+        <h3 style={sectionTitleStyle}><PlusCircle size={18} /> 1) Tạo lớp & phân công giảng viên</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 12 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8, color: '#1e293b' }}>Tạo lớp mới</div>
+            <div style={{ display: 'grid', gap: 10 }}>
+              <input value={createClassForm.classCode} onChange={(e) => setCreateClassForm((p) => ({ ...p, classCode: e.target.value }))} placeholder="Mã lớp" style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
+              <input value={createClassForm.className} onChange={(e) => setCreateClassForm((p) => ({ ...p, className: e.target.value }))} placeholder="Tên lớp" style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
+              <input type="date" value={createClassForm.startDate} onChange={(e) => setCreateClassForm((p) => ({ ...p, startDate: e.target.value }))} style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
+              <select value={createClassForm.teacherId} onChange={(e) => setCreateClassForm((p) => ({ ...p, teacherId: e.target.value }))} style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }}>
+                <option value="">(Tuỳ chọn) Chọn GV chính</option>
+                {teachers.map((t) => <option key={t.id} value={t.id}>{t.fullName} {t.teacherCode ? `(${t.teacherCode})` : ''}</option>)}
+              </select>
+              <button onClick={handleCreateClass} disabled={createClassLoading} style={{ border: 'none', borderRadius: 10, padding: '10px 12px', color: 'white', fontWeight: 700, background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', cursor: 'pointer' }}>
+                {createClassLoading ? 'Đang tạo...' : 'Tạo lớp'}
+              </button>
+            </div>
+          </div>
+
+          <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 12 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8, color: '#1e293b' }}>Phân công giảng viên theo mã lớp</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <input value={assignTeacherForm.classCode} onChange={(e) => setAssignTeacherForm((p) => ({ ...p, classCode: e.target.value }))} placeholder="Mã lớp" style={{ gridColumn: '1 / span 2', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
+              <select value={assignTeacherForm.teacherId} onChange={(e) => setAssignTeacherForm((p) => ({ ...p, teacherId: e.target.value }))} style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }}>
+                <option value="">Chọn giảng viên</option>
+                {teachers.map((t) => <option key={t.id} value={t.id}>{t.fullName}</option>)}
+              </select>
+              <select value={assignTeacherForm.role} onChange={(e) => setAssignTeacherForm((p) => ({ ...p, role: e.target.value }))} style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }}>
+                <option value="MAIN_TEACHER">MAIN_TEACHER</option>
+                <option value="ASSISTANT">ASSISTANT</option>
+                <option value="SUBSTITUTE">SUBSTITUTE</option>
+              </select>
+              <button onClick={handleAssignTeacher} style={{ gridColumn: '1 / span 2', border: 'none', borderRadius: 10, padding: '10px 14px', color: 'white', fontWeight: 700, background: 'linear-gradient(135deg, #16a34a, #15803d)', cursor: 'pointer' }}>Gán GV</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style={panelStyle}>
+        <h3 style={sectionTitleStyle}><ClipboardList size={18} /> 2) Bàn giao học viên vào lớp</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <div style={{ display: 'grid', gap: 10 }}>
+            <input value={handoverForm.classCode} onChange={(e) => setHandoverForm((p) => ({ ...p, classCode: e.target.value }))} placeholder="Mã lớp" style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
+            <textarea rows={6} value={handoverForm.studentCodesText} onChange={(e) => setHandoverForm((p) => ({ ...p, studentCodesText: e.target.value }))} placeholder="Nhập thủ công mã học viên/username (mỗi dòng một mã)" style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', resize: 'vertical' }} />
+            <input value={handoverForm.notes} onChange={(e) => setHandoverForm((p) => ({ ...p, notes: e.target.value }))} placeholder="Ghi chú (tuỳ chọn)" style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
+            <button onClick={handleAssignStudents} disabled={handoverLoading} style={{ border: 'none', borderRadius: 10, padding: '10px 12px', color: 'white', fontWeight: 700, background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', cursor: 'pointer' }}>
+              {handoverLoading ? 'Đang xử lý...' : 'Thêm vào lớp'}
+            </button>
+          </div>
+
+          <div style={{ border: '1px solid #e2e8f0', borderRadius: 8, padding: 10, background: '#f8fafc' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>Upload CSV và xem trước</div>
+            <input ref={csvInputRef} type="file" accept=".csv,text/csv" onChange={handleCsvUpload} />
+            {csvError && <div style={{ marginTop: 8, fontSize: 12, color: '#dc2626' }}>{csvError}</div>}
+            {csvCodes.length > 0 && (
+              <div style={{ marginTop: 8 }}>
+                <div style={{ fontSize: 12, color: '#1e3a8a', fontWeight: 700 }}>{csvFileName} • {csvCodes.length} mã</div>
+                <div style={{ maxHeight: 190, overflowY: 'auto', fontSize: 12, marginTop: 6 }}>
+                  {csvCodes.slice(0, 120).map((code) => <div key={code} style={{ fontFamily: 'monospace' }}>{code}</div>)}
+                  {csvCodes.length > 120 && <div style={{ color: '#64748b' }}>... và {csvCodes.length - 120} mã khác</div>}
+                </div>
+                <button type="button" onClick={clearCsv} style={{ marginTop: 8, border: '1px solid #cbd5e1', borderRadius: 6, padding: '4px 8px', background: 'white', cursor: 'pointer' }}>Xóa file</button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div style={{ ...panelStyle, paddingBottom: 10 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+          <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}><School size={18} /> 3) Danh sách lớp & quản lý chi tiết</h3>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Tìm lớp theo mã/tên..." style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
+            <button onClick={() => setRefreshTick((v) => v + 1)} style={{ border: '1px solid #cbd5e1', borderRadius: 8, padding: '8px 10px', background: 'white', cursor: 'pointer' }}><RefreshCw size={14} /></button>
+          </div>
+        </div>
+
+        {loading ? (
+          <div>Đang tải dữ liệu...</div>
+        ) : (
+          <>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.25fr', gap: 12 }}>
+              <div style={{ maxHeight: 560, overflowY: 'auto', paddingRight: 4 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 10 }}>
+              {filteredClasses.map((c) => (
+                <div
+                  key={c.id}
+                  style={{
+                    border: c.id === selectedClass?.id ? '2px solid #3b82f6' : '1px solid #e2e8f0',
+                    borderRadius: 12,
+                    padding: 12,
+                    background: '#fff',
+                  }}
+                >
+                  <div style={{ fontWeight: 800, color: '#0f172a', marginBottom: 4 }}>{c.code}</div>
+                  <div style={{ fontWeight: 600, color: '#1e293b', marginBottom: 6 }}>{c.name}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={statusBadgeStyle(c.status)}>{c.status || 'N/A'}</span>
+                    <span style={{ fontSize: 12, color: '#64748b' }}>{c.activeStudentCount || 0} học viên</span>
+                  </div>
+                  <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>Bắt đầu: {c.startDate || 'N/A'}</div>
+                  <button
+                    onClick={() => setSelectedClassId(c.id)}
+                    style={{
+                      marginTop: 10,
+                      width: '100%',
+                      border: 'none',
+                      borderRadius: 9,
+                      padding: '9px 10px',
+                      background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+                      color: 'white',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Quản lý lớp này
+                  </button>
+                </div>
+              ))}
+              {filteredClasses.length === 0 && <div style={{ color: '#64748b' }}>Không có lớp phù hợp</div>}
+            </div>
+
+            <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 12 }}>
+              {!selectedClass ? (
+                <div style={{ color: '#64748b' }}>Chọn một module lớp để quản lý.</div>
+              ) : (
+                <>
+                  <div style={{ fontWeight: 800, fontSize: 16, color: '#0f172a' }}>Quản lý: {selectedClass.code} - {selectedClass.name}</div>
+
+                  {isAdmin && (
+                    <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10 }}>
+                      <input value={classEditForm.name} onChange={(e) => setClassEditForm((p) => ({ ...p, name: e.target.value }))} placeholder="Tên lớp" style={{ padding: '9px 10px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
+                      <select value={classEditForm.status} onChange={(e) => setClassEditForm((p) => ({ ...p, status: e.target.value }))} style={{ padding: '9px 10px', borderRadius: 8, border: '1px solid #cbd5e1' }}>
+                        <option value="UPCOMING">UPCOMING</option>
+                        <option value="ACTIVE">ACTIVE</option>
+                        <option value="COMPLETED">COMPLETED</option>
+                        <option value="CANCELLED">CANCELLED</option>
+                      </select>
+                      <input type="date" value={classEditForm.startDate || ''} onChange={(e) => setClassEditForm((p) => ({ ...p, startDate: e.target.value }))} style={{ padding: '9px 10px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
+                      <input type="date" value={classEditForm.endDate || ''} onChange={(e) => setClassEditForm((p) => ({ ...p, endDate: e.target.value }))} style={{ padding: '9px 10px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
+                      <input value={classEditForm.level || ''} onChange={(e) => setClassEditForm((p) => ({ ...p, level: e.target.value }))} placeholder="Level" style={{ padding: '9px 10px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
+                      <input value={classEditForm.targetBand || ''} onChange={(e) => setClassEditForm((p) => ({ ...p, targetBand: e.target.value }))} placeholder="Target band" style={{ padding: '9px 10px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
+                      <select value={classEditForm.classType || ''} onChange={(e) => setClassEditForm((p) => ({ ...p, classType: e.target.value }))} style={{ padding: '9px 10px', borderRadius: 8, border: '1px solid #cbd5e1' }}>
+                        <option value="">Class type</option>
+                        <option value="OFFLINE">OFFLINE</option>
+                        <option value="ONLINE">ONLINE</option>
+                        <option value="HYBRID">HYBRID</option>
+                      </select>
+                      <input type="number" min={1} value={classEditForm.maxStudents} onChange={(e) => setClassEditForm((p) => ({ ...p, maxStudents: e.target.value }))} placeholder="Sĩ số tối đa" style={{ padding: '9px 10px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
+                      <input value={classEditForm.schedule || ''} onChange={(e) => setClassEditForm((p) => ({ ...p, schedule: e.target.value }))} placeholder="Lịch học" style={{ gridColumn: '1 / span 2', padding: '9px 10px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
+                      <input value={classEditForm.roomLocation || ''} onChange={(e) => setClassEditForm((p) => ({ ...p, roomLocation: e.target.value }))} placeholder="Phòng học / Link" style={{ gridColumn: '1 / span 2', padding: '9px 10px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
+                      <textarea rows={3} value={classEditForm.notes || ''} onChange={(e) => setClassEditForm((p) => ({ ...p, notes: e.target.value }))} placeholder="Ghi chú lớp" style={{ gridColumn: '1 / span 2', resize: 'vertical', padding: '9px 10px', borderRadius: 8, border: '1px solid #cbd5e1' }} />
+                      <button onClick={handleSaveClassInfo} disabled={classEditLoading} style={{ gridColumn: '1 / span 2', border: 'none', borderRadius: 10, padding: '10px 12px', color: 'white', fontWeight: 700, background: 'linear-gradient(135deg, #0ea5e9, #0284c7)', cursor: 'pointer' }}>
+                        {classEditLoading ? 'Đang lưu...' : 'Lưu thay đổi thông tin lớp'}
+                      </button>
+                    </div>
+                  )}
+
+                  <div style={{ marginTop: 12 }}>
+                    <div style={{ fontWeight: 700, marginBottom: 6 }}>Giảng viên ({(selectedClass.teachers || []).length})</div>
+                    <div style={{ display: 'grid', gap: 6, maxHeight: 120, overflowY: 'auto' }}>
+                      {(selectedClass.teachers || []).map((t) => (
+                        <div key={`${t.id}-${t.role}`} style={{ fontSize: 13, border: '1px solid #e2e8f0', borderRadius: 8, padding: '6px 8px' }}>
+                          {t.fullName} • {t.role}
+                        </div>
+                      ))}
+                      {(selectedClass.teachers || []).length === 0 && <div style={{ fontSize: 12, color: '#64748b' }}>Chưa có giảng viên</div>}
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: 12 }}>
+                    <div style={{ fontWeight: 700, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Users size={14} /> Học viên ({(selectedClass.students || []).length})
+                    </div>
+                    <div style={{ maxHeight: 180, overflowY: 'auto', border: '1px solid #f1f5f9', borderRadius: 8 }}>
+                      {(selectedClass.students || []).map((s) => (
+                        <div key={s.id} style={{ padding: '7px 8px', borderBottom: '1px solid #f8fafc' }}>
+                          <div style={{ fontSize: 13, fontWeight: 600 }}>{s.fullName || s.email || s.studentCode}</div>
+                          <div style={{ fontSize: 12, color: '#64748b' }}>
+                            {s.studentCode ? `Mã: ${s.studentCode} • ` : ''}
+                            {s.email || ''}
+                          </div>
+                        </div>
+                      ))}
+                      {(selectedClass.students || []).length === 0 && <div style={{ padding: 8, fontSize: 12, color: '#64748b' }}>Chưa có học viên</div>}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+
+                </div>
+              </div>
+  return (
+            <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 12 }}>
+      {body}
+    </AdminLayout>
+  );
+}
+
+*/

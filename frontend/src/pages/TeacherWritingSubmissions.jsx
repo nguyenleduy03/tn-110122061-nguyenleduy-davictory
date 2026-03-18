@@ -43,6 +43,10 @@ const normalizeSet = (values) => new Set((Array.isArray(values) ? values : [])
   .map((v) => String(v).trim())
   .filter(Boolean));
 
+const normalizeArray = (values) => (Array.isArray(values) ? values : [values])
+  .map((v) => String(v).trim())
+  .filter(Boolean);
+
 const extractTeacherScope = (user) => ({
   classIds: normalizeSet(user?.managedClassIds || user?.teacherClassIds || user?.classIds),
   classCodes: normalizeSet(user?.managedClassCodes || user?.teacherClassCodes || user?.classCodes),
@@ -59,6 +63,25 @@ const getSubmissionClassCode = (s) => {
 };
 
 const getSubmissionClassName = (s) => s?.className || s?.clazzName || '—';
+
+const getSubmissionClassNames = (s) => {
+  const names = normalizeArray(s?.classNames);
+  if (names.length > 0) return names;
+  const single = getSubmissionClassName(s);
+  return single && single !== '—' ? [single] : [];
+};
+
+const hasClassScopeMatch = (submission, teacherScope) => {
+  const submissionClassIds = normalizeArray(submission?.classIds || submission?.classId || submission?.clazzId || submission?.assignmentClassId);
+  const submissionClassCodes = normalizeArray(submission?.classCodes || submission?.classCode || submission?.clazzCode);
+
+  if (submissionClassIds.length === 0 && submissionClassCodes.length === 0) {
+    return false;
+  }
+
+  return submissionClassIds.some((id) => teacherScope.classIds.has(id))
+    || submissionClassCodes.some((code) => teacherScope.classCodes.has(code));
+};
 
 export default function TeacherWritingSubmissions() {
   const user = authApi.getStoredUser();
@@ -113,9 +136,7 @@ export default function TeacherWritingSubmissions() {
     if (!hasScope) return [];
 
     return submissions.filter((s) => {
-      const sid = getSubmissionClassId(s);
-      const scode = getSubmissionClassCode(s);
-      return teacherScope.classIds.has(sid) || teacherScope.classCodes.has(scode);
+      return hasClassScopeMatch(s, teacherScope);
     });
   }, [submissions, teacherScope, user]);
 
@@ -138,10 +159,13 @@ export default function TeacherWritingSubmissions() {
       const sid = getSubmissionClassId(s);
       const scode = getSubmissionClassCode(s);
       const sname = getSubmissionClassName(s);
+      const submissionClassIds = normalizeArray(s?.classIds || sid);
+      const submissionClassCodes = normalizeArray(s?.classCodes || scode);
+      const submissionClassNames = getSubmissionClassNames(s);
 
-      if (classFilterId && sid === classFilterId) return true;
-      if (classFilterCode && scode.toLowerCase() === classFilterCode.toLowerCase()) return true;
-      if (classFilterName && sname.toLowerCase() === classFilterName.toLowerCase()) return true;
+      if (classFilterId && submissionClassIds.includes(classFilterId)) return true;
+      if (classFilterCode && submissionClassCodes.some((code) => code.toLowerCase() === classFilterCode.toLowerCase())) return true;
+      if (classFilterName && submissionClassNames.some((name) => name.toLowerCase() === classFilterName.toLowerCase())) return true;
       return false;
     });
   }, [filtered, classFilterId, classFilterCode, classFilterName]);
@@ -319,7 +343,7 @@ export default function TeacherWritingSubmissions() {
                 style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.4fr 1.8fr 1.2fr 0.8fr 0.8fr 1.1fr 0.9fr', gap: 0, padding: '12px 16px', borderTop: '1px solid #eef2f7', alignItems: 'center' }}
               >
                 <div style={{ fontWeight: 600, color: '#111827' }}>{s.username || '—'}</div>
-                <div style={{ color: '#374151' }}>{getSubmissionClassName(s)}</div>
+                <div style={{ color: '#374151' }}>{getSubmissionClassNames(s).join(', ') || getSubmissionClassName(s)}</div>
                 <div style={{ color: '#374151' }}>{s.groupTitle || 'Writing task'}</div>
                 <div>
                   <StatusBadge status={s.status} />

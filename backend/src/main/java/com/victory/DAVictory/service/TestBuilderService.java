@@ -80,8 +80,9 @@ public class TestBuilderService {
             for (Long groupId : oldGroupIds) {
                 if (testQuestionGroupRepository.findByQuestionGroupId(groupId).isEmpty()
                         && !hasAttemptAnswersForGroup(groupId)) {
-                    questionOptionRepository.deleteByQuestionGroupId(groupId);
+                    System.out.println("🗑️ Cleaning up unused group: " + groupId);
                     answerRepository.deleteByQuestionGroupId(groupId);
+                    questionOptionRepository.deleteByQuestionGroupId(groupId);
                     questionRepository.deleteByQuestionGroupId(groupId);
                     questionGroupRepository.deleteById(groupId);
                 }
@@ -169,10 +170,12 @@ public class TestBuilderService {
                                             if (gs.getOrderIndex() != null) qg.setOrderIndex(gs.getOrderIndex());
                                             qg = questionGroupRepository.save(qg);
 
-                                            // Xóa cứng chỉ khi không có attempt liên quan
-                                            questionOptionRepository.deleteByQuestionGroupId(qg.getId());
+                                            // Xóa cứng theo thứ tự đúng để tránh FK constraint
+                                            System.out.println("🗑️ Deleting old questions for group: " + qg.getId());
                                             answerRepository.deleteByQuestionGroupId(qg.getId());
+                                            questionOptionRepository.deleteByQuestionGroupId(qg.getId());
                                             questionRepository.deleteByQuestionGroupId(qg.getId());
+                                            System.out.println("✅ Deleted old questions, now creating new ones");
                                         }
 
                                         saveQuestionsForGroup(qg, gs.getQuestions());
@@ -482,10 +485,22 @@ public class TestBuilderService {
 
     private void saveQuestionsForGroup(QuestionGroup qg, List<TestSaveRequest.QuestionSave> questions) {
         if (questions == null) return;
-        for (TestSaveRequest.QuestionSave qs : questions) {
-            Question q = createQuestionFromSave(qg, qs);
-            saveOptions(q, qs.getOptions());
-            saveAnswers(q, qs.getAnswers());
+        System.out.println("🔍 Saving " + questions.size() + " questions for group: " + qg.getTitle());
+        
+        for (int i = 0; i < questions.size(); i++) {
+            TestSaveRequest.QuestionSave qs = questions.get(i);
+            System.out.println("📝 Question " + (i+1) + ": " + qs.getQuestionText() + " | Answers: " + (qs.getAnswers() != null ? qs.getAnswers().size() : 0));
+            
+            try {
+                Question q = createQuestionFromSave(qg, qs);
+                saveOptions(q, qs.getOptions());
+                saveAnswers(q, qs.getAnswers());
+                System.out.println("✅ Successfully saved question " + (i+1));
+            } catch (Exception e) {
+                System.err.println("❌ Error saving question " + (i+1) + ": " + e.getMessage());
+                e.printStackTrace();
+                throw e; // Re-throw để không nuốt exception
+            }
         }
     }
 
@@ -518,15 +533,27 @@ public class TestBuilderService {
 
     private void saveAnswers(Question question, List<TestSaveRequest.AnswerSave> answers) {
         if (answers == null) return;
-        for (TestSaveRequest.AnswerSave as : answers) {
-            Answer ans = new Answer();
-            ans.setQuestion(question);
-            ans.setAnswerText(as.getAnswerText() != null ? as.getAnswerText() : "");
-            ans.setAlternativeAnswers(as.getAlternativeAnswers());
-            ans.setIsCaseSensitive(as.getIsCaseSensitive() != null ? as.getIsCaseSensitive() : false);
-            ans.setBlankIndex(as.getBlankIndex() != null ? as.getBlankIndex() : 1);
-            ans.setWordLimit(as.getWordLimit());
-            answerRepository.save(ans);
+        System.out.println("💾 Saving " + answers.size() + " answers for question: " + question.getQuestionText());
+        
+        for (int i = 0; i < answers.size(); i++) {
+            TestSaveRequest.AnswerSave as = answers.get(i);
+            System.out.println("📝 Answer " + (i+1) + ": '" + as.getAnswerText() + "'");
+            
+            try {
+                Answer ans = new Answer();
+                ans.setQuestion(question);
+                ans.setAnswerText(as.getAnswerText() != null ? as.getAnswerText() : "");
+                ans.setAlternativeAnswers(as.getAlternativeAnswers());
+                ans.setIsCaseSensitive(as.getIsCaseSensitive() != null ? as.getIsCaseSensitive() : false);
+                ans.setBlankIndex(as.getBlankIndex() != null ? as.getBlankIndex() : 1);
+                ans.setWordLimit(as.getWordLimit());
+                Answer saved = answerRepository.save(ans);
+                System.out.println("✅ Saved answer " + (i+1) + " with ID: " + saved.getId());
+            } catch (Exception e) {
+                System.err.println("❌ Error saving answer " + (i+1) + ": " + e.getMessage());
+                e.printStackTrace();
+                throw e;
+            }
         }
     }
 

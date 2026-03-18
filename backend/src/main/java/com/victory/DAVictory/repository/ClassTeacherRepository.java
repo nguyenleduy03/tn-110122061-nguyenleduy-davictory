@@ -21,7 +21,7 @@ public interface ClassTeacherRepository extends JpaRepository<ClassTeacher, Long
     List<ClassTeacher> findByClazzIdAndIsActiveTrueOrderByRole(Long classId);
 
     // Giáo viên chính của lớp
-    Optional<ClassTeacher> findByClazzIdAndRoleAndIsActiveTrue(Long classId, String role);
+    List<ClassTeacher> findByClazzIdAndRoleAndIsActiveTrueOrderByAssignedAtDesc(Long classId, String role);
 
     // Tất cả lớp của giáo viên
     List<ClassTeacher> findByUserIdAndIsActiveTrueOrderByAssignedAtDesc(Long userId);

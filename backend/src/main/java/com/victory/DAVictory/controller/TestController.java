@@ -1,5 +1,8 @@
 package com.victory.DAVictory.controller;
 
+import com.victory.DAVictory.entity.Test;
+import com.victory.DAVictory.enums.TestStatus;
+import com.victory.DAVictory.service.TestManagementService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -17,6 +20,9 @@ public class TestController {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private TestManagementService testManagementService;
+
     @GetMapping("/debug")
     public ResponseEntity<?> debugInfo() {
         return ResponseEntity.ok(Map.of(
@@ -24,6 +30,31 @@ public class TestController {
             "timestamp", System.currentTimeMillis(),
             "endpoint", "/api/tests/debug"
         ));
+    }
+
+    @PutMapping("/{testId}/status")
+    @PreAuthorize("hasAnyRole('TEACHER', 'MANAGER', 'ADMIN')")
+    public ResponseEntity<?> updateTestStatus(
+            @PathVariable Long testId,
+            @RequestParam String status,
+            Authentication authentication) {
+        try {
+            TestStatus newStatus = TestStatus.valueOf(status.toUpperCase());
+            Test updatedTest = testManagementService.updateTestStatus(testId, newStatus, null);
+            
+            // Trả về Map thay vì entity để tránh infinite recursion
+            return ResponseEntity.ok(Map.of(
+                "id", updatedTest.getId(),
+                "title", updatedTest.getTitle(),
+                "status", updatedTest.getStatus().toString(),
+                "updatedAt", updatedTest.getUpdatedAt(),
+                "publishedAt", updatedTest.getPublishedAt() != null ? updatedTest.getPublishedAt() : ""
+            ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Trạng thái không hợp lệ: " + status));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Không thể cập nhật trạng thái: " + e.getMessage()));
+        }
     }
 
     @GetMapping("/published")

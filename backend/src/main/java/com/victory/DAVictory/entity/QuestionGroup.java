@@ -71,7 +71,7 @@ public class QuestionGroup {
     private Boolean isActive = true;
 
     @Column(nullable = false)
-    private Boolean allowOptionReuse = true; // true = thẻ có thể dùng lại, false = mỗi thẻ chỉ dùng 1 lần
+    private Boolean allowOptionReuse = false; // Cho phép sử dụng lại thẻ đã kéo (drag and drop)
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)

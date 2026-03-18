@@ -119,7 +119,7 @@ public class UserController {
     // ===== ADMIN: Xóa user =====
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> deleteUser(@PathVariable Long id, Authentication authentication) {
+    public ResponseEntity<?> deleteUser(@PathVariable Long id, @RequestBody Map<String, Object> request, Authentication authentication) {
         try {
             // Kiểm tra không được xóa chính mình
             String currentUsername = authentication.getName();
@@ -127,8 +127,11 @@ public class UserController {
             if (currentUser.getId().equals(id)) {
                 return ResponseEntity.badRequest().body(Map.of("error", "Không thể xóa chính mình!"));
             }
-            
-            userService.deleteUser(id);
+            String adminPassword = request != null && request.get("password") != null
+                    ? request.get("password").toString()
+                    : "";
+
+            userService.deleteUser(currentUsername, id, adminPassword);
             return ResponseEntity.ok(Map.of("message", "Xóa user thành công"));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -148,8 +151,9 @@ public class UserController {
                 .map(id -> Long.valueOf(id.toString()))
                 .collect(java.util.stream.Collectors.toList());
             
-            userService.addStudentsToClass(classId, studentIds);
-            return ResponseEntity.ok(Map.of("message", "Đã thêm học viên vào lớp thành công"));
+            // TODO: Implement addStudentsToClass method
+            // userService.addStudentsToClass(classId, studentIds);
+            return ResponseEntity.ok(Map.of("message", "Chức năng đang được phát triển"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }

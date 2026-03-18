@@ -402,6 +402,7 @@ const TestBuilder = () => {
           return {
             title: `Drag Matching ${groupIdx}`,
             leftTitle: '', rightTitle: '',
+            allowOptionReuse: true, // Mặc định cho phép dùng lại thẻ
             fromQuestion: null, toQuestion: null,
             optionBank: [
               { id: nextId(), text: '' },
@@ -459,6 +460,7 @@ const TestBuilder = () => {
             imageUrl: '',
             imageWidth: 100, pinBoxWidth: 60,
             constrainHalfPage: false,
+            allowOptionReuse: true, // Mặc định cho phép dùng lại thẻ
             fromQuestion: null, toQuestion: null,
             optionBank: [],
             questions: [],
@@ -626,6 +628,7 @@ const TestBuilder = () => {
       partId: group.partId,
       questionNumber: (group.questions?.length ?? 0) + 1,
       questionText: '',
+      answerText: '', // Khởi tạo answerText rỗng cho drag matching
       questionType: { typeName: questionTypeName },
       options: (isMCQ || isMMCQ) ? defaultOptions : [],
       answers: [],

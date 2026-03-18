@@ -21,6 +21,7 @@ public class QuestionGroupRequest {
     private Integer fromQuestion;     // Câu bắt đầu (1, 11, 21...)
     private Integer toQuestion;       // Câu kết thúc (10, 20, 30...)
     private Integer orderIndex;       // Thứ tự trong part
+    private Boolean allowOptionReuse; // Cho phép sử dụng lại thẻ đã kéo
     private List<QuestionRequest> questions;
     private List<MatchingPairRequest> matchingPairs;
 

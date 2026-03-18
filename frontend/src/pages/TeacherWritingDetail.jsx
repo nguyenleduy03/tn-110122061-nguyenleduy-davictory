@@ -29,6 +29,10 @@ const normalizeSet = (values) => new Set((Array.isArray(values) ? values : [])
   .map((v) => String(v).trim())
   .filter(Boolean));
 
+const normalizeArray = (values) => (Array.isArray(values) ? values : [values])
+  .map((v) => String(v).trim())
+  .filter(Boolean);
+
 const extractTeacherScope = (user) => ({
   classIds: normalizeSet(user?.managedClassIds || user?.teacherClassIds || user?.classIds),
   classCodes: normalizeSet(user?.managedClassCodes || user?.teacherClassCodes || user?.classCodes),
@@ -39,12 +43,26 @@ const getSubmissionClassId = (s) => {
   return value != null ? String(value) : '';
 };
 
-const getSubmissionClassCode = (s) => {
-  const value = s?.classCode ?? s?.clazzCode;
-  return value != null ? String(value).trim() : '';
+const getSubmissionClassName = (s) => s?.className || s?.clazzName || '—';
+
+const getSubmissionClassNames = (s) => {
+  const names = normalizeArray(s?.classNames);
+  if (names.length > 0) return names;
+  const single = getSubmissionClassName(s);
+  return single && single !== '—' ? [single] : [];
 };
 
-const getSubmissionClassName = (s) => s?.className || s?.clazzName || '—';
+const hasClassScopeMatch = (submission, teacherScope) => {
+  const submissionClassIds = normalizeArray(submission?.classIds || submission?.classId || submission?.clazzId || submission?.assignmentClassId);
+  const submissionClassCodes = normalizeArray(submission?.classCodes || submission?.classCode || submission?.clazzCode);
+
+  if (submissionClassIds.length === 0 && submissionClassCodes.length === 0) {
+    return false;
+  }
+
+  return submissionClassIds.some((id) => teacherScope.classIds.has(id))
+    || submissionClassCodes.some((code) => teacherScope.classCodes.has(code));
+};
 
 export default function TeacherWritingDetail() {
   const { id } = useParams();
@@ -105,12 +123,7 @@ export default function TeacherWritingDetail() {
   const canGrade = useMemo(() => {
     if (!submission) return false;
     if (isAdminOrManager(user?.roles)) return true;
-
-    const classId = getSubmissionClassId(submission);
-    const classCode = getSubmissionClassCode(submission);
-    if (!classId && !classCode) return false;
-
-    return teacherScope.classIds.has(classId) || teacherScope.classCodes.has(classCode);
+    return hasClassScopeMatch(submission, teacherScope);
   }, [submission, teacherScope, user]);
 
   const handleSaveGrade = async () => {
@@ -177,7 +190,7 @@ export default function TeacherWritingDetail() {
             <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: 16 }}>
               <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: '#111827' }}>Cham bai Writing</h1>
               <p style={{ marginTop: 6, color: '#6b7280' }}>Hoc vien: <strong>{submission.username || '—'}</strong></p>
-              <p style={{ marginTop: 4, color: '#6b7280' }}>Lop: <strong>{getSubmissionClassName(submission)}</strong></p>
+              <p style={{ marginTop: 4, color: '#6b7280' }}>Lop: <strong>{getSubmissionClassNames(submission).join(', ') || getSubmissionClassName(submission)}</strong></p>
               <p style={{ marginTop: 4, color: '#6b7280' }}>De bai: <strong>{submission.groupTitle || 'Writing task'}</strong></p>
             </div>
 

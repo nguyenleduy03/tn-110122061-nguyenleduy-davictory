@@ -135,6 +135,7 @@ public class QuestionBankService {
         group.setFromQuestion(request.getFromQuestion());
         group.setToQuestion(request.getToQuestion());
         group.setOrderIndex(request.getOrderIndex() != null ? request.getOrderIndex() : 0);
+        group.setAllowOptionReuse(request.getAllowOptionReuse() != null ? request.getAllowOptionReuse() : false);
         group.setIsActive(true);
 
         QuestionGroup savedGroup = questionGroupRepository.save(group);
@@ -191,6 +192,7 @@ public class QuestionBankService {
         if (request.getFromQuestion() != null) group.setFromQuestion(request.getFromQuestion());
         if (request.getToQuestion() != null)   group.setToQuestion(request.getToQuestion());
         if (request.getOrderIndex() != null)   group.setOrderIndex(request.getOrderIndex());
+        if (request.getAllowOptionReuse() != null) group.setAllowOptionReuse(request.getAllowOptionReuse());
         return questionGroupRepository.save(group);
     }
 

@@ -3,11 +3,13 @@ package com.victory.DAVictory.service;
 import com.victory.DAVictory.dto.WritingSubmitRequest;
 import com.victory.DAVictory.dto.WritingSubmissionResponse;
 import com.victory.DAVictory.entity.QuestionGroup;
+import com.victory.DAVictory.entity.ClassStudent;
 import com.victory.DAVictory.entity.StudentWritingSubmission;
 import com.victory.DAVictory.entity.User;
 import com.victory.DAVictory.repository.QuestionGroupRepository;
 import com.victory.DAVictory.repository.StudentWritingSubmissionRepository;
 import com.victory.DAVictory.repository.UserRepository;
+import com.victory.DAVictory.repository.ClassStudentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +24,7 @@ public class WritingService {
     private final StudentWritingSubmissionRepository submissionRepository;
     private final UserRepository userRepository;
     private final QuestionGroupRepository questionGroupRepository;
+    private final ClassStudentRepository classStudentRepository;
 
     // ─── Nộp bài Writing ────────────────────────────────────────────
     @Transactional
@@ -84,6 +87,17 @@ public class WritingService {
         r.setId(s.getId());
         r.setUserId(s.getUser().getId());
         r.setUsername(s.getUser().getUsername());
+
+        List<ClassStudent> activeClassMemberships = classStudentRepository.findByUserIdAndStatus(s.getUser().getId(), "ACTIVE");
+        List<Long> classIds = activeClassMemberships.stream().map(cs -> cs.getClazz().getId()).toList();
+        List<String> classCodes = activeClassMemberships.stream().map(cs -> cs.getClazz().getCode()).toList();
+        List<String> classNames = activeClassMemberships.stream().map(cs -> cs.getClazz().getName()).toList();
+        r.setClassIds(classIds);
+        r.setClassCodes(classCodes);
+        r.setClassNames(classNames);
+        r.setClassId(classIds.isEmpty() ? null : classIds.get(0));
+        r.setClassCode(classCodes.isEmpty() ? null : classCodes.get(0));
+        r.setClassName(classNames.isEmpty() ? null : classNames.get(0));
 
         if (s.getQuestionGroup() != null) {
             r.setQuestionGroupId(s.getQuestionGroup().getId());

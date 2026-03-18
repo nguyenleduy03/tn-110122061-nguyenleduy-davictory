@@ -66,13 +66,13 @@ public class ClassManagementController {
     @DeleteMapping("/classes/{classId}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> deleteClass(@PathVariable Long classId,
-                                         @RequestBody Map<String, String> request,
-                                         Authentication authentication) {
+                                        @RequestBody Map<String, String> request,
+                                        Authentication authentication) {
         try {
             String password = request != null ? request.get("password") : null;
-            return ResponseEntity.ok(userService.deleteClassForAdmin(authentication.getName(), classId, password));
+            return ResponseEntity.ok(userService.deleteClass(authentication.getName(), classId, password));
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Lỗi khi xóa lớp: " + e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
     }
 }

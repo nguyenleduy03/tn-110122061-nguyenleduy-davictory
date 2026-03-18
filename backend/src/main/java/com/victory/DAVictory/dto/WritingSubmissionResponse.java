@@ -2,6 +2,7 @@ package com.victory.DAVictory.dto;
 
 import lombok.Data;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * Response DTO: kết quả sau khi nộp / xem bài writing.
@@ -15,6 +16,13 @@ public class WritingSubmissionResponse {
 
     private Long questionGroupId;    // ID question_group (TestBuilder flow)
     private String groupTitle;       // Tiêu đề nhóm (e.g. "Writing Task 1")
+
+    private Long classId;
+    private String classCode;
+    private String className;
+    private List<Long> classIds;
+    private List<String> classCodes;
+    private List<String> classNames;
 
     private String submissionText;
     private Integer wordCount;

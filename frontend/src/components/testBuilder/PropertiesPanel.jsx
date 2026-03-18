@@ -164,7 +164,7 @@ const GroupPanel = ({ group, onChange, onDelete }) => (
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 10px', border: '1px solid #e5e7eb', borderRadius: 8, background: '#fff' }}>
           <input
             type="checkbox"
-            checked={group.allowOptionReuse !== false}
+            checked={group.allowOptionReuse !== false} // Default true
             onChange={(e) => onChange({ allowOptionReuse: e.target.checked })}
           />
           <div style={{ fontSize: 12, color: '#6b7280', lineHeight: 1.4 }}>

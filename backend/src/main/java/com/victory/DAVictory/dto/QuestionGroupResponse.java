@@ -28,6 +28,7 @@ public class QuestionGroupResponse {
     private Integer toQuestion;
     private Integer orderIndex;
     private Boolean isActive;
+    private Boolean allowOptionReuse;
     private Integer questionCount;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -106,6 +107,7 @@ public class QuestionGroupResponse {
         dto.setToQuestion(group.getToQuestion());
         dto.setOrderIndex(group.getOrderIndex());
         dto.setIsActive(group.getIsActive());
+        dto.setAllowOptionReuse(group.getAllowOptionReuse());
         dto.setQuestionCount(group.getQuestions() != null ? group.getQuestions().size() : 0);
         dto.setCreatedAt(group.getCreatedAt());
         dto.setUpdatedAt(group.getUpdatedAt());
@@ -147,6 +149,7 @@ public class QuestionGroupResponse {
         dto.setToQuestion(group.getToQuestion());
         dto.setOrderIndex(group.getOrderIndex());
         dto.setIsActive(group.getIsActive());
+        dto.setAllowOptionReuse(group.getAllowOptionReuse());
         dto.setQuestionCount(group.getQuestions() != null ? group.getQuestions().size() : 0);
         dto.setCreatedAt(group.getCreatedAt());
         dto.setUpdatedAt(group.getUpdatedAt());

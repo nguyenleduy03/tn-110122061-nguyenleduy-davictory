@@ -59,6 +59,36 @@ export const testBuilderApi = {
 
   // ─── Lưu toàn bộ đề thi ──────────────────────────────────────
   saveFullTest: async (payload) => {
+    console.log('🔍 DEBUG: Payload gửi lên backend:', JSON.stringify(payload, null, 2));
+    
+    // Kiểm tra drag matching questions
+    payload.sessions?.forEach((session, sIdx) => {
+      session.parts?.forEach((part, pIdx) => {
+        part.questionGroups?.forEach((group, gIdx) => {
+          if (group.contentType === 'MATCHING') {
+            console.log(`📋 DRAG_MATCHING Group ${gIdx} trong Part ${pIdx}:`, {
+              title: group.title,
+              questionCount: group.questions?.length || 0,
+              questions: group.questions?.map((q, idx) => ({
+                index: idx,
+                questionText: q.questionText,
+                answerText: q.answerText,
+                hasAnswers: q.answers?.length || 0,
+                answersDetail: q.answers
+              }))
+            });
+            
+            // Kiểm tra tổng số questions vs answers
+            const totalQuestions = group.questions?.length || 0;
+            const questionsWithAnswers = group.questions?.filter(q => q.answers && q.answers.length > 0).length || 0;
+            const questionsWithAnswerText = group.questions?.filter(q => q.answerText && q.answerText.trim() !== '').length || 0;
+            
+            console.log(`🔍 SUMMARY: Total=${totalQuestions}, WithAnswers=${questionsWithAnswers}, WithAnswerText=${questionsWithAnswerText}`);
+          }
+        });
+      });
+    });
+
     const res = await apiClient.post('/test-builder/save-full', payload);
     return res.data;
   },
@@ -181,11 +211,26 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
           fromQuestion: group.fromQuestion || null,
           toQuestion: group.toQuestion || null,
           orderIndex: gIdx + 1,
+          allowOptionReuse: group.allowOptionReuse ?? false,
           questions: (group.questions || []).map((q, qIdx) => {
+            console.log(`🔄 Processing question ${qIdx}/${group.questions.length} for group ${group.contentType}`);
+            console.log(`   - questionText: "${q.questionText}"`);
+            console.log(`   - answerText: "${q.answerText}"`);
+            console.log(`   - existing answers: ${q.answers?.length || 0}`);
+            
             // Tính questionCount cho MCQ multiple
             const questionCount = q.questionCount || 1;
             const currentQuestionNumber = partQuestionNumber + 1;
             partQuestionNumber += questionCount; // Tăng theo questionCount
+            
+            // Debug drag matching
+            if (group.contentType === 'DRAG_MATCHING') {
+              console.log(`🎯 DRAG Question ${qIdx}:`, {
+                questionText: q.questionText,
+                answerText: q.answerText,
+                existingAnswers: q.answers?.length || 0
+              });
+            }
             
             // Ưu tiên contentType của group cho các loại writing/speaking đặc biệt
             const contentTypeOverride = ['WRITING_TASK', 'SPEAKING_INTERVIEW', 'SPEAKING_CUECARD'].includes(group.contentType)
@@ -193,39 +238,46 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
               : null;
             const typeCode = mapQuestionTypeCode(contentTypeOverride || q.questionType?.typeName || group.contentType || 'FILL_IN_BLANK');
             const isTextAnswer = isTextAnswerType(typeCode);
+            
+            // Debug type mapping
+            if (group.contentType === 'DRAG_MATCHING') {
+              console.log(`   🔍 Type mapping: ${q.questionType?.typeName} -> ${typeCode} -> isTextAnswer: ${isTextAnswer}`);
+            }
 
             // Xây dựng answers[] để gửi lên backend
-            // Ưu tiên: answerText (giá trị UI hiện tại) override answers[] cũ từ DB.
-            // Lý do: UI chỉ cập nhật q.answerText khi người dùng sửa đáp án,
-            //        còn q.answers[] là dữ liệu stale được load từ DB trước đó.
             let answers;
-            if (isTextAnswer) {
-              if (q.answerText) {
-                // Dạng đơn: answerText là nguồn sự thật (TFNG, YNNG, fill-blank, map-pin...)
-                answers = [{
-                  answerText: q.answerText,
-                  alternativeAnswers: q.answers?.[0]?.alternativeAnswers || null,
-                  isCaseSensitive: q.answers?.[0]?.isCaseSensitive || false,
-                  blankIndex: q.answers?.[0]?.blankIndex || 1,
-                  wordLimit: q.answers?.[0]?.wordLimit || null,
-                }];
-              } else if ((q.answers || []).length > 0) {
-                // Dạng nhiều ô trống: giữ nguyên answers[] (Flow chart, Table completion...)
-                answers = q.answers.map((ans, aIdx) => ({
-                  answerText: ans.answerText || '',
-                  alternativeAnswers: ans.alternativeAnswers || null,
-                  isCaseSensitive: ans.isCaseSensitive || false,
-                  blankIndex: ans.blankIndex || aIdx + 1,
-                  wordLimit: ans.wordLimit || null,
-                }));
-              } else {
-                answers = [];
-              }
+            
+            // Đặc biệt xử lý DRAG_MATCHING - luôn tạo answer cho mọi câu hỏi
+            if (group.contentType === 'DRAG_MATCHING') {
+              const existingAnswer = q.answers?.[0];
+              answers = [{
+                answerText: q.answerText || '', // Có thể rỗng
+                alternativeAnswers: existingAnswer?.alternativeAnswers || null,
+                isCaseSensitive: existingAnswer?.isCaseSensitive || false,
+                blankIndex: existingAnswer?.blankIndex || 1,
+                wordLimit: existingAnswer?.wordLimit || null,
+              }];
+              console.log(`   ✅ DRAG answer created: "${answers[0].answerText}"`);
+            } else if (isTextAnswer) {
+              // Logic cũ cho các loại khác
+              const existingAnswer = q.answers?.[0];
+              answers = [{
+                answerText: q.answerText || '',
+                alternativeAnswers: existingAnswer?.alternativeAnswers || null,
+                isCaseSensitive: existingAnswer?.isCaseSensitive || false,
+                blankIndex: existingAnswer?.blankIndex || 1,
+                wordLimit: existingAnswer?.wordLimit || null,
+              }];
             } else {
               answers = [];
             }
 
-            return {
+            // Debug final answers cho drag matching
+            if (group.contentType === 'DRAG_MATCHING') {
+              console.log(`✅ Question ${qIdx}: "${q.questionText}" -> Answer: "${q.answerText}" -> Final answers:`, answers);
+            }
+
+            const result = {
               questionTypeCode: typeCode,
               questionNumber: currentQuestionNumber,
               questionText: q.questionText || '',
@@ -246,6 +298,12 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
               })),
               answers,
             };
+            
+            if (group.contentType === 'DRAG_MATCHING') {
+              console.log(`📤 Sending question ${qIdx}:`, result);
+            }
+            
+            return result;
           }),
         })),
       };
@@ -299,6 +357,7 @@ function mapContentType(ct) {
 
 function serializeGroupContent(group, part) {
   const ct = group.contentType;
+  const allowOptionReuse = (typeof group.allowOptionReuse === 'boolean') ? group.allowOptionReuse : true;
 
   // Reading passage: lưu paragraphs
   if (ct === 'READING_PASSAGE' && group.paragraphs) {
@@ -320,7 +379,7 @@ function serializeGroupContent(group, part) {
   if (ct === 'SUMMARY_COMPLETION') return group.summaryText || '';
   // Matching heading: lưu heading bank
   if (ct === 'MATCHING_HEADING') {
-    return JSON.stringify({ headingBank: group.headingBank });
+    return JSON.stringify({ headingBank: group.headingBank, allowOptionReuse });
   }
   // Drag matching: lưu option bank
   if (ct === 'DRAG_MATCHING') {
@@ -328,6 +387,7 @@ function serializeGroupContent(group, part) {
       leftTitle: group.leftTitle,
       rightTitle: group.rightTitle,
       optionBank: group.optionBank || [],
+      allowOptionReuse,
     });
   }
   // Map labelling
@@ -339,6 +399,7 @@ function serializeGroupContent(group, part) {
       pinBoxWidth: group.pinBoxWidth,
       constrainHalfPage: Boolean(group.constrainHalfPage),
       optionBank: group.optionBank || [],
+      allowOptionReuse,
     });
   }
   // Flow chart
@@ -348,6 +409,7 @@ function serializeGroupContent(group, part) {
       flowNodes: group.flowNodes || [],
       bankTitle: group.bankTitle || '',
       optionBank: group.optionBank || [],
+      allowOptionReuse,
     });
   }
   // Audio transcript: lưu transcript text nếu có
@@ -489,6 +551,7 @@ export function parseLoadedTest(data) {
           fromQuestion: groupResp.fromQuestion,
           toQuestion: groupResp.toQuestion,
           orderIndex: groupResp.orderIndex,
+          allowOptionReuse: (typeof groupResp.allowOptionReuse === 'boolean') ? groupResp.allowOptionReuse : true,
           questions: (groupResp.questions || []).map(qResp => {
             const questionCount = qResp.questionCount || 1;
             const startNum = qResp.questionNumber;
@@ -510,6 +573,7 @@ export function parseLoadedTest(data) {
               points: qResp.points,
               orderIndex: qResp.orderIndex,
               // Khôi phục answerText từ answers[0] để UI hiển thị đúng (fill-blank, TFNG, matching...)
+              // Với drag matching, mỗi câu hỏi có đáp án riêng trong answers[0]
               answerText: qResp.answers?.[0]?.answerText || '',
               groupInstruction: qResp.groupInstruction || null,
               questionType: { typeName: mapBackendTypeToFrontend(qResp.questionTypeCode) },
@@ -527,6 +591,11 @@ export function parseLoadedTest(data) {
                 blankIndex: ans.blankIndex,
                 wordLimit: ans.wordLimit,
               })),
+              // Debug info
+              _debug: groupResp.contentType === 'DRAG_MATCHING' ? {
+                backendAnswers: qResp.answers?.length || 0,
+                loadedAnswerText: qResp.answers?.[0]?.answerText || 'EMPTY'
+              } : undefined
             };
           }),
         };
@@ -586,11 +655,11 @@ function deserializeGroupContent(contentType, passageText) {
       const parsed = JSON.parse(passageText);
       // Handle legacy format: headingBank + embedded readingPassage
       const extra = parsed.readingPassage ? { _embeddedPassage: parsed.readingPassage } : {};
-      return { headingBank: parsed.headingBank || [], ...extra };
+      return { headingBank: parsed.headingBank || [], allowOptionReuse: (typeof parsed.allowOptionReuse === 'boolean') ? parsed.allowOptionReuse : true, ...extra };
     }
     if (contentType === 'DRAG_MATCHING') {
       const parsed = JSON.parse(passageText);
-      return { leftTitle: parsed.leftTitle, rightTitle: parsed.rightTitle, optionBank: parsed.optionBank || [] };
+      return { leftTitle: parsed.leftTitle, rightTitle: parsed.rightTitle, optionBank: parsed.optionBank || [], allowOptionReuse: (typeof parsed.allowOptionReuse === 'boolean') ? parsed.allowOptionReuse : true };
     }
     if (contentType === 'MAP_LABELLING') {
       const parsed = JSON.parse(passageText);
@@ -601,6 +670,7 @@ function deserializeGroupContent(contentType, passageText) {
         pinBoxWidth: parsed.pinBoxWidth,
         constrainHalfPage: Boolean(parsed.constrainHalfPage),
         optionBank: parsed.optionBank || [],
+        allowOptionReuse: (typeof parsed.allowOptionReuse === 'boolean') ? parsed.allowOptionReuse : true,
       };
     }
     if (contentType === 'FLOW_CHART') {
@@ -610,6 +680,7 @@ function deserializeGroupContent(contentType, passageText) {
         flowNodes: parsed.flowNodes || [],
         bankTitle: parsed.bankTitle || '',
         optionBank: parsed.optionBank || [],
+        allowOptionReuse: (typeof parsed.allowOptionReuse === 'boolean') ? parsed.allowOptionReuse : true,
       };
     }
     if (contentType === 'WRITING_TASK') {
