@@ -41,9 +41,18 @@ const FONT_SIZES = [
   { val: '7', label: '36' },
 ];
 
+// Builder mode tools
+const BUILDER_TOOLS = [
+  { id: 'region', label: 'Kéo vùng', icon: 'Zones', disabled: false },
+  // Future tools can be added here
+  // { id: 'text_box', label: 'Hộp chữ', icon: 'Type', disabled: true },
+  // { id: 'comment', label: 'Nhận xét', icon: 'MessageSquare', disabled: true },
+];
+
 const BuilderHeader = ({
   test, onTestChange, onSave, onSubmitReview,
   saving, onPreview, onShuffle, shuffling, saveMessage, onSkillModeChange,
+  builderMode, activeTool, onModeChange, onToolChange,
 }) => {
   const [activeFormats, setActiveFormats] = useState({});
   const lastRangeRef = useRef(null);
@@ -183,6 +192,54 @@ const BuilderHeader = ({
         </div>
 
         <div className="tb-header-right">
+          {/* ██ Mode Toggle + Tool Selector ██ */}
+          <div className="tb-toolbar-group">
+            {/* Mode Toggle Button */}
+            <button 
+              className={`tb-mode-toggle ${builderMode === 'format' ? 'tb-mode-format' : 'tb-mode-builder'}`}
+              onClick={() => {
+                onModeChange?.(builderMode === 'format' ? 'builder' : 'format');
+                // Clear tool selection when switching modes
+                if (builderMode === 'format') {
+                  onToolChange?.('region');
+                }
+              }}
+              title={`Chế độ: ${builderMode === 'format' ? 'Định dạng' : 'Tạo đề'}`}
+            >
+              {builderMode === 'format' ? (
+                <>
+                  <Zap size={14} />
+                  <span>Định dạng</span>
+                </>
+              ) : (
+                <>
+                  <Zones size={14} />
+                  <span>Tạo đề</span>
+                </>
+              )}
+            </button>
+
+            {/* Tool Selector - only show in BUILDER mode */}
+            {builderMode === 'builder' && (
+              <>
+                <div className="tb-divider" style={{ margin: '0 4px' }} />
+                {BUILDER_TOOLS.map((tool) => (
+                  <button
+                    key={tool.id}
+                    className={`tb-tool-selector-btn${activeTool === tool.id ? ' active' : ''}${tool.disabled ? ' disabled' : ''}`}
+                    onClick={() => !tool.disabled && onToolChange?.(tool.id)}
+                    disabled={tool.disabled}
+                    title={tool.label}
+                  >
+                    <Zones size={14} />
+                    <span>{tool.label}</span>
+                  </button>
+                ))}
+              </>
+            )}
+          </div>
+
+          <div className="tb-divider" />
           <div className="tb-toolbar-group">
             <button className="tb-tool-btn" onClick={onShuffle} disabled={shuffling} title="Trộn đề ngẫu nhiên">
               <Shuffle size={15} /><span>{shuffling ? 'Đang trộn...' : 'Trộn đề'}</span>
@@ -212,6 +269,7 @@ const BuilderHeader = ({
       </div>
 
       {/* ══════════════ ROW 2 — Formatting Ribbon ══════════════ */}
+      {builderMode === 'format' && (
       <div className="tb-ribbon">
 
         {/* ── Lịch sử ── */}
@@ -320,6 +378,7 @@ const BuilderHeader = ({
         </div>
 
       </div>
+      )}
     </header>
   );
 };

@@ -2,6 +2,9 @@ package com.victory.DAVictory.repository;
 
 import com.victory.DAVictory.entity.ClassTeacher;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -22,4 +25,14 @@ public interface ClassTeacherRepository extends JpaRepository<ClassTeacher, Long
 
     // Tất cả lớp của giáo viên
     List<ClassTeacher> findByUserIdAndIsActiveTrueOrderByAssignedAtDesc(Long userId);
+
+    // Lấy tất cả lớp mà teacher đang dạy
+    @Query("SELECT ct.clazz.id FROM ClassTeacher ct WHERE ct.user.id = :teacherId AND ct.isActive = true")
+    List<Long> findClassIdsByTeacherId(@Param("teacherId") Long teacherId);
+
+    List<ClassTeacher> findByUserIdAndIsActiveTrue(Long userId);
+
+    @Modifying
+    @Query("DELETE FROM ClassTeacher ct WHERE ct.user.id = :userId")
+    void deleteByUserId(@Param("userId") Long userId);
 }

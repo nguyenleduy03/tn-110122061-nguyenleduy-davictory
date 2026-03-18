@@ -1555,6 +1555,17 @@
     line-height: 1.5;
 }
 
+.dd-info-text.dd-info-inline {
+    align-items: center;
+}
+
+.dd-inline-content {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
 .dd-bookmark-btn {
     cursor: pointer;
     display: flex;
@@ -1584,6 +1595,11 @@
 
 .dd-question-text {
     flex: 1;
+}
+
+.dd-question-inline {
+    display: inline-flex;
+    align-items: center;
 }
 
 /* Drop zone */
@@ -1633,6 +1649,27 @@
     border: 1px dashed #999;
     height: 25px;
     font-size: calc(var(--answer-input-font-size) - 1px);
+}
+
+.dd-drop-zone.dd-drop-inline {
+    min-width: 88px;
+    height: 30px;
+    padding: 0 8px;
+    border: 1.5px dashed #9aa3b2;
+    font-size: calc(var(--answer-input-font-size) - 1px);
+}
+
+.dd-drop-zone.dd-drop-inline.dd-drop-filled {
+    width: fit-content;
+    max-width: 360px;
+    border: 1.5px solid #3498db;
+    box-shadow: 0 0 0 2px #3498db22;
+}
+
+.dd-drop-zone.dd-drop-inline .dd-drop-answer {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .dd-drop-zone.dd-drop-info:hover:not(.dd-drop-filled) {

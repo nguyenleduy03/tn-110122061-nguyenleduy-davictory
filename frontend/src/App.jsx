@@ -30,6 +30,7 @@ import DashboardProfile from './pages/DashboardProfile'
 import DashboardSettings from './pages/DashboardSettings'
 import ApiDebugPage from './pages/ApiDebugPage'
 import ProtectedRoute from './components/common/ProtectedRoute'
+import TestApiPage from './pages/TestApiPage';
 import './App.css'
 
 function App() {
@@ -37,6 +38,7 @@ function App() {
     <Router>
       <Routes>
         <Route path="/" element={<HomePage />} />
+        <Route path="/test-api" element={<TestApiPage />} />
         <Route path="/exam-library" element={<ExamLibrary />} />
 
         {/* Test routes — yêu cầu đăng nhập (STUDENT role) để gọi BE API */}

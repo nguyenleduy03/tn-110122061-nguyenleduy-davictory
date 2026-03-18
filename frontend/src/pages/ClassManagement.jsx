@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { GraduationCap, Search, Settings2, UserPlus, Users } from 'lucide-react';
 import AdminLayout from '../components/admin/AdminLayout';
-import AuthDebug from '../components/debug/AuthDebug';
 import { authApi } from '../services/authApi';
 
 const panelStyle = {
@@ -70,6 +69,11 @@ export default function ClassManagement() {
     handoverStudents: false,
   });
 
+  const [showAddStudents, setShowAddStudents] = useState(false);
+  const [studentSearch, setStudentSearch] = useState('');
+  const [availableStudents, setAvailableStudents] = useState([]);
+  const [selectedStudents, setSelectedStudents] = useState([]);
+
   useEffect(() => {
     let mounted = true;
     const loadData = async () => {
@@ -123,11 +127,46 @@ export default function ClassManagement() {
         status: selectedClass.status || '',
         teacherId: String(selectedClass.teachers?.[0]?.id || ''),
         notes: selectedClass.notes || '',
-        classCode: selectedClass.classCode || '',
+        classCode: selectedClass.code || '',
         className: selectedClass.name || ''
       });
     }
   }, [selectedClass]);
+
+  const loadAvailableStudents = async () => {
+    try {
+      const res = await authApi.getAllStudents();
+      setAvailableStudents(res || []);
+    } catch (err) {
+      console.error('Error loading students:', err);
+      setAvailableStudents([]);
+    }
+  };
+
+  const handleAddStudents = async () => {
+    if (selectedStudents.length === 0) return;
+    try {
+      console.log('Adding students:', { classId: selectedClassId, studentIds: selectedStudents });
+      
+      // Call API to add students to class
+      const payload = {
+        classId: selectedClassId,
+        studentIds: selectedStudents
+      };
+      const result = await authApi.addStudentsToClass(payload);
+      console.log('Add students result:', result);
+      
+      alert('Đã thêm học viên thành công!');
+      setSelectedStudents([]);
+      setShowAddStudents(false);
+      // Reload data
+      window.location.reload();
+    } catch (err) {
+      console.error('Add students error:', err);
+      console.error('Error response:', err.response?.data);
+      alert('Lỗi: ' + (err.response?.data?.error || err.message));
+    }
+  };
 
   const togglePanel = (panelName) => {
     setExpandedPanels(prev => ({
@@ -399,7 +438,7 @@ export default function ClassManagement() {
                     <div>
                       <div style={{ fontWeight: 700 }}>{c.name}</div>
                       <div style={{ fontSize: 12, color: '#64748b' }}>
-                        {c.classCode || 'Chưa có mã'} • {c.studentCount || 0} học viên
+                        {c.code || 'Chưa có mã'} • {c.activeStudentCount || 0} học viên
                       </div>
                     </div>
                     <button
@@ -596,9 +635,24 @@ export default function ClassManagement() {
 
                 {/* Học viên */}
                 <div>
-                  <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 600, color: '#1f2937' }}>
-                    Học viên ({(selectedClass.students || []).length})
-                  </h3>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                    <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#1f2937' }}>
+                      Học viên ({(selectedClass.students || []).length})
+                    </h3>
+                    <button
+                      onClick={() => {
+                        setShowAddStudents(true);
+                        loadAvailableStudents();
+                      }}
+                      style={{
+                        ...buttonSecondary,
+                        padding: '4px 8px',
+                        fontSize: 12
+                      }}
+                    >
+                      + Thêm học viên
+                    </button>
+                  </div>
                   <div style={{ maxHeight: 300, overflowY: 'auto', border: '1px solid #e5e7eb', borderRadius: 6 }}>
                     {(selectedClass.students || []).length > 0 ? (
                       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -651,8 +705,119 @@ export default function ClassManagement() {
             </div>
           )}
         </div>
+
+        {/* Add Students Modal */}
+        {showAddStudents && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000
+          }}>
+            <div style={{
+              background: 'white',
+              borderRadius: 8,
+              padding: 24,
+              width: '90%',
+              maxWidth: 600,
+              maxHeight: '80vh',
+              overflow: 'auto'
+            }}>
+              <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 600 }}>
+                Thêm học viên vào lớp: {selectedClass?.name}
+              </h3>
+              
+              {/* Search */}
+              <input
+                type="text"
+                placeholder="Tìm theo mã học viên hoặc tên..."
+                value={studentSearch}
+                onChange={(e) => setStudentSearch(e.target.value)}
+                style={{ ...inputStyle, margin: '0 0 16px 0' }}
+              />
+
+              {/* Student List */}
+              <div style={{ maxHeight: 300, overflowY: 'auto', border: '1px solid #e5e7eb', borderRadius: 6, marginBottom: 16 }}>
+                {availableStudents
+                  .filter(s => 
+                    !studentSearch || 
+                    s.username?.toLowerCase().includes(studentSearch.toLowerCase()) ||
+                    s.fullName?.toLowerCase().includes(studentSearch.toLowerCase())
+                  )
+                  .map(student => (
+                    <div key={student.id} style={{ 
+                      padding: 12, 
+                      borderBottom: '1px solid #f3f4f6',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center'
+                    }}>
+                      <div>
+                        <div style={{ fontWeight: 500, fontSize: 14 }}>{student.fullName}</div>
+                        <div style={{ fontSize: 12, color: '#6b7280' }}>Mã: {student.username}</div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (selectedStudents.includes(student.id)) {
+                            setSelectedStudents(prev => prev.filter(id => id !== student.id));
+                          } else {
+                            setSelectedStudents(prev => [...prev, student.id]);
+                          }
+                        }}
+                        style={{
+                          ...buttonSecondary,
+                          padding: '4px 8px',
+                          fontSize: 12,
+                          background: selectedStudents.includes(student.id) ? '#dbeafe' : '#f3f4f6'
+                        }}
+                      >
+                        {selectedStudents.includes(student.id) ? 'Bỏ chọn' : 'Chọn'}
+                      </button>
+                    </div>
+                  ))
+                }
+              </div>
+
+              {/* Selected Count */}
+              {selectedStudents.length > 0 && (
+                <div style={{ marginBottom: 16, fontSize: 14, color: '#1f2937' }}>
+                  Đã chọn: {selectedStudents.length} học viên
+                </div>
+              )}
+
+              {/* Actions */}
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                <button
+                  onClick={() => {
+                    setShowAddStudents(false);
+                    setSelectedStudents([]);
+                    setStudentSearch('');
+                  }}
+                  style={buttonSecondary}
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={handleAddStudents}
+                  disabled={selectedStudents.length === 0}
+                  style={{ 
+                    ...buttonPrimary, 
+                    opacity: selectedStudents.length === 0 ? 0.5 : 1 
+                  }}
+                >
+                  Thêm {selectedStudents.length} học viên
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
-      <AuthDebug />
     </AdminLayout>
   );
 }

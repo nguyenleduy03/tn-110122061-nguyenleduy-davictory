@@ -59,4 +59,8 @@ public interface StudentWritingSubmissionRepository extends JpaRepository<Studen
 
     // Tất cả bài chờ chấm (dùng cho giảng viên)
     List<StudentWritingSubmission> findByStatusInOrderBySubmittedAtAsc(List<String> statuses);
+
+    // Tìm submissions của các học viên trong danh sách user IDs
+    @Query("SELECT s FROM StudentWritingSubmission s WHERE s.user.id IN :userIds ORDER BY s.submittedAt DESC")
+    List<StudentWritingSubmission> findByUserIdInOrderBySubmittedAtDesc(@Param("userIds") List<Long> userIds);
 }

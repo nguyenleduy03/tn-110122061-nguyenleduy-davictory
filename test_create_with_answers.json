@@ -1,0 +1,64 @@
+{
+  "id": null,
+  "createdByUserId": 9,
+  "title": "Test Answer Validation",
+  "description": "Test để kiểm tra lưu đáp án đúng",
+  "testType": "ACADEMIC",
+  "isFullTest": false,
+  "durationMinutes": 60,
+  "sessions": [
+    {
+      "sessionId": 2,
+      "skillType": "READING",
+      "orderIndex": 1,
+      "parts": [
+        {
+          "partId": 1,
+          "partName": "Part 1",
+          "orderIndex": 1,
+          "questionGroups": [
+            {
+              "groupTitle": "Test Group",
+              "orderIndex": 1,
+              "questions": [
+                {
+                  "questionNumber": 1,
+                  "questionText": "What is the capital of France?",
+                  "questionTypeCode": "MCQ",
+                  "points": 1.0,
+                  "orderIndex": 1,
+                  "options": [
+                    {
+                      "optionLabel": "A",
+                      "optionText": "London",
+                      "isCorrect": false,
+                      "orderIndex": 1
+                    },
+                    {
+                      "optionLabel": "B", 
+                      "optionText": "Paris",
+                      "isCorrect": true,
+                      "orderIndex": 2
+                    },
+                    {
+                      "optionLabel": "C",
+                      "optionText": "Berlin",
+                      "isCorrect": false,
+                      "orderIndex": 3
+                    },
+                    {
+                      "optionLabel": "D",
+                      "optionText": "Madrid",
+                      "isCorrect": false,
+                      "orderIndex": 4
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

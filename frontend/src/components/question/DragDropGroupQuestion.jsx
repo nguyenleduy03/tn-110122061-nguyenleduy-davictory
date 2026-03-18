@@ -1,7 +1,46 @@
 import React from 'react';
 import { Bookmark } from 'lucide-react';
+import { formatTextWithWhitespace } from '../../utils/textFormatters';
 
-const DragDropGroupQuestion = ({ q, activeQuestion, setActiveQuestion, answers, handleAnswerChange, bookmarks, toggleBookmark, isReview }) => {
+const normalizeGroupType = (rawType) => String(rawType || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '_')
+    .replace(/-/g, '_');
+
+const parseFlowNodeText = (text) => {
+    const segments = (text ?? '').split(/\[blank\]/gi);
+    const result = [];
+    segments.forEach((seg, i) => {
+        if (seg) result.push({ type: 'text', content: seg });
+        if (i < segments.length - 1) result.push({ type: 'blank' });
+    });
+    return result;
+};
+
+const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuestion, answers, handleAnswerChange, bookmarks, toggleBookmark, isReview }) => {
+    const questionType = normalizeGroupType(resolvedType || q?.type);
+    const normalizeBlankTokens = (text) => {
+        let s = String(text || '');
+        s = s.replace(/<span[^>]*data-blank=["']true["'][^>]*>[\s\S]*?<\/span>/gi, '[blank]');
+        s = s.replace(/\[\s*blank\s*\]/gi, '[blank]');
+        return s;
+    };
+
+    const extractInlineBlankParts = (text) => {
+        const normalized = normalizeBlankTokens(text);
+        const match = normalized.match(/\[blank\]/i);
+        if (!match || typeof match.index !== 'number') return null;
+
+        const tokenStart = match.index;
+        const tokenEnd = tokenStart + match[0].length;
+        const before = normalized.slice(0, tokenStart);
+        const afterRaw = normalized.slice(tokenEnd);
+        const after = afterRaw.replace(/\[blank\]/gi, '');
+
+        return { before, after };
+    };
+
     const handleDragStart = (e, option, sourceQId = null) => {
         e.dataTransfer.setData('text/plain', option);
         if (sourceQId) {
@@ -40,11 +79,21 @@ const DragDropGroupQuestion = ({ q, activeQuestion, setActiveQuestion, answers, 
         handleAnswerChange(subQId, '');
     };
 
-    const isMatchingHeading = q.type === 'matching_heading';
-    const isMatchingInfo = q.type === 'matching_info';
+    const hasFewerOptionsThanZones = (options, zoneCount) => {
+        const totalOptions = (options || []).filter((opt) => String(opt || '').trim() !== '').length;
+        return totalOptions > 0 && totalOptions < zoneCount;
+    };
+
+    const isMatchingHeading = questionType === 'matching_heading';
+    const isMatchingInfo = questionType === 'matching_info' || questionType === 'drag_drop_group';
+    const isMatchingFeatures = questionType === 'matching_features';
+    const isFlowChart = questionType === 'flow_chart';
+    const isImageDragDrop = questionType === 'image_drag_drop';
 
     // Calculate max length of bank options for sizing dropzones
     const bankOptions = q.bankOptions || [];
+    const totalDropZones = (q.subQuestions || []).length;
+    const allowOptionReuse = hasFewerOptionsThanZones(bankOptions, totalDropZones);
     const maxOptionChars = Math.max(0, ...bankOptions.map(opt => String(opt).length));
     const fixedBankWidth = Math.max(220, Math.min(720, Math.ceil(maxOptionChars * 8 + 30)));
     const rowHeight = isMatchingHeading ? 52 : 48;
@@ -71,7 +120,7 @@ const DragDropGroupQuestion = ({ q, activeQuestion, setActiveQuestion, answers, 
             <div className="options-bank">
                 {bankOptions.map((opt, idx) => {
                     const isUsed = usedOptions.includes(opt);
-                    if (isUsed && !isReview) return null; // Ẩn heading đã được thả
+                    if (isUsed && !isReview && !allowOptionReuse) return null;
                     return (
                         <div
                             key={idx}
@@ -104,6 +153,60 @@ const DragDropGroupQuestion = ({ q, activeQuestion, setActiveQuestion, answers, 
                         ? String(subQ.correctAnswer || '')
                         : String(answer || '');
                     const hasDisplayAnswer = displayAnswer.trim() !== '';
+                    const inlineBlankParts = extractInlineBlankParts(subQ.text || '');
+                    const hasInlineBlank = !!inlineBlankParts;
+
+                    const bookmarkNode = !isReview ? (
+                        <span onClick={(e) => { e.stopPropagation(); toggleBookmark?.(subQ.number); }} className="dd-bookmark-btn">
+                            <Bookmark size={18} fill={bookmarks?.[subQ.number] ? "#1a73e8" : "none"} color={bookmarks?.[subQ.number] ? "#1a73e8" : "#ccc"} />
+                        </span>
+                    ) : null;
+
+                    const inlineDropStyle = hasInlineBlank && hasDisplayAnswer
+                        ? { width: `clamp(88px, ${Math.max(8, displayAnswer.length + 2)}ch, 360px)` }
+                        : undefined;
+                    const fixedInfoStyle = isMatchingInfo && !hasInlineBlank
+                        ? { width: dropZoneWidth }
+                        : undefined;
+                    const dropZoneStyle = inlineDropStyle || fixedInfoStyle;
+
+                    const dropZoneNode = (
+                        <div
+                            onDrop={isReview ? undefined : (e) => handleDrop(e, subQ.id)}
+                            onDragOver={isReview ? undefined : handleDragOver}
+                            draggable={!isReview && hasDisplayAnswer}
+                            onDragStart={(e) => {
+                                if (isReview || !hasDisplayAnswer) return;
+                                handleDragStart(e, displayAnswer, subQ.id);
+                            }}
+                            className={`dd-drop-zone ${isMatchingInfo ? 'dd-drop-info' : ''} ${hasInlineBlank ? 'dd-drop-inline' : ''} ${hasDisplayAnswer ? 'dd-drop-filled' : ''} ${isActive && !hasDisplayAnswer ? 'dd-drop-active' : ''} ${isReview ? (isCorrect ? 'review-correct' : 'review-wrong') : ''} relative-pos`}
+                            style={dropZoneStyle}
+                        >
+                            {hasDisplayAnswer ? (
+                                <>
+                                    <span className="dd-drop-answer">
+                                        {displayAnswer}
+                                    </span>
+                                    {!isReview && (
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); handleClear(subQ.id); }}
+                                            className="dd-drop-clear"
+                                        >
+                                            ×
+                                        </button>
+                                    )}
+                                </>
+                            ) : (
+                                isMatchingInfo ? (
+                                    <div className="dd-drop-number">
+                                        {subQ.number}
+                                    </div>
+                                ) : (
+                                    <span className="dd-drop-placeholder">Drop here</span>
+                                )
+                            )}
+                        </div>
+                    );
 
                     return (
                         <div
@@ -113,61 +216,43 @@ const DragDropGroupQuestion = ({ q, activeQuestion, setActiveQuestion, answers, 
                             onClick={() => setActiveQuestion?.(subQ.number)}
                         >
                             {isMatchingInfo && subQ.text ? (
-                                <div className="dd-info-text">
-                                    {!isReview && (
-                                        <span onClick={(e) => { e.stopPropagation(); toggleBookmark?.(subQ.number); }} className="dd-bookmark-btn">
-                                            <Bookmark size={18} fill={bookmarks?.[subQ.number] ? "#1a73e8" : "none"} color={bookmarks?.[subQ.number] ? "#1a73e8" : "#ccc"} />
+                                <div className={`dd-info-text ${hasInlineBlank ? 'dd-info-inline' : ''}`}>
+                                    {bookmarkNode}
+                                    {hasInlineBlank ? (
+                                        <span className="dd-inline-content">
+                                            <span dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(inlineBlankParts.before) }} />
+                                            {dropZoneNode}
+                                            <span dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(inlineBlankParts.after) }} />
                                         </span>
+                                    ) : (
+                                        <span>{subQ.text}</span>
                                     )}
-                                    <span>{subQ.text}</span>
                                 </div>
                             ) : null}
 
                             <div className="dd-default-meta">
                                 {!isMatchingInfo && <div className="dd-default-label">
-                                    {!isReview && (
-                                        <span onClick={(e) => { e.stopPropagation(); toggleBookmark?.(subQ.number); }} className="dd-bookmark-btn">
-                                            <Bookmark size={18} fill={bookmarks?.[subQ.number] ? "#1a73e8" : "none"} color={bookmarks?.[subQ.number] ? "#1a73e8" : "#ccc"} />
-                                        </span>
-                                    )}
+                                    {bookmarkNode}
                                     <span className="dd-question-num">{subQ.number}</span>
                                 </div>}
-                                {!isMatchingInfo && <span className="dd-question-text">{subQ.text}</span>}
-
-                                <div
-                                    onDrop={isReview ? undefined : (e) => handleDrop(e, subQ.id)}
-                                    onDragOver={isReview ? undefined : handleDragOver}
-                                    draggable={!isReview && hasDisplayAnswer}
-                                    onDragStart={(e) => {
-                                        if (isReview || !hasDisplayAnswer) return;
-                                        handleDragStart(e, displayAnswer, subQ.id);
-                                    }}
-                                    className={`dd-drop-zone ${isMatchingInfo ? 'dd-drop-info' : ''} ${hasDisplayAnswer ? 'dd-drop-filled' : ''} ${isActive && !hasDisplayAnswer ? 'dd-drop-active' : ''} ${isReview ? (isCorrect ? 'review-correct' : 'review-wrong') : ''} relative-pos`}
-                                >
-                                    {hasDisplayAnswer ? (
-                                        <>
-                                            <span className="dd-drop-answer">
-                                                {displayAnswer}
+                                {!isMatchingInfo && (
+                                    hasInlineBlank ? (
+                                        <span className="dd-question-text dd-question-inline">
+                                            <span className="dd-inline-content">
+                                                <span dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(inlineBlankParts.before) }} />
+                                                {dropZoneNode}
+                                                <span dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(inlineBlankParts.after) }} />
                                             </span>
-                                            {!isReview && (
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); handleClear(subQ.id); }}
-                                                    className="dd-drop-clear"
-                                                >
-                                                    ×
-                                                </button>
-                                            )}
-                                        </>
+                                        </span>
                                     ) : (
-                                        isMatchingInfo ? (
-                                            <div className="dd-drop-number">
-                                                {subQ.number}
-                                            </div>
-                                        ) : (
-                                            <span className="dd-drop-placeholder">Drop here</span>
-                                        )
-                                    )}
-                                </div>
+                                        <>
+                                            <span className="dd-question-text">{subQ.text}</span>
+                                            {dropZoneNode}
+                                        </>
+                                    )
+                                )}
+
+                                {isMatchingInfo && !hasInlineBlank && dropZoneNode}
                             </div>
                         </div>
                     );
@@ -175,6 +260,407 @@ const DragDropGroupQuestion = ({ q, activeQuestion, setActiveQuestion, answers, 
             </div>
         </div>
     );
+
+    const renderFlowChart = () => {
+        const flowNodes = q.flowNodes ?? [];
+        const subQuestions = q.subQuestions ?? [];
+        const numbers = subQuestions.map((sq) => sq.number).filter((n) => Number.isFinite(n));
+        const minNum = numbers.length ? Math.min(...numbers) : null;
+        const maxNum = numbers.length ? Math.max(...numbers) : null;
+        const fallbackHeading = (minNum !== null && maxNum !== null)
+            ? (minNum === maxNum ? `Question ${minNum}` : `Questions ${minNum}-${maxNum}`)
+            : '';
+        const heading = q.heading || fallbackHeading;
+        const instruction = q.instruction || 'Complete the flow-chart. Choose the correct answer and move it into the gap.';
+        const chartTitle = /^\s*(nh[oó]m|group)\s*\d*\s*$/i.test(String(q.title || '')) ? '' : q.title;
+        const bankTitle = q.bankTitle || '';
+
+        let blankCounter = 0;
+        const nodeRenderData = flowNodes.map((node) => {
+            const parts = parseFlowNodeText(node.text).map((part) => {
+                if (part.type === 'blank') {
+                    return { ...part, subQ: subQuestions[blankCounter++] ?? null };
+                }
+                return part;
+            });
+            return { node, parts };
+        });
+
+        const usedAnswers = Object.values(answers || {}).filter(Boolean);
+        const allowReuse = hasFewerOptionsThanZones(q.bankOptions || [], subQuestions.length);
+
+        return (
+            <div className="fc-container">
+                <div className="fc-header">
+                    {heading && <h4 className="fc-heading">{heading}</h4>}
+                    {instruction && <p className="fc-instruction" dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(instruction) }} />}
+                </div>
+
+                <div className="fc-layout">
+                    <div className="fc-chart">
+                        {chartTitle && <div className="fc-chart-title">{chartTitle}</div>}
+                        <div className="fc-flow-stack">
+                            {nodeRenderData.map(({ node, parts }, idx) => (
+                                <React.Fragment key={node.id ?? idx}>
+                                    <div className="fc-node">
+                                        <p className="fc-node-text">
+                                            {parts.map((part, pidx) => {
+                                                if (part.type === 'text') {
+                                                    return <span key={pidx}>{part.content}</span>;
+                                                }
+
+                                                const subQ = part.subQ;
+                                                const answer = subQ ? answers[subQ.id] : undefined;
+                                                const normalizedAnswer = String(answer || '').trim().toLowerCase();
+                                                const normalizedCorrect = String(subQ?.correctAnswer || '').trim().toLowerCase();
+                                                const isCorrect = normalizedAnswer === normalizedCorrect;
+                                                const displayAnswer = (isReview && !isCorrect)
+                                                    ? String(subQ?.correctAnswer || '')
+                                                    : String(answer || '');
+                                                const hasDisplayAnswer = displayAnswer.trim() !== '';
+                                                const isActive = subQ ? activeQuestion === subQ.number : false;
+                                                const showQuestionNumber = !hasDisplayAnswer;
+                                                const hasBookmark = !isReview && !!subQ;
+
+                                                return (
+                                                    <span
+                                                        key={pidx}
+                                                        id={subQ ? `question-${subQ.number}` : undefined}
+                                                        className={`fc-blank${hasDisplayAnswer ? ' fc-blank-filled' : ''}${isActive && showQuestionNumber ? ' fc-blank-active' : ''}${hasBookmark ? ' fc-blank-has-bookmark' : ''} ${isReview && subQ ? (isCorrect ? 'review-correct' : 'review-wrong') : ''} relative-pos`}
+                                                        onClick={(e) => { e.stopPropagation(); if (subQ && !isReview) setActiveQuestion(subQ.number); }}
+                                                        onDragOver={isReview ? undefined : handleDragOver}
+                                                        onDrop={isReview ? undefined : (e) => subQ && handleDrop(e, subQ.id)}
+                                                        draggable={!isReview && !!answer}
+                                                        onDragStart={(e) => { if (!isReview && answer) handleDragStart(e, answer, subQ?.id); }}
+                                                        tabIndex={subQ && !isReview ? 0 : -1}
+                                                        onFocus={() => { if (subQ && !isReview) setActiveQuestion(subQ.number); }}
+                                                    >
+                                                        {hasBookmark && (
+                                                            <span
+                                                                className="fc-blank-bookmark"
+                                                                onClick={(e) => { e.stopPropagation(); toggleBookmark?.(subQ.number); }}
+                                                            >
+                                                                <Bookmark size={18} fill={bookmarks?.[subQ.number] ? '#1a73e8' : 'none'} color={bookmarks?.[subQ.number] ? '#1a73e8' : '#ccc'} />
+                                                            </span>
+                                                        )}
+                                                        {showQuestionNumber && <strong className="fc-blank-num">{subQ?.number}</strong>}
+                                                        {hasDisplayAnswer && <span className="fc-blank-answer">{displayAnswer}</span>}
+                                                    </span>
+                                                );
+                                            })}
+                                        </p>
+                                    </div>
+                                    {idx < nodeRenderData.length - 1 && (
+                                        <div className="fc-arrow">↓</div>
+                                    )}
+                                </React.Fragment>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="fc-bank" onDragOver={handleDragOver} onDrop={handleBankDrop}>
+                        {bankTitle && <div className="fc-bank-title">{bankTitle}</div>}
+                        {(q.bankOptions ?? []).map((opt, i) => {
+                            if (usedAnswers.includes(opt) && !allowReuse) return null;
+                            return (
+                                <div
+                                    key={i}
+                                    className="fc-bank-chip"
+                                    draggable={!isReview}
+                                    onDragStart={(e) => { if (!isReview) handleDragStart(e, opt); }}
+                                >
+                                    {opt}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    const renderImageDragDrop = () => {
+        const usedOptions = Object.values(answers || {}).filter(Boolean);
+        const subQuestions = q.subQuestions || [];
+        const numbers = subQuestions.map((subQ) => subQ.number).filter((n) => Number.isFinite(n));
+        const minNum = numbers.length ? Math.min(...numbers) : null;
+        const maxNum = numbers.length ? Math.max(...numbers) : null;
+        const fallbackHeading = (minNum !== null && maxNum !== null)
+            ? (minNum === maxNum ? `Question ${minNum}` : `Questions ${minNum}–${maxNum}`)
+            : '';
+        const heading = q.heading || fallbackHeading;
+        const instruction = q.instruction || '';
+        const imageWidth = Number.isFinite(Number(q.imageWidth)) ? Number(q.imageWidth) : 100;
+        const pinBoxWidth = Number.isFinite(Number(q.pinBoxWidth)) ? Number(q.pinBoxWidth) : 60;
+        const constrainHalfPage = Boolean(q.constrainHalfPage);
+        const allowReuse = hasFewerOptionsThanZones(q.bankOptions || [], subQuestions.length);
+
+        return (
+            <div className="image-drag-drop-container">
+                {(heading || instruction) && (
+                    <div className="question-header-container">
+                        {heading && (
+                            <p className="question-heading">
+                                {heading}
+                            </p>
+                        )}
+                        {instruction && (
+                            <div className="question-instruction" dangerouslySetInnerHTML={{ __html: instruction }} />
+                        )}
+                    </div>
+                )}
+
+                <div className="image-drag-drop-body">
+                    <div className={`image-area${constrainHalfPage ? ' half-page' : ''}`}>
+                        {q.imageUrl ? (
+                            <img src={q.imageUrl} alt="Map" className="idd-map-image" style={{ width: `${imageWidth}%` }} />
+                        ) : (
+                            <div className="image-placeholder">
+                                Image Placeholder (Add imageUrl to data)
+                            </div>
+                        )}
+
+                        {subQuestions.map((subQ) => {
+                            const answer = answers[subQ.id];
+                            const normalizedAnswer = String(answer || '').trim().toLowerCase();
+                            const normalizedCorrect = String(subQ.correctAnswer || '').trim().toLowerCase();
+                            const isCorrect = normalizedAnswer === normalizedCorrect;
+                            const displayAnswer = (isReview && !isCorrect)
+                                ? String(subQ.correctAnswer || '')
+                                : String(answer || '');
+                            const hasAnswer = displayAnswer.trim() !== '';
+                            const isActive = activeQuestion === subQ.number;
+
+                            return (
+                                <div
+                                    key={subQ.id}
+                                    className={`drop-zone ml-drop-zone ${isActive ? 'active' : ''} ${isReview ? (isCorrect ? 'review-correct' : 'review-wrong') : ''}`}
+                                    onClick={() => { if (!isReview) setActiveQuestion?.(subQ.number); }}
+                                    onDrop={isReview ? undefined : (e) => handleDrop(e, subQ.id)}
+                                    onDragOver={isReview ? undefined : handleDragOver}
+                                    style={{
+                                        top: subQ.top || '50%',
+                                        left: subQ.left || '50%',
+                                        width: `${pinBoxWidth}px`,
+                                        minWidth: `${pinBoxWidth}px`
+                                    }}
+                                >
+                                    {!isReview && (
+                                        <span
+                                            className="drop-zone-bookmark"
+                                            onClick={(e) => { e.stopPropagation(); toggleBookmark?.(subQ.number); }}
+                                        >
+                                            <Bookmark size={18} fill={bookmarks?.[subQ.number] ? '#1a73e8' : 'none'} color={bookmarks?.[subQ.number] ? '#1a73e8' : '#ccc'} />
+                                        </span>
+                                    )}
+
+                                    <strong className={`drop-zone-number${hasAnswer ? ' with-answer' : ''}`}>{subQ.number}</strong>
+
+                                    {answer ? (
+                                        <div
+                                            className="dz-answered"
+                                            draggable={!isReview}
+                                            onDragStart={(e) => {
+                                                if (isReview) return;
+                                                handleDragStart(e, answer, subQ.id);
+                                            }}
+                                        >
+                                            {displayAnswer}
+                                            {!isReview && (
+                                                <span
+                                                    className="dz-clear"
+                                                    onClick={(e) => { e.stopPropagation(); handleClear(subQ.id); }}
+                                                >
+                                                    ×
+                                                </span>
+                                            )}
+                                        </div>
+                                    ) : null}
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    <div className="bank-area" onDragOver={handleDragOver} onDrop={handleBankDrop}>
+                        {q.rightTitle && (
+                            <div className="dd-bank-title" dangerouslySetInnerHTML={{ __html: q.rightTitle }} />
+                        )}
+                        <div className="bank-options-list">
+                            {(q.bankOptions || []).map((opt, idx) => {
+                                const isUsed = usedOptions.includes(opt);
+                                if (isUsed && !allowReuse) return null;
+
+                                return (
+                                    <div
+                                        key={idx}
+                                        className="bank-option-item"
+                                        draggable={!isReview}
+                                        onDragStart={(e) => { if (!isReview) handleDragStart(e, opt); }}
+                                    >
+                                        {opt}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    const renderMatchingFeatures = () => {
+        const categories = q.categories || [];
+        const subQuestions = q.subQuestions || [];
+        const answerMap = answers || {};
+
+        const numbers = subQuestions.map((sq) => sq.number).filter((n) => Number.isFinite(n));
+        const minNum = numbers.length ? Math.min(...numbers) : null;
+        const maxNum = numbers.length ? Math.max(...numbers) : null;
+        const heading = q.heading
+            || (minNum !== null && maxNum !== null
+                ? (minNum === maxNum ? `Question ${minNum}` : `Questions ${minNum}–${maxNum}`)
+                : 'Questions');
+
+        const instruction = q.instruction
+            || `Choose the correct group (${categories.map((c) => c.label).join('–') || 'A–E'}) for each item. You may choose any group more than once.`;
+
+        const handleSelect = (subQId, label) => {
+            if (isReview) return;
+            const current = answerMap[subQId];
+            handleAnswerChange?.(subQId, current === label ? '' : label);
+        };
+
+        return (
+            <div className="mf-container">
+                <div className="question-header-container">
+                    <p className="question-heading">{heading}</p>
+                    <p
+                        className="question-instruction"
+                        dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(instruction) }}
+                    />
+                </div>
+
+                {categories.length > 0 && (
+                    <div className="mf-categories-box">
+                        {q.categoryTitle && (
+                            <div className="mf-category-title">{q.categoryTitle}</div>
+                        )}
+                        <div className="mf-category-list">
+                            {categories.map((cat) => (
+                                <div key={cat.label} className="mf-category-row">
+                                    <span className="mf-cat-label">{cat.label}</span>
+                                    <span className="mf-cat-text">{cat.text}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                <div className="mf-table-wrap">
+                    <table className="mf-table">
+                        <thead>
+                            <tr className="mf-header-row">
+                                <th className="mf-th-item"></th>
+                                {categories.map((cat) => (
+                                    <th key={cat.label} className="mf-th-cat">{cat.label}</th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {subQuestions.map((subQ) => {
+                                const isActive = activeQuestion === subQ.number;
+                                const selectedLabel = answerMap[subQ.id] || '';
+                                const isCorrect = String(selectedLabel).trim() === String(subQ.correctAnswer || '').trim();
+
+                                return (
+                                    <tr
+                                        key={subQ.id}
+                                        id={`question-${subQ.number}`}
+                                        className={`mf-question-row ${isActive ? 'mf-row-active' : ''}`}
+                                        onClick={() => setActiveQuestion?.(subQ.number)}
+                                    >
+                                        <td className="mf-td-item">
+                                            <div className="mf-item-inner">
+                                                {!isReview && (
+                                                    <span
+                                                        className="mf-bookmark-btn"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            toggleBookmark?.(subQ.number);
+                                                        }}
+                                                    >
+                                                        <Bookmark
+                                                            size={15}
+                                                            fill={bookmarks?.[subQ.number] ? '#1a73e8' : 'none'}
+                                                            color={bookmarks?.[subQ.number] ? '#1a73e8' : '#bbb'}
+                                                        />
+                                                    </span>
+                                                )}
+                                                <span className="mf-q-num">{subQ.number}</span>
+                                                <span
+                                                    className="mf-q-text"
+                                                    dangerouslySetInnerHTML={{
+                                                        __html: formatTextWithWhitespace(subQ.text || '')
+                                                    }}
+                                                />
+                                            </div>
+                                        </td>
+
+                                        {categories.map((cat) => {
+                                            const isSelected = selectedLabel === cat.label;
+                                            const isCorrectCell = isReview && cat.label === String(subQ.correctAnswer || '').trim();
+                                            const isWrongCell = isReview && isSelected && !isCorrect;
+
+                                            let cellClass = 'mf-choice-cell';
+                                            if (isSelected && !isReview) cellClass += ' mf-selected';
+                                            if (isCorrectCell) cellClass += ' mf-review-correct';
+                                            if (isWrongCell) cellClass += ' mf-review-wrong';
+                                            if (isReview && isSelected && isCorrect) cellClass += ' mf-review-correct';
+
+                                            return (
+                                                <td
+                                                    key={cat.label}
+                                                    className={cellClass}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleSelect(subQ.id, cat.label);
+                                                    }}
+                                                    title={isReview ? undefined : `Chọn ${cat.label}`}
+                                                >
+                                                    {isSelected && (
+                                                        <span className="mf-check-mark">
+                                                            {isReview
+                                                                ? (isCorrect ? '✓' : '✗')
+                                                                : '✓'}
+                                                        </span>
+                                                    )}
+                                                    {isReview && isCorrectCell && !isSelected && (
+                                                        <span className="mf-correct-hint">✓</span>
+                                                    )}
+                                                </td>
+                                            );
+                                        })}
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        );
+    };
+
+    if (isFlowChart) {
+        return renderFlowChart();
+    }
+
+    if (isImageDragDrop) {
+        return renderImageDragDrop();
+    }
+
+    if (isMatchingFeatures) {
+        return renderMatchingFeatures();
+    }
 
     if (isMatchingHeading) {
         return (

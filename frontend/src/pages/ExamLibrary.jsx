@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import {
   LayoutGrid,
@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import Navbar from '../components/layout/Navbar';
 import { API_CONFIG } from '../config/api';
+import { ieltsApi } from '../services/ieltsApi';
 import '../styles/examLibrary.css';
 
 const TYPE_TABS = [
@@ -86,6 +87,15 @@ const SKILL_PRACTICE_SETUP = {
   SPEAKING: { parts: [1, 2, 3], timeOptions: [6, 10, 15, 0], defaultTime: 15 },
 };
 
+const parseJsonSafe = (raw, fallback = null) => {
+  if (!raw || typeof raw !== 'string') return fallback;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return fallback;
+  }
+};
+
 function BookCover({ series, index, small }) {
   const p = COVER_PALETTE[index % COVER_PALETTE.length];
   return (
@@ -148,9 +158,10 @@ function TestGrid({ tests }) {
 }
 
 /* ── SERIES DETAIL view ── */
-function SeriesDetail({ series, index, onBack }) {
+function SeriesDetail({ series, index, onBack, fullTestProgress }) {
   const [showFullTestModal, setShowFullTestModal] = useState(false);
   const [skillModeModal, setSkillModeModal] = useState(null);
+  const timeMenuRef = useRef(null);
   const navigate = useNavigate();
 
   const skillGroups = useMemo(() => {
@@ -164,6 +175,8 @@ function SeriesDetail({ series, index, onBack }) {
 
   const skillOrder = ['LISTENING', 'READING', 'WRITING', 'SPEAKING'];
   const available = skillOrder.filter(s => skillGroups[s]);
+  const fullTestProgressPercent = Math.max(0, Math.min(100, Number(fullTestProgress?.progressPercent) || 0));
+  const hasSavedFullTestProgress = Boolean(fullTestProgress?.routePath) && fullTestProgressPercent < 100;
 
   const handleStartFullTest = () => {
     const sections = available.map((s, i) => ({
@@ -172,13 +185,32 @@ function SeriesDetail({ series, index, onBack }) {
       label: SKILL_META[s].label,
       sectionNum: i + 1,
     }));
-    sessionStorage.setItem('ieltsFullTest', JSON.stringify({
+    const initialSessionState = {
       seriesTitle: series.title,
       totalSections: sections.length,
       sections,
       currentSection: 0,
       mode: 'practice',
-    }));
+    };
+
+    if (hasSavedFullTestProgress) {
+      const restoredSession = parseJsonSafe(fullTestProgress?.sessionStateJson, initialSessionState);
+      const resumeQuery = fullTestProgress?.queryString
+        ? (fullTestProgress.queryString.startsWith('?') ? fullTestProgress.queryString : `?${fullTestProgress.queryString}`)
+        : '';
+
+      sessionStorage.setItem('ieltsFullTest', JSON.stringify(restoredSession));
+      setShowFullTestModal(false);
+      navigate(`${fullTestProgress.routePath}${resumeQuery}`);
+      return;
+    }
+
+    sessionStorage.setItem('ieltsFullTest', JSON.stringify(initialSessionState));
+
+    sections.forEach((section) => {
+      sessionStorage.removeItem(`ieltsFullTestSnapshot_${section.skill}_${section.testId}`);
+    });
+
     setShowFullTestModal(false);
     navigate(`/test/${sections[0].skill}/${sections[0].testId}?fullTest=true&mode=practice`);
   };
@@ -190,6 +222,7 @@ function SeriesDetail({ series, index, onBack }) {
       testId,
       selectedParts: [...setup.parts],
       practiceDuration: setup.defaultTime,
+      isTimeMenuOpen: false,
     });
   };
 
@@ -203,6 +236,7 @@ function SeriesDetail({ series, index, onBack }) {
       const exists = prev.selectedParts.includes(partNo);
       return {
         ...prev,
+        isTimeMenuOpen: false,
         selectedParts: exists
           ? prev.selectedParts.filter((p) => p !== partNo)
           : [...prev.selectedParts, partNo].sort((a, b) => a - b),
@@ -213,9 +247,34 @@ function SeriesDetail({ series, index, onBack }) {
   const setPracticeDuration = (minutes) => {
     setSkillModeModal((prev) => {
       if (!prev) return prev;
-      return { ...prev, practiceDuration: minutes };
+      return { ...prev, practiceDuration: minutes, isTimeMenuOpen: false };
     });
   };
+
+  const togglePracticeDurationMenu = () => {
+    setSkillModeModal((prev) => {
+      if (!prev) return prev;
+      return { ...prev, isTimeMenuOpen: !prev.isTimeMenuOpen };
+    });
+  };
+
+  useEffect(() => {
+    if (!skillModeModal?.isTimeMenuOpen) return undefined;
+
+    const handleClickOutsideTimeMenu = (event) => {
+      if (timeMenuRef.current && !timeMenuRef.current.contains(event.target)) {
+        setSkillModeModal((prev) => {
+          if (!prev) return prev;
+          return { ...prev, isTimeMenuOpen: false };
+        });
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutsideTimeMenu);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutsideTimeMenu);
+    };
+  }, [skillModeModal?.isTimeMenuOpen]);
 
   const handleStartSkillMode = (mode) => {
     if (!skillModeModal) return;
@@ -278,12 +337,12 @@ function SeriesDetail({ series, index, onBack }) {
         </div>
         <div className="full-test-progress-wrap">
           <div className="full-test-progress-bar">
-            <div className="full-test-progress-fill" style={{ width: '0%' }} />
-            <span className="full-test-progress-text">0%</span>
+            <div className="full-test-progress-fill" style={{ width: `${fullTestProgressPercent}%` }} />
+            <span className="full-test-progress-text">{fullTestProgressPercent}%</span>
           </div>
         </div>
         <button className="full-test-start-btn" onClick={() => setShowFullTestModal(true)}>
-          <Zap size={15} fill="white" color="white" /> Start
+          <Zap size={15} fill="white" color="white" /> {hasSavedFullTestProgress ? 'Continue' : 'Start'}
         </button>
       </div>
 
@@ -307,10 +366,15 @@ function SeriesDetail({ series, index, onBack }) {
               <ul>
                 <li>This test includes the Listening, Reading, Writing and Speaking sections.</li>
                 <li>It takes about 3 hours to complete (same as the real IELTS test).</li>
+                {hasSavedFullTestProgress && (
+                  <li>You have saved progress at {fullTestProgressPercent}%. Continue from your last position.</li>
+                )}
               </ul>
             </div>
             <p className="ft-modal-confirm-text">Please confirm if you would like to continue.</p>
-            <button className="ft-modal-confirm-btn" onClick={handleStartFullTest}>Xác nhận</button>
+            <button className="ft-modal-confirm-btn" onClick={handleStartFullTest}>
+              {hasSavedFullTestProgress ? 'Continue full test' : 'Xác nhận'}
+            </button>
           </div>
         </div>
       )}
@@ -328,6 +392,13 @@ function SeriesDetail({ series, index, onBack }) {
         const canStartPractice = selectedParts.length > 0;
         const noTimeLimit = practiceDuration === 0;
         const heading = `${meta?.label || 'Skill'} mode`;
+        const timeOptions = Array.from(new Set([...(practiceSetup.timeOptions || []), 0])).sort((a, b) => {
+          if (a === 0) return 1;
+          if (b === 0) return -1;
+          return a - b;
+        });
+        const isTimeMenuOpen = Boolean(skillModeModal.isTimeMenuOpen);
+        const getTimeLabel = (mins) => (mins === 0 ? 'No time limit' : `${mins} mins`);
 
         return (
           <div className="sm-overlay" onClick={closeSkillModeModal}>
@@ -371,19 +442,38 @@ function SeriesDetail({ series, index, onBack }) {
 
                   <div className="sm-practice-step">
                     <div className="sm-practice-label">2. Choose a time limit:</div>
-                    <div className="sm-time-select-wrap">
-                      <select
-                        className="sm-time-select"
-                        value={practiceDuration}
-                        onChange={(e) => setPracticeDuration(Number(e.target.value))}
+                    <div className="sm-time-select-wrap" ref={timeMenuRef}>
+                      <button
+                        type="button"
+                        className={`sm-time-select${isTimeMenuOpen ? ' open' : ''}`}
+                        onClick={togglePracticeDurationMenu}
+                        aria-haspopup="listbox"
+                        aria-expanded={isTimeMenuOpen}
+                        aria-label="Choose practice time limit"
                       >
-                        {practiceSetup.timeOptions.map((mins) => (
-                          <option key={mins} value={mins}>
-                            {mins === 0 ? 'No time limit' : `${mins} mins`}
-                          </option>
-                        ))}
-                      </select>
-                      <ChevronDown size={16} className="sm-time-caret" />
+                        <span>{getTimeLabel(practiceDuration)}</span>
+                        <ChevronDown size={16} className="sm-time-caret" />
+                      </button>
+
+                      {isTimeMenuOpen && (
+                        <div className="sm-time-dropdown" role="listbox" aria-label="Time options">
+                          {timeOptions.map((mins) => {
+                            const active = mins === practiceDuration;
+                            return (
+                              <button
+                                type="button"
+                                key={mins}
+                                className={`sm-time-option${active ? ' active' : ''}`}
+                                role="option"
+                                aria-selected={active}
+                                onClick={() => setPracticeDuration(mins)}
+                              >
+                                {getTimeLabel(mins)}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -432,38 +522,35 @@ export default function ExamLibrary() {
   const [testSeries, setTestSeries] = useState([]);
   const [loadingTests, setLoadingTests] = useState(true);
   const [fetchError, setFetchError] = useState(null);
+  const [fullTestProgressMap, setFullTestProgressMap] = useState({});
 
-  // Fetch published tests from backend
+  // Fetch published tests from backend - đơn giản hóa
   useEffect(() => {
     const fetchPublishedTests = async () => {
       try {
-        const res = await fetch(`${API_CONFIG.BASE_URL}/tests/published`, {
-          signal: AbortSignal.timeout(5000),
-        });
+        setLoadingTests(true);
+        console.log('[ExamLibrary] Fetching tests...');
+
+        const res = await fetch(`${API_CONFIG.BASE_URL}/tests/published`);
+
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
 
         if (!data || data.length === 0) {
-          console.log('[ExamLibrary] No data received or empty array:', data);
           setTestSeries([]);
           setFetchError(null);
-          // Note: finally still runs after return, so setLoadingTests(false) is called
           return;
         }
 
-        console.log('[ExamLibrary] Received data:', data.length, 'tests');
-        console.log('[ExamLibrary] First test:', data[0]);
-
-        // Transform backend TestResponse[] → TEST_SERIES format
-        // Each Test becomes its own "series", skills are inferred from sessions or isFullTest flag
+        // Transform data đơn giản
         const SKILL_ORDER = ['LISTENING', 'READING', 'WRITING', 'SPEAKING'];
         const mapped = data.map((test) => ({
           id: `be-${test.id}`,
           backendId: test.id,
           title: test.title || `Test ${test.id}`,
-          type: test.testType || 'ACADEMIC',
-          year: test.publishedAt ? new Date(test.publishedAt).getFullYear() : new Date().getFullYear(),
-          tests: test.isFullTest
+          type: test.test_type || 'ACADEMIC',
+          year: new Date().getFullYear(),
+          tests: test.is_full_test
             ? SKILL_ORDER.map((skill) => ({
               id: test.id,
               name: `${test.title} – ${skill.charAt(0) + skill.slice(1).toLowerCase()}`,
@@ -471,19 +558,16 @@ export default function ExamLibrary() {
             }))
             : (test.sessions || []).map((s) => ({
               id: test.id,
-              name: `${test.title} – ${s.skillType || 'Test'}`,
-              skill: s.skillType || 'READING',
+              name: `${test.title} – ${s.skill_type || 'Test'}`,
+              skill: s.skill_type || 'READING',
             })),
         }));
 
-        console.log('[ExamLibrary] Mapped data:', mapped);
-        console.log('[ExamLibrary] Setting testSeries to:', mapped.length, 'series');
         setTestSeries(mapped);
         setFetchError(null);
       } catch (err) {
-        const reason = err.name === 'TimeoutError' ? 'timeout sau 5 giây' : err.message;
-        console.warn(`[ExamLibrary] Lỗi tải dữ liệu: ${reason}`);
-        setFetchError(reason);
+        console.error('[ExamLibrary] Error:', err);
+        setFetchError(err.message);
         setTestSeries([]);
       } finally {
         setLoadingTests(false);
@@ -491,6 +575,39 @@ export default function ExamLibrary() {
     };
 
     fetchPublishedTests();
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadFullTestProgress = async () => {
+      try {
+        const list = await ieltsApi.getMyFullTestProgress();
+        if (!isMounted) return;
+
+        const map = {};
+        (Array.isArray(list) ? list : []).forEach((item) => {
+          const key = String(item?.testId || '');
+          if (!key) return;
+
+          const prev = map[key];
+          if (!prev || (Number(item?.progressPercent) || 0) > (Number(prev?.progressPercent) || 0)) {
+            map[key] = item;
+          }
+        });
+
+        setFullTestProgressMap(map);
+      } catch (err) {
+        if (err?.message !== 'AUTH_REQUIRED') {
+          console.warn('[ExamLibrary] Failed to load full test progress:', err);
+        }
+      }
+    };
+
+    loadFullTestProgress();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const rawSkill = searchParams.get('skill')?.toUpperCase() || 'ALL';
@@ -532,8 +649,18 @@ export default function ExamLibrary() {
   }, [testSeries, activeType, activeSkill, searchQuery]);
 
   const flatTests = useMemo(() => {
+    console.log('[ExamLibrary] flatTests - activeSkill:', activeSkill);
+    console.log('[ExamLibrary] flatTests - filteredSeries:', filteredSeries.length);
+
     if (activeSkill === 'ALL') return [];
-    return filteredSeries.flatMap(s => s.tests.filter(t => t.skill === activeSkill));
+
+    const flat = filteredSeries.flatMap(s => {
+      console.log('[ExamLibrary] Series tests:', s.title, s.tests?.length || 0);
+      return s.tests?.filter(t => t.skill === activeSkill) || [];
+    });
+
+    console.log('[ExamLibrary] flatTests result:', flat.length);
+    return flat;
   }, [activeSkill, filteredSeries]);
 
   const handleSelectSeries = (series) => {
@@ -556,13 +683,13 @@ export default function ExamLibrary() {
       ) : fetchError ? (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
           <div style={{ textAlign: 'center', padding: '40px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', margin: '20px' }}>
-            <p style={{ color: '#dc2626', marginBottom: '16px' }}>❌ Lỗi kết nối backend: {fetchError}</p>
-            <p style={{ color: '#6b7280', marginBottom: '16px' }}>API URL: {API_CONFIG.BASE_URL}/tests/published</p>
+            <p style={{ color: '#dc2626', marginBottom: '16px' }}>❌ Không thể tải danh sách đề thi</p>
+            <p style={{ color: '#6b7280', marginBottom: '16px', fontSize: '14px' }}>{fetchError}</p>
             <button
               onClick={() => window.location.reload()}
-              style={{ padding: '8px 16px', backgroundColor: '#dc2626', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+              style={{ padding: '8px 16px', backgroundColor: '#1e3a8a', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
             >
-              Thử lại
+              Tải lại
             </button>
           </div>
         </div>
@@ -631,6 +758,7 @@ export default function ExamLibrary() {
                 series={selectedSeries}
                 index={selectedSeriesIndex}
                 onBack={() => setSelectedSeries(null)}
+                fullTestProgress={fullTestProgressMap[String(selectedSeries.backendId)] || null}
               />
             ) : activeSkill === 'ALL' ? (
               <div className="el-series-list">

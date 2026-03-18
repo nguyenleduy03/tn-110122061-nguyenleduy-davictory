@@ -11,6 +11,7 @@ import "../styles/ieltsTest.css";
 import TestHeader from "../components/common/TestHeader";
 import { ieltsApi } from "../services/ieltsApi";
 import { formatTextWithWhitespace } from "../utils/textFormatters";
+import { computeFullTestProgressPercent, getFullTestSessionState, parseJsonSafe } from "../utils/fullTestProgress";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const fmtTime = (sec) => {
@@ -109,6 +110,7 @@ const IeltsSpeakingTest = () => {
         .filter((v) => Number.isFinite(v) && v > 0)
     )).sort((a, b) => a - b);
   }, [selectedPartsParam]);
+  const queryString = searchParams.toString();
 
   const [currentPartIdx, setCurrentPartIdx] = useState(0);
   const [currentQIdx, setCurrentQIdx] = useState(0);
@@ -127,6 +129,16 @@ const IeltsSpeakingTest = () => {
   const [audioUrls, setAudioUrls] = useState({}); // { questionId: objectURL }
   const [micAllowed, setMicAllowed] = useState(null); // null | true | false
   const [submitted, setSubmitted] = useState(false);
+  const autosaveStateRef = useRef({
+    currentPartIdx: 0,
+    currentQIdx: 0,
+    stage: 'mic-test',
+    phase: 'idle',
+    partSecondsLeft: 0,
+    audioUrls: {},
+    testData: null,
+    micTested: false,
+  });
 
   // recording internals
   const mediaRecorderRef = useRef(null);
@@ -186,6 +198,57 @@ const IeltsSpeakingTest = () => {
     });
   }, [testId, mode, isFullTest, selectedPracticeParts, durationOverrideMinutes, noTimeLimit]);
 
+  useEffect(() => {
+    if (!isFullTest || !testData || !testId) return undefined;
+    let canceled = false;
+
+    const restoreSnapshot = async () => {
+      let snapshot = parseJsonSafe(sessionStorage.getItem(`ieltsFullTestSnapshot_speaking_${testId}`), null);
+
+      try {
+        const remote = await ieltsApi.getFullTestProgress(testId);
+        if (!canceled && remote && String(remote.currentSkill || '').toLowerCase() === 'speaking') {
+          const remoteSnapshot = parseJsonSafe(remote.snapshotJson, null);
+          if (remoteSnapshot) snapshot = remoteSnapshot;
+
+          const remoteSession = parseJsonSafe(remote.sessionStateJson, null);
+          if (remoteSession?.sections?.length) {
+            sessionStorage.setItem('ieltsFullTest', JSON.stringify(remoteSession));
+          }
+        }
+      } catch {
+        // Ignore restore failure and continue with local state
+      }
+
+      if (!snapshot || canceled) return;
+
+      if (Number.isFinite(snapshot.currentPartIdx)) {
+        const maxPart = Math.max(0, (testData.parts?.length || 1) - 1);
+        setCurrentPartIdx(Math.max(0, Math.min(maxPart, snapshot.currentPartIdx)));
+      }
+      if (Number.isFinite(snapshot.currentQIdx)) {
+        setCurrentQIdx(Math.max(0, snapshot.currentQIdx));
+      }
+      if (Number.isFinite(snapshot.partSecondsLeft)) {
+        setPartSecondsLeft(Math.max(0, snapshot.partSecondsLeft));
+      }
+
+      if (snapshot.stage === 'part' || snapshot.stage === 'part-review') {
+        setStage(snapshot.stage);
+        setMicTested(true);
+      }
+
+      if (snapshot.phase && snapshot.phase !== 'recording') {
+        setPhase(snapshot.phase);
+      }
+    };
+
+    restoreSnapshot();
+    return () => {
+      canceled = true;
+    };
+  }, [isFullTest, testData, testId]);
+
   // ── Cleanup on unmount ─────────────────────────────────────────────────────
   useEffect(() => {
     return () => {
@@ -222,6 +285,80 @@ const IeltsSpeakingTest = () => {
   const isLastQ =
     currentPartIdx === totalParts - 1 &&
     currentQIdx === (currentPart?.questions?.length ?? 1) - 1;
+
+  useEffect(() => {
+    autosaveStateRef.current = {
+      currentPartIdx,
+      currentQIdx,
+      stage,
+      phase,
+      partSecondsLeft,
+      audioUrls,
+      testData,
+      micTested,
+    };
+  }, [currentPartIdx, currentQIdx, stage, phase, partSecondsLeft, audioUrls, testData, micTested]);
+
+  useEffect(() => {
+    if (!isFullTest || !testData || !testId) return undefined;
+
+    const persistProgress = async () => {
+      const state = autosaveStateRef.current;
+      const totalQuestions = (state.testData?.parts || []).reduce(
+        (sum, p) => sum + (p.questions?.length || 0),
+        0,
+      );
+      const recordedCount = Object.keys(state.audioUrls || {}).length;
+      const sectionProgress = totalQuestions > 0 ? (recordedCount / totalQuestions) : 0;
+
+      const session = getFullTestSessionState();
+      const totalSections = session?.sections?.length || 4;
+      const currentSection = Number.isFinite(session?.currentSection) ? session.currentSection : 0;
+      const progressPercent = computeFullTestProgressPercent({
+        currentSection,
+        totalSections,
+        sectionProgress,
+      });
+
+      const snapshot = {
+        currentPartIdx: state.currentPartIdx || 0,
+        currentQIdx: state.currentQIdx || 0,
+        stage: state.stage || 'mic-test',
+        phase: state.phase === 'recording' ? 'idle' : (state.phase || 'idle'),
+        partSecondsLeft: state.partSecondsLeft || 0,
+        micTested: Boolean(state.micTested),
+        recordedQuestionCount: recordedCount,
+        savedAt: Date.now(),
+      };
+
+      sessionStorage.setItem(`ieltsFullTestSnapshot_speaking_${testId}`, JSON.stringify(snapshot));
+
+      try {
+        await ieltsApi.saveFullTestProgress(testId, {
+          status: 'IN_PROGRESS',
+          mode: session?.mode || mode,
+          currentSection,
+          currentSkill: 'speaking',
+          currentPartIndex: state.currentPartIdx || 0,
+          progressPercent,
+          routePath: `/test/speaking/${testId}`,
+          queryString,
+          sessionStateJson: JSON.stringify(session || {}),
+          snapshotJson: JSON.stringify(snapshot),
+        });
+      } catch {
+        // Keep local snapshot when remote save fails
+      }
+    };
+
+    persistProgress();
+    const intervalId = setInterval(persistProgress, 10000);
+
+    return () => {
+      clearInterval(intervalId);
+      persistProgress();
+    };
+  }, [isFullTest, testData, testId, mode, queryString]);
 
   const getPartDurationSec = useCallback((part) => {
     if (!part) return 0;
@@ -416,12 +553,31 @@ const IeltsSpeakingTest = () => {
             const updated = { ...session, currentSection: nextIdx };
             sessionStorage.setItem('ieltsFullTest', JSON.stringify(updated));
             const next = updated.sections[nextIdx];
+            const progressPercent = computeFullTestProgressPercent({
+              currentSection: nextIdx,
+              totalSections: updated.sections.length,
+              sectionProgress: 0,
+            });
+            ieltsApi.saveFullTestProgress(testId, {
+              status: 'IN_PROGRESS',
+              mode: updated.mode || mode,
+              currentSection: nextIdx,
+              currentSkill: next.skill,
+              currentPartIndex: 0,
+              progressPercent,
+              routePath: `/test/${next.skill}/${next.testId}`,
+              queryString: `fullTest=true&mode=${updated.mode || mode}`,
+              sessionStateJson: JSON.stringify(updated),
+              snapshotJson: '{}',
+            }).catch(() => { });
             submitPromise.finally(() => {
               navigate(`/test/${next.skill}/${next.testId}?fullTest=true&mode=${session.mode || mode}`);
             });
             return;
           } else {
             sessionStorage.removeItem('ieltsFullTest');
+            sessionStorage.removeItem(`ieltsFullTestSnapshot_speaking_${testId}`);
+            ieltsApi.clearFullTestProgress(testId).catch(() => { });
             submitPromise.finally(() => {
               navigate(`/test/complete?mode=${session.mode || mode}&skill=speaking&fullTest=true&testId=${testId}`);
             });

@@ -1053,6 +1053,7 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
+  border: 1px solid #d1d5db;
   border-radius: 999px;
   background: #fff;
   color: #334155;
@@ -1080,30 +1081,78 @@
 
 .sm-time-select {
   width: 100%;
-  appearance: none;
   border: 1px solid #bfdbfe;
   border-radius: 12px;
   background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
   color: #0f172a;
   font-size: 14px;
   font-weight: 700;
-  padding: 10px 38px 10px 12px;
+  padding: 10px 12px;
   outline: none;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
 }
 
-.sm-time-select:focus {
+.sm-time-select:hover {
+  border-color: #93c5fd;
+}
+
+.sm-time-select:focus-visible,
+.sm-time-select.open {
   border-color: var(--sm-accent, #1e3a8a);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--sm-accent, #1e3a8a) 16%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--sm-accent, #1e3a8a) 18%, transparent);
 }
 
 .sm-time-caret {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
   color: #475569;
-  pointer-events: none;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.sm-time-select.open .sm-time-caret {
+  transform: rotate(180deg);
+  color: var(--sm-accent, #1e3a8a);
+}
+
+.sm-time-dropdown {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 8px);
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.14);
+  padding: 6px;
+  z-index: 40;
+  display: grid;
+  gap: 4px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.sm-time-option {
+  border: none;
+  background: #ffffff;
+  border-radius: 9px;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  padding: 9px 10px;
+  cursor: pointer;
+  transition: background-color 0.14s ease, color 0.14s ease;
+}
+
+.sm-time-option:hover {
+  background: #f1f5f9;
+}
+
+.sm-time-option.active {
+  background: color-mix(in srgb, var(--sm-accent, #1e3a8a) 16%, white);
+  color: #0f172a;
 }
 
 .sm-meta {

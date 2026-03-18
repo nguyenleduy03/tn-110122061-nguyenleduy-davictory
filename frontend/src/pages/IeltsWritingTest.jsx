@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { ArrowLeft, ArrowRight, ArrowLeftRight } from "lucide-react";
 import { useSearchParams, useNavigate, useParams } from "react-router-dom";
 import "../styles/ieltsTest.css";
@@ -6,6 +6,7 @@ import TestHeader from "../components/common/TestHeader";
 import { useDividerResize } from "../hooks/useDividerResize";
 import { ieltsApi } from "../services/ieltsApi";
 import { formatTextWithWhitespace } from "../utils/textFormatters";
+import { computeFullTestProgressPercent, getFullTestSessionState, parseJsonSafe } from "../utils/fullTestProgress";
 
 const countWords = (text) => {
     if (!text || !text.trim()) return 0;
@@ -89,6 +90,12 @@ const IeltsWritingTest = () => {
                 .filter((v) => Number.isFinite(v) && v > 0)
         )).sort((a, b) => a - b);
     }, [selectedPartsParam]);
+    const queryString = searchParams.toString();
+    const autosaveStateRef = useRef({
+        writingAnswers: {},
+        currentPartIndex: 0,
+        testData: null,
+    });
 
     useEffect(() => {
         if (!testId) { setError('Không tìm thấy ID bài thi.'); setLoading(false); return; }
@@ -146,6 +153,109 @@ const IeltsWritingTest = () => {
         });
     }, [testId, mode, isFullTest, selectedPracticeParts, startPartNumber, durationOverrideMinutes, noTimeLimit]);
 
+    useEffect(() => {
+        if (!isFullTest || !testData || !testId) return undefined;
+        let canceled = false;
+
+        const restoreSnapshot = async () => {
+            let snapshot = parseJsonSafe(sessionStorage.getItem(`ieltsFullTestSnapshot_writing_${testId}`), null);
+
+            try {
+                const remote = await ieltsApi.getFullTestProgress(testId);
+                if (!canceled && remote && String(remote.currentSkill || '').toLowerCase() === 'writing') {
+                    const remoteSnapshot = parseJsonSafe(remote.snapshotJson, null);
+                    if (remoteSnapshot) snapshot = remoteSnapshot;
+
+                    const remoteSession = parseJsonSafe(remote.sessionStateJson, null);
+                    if (remoteSession?.sections?.length) {
+                        sessionStorage.setItem('ieltsFullTest', JSON.stringify(remoteSession));
+                    }
+                }
+            } catch {
+                // Ignore restore failure and continue with local state
+            }
+
+            if (!snapshot || canceled) return;
+
+            if (snapshot.writingAnswers && typeof snapshot.writingAnswers === 'object') {
+                setWritingAnswers(snapshot.writingAnswers);
+            }
+            if (Number.isFinite(snapshot.currentPartIndex)) {
+                const maxIndex = Math.max(0, (testData.parts?.length || 1) - 1);
+                setCurrentPartIndex(Math.max(0, Math.min(maxIndex, snapshot.currentPartIndex)));
+            }
+        };
+
+        restoreSnapshot();
+        return () => {
+            canceled = true;
+        };
+    }, [isFullTest, testData, testId]);
+
+    useEffect(() => {
+        autosaveStateRef.current = {
+            writingAnswers,
+            currentPartIndex,
+            testData,
+        };
+    }, [writingAnswers, currentPartIndex, testData]);
+
+    useEffect(() => {
+        if (!isFullTest || !testData || !testId) return undefined;
+
+        const persistProgress = async () => {
+            const state = autosaveStateRef.current;
+            const parts = state.testData?.parts || [];
+            const completedParts = parts.reduce((count, p) => {
+                const text = (state.writingAnswers?.[p.id] || '').trim();
+                return text ? count + 1 : count;
+            }, 0);
+
+            const sectionProgress = parts.length > 0 ? (completedParts / parts.length) : 0;
+            const session = getFullTestSessionState();
+            const totalSections = session?.sections?.length || 4;
+            const currentSection = Number.isFinite(session?.currentSection) ? session.currentSection : 0;
+            const progressPercent = computeFullTestProgressPercent({
+                currentSection,
+                totalSections,
+                sectionProgress,
+            });
+
+            const snapshot = {
+                writingAnswers: state.writingAnswers || {},
+                currentPartIndex: state.currentPartIndex || 0,
+                savedAt: Date.now(),
+            };
+
+            sessionStorage.setItem(`ieltsFullTestSnapshot_writing_${testId}`, JSON.stringify(snapshot));
+
+            try {
+                await ieltsApi.saveFullTestProgress(testId, {
+                    status: 'IN_PROGRESS',
+                    mode: session?.mode || mode,
+                    currentSection,
+                    currentSkill: 'writing',
+                    currentPartIndex: state.currentPartIndex || 0,
+                    progressPercent,
+                    routePath: `/test/writing/${testId}`,
+                    queryString,
+                    sessionStateJson: JSON.stringify(session || {}),
+                    snapshotJson: JSON.stringify(snapshot),
+                });
+            } catch {
+                // Keep local backup even when remote save fails
+            }
+        };
+
+        persistProgress();
+        const intervalId = setInterval(persistProgress, 10000);
+
+        return () => {
+            clearInterval(intervalId);
+            persistProgress();
+        };
+    }, [isFullTest, testData, testId, mode, queryString]);
+
     const handleAnswerChange = useCallback((partId, value) => {
         setWritingAnswers((prev) => ({ ...prev, [partId]: value }));
     }, []);
@@ -166,9 +276,28 @@ const IeltsWritingTest = () => {
                 const updated = { ...session, currentSection: nextIdx };
                 sessionStorage.setItem('ieltsFullTest', JSON.stringify(updated));
                 const next = updated.sections[nextIdx];
+                const progressPercent = computeFullTestProgressPercent({
+                    currentSection: nextIdx,
+                    totalSections: updated.sections.length,
+                    sectionProgress: 0,
+                });
+                ieltsApi.saveFullTestProgress(testId, {
+                    status: 'IN_PROGRESS',
+                    mode: updated.mode || mode,
+                    currentSection: nextIdx,
+                    currentSkill: next.skill,
+                    currentPartIndex: 0,
+                    progressPercent,
+                    routePath: `/test/${next.skill}/${next.testId}`,
+                    queryString: `fullTest=true&mode=${updated.mode || mode}`,
+                    sessionStateJson: JSON.stringify(updated),
+                    snapshotJson: '{}',
+                }).catch(() => { });
                 navigate(`/test/${next.skill}/${next.testId}?fullTest=true&mode=${session.mode || mode}`);
             } else {
                 sessionStorage.removeItem('ieltsFullTest');
+                sessionStorage.removeItem(`ieltsFullTestSnapshot_writing_${testId}`);
+                ieltsApi.clearFullTestProgress(testId).catch(() => { });
                 navigate(`/test/complete?mode=${session.mode || mode}&skill=writing&fullTest=true&testId=${testId}`);
             }
         } catch { navigate('/exam-library'); }

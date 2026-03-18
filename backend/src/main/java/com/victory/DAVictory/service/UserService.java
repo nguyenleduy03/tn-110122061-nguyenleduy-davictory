@@ -389,7 +389,68 @@ public class UserService {
             }
         }
         
-        userRepository.delete(user);
+        // Kiểm tra nếu là giảng viên đang dạy lớp nào
+        boolean isTeacher = user.getRoles().stream().anyMatch(r -> "TEACHER".equals(r.getName()));
+        if (isTeacher) {
+            List<ClassTeacher> activeClasses = classTeacherRepository.findByUserIdAndIsActiveTrue(userId);
+            if (!activeClasses.isEmpty()) {
+                String classNames = activeClasses.stream()
+                    .map(ct -> ct.getClazz().getName())
+                    .collect(java.util.stream.Collectors.joining(", "));
+                throw new RuntimeException("Không thể xóa giảng viên đang dạy các lớp: " + classNames + 
+                    ". Cần thực hiện: 1) Chuyển giao lớp cho giảng viên khác, hoặc 2) Đặt trạng thái lớp thành 'Hoàn thành/Tạm dừng' trước khi xóa.");
+            }
+        }
+        
+        // Kiểm tra nếu là học sinh đang học lớp nào
+        boolean isStudent = user.getRoles().stream().anyMatch(r -> "STUDENT".equals(r.getName()));
+        if (isStudent) {
+            List<ClassStudent> activeClasses = classStudentRepository.findByUserIdAndStatus(userId, "ACTIVE");
+            if (!activeClasses.isEmpty()) {
+                String classNames = activeClasses.stream()
+                    .map(cs -> cs.getClazz().getName())
+                    .collect(java.util.stream.Collectors.joining(", "));
+                throw new RuntimeException("Không thể xóa học sinh đang học các lớp: " + classNames + 
+                    ". Cần thực hiện: 1) Chuyển học sinh sang lớp khác, hoặc 2) Đặt trạng thái học sinh thành 'Hoàn thành/Nghỉ học' trước khi xóa.");
+            }
+        }
+        
+        // Xóa các liên kết trước khi xóa user
+        try {
+            // Xóa class_teachers
+            classTeacherRepository.deleteByUserId(userId);
+            
+            // Xóa class_students  
+            classStudentRepository.deleteByUserId(userId);
+            
+            // Cuối cùng xóa user (profiles sẽ cascade delete)
+            userRepository.delete(user);
+        } catch (Exception e) {
+            throw new RuntimeException("Không thể xóa người dùng: " + e.getMessage());
+        }
+    }
+
+    public void addStudentsToClass(Long classId, List<Long> studentIds) {
+        // Kiểm tra lớp tồn tại
+        com.victory.DAVictory.entity.Class clazz = classRepository.findById(classId)
+            .orElseThrow(() -> new RuntimeException("Không tìm thấy lớp học"));
+        
+        // Thêm từng học viên vào lớp
+        for (Long studentId : studentIds) {
+            User student = userRepository.findById(studentId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy học viên ID: " + studentId));
+            
+            // Kiểm tra học viên đã trong lớp chưa
+            boolean exists = classStudentRepository.existsByClazzIdAndUserId(classId, studentId);
+            if (!exists) {
+                ClassStudent classStudent = new ClassStudent();
+                classStudent.setClazz(clazz);
+                classStudent.setUser(student);
+                classStudent.setStatus("ACTIVE");
+                classStudent.setEnrolledAt(java.time.LocalDate.now());
+                classStudentRepository.save(classStudent);
+            }
+        }
     }
 
     public Map<String, Object> getTeacherClassManagementData() {

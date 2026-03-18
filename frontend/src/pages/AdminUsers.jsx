@@ -456,7 +456,10 @@ export default function AdminUsers() {
         setUsers(users.filter(user => user.id !== userId));
         alert('Đã xóa người dùng thành công');
       } catch (error) {
-        alert('Lỗi khi xóa người dùng: ' + error.message);
+        console.error('Delete user error:', error);
+        console.error('Error response:', error.response?.data);
+        const errorMessage = error.response?.data?.error || error.message;
+        alert('Lỗi khi xóa người dùng: ' + errorMessage);
       }
     }
   };

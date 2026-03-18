@@ -248,6 +248,18 @@ VIC009998,Trần Thị,Bình,VIC009998@gmail.com,@VIC009998,VIC260312IE45A`;
     return response.data;
   },
 
+  // Lấy danh sách tất cả học viên
+  getAllStudents: async () => {
+    const response = await apiClient.get('/users/role/STUDENT');
+    return response.data;
+  },
+
+  // Thêm học viên vào lớp
+  addStudentsToClass: async (payload) => {
+    const response = await apiClient.post('/users/add-students-to-class', payload);
+    return response.data;
+  },
+
   // Tạo lớp học mới
   createClass: async (classData) => {
     const response = await apiClient.post('/class-management/create', classData);

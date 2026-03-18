@@ -4,16 +4,49 @@ import FillInBlankQuestion from './FillInBlankQuestion';
 import MultipleChoiceQuestion from './MultipleChoiceQuestion';
 import TFNGQuestion from './TFNGQuestion';
 import DragDropGroupQuestion from './DragDropGroupQuestion';
-import FlowChartQuestion from './FlowChartQuestion';
 import SummaryCompletionQuestion from './SummaryCompletionQuestion';
-import ImageDragDropQuestion from './ImageDragDropQuestion';
-import MatchingFeaturesQuestion from './MatchingFeaturesQuestion';
 import { formatTextWithWhitespace } from '../../utils/textFormatters';
+
+const normalizeQuestionType = (rawType) => {
+    const normalized = String(rawType || '')
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, '_')
+        .replace(/-/g, '_');
+
+    switch (normalized) {
+        case 'fill_in_the_blank': return 'fill-in-the-blank';
+        case 'multiple_choice': return 'multiple-choice';
+        case 'summary_completion': return 'summary-completion';
+        case 'note_completion': return 'note-completion';
+        case 'table_completion': return 'table-completion';
+        case 'image_drag_drop': return 'image-drag-drop';
+        case 'matching_headings':
+        case 'matching_heading':
+        case 'matching_para':
+            return 'matching_heading';
+        case 'matching_information':
+        case 'matching_info':
+            return 'matching_info';
+        case 'matching_feature':
+        case 'matching_features':
+        case 'matchingfeatures':
+            return 'matching_features';
+        case 'drag_and_drop':
+        case 'drag_and_drop_group':
+        case 'drag_drop_group':
+        case 'draganddropgroup':
+            return 'drag_drop_group';
+        default:
+            return normalized;
+    }
+};
 
 const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answer, handleAnswerChange, inputRefs, bookmarks, toggleBookmark, isReview }) => {
     if (!q) return null;
+    const normalizedType = normalizeQuestionType(q.type);
 
-    if (q.type === 'fill-in-the-blank') {
+    if (normalizedType === 'fill-in-the-blank') {
         return (
             <FillInBlankQuestion
                 q={q}
@@ -29,7 +62,7 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
         );
     }
 
-    if (q.type === 'multiple-choice') {
+    if (normalizedType === 'multiple-choice') {
         return (
             <MultipleChoiceQuestion
                 q={q}
@@ -44,7 +77,7 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
         );
     }
 
-    if (q.type === 'tfng') {
+    if (normalizedType === 'tfng') {
         return (
             <TFNGQuestion
                 q={q}
@@ -59,7 +92,7 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
         );
     }
 
-    if (q.type === 'ynng') {
+    if (normalizedType === 'ynng') {
         return (
             <TFNGQuestion
                 q={q}
@@ -75,10 +108,18 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
         );
     }
 
-    if (q.type === 'drag-and-drop' || q.type === 'matching_heading' || q.type === 'matching_info') {
+    if (
+        normalizedType === 'drag_drop_group'
+        || normalizedType === 'matching_heading'
+        || normalizedType === 'matching_info'
+        || normalizedType === 'matching_features'
+        || normalizedType === 'flow_chart'
+        || normalizedType === 'image-drag-drop'
+    ) {
         return (
             <DragDropGroupQuestion
                 q={q}
+                resolvedType={normalizedType}
                 activeQuestion={activeQuestion}
                 setActiveQuestion={setActiveQuestion}
                 answers={answers || {}}
@@ -90,22 +131,7 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
         );
     }
 
-    if (q.type === 'flow_chart') {
-        return (
-            <FlowChartQuestion
-                q={q}
-                activeQuestion={activeQuestion}
-                setActiveQuestion={setActiveQuestion}
-                answers={answers || {}}
-                handleAnswerChange={handleAnswerChange}
-                bookmarks={bookmarks}
-                toggleBookmark={toggleBookmark}
-                isReview={isReview}
-            />
-        );
-    }
-
-    if (q.type === 'summary-completion' || q.type === 'note-completion') {
+    if (normalizedType === 'summary-completion' || normalizedType === 'note-completion') {
         return (
             <SummaryCompletionQuestion
                 q={q}
@@ -121,37 +147,7 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
         );
     }
 
-    if (q.type === 'matching_features') {
-        return (
-            <MatchingFeaturesQuestion
-                q={q}
-                activeQuestion={activeQuestion}
-                setActiveQuestion={setActiveQuestion}
-                answers={answers || {}}
-                handleAnswerChange={handleAnswerChange}
-                bookmarks={bookmarks}
-                toggleBookmark={toggleBookmark}
-                isReview={isReview}
-            />
-        );
-    }
-
-    if (q.type === 'image-drag-drop') {
-        return (
-            <ImageDragDropQuestion
-                q={q}
-                activeQuestion={activeQuestion}
-                setActiveQuestion={setActiveQuestion}
-                answers={answers || {}}
-                handleAnswerChange={handleAnswerChange}
-                bookmarks={bookmarks}
-                toggleBookmark={toggleBookmark}
-                isReview={isReview}
-            />
-        );
-    }
-
-    if (q.type === 'table-completion') {
+    if (normalizedType === 'table-completion') {
         const columns = q.columns || [];
         const tableRows = q.tableRows || [];
         const subQuestions = q.subQuestions || [];

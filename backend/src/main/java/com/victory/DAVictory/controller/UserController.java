@@ -134,4 +134,24 @@ public class UserController {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
+
+    // ===== ADMIN: Thêm học viên vào lớp =====
+    @PostMapping("/add-students-to-class")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<?> addStudentsToClass(@RequestBody Map<String, Object> request) {
+        try {
+            Long classId = Long.valueOf(request.get("classId").toString());
+            
+            @SuppressWarnings("unchecked")
+            List<Object> studentIdsRaw = (List<Object>) request.get("studentIds");
+            List<Long> studentIds = studentIdsRaw.stream()
+                .map(id -> Long.valueOf(id.toString()))
+                .collect(java.util.stream.Collectors.toList());
+            
+            userService.addStudentsToClass(classId, studentIds);
+            return ResponseEntity.ok(Map.of("message", "Đã thêm học viên vào lớp thành công"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
 }

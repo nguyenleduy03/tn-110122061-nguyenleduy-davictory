@@ -58,8 +58,10 @@ function mapQuestionType(questionTypeCode) {
       return 'flow_chart';
     case 'MAP_DIAGRAM':
       return 'image-drag-drop';
+    case 'DRAG_MATCHING':
+      return 'drag_drop_group';
     case 'MATCHING':
-      return 'matching_info';
+      return 'drag_drop_group';
     case 'MATCHING_HEADINGS':
       return 'matching_heading';
     default:
@@ -90,7 +92,9 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
     feType = 'image-drag-drop';
   } else if (contentType === 'MATCHING_HEADING' || contentType === 'MATCHING_HEADINGS' || contentType === 'MATCHING_PARA') {
     feType = 'matching_heading';
-  } else if (contentType === 'DRAG_MATCHING' || contentType === 'MATCHING' || contentType === 'MATCHING_INFO') {
+  } else if (contentType === 'DRAG_MATCHING') {
+    feType = 'drag_drop_group';
+  } else if (contentType === 'MATCHING' || contentType === 'MATCHING_INFO') {
     feType = 'matching_info';
   } else if (contentType === 'MATCHING_FEATURES') {
     feType = 'matching_features';
@@ -419,7 +423,7 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
   }
 
   // ─── MATCHING / MATCHING_HEADINGS → cần matchingPairs ────────────
-  if (feType === 'matching_info' || feType === 'matching_heading') {
+  if (feType === 'matching_info' || feType === 'matching_heading' || feType === 'drag_drop_group') {
     const groupDetail = await fetchGroupDetail(baseUrl, group.questionGroupId || group.id);
     const matchingPairs = groupDetail?.matchingPairs || [];
 
@@ -562,200 +566,200 @@ export const ieltsApi = {
     const populatedParts = [];
     for (let index = 0; index < (targetSession.parts || []).length; index++) {
       const part = targetSession.parts[index];
-        let mergedPassageContent = '';
-        let mergedPassageTitle = '';
-        let mergedAudioUrl = null;
-        let mergedImageUrl = null;
-        let mergedInstructions = '';
+      let mergedPassageContent = '';
+      let mergedPassageTitle = '';
+      let mergedAudioUrl = null;
+      let mergedImageUrl = null;
+      let mergedInstructions = '';
 
-        // Special handling for WRITING skill
-        let taskLabel = part.name || `Task ${part.orderIndex || index + 1}`;
-        let minWords = 150;
-        let recommendedMinutes = 20;
-        let taskImageSvg = null;
+      // Special handling for WRITING skill
+      let taskLabel = part.name || `Task ${part.orderIndex || index + 1}`;
+      let minWords = 150;
+      let recommendedMinutes = 20;
+      let taskImageSvg = null;
 
-        // Transform questionGroups — preserve group structure nhưng transform các questions bên trong
-        const transformedGroups = [];
-        for (const group of (part.questionGroups || [])) {
-            const groupType = (group.contentType || '').toUpperCase();
-            // Lấy metadata từ group
-            if (groupType === 'READING_PASSAGE' && group.passageText && !mergedPassageContent) {
-              try {
-                const parsed = JSON.parse(group.passageText);
-                if (parsed.paragraphs) {
-                  mergedPassageContent = parsed.paragraphs.map(p => {
-                    return `<p>${formatTextWithWhitespace(p.text.trim())}</p>`;
-                  }).join('');
-                } else {
-                  mergedPassageContent = formatTextWithWhitespace(group.passageText);
-                }
-              } catch {
-                mergedPassageContent = formatTextWithWhitespace(group.passageText);
-              }
-            }
-            if (groupType === 'READING_PASSAGE' && group.title && !mergedPassageTitle) {
-              mergedPassageTitle = group.title;
-            }
-            if (group.instructions && !mergedInstructions) {
-              mergedInstructions = formatTextWithWhitespace(group.instructions);
-            }
-            if (group.audioUrl && !mergedAudioUrl) {
-              mergedAudioUrl = group.audioUrl;
-            }
-            if (group.imageUrl && !mergedImageUrl) {
-              mergedImageUrl = group.imageUrl;
-            }
-
-            // Extract Writing metadata từ group.passageText JSON
-            if (targetMode === 'WRITING' && group.passageText) {
-              try {
-                const parsed = JSON.parse(group.passageText);
-                if (parsed.taskLabel) taskLabel = parsed.taskLabel;
-                if (parsed.minWords) minWords = parsed.minWords;
-                if (parsed.recommendedMinutes) recommendedMinutes = parsed.recommendedMinutes;
-                if (parsed.taskImageSvg) taskImageSvg = parsed.taskImageSvg;
-              } catch { /* plain text fallback */ }
-            }
-
-            // Transform group's questions using transformGroup()
-            const transformedQuestions = await transformGroup(baseUrl, group, globalCounterRef);
-
-            transformedGroups.push({
-              ...group,
-              // Keep raw group data
-              id: group.id,
-              title: group.title,
-              contentType: group.contentType,
-              passageText: group.passageText,
-              audioUrl: group.audioUrl,
-              imageUrl: group.imageUrl,
-              instructions: group.instructions,
-              // Provide transformed questions
-              questions: transformedQuestions,
-            });
-        }
-
-        // Flatten transformed questions for backward compatibility
-        const flattenedQuestions = transformedGroups.flatMap(g => g.questions || []);
-
-        // --- NEW: Inject Heading Gaps for Matching Heading questions ---
-        // Find the group containing matching_heading questions
-        const mhGroupFound = transformedGroups.find(g =>
-          g.questions && g.questions.some(q => q.type === 'matching_heading')
-        );
-
-        // Find the group containing the passage - specifically look for READING_PASSAGE or paragraphs JSON
-        let sourceParagraphs = [];
-        const passageGroup = transformedGroups.find(g => {
-          if (!g.passageText) return false;
+      // Transform questionGroups — preserve group structure nhưng transform các questions bên trong
+      const transformedGroups = [];
+      for (const group of (part.questionGroups || [])) {
+        const groupType = (group.contentType || '').toUpperCase();
+        // Lấy metadata từ group
+        if (groupType === 'READING_PASSAGE' && group.passageText && !mergedPassageContent) {
           try {
-            const parsed = JSON.parse(g.passageText);
-            if (parsed.paragraphs && Array.isArray(parsed.paragraphs)) {
-              sourceParagraphs = parsed.paragraphs;
-              return true;
-            }
-          } catch (e) {
-            // If it's not JSON, it might be a plain string passage
-            if (typeof g.passageText === 'string' && g.passageText.length > 100) {
-              return true;
-            }
-          }
-          return (g.contentType || '').toUpperCase() === 'READING_PASSAGE';
-        });
-
-        if (mhGroupFound && (sourceParagraphs.length > 0 || (passageGroup && passageGroup.passageText))) {
-          console.log('[ieltsApi] Matching Heading injection candidate found.');
-          try {
-            let paragraphs = sourceParagraphs;
-            if (paragraphs.length === 0 && passageGroup?.passageText) {
-              const text = passageGroup.passageText.trim();
-              // Split by double newlines or single newlines if they look like paragraph breaks
-              paragraphs = text.split(/\r?\n\s*\r?\n/).map(t => ({ text: t.trim() }));
-            }
-
-            if (paragraphs.length > 0) {
-              const mhGroup = (mhGroupFound.questions || []).find(q => q.type === 'matching_heading');
-              const mhSubQs = mhGroup?.subQuestions || [];
-
-              // More robust extraction of starting question number
-              let startPartNum = 1;
-              if (flattenedQuestions && flattenedQuestions.length > 0) {
-                const firstQ = flattenedQuestions[0];
-                startPartNum = firstQ.number ||
-                  (firstQ.subQuestions && firstQ.subQuestions[0]?.number) ||
-                  1;
-              }
-
-              console.log(`[ieltsApi] Injecting into ${paragraphs.length} paragraphs. Matching against ${mhSubQs.length} sub-questions.`);
-
-              const stripHtml = (html) => (html || '').replace(/<[^>]*>?/gm, '').trim().toLowerCase();
-              const getCoreLabel = (l) => {
-                let s = stripHtml(l).replace(/^(paragraph|section|đoạn|phần|đoạn văn|section nº)\s+/i, '');
-                return s.replace(/[:.]$/, '').trim();
-              };
-
-              mergedPassageContent = paragraphs.map((p, pIdx) => {
-                const rawLabel = p.label || String.fromCharCode(65 + pIdx);
-                const coreLabel = getCoreLabel(rawLabel);
-                const posNum = startPartNum + pIdx;
-
-                // Tiered matching
-                const matchedQ = mhSubQs.find(sq => {
-                  const qText = stripHtml(sq.text);
-                  const qCore = getCoreLabel(qText);
-                  return qCore === coreLabel ||
-                    sq.number === posNum ||
-                    (qCore && coreLabel && (qCore.includes(coreLabel) || coreLabel.includes(qCore)));
-                });
-
-                // Add unique ID and &nbsp; to ensure span is not collapsed or ignored
-                const gapHtml = matchedQ ? `<div class="heading-gap" id="gap-${matchedQ.number}" data-id="${matchedQ.id}" data-number="${matchedQ.number}">&nbsp;</div>` : '';
-                return `${gapHtml}<p>${formatTextWithWhitespace(p.text || p.content || p)}</p>`;
+            const parsed = JSON.parse(group.passageText);
+            if (parsed.paragraphs) {
+              mergedPassageContent = parsed.paragraphs.map(p => {
+                return `<p>${formatTextWithWhitespace(p.text.trim())}</p>`;
               }).join('');
-
-              const gapCount = (mergedPassageContent.match(/class="heading-gap"/g) || []).length;
-              console.log(`[ieltsApi] Injection result: ${gapCount} gaps injected into passage.`);
+            } else {
+              mergedPassageContent = formatTextWithWhitespace(group.passageText);
             }
-          } catch (e) {
-            console.error('[ieltsApi] Heading gap injection failed:', e);
+          } catch {
+            mergedPassageContent = formatTextWithWhitespace(group.passageText);
           }
         }
+        if (groupType === 'READING_PASSAGE' && group.title && !mergedPassageTitle) {
+          mergedPassageTitle = group.title;
+        }
+        if (group.instructions && !mergedInstructions) {
+          mergedInstructions = formatTextWithWhitespace(group.instructions);
+        }
+        if (group.audioUrl && !mergedAudioUrl) {
+          mergedAudioUrl = group.audioUrl;
+        }
+        if (group.imageUrl && !mergedImageUrl) {
+          mergedImageUrl = group.imageUrl;
+        }
 
-        const partObj = {
-          id: `part-${part.testPartId || part.id}`,
-          partNumber: part.orderIndex || index + 1,
-          name: part.name || `Part ${part.orderIndex || index + 1}`,
-          orderIndex: part.orderIndex || index + 1,
-          title: part.name || `Part ${part.orderIndex || index + 1}`,
+        // Extract Writing metadata từ group.passageText JSON
+        if (targetMode === 'WRITING' && group.passageText) {
+          try {
+            const parsed = JSON.parse(group.passageText);
+            if (parsed.taskLabel) taskLabel = parsed.taskLabel;
+            if (parsed.minWords) minWords = parsed.minWords;
+            if (parsed.recommendedMinutes) recommendedMinutes = parsed.recommendedMinutes;
+            if (parsed.taskImageSvg) taskImageSvg = parsed.taskImageSvg;
+          } catch { /* plain text fallback */ }
+        }
 
-          // Extracted metadata
-          instruction: mergedInstructions || part.instructions || (targetMode === 'WRITING' ? 'No task specified.' : 'Listen and answer questions.'),
-          instructions: mergedInstructions || part.instructions,
-          passageTitle: mergedPassageTitle,
-          passageContent: mergedPassageContent,
-          questionsLabel: mergedPassageTitle || 'Questions',
-          audioUrl: mergedAudioUrl,
-          imageUrl: mergedImageUrl,
+        // Transform group's questions using transformGroup()
+        const transformedQuestions = await transformGroup(baseUrl, group, globalCounterRef);
 
-          // Writing-specific fields
-          taskLabel: targetMode === 'WRITING' ? taskLabel : undefined,
-          minWords: targetMode === 'WRITING' ? minWords : undefined,
-          recommendedMinutes: targetMode === 'WRITING' ? recommendedMinutes : undefined,
-          taskImageSvg: targetMode === 'WRITING' ? taskImageSvg : undefined,
+        transformedGroups.push({
+          ...group,
+          // Keep raw group data
+          id: group.id,
+          title: group.title,
+          contentType: group.contentType,
+          passageText: group.passageText,
+          audioUrl: group.audioUrl,
+          imageUrl: group.imageUrl,
+          instructions: group.instructions,
+          // Provide transformed questions
+          questions: transformedQuestions,
+        });
+      }
 
-          // Preserve group structure with transformed questions
-          questionGroups: transformedGroups,
-          groups: transformedGroups,
+      // Flatten transformed questions for backward compatibility
+      const flattenedQuestions = transformedGroups.flatMap(g => g.questions || []);
 
-          // Provide flattened transformed questions for compatibility
-          questions: flattenedQuestions,
+      // --- NEW: Inject Heading Gaps for Matching Heading questions ---
+      // Find the group containing matching_heading questions
+      const mhGroupFound = transformedGroups.find(g =>
+        g.questions && g.questions.some(q => q.type === 'matching_heading')
+      );
 
-          // Source fields from backend
-          durationMinutes: part.durationMinutes || null,
-          totalQuestions: part.totalQuestions || 0,
-        };
+      // Find the group containing the passage - specifically look for READING_PASSAGE or paragraphs JSON
+      let sourceParagraphs = [];
+      const passageGroup = transformedGroups.find(g => {
+        if (!g.passageText) return false;
+        try {
+          const parsed = JSON.parse(g.passageText);
+          if (parsed.paragraphs && Array.isArray(parsed.paragraphs)) {
+            sourceParagraphs = parsed.paragraphs;
+            return true;
+          }
+        } catch (e) {
+          // If it's not JSON, it might be a plain string passage
+          if (typeof g.passageText === 'string' && g.passageText.length > 100) {
+            return true;
+          }
+        }
+        return (g.contentType || '').toUpperCase() === 'READING_PASSAGE';
+      });
 
-        populatedParts.push(partObj);
+      if (mhGroupFound && (sourceParagraphs.length > 0 || (passageGroup && passageGroup.passageText))) {
+        console.log('[ieltsApi] Matching Heading injection candidate found.');
+        try {
+          let paragraphs = sourceParagraphs;
+          if (paragraphs.length === 0 && passageGroup?.passageText) {
+            const text = passageGroup.passageText.trim();
+            // Split by double newlines or single newlines if they look like paragraph breaks
+            paragraphs = text.split(/\r?\n\s*\r?\n/).map(t => ({ text: t.trim() }));
+          }
+
+          if (paragraphs.length > 0) {
+            const mhGroup = (mhGroupFound.questions || []).find(q => q.type === 'matching_heading');
+            const mhSubQs = mhGroup?.subQuestions || [];
+
+            // More robust extraction of starting question number
+            let startPartNum = 1;
+            if (flattenedQuestions && flattenedQuestions.length > 0) {
+              const firstQ = flattenedQuestions[0];
+              startPartNum = firstQ.number ||
+                (firstQ.subQuestions && firstQ.subQuestions[0]?.number) ||
+                1;
+            }
+
+            console.log(`[ieltsApi] Injecting into ${paragraphs.length} paragraphs. Matching against ${mhSubQs.length} sub-questions.`);
+
+            const stripHtml = (html) => (html || '').replace(/<[^>]*>?/gm, '').trim().toLowerCase();
+            const getCoreLabel = (l) => {
+              let s = stripHtml(l).replace(/^(paragraph|section|đoạn|phần|đoạn văn|section nº)\s+/i, '');
+              return s.replace(/[:.]$/, '').trim();
+            };
+
+            mergedPassageContent = paragraphs.map((p, pIdx) => {
+              const rawLabel = p.label || String.fromCharCode(65 + pIdx);
+              const coreLabel = getCoreLabel(rawLabel);
+              const posNum = startPartNum + pIdx;
+
+              // Tiered matching
+              const matchedQ = mhSubQs.find(sq => {
+                const qText = stripHtml(sq.text);
+                const qCore = getCoreLabel(qText);
+                return qCore === coreLabel ||
+                  sq.number === posNum ||
+                  (qCore && coreLabel && (qCore.includes(coreLabel) || coreLabel.includes(qCore)));
+              });
+
+              // Add unique ID and &nbsp; to ensure span is not collapsed or ignored
+              const gapHtml = matchedQ ? `<div class="heading-gap" id="gap-${matchedQ.number}" data-id="${matchedQ.id}" data-number="${matchedQ.number}">&nbsp;</div>` : '';
+              return `${gapHtml}<p>${formatTextWithWhitespace(p.text || p.content || p)}</p>`;
+            }).join('');
+
+            const gapCount = (mergedPassageContent.match(/class="heading-gap"/g) || []).length;
+            console.log(`[ieltsApi] Injection result: ${gapCount} gaps injected into passage.`);
+          }
+        } catch (e) {
+          console.error('[ieltsApi] Heading gap injection failed:', e);
+        }
+      }
+
+      const partObj = {
+        id: `part-${part.testPartId || part.id}`,
+        partNumber: part.orderIndex || index + 1,
+        name: part.name || `Part ${part.orderIndex || index + 1}`,
+        orderIndex: part.orderIndex || index + 1,
+        title: part.name || `Part ${part.orderIndex || index + 1}`,
+
+        // Extracted metadata
+        instruction: mergedInstructions || part.instructions || (targetMode === 'WRITING' ? 'No task specified.' : 'Listen and answer questions.'),
+        instructions: mergedInstructions || part.instructions,
+        passageTitle: mergedPassageTitle,
+        passageContent: mergedPassageContent,
+        questionsLabel: mergedPassageTitle || 'Questions',
+        audioUrl: mergedAudioUrl,
+        imageUrl: mergedImageUrl,
+
+        // Writing-specific fields
+        taskLabel: targetMode === 'WRITING' ? taskLabel : undefined,
+        minWords: targetMode === 'WRITING' ? minWords : undefined,
+        recommendedMinutes: targetMode === 'WRITING' ? recommendedMinutes : undefined,
+        taskImageSvg: targetMode === 'WRITING' ? taskImageSvg : undefined,
+
+        // Preserve group structure with transformed questions
+        questionGroups: transformedGroups,
+        groups: transformedGroups,
+
+        // Provide flattened transformed questions for compatibility
+        questions: flattenedQuestions,
+
+        // Source fields from backend
+        durationMinutes: part.durationMinutes || null,
+        totalQuestions: part.totalQuestions || 0,
+      };
+
+      populatedParts.push(partObj);
     }
 
     return {
@@ -898,5 +902,31 @@ export const ieltsApi = {
     }
 
     return results;
+  },
+
+  saveFullTestProgress: async (testId, payload) => {
+    const baseUrl = API_CONFIG.BASE_URL;
+    return apiFetch(`${baseUrl}/full-test-progress/${testId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload || {}),
+    });
+  },
+
+  getFullTestProgress: async (testId) => {
+    const baseUrl = API_CONFIG.BASE_URL;
+    return apiFetch(`${baseUrl}/full-test-progress/${testId}`);
+  },
+
+  getMyFullTestProgress: async () => {
+    const baseUrl = API_CONFIG.BASE_URL;
+    return apiFetch(`${baseUrl}/full-test-progress/my`);
+  },
+
+  clearFullTestProgress: async (testId) => {
+    const baseUrl = API_CONFIG.BASE_URL;
+    return apiFetch(`${baseUrl}/full-test-progress/${testId}`, {
+      method: 'DELETE',
+    });
   },
 };
