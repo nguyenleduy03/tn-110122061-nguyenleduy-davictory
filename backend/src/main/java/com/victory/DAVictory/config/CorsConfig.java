@@ -40,7 +40,9 @@ public class CorsConfig {
             "http://localhost:5173",           // Vite dev server
             "http://localhost:3000",           // React dev server
             "http://localhost:80",             // Nginx local
-            "http://localhost"                 // Nginx local (no port)
+            "http://localhost",                // Nginx local (no port)
+            "https://davictory.io.vn",         // Production domain
+            "http://davictory.io.vn"           // Production domain (HTTP)
         ));
 
         // Thêm IP public tự động phát hiện

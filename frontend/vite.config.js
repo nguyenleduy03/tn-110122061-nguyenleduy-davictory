@@ -26,16 +26,21 @@ export default defineConfig(async () => {
   return {
     plugins: [react()],
     define: {
-      // Inject IP vào build — dùng trong src/config/api.js
       __PUBLIC_IP__: JSON.stringify(PUBLIC_IP),
       __BACKEND_PORT__: JSON.stringify(String(BACKEND_PORT)),
     },
     server: {
       host: '0.0.0.0',
       port: 5173,
+      allowedHosts: ['davictory.io.vn', 'localhost'],
+      hmr: {
+        protocol: 'wss',
+        host: 'davictory.io.vn',
+        clientPort: 443
+      },
       proxy: {
         '/api': {
-          target: `http://${PUBLIC_IP}:${BACKEND_PORT}`,
+          target: `http://localhost:${BACKEND_PORT}`,
           changeOrigin: true,
         }
       }
