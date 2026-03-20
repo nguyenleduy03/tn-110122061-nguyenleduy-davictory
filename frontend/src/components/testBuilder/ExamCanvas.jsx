@@ -63,10 +63,22 @@ const toPlainText = (value) => {
   }
 };
 
+const hasPinPosition = (q) => q?.pinX != null && q?.pinY != null;
+
+const countBlankTokens = (text = '') => (String(text).match(/\[blank\]|\(ô trống\)/gi) || []).length;
+
+const getNextQuestionNumber = (questions = []) => {
+  const maxNumber = questions.reduce((max, q) => {
+    const num = Number(q?.questionNumber ?? 0);
+    return Number.isFinite(num) ? Math.max(max, num) : max;
+  }, 0);
+  return maxNumber + 1;
+};
+
 // ---- Rich Blank Editor ----
 // contentEditable editor for Summary / Note Completion.
 // Drag the toolbar chip into the text to insert a numbered blank at that position.
-const RichBlankEditor = ({ value, onChange, placeholder, preWrap = false, blankClass = 'rbe-blank-blue' }) => {
+const RichBlankEditor = ({ value, onChange, placeholder, preWrap = false, blankClass = 'rbe-blank-blue', startNumber = 1 }) => {
   const editorRef = useRef(null);
   const [dragOver, setDragOver] = useState(false);
 
@@ -74,7 +86,7 @@ const RichBlankEditor = ({ value, onChange, placeholder, preWrap = false, blankC
 
   const toHTML = (text) => {
     if (!text) return '';
-    let n = 0;
+    let n = startNumber - 1;
     return esc(text)
       .replace(/\n/g, '<br>')
       .replace(/\[blank\]/gi, () => {
@@ -107,11 +119,15 @@ const RichBlankEditor = ({ value, onChange, placeholder, preWrap = false, blankC
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const renumber = () => {
-    let n = 0;
+    let n = startNumber - 1;
     editorRef.current?.querySelectorAll('[data-blank="true"] .rbe-blank-num').forEach((el) => {
       el.textContent = ++n;
     });
   };
+
+  useEffect(() => {
+    renumber();
+  }, [startNumber]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const createChip = () => {
     const span = document.createElement('span');
@@ -770,7 +786,7 @@ function MapLabellingBlock({ group, onUpdate, onDelete, onSelect, selected, drag
     const newQ = {
       id: Date.now(),
       groupId: group.id,
-      questionNumber: questions.length + 1,
+      questionNumber: getNextQuestionNumber(questions),
       questionText: '',
       answerText: '',
       pinX: Math.max(0, Math.min(92, x)),
@@ -2182,9 +2198,7 @@ const ImageNoteFormBlock = ({ group, onUpdate, onDelete, onSelect, selected, dra
     const y = ((e.clientY - rect.top) / rect.height) * 100;
     
     // Tính số câu tiếp theo
-    const maxQuestionNumber = questions.length > 0 
-      ? Math.max(...questions.map(q => q.questionNumber || 0))
-      : 0;
+    const maxQuestionNumber = getNextQuestionNumber(questions) - 1;
     
     const newQ = {
       id: Date.now(),
@@ -2342,15 +2356,14 @@ const ImageNoteFormBlock = ({ group, onUpdate, onDelete, onSelect, selected, dra
           
           // Tự động tạo câu hỏi khi phát hiện (ô trống)
           setTimeout(() => {
-            const blankPattern = /\(ô trống\)/gi;
-            const blankMatches = (text.match(blankPattern) || []).length;
+              const blankMatches = countBlankTokens(text);
             
             console.log('[DEBUG] Blanks found:', blankMatches);
             console.log('[DEBUG] Current questions:', questions);
             
             if (blankMatches > 0) {
               // Đếm câu hỏi cho note text (không có pinX, pinY)
-              const noteQuestions = questions.filter(q => !q.pinX && !q.pinY);
+              const noteQuestions = questions.filter((q) => !hasPinPosition(q));
               console.log('[DEBUG] Note questions:', noteQuestions.length);
               
               const needToCreate = blankMatches - noteQuestions.length;
@@ -2358,9 +2371,7 @@ const ImageNoteFormBlock = ({ group, onUpdate, onDelete, onSelect, selected, dra
               
               if (needToCreate > 0) {
                 // Tìm số câu lớn nhất trong TẤT CẢ câu hỏi
-                const maxNum = questions.length > 0 
-                  ? Math.max(...questions.map(q => q.questionNumber || 0))
-                  : 0;
+                const maxNum = getNextQuestionNumber(questions) - 1;
                 
                 console.log('[DEBUG] Max question number:', maxNum);
                 console.log('[DEBUG] Will create from:', maxNum + 1);
@@ -2386,6 +2397,7 @@ const ImageNoteFormBlock = ({ group, onUpdate, onDelete, onSelect, selected, dra
         placeholder={'VD:\nGround Floor:\n- Living room: (ô trống) square meters\n- Kitchen: Located in the (ô trống)'}
         preWrap
         blankClass="rbe-blank-amber"
+        startNumber={getNextQuestionNumber(questions)}
       />
 
       {/* Image on bottom */}

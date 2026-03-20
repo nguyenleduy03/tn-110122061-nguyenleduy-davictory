@@ -15,3 +15,7 @@ Error: connect ECONNREFUSED 127.0.0.1:8080
 11:14:41 [vite] http proxy error: /api/test-structure/sessions?testType=ACADEMIC
 Error: connect ECONNREFUSED 127.0.0.1:8080
     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1611:16)
+11:22:16 [vite] (client) hmr update /src/components/testBuilder/ExamCanvas.jsx
+11:22:24 [vite] (client) hmr update /src/components/testBuilder/ExamCanvas.jsx
+11:22:58 [vite] (client) hmr update /src/components/testBuilder/ExamCanvas.jsx
+11:25:54 [vite] (client) hmr update /src/components/testBuilder/ExamCanvas.jsx
