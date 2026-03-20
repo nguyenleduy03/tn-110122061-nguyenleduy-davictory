@@ -39,7 +39,7 @@ public class QuestionOption {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String optionText; // Nội dung lựa chọn
 
-    @Column(length = 500)
+    @Column(columnDefinition = "LONGTEXT")
     private String imageUrl; // Hình minh hoạ cho lựa chọn (nếu có)
 
     @Column(nullable = false)

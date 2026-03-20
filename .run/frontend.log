@@ -5,17 +5,11 @@
 [vite] 🌐 Public IP: 123.22.241.211
 [vite] 🔗 API Base URL: http://123.22.241.211:8080/api
 
-  VITE v8.0.0-beta.16  ready in 1479 ms
+  VITE v8.0.0-beta.16  ready in 1630 ms
 
   ➜  Local:   http://localhost:5173/
   ➜  Network: http://192.168.1.20:5173/
-11:14:41 [vite] http proxy error: /api/test-structure/sessions?testType=ACADEMIC
-Error: connect ECONNREFUSED 127.0.0.1:8080
-    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1611:16)
-11:14:41 [vite] http proxy error: /api/test-structure/sessions?testType=ACADEMIC
-Error: connect ECONNREFUSED 127.0.0.1:8080
-    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1611:16)
-11:22:16 [vite] (client) hmr update /src/components/testBuilder/ExamCanvas.jsx
-11:22:24 [vite] (client) hmr update /src/components/testBuilder/ExamCanvas.jsx
-11:22:58 [vite] (client) hmr update /src/components/testBuilder/ExamCanvas.jsx
-11:25:54 [vite] (client) hmr update /src/components/testBuilder/ExamCanvas.jsx
+11:49:11 [vite] (client) hmr update /src/pages/TestBuilder.jsx, /src/pages/TeacherManage.jsx, /src/pages/lms/LmsTeacherTests.jsx, /src/pages/ApiDebugPage.jsx
+11:49:22 [vite] (client) hmr update /src/pages/TestBuilder.jsx, /src/pages/TeacherManage.jsx, /src/pages/lms/LmsTeacherTests.jsx, /src/pages/ApiDebugPage.jsx
+11:50:41 [vite] (client) hmr update /src/components/testBuilder/ExamCanvas.jsx
+11:50:41 [vite] (client) hmr update /src/pages/TestBuilder.jsx, /src/pages/TeacherManage.jsx, /src/pages/lms/LmsTeacherTests.jsx, /src/pages/ApiDebugPage.jsx

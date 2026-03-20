@@ -59,7 +59,7 @@ public class Question {
     @Column
     private Double pinY; // Tọa độ Y của ô pin trên bản đồ (MAP_DIAGRAM)
 
-    @Column(length = 500)
+    @Column(columnDefinition = "LONGTEXT")
     private String imageUrl; // Hình minh hoạ cho câu hỏi (nếu có)
 
     @Column(nullable = false)

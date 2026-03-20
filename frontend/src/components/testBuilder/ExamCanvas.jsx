@@ -63,9 +63,11 @@ const toPlainText = (value) => {
   }
 };
 
-const hasPinPosition = (q) => q?.pinX != null && q?.pinY != null;
-
 const countBlankTokens = (text = '') => (String(text).match(/\[blank\]|\(ô trống\)/gi) || []).length;
+
+const isImagePinQuestion = (q) => q?.questionMode === 'image-pin' || (q?.pinX != null && q?.pinY != null);
+
+const isNoteBlankQuestion = (q) => q?.questionMode === 'note-blank' || !isImagePinQuestion(q);
 
 const getNextQuestionNumber = (questions = []) => {
   const maxNumber = questions.reduce((max, q) => {
@@ -74,6 +76,37 @@ const getNextQuestionNumber = (questions = []) => {
   }, 0);
   return maxNumber + 1;
 };
+
+const fileToCompressedDataUrl = (file, { maxWidth = 1280, quality = 0.82 } = {}) => new Promise((resolve, reject) => {
+  if (!file || !file.type?.startsWith('image/')) {
+    reject(new Error('Invalid image file'));
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onerror = () => reject(new Error('Không đọc được file ảnh'));
+  reader.onload = () => {
+    const img = new Image();
+    img.onerror = () => reject(new Error('Không tải được ảnh'));
+    img.onload = () => {
+      const scale = Math.min(1, maxWidth / Math.max(img.width || 1, img.height || 1));
+      const width = Math.max(1, Math.round(img.width * scale));
+      const height = Math.max(1, Math.round(img.height * scale));
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        resolve(reader.result);
+        return;
+      }
+      ctx.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+});
 
 // ---- Rich Blank Editor ----
 // contentEditable editor for Summary / Note Completion.
@@ -351,9 +384,9 @@ const PassageBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandl
 
   const applyImageFile = (pid, file) => {
     if (!file || !file.type.startsWith('image/')) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => updateParaImage(pid, ev.target.result);
-    reader.readAsDataURL(file);
+    fileToCompressedDataUrl(file)
+      .then((dataUrl) => updateParaImage(pid, dataUrl))
+      .catch((err) => console.error('Image upload failed:', err));
   };
 
   // Accept both: sidebar palette drag AND direct image file drag from OS
@@ -786,7 +819,7 @@ function MapLabellingBlock({ group, onUpdate, onDelete, onSelect, selected, drag
     const newQ = {
       id: Date.now(),
       groupId: group.id,
-      questionNumber: getNextQuestionNumber(questions),
+      questionNumber: questions.length + 1,
       questionText: '',
       answerText: '',
       pinX: Math.max(0, Math.min(92, x)),
@@ -799,9 +832,9 @@ function MapLabellingBlock({ group, onUpdate, onDelete, onSelect, selected, drag
   const handleFileUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => onUpdate(group.id, { imageUrl: ev.target.result });
-    reader.readAsDataURL(file);
+    fileToCompressedDataUrl(file)
+      .then((dataUrl) => onUpdate(group.id, { imageUrl: dataUrl }))
+      .catch((err) => console.error('Image upload failed:', err));
   };
 
   return (
@@ -1733,9 +1766,13 @@ const MultipleChoiceBlock = ({ group, onUpdate, onDelete, onSelect, selected, dr
                             <Image size={12} />
                             <input type="file" accept="image/*" hidden onChange={(e) => {
                               const file = e.target.files?.[0]; if (!file) return;
-                              const reader = new FileReader();
-                              reader.onload = (ev) => { const next = [...opts]; next[i] = { ...next[i], optionImageUrl: ev.target.result }; onUpdateQuestion(group.id, q.id, { options: next }); };
-                              reader.readAsDataURL(file); e.target.value = '';
+                                fileToCompressedDataUrl(file)
+                                  .then((dataUrl) => {
+                                    const next = [...opts]; next[i] = { ...next[i], optionImageUrl: dataUrl };
+                                    onUpdateQuestion(group.id, q.id, { options: next });
+                                  })
+                                  .catch((err) => console.error('Image upload failed:', err));
+                                e.target.value = '';
                             }} />
                           </label>
                         </div>
@@ -1858,9 +1895,13 @@ const MultipleChoiceMultiBlock = ({ group, onUpdate, onDelete, onSelect, selecte
                             <Image size={12} />
                             <input type="file" accept="image/*" hidden onChange={(e) => {
                               const file = e.target.files?.[0]; if (!file) return;
-                              const reader = new FileReader();
-                              reader.onload = (ev) => { const next = [...opts]; next[i] = { ...next[i], optionImageUrl: ev.target.result }; onUpdateQuestion(group.id, q.id, { options: next }); };
-                              reader.readAsDataURL(file); e.target.value = '';
+                              fileToCompressedDataUrl(file)
+                                .then((dataUrl) => {
+                                  const next = [...opts]; next[i] = { ...next[i], optionImageUrl: dataUrl };
+                                  onUpdateQuestion(group.id, q.id, { options: next });
+                                })
+                                .catch((err) => console.error('Image upload failed:', err));
+                              e.target.value = '';
                             }} />
                           </label>
                         </div>
@@ -2208,6 +2249,7 @@ const ImageNoteFormBlock = ({ group, onUpdate, onDelete, onSelect, selected, dra
       answerText: '',
       pinX: Math.max(0, Math.min(92, x)),
       pinY: Math.max(0, Math.min(92, y)),
+      questionMode: 'image-pin',
       questionType: { typeName: 'FILL_IN_BLANK' },
     };
     onUpdate(group.id, { questions: [...questions, newQ] });
@@ -2216,9 +2258,9 @@ const ImageNoteFormBlock = ({ group, onUpdate, onDelete, onSelect, selected, dra
   const handleFileUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => onUpdate(group.id, { imageUrl: ev.target.result });
-    reader.readAsDataURL(file);
+    fileToCompressedDataUrl(file)
+      .then((dataUrl) => onUpdate(group.id, { imageUrl: dataUrl }))
+      .catch((err) => console.error('Image upload failed:', err));
   };
 
   const imageSection = (
@@ -2363,7 +2405,7 @@ const ImageNoteFormBlock = ({ group, onUpdate, onDelete, onSelect, selected, dra
             
             if (blankMatches > 0) {
               // Đếm câu hỏi cho note text (không có pinX, pinY)
-              const noteQuestions = questions.filter((q) => !hasPinPosition(q));
+                const noteQuestions = questions.filter(isNoteBlankQuestion);
               console.log('[DEBUG] Note questions:', noteQuestions.length);
               
               const needToCreate = blankMatches - noteQuestions.length;
@@ -2371,7 +2413,7 @@ const ImageNoteFormBlock = ({ group, onUpdate, onDelete, onSelect, selected, dra
               
               if (needToCreate > 0) {
                 // Tìm số câu lớn nhất trong TẤT CẢ câu hỏi
-                const maxNum = getNextQuestionNumber(questions) - 1;
+                  const maxNum = getNextQuestionNumber(questions) - 1;
                 
                 console.log('[DEBUG] Max question number:', maxNum);
                 console.log('[DEBUG] Will create from:', maxNum + 1);
@@ -2384,6 +2426,7 @@ const ImageNoteFormBlock = ({ group, onUpdate, onDelete, onSelect, selected, dra
                     questionNumber: maxNum + i + 1,
                     questionText: '',
                     answerText: '',
+                      questionMode: 'note-blank',
                     questionType: { typeName: 'FILL_IN_BLANK' },
                   });
                 }
@@ -2414,7 +2457,7 @@ const ImageNoteFormBlock = ({ group, onUpdate, onDelete, onSelect, selected, dra
           onClick={(e) => { e.stopPropagation(); onSelectQuestion(q); }}>
           <div className="exam-q-num" style={{ background: '#4338ca' }}>{q.questionNumber ?? idx + 1}</div>
           <div className="exam-q-body">
-            {q.pinX !== undefined && (
+            {isImagePinQuestion(q) && (
               <>
                 <div style={{ fontSize: 12, color: '#64748b', marginBottom: 4 }}>Label (hiển thị trên ảnh):</div>
                 <input className="exam-q-fill-answer" style={{ display: 'block', width: '100%', textAlign: 'left', marginBottom: 8 }}
@@ -2819,9 +2862,9 @@ const WritingTaskBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragH
   const handleFileUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => onUpdate(group.id, { imageUrl: ev.target.result });
-    reader.readAsDataURL(file);
+    fileToCompressedDataUrl(file)
+      .then((dataUrl) => onUpdate(group.id, { imageUrl: dataUrl }))
+      .catch((err) => console.error('Image upload failed:', err));
   };
 
   return (

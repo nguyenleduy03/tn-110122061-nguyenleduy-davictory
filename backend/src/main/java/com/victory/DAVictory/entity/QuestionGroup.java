@@ -52,7 +52,7 @@ public class QuestionGroup {
     @Column(length = 500)
     private String audioUrl; // URL file âm thanh (Listening)
 
-    @Column(length = 500)
+    @Column(columnDefinition = "LONGTEXT")
     private String imageUrl; // URL hình ảnh đính kèm (Map, Diagram)
 
     @Column(length = 500)
