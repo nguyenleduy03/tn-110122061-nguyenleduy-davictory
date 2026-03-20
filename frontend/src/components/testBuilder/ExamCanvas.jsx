@@ -33,6 +33,7 @@ const TYPE_META = {
   SENTENCE_COMPLETION:    { label: 'Sentence Completion',  bg: '#ecfdf5', color: '#065f46' },
   SHORT_ANSWER_GROUP:     { label: 'Short Answer',         bg: '#f0fdf4', color: '#166534' },
   FLOW_CHART:             { label: 'Flow-chart',           bg: '#f0fdfa', color: '#0f766e' },
+  MATCHING_FEATURES:      { label: 'Matching Features',    bg: '#f3e8ff', color: '#7c3aed' },
   // Biến thể mới
   MATCHING_FILLABLE:      { label: 'Matching (Fill-in)',   bg: '#fef3c7', color: '#92400e' },
   MATCHING_HEADINGS_FILLABLE: { label: 'Match Headings (Fill)', bg: '#fed7aa', color: '#9a3412' },
@@ -76,6 +77,19 @@ const isImagePinQuestion = (q) => q?.questionMode === 'image-pin' || (q?.pinX !=
 
 const isNoteBlankQuestion = (q) => q?.questionMode === 'note-blank' || !isImagePinQuestion(q);
 
+const getQuestionWeight = (q) => Number(q?.questionCount || 1) || 1;
+
+const getPartQuestionStartNumber = (group, allGroups = []) => {
+  const idx = allGroups.findIndex((g) => g.id === group?.id);
+  const previousGroups = idx >= 0 ? allGroups.slice(0, idx) : [];
+
+  const totalBefore = previousGroups.reduce((sum, g) => (
+    sum + (g.questions ?? []).reduce((qSum, q) => qSum + getQuestionWeight(q), 0)
+  ), 0);
+
+  return totalBefore + 1;
+};
+
 const getNextQuestionNumber = (questions = []) => {
   const maxNumber = questions.reduce((max, q) => {
     const num = Number(q?.questionNumber ?? 0);
@@ -93,27 +107,58 @@ const fileToCompressedDataUrl = (file, { maxWidth = 1280, quality = 0.82 } = {})
   const reader = new FileReader();
   reader.onerror = () => reject(new Error('Không đọc được file ảnh'));
   reader.onload = () => {
+    const rawDataUrl = String(reader.result || '');
+    if (!rawDataUrl) {
+      reject(new Error('Không có dữ liệu ảnh'));
+      return;
+    }
+
     const img = new Image();
-    img.onerror = () => reject(new Error('Không tải được ảnh'));
+    img.onerror = () => resolve(rawDataUrl);
     img.onload = () => {
-      const scale = Math.min(1, maxWidth / Math.max(img.width || 1, img.height || 1));
-      const width = Math.max(1, Math.round(img.width * scale));
-      const height = Math.max(1, Math.round(img.height * scale));
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        resolve(reader.result);
-        return;
+      try {
+        const scale = Math.min(1, maxWidth / Math.max(img.width || 1, img.height || 1));
+        const width = Math.max(1, Math.round(img.width * scale));
+        const height = Math.max(1, Math.round(img.height * scale));
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(rawDataUrl);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      } catch (err) {
+        resolve(rawDataUrl);
       }
-      ctx.drawImage(img, 0, 0, width, height);
-      resolve(canvas.toDataURL('image/jpeg', quality));
     };
-    img.src = reader.result;
+    try {
+      img.src = rawDataUrl;
+    } catch {
+      resolve(rawDataUrl);
+      return;
+    }
   };
   reader.readAsDataURL(file);
 });
+
+const loadImageFile = (file, setImageUrl) => {
+  if (!file || !file.type?.startsWith('image/')) return;
+  const reader = new FileReader();
+  reader.onerror = () => console.error('Image upload failed: Không đọc được file ảnh');
+  reader.onload = () => {
+    const rawDataUrl = String(reader.result || '');
+    if (!rawDataUrl) return;
+    setImageUrl(rawDataUrl);
+
+    fileToCompressedDataUrl(file)
+      .then((dataUrl) => setImageUrl(dataUrl))
+      .catch((err) => console.error('Image upload failed:', err));
+  };
+  reader.readAsDataURL(file);
+};
 
 // ---- Rich Blank Editor ----
 // contentEditable editor for Summary / Note Completion.
@@ -391,9 +436,7 @@ const PassageBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandl
 
   const applyImageFile = (pid, file) => {
     if (!file || !file.type.startsWith('image/')) return;
-    fileToCompressedDataUrl(file)
-      .then((dataUrl) => updateParaImage(pid, dataUrl))
-      .catch((err) => console.error('Image upload failed:', err));
+    loadImageFile(file, (imageUrl) => updateParaImage(pid, imageUrl));
   };
 
   // Accept both: sidebar palette drag AND direct image file drag from OS
@@ -785,24 +828,29 @@ const QuestionItem = ({ question, selected, onClick, onUpdate, onDelete }) => {
 function MapLabellingBlock({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps,
   onUpdateQuestion, onDeleteQuestion, selectedQuestionId }) {
   const containerRef = useRef(null);
+  const imageWrapRef = useRef(null);
   const dragRef = useRef(null); // { qId, origX, origY, startCX, startCY }
   const [livePin, setLivePin] = useState(null); // { qId, x, y } during drag
   const questions = group.questions ?? [];
   const options = group.optionBank ?? [];
 
+  const getImageRect = () => imageWrapRef.current?.getBoundingClientRect() || null;
+
   useEffect(() => {
     const onMove = (e) => {
-      if (!dragRef.current || !containerRef.current) return;
+      if (!dragRef.current) return;
       const { origX, origY, startCX, startCY } = dragRef.current;
-      const rect = containerRef.current.getBoundingClientRect();
+      const rect = getImageRect();
+      if (!rect) return;
       const newX = Math.max(0, Math.min(92, origX + (e.clientX - startCX) / rect.width * 100));
       const newY = Math.max(0, Math.min(92, origY + (e.clientY - startCY) / rect.height * 100));
       setLivePin({ qId: dragRef.current.qId, x: newX, y: newY });
     };
     const onUp = (e) => {
-      if (!dragRef.current || !containerRef.current) return;
+      if (!dragRef.current) return;
       const { qId, origX, origY, startCX, startCY } = dragRef.current;
-      const rect = containerRef.current.getBoundingClientRect();
+      const rect = getImageRect();
+      if (!rect) return;
       const newX = Math.max(0, Math.min(92, origX + (e.clientX - startCX) / rect.width * 100));
       const newY = Math.max(0, Math.min(92, origY + (e.clientY - startCY) / rect.height * 100));
       onUpdateQuestion(group.id, qId, { pinX: newX, pinY: newY });
@@ -818,9 +866,10 @@ function MapLabellingBlock({ group, onUpdate, onDelete, onSelect, selected, drag
   }, [group.id, onUpdateQuestion]);
 
   const addPin = (e) => {
-    if (!containerRef.current || !group.imageUrl) return;
+    if (!group.imageUrl) return;
     if (dragRef.current) return; // ignore click after drag
-    const rect = containerRef.current.getBoundingClientRect();
+    const rect = getImageRect();
+    if (!rect) return;
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
     const newQ = {
@@ -837,11 +886,11 @@ function MapLabellingBlock({ group, onUpdate, onDelete, onSelect, selected, drag
   };
 
   const handleFileUpload = (e) => {
-    const file = e.target.files?.[0];
+    const input = e.currentTarget;
+    const file = input.files?.[0];
     if (!file) return;
-    fileToCompressedDataUrl(file)
-      .then((dataUrl) => onUpdate(group.id, { imageUrl: dataUrl }))
-      .catch((err) => console.error('Image upload failed:', err));
+    input.value = '';
+    loadImageFile(file, (imageUrl) => onUpdate(group.id, { imageUrl }));
   };
 
   return (
@@ -869,7 +918,7 @@ function MapLabellingBlock({ group, onUpdate, onDelete, onSelect, selected, drag
           onChange={(e) => onUpdate(group.id, { imageUrl: e.target.value })} />
         <label className="exam-ml-upload-btn">
           Tải lên
-          <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileUpload} />
+          <input type="file" accept="image/*" style={{ display: 'none' }} onClick={(e) => e.stopPropagation()} onChange={handleFileUpload} />
         </label>
         {group.imageUrl && (
           <button className="exam-group-tool-btn danger" title="Xóa ảnh"
@@ -879,59 +928,38 @@ function MapLabellingBlock({ group, onUpdate, onDelete, onSelect, selected, drag
         )}
       </div>
 
-      {/* Size controls */}
-      <div className="exam-ml-size-bar" onClick={(e) => e.stopPropagation()}>
-        <label className="exam-ml-size-label">
-          Rộng ảnh: <strong>{group.imageWidth ?? 100}%</strong>
-          <input type="range" min={20} max={100} step={1}
-            value={group.imageWidth ?? 100}
-            onChange={(e) => onUpdate(group.id, { imageWidth: Number(e.target.value) })} />
-        </label>
-        <label className="exam-ml-size-label">
-          Cỡ ô: <strong>{group.pinBoxWidth ?? 60}px</strong>
-          <input type="range" min={30} max={180} step={2}
-            value={group.pinBoxWidth ?? 60}
-            onChange={(e) => onUpdate(group.id, { pinBoxWidth: Number(e.target.value) })} />
-        </label>
-        <label className="exam-ml-size-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <input
-            type="checkbox"
-            checked={Boolean(group.constrainHalfPage)}
-            onChange={(e) => onUpdate(group.id, { constrainHalfPage: e.target.checked })}
-          />
-          Ràng buộc hiển thị 1/2 trang
-        </label>
-      </div>
-
       {/* Image canvas */}
       <div ref={containerRef} className="exam-ml-container"
         style={{ cursor: group.imageUrl ? 'crosshair' : 'default' }}
         onClick={addPin}>
-        {group.imageUrl
-          ? <img src={group.imageUrl} alt="map" draggable={false}
-              style={{ display: 'block', width: `${group.imageWidth ?? 100}%`, height: 'auto', pointerEvents: 'none' }} />
-          : <div className="exam-ml-empty">Tải ảnh lên, sau đó nhấn vào ảnh để thêm ô đánh số</div>
-        }
-        {questions.map((q) => {
-          const x = livePin?.qId === q.id ? livePin.x : (q.pinX ?? 10);
-          const y = livePin?.qId === q.id ? livePin.y : (q.pinY ?? 10);
-          return (
-            <div key={q.id}
-              className={`exam-ml-pin${selectedQuestionId === q.id ? ' selected' : ''}`}
-              style={{ left: `${x}%`, top: `${y}%`, minWidth: `${group.pinBoxWidth ?? 60}px` }}
-              onMouseDown={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                dragRef.current = { qId: q.id, origX: q.pinX ?? 10, origY: q.pinY ?? 10, startCX: e.clientX, startCY: e.clientY };
-              }}
-              onClick={(e) => e.stopPropagation()}>
-              <span className="exam-ml-pin-num">{q.questionNumber}</span>
-              <button className="exam-ml-pin-del"
-                onMouseDown={(e) => e.stopPropagation()}
-                onClick={(e) => { e.stopPropagation(); onDeleteQuestion(group.id, q.id); }}>×</button>
-            </div>
-          );
-        })}
+        {group.imageUrl ? (
+          <div ref={imageWrapRef} style={{ position: 'relative', width: `${group.imageWidth ?? 100}%`, margin: '0 auto' }}>
+            <img src={group.imageUrl} alt="map" draggable={false}
+              style={{ display: 'block', width: '100%', height: 'auto', pointerEvents: 'none' }} />
+            {questions.map((q) => {
+              const x = livePin?.qId === q.id ? livePin.x : (q.pinX ?? 10);
+              const y = livePin?.qId === q.id ? livePin.y : (q.pinY ?? 10);
+              return (
+                <div key={q.id}
+                  className={`exam-ml-pin${selectedQuestionId === q.id ? ' selected' : ''}`}
+                  style={{ left: `${x}%`, top: `${y}%`, minWidth: `${group.pinBoxWidth ?? 60}px` }}
+                  onMouseDown={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    dragRef.current = { qId: q.id, origX: q.pinX ?? 10, origY: q.pinY ?? 10, startCX: e.clientX, startCY: e.clientY };
+                  }}
+                  onClick={(e) => e.stopPropagation()}>
+                  <span className="exam-ml-pin-num">{q.questionNumber}</span>
+                  <button className="exam-ml-pin-del"
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={(e) => { e.stopPropagation(); onDeleteQuestion(group.id, q.id); }}>×</button>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="exam-ml-empty">Tải ảnh lên, sau đó nhấn vào ảnh để thêm ô đánh số</div>
+        )}
       </div>
 
       {group.imageUrl && (
@@ -1458,6 +1486,176 @@ const DragMatchingBlock = ({ group, onUpdate, onDelete, onSelect, selected, drag
   );
 };
 
+const DEFAULT_MATCHING_FEATURE_CATEGORIES = ['A', 'B', 'C', 'D', 'E'];
+
+const parseMatchingFeaturesMeta = (passageText) => {
+  try {
+    const parsed = passageText ? JSON.parse(passageText) : {};
+    const categories = Array.isArray(parsed.categories) && parsed.categories.length > 0
+      ? parsed.categories
+      : DEFAULT_MATCHING_FEATURE_CATEGORIES.map((label) => ({ label, text: '' }));
+
+    return {
+      categoryTitle: parsed.categoryTitle || '',
+      categories: categories.map((cat, index) => ({
+        label: String(cat?.label || DEFAULT_MATCHING_FEATURE_CATEGORIES[index] || String.fromCharCode(65 + index)),
+        text: String(cat?.text || ''),
+      })),
+    };
+  } catch {
+    return {
+      categoryTitle: '',
+      categories: DEFAULT_MATCHING_FEATURE_CATEGORIES.map((label) => ({ label, text: '' })),
+    };
+  }
+};
+
+const MatchingFeaturesBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps,
+  onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onAddQuestion, selectedQuestionId }) => {
+  const questions = group.questions ?? [];
+  const meta = parseMatchingFeaturesMeta(group.passageText);
+  const categories = meta.categories.length > 0 ? meta.categories : DEFAULT_MATCHING_FEATURE_CATEGORIES.map((label) => ({ label, text: '' }));
+
+  const updateMeta = (nextMeta) => {
+    onUpdate(group.id, { passageText: JSON.stringify(nextMeta) });
+  };
+
+  const updateCategory = (index, nextText) => {
+    const nextCategories = categories.map((cat, catIndex) => (
+      catIndex === index ? { ...cat, text: nextText } : cat
+    ));
+    updateMeta({ categoryTitle: meta.categoryTitle, categories: nextCategories });
+  };
+
+  const addCategory = () => {
+    const nextLabel = String.fromCharCode(65 + categories.length);
+    updateMeta({
+      categoryTitle: meta.categoryTitle,
+      categories: [...categories, { label: nextLabel, text: '' }],
+    });
+  };
+
+  const removeCategory = (index) => {
+    const nextCategories = categories.filter((_, catIndex) => catIndex !== index);
+    updateMeta({ categoryTitle: meta.categoryTitle, categories: nextCategories });
+  };
+
+  return (
+    <div className={`exam-group${selected ? ' selected' : ''}`}
+      onClick={(e) => { e.stopPropagation(); onSelect(group); }}>
+      <GroupToolbar group={group} dragHandleProps={dragHandleProps} onDelete={onDelete} />
+
+      <div className="exam-q-range-header" onClick={(e) => e.stopPropagation()}>
+        Câu&nbsp;
+        <input className="exam-q-range-input" value={group.fromQuestion ?? ''}
+          placeholder="1"
+          onChange={(e) => onUpdate(group.id, { fromQuestion: e.target.value ? Number(e.target.value) : null })}
+          onClick={(e) => e.stopPropagation()} />
+        &nbsp;–&nbsp;
+        <input className="exam-q-range-input" value={group.toQuestion ?? ''}
+          placeholder="4"
+          onChange={(e) => onUpdate(group.id, { toQuestion: e.target.value ? Number(e.target.value) : null })}
+          onClick={(e) => e.stopPropagation()} />
+      </div>
+
+      {/* Instructions field */}
+      <div style={{ marginBottom: 12 }} onClick={(e) => e.stopPropagation()}>
+        <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4, color: '#555' }}>
+          Hướng dẫn:
+        </label>
+        <RichInput
+          value={group.instructions || ''}
+          placeholder="Choose the correct group (A–E) for each item. You may choose any group more than once."
+          onChange={(html) => onUpdate(group.id, { instructions: html })}
+        />
+      </div>
+
+      <div className="pv-mf-categories-box" style={{ marginBottom: 12, width: '100%' }} onClick={(e) => e.stopPropagation()}>
+        <div className="pv-mf-category-title" style={{ display: 'flex', gap: 10, alignItems: 'center', justifyContent: 'space-between' }}>
+          <RichInput
+            style={{ flex: 1 }}
+            value={meta.categoryTitle || ''}
+            placeholder="First invented or used by"
+            onChange={(html) => updateMeta({ categoryTitle: html, categories })}
+          />
+          <button className="exam-add-btn" style={{ margin: 0, padding: '4px 10px' }} onClick={(e) => { e.stopPropagation(); addCategory(); }}>
+            <Plus size={11} /> Thêm cột
+          </button>
+        </div>
+        <div className="pv-mf-category-list">
+          {categories.map((cat, index) => (
+            <div key={`${cat.label}-${index}`} className="pv-mf-category-row" style={{ display: 'table-row' }}>
+              <span className="pv-mf-cat-label" style={{ display: 'table-cell' }}>{cat.label}</span>
+              <span className="pv-mf-cat-text" style={{ display: 'table-cell', width: '100%' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <RichInput
+                    style={{ flex: 1 }}
+                    value={cat.text || ''}
+                    placeholder={`Mô tả ${cat.label}`}
+                    onChange={(html) => updateCategory(index, html)}
+                  />
+                  <button className="exam-q-del-btn" onClick={(e) => { e.stopPropagation(); removeCategory(index); }}>×</button>
+                </div>
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="pv-mf-table-wrap" style={{ marginBottom: 10 }} onClick={(e) => e.stopPropagation()}>
+        <table className="pv-mf-table">
+          <thead>
+            <tr className="pv-mf-header-row">
+              <th className="pv-mf-th-item"></th>
+              {categories.map((cat) => (
+                <th key={cat.label} className="pv-mf-th-cat">{cat.label}</th>
+              ))}
+              <th className="pv-mf-th-cat" style={{ width: 72 }}>Xoá</th>
+            </tr>
+          </thead>
+          <tbody>
+            {questions.map((q) => {
+              const selectedLabel = q.answerText || '';
+              return (
+                <tr key={q.id} className={`pv-mf-question-row${selectedQuestionId === q.id ? ' pv-mf-row-active' : ''}`} onClick={() => onSelectQuestion(q)}>
+                  <td className="pv-mf-td-item">
+                    <div className="pv-mf-item-inner">
+                      <span className="pv-q-num-badge">{q.questionNumber ?? '?'}</span>
+                      <RichInput
+                        style={{ flex: 1 }}
+                        value={q.questionText || ''}
+                        placeholder="Nội dung câu hỏi..."
+                        onChange={(html) => onUpdateQuestion(group.id, q.id, { questionText: html })}
+                      />
+                    </div>
+                  </td>
+                  {categories.map((cat) => (
+                    <td
+                      key={cat.label}
+                      className={`pv-mf-choice-cell${selectedLabel === cat.label ? ' pv-mf-selected' : ''}`}
+                      onClick={(e) => { e.stopPropagation(); onUpdateQuestion(group.id, q.id, { answerText: selectedLabel === cat.label ? '' : cat.label }); }}
+                      title={`Chọn ${cat.label}`}
+                    >
+                      {selectedLabel === cat.label && <span className="pv-mf-check">✓</span>}
+                    </td>
+                  ))}
+                  <td className="pv-mf-choice-cell" style={{ background: '#fff' }}>
+                    <button className="exam-q-del-btn" onClick={(e) => { e.stopPropagation(); onDeleteQuestion(group.id, q.id); }}>×</button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      <button className="exam-add-btn" onClick={(e) => { e.stopPropagation(); onAddQuestion(group); }}>
+        <Plus size={12} /> Thêm câu hỏi
+      </button>
+    </div>
+  );
+};
+
 // ---- Matching Heading Block ----
 // Giao diện tạo đề tối giản:
 //   • Phần trên: nhập "List of Headings" (i, ii, iii, ...) — danh sách heading có thể nhiều hơn số câu (headings dư để đánh lừa)
@@ -1706,14 +1904,28 @@ const MatchingHeadingBlock = ({ group, onUpdate, onDelete, onSelect, selected, d
 const MultipleChoiceBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps,
   onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onAddQuestion, selectedQuestionId }) => {
   const questions = group.questions ?? [];
+  
   return (
     <div className={`exam-group${selected ? ' selected' : ''}`}
       onClick={(e) => { e.stopPropagation(); onSelect(group); }}>
       <GroupToolbar group={group} dragHandleProps={dragHandleProps} onDelete={onDelete} />
-      <div className="exam-mc-instructions">
-        Choose the correct letter, <strong>A</strong>, <strong>B</strong>, <strong>C</strong> or <strong>D</strong>.
+      
+      {/* Instructions field - always show */}
+      <div style={{ marginBottom: 12 }} onClick={(e) => e.stopPropagation()}>
+        <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4, color: '#555' }}>
+          Hướng dẫn:
+        </label>
+        <input
+          type="text"
+          style={{ width: '100%', padding: '6px 10px', border: '1px solid #ddd', borderRadius: 4, fontSize: 13 }}
+          value={group.instructions || ''}
+          placeholder="Choose the correct letter, A, B, C or D."
+          onChange={(e) => onUpdate(group.id, { instructions: e.target.value })}
+          onClick={(e) => e.stopPropagation()}
+        />
       </div>
-      {/* Optional shared context / instructions */}
+
+      {/* Optional shared context */}
       <div contentEditable suppressContentEditableWarning className="exam-mc-context"
         data-placeholder="Ngữ cảnh chung (nếu có, VD: What does the speaker say about...)"
         onMouseDown={(e) => e.stopPropagation()}
@@ -1722,6 +1934,7 @@ const MultipleChoiceBlock = ({ group, onUpdate, onDelete, onSelect, selected, dr
         onBlur={(e) => onUpdate(group.id, { title: e.currentTarget.innerHTML })}
         dangerouslySetInnerHTML={{ __html: group.title || '' }}
       />
+      
       <div className="exam-q-range-header">
         Câu&nbsp;
         <input className="exam-q-range-input" value={group.fromQuestion ?? ''} placeholder="1"
@@ -1732,6 +1945,7 @@ const MultipleChoiceBlock = ({ group, onUpdate, onDelete, onSelect, selected, dr
           onChange={(e) => onUpdate(group.id, { toQuestion: e.target.value ? Number(e.target.value) : null })}
           onClick={(e) => e.stopPropagation()} />
       </div>
+      
       {questions.map((q) => {
         const opts = q.options ?? [];
         return (
@@ -1771,15 +1985,14 @@ const MultipleChoiceBlock = ({ group, onUpdate, onDelete, onSelect, selected, dr
                             onClick={(e) => e.stopPropagation()} />
                           <label className="exam-mc-img-file-btn" title="Tải ảnh từ máy" onClick={(e) => e.stopPropagation()}>
                             <Image size={12} />
-                            <input type="file" accept="image/*" hidden onChange={(e) => {
-                              const file = e.target.files?.[0]; if (!file) return;
-                                fileToCompressedDataUrl(file)
-                                  .then((dataUrl) => {
-                                    const next = [...opts]; next[i] = { ...next[i], optionImageUrl: dataUrl };
-                                    onUpdateQuestion(group.id, q.id, { options: next });
-                                  })
-                                  .catch((err) => console.error('Image upload failed:', err));
-                                e.target.value = '';
+                            <input type="file" accept="image/*" hidden onClick={(e) => e.stopPropagation()} onChange={(e) => {
+                              const input = e.currentTarget;
+                              const file = input.files?.[0]; if (!file) return;
+                              input.value = '';
+                                loadImageFile(file, (imageUrl) => {
+                                  const next = [...opts]; next[i] = { ...next[i], optionImageUrl: imageUrl };
+                                  onUpdateQuestion(group.id, q.id, { options: next });
+                                });
                             }} />
                           </label>
                         </div>
@@ -1900,15 +2113,14 @@ const MultipleChoiceMultiBlock = ({ group, onUpdate, onDelete, onSelect, selecte
                             onClick={(e) => e.stopPropagation()} />
                           <label className="exam-mc-img-file-btn" title="Tải ảnh từ máy" onClick={(e) => e.stopPropagation()}>
                             <Image size={12} />
-                            <input type="file" accept="image/*" hidden onChange={(e) => {
-                              const file = e.target.files?.[0]; if (!file) return;
-                              fileToCompressedDataUrl(file)
-                                .then((dataUrl) => {
-                                  const next = [...opts]; next[i] = { ...next[i], optionImageUrl: dataUrl };
-                                  onUpdateQuestion(group.id, q.id, { options: next });
-                                })
-                                .catch((err) => console.error('Image upload failed:', err));
-                              e.target.value = '';
+                            <input type="file" accept="image/*" hidden onClick={(e) => e.stopPropagation()} onChange={(e) => {
+                              const input = e.currentTarget;
+                              const file = input.files?.[0]; if (!file) return;
+                              input.value = '';
+                              loadImageFile(file, (imageUrl) => {
+                                const next = [...opts]; next[i] = { ...next[i], optionImageUrl: imageUrl };
+                                onUpdateQuestion(group.id, q.id, { options: next });
+                              });
                             }} />
                           </label>
                         </div>
@@ -2193,49 +2405,64 @@ const NoteCompletionBlock = ({ group, onUpdate, onDelete, onSelect, selected, dr
   </div>
 );
 
-const ImageNoteFormBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps, onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onAddQuestion, selectedQuestionId }) => {
+const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelect, selected, dragHandleProps, onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onAddQuestion, selectedQuestionId }) => {
   const containerRef = useRef(null);
+  const imageWrapRef = useRef(null);
   const dragRef = useRef(null);
   const [livePin, setLivePin] = useState(null);
-  const imagePosition = group.imagePosition || 'top';
+  const imagePosition = group.imagePosition || 'middle';
   const imageWidth = group.imageWidth || 100;
   const pinBoxWidth = group.pinBoxWidth || 60;
   const questions = group.questions ?? [];
+  const topNoteText = group.topNoteText ?? (group.imagePosition === 'bottom' ? '' : (group.noteText || ''));
+  const bottomNoteText = group.bottomNoteText ?? (group.imagePosition === 'bottom' ? (group.noteText || '') : '');
+  const baseNumber = getPartQuestionStartNumber(group, allGroups);
+  const imagePins = questions.filter(isImagePinQuestion);
+  const noteBlanks = questions.filter(isNoteBlankQuestion);
+  const topNoteBlankCount = countBlankTokens(topNoteText);
+
+  const getImageRect = () => imageWrapRef.current?.getBoundingClientRect() || null;
 
   // Tự động sắp xếp lại số câu hỏi theo thứ tự hiển thị (ảnh trên/dưới)
   useEffect(() => {
     if (questions.length === 0) return;
-    
-    const imagePins = questions.filter(isImagePinQuestion);
-    const noteBlanks = questions.filter(isNoteBlankQuestion);
-    
-    // Sắp xếp theo thứ tự hiển thị: ảnh trên → pins trước, ảnh dưới → blanks trước
-    const orderedQuestions = imagePosition === 'top' 
+
+    // Sắp xếp theo thứ tự hiển thị: ảnh trên → pins trước, ảnh giữa → đoạn trên / pins / đoạn dưới, ảnh dưới → blanks trước
+    const orderedQuestions = imagePosition === 'top'
       ? [...imagePins, ...noteBlanks]
-      : [...noteBlanks, ...imagePins];
-    
+      : imagePosition === 'bottom'
+        ? [...noteBlanks, ...imagePins]
+        : [...noteBlanks.slice(0, topNoteBlankCount), ...imagePins, ...noteBlanks.slice(topNoteBlankCount)];
+
     // Kiểm tra xem có cần đánh số lại không
-    const needsReorder = orderedQuestions.some((q, idx) => q.questionNumber !== idx + 1);
-    
+    const needsReorder = orderedQuestions.some((q, idx) => q.questionNumber !== baseNumber + idx);
+
     if (needsReorder) {
-      const reordered = orderedQuestions.map((q, idx) => ({ ...q, questionNumber: idx + 1 }));
-      onUpdate(group.id, { questions: reordered });
+      const reordered = orderedQuestions.map((q, idx) => ({ ...q, questionNumber: baseNumber + idx }));
+      const newToQuestion = baseNumber + reordered.length - 1;
+      onUpdate(group.id, { 
+        fromQuestion: baseNumber,
+        questions: reordered,
+        toQuestion: newToQuestion
+      });
     }
-  }, [questions.length, imagePosition]);
+  }, [questions.length, imagePosition, topNoteBlankCount, baseNumber, group.id, allGroups]);
 
   useEffect(() => {
     const onMove = (e) => {
-      if (!dragRef.current || !containerRef.current) return;
+      if (!dragRef.current) return;
       const { origX, origY, startCX, startCY } = dragRef.current;
-      const rect = containerRef.current.getBoundingClientRect();
+      const rect = getImageRect();
+      if (!rect) return;
       const newX = Math.max(0, Math.min(92, origX + (e.clientX - startCX) / rect.width * 100));
       const newY = Math.max(0, Math.min(92, origY + (e.clientY - startCY) / rect.height * 100));
       setLivePin({ qId: dragRef.current.qId, x: newX, y: newY });
     };
     const onUp = (e) => {
-      if (!dragRef.current || !containerRef.current) return;
+      if (!dragRef.current) return;
       const { qId, origX, origY, startCX, startCY } = dragRef.current;
-      const rect = containerRef.current.getBoundingClientRect();
+      const rect = getImageRect();
+      if (!rect) return;
       const newX = Math.max(0, Math.min(92, origX + (e.clientX - startCX) / rect.width * 100));
       const newY = Math.max(0, Math.min(92, origY + (e.clientY - startCY) / rect.height * 100));
       onUpdateQuestion(group.id, qId, { pinX: newX, pinY: newY });
@@ -2251,14 +2478,16 @@ const ImageNoteFormBlock = ({ group, onUpdate, onDelete, onSelect, selected, dra
   }, [group.id, onUpdateQuestion]);
 
   const addPin = (e) => {
-    if (!containerRef.current || !group.imageUrl) return;
+    if (!group.imageUrl) return;
     if (dragRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
+    const rect = getImageRect();
+    if (!rect) return;
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
     
-    // Tính số câu tiếp theo
-    const maxQuestionNumber = getNextQuestionNumber(questions) - 1;
+    const maxQuestionNumber = questions.length > 0 
+      ? Math.max(...questions.map(q => q.questionNumber || 0))
+      : baseNumber - 1;
     
     const newQ = {
       id: Date.now(),
@@ -2271,15 +2500,24 @@ const ImageNoteFormBlock = ({ group, onUpdate, onDelete, onSelect, selected, dra
       questionMode: 'image-pin',
       questionType: { typeName: 'FILL_IN_BLANK' },
     };
-    onUpdate(group.id, { questions: [...questions, newQ] });
+    onUpdate(group.id, { fromQuestion: baseNumber, questions: [...questions, newQ] });
+  };
+
+  const syncNoteText = (nextTopText, nextBottomText) => {
+    const combined = [nextTopText, nextBottomText].filter(Boolean).join('\n\n');
+    onUpdate(group.id, {
+      noteText: combined,
+      topNoteText: nextTopText,
+      bottomNoteText: nextBottomText,
+    });
   };
 
   const handleFileUpload = (e) => {
-    const file = e.target.files?.[0];
+    const input = e.currentTarget;
+    const file = input.files?.[0];
     if (!file) return;
-    fileToCompressedDataUrl(file)
-      .then((dataUrl) => onUpdate(group.id, { imageUrl: dataUrl }))
-      .catch((err) => console.error('Image upload failed:', err));
+    input.value = '';
+    loadImageFile(file, (imageUrl) => onUpdate(group.id, { imageUrl }));
   };
 
   const imageSection = (
@@ -2294,7 +2532,7 @@ const ImageNoteFormBlock = ({ group, onUpdate, onDelete, onSelect, selected, dra
         />
         <label style={{ padding: '4px 12px', background: '#3b82f6', color: '#fff', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}>
           Tải lên
-          <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileUpload} />
+          <input type="file" accept="image/*" style={{ display: 'none' }} onClick={(e) => e.stopPropagation()} onChange={handleFileUpload} />
         </label>
         {group.imageUrl && (
           <button style={{ padding: '4px 8px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}
@@ -2307,6 +2545,10 @@ const ImageNoteFormBlock = ({ group, onUpdate, onDelete, onSelect, selected, dra
         <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <input type="radio" checked={imagePosition === 'top'} onChange={() => onUpdate(group.id, { imagePosition: 'top' })} />
           Ảnh trên
+        </label>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <input type="radio" checked={imagePosition === 'middle'} onChange={() => onUpdate(group.id, { imagePosition: 'middle' })} />
+          Ảnh giữa
         </label>
         <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <input type="radio" checked={imagePosition === 'bottom'} onChange={() => onUpdate(group.id, { imagePosition: 'bottom' })} />
@@ -2327,12 +2569,14 @@ const ImageNoteFormBlock = ({ group, onUpdate, onDelete, onSelect, selected, dra
       </div>
       
       {/* Image canvas with pins */}
-      <div ref={containerRef} style={{ position: 'relative', cursor: group.imageUrl ? 'crosshair' : 'default', background: '#f8fafc', borderRadius: 8, overflow: 'hidden' }}
-        onClick={addPin}>
+      <div ref={containerRef} className="exam-ml-container"
+        style={{ cursor: group.imageUrl ? 'default' : 'default' }}>
         {group.imageUrl ? (
-          <>
+          <div ref={imageWrapRef}
+            style={{ position: 'relative', width: `${imageWidth}%`, margin: '0 auto', cursor: 'crosshair' }}
+            onClick={addPin}>
             <img src={group.imageUrl} alt="Question" draggable={false}
-              style={{ display: 'block', width: `${imageWidth}%`, height: 'auto', pointerEvents: 'none', margin: '0 auto' }} />
+              style={{ display: 'block', width: '100%', height: 'auto', pointerEvents: 'none' }} />
             {questions.map((q) => {
               const x = livePin?.qId === q.id ? livePin.x : (q.pinX ?? 10);
               const y = livePin?.qId === q.id ? livePin.y : (q.pinY ?? 10);
@@ -2374,20 +2618,38 @@ const ImageNoteFormBlock = ({ group, onUpdate, onDelete, onSelect, selected, dra
                 </div>
               );
             })}
-          </>
+          </div>
         ) : (
-          <div style={{ padding: 40, textAlign: 'center', color: '#94a3b8' }}>
+          <div className="exam-ml-empty">
             Tải ảnh lên, sau đó nhấn vào ảnh để thêm ô đánh số
           </div>
         )}
       </div>
       {group.imageUrl && (
-        <div style={{ fontSize: 11, color: '#64748b', marginTop: 4, textAlign: 'center' }}>
+        <div className="exam-ml-hint" style={{ textAlign: 'center' }}>
           ↑ Nhấn vào ảnh để thêm ô · Kéo ô để di chuyển · × để xóa
         </div>
       )}
     </div>
   );
+
+  const renderNoteEditor = (value, onChange, placeholder, startNumber) => (
+    <RichBlankEditor
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      preWrap
+      blankClass="rbe-blank-amber"
+      startNumber={startNumber}
+    />
+  );
+
+  const topEditor = imagePosition === 'top' || imagePosition === 'middle';
+  const bottomEditor = imagePosition === 'bottom' || imagePosition === 'middle';
+  const topEditorStart = baseNumber;
+  const bottomEditorStart = imagePosition === 'middle'
+    ? baseNumber + topNoteBlankCount + imagePins.length
+    : baseNumber + imagePins.length;
 
   return (
     <div className={`exam-group${selected ? ' selected' : ''}`} onClick={(e) => { e.stopPropagation(); onSelect(group); }}>
@@ -2406,28 +2668,23 @@ const ImageNoteFormBlock = ({ group, onUpdate, onDelete, onSelect, selected, dra
         dangerouslySetInnerHTML={{ __html: group.title || '' }}
       />
 
-      {/* Image on top */}
       {imagePosition === 'top' && imageSection}
+      {imagePosition === 'top' && topEditor && renderNoteEditor(
+        topNoteText,
+        (text) => {
+          syncNoteText(text, '');
 
-      {/* Note text with blanks */}
-      <RichBlankEditor
-        value={group.noteText}
-        onChange={(text) => {
-          onUpdate(group.id, { noteText: text });
-          
-          // Tự động đồng bộ câu hỏi với số (ô trống)
           setTimeout(() => {
             const blankMatches = countBlankTokens(text);
             const noteQuestions = questions.filter(isNoteBlankQuestion);
-            const imagePins = questions.filter(isImagePinQuestion);
-            
-            console.log('[SYNC] Blanks:', blankMatches, '| Note questions:', noteQuestions.length);
-            
+            const imagePinsNow = questions.filter(isImagePinQuestion);
+
             if (blankMatches !== noteQuestions.length) {
               if (blankMatches > noteQuestions.length) {
-                // Tạo thêm câu hỏi
                 const needToCreate = blankMatches - noteQuestions.length;
-                const maxNum = getNextQuestionNumber(questions) - 1;
+                const maxNum = questions.length > 0
+                  ? Math.max(...questions.map(q => q.questionNumber || 0))
+                  : baseNumber - 1;
                 const newQuestions = [];
                 for (let i = 0; i < needToCreate; i++) {
                   newQuestions.push({
@@ -2440,24 +2697,140 @@ const ImageNoteFormBlock = ({ group, onUpdate, onDelete, onSelect, selected, dra
                     questionType: { typeName: 'FILL_IN_BLANK' },
                   });
                 }
-                console.log('[AUTO] Creating', needToCreate, 'questions');
-                onUpdate(group.id, { questions: [...questions, ...newQuestions] });
+                onUpdate(group.id, { fromQuestion: baseNumber, questions: [...questions, ...newQuestions] });
               } else {
-                // Xóa bớt câu hỏi (giữ lại số câu = số ô trống)
                 const toKeep = noteQuestions.slice(0, blankMatches);
-                console.log('[AUTO] Removing', noteQuestions.length - blankMatches, 'questions');
-                onUpdate(group.id, { questions: [...imagePins, ...toKeep] });
+                onUpdate(group.id, { fromQuestion: baseNumber, questions: [...imagePinsNow, ...toKeep] });
               }
             }
           }, 100);
-        }}
-        placeholder={'VD:\nGround Floor:\n- Living room: (ô trống) square meters\n- Kitchen: Located in the (ô trống)'}
-        preWrap
-        blankClass="rbe-blank-amber"
-        startNumber={getNextQuestionNumber(questions)}
-      />
+        },
+        'VD:\nGround Floor:\n- Living room: (ô trống) square meters\n- Kitchen: Located in the (ô trống)',
+        topEditorStart
+      )}
 
-      {/* Image on bottom */}
+      {imagePosition === 'middle' && topEditor && renderNoteEditor(
+        topNoteText,
+        (text) => {
+          syncNoteText(text, bottomNoteText);
+
+          setTimeout(() => {
+            const blankMatches = countBlankTokens(text) + countBlankTokens(bottomNoteText);
+            const noteQuestions = questions.filter(isNoteBlankQuestion);
+            const imagePinsNow = questions.filter(isImagePinQuestion);
+
+            if (blankMatches !== noteQuestions.length) {
+              if (blankMatches > noteQuestions.length) {
+                const needToCreate = blankMatches - noteQuestions.length;
+                const maxNum = questions.length > 0
+                  ? Math.max(...questions.map(q => q.questionNumber || 0))
+                  : baseNumber - 1;
+                const newQuestions = [];
+                for (let i = 0; i < needToCreate; i++) {
+                  newQuestions.push({
+                    id: Date.now() + Math.random() * 1000,
+                    groupId: group.id,
+                    questionNumber: maxNum + i + 1,
+                    questionText: '',
+                    answerText: '',
+                    questionMode: 'note-blank',
+                    questionType: { typeName: 'FILL_IN_BLANK' },
+                  });
+                }
+                onUpdate(group.id, { fromQuestion: baseNumber, questions: [...questions, ...newQuestions] });
+              } else {
+                const toKeep = noteQuestions.slice(0, blankMatches);
+                onUpdate(group.id, { fromQuestion: baseNumber, questions: [...imagePinsNow, ...toKeep] });
+              }
+            }
+          }, 100);
+        },
+        'VD:\nGround Floor:\n- Living room: (ô trống) square meters\n- Kitchen: Located in the (ô trống)',
+        topEditorStart
+      )}
+
+      {imagePosition === 'middle' && imageSection}
+
+      {imagePosition === 'middle' && bottomEditor && renderNoteEditor(
+        bottomNoteText,
+        (text) => {
+          syncNoteText(topNoteText, text);
+
+          setTimeout(() => {
+            const blankMatches = countBlankTokens(topNoteText) + countBlankTokens(text);
+            const noteQuestions = questions.filter(isNoteBlankQuestion);
+            const imagePinsNow = questions.filter(isImagePinQuestion);
+
+            if (blankMatches !== noteQuestions.length) {
+              if (blankMatches > noteQuestions.length) {
+                const needToCreate = blankMatches - noteQuestions.length;
+                const maxNum = questions.length > 0
+                  ? Math.max(...questions.map(q => q.questionNumber || 0))
+                  : baseNumber - 1;
+                const newQuestions = [];
+                for (let i = 0; i < needToCreate; i++) {
+                  newQuestions.push({
+                    id: Date.now() + Math.random() * 1000,
+                    groupId: group.id,
+                    questionNumber: maxNum + i + 1,
+                    questionText: '',
+                    answerText: '',
+                    questionMode: 'note-blank',
+                    questionType: { typeName: 'FILL_IN_BLANK' },
+                  });
+                }
+                onUpdate(group.id, { fromQuestion: baseNumber, questions: [...questions, ...newQuestions] });
+              } else {
+                const toKeep = noteQuestions.slice(0, blankMatches);
+                onUpdate(group.id, { fromQuestion: baseNumber, questions: [...imagePinsNow, ...toKeep] });
+              }
+            }
+          }, 100);
+        },
+        'VD:\n- First floor: (ô trống) rooms\n- Balcony: (ô trống) overlooking the garden',
+        bottomEditorStart
+      )}
+
+      {imagePosition === 'bottom' && bottomEditor && renderNoteEditor(
+        bottomNoteText,
+        (text) => {
+          syncNoteText('', text);
+
+          setTimeout(() => {
+            const blankMatches = countBlankTokens(text);
+            const noteQuestions = questions.filter(isNoteBlankQuestion);
+            const imagePinsNow = questions.filter(isImagePinQuestion);
+
+            if (blankMatches !== noteQuestions.length) {
+              if (blankMatches > noteQuestions.length) {
+                const needToCreate = blankMatches - noteQuestions.length;
+                const maxNum = questions.length > 0
+                  ? Math.max(...questions.map(q => q.questionNumber || 0))
+                  : baseNumber - 1;
+                const newQuestions = [];
+                for (let i = 0; i < needToCreate; i++) {
+                  newQuestions.push({
+                    id: Date.now() + Math.random() * 1000,
+                    groupId: group.id,
+                    questionNumber: maxNum + i + 1,
+                    questionText: '',
+                    answerText: '',
+                    questionMode: 'note-blank',
+                    questionType: { typeName: 'FILL_IN_BLANK' },
+                  });
+                }
+                onUpdate(group.id, { fromQuestion: baseNumber, questions: [...questions, ...newQuestions] });
+              } else {
+                const toKeep = noteQuestions.slice(0, blankMatches);
+                onUpdate(group.id, { fromQuestion: baseNumber, questions: [...imagePinsNow, ...toKeep] });
+              }
+            }
+          }, 100);
+        },
+        'VD:\n- First floor: (ô trống) rooms\n- Balcony: (ô trống) overlooking the garden',
+        bottomEditorStart
+      )}
+
       {imagePosition === 'bottom' && imageSection}
 
       <div className="exam-q-range-header" style={{ marginTop: 12 }}>
@@ -2472,7 +2845,9 @@ const ImageNoteFormBlock = ({ group, onUpdate, onDelete, onSelect, selected, dra
         const noteBlanks = questions.filter(isNoteBlankQuestion);
         const orderedQuestions = imagePosition === 'top' 
           ? [...imagePins, ...noteBlanks]
-          : [...noteBlanks, ...imagePins];
+          : imagePosition === 'bottom'
+            ? [...noteBlanks, ...imagePins]
+            : [...noteBlanks.slice(0, topNoteBlankCount), ...imagePins, ...noteBlanks.slice(topNoteBlankCount)];
         
         return orderedQuestions.map((q, idx) => (
           <div key={q.id} className={`exam-question${selectedQuestionId === q.id ? ' selected' : ''}`}
@@ -2883,11 +3258,11 @@ const SpeakingCueCardBlock = ({ group, onUpdate, onDelete, onSelect, selected, d
 // Không có sub-questions — thí sinh sẽ viết tự do vào textarea.
 const WritingTaskBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps }) => {
   const handleFileUpload = (e) => {
-    const file = e.target.files?.[0];
+    const input = e.currentTarget;
+    const file = input.files?.[0];
     if (!file) return;
-    fileToCompressedDataUrl(file)
-      .then((dataUrl) => onUpdate(group.id, { imageUrl: dataUrl }))
-      .catch((err) => console.error('Image upload failed:', err));
+    input.value = '';
+    loadImageFile(file, (imageUrl) => onUpdate(group.id, { imageUrl }));
   };
 
   return (
@@ -2925,7 +3300,7 @@ const WritingTaskBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragH
           />
           <label className="exam-ml-upload-btn">
             Tải lên
-            <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileUpload} />
+            <input type="file" accept="image/*" style={{ display: 'none' }} onClick={(e) => e.stopPropagation()} onChange={handleFileUpload} />
           </label>
           {group.imageUrl && (
             <button className="exam-group-tool-btn danger" title="Xóa ảnh"
@@ -2999,7 +3374,7 @@ const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUp
       selectedQuestionId={selectedQuestionId} />;
   }
   if (ct === 'IMAGE_NOTE_FORM') {
-    return <ImageNoteFormBlock group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
+    return <ImageNoteFormBlock group={group} allGroups={allGroups} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
       onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps}
       onSelectQuestion={(q) => onSelectQuestion(q, group.id)}
       onUpdateQuestion={onUpdateQuestion} onDeleteQuestion={onDeleteQuestion} onAddQuestion={onAddQuestion}
@@ -3066,6 +3441,13 @@ const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUp
   }
   if (ct === 'DRAG_MATCHING') {
     return <DragMatchingBlock group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
+      onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps}
+      onSelectQuestion={(q) => onSelectQuestion(q, group.id)}
+      onUpdateQuestion={onUpdateQuestion} onDeleteQuestion={onDeleteQuestion} onAddQuestion={onAddQuestion}
+      selectedQuestionId={selectedQuestionId} />;
+  }
+  if (ct === 'MATCHING_FEATURES') {
+    return <MatchingFeaturesBlock group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
       onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps}
       onSelectQuestion={(q) => onSelectQuestion(q, group.id)}
       onUpdateQuestion={onUpdateQuestion} onDeleteQuestion={onDeleteQuestion} onAddQuestion={onAddQuestion}

@@ -323,7 +323,7 @@ const IeltsListeningTest = () => {
         sessionStorage.setItem('lastAnswers_listening', JSON.stringify(answers));
         setIsSubmitting(true);
 
-        ieltsApi.submitAnswers(testId, 'LISTENING', answers, timeSpentSeconds)
+        ieltsApi.submitAnswers(testId, 'LISTENING', answers, timeSpentSeconds, testData)
             .then((resp) => {
                 if (resp) {
                     sessionStorage.setItem('lastScore_listening', JSON.stringify(resp));
@@ -474,9 +474,16 @@ const IeltsListeningTest = () => {
                             }
                             currentGroup.questions.push(q);
                         }
-                        return questionGroups.map((group, gi) => (
-                            <div key={gi} style={{ marginBottom: '40px' }}>
-                                {group.questions.map(q => {
+                        return questionGroups.map((group, gi) => {
+                            const groupInstruction = group.questions[0]?.groupInstruction;
+                            
+                            return (
+                                <div key={gi} style={{ marginBottom: '40px' }}>
+                                    {groupInstruction && (
+                                        <div className="mcq-group-instruction" dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(groupInstruction) }} />
+                                    )}
+                                    
+                                    {group.questions.map(q => {
                                     const questionNumbers = q?.numberRange?.length
                                         ? q.numberRange
                                         : q?.subQuestions?.length
@@ -503,7 +510,8 @@ const IeltsListeningTest = () => {
                                     );
                                 })}
                             </div>
-                        ));
+                        );
+                    });
                     })()}
 
                     {audioStarted && <div className="pane-nav-buttons">

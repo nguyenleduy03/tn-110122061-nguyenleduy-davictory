@@ -277,15 +277,10 @@ const TestBuilder = () => {
 
     const groupIdx = (part.questionGroups?.length ?? 0) + 1;
 
-    // Tính startQuestionNumber dựa trên group trước đó
-    const lastGroup = part.questionGroups?.[part.questionGroups.length - 1];
-    let startQuestionNumber = 1;
-    
-    if (lastGroup && lastGroup.questions?.length > 0) {
-      const lastQuestion = lastGroup.questions[lastGroup.questions.length - 1];
-      const lastQuestionCount = lastQuestion.questionCount || 1;
-      startQuestionNumber = lastQuestion.questionNumber + lastQuestionCount;
-    }
+    // Tính startQuestionNumber theo toàn bộ câu hỏi đã có trong cùng part
+    const startQuestionNumber = (part.questionGroups ?? []).reduce((sum, g) => {
+      return sum + (g.questions ?? []).reduce((qSum, q) => qSum + (q.questionCount || 1), 0);
+    }, 0) + 1;
 
     // ── Helpers ──
     const makeQ = (offset, typeName = 'FILL_IN_BLANK', extra = {}) => ({
@@ -491,12 +486,14 @@ const TestBuilder = () => {
           return {
             title: `Image + Note Form ${groupIdx}`,
             imageUrl: '',                    // Link ảnh
-            imagePosition: 'top',            // 'top' hoặc 'bottom'
+            imagePosition: 'middle',         // 'top' | 'middle' | 'bottom'
             imageWidth: 100,                 // Độ rộng ảnh (%)
             pinBoxWidth: 60,                 // Độ rộng ô pin
-            noteText: '',                    // Nội dung form/note có chỗ trống
-            fromQuestion: null,
-            toQuestion: null,
+            noteText: '',                    // Nội dung form/note có chỗ trống (legacy/combined)
+            topNoteText: '',                 // Đoạn văn phía trên ảnh
+            bottomNoteText: '',              // Đoạn văn phía dưới ảnh
+            fromQuestion: startQuestionNumber,
+            toQuestion: startQuestionNumber,
             questions: [],                   // KHÔNG tạo sẵn câu hỏi
           };
 
@@ -661,10 +658,14 @@ const TestBuilder = () => {
     // Tính questionNumber đúng cho IMAGE_NOTE_FORM
     let questionNumber = (group.questions?.length ?? 0) + 1;
     if (ct === 'IMAGE_NOTE_FORM') {
-      // Tìm số câu lớn nhất hiện có
+      const partGroups = parts.find((p) => p.id === group.partId)?.questionGroups ?? [];
+      const startNum = partGroups.reduce((sum, g) => {
+        if (g.id === group.id) return sum;
+        return sum + (g.questions ?? []).reduce((qSum, q) => qSum + (q.questionCount || 1), 0);
+      }, 0) + 1;
       const maxNum = group.questions && group.questions.length > 0
         ? Math.max(...group.questions.map(q => q.questionNumber || 0))
-        : 0;
+        : startNum - 1;
       questionNumber = maxNum + 1;
     }
 

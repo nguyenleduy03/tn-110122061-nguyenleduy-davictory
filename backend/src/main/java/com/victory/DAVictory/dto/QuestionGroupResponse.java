@@ -19,6 +19,7 @@ public class QuestionGroupResponse {
     private Boolean hasTextAnswer;
     private Boolean hasMatching;
     private String title;
+    private String instructions;
     private String contentType;
     private String passageText;
     private String audioUrl;

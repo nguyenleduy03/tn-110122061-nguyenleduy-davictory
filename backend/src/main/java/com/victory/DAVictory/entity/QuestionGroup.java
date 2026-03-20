@@ -41,6 +41,9 @@ public class QuestionGroup {
     @Column(nullable = false, length = 500)
     private String title; // Tiêu đề nhóm, ví dụ: "Questions 1-10", "Passage 1"
 
+    @Column(columnDefinition = "TEXT")
+    private String instructions; // Hướng dẫn cho group
+
     @Column(length = 50)
     private String contentType;
     // READING_PASSAGE, AUDIO_TRANSCRIPT, STANDALONE, DIAGRAM, MAP, TABLE

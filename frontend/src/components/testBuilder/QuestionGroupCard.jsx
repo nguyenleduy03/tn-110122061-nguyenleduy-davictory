@@ -10,6 +10,7 @@ const CONTENT_TYPE_LABELS = {
   DIAGRAM: 'Diagram',
   MAP: 'Map',
   TABLE: 'Table',
+  MATCHING_FEATURES: 'Matching Features',
 };
 
 const QTYPE_LABELS = {

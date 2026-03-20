@@ -162,6 +162,7 @@ public class TestBuilderService {
                                         } else {
                                             // Không có attempt lịch sử: cập nhật group cũ và thay toàn bộ questions
                                             if (gs.getTitle() != null) qg.setTitle(truncateTitle(gs.getTitle()));
+                                            if (gs.getInstructions() != null) qg.setInstructions(gs.getInstructions());
                                             if (gs.getPassageText() != null) qg.setPassageText(gs.getPassageText());
                                             if (gs.getAudioUrl() != null) qg.setAudioUrl(gs.getAudioUrl());
                                             if (gs.getImageUrl() != null) qg.setImageUrl(gs.getImageUrl());
@@ -281,6 +282,7 @@ public class TestBuilderService {
                     gr.setTestQuestionGroupId(tqg.getId());
                     gr.setQuestionGroupId(qg.getId());
                     gr.setTitle(tqg.getCustomTitle() != null ? tqg.getCustomTitle() : qg.getTitle());
+                    gr.setInstructions(tqg.getCustomInstructions() != null ? tqg.getCustomInstructions() : qg.getInstructions());
                     gr.setContentType(qg.getContentType());
                     gr.setPassageText(qg.getPassageText());
                     gr.setAudioUrl(qg.getAudioUrl());
@@ -467,6 +469,7 @@ public class TestBuilderService {
         QuestionGroup qg = new QuestionGroup();
         qg.setPart(part);
         qg.setTitle(truncateTitle(gs.getTitle()));
+        qg.setInstructions(gs.getInstructions());
         qg.setContentType(gs.getContentType());
         qg.setPassageText(gs.getPassageText());
         qg.setAudioUrl(gs.getAudioUrl());

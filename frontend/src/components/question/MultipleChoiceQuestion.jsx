@@ -30,11 +30,6 @@ const MultipleChoiceQuestion = ({ q, activeQuestion, setActiveQuestion, answer, 
 
     return (
         <div className="tfng-question relative-pos">
-            {/* Group instruction cho MCQ multiple */}
-            {hasGroupInstruction && (
-                <div className="mcq-group-instruction" dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(q.groupInstruction) }} />
-            )}
-
             <div className="tfng-text">
                 {!isReview && (
                     <span className="tfng-bookmark" onClick={(e) => { e.stopPropagation(); nums.forEach(n => toggleBookmark?.(n)); }} >

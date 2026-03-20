@@ -513,7 +513,9 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
     };
 
     const renderMatchingFeatures = () => {
-        const categories = q.categories || [];
+        const categories = (q.categories || []).length > 0
+            ? q.categories
+            : ['A', 'B', 'C', 'D', 'E'].map((label) => ({ label, text: '' }));
         const subQuestions = q.subQuestions || [];
         const answerMap = answers || {};
 
@@ -526,12 +528,12 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                 : 'Questions');
 
         const instruction = q.instruction
-            || `Choose the correct group (${categories.map((c) => c.label).join('–') || 'A–E'}) for each item. You may choose any group more than once.`;
+            || `Choose the correct group (${categories[0]?.label || 'A'}–${categories[categories.length - 1]?.label || 'E'}) for each item. You may choose any group more than once.`;
 
-        const handleSelect = (subQId, label) => {
+        const handleSelect = (questionId, label) => {
             if (isReview) return;
-            const current = answerMap[subQId];
-            handleAnswerChange?.(subQId, current === label ? '' : label);
+            const current = answerMap[questionId];
+            handleAnswerChange?.(questionId, current === label ? '' : label);
         };
 
         return (
@@ -547,13 +549,19 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                 {categories.length > 0 && (
                     <div className="mf-categories-box">
                         {q.categoryTitle && (
-                            <div className="mf-category-title">{q.categoryTitle}</div>
+                            <div
+                                className="mf-category-title"
+                                dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(q.categoryTitle) }}
+                            />
                         )}
                         <div className="mf-category-list">
                             {categories.map((cat) => (
                                 <div key={cat.label} className="mf-category-row">
                                     <span className="mf-cat-label">{cat.label}</span>
-                                    <span className="mf-cat-text">{cat.text}</span>
+                                    <span
+                                        className="mf-cat-text"
+                                        dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(cat.text || '') }}
+                                    />
                                 </div>
                             ))}
                         </div>

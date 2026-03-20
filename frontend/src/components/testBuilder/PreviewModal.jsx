@@ -392,15 +392,17 @@ const ImageNoteFormGroup = ({ group, activeQ, onSetActive }) => {
   const questions = group.questions ?? [];
   const [answers, setAnswers] = useState({});
   const handleAnswer = (num, val) => setAnswers((prev) => ({ ...prev, [num]: val }));
-  const imagePosition = group.imagePosition || 'top';
+  const imagePosition = group.imagePosition || 'middle';
   const imageWidth = group.imageWidth || 100;
   const pinBoxWidth = group.pinBoxWidth || 60;
+  const topNoteText = group.topNoteText ?? (group.imagePosition === 'bottom' ? '' : (group.noteText || ''));
+  const bottomNoteText = group.bottomNoteText ?? (group.imagePosition === 'bottom' ? (group.noteText || '') : '');
 
   const imageSection = group.imageUrl && (
-    <div style={{ marginBottom: 20, textAlign: 'center' }}>
-      <div style={{ position: 'relative', display: 'inline-block' }}>
-        <img src={group.imageUrl} alt="Question" 
-          style={{ maxWidth: `${imageWidth}%`, height: 'auto', display: 'block' }} />
+    <div style={{ marginBottom: 20 }}>
+      <div style={{ position: 'relative', width: `${imageWidth}%`, margin: '0 auto' }}>
+        <img src={group.imageUrl} alt="Question"
+          style={{ width: '100%', height: 'auto', display: 'block' }} />
         {questions.filter(q => q.pinX !== undefined).map((q) => {
           const active = activeQ === q.questionNumber;
           const userAnswer = answers[q.questionNumber] || '';
@@ -468,13 +470,33 @@ const ImageNoteFormGroup = ({ group, activeQ, onSetActive }) => {
       {group.title && <div className="pv-summary-title" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.title) }} />}
       
       {imagePosition === 'top' && imageSection}
-      
-      {group.noteText && (
+
+      {imagePosition === 'top' && topNoteText && (
         <div className="pv-note-text">
-          {parseNotePreview(group.noteText, questions, activeQ, onSetActive, answers, handleAnswer)}
+          {parseNotePreview(topNoteText, questions, activeQ, onSetActive, answers, handleAnswer)}
         </div>
       )}
-      
+
+      {imagePosition === 'middle' && topNoteText && (
+        <div className="pv-note-text">
+          {parseNotePreview(topNoteText, questions, activeQ, onSetActive, answers, handleAnswer)}
+        </div>
+      )}
+
+      {imagePosition === 'middle' && imageSection}
+
+      {imagePosition === 'middle' && bottomNoteText && (
+        <div className="pv-note-text">
+          {parseNotePreview(bottomNoteText, questions, activeQ, onSetActive, answers, handleAnswer)}
+        </div>
+      )}
+
+      {imagePosition === 'bottom' && bottomNoteText && (
+        <div className="pv-note-text">
+          {parseNotePreview(bottomNoteText, questions, activeQ, onSetActive, answers, handleAnswer)}
+        </div>
+      )}
+
       {imagePosition === 'bottom' && imageSection}
     </div>
   );
@@ -609,44 +631,47 @@ const MapLabellingGroup = ({ group, activeQ, onSetActive }) => {
       <div className="pv-ml-layout">
         {/* Image area with positioned drop pins */}
         <div className="pv-ml-image-wrapper">
-          {group.imageUrl
-            ? <img src={group.imageUrl} alt="map" draggable={false} style={{ display: 'block', width: `${group.imageWidth ?? 100}%`, height: 'auto' }} />
-            : <div className="pv-diagram-placeholder">Bản đồ chưa được tải lên</div>
-          }
-          {questions.map((q) => {
-            const filled = answers[q.questionNumber] ?? null;
-            const isOver = dragOver === q.questionNumber;
-            const active = activeQ === q.questionNumber;
-            return (
-              <div key={q.id}
-                className={`pv-ml-pin${filled ? ' filled' : ''}${isOver ? ' drag-over' : ''}${active ? ' active' : ''}`}
-                style={{ left: `${q.pinX ?? 10}%`, top: `${q.pinY ?? 10}%`, minWidth: `${group.pinBoxWidth ?? 60}px` }}
-                onDragOver={(e) => { e.preventDefault(); setDragOver(q.questionNumber); }}
-                onDragLeave={() => setDragOver(null)}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setDragOver(null);
-                  const id = Number(e.dataTransfer.getData('text/x-dm'));
-                  const chip = allOptions.find((o) => o.id === id);
-                  if (chip) placeChip(q.questionNumber, chip);
-                }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (filled) {
-                    setAnswers((prev) => ({ ...prev, [q.questionNumber]: null }));
-                  } else {
-                    onSetActive(q.questionNumber);
-                  }
-                }}
-                title={filled ? 'Click để trả lại' : `Kéo đáp án vào ô ${q.questionNumber}`}
-              >
-                {filled
-                  ? <span className="pv-ml-pin-text">{filled.text}</span>
-                  : <span className="pv-ml-pin-num">{q.questionNumber}</span>
-                }
-              </div>
-            );
-          })}
+          {group.imageUrl ? (
+            <div style={{ position: 'relative', width: `${group.imageWidth ?? 100}%`, margin: '0 auto' }}>
+              <img src={group.imageUrl} alt="map" draggable={false} style={{ display: 'block', width: '100%', height: 'auto' }} />
+              {questions.map((q) => {
+                const filled = answers[q.questionNumber] ?? null;
+                const isOver = dragOver === q.questionNumber;
+                const active = activeQ === q.questionNumber;
+                return (
+                  <div key={q.id}
+                    className={`pv-ml-pin${filled ? ' filled' : ''}${isOver ? ' drag-over' : ''}${active ? ' active' : ''}`}
+                    style={{ left: `${q.pinX ?? 10}%`, top: `${q.pinY ?? 10}%`, minWidth: `${group.pinBoxWidth ?? 60}px` }}
+                    onDragOver={(e) => { e.preventDefault(); setDragOver(q.questionNumber); }}
+                    onDragLeave={() => setDragOver(null)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setDragOver(null);
+                      const id = Number(e.dataTransfer.getData('text/x-dm'));
+                      const chip = allOptions.find((o) => o.id === id);
+                      if (chip) placeChip(q.questionNumber, chip);
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (filled) {
+                        setAnswers((prev) => ({ ...prev, [q.questionNumber]: null }));
+                      } else {
+                        onSetActive(q.questionNumber);
+                      }
+                    }}
+                    title={filled ? 'Click để trả lại' : `Kéo đáp án vào ô ${q.questionNumber}`}
+                  >
+                    {filled
+                      ? <span className="pv-ml-pin-text">{filled.text}</span>
+                      : <span className="pv-ml-pin-num">{q.questionNumber}</span>
+                    }
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="pv-diagram-placeholder">Bản đồ chưa được tải lên</div>
+          )}
         </div>
 
         {/* Word bank */}

@@ -13,6 +13,7 @@ public class QuestionGroupRequest {
     private Long questionTypeId;       // ID loại câu hỏi (MCQ, TFNG, FILL_BLANK...)
     private String questionTypeCode;   // Hoặc dùng code: "MCQ", "TFNG"...
     private String title;             // "Questions 1-10", "Passage 1"
+    private String instructions;      // Hướng dẫn cho group
     private String contentType;       // READING_PASSAGE, AUDIO_TRANSCRIPT, STANDALONE, DIAGRAM, MAP, TABLE
     private String passageText;       // Nội dung bài đọc/transcript
     private String audioUrl;          // URL audio (Listening)

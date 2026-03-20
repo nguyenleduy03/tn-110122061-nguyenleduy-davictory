@@ -59,6 +59,7 @@ public class TestFullResponse {
         private Long testQuestionGroupId;
         private Long questionGroupId;
         private String title;
+        private String instructions;
         private String contentType;
         private String passageText;
         private String audioUrl;

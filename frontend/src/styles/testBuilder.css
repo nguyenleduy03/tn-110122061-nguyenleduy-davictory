@@ -2358,16 +2358,23 @@
    MAP LABELLING — Preview
    ================================================================ */
 .pv-ml-layout {
-  display: flex; gap: 24px; align-items: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: stretch;
 }
 .pv-ml-image-wrapper {
-  flex: 1; position: relative; min-width: 0;
+  width: 100%;
+  position: relative;
+  min-width: 0;
 }
 .pv-ml-image-wrapper img {
   display: block; width: 100%; height: auto; user-select: none;
 }
 .pv-ml-bank {
-  flex: 0 0 160px; min-width: 120px;
+  width: 100%;
+  flex: none;
+  min-width: 0;
 }
 .pv-ml-pin {
   position: absolute; transform: translate(-50%, -50%);

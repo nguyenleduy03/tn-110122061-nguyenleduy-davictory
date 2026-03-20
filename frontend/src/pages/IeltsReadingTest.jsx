@@ -538,7 +538,10 @@ const IeltsReadingTest = () => {
         // Lưu lại đáp án để lát review
         sessionStorage.setItem('lastAnswers_reading', JSON.stringify(answers));
 
-        ieltsApi.submitAnswers(testId, 'READING', answers, timeSpentSeconds).then((resp) => {
+        console.log('🎯 Submitting answers:', answers);
+        console.log('📚 Test data:', testData);
+
+        ieltsApi.submitAnswers(testId, 'READING', answers, timeSpentSeconds, testData).then((resp) => {
             if (resp) {
                 sessionStorage.setItem('lastScore_reading', JSON.stringify(resp));
             }
@@ -701,9 +704,18 @@ const IeltsReadingTest = () => {
 
                 <div className="questions-section" id="questions-area" style={{ minWidth: 0, width: '100%' }}>
                     <div className="questions-content" style={{ paddingBottom: '80px' }}>
-                        {questionGroups.map((group, gi) => (
-                            <div key={gi} style={{ marginBottom: '40px' }}>
-                                {group.questions.map(q => {
+                        {questionGroups.map((group, gi) => {
+                            // Get instruction from first question in group
+                            const groupInstruction = group.questions[0]?.groupInstruction;
+                            
+                            return (
+                                <div key={gi} style={{ marginBottom: '40px' }}>
+                                    {/* Group instruction - show once at top */}
+                                    {groupInstruction && (
+                                        <div className="mcq-group-instruction" dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(groupInstruction) }} />
+                                    )}
+                                    
+                                    {group.questions.map(q => {
                                     const questionNumbers = q?.numberRange?.length
                                         ? q.numberRange
                                         : q?.subQuestions?.length
@@ -748,7 +760,8 @@ const IeltsReadingTest = () => {
                                     </div>
                                 )}
                             </div>
-                        ))}
+                        );
+                    })}
                     </div>
 
                     <div className="pane-nav-buttons">

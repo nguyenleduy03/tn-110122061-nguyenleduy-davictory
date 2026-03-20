@@ -257,6 +257,7 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
         correctAnswer,
         allowMultipleAnswers: isMultiSelect,
         selectCount: selectCount,
+        groupInstruction: formatTextWithWhitespace(group.instructions || ''),
       };
     });
   }
@@ -552,6 +553,9 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
 
   // ─── MATCHING_FEATURES → 1 group question ─────────────────────────────
   if (feType === 'matching_features') {
+    const groupDetail = await fetchGroupDetail(baseUrl, group.questionGroupId || group.id);
+    const matchingPairs = groupDetail?.matchingPairs || [];
+
     let categories = [];
     let categoryTitle = '';
     if (group.passageText) {
@@ -564,16 +568,34 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
       }
     }
 
+    if (categories.length === 0 && matchingPairs.length > 0) {
+      categories = matchingPairs.map((mp, index) => ({
+        label: String(mp.leftLabel || String.fromCharCode(65 + index)),
+        text: mp.leftContent || '',
+      }));
+      categoryTitle = categoryTitle || groupDetail?.title || group.title || '';
+    }
+
+    if (categories.length === 0) {
+      categories = ['A', 'B', 'C', 'D', 'E'].map((label) => ({ label, text: '' }));
+    }
+
+    categories = categories.map((cat, index) => ({
+      label: String(cat?.label || String.fromCharCode(65 + index)),
+      text: formatTextWithWhitespace(cat?.text || ''),
+    }));
+
+    // Transform questions - each question is a row in the table
     const subQuestions = questions.map((q) => {
       const num = globalCounterRef.counter++;
       const correctAnswer = (q.answers || [])[0]?.answerText
         || (q.options || []).find(o => o.isCorrect)?.optionText
         || '';
       return {
-        id: `q${q.id}`,
-        number: num,
+        id: q.id,           // Real database ID
+        number: num,        // Display number
         text: q.questionText || q.blankContext || '',
-        correctAnswer,
+        correctAnswer: correctAnswer.trim(),
       };
     });
 
@@ -589,7 +611,9 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
       type: 'matching_features',
       questionTypeCode: typeCode,
       heading,
-      instruction: group.instructions || `Choose the correct group (${categories.map(c => c.label).join('–') || 'A–E'}) for each item. You may choose any group more than once.`,
+      instruction: formatTextWithWhitespace(
+        group.instructions || `Choose the correct group (${categories.map((c) => c.label).join('–') || 'A–E'}) for each item. You may choose any group more than once.`
+      ),
       categoryTitle,
       categories,
       subQuestions,
@@ -887,20 +911,17 @@ export const ieltsApi = {
     };
   },
 
-  submitAnswers: async (testId, skillType, answers, timeSpentSeconds = null) => {
+  submitAnswers: async (testId, skillType, answers, timeSpentSeconds = null, testData = null) => {
     const baseUrl = API_CONFIG.BASE_URL;
 
-    const normalizeQuestionId = (rawId) => {
-      if (rawId == null) return null;
-      const str = String(rawId);
-      if (str.startsWith('q')) return Number(str.slice(1));
-      const num = Number(str);
-      return Number.isFinite(num) ? num : null;
-    };
+    console.log('📝 Raw Answers:', answers);
 
     const answerPayloads = Object.entries(answers || {}).map(([qid, value]) => {
-      const questionId = normalizeQuestionId(qid);
-      if (!questionId) return null;
+      const questionId = Number(qid);
+      if (!Number.isFinite(questionId)) {
+        console.warn(`Invalid questionId: ${qid}`);
+        return null;
+      }
 
       let textAnswer = null;
       let selectedOptionLabel = null;
@@ -922,6 +943,8 @@ export const ieltsApi = {
         matchingAnswer,
       };
     }).filter(Boolean);
+
+    console.log('📤 Answer Payloads:', answerPayloads);
 
     const startResp = await apiFetch(`${baseUrl}/exam-attempts/start`, {
       method: 'POST',

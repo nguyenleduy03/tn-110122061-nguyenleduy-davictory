@@ -45,6 +45,7 @@ public class TestSaveRequest {
     public static class GroupSave {
         private Long existingGroupId; // != null → tham chiếu group có sẵn trong ngân hàng
         private String title;
+        private String instructions;  // Hướng dẫn cho group
         private String contentType;
         private String passageText;   // Nội dung bài đọc hoặc JSON metadata (bảng, sơ đồ...)
         private String audioUrl;
@@ -52,6 +53,7 @@ public class TestSaveRequest {
         private Integer fromQuestion;
         private Integer toQuestion;
         private Integer orderIndex;
+        private Boolean allowOptionReuse;
         private List<QuestionSave> questions;
     }
 

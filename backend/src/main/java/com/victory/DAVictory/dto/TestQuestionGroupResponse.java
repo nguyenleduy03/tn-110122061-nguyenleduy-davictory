@@ -14,6 +14,7 @@ public class TestQuestionGroupResponse {
     private String questionTypeCode;
     private String questionTypeName;
     private String title;                   // customTitle hoặc group.title
+    private String instructions;            // instructions từ QuestionGroup
     private String contentType;
     private String passageText;
     private String audioUrl;
@@ -46,6 +47,11 @@ public class TestQuestionGroupResponse {
         dto.setTitle(tqg.getCustomTitle() != null
                 ? tqg.getCustomTitle()
                 : tqg.getQuestionGroup().getTitle());
+
+        // Hiển thị customInstructions nếu có, ngược lại dùng instructions gốc
+        dto.setInstructions(tqg.getCustomInstructions() != null
+                ? tqg.getCustomInstructions()
+                : tqg.getQuestionGroup().getInstructions());
 
         dto.setContentType(tqg.getQuestionGroup().getContentType());
         dto.setPassageText(tqg.getQuestionGroup().getPassageText());

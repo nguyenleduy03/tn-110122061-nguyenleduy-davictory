@@ -212,6 +212,7 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
           toQuestion: group.toQuestion || null,
           orderIndex: gIdx + 1,
           allowOptionReuse: group.allowOptionReuse ?? false,
+          instructions: group.instructions || null,  // Add group-level instructions
           questions: (group.questions || []).map((q, qIdx) => {
             console.log(`🔄 Processing question ${qIdx}/${group.questions.length} for group ${group.contentType}`);
             console.log(`   - questionText: "${q.questionText}"`);
@@ -247,8 +248,8 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
             // Xây dựng answers[] để gửi lên backend
             let answers;
             
-            // Đặc biệt xử lý DRAG_MATCHING - luôn tạo answer cho mọi câu hỏi
-            if (group.contentType === 'DRAG_MATCHING') {
+            // Đặc biệt xử lý DRAG_MATCHING và MATCHING_FEATURES - luôn tạo answer cho mọi câu hỏi
+            if (group.contentType === 'DRAG_MATCHING' || group.contentType === 'MATCHING_FEATURES') {
               const existingAnswer = q.answers?.[0];
               answers = [{
                 answerText: q.answerText || '', // Có thể rỗng
@@ -257,7 +258,7 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
                 blankIndex: existingAnswer?.blankIndex || 1,
                 wordLimit: existingAnswer?.wordLimit || null,
               }];
-              console.log(`   ✅ DRAG answer created: "${answers[0].answerText}"`);
+              console.log(`   ✅ ${group.contentType} answer created: "${answers[0].answerText}"`);
             } else if (isTextAnswer) {
               // Logic cũ cho các loại khác (gồm MCQ_DROPDOWN: một chữ A/B/C…)
               const existingAnswer = q.answers?.[0];
@@ -382,10 +383,15 @@ function serializeGroupContent(group, part) {
   if (ct === 'SUMMARY_COMPLETION') return group.summaryText || '';
   // Image + Note Form: lưu noteText, imagePosition, imageWidth
   if (ct === 'IMAGE_NOTE_FORM') {
+    const topNoteText = group.topNoteText ?? (group.imagePosition === 'bottom' ? '' : (group.noteText || ''));
+    const bottomNoteText = group.bottomNoteText ?? (group.imagePosition === 'bottom' ? (group.noteText || '') : '');
     return JSON.stringify({
-      noteText: group.noteText || '',
+      noteText: group.noteText || [topNoteText, bottomNoteText].filter(Boolean).join('\n\n'),
+      topNoteText,
+      bottomNoteText,
       imagePosition: group.imagePosition || 'top',
       imageWidth: group.imageWidth || 100,
+      pinBoxWidth: group.pinBoxWidth || 60,
     });
   }
   // Matching heading: lưu heading bank
@@ -567,6 +573,7 @@ export function parseLoadedTest(data) {
           backendGroupId: groupResp.questionGroupId,
           backendTestQGId: groupResp.testQuestionGroupId,
           title: groupResp.title,
+          instructions: groupResp.instructions || '',
           contentType: groupResp.contentType,
           audioUrl: groupResp.audioUrl,
           imageUrl: groupResp.imageUrl,
@@ -675,10 +682,15 @@ function deserializeGroupContent(contentType, passageText) {
     if (contentType === 'SUMMARY_COMPLETION') return { summaryText: passageText };
     if (contentType === 'IMAGE_NOTE_FORM') {
       const parsed = JSON.parse(passageText);
+      const topNoteText = parsed.topNoteText ?? (parsed.imagePosition === 'bottom' ? '' : (parsed.noteText || ''));
+      const bottomNoteText = parsed.bottomNoteText ?? (parsed.imagePosition === 'bottom' ? (parsed.noteText || '') : '');
       return {
-        noteText: parsed.noteText || '',
+        noteText: parsed.noteText || [topNoteText, bottomNoteText].filter(Boolean).join('\n\n'),
+        topNoteText,
+        bottomNoteText,
         imagePosition: parsed.imagePosition || 'top',
         imageWidth: parsed.imageWidth || 100,
+        pinBoxWidth: parsed.pinBoxWidth || 60,
       };
     }
     if (contentType === 'MATCHING_HEADING') {
