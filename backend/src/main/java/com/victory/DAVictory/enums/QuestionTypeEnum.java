@@ -11,6 +11,10 @@ public enum QuestionTypeEnum {
     MCQ("Multiple Choice", "ALL", true, false, false,
             "Chọn đáp án đúng từ A, B, C, D"),
 
+    /** Nhiều câu dùng chung một bảng chữ A/B/C…; đáp án mỗi câu là một chữ cái (dropdown). */
+    MCQ_DROPDOWN("Multiple Choice (Dropdown / Shared options)", "LISTENING_READING", true, false, false,
+            "Nhiều câu dùng chung bộ lựa chọn; mỗi câu chọn đúng một chữ cái"),
+
     TFNG("True/False/Not Given", "READING", true, false, false,
             "Xác định thông tin là TRUE, FALSE hay NOT GIVEN"),
 

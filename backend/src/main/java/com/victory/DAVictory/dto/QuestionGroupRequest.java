@@ -22,6 +22,8 @@ public class QuestionGroupRequest {
     private Integer toQuestion;       // Câu kết thúc (10, 20, 30...)
     private Integer orderIndex;       // Thứ tự trong part
     private Boolean allowOptionReuse; // Cho phép sử dụng lại thẻ đã kéo
+    private String sharedOptionsJson; // JSON bộ lựa chọn chung (MCQ_DROPDOWN)
+    private Boolean useSharedOptions; // Sử dụng bộ lựa chọn chung
     private List<QuestionRequest> questions;
     private List<MatchingPairRequest> matchingPairs;
 

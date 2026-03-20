@@ -136,6 +136,8 @@ public class QuestionBankService {
         group.setToQuestion(request.getToQuestion());
         group.setOrderIndex(request.getOrderIndex() != null ? request.getOrderIndex() : 0);
         group.setAllowOptionReuse(request.getAllowOptionReuse() != null ? request.getAllowOptionReuse() : false);
+        group.setSharedOptionsJson(request.getSharedOptionsJson());
+        group.setUseSharedOptions(request.getUseSharedOptions() != null ? request.getUseSharedOptions() : false);
         group.setIsActive(true);
 
         QuestionGroup savedGroup = questionGroupRepository.save(group);

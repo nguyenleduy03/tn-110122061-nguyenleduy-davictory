@@ -349,6 +349,27 @@ const TestBuilder = () => {
             questions: [makeMMCQ(1)],
           };
 
+        case 'SHARED_OPTIONS_DROPDOWN': {
+          const mkDrop = (n) => makeQ(n, 'MCQ_DROPDOWN', {
+            options: [],
+            answerText: '',
+            answers: [{ answerText: '', blankIndex: 1, isCaseSensitive: false }],
+          });
+          return {
+            title: `Questions ${startQuestionNumber}–${startQuestionNumber + 4}`,
+            fromQuestion: startQuestionNumber,
+            toQuestion: startQuestionNumber + 4,
+            mainInstruction: '',
+            subInstruction: '',
+            sharedOptions: [
+              { id: `so-${Date.now()}-a`, key: 'A', label: '' },
+              { id: `so-${Date.now()}-b`, key: 'B', label: '' },
+              { id: `so-${Date.now()}-c`, key: 'C', label: '' },
+            ],
+            questions: [mkDrop(1), mkDrop(2), mkDrop(3), mkDrop(4), mkDrop(5)],
+          };
+        }
+
         case 'TRUE_FALSE_NG':
           return {
             title: '',
@@ -464,6 +485,22 @@ const TestBuilder = () => {
             fromQuestion: null, toQuestion: null,
             optionBank: [],
             questions: [],
+          };
+
+        case 'IMAGE_NOTE_FORM':
+          return {
+            title: `Image + Note Form ${groupIdx}`,
+            imageUrl: '',                    // Link ảnh
+            imagePosition: 'top',            // 'top' hoặc 'bottom'
+            imageWidth: 100,                 // Độ rộng ảnh (%)
+            noteText: '',                    // Nội dung form/note có chỗ trống
+            fromQuestion: null,
+            toQuestion: null,
+            questions: [
+              makeQ(1, 'FILL_IN_BLANK'),
+              makeQ(2, 'FILL_IN_BLANK'),
+              makeQ(3, 'FILL_IN_BLANK'),
+            ],
           };
 
         case 'WRITING_TASK':
@@ -599,6 +636,7 @@ const TestBuilder = () => {
     // Determine default questionType and options based on group contentType
     const isMCQ  = ct === 'MULTIPLE_CHOICE_GROUP';
     const isMMCQ = ct === 'MULTIPLE_CHOICE_MULTI';
+    const isSharedDrop = ct === 'SHARED_OPTIONS_DROPDOWN';
     const isTFNG = ct === 'TRUE_FALSE_NG';
     const isFill = ['SENTENCE_COMPLETION', 'SHORT_ANSWER_GROUP', 'NOTE_COMPLETION', 'SUMMARY_COMPLETION'].includes(ct);
 
@@ -618,6 +656,7 @@ const TestBuilder = () => {
 
     let questionTypeName = 'MULTIPLE_CHOICE';
     if (isMMCQ) questionTypeName = 'MULTIPLE_CHOICE_MULTIPLE';
+    else if (isSharedDrop) questionTypeName = 'MCQ_DROPDOWN';
     else if (isTFNG) questionTypeName = 'TRUE_FALSE_NG';
     else if (isFill) questionTypeName = 'FILL_IN_BLANK';
     else if (ct === 'SHORT_ANSWER_GROUP') questionTypeName = 'SHORT_ANSWER';
@@ -631,7 +670,7 @@ const TestBuilder = () => {
       answerText: '', // Khởi tạo answerText rỗng cho drag matching
       questionType: { typeName: questionTypeName },
       options: (isMCQ || isMMCQ) ? defaultOptions : [],
-      answers: [],
+      answers: isSharedDrop ? [{ answerText: '', blankIndex: 1, isCaseSensitive: false }] : [],
       points: 1,
       orderIndex: (group.questions?.length ?? 0) + 1,
     };
@@ -771,6 +810,19 @@ const TestBuilder = () => {
         if (part) {
           // Don't allow dropping READING_PASSAGE into question pane
           const ct = activeData.contentType === 'READING_PASSAGE' ? 'STANDALONE' : activeData.contentType;
+          addGroup(part, ct);
+        }
+        return;
+      }
+
+      // 2.5 Palette item dropped onto an existing group card:
+      // DnD users often drop on top of the group instead of the explicit drop-zone.
+      // We treat it as "add group into the same Part" to avoid "can't drag into canvas".
+      if (activeData?.source === 'palette' && overData?.type === 'group') {
+        const partId = Number(overData.partId ?? overData.part?.id);
+        const part = parts.find((p) => p.id === partId);
+        if (part) {
+          const ct = activeData.contentType === 'READING_PASSAGE' ? 'READING_PASSAGE' : activeData.contentType;
           addGroup(part, ct);
         }
         return;

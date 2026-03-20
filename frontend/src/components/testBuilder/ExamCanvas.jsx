@@ -10,6 +10,7 @@ import { useDroppable } from '@dnd-kit/core';
 import { GripVertical, X, Volume2, Image, Plus, ChevronUp, ChevronDown, FileText, ClipboardList, Mic, PenLine } from 'lucide-react';
 import RichInput from '../common/RichInput';
 import { normalizeRichHtml } from '../../utils/textFormatters';
+import SharedOptionsDropdownBlock from './SharedOptionsDropdownBlock';
 
 // ---- Type metadata ----
 const TYPE_META = {
@@ -19,6 +20,7 @@ const TYPE_META = {
   DIAGRAM:                { label: 'Sơ đồ',               bg: '#fef9c3', color: '#a16207' },
   MAP:                    { label: 'Bản đồ',              bg: '#fce7f3', color: '#be185d' },
   MAP_LABELLING:          { label: 'Map Labelling',        bg: '#f0fdf4', color: '#166534' },
+  IMAGE_NOTE_FORM:        { label: 'Ảnh + Note Form',     bg: '#e0e7ff', color: '#4338ca' },
   TABLE_COMPLETION:       { label: 'Table Completion',     bg: '#e0e7ff', color: '#4338ca' },
   TABLE:                  { label: 'Bảng',                bg: '#e0e7ff', color: '#4338ca' },
   MATCHING_HEADING:       { label: 'Matching Headings',   bg: '#fff7ed', color: '#c2410c' },
@@ -31,6 +33,7 @@ const TYPE_META = {
   SENTENCE_COMPLETION:    { label: 'Sentence Completion',  bg: '#ecfdf5', color: '#065f46' },
   SHORT_ANSWER_GROUP:     { label: 'Short Answer',         bg: '#f0fdf4', color: '#166534' },
   FLOW_CHART:             { label: 'Flow-chart',           bg: '#f0fdfa', color: '#0f766e' },
+  SHARED_OPTIONS_DROPDOWN:{ label: 'Dropdown chung',       bg: '#e0f2fe', color: '#0369a1' },
   WRITING_TASK:           { label: 'Writing',              bg: '#fef9c3', color: '#a16207' },
   SPEAKING_INTERVIEW:     { label: 'Phỏng vấn',            bg: '#fce7f3', color: '#be185d' },
   SPEAKING_CUECARD:       { label: 'Cue Card',             bg: '#fdf4ff', color: '#7e22ce' },
@@ -2126,6 +2129,244 @@ const NoteCompletionBlock = ({ group, onUpdate, onDelete, onSelect, selected, dr
   </div>
 );
 
+const ImageNoteFormBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps, onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onAddQuestion, selectedQuestionId }) => {
+  const containerRef = useRef(null);
+  const dragRef = useRef(null);
+  const [livePin, setLivePin] = useState(null);
+  const imagePosition = group.imagePosition || 'top';
+  const imageWidth = group.imageWidth || 100;
+  const pinBoxWidth = group.pinBoxWidth || 60;
+  const questions = group.questions ?? [];
+
+  useEffect(() => {
+    const onMove = (e) => {
+      if (!dragRef.current || !containerRef.current) return;
+      const { origX, origY, startCX, startCY } = dragRef.current;
+      const rect = containerRef.current.getBoundingClientRect();
+      const newX = Math.max(0, Math.min(92, origX + (e.clientX - startCX) / rect.width * 100));
+      const newY = Math.max(0, Math.min(92, origY + (e.clientY - startCY) / rect.height * 100));
+      setLivePin({ qId: dragRef.current.qId, x: newX, y: newY });
+    };
+    const onUp = (e) => {
+      if (!dragRef.current || !containerRef.current) return;
+      const { qId, origX, origY, startCX, startCY } = dragRef.current;
+      const rect = containerRef.current.getBoundingClientRect();
+      const newX = Math.max(0, Math.min(92, origX + (e.clientX - startCX) / rect.width * 100));
+      const newY = Math.max(0, Math.min(92, origY + (e.clientY - startCY) / rect.height * 100));
+      onUpdateQuestion(group.id, qId, { pinX: newX, pinY: newY });
+      dragRef.current = null;
+      setLivePin(null);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+    return () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+  }, [group.id, onUpdateQuestion]);
+
+  const addPin = (e) => {
+    if (!containerRef.current || !group.imageUrl) return;
+    if (dragRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    const newQ = {
+      id: Date.now(),
+      groupId: group.id,
+      questionNumber: questions.length + 1,
+      questionText: '',
+      answerText: '',
+      pinX: Math.max(0, Math.min(92, x)),
+      pinY: Math.max(0, Math.min(92, y)),
+      questionType: { typeName: 'FILL_IN_BLANK' },
+    };
+    onUpdate(group.id, { questions: [...questions, newQ] });
+  };
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => onUpdate(group.id, { imageUrl: ev.target.result });
+    reader.readAsDataURL(file);
+  };
+
+  const imageSection = (
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
+        <input 
+          style={{ flex: 1, padding: '4px 8px', border: '1px solid #e2e8f0', borderRadius: 4, fontSize: 13 }}
+          value={group.imageUrl?.startsWith('data:') ? '(ảnh đã tải lên)' : (group.imageUrl || '')} 
+          placeholder="URL ảnh hoặc tải lên..."
+          readOnly={group.imageUrl?.startsWith('data:')}
+          onChange={(e) => onUpdate(group.id, { imageUrl: e.target.value })}
+        />
+        <label style={{ padding: '4px 12px', background: '#3b82f6', color: '#fff', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}>
+          Tải lên
+          <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileUpload} />
+        </label>
+        {group.imageUrl && (
+          <button style={{ padding: '4px 8px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}
+            onClick={(e) => { e.stopPropagation(); onUpdate(group.id, { imageUrl: '' }); }}>
+            <X size={12} />
+          </button>
+        )}
+      </div>
+      <div style={{ display: 'flex', gap: 12, marginBottom: 8, fontSize: 12 }} onClick={(e) => e.stopPropagation()}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <input type="radio" checked={imagePosition === 'top'} onChange={() => onUpdate(group.id, { imagePosition: 'top' })} />
+          Ảnh trên
+        </label>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <input type="radio" checked={imagePosition === 'bottom'} onChange={() => onUpdate(group.id, { imagePosition: 'bottom' })} />
+          Ảnh dưới
+        </label>
+        <label style={{ marginLeft: 'auto' }}>
+          Rộng ảnh: <strong>{imageWidth}%</strong>
+          <input type="range" min={50} max={100} value={imageWidth} 
+            onChange={(e) => onUpdate(group.id, { imageWidth: Number(e.target.value) })}
+            style={{ marginLeft: 4, width: 80 }} />
+        </label>
+        <label>
+          Cỡ ô: <strong>{pinBoxWidth}px</strong>
+          <input type="range" min={30} max={120} value={pinBoxWidth} 
+            onChange={(e) => onUpdate(group.id, { pinBoxWidth: Number(e.target.value) })}
+            style={{ marginLeft: 4, width: 80 }} />
+        </label>
+      </div>
+      
+      {/* Image canvas with pins */}
+      <div ref={containerRef} style={{ position: 'relative', cursor: group.imageUrl ? 'crosshair' : 'default', background: '#f8fafc', borderRadius: 8, overflow: 'hidden' }}
+        onClick={addPin}>
+        {group.imageUrl ? (
+          <>
+            <img src={group.imageUrl} alt="Question" draggable={false}
+              style={{ display: 'block', width: `${imageWidth}%`, height: 'auto', pointerEvents: 'none', margin: '0 auto' }} />
+            {questions.map((q) => {
+              const x = livePin?.qId === q.id ? livePin.x : (q.pinX ?? 10);
+              const y = livePin?.qId === q.id ? livePin.y : (q.pinY ?? 10);
+              return (
+                <div key={q.id}
+                  style={{
+                    position: 'absolute',
+                    left: `${x}%`,
+                    top: `${y}%`,
+                    minWidth: `${pinBoxWidth}px`,
+                    background: selectedQuestionId === q.id ? '#3b82f6' : '#fff',
+                    color: selectedQuestionId === q.id ? '#fff' : '#000',
+                    border: '2px solid #3b82f6',
+                    borderRadius: 4,
+                    padding: '4px 8px',
+                    fontSize: 13,
+                    fontWeight: 'bold',
+                    cursor: 'move',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                  }}
+                  onMouseDown={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    dragRef.current = { qId: q.id, origX: q.pinX ?? 10, origY: q.pinY ?? 10, startCX: e.clientX, startCY: e.clientY };
+                  }}
+                  onClick={(e) => { e.stopPropagation(); onSelectQuestion(q); }}>
+                  <span style={{ minWidth: 20, textAlign: 'center' }}>{q.questionNumber}</span>
+                  {q.questionText && (
+                    <span style={{ fontSize: 12, fontWeight: 'normal' }}>{q.questionText}:</span>
+                  )}
+                  <span style={{ fontSize: 12, fontWeight: 'normal' }}>____</span>
+                  <button
+                    style={{ marginLeft: 'auto', background: 'transparent', border: 'none', color: 'inherit', cursor: 'pointer', fontSize: 16, lineHeight: 1 }}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={(e) => { e.stopPropagation(); onDeleteQuestion(group.id, q.id); }}>×</button>
+                </div>
+              );
+            })}
+          </>
+        ) : (
+          <div style={{ padding: 40, textAlign: 'center', color: '#94a3b8' }}>
+            Tải ảnh lên, sau đó nhấn vào ảnh để thêm ô đánh số
+          </div>
+        )}
+      </div>
+      {group.imageUrl && (
+        <div style={{ fontSize: 11, color: '#64748b', marginTop: 4, textAlign: 'center' }}>
+          ↑ Nhấn vào ảnh để thêm ô · Kéo ô để di chuyển · × để xóa
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <div className={`exam-group${selected ? ' selected' : ''}`} onClick={(e) => { e.stopPropagation(); onSelect(group); }}>
+      <GroupToolbar group={group} dragHandleProps={dragHandleProps} onDelete={onDelete} />
+
+      {/* Instructions */}
+      <div className="exam-note-instructions">Complete the form below. Write <strong>NO MORE THAN TWO WORDS AND/OR A NUMBER</strong> for each answer.</div>
+
+      {/* Title */}
+      <div contentEditable suppressContentEditableWarning className="exam-note-form-title"
+        onMouseDown={(e) => e.stopPropagation()}
+        onMouseUp={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+        onBlur={(e) => onUpdate(group.id, { title: e.currentTarget.innerHTML })}
+        data-placeholder="Tiêu đề (VD: House Plan)"
+        dangerouslySetInnerHTML={{ __html: group.title || '' }}
+      />
+
+      {/* Image on top */}
+      {imagePosition === 'top' && imageSection}
+
+      {/* Note text with blanks */}
+      <RichBlankEditor
+        value={group.noteText}
+        onChange={(text) => onUpdate(group.id, { noteText: text })}
+        placeholder={'VD:\nGround Floor:\n- Living room: (ô trống) square meters\n- Kitchen: Located in the (ô trống)'}
+        preWrap
+        blankClass="rbe-blank-amber"
+      />
+
+      {/* Image on bottom */}
+      {imagePosition === 'bottom' && imageSection}
+
+      <div className="exam-q-range-header" style={{ marginTop: 12 }}>
+        Câu&nbsp;
+        <input className="exam-q-range-input" value={group.fromQuestion ?? ''} placeholder="1" onChange={(e) => onUpdate(group.id, { fromQuestion: e.target.value ? Number(e.target.value) : null })} onClick={(e) => e.stopPropagation()} />
+        &nbsp;–&nbsp;
+        <input className="exam-q-range-input" value={group.toQuestion ?? ''} placeholder="5" onChange={(e) => onUpdate(group.id, { toQuestion: e.target.value ? Number(e.target.value) : null })} onClick={(e) => e.stopPropagation()} />
+      </div>
+      {questions.map((q, idx) => (
+        <div key={q.id} className={`exam-question${selectedQuestionId === q.id ? ' selected' : ''}`}
+          onClick={(e) => { e.stopPropagation(); onSelectQuestion(q); }}>
+          <div className="exam-q-num" style={{ background: '#4338ca' }}>{q.questionNumber ?? idx + 1}</div>
+          <div className="exam-q-body">
+            {q.pinX !== undefined && (
+              <>
+                <div style={{ fontSize: 12, color: '#64748b', marginBottom: 4 }}>Label (hiển thị trên ảnh):</div>
+                <input className="exam-q-fill-answer" style={{ display: 'block', width: '100%', textAlign: 'left', marginBottom: 8 }}
+                  value={q.questionText || ''} placeholder="VD: Width, Height, Area..."
+                  onChange={(e) => onUpdateQuestion(group.id, q.id, { questionText: e.target.value })}
+                  onClick={(e) => e.stopPropagation()} />
+              </>
+            )}
+            <div style={{ fontSize: 12, color: '#64748b', marginBottom: 4 }}>Đáp án:</div>
+            <input className="exam-q-fill-answer" style={{ display: 'block', width: '100%', textAlign: 'left' }}
+              value={q.answerText || ''} placeholder="nhập đáp án..."
+              onChange={(e) => onUpdateQuestion(group.id, q.id, { answerText: e.target.value })}
+              onClick={(e) => e.stopPropagation()} />
+          </div>
+          <button className="exam-group-tool-btn danger" onClick={(e) => { e.stopPropagation(); onDeleteQuestion(group.id, q.id); }}><X size={11} /></button>
+        </div>
+      ))}
+      <button className="exam-add-btn" onClick={(e) => { e.stopPropagation(); onAddQuestion(group); }}>
+        <Plus size={12} /> Thêm ô trống (cho note text)
+      </button>
+    </div>
+  );
+};
+
 const SummaryCompletionBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps, onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onAddQuestion, selectedQuestionId }) => (
   <div className={`exam-group${selected ? ' selected' : ''}`} onClick={(e) => { e.stopPropagation(); onSelect(group); }}>
     <GroupToolbar group={group} dragHandleProps={dragHandleProps} onDelete={onDelete} />
@@ -2619,6 +2860,13 @@ const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUp
       onUpdateQuestion={onUpdateQuestion} onDeleteQuestion={onDeleteQuestion} onAddQuestion={onAddQuestion}
       selectedQuestionId={selectedQuestionId} />;
   }
+  if (ct === 'IMAGE_NOTE_FORM') {
+    return <ImageNoteFormBlock group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
+      onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps}
+      onSelectQuestion={(q) => onSelectQuestion(q, group.id)}
+      onUpdateQuestion={onUpdateQuestion} onDeleteQuestion={onDeleteQuestion} onAddQuestion={onAddQuestion}
+      selectedQuestionId={selectedQuestionId} />;
+  }
   if (ct === 'MULTIPLE_CHOICE_GROUP') {
     return <MultipleChoiceBlock group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
       onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps}
@@ -2632,6 +2880,30 @@ const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUp
       onSelectQuestion={(q) => onSelectQuestion(q, group.id)}
       onUpdateQuestion={onUpdateQuestion} onDeleteQuestion={onDeleteQuestion} onAddQuestion={onAddQuestion}
       selectedQuestionId={selectedQuestionId} />;
+  }
+  if (ct === 'SHARED_OPTIONS_DROPDOWN') {
+    return (
+      <SharedOptionsDropdownBlock
+        toolbar={(
+          <GroupToolbar
+            group={group}
+            dragHandleProps={dragHandleProps}
+            onDelete={onDeleteGroup}
+            onMoveUp={onMoveGroupUp}
+            onMoveDown={onMoveGroupDown}
+          />
+        )}
+        group={group}
+        onUpdate={onUpdateGroup}
+        onSelect={(g) => onSelectGroup(g, g.partId)}
+        selected={isSelected}
+        onSelectQuestion={(q) => onSelectQuestion(q, group.id)}
+        onUpdateQuestion={onUpdateQuestion}
+        onDeleteQuestion={onDeleteQuestion}
+        onAddQuestion={onAddQuestion}
+        selectedQuestionId={selectedQuestionId}
+      />
+    );
   }
   if (ct === 'TRUE_FALSE_NG') {
     return <TFNGBlock group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}

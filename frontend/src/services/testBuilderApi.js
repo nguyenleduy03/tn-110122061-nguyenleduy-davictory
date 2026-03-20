@@ -233,7 +233,7 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
             }
             
             // Ưu tiên contentType của group cho các loại writing/speaking đặc biệt
-            const contentTypeOverride = ['WRITING_TASK', 'SPEAKING_INTERVIEW', 'SPEAKING_CUECARD'].includes(group.contentType)
+            const contentTypeOverride = ['WRITING_TASK', 'SPEAKING_INTERVIEW', 'SPEAKING_CUECARD', 'SHARED_OPTIONS_DROPDOWN'].includes(group.contentType)
               ? group.contentType
               : null;
             const typeCode = mapQuestionTypeCode(contentTypeOverride || q.questionType?.typeName || group.contentType || 'FILL_IN_BLANK');
@@ -259,10 +259,13 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
               }];
               console.log(`   ✅ DRAG answer created: "${answers[0].answerText}"`);
             } else if (isTextAnswer) {
-              // Logic cũ cho các loại khác
+              // Logic cũ cho các loại khác (gồm MCQ_DROPDOWN: một chữ A/B/C…)
               const existingAnswer = q.answers?.[0];
+              const textAns = (q.answerText != null && q.answerText !== '')
+                ? q.answerText
+                : (existingAnswer?.answerText ?? '');
               answers = [{
-                answerText: q.answerText || '',
+                answerText: textAns,
                 alternativeAnswers: existingAnswer?.alternativeAnswers || null,
                 isCaseSensitive: existingAnswer?.isCaseSensitive || false,
                 blankIndex: existingAnswer?.blankIndex || 1,
@@ -336,7 +339,7 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
 function isTextAnswerType(typeCode) {
   return ['FILL_BLANK', 'SHORT_ANSWER', 'SENTENCE_COMPLETION', 'SUMMARY_COMPLETION',
     'NOTE_COMPLETION', 'FLOW_CHART', 'MAP_DIAGRAM', 'TABLE_FORM', 'MATCHING', 'MATCHING_HEADINGS',
-    'TFNG', 'YNNG'].includes(typeCode);
+    'TFNG', 'YNNG', 'MCQ_DROPDOWN'].includes(typeCode);
 }
 
 // Map contentType từ FE sang giá trị lưu DB (chuẩn hóa)
@@ -441,6 +444,14 @@ function serializeGroupContent(group, part) {
       prepSeconds: group.prepSeconds ?? 60,
     });
   }
+  // Dropdown chung (Listening/Reading): options + hướng dẫn trong JSON
+  if (ct === 'SHARED_OPTIONS_DROPDOWN') {
+    return JSON.stringify({
+      sharedOptions: group.sharedOptions || [],
+      mainInstruction: group.mainInstruction || '',
+      subInstruction: group.subInstruction || '',
+    });
+  }
   // Custom schema-driven group
   if (ct === 'CUSTOM') {
     return JSON.stringify({
@@ -471,6 +482,8 @@ function mapQuestionTypeCode(typeName) {
     'MULTIPLE_CHOICE_MULTIPLE': 'MCQ',
     'MULTIPLE_CHOICE_GROUP': 'MCQ',
     'MULTIPLE_CHOICE_MULTI': 'MCQ',
+    'MCQ_DROPDOWN': 'MCQ_DROPDOWN',
+    'SHARED_OPTIONS_DROPDOWN': 'MCQ_DROPDOWN',
     // True/False/Not Given
     'TRUE_FALSE_NG': 'TFNG',
     // Yes/No/Not Given
@@ -708,6 +721,14 @@ function deserializeGroupContent(contentType, passageText) {
         prepSeconds: parsed.prepSeconds ?? 60,
       };
     }
+    if (contentType === 'SHARED_OPTIONS_DROPDOWN') {
+      const parsed = JSON.parse(passageText);
+      return {
+        sharedOptions: parsed.sharedOptions || [],
+        mainInstruction: parsed.mainInstruction || '',
+        subInstruction: parsed.subInstruction || '',
+      };
+    }
     if (contentType === 'CUSTOM') {
       const parsed = JSON.parse(passageText);
       const schema = parsed.schema || parsed.customSchema || {};
@@ -743,6 +764,7 @@ function deserializeGroupContent(contentType, passageText) {
 function mapBackendTypeToFrontend(code) {
   const map = {
     'MCQ': 'MULTIPLE_CHOICE',
+    'MCQ_DROPDOWN': 'MCQ_DROPDOWN',
     'TFNG': 'TRUE_FALSE_NG',
     'YNNG': 'YES_NO_NG',
     'FILL_BLANK': 'FILL_IN_BLANK',

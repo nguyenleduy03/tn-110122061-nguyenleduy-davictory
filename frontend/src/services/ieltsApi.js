@@ -64,6 +64,8 @@ function mapQuestionType(questionTypeCode) {
       return 'drag_drop_group';
     case 'MATCHING_HEADINGS':
       return 'matching_heading';
+    case 'MCQ_DROPDOWN':
+      return 'mcq_dropdown_group';
     default:
       return 'fill-in-the-blank';
   }
@@ -110,6 +112,8 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
     feType = 'fill-in-the-blank';
   } else if (contentType === 'SHORT_ANSWER_GROUP' || contentType === 'SHORT_ANSWER') {
     feType = 'fill-in-the-blank';
+  } else if (contentType === 'SHARED_OPTIONS_DROPDOWN') {
+    feType = 'mcq_dropdown_group';
   } else if (contentType === 'SPEAKING_CUECARD' || contentType === 'SPEAKING_INTERVIEW') {
     // SPEAKING: keep raw question data for custom rendering
     // Return questions as-is with additional metadata from group
@@ -141,6 +145,58 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
   if (!typeCode) {
     const firstQ = questions[0];
     typeCode = (firstQ?.questionTypeCode || '').toUpperCase();
+  }
+
+  // ─── SHARED_OPTIONS_DROPDOWN → 1 khối, bảng chữ chung + dropdown từng câu ───
+  if (feType === 'mcq_dropdown_group') {
+    let meta = { sharedOptions: [], mainInstruction: '', subInstruction: '' };
+    if (group.passageText) {
+      try {
+        meta = { ...meta, ...JSON.parse(group.passageText) };
+      } catch {
+        /* plain text legacy */
+      }
+    }
+    const sharedOptions = (meta.sharedOptions || []).map((o, i) => {
+      if (typeof o === 'string') return { key: String.fromCharCode(65 + i), label: o };
+      const key = (o.key || o.optionLabel || String.fromCharCode(65 + i)).toString().trim().charAt(0);
+      const label = o.label ?? o.optionText ?? '';
+      return { key: key || String.fromCharCode(65 + i), label };
+    });
+
+    const subQuestions = questions.map((q) => {
+      const num = globalCounterRef.counter++;
+      const letter = ((q.answers || [])[0]?.answerText || '').trim();
+      return {
+        id: `q${q.id}`,
+        number: num,
+        text: formatTextWithWhitespace(q.questionText || ''),
+        correctOptionKey: letter,
+      };
+    });
+
+    const numbers = subQuestions.map((sq) => sq.number).filter((n) => Number.isFinite(n));
+    const minNum = numbers.length ? Math.min(...numbers) : null;
+    const maxNum = numbers.length ? Math.max(...numbers) : null;
+    const rangeHeading = (minNum != null && maxNum != null)
+      ? (minNum === maxNum ? `Question ${minNum}` : `Questions ${minNum}–${maxNum}`)
+      : '';
+
+    const headingHtml = formatTextWithWhitespace(group.title || '');
+    const mainInst = formatTextWithWhitespace(meta.mainInstruction || '');
+    const subInst = formatTextWithWhitespace(meta.subInstruction || '');
+
+    return [{
+      id: `group-${group.questionGroupId || group.id}`,
+      type: 'mcq_dropdown_group',
+      questionTypeCode: typeCode || 'MCQ_DROPDOWN',
+      heading: headingHtml || rangeHeading,
+      mainInstruction: mainInst,
+      subInstruction: subInst,
+      instruction: [mainInst, subInst].filter(Boolean).join('<br/><br/>'),
+      sharedOptions,
+      subQuestions,
+    }];
   }
 
   // ─── Single-question types: mỗi câu → 1 phần tử ─────────────────

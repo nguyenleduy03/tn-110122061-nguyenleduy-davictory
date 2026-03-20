@@ -73,6 +73,12 @@ public class QuestionGroup {
     @Column(nullable = false)
     private Boolean allowOptionReuse = false; // Cho phép sử dụng lại thẻ đã kéo (drag and drop)
 
+    @Column(columnDefinition = "LONGTEXT")
+    private String sharedOptionsJson; // JSON chứa bộ lựa chọn chung cho MCQ_DROPDOWN
+
+    @Column(nullable = false)
+    private Boolean useSharedOptions = false; // Sử dụng bộ lựa chọn chung
+
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;

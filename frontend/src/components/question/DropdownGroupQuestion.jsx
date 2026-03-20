@@ -13,7 +13,7 @@ const DropdownGroupQuestion = ({
   isReview,
 }) => {
   const group = q || {};
-  const questions = group.subQuestions || [];
+  const questions = group.subQuestions || group.questions || [];
   const options = group.sharedOptions || [];
 
   const handleChange = (questionId, value) => {
@@ -35,6 +35,7 @@ const DropdownGroupQuestion = ({
         />
       )}
 
+      <div className="mcq-dropdown-layout">
       {options.length > 0 && (
         <ul className="mcq-dropdown-legend">
           {options.map((opt) => (
@@ -52,7 +53,7 @@ const DropdownGroupQuestion = ({
         {questions.map((question) => {
           const number = question.number ?? question.questionNumber;
           const current = answers?.[question.id] ?? '';
-          const correctKey = question.correctOptionKey;
+          const correctKey = question.correctOptionKey ?? question.correctAnswer;
           const isActive = activeQuestion === number;
 
           let displayValue = current;
@@ -110,6 +111,7 @@ const DropdownGroupQuestion = ({
             </div>
           );
         })}
+      </div>
       </div>
     </div>
   );

@@ -125,6 +125,15 @@ const GroupPanel = ({ group, onChange, onDelete }) => (
       </div>
     )}
 
+    {(group.contentType === 'SHARED_OPTIONS_DROPDOWN') && (
+      <div className="tb-field">
+        <label className="tb-label">ℹ️ Dropdown (lựa chọn chung)</label>
+        <div style={{ fontSize: 12, color: '#6b7280', padding: '6px 10px', background: '#e0f2fe', borderRadius: 6, border: '1px solid #7dd3fc' }}>
+          Cột trái canvas: bảng chữ A, B, C… và mô tả. Bên phải: hướng dẫn + từng dòng câu; chọn đáp án đúng bằng dropdown. Khác hoàn toàn với nhóm Multiple Choice (mỗi câu một bộ A–D).
+        </div>
+      </div>
+    )}
+
     {(group.contentType === 'SUMMARY_COMPLETION') && (
       <div className="tb-field">
         <label className="tb-label">ℹ️ Summary Completion</label>
@@ -285,6 +294,7 @@ const QuestionPanel = ({ question, onChange, onDelete }) => {
   const options = question.options ?? [];
   const answers = question.answers ?? [];
   const isSpeakingGroup = ['SPEAKING_INTERVIEW', 'SPEAKING_CUECARD'].includes(question.groupContentType);
+  const isSharedDropdown = question.groupContentType === 'SHARED_OPTIONS_DROPDOWN';
 
   const updateOption = (idx, key, val) => {
     const next = options.map((o, i) => i === idx ? { ...o, [key]: val } : o);
@@ -312,6 +322,7 @@ const QuestionPanel = ({ question, onChange, onDelete }) => {
     <>
       <div className="tb-panel-section-title">Câu hỏi</div>
 
+      {!isSharedDropdown && (
       <div className="tb-field">
         <label className="tb-label">Loại câu hỏi</label>
         <select
@@ -326,6 +337,15 @@ const QuestionPanel = ({ question, onChange, onDelete }) => {
           ))}
         </select>
       </div>
+      )}
+      {isSharedDropdown && (
+      <div className="tb-field">
+        <label className="tb-label">Loại</label>
+        <div className="tb-input" style={{ background: '#f8fafc', color: '#64748b', cursor: 'default' }}>
+          Dropdown chung (một chữ A/B/C…)
+        </div>
+      </div>
+      )}
 
       <div className="tb-field">
         <label className="tb-label">Số câu</label>
@@ -350,8 +370,30 @@ const QuestionPanel = ({ question, onChange, onDelete }) => {
         />
       </div>
 
+      {isSharedDropdown && (
+        <div className="tb-field">
+          <label className="tb-label">Đáp án đúng</label>
+          <select
+            className="tb-select"
+            value={(question.answerText ?? answers[0]?.answerText ?? '').trim()}
+            onChange={(e) => {
+              const v = e.target.value;
+              onChange({
+                answerText: v,
+                answers: [{ ...(answers[0] ?? { blankIndex: 1, isCaseSensitive: false }), answerText: v }],
+              });
+            }}
+          >
+            <option value="">—</option>
+            {'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map((L) => (
+              <option key={L} value={L}>{L}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {/* Options for MCQ (single) */}
-      {qtype === 'MULTIPLE_CHOICE' && (
+      {!isSharedDropdown && qtype === 'MULTIPLE_CHOICE' && (
         <div className="tb-field">
           <label className="tb-label">Các lựa chọn</label>
           <div className="tb-option-list">
@@ -372,7 +414,7 @@ const QuestionPanel = ({ question, onChange, onDelete }) => {
       )}
 
       {/* Options for MCQ multiple */}
-      {qtype === 'MULTIPLE_CHOICE_MULTIPLE' && (
+      {!isSharedDropdown && qtype === 'MULTIPLE_CHOICE_MULTIPLE' && (
         <>
           <div className="tb-field">
             <label className="tb-label">Instruction chung</label>
@@ -419,7 +461,7 @@ const QuestionPanel = ({ question, onChange, onDelete }) => {
       )}
 
       {/* Options for TRUE_FALSE_NG */}
-      {qtype === 'TRUE_FALSE_NG' && (
+      {!isSharedDropdown && qtype === 'TRUE_FALSE_NG' && (
         <div className="tb-field">
           <label className="tb-label">Các lựa chọn</label>
           <div className="tb-option-list">
@@ -440,7 +482,7 @@ const QuestionPanel = ({ question, onChange, onDelete }) => {
       )}
 
       {/* Answer for fill-in / short answer */}
-      {!isSpeakingGroup && ['FILL_IN_BLANK', 'SHORT_ANSWER', 'NOTE_COMPLETION'].includes(qtype) && (
+      {!isSpeakingGroup && !isSharedDropdown && ['FILL_IN_BLANK', 'SHORT_ANSWER', 'NOTE_COMPLETION'].includes(qtype) && (
         <div className="tb-field">
           <label className="tb-label">Đáp án đúng <span>*</span></label>
           <input

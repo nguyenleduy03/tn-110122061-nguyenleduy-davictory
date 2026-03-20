@@ -5,6 +5,7 @@
 import React, { useState, useMemo } from 'react';
 import { X, Volume2, BookOpen, Headphones, PenLine, Mic, ChevronLeft, ChevronRight, Clock, FileText } from 'lucide-react';
 import { normalizeRichHtml } from '../../utils/textFormatters';
+import DropdownGroupQuestion from '../question/DropdownGroupQuestion';
 
 // ---- Helpers (mirrors ExamCanvas) ----
 
@@ -383,6 +384,98 @@ const NoteCompletionGroup = ({ group, activeQ, onSetActive }) => {
       <div className="pv-note-text">
         {parseNotePreview(group.noteText, questions, activeQ, onSetActive, answers, handleAnswer)}
       </div>
+    </div>
+  );
+};
+
+const ImageNoteFormGroup = ({ group, activeQ, onSetActive }) => {
+  const questions = group.questions ?? [];
+  const [answers, setAnswers] = useState({});
+  const handleAnswer = (num, val) => setAnswers((prev) => ({ ...prev, [num]: val }));
+  const imagePosition = group.imagePosition || 'top';
+  const imageWidth = group.imageWidth || 100;
+  const pinBoxWidth = group.pinBoxWidth || 60;
+
+  const imageSection = group.imageUrl && (
+    <div style={{ marginBottom: 20, textAlign: 'center' }}>
+      <div style={{ position: 'relative', display: 'inline-block' }}>
+        <img src={group.imageUrl} alt="Question" 
+          style={{ maxWidth: `${imageWidth}%`, height: 'auto', display: 'block' }} />
+        {questions.filter(q => q.pinX !== undefined).map((q) => {
+          const active = activeQ === q.questionNumber;
+          const userAnswer = answers[q.questionNumber] || '';
+          return (
+            <div key={q.id}
+              style={{
+                position: 'absolute',
+                left: `${q.pinX}%`,
+                top: `${q.pinY}%`,
+                minWidth: `${pinBoxWidth}px`,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                background: '#fff',
+                padding: '4px 8px',
+                borderRadius: 4,
+                border: active ? '2px solid #3b82f6' : '1px solid #cbd5e1',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+              }}
+              onClick={(e) => { e.stopPropagation(); onSetActive(q.questionNumber); }}>
+              <span style={{
+                background: active ? '#3b82f6' : '#64748b',
+                color: '#fff',
+                borderRadius: 3,
+                padding: '2px 6px',
+                fontSize: 12,
+                fontWeight: 'bold',
+                minWidth: 24,
+                textAlign: 'center'
+              }}>
+                {q.questionNumber}
+              </span>
+              {q.questionText && (
+                <span style={{ fontSize: 13, color: '#1e293b', whiteSpace: 'nowrap' }}>{q.questionText}:</span>
+              )}
+              <input
+                type="text"
+                value={userAnswer}
+                onChange={(e) => { e.stopPropagation(); handleAnswer(q.questionNumber, e.target.value); }}
+                onClick={(e) => { e.stopPropagation(); onSetActive(q.questionNumber); }}
+                placeholder="..."
+                style={{
+                  width: `${Math.max(60, pinBoxWidth - 60)}px`,
+                  padding: '3px 6px',
+                  border: 'none',
+                  borderBottom: active ? '2px solid #3b82f6' : '1px solid #cbd5e1',
+                  fontSize: 13,
+                  background: 'transparent',
+                  outline: 'none'
+                }}
+              />
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="pv-group-block">
+      <QuestionRange group={group} />
+      {group.instructions && (
+        <div className="pv-group-instructions" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.instructions) }} />
+      )}
+      {group.title && <div className="pv-summary-title" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.title) }} />}
+      
+      {imagePosition === 'top' && imageSection}
+      
+      {group.noteText && (
+        <div className="pv-note-text">
+          {parseNotePreview(group.noteText, questions, activeQ, onSetActive, answers, handleAnswer)}
+        </div>
+      )}
+      
+      {imagePosition === 'bottom' && imageSection}
     </div>
   );
 };
@@ -953,6 +1046,45 @@ const WritingTaskGroup = ({ group }) => {
 };
 
 // Multiple Choice group — instructions banner + list of MCQ questions
+const SharedOptionsDropdownGroup = ({ group, activeQ, onSetActive }) => {
+  const questions = group.questions ?? [];
+  const [answers, setAnswers] = useState({});
+  const sharedOptions = (group.sharedOptions || []).map((o) => ({
+    key: o.key,
+    label: o.label ?? '',
+  }));
+  const subQuestions = questions.map((q) => ({
+    id: q.id,
+    number: q.questionNumber,
+    text: q.questionText,
+    questionText: q.questionText,
+    correctOptionKey: (q.answerText ?? q.answers?.[0]?.answerText ?? '').trim(),
+  }));
+  const previewQ = {
+    heading: group.title || '',
+    instruction: [group.mainInstruction, group.subInstruction].filter(Boolean).join('<br/><br/>'),
+    sharedOptions,
+    subQuestions,
+  };
+  const handleAnswerChange = (qid, value) => {
+    setAnswers((prev) => ({ ...prev, [qid]: value }));
+  };
+  return (
+    <div className="pv-group-block">
+      <DropdownGroupQuestion
+        q={previewQ}
+        activeQuestion={activeQ}
+        setActiveQuestion={onSetActive}
+        answers={answers}
+        handleAnswerChange={handleAnswerChange}
+        bookmarks={{}}
+        toggleBookmark={() => {}}
+        isReview={false}
+      />
+    </div>
+  );
+};
+
 const MCQGroup = ({ group, activeQ, onSetActive, multi = false }) => {
   const questions = group.questions ?? [];
   const [answers, setAnswers] = useState({});
@@ -1135,6 +1267,7 @@ const renderGroup = (group, activeQ, onSetActive) => {
   if (ct === 'MAP_LABELLING') return <MapLabellingGroup {...props} />;
   if (ct === 'SUMMARY_COMPLETION') return <SummaryGroup {...props} />;
   if (ct === 'NOTE_COMPLETION') return <NoteCompletionGroup {...props} />;
+  if (ct === 'IMAGE_NOTE_FORM') return <ImageNoteFormGroup {...props} />;
   if (ct === 'FLOW_CHART') return <FlowChartGroup {...props} />;
   if (ct === 'WRITING_TASK') return <WritingTaskGroup key={group.id} group={group} />;
   if (ct === 'SPEAKING_INTERVIEW') return <SpeakingInterviewGroup key={group.id} group={group} />;
@@ -1142,6 +1275,7 @@ const renderGroup = (group, activeQ, onSetActive) => {
   if (ct === 'DIAGRAM' || ct === 'MAP') return <ImageGroup {...props} />;
   if (ct === 'MULTIPLE_CHOICE_GROUP') return <MCQGroup {...props} multi={false} />;
   if (ct === 'MULTIPLE_CHOICE_MULTI') return <MCQGroup {...props} multi={true} />;
+  if (ct === 'SHARED_OPTIONS_DROPDOWN') return <SharedOptionsDropdownGroup {...props} />;
   if (ct === 'SENTENCE_COMPLETION') return <SentenceCompletionGroup {...props} />;
   if (ct === 'SHORT_ANSWER_GROUP') return <ShortAnswerGroup {...props} />;
   return <StandaloneGroup {...props} />;

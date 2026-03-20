@@ -5,6 +5,7 @@ import MultipleChoiceQuestion from './MultipleChoiceQuestion';
 import TFNGQuestion from './TFNGQuestion';
 import DragDropGroupQuestion from './DragDropGroupQuestion';
 import SummaryCompletionQuestion from './SummaryCompletionQuestion';
+import DropdownGroupQuestion from './DropdownGroupQuestion';
 import { formatTextWithWhitespace } from '../../utils/textFormatters';
 
 const normalizeQuestionType = (rawType) => {
@@ -37,6 +38,9 @@ const normalizeQuestionType = (rawType) => {
         case 'drag_drop_group':
         case 'draganddropgroup':
             return 'drag_drop_group';
+        case 'mcq_dropdown_group':
+        case 'shared_options_dropdown':
+            return 'mcq_dropdown_group';
         default:
             return normalized;
     }
@@ -45,6 +49,21 @@ const normalizeQuestionType = (rawType) => {
 const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answer, handleAnswerChange, inputRefs, bookmarks, toggleBookmark, isReview }) => {
     if (!q) return null;
     const normalizedType = normalizeQuestionType(q.type);
+
+    if (normalizedType === 'mcq_dropdown_group') {
+        return (
+            <DropdownGroupQuestion
+                q={q}
+                activeQuestion={activeQuestion}
+                setActiveQuestion={setActiveQuestion}
+                answers={answers || {}}
+                handleAnswerChange={handleAnswerChange}
+                bookmarks={bookmarks}
+                toggleBookmark={toggleBookmark}
+                isReview={isReview}
+            />
+        );
+    }
 
     if (normalizedType === 'fill-in-the-blank') {
         return (
