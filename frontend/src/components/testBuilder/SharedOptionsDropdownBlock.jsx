@@ -70,7 +70,6 @@ const SharedOptionsDropdownBlock = ({
             <div key={opt.id || idx} className="tb-sod-opt-row">
               <span className="tb-sod-opt-key">{opt.key}</span>
               <RichInput
-                style={{ flex: 1, minWidth: 0 }}
                 value={opt.label ?? ''}
                 placeholder="Mô tả lựa chọn..."
                 onChange={(html) => updateOptionLabel(idx, html)}
@@ -155,7 +154,6 @@ const SharedOptionsDropdownBlock = ({
                 >
                   <span className="exam-q-num" style={{ background: '#0369a1' }}>{q.questionNumber ?? '?'}</span>
                   <RichInput
-                    style={{ flex: 1, minWidth: 0 }}
                     value={q.questionText || ''}
                     placeholder="Nhãn câu (vd: El Niño)..."
                     onChange={(html) => onUpdateQuestion(group.id, q.id, { questionText: html })}

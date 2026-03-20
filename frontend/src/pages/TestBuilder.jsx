@@ -493,14 +493,11 @@ const TestBuilder = () => {
             imageUrl: '',                    // Link ảnh
             imagePosition: 'top',            // 'top' hoặc 'bottom'
             imageWidth: 100,                 // Độ rộng ảnh (%)
+            pinBoxWidth: 60,                 // Độ rộng ô pin
             noteText: '',                    // Nội dung form/note có chỗ trống
             fromQuestion: null,
             toQuestion: null,
-            questions: [
-              makeQ(1, 'FILL_IN_BLANK'),
-              makeQ(2, 'FILL_IN_BLANK'),
-              makeQ(3, 'FILL_IN_BLANK'),
-            ],
+            questions: [],                   // KHÔNG tạo sẵn câu hỏi
           };
 
         case 'WRITING_TASK':
@@ -638,7 +635,7 @@ const TestBuilder = () => {
     const isMMCQ = ct === 'MULTIPLE_CHOICE_MULTI';
     const isSharedDrop = ct === 'SHARED_OPTIONS_DROPDOWN';
     const isTFNG = ct === 'TRUE_FALSE_NG';
-    const isFill = ['SENTENCE_COMPLETION', 'SHORT_ANSWER_GROUP', 'NOTE_COMPLETION', 'SUMMARY_COMPLETION'].includes(ct);
+    const isFill = ['SENTENCE_COMPLETION', 'SHORT_ANSWER_GROUP', 'NOTE_COMPLETION', 'SUMMARY_COMPLETION', 'IMAGE_NOTE_FORM'].includes(ct);
 
     const defaultOptions = (isMCQ || isMMCQ)
       ? [
@@ -661,11 +658,21 @@ const TestBuilder = () => {
     else if (isFill) questionTypeName = 'FILL_IN_BLANK';
     else if (ct === 'SHORT_ANSWER_GROUP') questionTypeName = 'SHORT_ANSWER';
 
+    // Tính questionNumber đúng cho IMAGE_NOTE_FORM
+    let questionNumber = (group.questions?.length ?? 0) + 1;
+    if (ct === 'IMAGE_NOTE_FORM') {
+      // Tìm số câu lớn nhất hiện có
+      const maxNum = group.questions && group.questions.length > 0
+        ? Math.max(...group.questions.map(q => q.questionNumber || 0))
+        : 0;
+      questionNumber = maxNum + 1;
+    }
+
     const newQ = {
       id: nextId(),
       groupId: group.id,
       partId: group.partId,
-      questionNumber: (group.questions?.length ?? 0) + 1,
+      questionNumber: questionNumber,
       questionText: '',
       answerText: '', // Khởi tạo answerText rỗng cho drag matching
       questionType: { typeName: questionTypeName },

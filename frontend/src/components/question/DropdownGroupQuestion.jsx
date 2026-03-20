@@ -35,7 +35,6 @@ const DropdownGroupQuestion = ({
         />
       )}
 
-      <div className="mcq-dropdown-layout">
       {options.length > 0 && (
         <ul className="mcq-dropdown-legend">
           {options.map((opt) => (
@@ -111,7 +110,6 @@ const DropdownGroupQuestion = ({
             </div>
           );
         })}
-      </div>
       </div>
     </div>
   );

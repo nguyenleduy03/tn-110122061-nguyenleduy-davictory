@@ -2138,6 +2138,15 @@ const ImageNoteFormBlock = ({ group, onUpdate, onDelete, onSelect, selected, dra
   const pinBoxWidth = group.pinBoxWidth || 60;
   const questions = group.questions ?? [];
 
+  // KHÔNG tự động đánh số lại - giữ nguyên số câu người dùng đã tạo
+  // useEffect(() => {
+  //   const needsReorder = questions.some((q, idx) => q.questionNumber !== idx + 1);
+  //   if (needsReorder && questions.length > 0) {
+  //     const reordered = questions.map((q, idx) => ({ ...q, questionNumber: idx + 1 }));
+  //     onUpdate(group.id, { questions: reordered });
+  //   }
+  // }, [questions.length]);
+
   useEffect(() => {
     const onMove = (e) => {
       if (!dragRef.current || !containerRef.current) return;
@@ -2171,10 +2180,16 @@ const ImageNoteFormBlock = ({ group, onUpdate, onDelete, onSelect, selected, dra
     const rect = containerRef.current.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
+    
+    // Tính số câu tiếp theo
+    const maxQuestionNumber = questions.length > 0 
+      ? Math.max(...questions.map(q => q.questionNumber || 0))
+      : 0;
+    
     const newQ = {
       id: Date.now(),
       groupId: group.id,
-      questionNumber: questions.length + 1,
+      questionNumber: maxQuestionNumber + 1,
       questionText: '',
       answerText: '',
       pinX: Math.max(0, Math.min(92, x)),
@@ -2322,7 +2337,52 @@ const ImageNoteFormBlock = ({ group, onUpdate, onDelete, onSelect, selected, dra
       {/* Note text with blanks */}
       <RichBlankEditor
         value={group.noteText}
-        onChange={(text) => onUpdate(group.id, { noteText: text })}
+        onChange={(text) => {
+          onUpdate(group.id, { noteText: text });
+          
+          // Tự động tạo câu hỏi khi phát hiện (ô trống)
+          setTimeout(() => {
+            const blankPattern = /\(ô trống\)/gi;
+            const blankMatches = (text.match(blankPattern) || []).length;
+            
+            console.log('[DEBUG] Blanks found:', blankMatches);
+            console.log('[DEBUG] Current questions:', questions);
+            
+            if (blankMatches > 0) {
+              // Đếm câu hỏi cho note text (không có pinX, pinY)
+              const noteQuestions = questions.filter(q => !q.pinX && !q.pinY);
+              console.log('[DEBUG] Note questions:', noteQuestions.length);
+              
+              const needToCreate = blankMatches - noteQuestions.length;
+              console.log('[DEBUG] Need to create:', needToCreate);
+              
+              if (needToCreate > 0) {
+                // Tìm số câu lớn nhất trong TẤT CẢ câu hỏi
+                const maxNum = questions.length > 0 
+                  ? Math.max(...questions.map(q => q.questionNumber || 0))
+                  : 0;
+                
+                console.log('[DEBUG] Max question number:', maxNum);
+                console.log('[DEBUG] Will create from:', maxNum + 1);
+                
+                const newQuestions = [];
+                for (let i = 0; i < needToCreate; i++) {
+                  newQuestions.push({
+                    id: Date.now() + Math.random() * 1000,
+                    groupId: group.id,
+                    questionNumber: maxNum + i + 1,
+                    questionText: '',
+                    answerText: '',
+                    questionType: { typeName: 'FILL_IN_BLANK' },
+                  });
+                }
+                
+                console.log('[AUTO] Creating questions:', newQuestions);
+                onUpdate(group.id, { questions: [...questions, ...newQuestions] });
+              }
+            }
+          }, 100);
+        }}
         placeholder={'VD:\nGround Floor:\n- Living room: (ô trống) square meters\n- Kitchen: Located in the (ô trống)'}
         preWrap
         blankClass="rbe-blank-amber"

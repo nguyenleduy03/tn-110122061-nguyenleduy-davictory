@@ -3235,6 +3235,20 @@
   margin-bottom: 8px;
 }
 
+.tb-sod-opt-row .rich-input-wrap {
+  flex: 0 1 auto;
+}
+
+.tb-sod-opt-row .rich-input-content {
+  display: inline-block;
+  min-height: auto;
+  min-width: 50px;
+  max-width: 500px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
 .tb-sod-opt-key {
   flex: 0 0 22px;
   height: 28px;
@@ -3301,6 +3315,20 @@
   border: 1px solid #e5e7eb;
   border-radius: 6px;
   background: #fafafa;
+}
+
+.tb-sod-q-row .rich-input-wrap {
+  flex: 0 1 auto;
+}
+
+.tb-sod-q-row .rich-input-content {
+  display: inline-block;
+  min-height: auto;
+  min-width: 50px;
+  max-width: 500px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .tb-sod-q-row.selected {
