@@ -33,6 +33,13 @@ const TYPE_META = {
   SENTENCE_COMPLETION:    { label: 'Sentence Completion',  bg: '#ecfdf5', color: '#065f46' },
   SHORT_ANSWER_GROUP:     { label: 'Short Answer',         bg: '#f0fdf4', color: '#166534' },
   FLOW_CHART:             { label: 'Flow-chart',           bg: '#f0fdfa', color: '#0f766e' },
+  // Biến thể mới
+  MATCHING_FILLABLE:      { label: 'Matching (Fill-in)',   bg: '#fef3c7', color: '#92400e' },
+  MATCHING_HEADINGS_FILLABLE: { label: 'Match Headings (Fill)', bg: '#fed7aa', color: '#9a3412' },
+  FILL_BLANK_DRAG:        { label: 'Fill Blank (Drag)',    bg: '#d1fae5', color: '#065f46' },
+  SENTENCE_COMPLETION_DRAG: { label: 'Sentence (Drag)',    bg: '#ccfbf1', color: '#0f766e' },
+  SUMMARY_COMPLETION_DRAG: { label: 'Summary (Drag)',      bg: '#cffafe', color: '#0e7490' },
+  NOTE_COMPLETION_DRAG:   { label: 'Note (Drag)',          bg: '#fef08a', color: '#713f12' },
   SHARED_OPTIONS_DROPDOWN:{ label: 'Dropdown chung',       bg: '#e0f2fe', color: '#0369a1' },
   WRITING_TASK:           { label: 'Writing',              bg: '#fef9c3', color: '#a16207' },
   SPEAKING_INTERVIEW:     { label: 'Phỏng vấn',            bg: '#fce7f3', color: '#be185d' },
@@ -2195,14 +2202,26 @@ const ImageNoteFormBlock = ({ group, onUpdate, onDelete, onSelect, selected, dra
   const pinBoxWidth = group.pinBoxWidth || 60;
   const questions = group.questions ?? [];
 
-  // KHÔNG tự động đánh số lại - giữ nguyên số câu người dùng đã tạo
-  // useEffect(() => {
-  //   const needsReorder = questions.some((q, idx) => q.questionNumber !== idx + 1);
-  //   if (needsReorder && questions.length > 0) {
-  //     const reordered = questions.map((q, idx) => ({ ...q, questionNumber: idx + 1 }));
-  //     onUpdate(group.id, { questions: reordered });
-  //   }
-  // }, [questions.length]);
+  // Tự động sắp xếp lại số câu hỏi theo thứ tự hiển thị (ảnh trên/dưới)
+  useEffect(() => {
+    if (questions.length === 0) return;
+    
+    const imagePins = questions.filter(isImagePinQuestion);
+    const noteBlanks = questions.filter(isNoteBlankQuestion);
+    
+    // Sắp xếp theo thứ tự hiển thị: ảnh trên → pins trước, ảnh dưới → blanks trước
+    const orderedQuestions = imagePosition === 'top' 
+      ? [...imagePins, ...noteBlanks]
+      : [...noteBlanks, ...imagePins];
+    
+    // Kiểm tra xem có cần đánh số lại không
+    const needsReorder = orderedQuestions.some((q, idx) => q.questionNumber !== idx + 1);
+    
+    if (needsReorder) {
+      const reordered = orderedQuestions.map((q, idx) => ({ ...q, questionNumber: idx + 1 }));
+      onUpdate(group.id, { questions: reordered });
+    }
+  }, [questions.length, imagePosition]);
 
   useEffect(() => {
     const onMove = (e) => {
@@ -2396,28 +2415,19 @@ const ImageNoteFormBlock = ({ group, onUpdate, onDelete, onSelect, selected, dra
         onChange={(text) => {
           onUpdate(group.id, { noteText: text });
           
-          // Tự động tạo câu hỏi khi phát hiện (ô trống)
+          // Tự động đồng bộ câu hỏi với số (ô trống)
           setTimeout(() => {
-              const blankMatches = countBlankTokens(text);
+            const blankMatches = countBlankTokens(text);
+            const noteQuestions = questions.filter(isNoteBlankQuestion);
+            const imagePins = questions.filter(isImagePinQuestion);
             
-            console.log('[DEBUG] Blanks found:', blankMatches);
-            console.log('[DEBUG] Current questions:', questions);
+            console.log('[SYNC] Blanks:', blankMatches, '| Note questions:', noteQuestions.length);
             
-            if (blankMatches > 0) {
-              // Đếm câu hỏi cho note text (không có pinX, pinY)
-                const noteQuestions = questions.filter(isNoteBlankQuestion);
-              console.log('[DEBUG] Note questions:', noteQuestions.length);
-              
-              const needToCreate = blankMatches - noteQuestions.length;
-              console.log('[DEBUG] Need to create:', needToCreate);
-              
-              if (needToCreate > 0) {
-                // Tìm số câu lớn nhất trong TẤT CẢ câu hỏi
-                  const maxNum = getNextQuestionNumber(questions) - 1;
-                
-                console.log('[DEBUG] Max question number:', maxNum);
-                console.log('[DEBUG] Will create from:', maxNum + 1);
-                
+            if (blankMatches !== noteQuestions.length) {
+              if (blankMatches > noteQuestions.length) {
+                // Tạo thêm câu hỏi
+                const needToCreate = blankMatches - noteQuestions.length;
+                const maxNum = getNextQuestionNumber(questions) - 1;
                 const newQuestions = [];
                 for (let i = 0; i < needToCreate; i++) {
                   newQuestions.push({
@@ -2426,13 +2436,17 @@ const ImageNoteFormBlock = ({ group, onUpdate, onDelete, onSelect, selected, dra
                     questionNumber: maxNum + i + 1,
                     questionText: '',
                     answerText: '',
-                      questionMode: 'note-blank',
+                    questionMode: 'note-blank',
                     questionType: { typeName: 'FILL_IN_BLANK' },
                   });
                 }
-                
-                console.log('[AUTO] Creating questions:', newQuestions);
+                console.log('[AUTO] Creating', needToCreate, 'questions');
                 onUpdate(group.id, { questions: [...questions, ...newQuestions] });
+              } else {
+                // Xóa bớt câu hỏi (giữ lại số câu = số ô trống)
+                const toKeep = noteQuestions.slice(0, blankMatches);
+                console.log('[AUTO] Removing', noteQuestions.length - blankMatches, 'questions');
+                onUpdate(group.id, { questions: [...imagePins, ...toKeep] });
               }
             }
           }, 100);
@@ -2452,29 +2466,38 @@ const ImageNoteFormBlock = ({ group, onUpdate, onDelete, onSelect, selected, dra
         &nbsp;–&nbsp;
         <input className="exam-q-range-input" value={group.toQuestion ?? ''} placeholder="5" onChange={(e) => onUpdate(group.id, { toQuestion: e.target.value ? Number(e.target.value) : null })} onClick={(e) => e.stopPropagation()} />
       </div>
-      {questions.map((q, idx) => (
-        <div key={q.id} className={`exam-question${selectedQuestionId === q.id ? ' selected' : ''}`}
-          onClick={(e) => { e.stopPropagation(); onSelectQuestion(q); }}>
-          <div className="exam-q-num" style={{ background: '#4338ca' }}>{q.questionNumber ?? idx + 1}</div>
-          <div className="exam-q-body">
-            {isImagePinQuestion(q) && (
-              <>
-                <div style={{ fontSize: 12, color: '#64748b', marginBottom: 4 }}>Label (hiển thị trên ảnh):</div>
-                <input className="exam-q-fill-answer" style={{ display: 'block', width: '100%', textAlign: 'left', marginBottom: 8 }}
-                  value={q.questionText || ''} placeholder="VD: Width, Height, Area..."
-                  onChange={(e) => onUpdateQuestion(group.id, q.id, { questionText: e.target.value })}
-                  onClick={(e) => e.stopPropagation()} />
-              </>
-            )}
-            <div style={{ fontSize: 12, color: '#64748b', marginBottom: 4 }}>Đáp án:</div>
-            <input className="exam-q-fill-answer" style={{ display: 'block', width: '100%', textAlign: 'left' }}
-              value={q.answerText || ''} placeholder="nhập đáp án..."
-              onChange={(e) => onUpdateQuestion(group.id, q.id, { answerText: e.target.value })}
-              onClick={(e) => e.stopPropagation()} />
+      {(() => {
+        // Sắp xếp câu hỏi theo thứ tự hiển thị
+        const imagePins = questions.filter(isImagePinQuestion);
+        const noteBlanks = questions.filter(isNoteBlankQuestion);
+        const orderedQuestions = imagePosition === 'top' 
+          ? [...imagePins, ...noteBlanks]
+          : [...noteBlanks, ...imagePins];
+        
+        return orderedQuestions.map((q, idx) => (
+          <div key={q.id} className={`exam-question${selectedQuestionId === q.id ? ' selected' : ''}`}
+            onClick={(e) => { e.stopPropagation(); onSelectQuestion(q); }}>
+            <div className="exam-q-num" style={{ background: '#4338ca' }}>{q.questionNumber ?? idx + 1}</div>
+            <div className="exam-q-body">
+              {isImagePinQuestion(q) && (
+                <>
+                  <div style={{ fontSize: 12, color: '#64748b', marginBottom: 4 }}>Label (hiển thị trên ảnh):</div>
+                  <input className="exam-q-fill-answer" style={{ display: 'block', width: '100%', textAlign: 'left', marginBottom: 8 }}
+                    value={q.questionText || ''} placeholder="VD: Width, Height, Area..."
+                    onChange={(e) => onUpdateQuestion(group.id, q.id, { questionText: e.target.value })}
+                    onClick={(e) => e.stopPropagation()} />
+                </>
+              )}
+              <div style={{ fontSize: 12, color: '#64748b', marginBottom: 4 }}>Đáp án:</div>
+              <input className="exam-q-fill-answer" style={{ display: 'block', width: '100%', textAlign: 'left' }}
+                value={q.answerText || ''} placeholder="nhập đáp án..."
+                onChange={(e) => onUpdateQuestion(group.id, q.id, { answerText: e.target.value })}
+                onClick={(e) => e.stopPropagation()} />
+            </div>
+            <button className="exam-group-tool-btn danger" onClick={(e) => { e.stopPropagation(); onDeleteQuestion(group.id, q.id); }}><X size={11} /></button>
           </div>
-          <button className="exam-group-tool-btn danger" onClick={(e) => { e.stopPropagation(); onDeleteQuestion(group.id, q.id); }}><X size={11} /></button>
-        </div>
-      ))}
+        ));
+      })()}
       <button className="exam-add-btn" onClick={(e) => { e.stopPropagation(); onAddQuestion(group); }}>
         <Plus size={12} /> Thêm ô trống (cho note text)
       </button>

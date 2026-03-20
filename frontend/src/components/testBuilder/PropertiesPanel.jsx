@@ -17,6 +17,14 @@ const QUESTION_TYPES = [
   { value: 'MATCHING_INFO',            label: 'Matching Information' },
   { value: 'SHORT_ANSWER',             label: 'Short Answer' },
   { value: 'NOTE_COMPLETION',          label: 'Note Completion' },
+  // Biến thể: Matching → Fill-in
+  { value: 'MATCHING_FILLABLE',        label: 'Matching (Fill-in)' },
+  { value: 'MATCHING_HEADINGS_FILLABLE', label: 'Matching Headings (Fill-in)' },
+  // Biến thể: Fill-in → Drag-drop
+  { value: 'FILL_BLANK_DRAG',          label: 'Fill in the Blank (Drag-drop)' },
+  { value: 'SENTENCE_COMPLETION_DRAG', label: 'Sentence Completion (Drag-drop)' },
+  { value: 'SUMMARY_COMPLETION_DRAG',  label: 'Summary Completion (Drag-drop)' },
+  { value: 'NOTE_COMPLETION_DRAG',     label: 'Note Completion (Drag-drop)' },
 ];
 
 // ---- Sub-panel: Part properties ----

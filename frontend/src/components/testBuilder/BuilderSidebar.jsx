@@ -29,6 +29,9 @@ const PALETTE_ITEMS = [
   { type: 'group', contentType: 'SHARED_OPTIONS_DROPDOWN', label: 'Dropdown (lựa chọn chung)', icon: ClipboardList, skills: ['READING', 'LISTENING'] },
   { type: 'group', contentType: 'NOTE_COMPLETION',      label: 'Note / Form',            icon: ClipboardList, skills: ['READING', 'LISTENING'] },
   { type: 'image', contentType: 'PARA_IMAGE',           label: 'Ảnh cho đoạn văn',       icon: ImageIcon, skills: ['READING'] },
+  // ── Biến thể mới: Matching → Fill-in ──
+  { type: 'group', contentType: 'MATCHING_FILLABLE',    label: 'Matching (Fill-in)',     icon: PenLine, skills: ['READING'] },
+  { type: 'group', contentType: 'MATCHING_HEADINGS_FILLABLE', label: 'Match Headings (Fill)', icon: ClipboardList, skills: ['READING'] },
   // ── LISTENING + READING ──
   { type: 'group', contentType: 'AUDIO_TRANSCRIPT',     label: 'Audio / Nghe',           icon: Headphones, skills: ['LISTENING'] },
   { type: 'group', contentType: 'MAP',                  label: 'Bản đồ',                 icon: BookOpen, skills: ['LISTENING'] },
@@ -42,6 +45,11 @@ const PALETTE_ITEMS = [
   { type: 'group', contentType: 'DRAG_MATCHING',        label: 'Drag Matching',          icon: List, skills: ['LISTENING', 'READING'] },
   { type: 'group', contentType: 'TABLE_COMPLETION',     label: 'Table Completion',       icon: ClipboardList, skills: ['LISTENING', 'READING'] },
   { type: 'group', contentType: 'FLOW_CHART',           label: 'Flow-chart Completion',  icon: ClipboardList, skills: ['LISTENING', 'READING'] },
+  // ── Biến thể mới: Fill-in → Drag-drop ──
+  { type: 'group', contentType: 'FILL_BLANK_DRAG',      label: 'Fill Blank (Drag)',      icon: List, skills: ['LISTENING', 'READING'] },
+  { type: 'group', contentType: 'SENTENCE_COMPLETION_DRAG', label: 'Sentence (Drag)',    icon: List, skills: ['LISTENING', 'READING'] },
+  { type: 'group', contentType: 'SUMMARY_COMPLETION_DRAG', label: 'Summary (Drag)',      icon: List, skills: ['LISTENING', 'READING'] },
+  { type: 'group', contentType: 'NOTE_COMPLETION_DRAG', label: 'Note (Drag)',            icon: List, skills: ['LISTENING'] },
   // ── WRITING / SPEAKING only ──
   { type: 'group', contentType: 'STANDALONE',           label: 'Câu độc lập',            icon: FileText, skills: ['LISTENING', 'WRITING', 'SPEAKING'] },
   { type: 'group', contentType: 'WRITING_TASK',         label: 'Writing Task',           icon: PenLine, skills: ['WRITING'] },

@@ -380,6 +380,14 @@ function serializeGroupContent(group, part) {
   // Note/Summary: lưu text
   if (ct === 'NOTE_COMPLETION') return group.noteText || '';
   if (ct === 'SUMMARY_COMPLETION') return group.summaryText || '';
+  // Image + Note Form: lưu noteText, imagePosition, imageWidth
+  if (ct === 'IMAGE_NOTE_FORM') {
+    return JSON.stringify({
+      noteText: group.noteText || '',
+      imagePosition: group.imagePosition || 'top',
+      imageWidth: group.imageWidth || 100,
+    });
+  }
   // Matching heading: lưu heading bank
   if (ct === 'MATCHING_HEADING') {
     return JSON.stringify({ headingBank: group.headingBank, allowOptionReuse });
@@ -504,6 +512,7 @@ function mapQuestionTypeCode(typeName) {
     'SUMMARY_COMPLETION': 'SUMMARY_COMPLETION',
     'NOTE_COMPLETION': 'NOTE_COMPLETION',
     'TABLE_COMPLETION': 'NOTE_COMPLETION',
+    'IMAGE_NOTE_FORM': 'NOTE_COMPLETION',
     // Charts/Maps
     'FLOW_CHART': 'FLOW_CHART',
     'MAP_DIAGRAM': 'MAP_DIAGRAM',
@@ -664,6 +673,14 @@ function deserializeGroupContent(contentType, passageText) {
     }
     if (contentType === 'NOTE_COMPLETION') return { noteText: passageText };
     if (contentType === 'SUMMARY_COMPLETION') return { summaryText: passageText };
+    if (contentType === 'IMAGE_NOTE_FORM') {
+      const parsed = JSON.parse(passageText);
+      return {
+        noteText: parsed.noteText || '',
+        imagePosition: parsed.imagePosition || 'top',
+        imageWidth: parsed.imageWidth || 100,
+      };
+    }
     if (contentType === 'MATCHING_HEADING') {
       const parsed = JSON.parse(passageText);
       // Handle legacy format: headingBank + embedded readingPassage

@@ -66,6 +66,20 @@ function mapQuestionType(questionTypeCode) {
       return 'matching_heading';
     case 'MCQ_DROPDOWN':
       return 'mcq_dropdown_group';
+    // Biến thể: Matching → Fill-in
+    case 'MATCHING_FILLABLE':
+      return 'fill-in-the-blank';
+    case 'MATCHING_HEADINGS_FILLABLE':
+      return 'fill-in-the-blank';
+    // Biến thể: Fill-in → Drag-drop
+    case 'FILL_BLANK_DRAG':
+      return 'drag_drop_group';
+    case 'SENTENCE_COMPLETION_DRAG':
+      return 'drag_drop_group';
+    case 'SUMMARY_COMPLETION_DRAG':
+      return 'drag_drop_group';
+    case 'NOTE_COMPLETION_DRAG':
+      return 'drag_drop_group';
     default:
       return 'fill-in-the-blank';
   }

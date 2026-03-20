@@ -5,11 +5,22 @@
 [vite] 🌐 Public IP: 123.22.241.211
 [vite] 🔗 API Base URL: http://123.22.241.211:8080/api
 
-  VITE v8.0.0-beta.16  ready in 1630 ms
+  VITE v8.0.0-beta.16  ready in 1490 ms
 
   ➜  Local:   http://localhost:5173/
   ➜  Network: http://192.168.1.20:5173/
-11:49:11 [vite] (client) hmr update /src/pages/TestBuilder.jsx, /src/pages/TeacherManage.jsx, /src/pages/lms/LmsTeacherTests.jsx, /src/pages/ApiDebugPage.jsx
-11:49:22 [vite] (client) hmr update /src/pages/TestBuilder.jsx, /src/pages/TeacherManage.jsx, /src/pages/lms/LmsTeacherTests.jsx, /src/pages/ApiDebugPage.jsx
-11:50:41 [vite] (client) hmr update /src/components/testBuilder/ExamCanvas.jsx
-11:50:41 [vite] (client) hmr update /src/pages/TestBuilder.jsx, /src/pages/TeacherManage.jsx, /src/pages/lms/LmsTeacherTests.jsx, /src/pages/ApiDebugPage.jsx
+14:38:00 [vite] http proxy error: /api/test-builder/4/full
+Error: connect ECONNREFUSED 127.0.0.1:8080
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1611:16)
+14:38:00 [vite] http proxy error: /api/test-builder/4/full
+Error: connect ECONNREFUSED 127.0.0.1:8080
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1611:16)
+14:38:05 [vite] http proxy error: /api/test-builder/4/full
+Error: connect ECONNREFUSED 127.0.0.1:8080
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1611:16)
+14:38:05 [vite] http proxy error: /api/test-builder/4/full
+Error: connect ECONNREFUSED 127.0.0.1:8080
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1611:16)
+14:38:32 [vite] (client) hmr update /src/components/testBuilder/ExamCanvas.jsx
+14:39:00 [vite] (client) hmr update /src/components/testBuilder/ExamCanvas.jsx
+14:42:56 [vite] (client) hmr update /src/components/testBuilder/ExamCanvas.jsx

@@ -50,6 +50,26 @@ public enum QuestionTypeEnum {
     MATCHING_HEADINGS("Matching Headings", "READING", false, false, true,
             "Nối tiêu đề phù hợp với từng đoạn văn"),
 
+    // ─── Biến thể: Matching → Fill-in ───
+    MATCHING_FILLABLE("Matching (Fill-in)", "READING", false, true, false,
+            "Nối thông tin bằng cách điền khuyết"),
+
+    MATCHING_HEADINGS_FILLABLE("Matching Headings (Fill-in)", "READING", false, true, false,
+            "Nối tiêu đề bằng cách điền khuyết vào đoạn văn"),
+
+    // ─── Biến thể: Fill-in → Drag-drop ───
+    FILL_BLANK_DRAG("Fill in the Blank (Drag-drop)", "LISTENING_READING", false, false, true,
+            "Điền từ/cụm từ vào chỗ trống bằng cách kéo thả"),
+
+    SENTENCE_COMPLETION_DRAG("Sentence Completion (Drag-drop)", "LISTENING_READING", false, false, true,
+            "Hoàn thành câu bằng cách kéo thả từ/cụm từ"),
+
+    SUMMARY_COMPLETION_DRAG("Summary Completion (Drag-drop)", "LISTENING_READING", false, false, true,
+            "Hoàn thành bản tóm tắt bằng cách kéo thả từ cho sẵn"),
+
+    NOTE_COMPLETION_DRAG("Note/Table/Form Completion (Drag-drop)", "LISTENING", false, false, true,
+            "Hoàn thành ghi chú/bảng/form bằng cách kéo thả"),
+
     // ─── Dạng viết (Writing) ───
     LETTER("Letter (General Writing)", "WRITING", false, false, false,
             "Viết thư cho Writing Task 1 General Training"),
