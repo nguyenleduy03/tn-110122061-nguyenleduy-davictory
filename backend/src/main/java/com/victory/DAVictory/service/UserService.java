@@ -89,7 +89,7 @@ public class UserService {
     }
 
     public List<UserDTO> getUsersByRoleName(String roleName) {
-        return userRepository.findByRoleName(roleName).stream()
+        return userRepository.findActiveByRoleName(roleName).stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
@@ -583,7 +583,7 @@ public class UserService {
     }
 
     public Map<String, Object> getTeacherClassManagementData() {
-        List<User> teacherUsers = userRepository.findByRoleName("TEACHER");
+        List<User> teacherUsers = userRepository.findActiveByRoleName("TEACHER");
         List<com.victory.DAVictory.entity.Class> classes = classRepository.findAll().stream()
                 .filter(c -> Boolean.TRUE.equals(c.getIsActive()))
                 .sorted(Comparator.comparing(com.victory.DAVictory.entity.Class::getStartDate,

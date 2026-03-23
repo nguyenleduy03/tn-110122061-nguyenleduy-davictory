@@ -23,11 +23,6 @@ const DropdownGroupQuestion = ({
 
   return (
     <div className="mcq-dropdown-group">
-      {group.heading && (
-        <p className="question-heading">
-          {group.heading}
-        </p>
-      )}
       {group.instruction && (
         <p
           className="question-instruction"

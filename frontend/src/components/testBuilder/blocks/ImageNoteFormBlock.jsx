@@ -21,6 +21,17 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
   const noteBlanks = questions.filter(isNoteBlankQuestion);
   const topNoteBlankCount = countBlankTokens(topNoteText);
 
+  // Helper: Tạo note-blank question mới
+  const createNoteBlankQuestion = () => ({
+    id: Date.now() + Math.random() * 1000,
+    groupId: group.id,
+    questionNumber: baseNumber, // Tạm thời, useEffect sẽ sắp xếp lại
+    questionText: '',
+    answerText: '',
+    questionMode: 'note-blank', // QUAN TRỌNG: Đánh dấu rõ ràng
+    questionType: { typeName: 'FILL_IN_BLANK' },
+  });
+
   const getImageRect = () => imageWrapRef.current?.getBoundingClientRect() || null;
 
   // Tự động sắp xếp lại số câu hỏi theo thứ tự hiển thị (ảnh trên/dưới)
@@ -67,7 +78,7 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
         toQuestion: newToQuestion
       });
     }
-  }, [questions.length, imagePosition, topNoteBlankCount, baseNumber, group.id, allGroups]);
+  }, [questions.length, imagePosition, topNoteBlankCount, baseNumber]);
 
   useEffect(() => {
     const onMove = (e) => {
@@ -198,7 +209,7 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
             onClick={addPin}>
             <img src={group.imageUrl} alt="Question" draggable={false}
               style={{ display: 'block', width: '100%', height: 'auto', pointerEvents: 'none' }} />
-            {questions.map((q) => {
+            {questions.filter(isImagePinQuestion).map((q) => {
               const x = livePin?.qId === q.id ? livePin.x : (q.pinX ?? 10);
               const y = livePin?.qId === q.id ? livePin.y : (q.pinY ?? 10);
               return (

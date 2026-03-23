@@ -992,7 +992,7 @@
 
 /* CSS for Multiple Choice Questions */
 .tfng-question {
-    margin-bottom: 30px;
+    margin-bottom: 10px;
     background: transparent;
     padding: 15px;
     border-radius: 4px;
@@ -4057,7 +4057,7 @@ body.text-size-xlarge .options-fs-overlay {
 }
 
 .fill-blank-question {
-    margin-bottom: 20px !important;
+    margin-bottom: 12px !important;
     padding: 16px 20px !important;
     border-radius: 8px !important;
     background: #fff !important;

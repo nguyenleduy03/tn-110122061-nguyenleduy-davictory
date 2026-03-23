@@ -72,6 +72,7 @@ const MatchingFillQuestion = ({ q, activeQuestion, setActiveQuestion, answers, h
             id={`question-${subQ.number}`}
             className={`tfng-question relative-pos ${isActive ? 'active' : ''}`}
             onClick={() => !isReview && setActiveQuestion(subQ.number)}
+            style={{ marginBottom: 10 }}
           >
             <div className="tfng-text">
               {!isReview && (

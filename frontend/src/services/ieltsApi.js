@@ -191,13 +191,6 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
       };
     });
 
-    const numbers = subQuestions.map((sq) => sq.number).filter((n) => Number.isFinite(n));
-    const minNum = numbers.length ? Math.min(...numbers) : null;
-    const maxNum = numbers.length ? Math.max(...numbers) : null;
-    const rangeHeading = (minNum != null && maxNum != null)
-      ? (minNum === maxNum ? `Question ${minNum}` : `Questions ${minNum}–${maxNum}`)
-      : '';
-
     const headingHtml = formatTextWithWhitespace(group.title || '');
     const mainInst = formatTextWithWhitespace(meta.mainInstruction || '');
     const subInst = formatTextWithWhitespace(meta.subInstruction || '');
@@ -206,7 +199,7 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
       id: `group-${group.questionGroupId || group.id}`,
       type: 'mcq_dropdown_group',
       questionTypeCode: typeCode || 'MCQ_DROPDOWN',
-      heading: headingHtml || rangeHeading,
+      heading: headingHtml,
       mainInstruction: mainInst,
       subInstruction: subInst,
       instruction: [mainInst, subInst].filter(Boolean).join('<br/><br/>'),
@@ -411,13 +404,6 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
       bankOptions = (questions[0]?.options || []).map(o => o.optionText || o.optionLabel).filter(Boolean);
     }
 
-    const numbers = subQuestions.map((sq) => sq.number).filter((n) => Number.isFinite(n));
-    const minNum = numbers.length ? Math.min(...numbers) : null;
-    const maxNum = numbers.length ? Math.max(...numbers) : null;
-    const heading = (minNum !== null && maxNum !== null)
-      ? (minNum === maxNum ? `Question ${minNum}` : `Questions ${minNum}-${maxNum}`)
-      : '';
-
     const isGenericGroupTitle = (value) => /^\s*(nh[oó]m|group)\s*\d*\s*$/i.test(String(value || ''));
     if (isGenericGroupTitle(flowTitle)) {
       flowTitle = '';
@@ -427,7 +413,7 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
       id: `group-${group.questionGroupId || group.id}`,
       type: 'flow_chart',
       questionTypeCode: typeCode,
-      heading,
+      heading: '',
       instruction: flowInstruction,
       title: flowTitle,
       bankTitle,
@@ -472,19 +458,13 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
       return stripInlineStyles(text);
     }).filter(Boolean);
     const bankOptions = mapMetaOptions.length > 0 ? mapMetaOptions : fallbackOptions;
-    const numbers = subQuestions.map((sq) => sq.number).filter((n) => Number.isFinite(n));
-    const minNum = numbers.length ? Math.min(...numbers) : null;
-    const maxNum = numbers.length ? Math.max(...numbers) : null;
-    const heading = (minNum !== null && maxNum !== null)
-      ? (minNum === maxNum ? `Question ${minNum}` : `Questions ${minNum}\u2013${maxNum}`)
-      : '';
     const instruction = parsedMapMeta.instructions || group.instructions || group.title || '';
 
     return [{
       id: `group-${group.questionGroupId || group.id}`,
       type: 'image-drag-drop',
       questionTypeCode: typeCode,
-      heading,
+      heading: '',
       instruction,
       rightTitle: stripInlineStyles(parsedMapMeta.rightTitle || ''),
       imageUrl: group.imageUrl || null,
@@ -606,18 +586,11 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
       };
     });
 
-    const numbers = subQuestions.map((sq) => sq.number).filter((n) => Number.isFinite(n));
-    const minNum = numbers.length ? Math.min(...numbers) : null;
-    const maxNum = numbers.length ? Math.max(...numbers) : null;
-    const heading = (minNum !== null && maxNum !== null)
-      ? (minNum === maxNum ? `Question ${minNum}` : `Questions ${minNum}–${maxNum}`)
-      : '';
-
     return [{
       id: `group-${group.questionGroupId || group.id}`,
       type: 'matching_features',
       questionTypeCode: typeCode,
-      heading,
+      heading: '',
       instruction: formatTextWithWhitespace(
         group.instructions || `Choose the correct group (${categories.map((c) => c.label).join('–') || 'A–E'}) for each item. You may choose any group more than once.`
       ),
@@ -641,13 +614,6 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
       };
     });
 
-    const numbers = subQuestions.map((sq) => sq.number).filter((n) => Number.isFinite(n));
-    const minNum = numbers.length ? Math.min(...numbers) : null;
-    const maxNum = numbers.length ? Math.max(...numbers) : null;
-    const heading = (minNum !== null && maxNum !== null)
-      ? (minNum === maxNum ? `Question ${minNum}` : `Questions ${minNum}–${maxNum}`)
-      : '';
-
     let leftHeader = '';
     if (group.passageText) {
       try {
@@ -660,7 +626,7 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
       id: `group-${group.questionGroupId || group.id}`,
       type: 'matching_fillable',
       questionTypeCode: typeCode,
-      heading,
+      heading: '',
       instruction: formatTextWithWhitespace(group.instructions || 'Complete each statement with the correct answer.'),
       leftHeader,
       subQuestions,

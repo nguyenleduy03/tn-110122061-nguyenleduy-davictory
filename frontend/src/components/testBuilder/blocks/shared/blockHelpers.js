@@ -30,10 +30,10 @@ export const countBlankTokens = (text = '') =>
   (String(text).match(/\[blank\]|\(ô trống\)/gi) || []).length;
 
 export const isImagePinQuestion = (q) => 
-  q?.questionMode === 'image-pin' || (q?.pinX != null && q?.pinY != null);
+  q?.questionMode === 'image-pin' || (q?.questionMode !== 'note-blank' && q?.pinX != null && q?.pinY != null);
 
 export const isNoteBlankQuestion = (q) => 
-  q?.questionMode === 'note-blank' || !isImagePinQuestion(q);
+  q?.questionMode === 'note-blank' || (q?.questionMode !== 'image-pin' && q?.pinX == null && q?.pinY == null);
 
 export const getQuestionWeight = (q) => Number(q?.questionCount || 1) || 1;
 
