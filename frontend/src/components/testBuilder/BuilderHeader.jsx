@@ -5,6 +5,7 @@ import {
   Bold, Italic, Underline, Strikethrough,
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
   ListOrdered, Undo2, Redo2, Eraser, Subscript, Superscript,
+  ChevronDown, ChevronUp,
 } from 'lucide-react';
 
 const STATUS_LABELS = {
@@ -52,7 +53,7 @@ const BUILDER_TOOLS = [
 const BuilderHeader = ({
   test, onTestChange, onSave, onSubmitReview,
   saving, onPreview, onShuffle, shuffling, saveMessage, onSkillModeChange,
-  builderMode, activeTool, onModeChange, onToolChange,
+  showFormatToolbar, onToggleFormatToolbar,
 }) => {
   const [activeFormats, setActiveFormats] = useState({});
   const lastRangeRef = useRef(null);
@@ -221,7 +222,8 @@ const BuilderHeader = ({
       </div>
 
       {/* ══════════════ ROW 2 — Formatting Ribbon ══════════════ */}
-      <div className="tb-ribbon">
+      {showFormatToolbar && (
+      <div className="tb-ribbon" style={{ position: 'relative' }}>
 
         {/* ── Lịch sử ── */}
         <div className="tb-rgroup">
@@ -329,6 +331,44 @@ const BuilderHeader = ({
         </div>
 
       </div>
+      )}
+
+      {/* Nút mũi tên ở giữa */}
+      <div style={{ 
+        textAlign: 'center', 
+        background: 'linear-gradient(to bottom, #f1f5f9, #e2e8f0)',
+        borderTop: '1px solid #cbd5e1'
+      }}>
+        <button
+          onClick={onToggleFormatToolbar}
+          style={{
+            width: 36,
+            height: 16,
+            background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+            border: 'none',
+            borderRadius: '0 0 6px 6px',
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#fff',
+            boxShadow: '0 2px 4px rgba(59, 130, 246, 0.3)',
+            transition: 'all 0.2s',
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.background = 'linear-gradient(135deg, #2563eb, #1d4ed8)';
+            e.target.style.transform = 'scale(1.05)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.background = 'linear-gradient(135deg, #3b82f6, #2563eb)';
+            e.target.style.transform = 'scale(1)';
+          }}
+          title={showFormatToolbar ? 'Ẩn thanh công cụ' : 'Hiện thanh công cụ'}
+        >
+          {showFormatToolbar ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+        </button>
+      </div>
+
     </header>
   );
 };

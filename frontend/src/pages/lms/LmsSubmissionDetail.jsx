@@ -3,12 +3,33 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, FileText, Clock, User } from 'lucide-react';
 import LmsLayout from '../../components/lms/LmsLayout';
 import { teacherApi } from '../../services/teacherApi';
+import { ieltsApi } from '../../services/ieltsApi';
 
 export default function LmsSubmissionDetail() {
   const { id, type } = useParams();
   const navigate = useNavigate();
   const [submission, setSubmission] = useState(null);
+  const [totalSkillQuestions, setTotalSkillQuestions] = useState(0);
   const [loading, setLoading] = useState(true);
+
+  const countTotalQuestionsFromSession = (session) => {
+    if (!session?.parts?.length) return 0;
+
+    const totalByPartMeta = session.parts.reduce((sum, part) => {
+      const value = Number(part?.totalQuestions || 0);
+      return sum + (Number.isFinite(value) && value > 0 ? value : 0);
+    }, 0);
+    if (totalByPartMeta > 0) return totalByPartMeta;
+
+    return session.parts.reduce((partSum, part) => {
+      const questions = part.questions || [];
+      return partSum + questions.reduce((qSum, q) => {
+        if (Array.isArray(q.numberRange) && q.numberRange.length > 0) return qSum + q.numberRange.length;
+        if (Array.isArray(q.subQuestions) && q.subQuestions.length > 0) return qSum + q.subQuestions.length;
+        return qSum + 1;
+      }, 0);
+    }, 0);
+  };
 
   useEffect(() => {
     const loadSubmission = async () => {
@@ -22,6 +43,16 @@ export default function LmsSubmissionDetail() {
           const data = await teacherApi.getExamAttemptDetail(id);
           console.log('✅ Exam attempt loaded:', data);
           setSubmission(data);
+
+          if (data?.testId && data?.skillType) {
+            try {
+              const session = await ieltsApi.getTestSession(data.testId, data.skillType);
+              setTotalSkillQuestions(countTotalQuestionsFromSession(session));
+            } catch (sessionError) {
+              console.warn('Cannot load session to count total questions:', sessionError);
+              setTotalSkillQuestions(0);
+            }
+          }
         }
       } catch (error) {
         console.error('❌ Error loading submission:', error);
@@ -128,7 +159,7 @@ export default function LmsSubmissionDetail() {
               </span>
             </div>
             <div style={{ fontSize: 12, color: '#6b7280' }}>
-              Số câu đúng: {submission.totalCorrect || 0} / {submission.totalAnswered || 0}
+              Số câu đúng: {submission.totalCorrect || 0} / {(totalSkillQuestions || submission.totalAnswered || 0)}
             </div>
           </div>
         </div>

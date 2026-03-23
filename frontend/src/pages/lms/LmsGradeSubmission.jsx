@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, User, Clock, FileText, Award, ClipboardList } from 'lucide-react';
+import { ArrowLeft, Save, User, Clock, FileText, Award, ClipboardList, CheckCircle2 } from 'lucide-react';
 import { teacherApi } from '../../services/teacherApi';
 import { ieltsApi } from '../../services/ieltsApi';
 import QuestionRenderer from '../../components/question/QuestionRenderer';
@@ -15,15 +15,7 @@ export default function LmsGradeSubmission() {
   const [reviewAnswers, setReviewAnswers] = useState({});
   const [activeQuestion, setActiveQuestion] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [savingExamGrade, setSavingExamGrade] = useState(false);
   const [error, setError] = useState('');
-  const [gradeHistory, setGradeHistory] = useState([]);
-  const [examGrade, setExamGrade] = useState({
-    totalCorrect: '',
-    bandScore: '',
-    feedback: '',
-    editReason: ''
-  });
   const [grading, setGrading] = useState({
     score: '',
     feedback: '',
@@ -58,26 +50,48 @@ export default function LmsGradeSubmission() {
       return rawValue;
     }
 
+    const normalizeText = (value) => String(value || '')
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase();
+
     const trimmed = rawValue.trim();
     if (!trimmed) return rawValue;
 
-    const exact = options.find((opt) => String(opt).trim().toLowerCase() === trimmed.toLowerCase());
+    const normalizedRaw = normalizeText(trimmed);
+
+    const exact = options.find((opt) => normalizeText(opt) === normalizedRaw);
     if (exact) return exact;
 
-    const shortLabel = trimmed.match(/^([A-Za-z])[\).:-]?$/)?.[1]?.toUpperCase();
-    if (!shortLabel) return rawValue;
-
-    const matchedByPrefix = options.find((opt) => {
-      const text = String(opt).trim();
-      return new RegExp(`^${shortLabel}[\\).:-]`, 'i').test(text);
-    });
-    if (matchedByPrefix) return matchedByPrefix;
-
-    // Fallback: map A/B/C... by option index when option text does not carry label prefix.
-    const index = shortLabel.charCodeAt(0) - 65;
-    if (index >= 0 && index < options.length) {
-      return options[index];
+    // Support answer stored as numeric option index: 1,2,3...
+    if (/^\d+$/.test(trimmed)) {
+      const oneBased = Number(trimmed);
+      const byIndex = options[oneBased - 1];
+      if (byIndex !== undefined) return byIndex;
     }
+
+    const shortLabel = trimmed.match(/^([A-Za-z])[\).:-]?$/)?.[1]?.toUpperCase();
+    if (shortLabel) {
+      const matchedByPrefix = options.find((opt) => {
+        const text = normalizeText(opt);
+        return new RegExp(`^${shortLabel.toLowerCase()}[\\).:-]`, 'i').test(text);
+      });
+      if (matchedByPrefix) return matchedByPrefix;
+
+      // Fallback: map A/B/C... by option index when option text does not carry label prefix.
+      const index = shortLabel.charCodeAt(0) - 65;
+      if (index >= 0 && index < options.length) {
+        return options[index];
+      }
+    }
+
+    // Loose fallback: remove label prefix and compare core text.
+    const stripLabelPrefix = (value) => normalizeText(value).replace(/^[a-z]\s*[\).:-]\s*/i, '');
+    const rawCore = stripLabelPrefix(trimmed);
+    const byCoreText = options.find((opt) => stripLabelPrefix(opt) === rawCore);
+    if (byCoreText) return byCoreText;
 
     return rawValue;
   };
@@ -143,21 +157,6 @@ export default function LmsGradeSubmission() {
         } else {
           const data = await teacherApi.getExamAttemptDetail(id);
           setSubmission(data);
-          setExamGrade({
-            totalCorrect: data?.totalCorrect ?? '',
-            bandScore: data?.bandScore ?? '',
-            feedback: data?.feedback || '',
-            editReason: ''
-          });
-
-          try {
-            const history = await teacherApi.getExamAttemptGradeHistory(id);
-            setGradeHistory(Array.isArray(history) ? history : []);
-          } catch (historyError) {
-            // Keep the grading page usable even if history endpoint is temporarily forbidden.
-            console.warn('Cannot load grade history:', historyError);
-            setGradeHistory([]);
-          }
 
           if (data?.testId && data?.skillType) {
             const reviewSession = await ieltsApi.getTestSession(data.testId, data.skillType);
@@ -187,48 +186,6 @@ export default function LmsGradeSubmission() {
     } catch (error) {
       console.error('Error grading:', error);
       alert('Lỗi khi chấm bài');
-    }
-  };
-
-  const handleSaveExamGrade = async () => {
-    const parsedTotalCorrect = examGrade.totalCorrect === '' ? null : Number(examGrade.totalCorrect);
-    const parsedBandScore = examGrade.bandScore === '' ? null : Number(examGrade.bandScore);
-
-    if (parsedTotalCorrect !== null && (!Number.isInteger(parsedTotalCorrect) || parsedTotalCorrect < 0)) {
-      alert('Số câu đúng phải là số nguyên không âm');
-      return;
-    }
-
-    if (parsedBandScore !== null && (Number.isNaN(parsedBandScore) || parsedBandScore < 0 || parsedBandScore > 9)) {
-      alert('Band score phải nằm trong khoảng 0.0 đến 9.0');
-      return;
-    }
-
-    try {
-      setSavingExamGrade(true);
-      const payload = {
-        totalCorrect: parsedTotalCorrect,
-        bandScore: parsedBandScore,
-        feedback: examGrade.feedback,
-        editReason: examGrade.editReason
-      };
-
-      const updated = await teacherApi.updateExamAttemptGrade(id, payload);
-      setSubmission(updated);
-      setExamGrade({
-        totalCorrect: updated?.totalCorrect ?? '',
-        bandScore: updated?.bandScore ?? '',
-        feedback: updated?.feedback || '',
-        editReason: ''
-      });
-      const history = await teacherApi.getExamAttemptGradeHistory(id);
-      setGradeHistory(Array.isArray(history) ? history : []);
-      alert('Đã cập nhật điểm bài thi thành công!');
-    } catch (saveError) {
-      console.error('Error updating exam grade:', saveError);
-      alert('Không thể lưu chỉnh sửa điểm. Vui lòng thử lại.');
-    } finally {
-      setSavingExamGrade(false);
     }
   };
 
@@ -310,7 +267,14 @@ export default function LmsGradeSubmission() {
   };
 
   const getTotalQuestionCount = () => {
-    if (!examReviewSession?.parts) return submission?.totalAnswered || 0;
+    if (!examReviewSession?.parts?.length) return submission?.totalAnswered || 0;
+
+    const totalByPartMeta = examReviewSession.parts.reduce((sum, part) => {
+      const value = Number(part?.totalQuestions || 0);
+      return sum + (Number.isFinite(value) && value > 0 ? value : 0);
+    }, 0);
+    if (totalByPartMeta > 0) return totalByPartMeta;
+
     return examReviewSession.parts.reduce((partSum, part) => {
       const questions = part.questions || [];
       return partSum + questions.reduce((qSum, q) => {
@@ -472,13 +436,10 @@ export default function LmsGradeSubmission() {
               <Save size={14} /> Lưu điểm
             </button>
           ) : (
-            <button
-              className="lms-cta"
-              onClick={handleSaveExamGrade}
-              disabled={savingExamGrade}
-            >
-              <Save size={14} /> {savingExamGrade ? 'Đang lưu...' : 'Lưu chỉnh sửa điểm'}
-            </button>
+            <span className="lms-pill success">
+              <CheckCircle2 size={14} style={{ marginRight: 6 }} />
+              Chế độ xem chấm bài thi
+            </span>
           )}
         </div>
       </div>
@@ -620,103 +581,14 @@ export default function LmsGradeSubmission() {
                     </div>
                     <div className="lms-panel" style={{ margin: 0 }}>
                       <div style={{ color: '#6b7280', fontSize: 12 }}>So cau dung</div>
-                      <div style={{ fontWeight: 700 }}>{submission.totalCorrect ?? 0} / {submission.totalAnswered ?? 0}</div>
+                      <div style={{ fontWeight: 700 }}>{submission.totalCorrect ?? 0} / {getTotalQuestionCount()}</div>
+                      <div style={{ marginTop: 4, fontSize: 12, color: '#64748b' }}>
+                        Da tra loi: {submission.totalAnswered ?? 0}
+                      </div>
                     </div>
                     <div className="lms-panel" style={{ margin: 0 }}>
                       <div style={{ color: '#6b7280', fontSize: 12 }}>Trang thai</div>
                       <div style={{ fontWeight: 700 }}>{submission.status || 'N/A'}</div>
-                    </div>
-                  </div>
-
-                  <div style={{
-                    marginTop: 16,
-                    paddingTop: 16,
-                    borderTop: '1px solid #e5e7eb',
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-                    gap: 12
-                  }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: 12, color: '#64748b', marginBottom: 6 }}>
-                        Số câu đúng
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        max={submission?.totalAnswered ?? getTotalQuestionCount()}
-                        value={examGrade.totalCorrect}
-                        onChange={(e) => setExamGrade((prev) => ({ ...prev, totalCorrect: e.target.value }))}
-                        style={{
-                          width: '100%',
-                          padding: '10px 12px',
-                          border: '1px solid #cbd5e1',
-                          borderRadius: 8,
-                          fontSize: 14
-                        }}
-                      />
-                    </div>
-
-                    <div>
-                      <label style={{ display: 'block', fontSize: 12, color: '#64748b', marginBottom: 6 }}>
-                        Band score (0.0 - 9.0)
-                      </label>
-                      <input
-                        type="number"
-                        step="0.5"
-                        min="0"
-                        max="9"
-                        value={examGrade.bandScore}
-                        onChange={(e) => setExamGrade((prev) => ({ ...prev, bandScore: e.target.value }))}
-                        style={{
-                          width: '100%',
-                          padding: '10px 12px',
-                          border: '1px solid #cbd5e1',
-                          borderRadius: 8,
-                          fontSize: 14
-                        }}
-                      />
-                    </div>
-
-                    <div style={{ gridColumn: '1 / -1' }}>
-                      <label style={{ display: 'block', fontSize: 12, color: '#64748b', marginBottom: 6 }}>
-                        Nhận xét (tuỳ chọn)
-                      </label>
-                      <textarea
-                        rows={3}
-                        value={examGrade.feedback}
-                        onChange={(e) => setExamGrade((prev) => ({ ...prev, feedback: e.target.value }))}
-                        placeholder="Ghi chú lý do chỉnh sửa điểm..."
-                        style={{
-                          width: '100%',
-                          padding: '10px 12px',
-                          border: '1px solid #cbd5e1',
-                          borderRadius: 8,
-                          fontSize: 14,
-                          lineHeight: 1.5,
-                          resize: 'vertical'
-                        }}
-                      />
-                    </div>
-
-                    <div style={{ gridColumn: '1 / -1' }}>
-                      <label style={{ display: 'block', fontSize: 12, color: '#64748b', marginBottom: 6 }}>
-                        Lý do chỉnh sửa điểm
-                      </label>
-                      <textarea
-                        rows={2}
-                        value={examGrade.editReason}
-                        onChange={(e) => setExamGrade((prev) => ({ ...prev, editReason: e.target.value }))}
-                        placeholder="Ví dụ: Điều chỉnh theo rà soát đáp án thủ công"
-                        style={{
-                          width: '100%',
-                          padding: '10px 12px',
-                          border: '1px solid #cbd5e1',
-                          borderRadius: 8,
-                          fontSize: 14,
-                          lineHeight: 1.5,
-                          resize: 'vertical'
-                        }}
-                      />
                     </div>
                   </div>
                 </div>
@@ -751,52 +623,11 @@ export default function LmsGradeSubmission() {
                     fontWeight: 600,
                     color: '#1f2937'
                   }}>
-                    Lịch sử sửa điểm
+                    Ghi chú
                   </h3>
-
-                  {gradeHistory.length === 0 ? (
-                    <div style={{ color: '#64748b', fontSize: 14 }}>Chưa có lần chỉnh sửa điểm nào.</div>
-                  ) : (
-                    <div style={{ display: 'grid', gap: 12 }}>
-                      {gradeHistory.map((item) => (
-                        <div
-                          key={item.id}
-                          style={{
-                            border: '1px solid #e2e8f0',
-                            borderRadius: 10,
-                            padding: 14,
-                            background: '#f8fafc'
-                          }}
-                        >
-                          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                            <div style={{ fontSize: 13, color: '#334155' }}>
-                              <strong>{item.editedByUsername || 'N/A'}</strong> ({item.editorRole || 'N/A'})
-                            </div>
-                            <div style={{ fontSize: 12, color: '#64748b' }}>
-                              {item.editedAt ? new Date(item.editedAt).toLocaleString('vi-VN') : 'N/A'}
-                            </div>
-                          </div>
-
-                          <div style={{ marginTop: 8, fontSize: 14, color: '#0f172a' }}>
-                            Điểm đúng: {item.oldTotalCorrect ?? '-'} {'->'} {item.newTotalCorrect ?? '-'}
-                            {' | '}
-                            Band: {item.oldBandScore ?? '-'} {'->'} {item.newBandScore ?? '-'}
-                          </div>
-
-                          {(item.editReason || item.newFeedback) && (
-                            <div style={{ marginTop: 8, fontSize: 13, color: '#334155' }}>
-                              {item.editReason && (
-                                <div><strong>Lý do:</strong> {item.editReason}</div>
-                              )}
-                              {item.newFeedback && (
-                                <div><strong>Nhận xét:</strong> {item.newFeedback}</div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  <div style={{ color: '#64748b', fontSize: 14 }}>
+                    Chế độ sửa điểm thủ công đã được tắt. Trang này hiện chỉ dùng để review bài làm và kết quả hiện tại.
+                  </div>
                 </div>
               </>
             )}

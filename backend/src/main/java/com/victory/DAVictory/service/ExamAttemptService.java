@@ -222,12 +222,8 @@ public class ExamAttemptService {
         boolean hasUpdate = false;
 
         if (request.getTotalCorrect() != null) {
-            Integer totalAnswered = attempt.getTotalAnswered();
             if (request.getTotalCorrect() < 0) {
                 throw new RuntimeException("Số câu đúng không hợp lệ");
-            }
-            if (totalAnswered != null && request.getTotalCorrect() > totalAnswered) {
-                throw new RuntimeException("Số câu đúng không thể lớn hơn số câu đã trả lời");
             }
             attempt.setTotalCorrect(request.getTotalCorrect());
             attempt.setRawScore(request.getTotalCorrect().doubleValue());
