@@ -13,18 +13,18 @@ export default function LmsSubmissionDetail() {
   useEffect(() => {
     const loadSubmission = async () => {
       try {
+        console.log('🔍 Loading submission:', { id, type });
         if (type === 'writing') {
           const data = await teacherApi.getWritingSubmission(id);
+          console.log('✅ Writing submission loaded:', data);
           setSubmission(data);
         } else {
-          // Load exam attempt detail
-          const data = await fetch(`/api/exam-attempts/${id}/detail`, {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
-          }).then(r => r.json());
+          const data = await teacherApi.getExamAttemptDetail(id);
+          console.log('✅ Exam attempt loaded:', data);
           setSubmission(data);
         }
       } catch (error) {
-        console.error('Error loading submission:', error);
+        console.error('❌ Error loading submission:', error);
       } finally {
         setLoading(false);
       }
@@ -55,6 +55,8 @@ export default function LmsSubmissionDetail() {
     );
   }
 
+  console.log('📊 Rendering submission:', submission);
+
   return (
     <LmsLayout title="Chi tiết bài làm" subtitle="Xem và chấm bài học viên">
       <div className="lms-panel" style={{ marginBottom: 16 }}>
@@ -73,7 +75,10 @@ export default function LmsSubmissionDetail() {
           </div>
           <div>
             <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 4 }}>Loại bài</div>
-            <div style={{ fontWeight: 600 }}><FileText size={14} style={{ display: 'inline', marginRight: 4 }} />{type === 'writing' ? 'Writing' : submission.examType}</div>
+            <div style={{ fontWeight: 600 }}>
+              <FileText size={14} style={{ display: 'inline', marginRight: 4 }} />
+              {type === 'writing' ? 'Writing' : (submission.skillType || submission.examType || 'Exam')}
+            </div>
           </div>
           <div>
             <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 4 }}>Thời gian nộp</div>
@@ -94,12 +99,20 @@ export default function LmsSubmissionDetail() {
       {/* Nội dung bài làm */}
       {type === 'writing' && (
         <div className="lms-panel" style={{ marginBottom: 16 }}>
-          <h3 className="lms-panel-title">Đề bài: {submission.groupTitle}</h3>
+          <h3 className="lms-panel-title">Đề bài: {submission.groupTitle || 'N/A'}</h3>
           <div style={{ padding: 16, background: '#f9fafb', borderRadius: 8, marginBottom: 16 }}>
-            <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 8 }}>Số từ: {submission.wordCount}</div>
-            <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
-              {submission.submissionText}
+            <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 8 }}>
+              Số từ: {submission.wordCount || 0}
             </div>
+            {submission.submissionText ? (
+              <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
+                {submission.submissionText}
+              </div>
+            ) : (
+              <div style={{ color: '#ef4444', fontStyle: 'italic' }}>
+                ⚠️ Không có nội dung bài làm
+              </div>
+            )}
           </div>
         </div>
       )}

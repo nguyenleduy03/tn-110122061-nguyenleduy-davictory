@@ -32,6 +32,11 @@ export const teacherApi = {
     return res.data;
   },
 
+  getExamAttemptDetail: async (attemptId) => {
+    const res = await apiClient.get(`/exam-attempts/${attemptId}/detail`);
+    return res.data;
+  },
+
   gradeWritingSubmission: async (submissionId, payload) => {
     const res = await apiClient.post(`/writing/${submissionId}/grade`, payload);
     return res.data;

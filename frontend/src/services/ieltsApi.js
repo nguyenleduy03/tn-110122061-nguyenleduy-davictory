@@ -665,8 +665,8 @@ export const ieltsApi = {
     // 2. Tìm session theo skillType
     const targetSession = testData.sessions.find(s =>
       s.skillType === targetMode
-    ) || testData.sessions[0];
-    if (!targetSession) throw new Error(`Không tìm thấy session ${targetMode}`);
+    );
+    if (!targetSession) throw new Error(`Bài thi chưa có nội dung cho kỹ năng ${targetMode}. Vui lòng tạo câu hỏi trước.`);
 
     // counter dùng chung toàn bộ transform (pass by ref)
     const globalCounterRef = { counter: 1 };
@@ -937,7 +937,8 @@ export const ieltsApi = {
     console.log('📝 Raw Answers:', answers);
 
     const answerPayloads = Object.entries(answers || {}).map(([qid, value]) => {
-      const questionId = Number(qid);
+      const normalizedQid = String(qid).trim().replace(/^q/i, '');
+      const questionId = Number(normalizedQid);
       if (!Number.isFinite(questionId)) {
         console.warn(`Invalid questionId: ${qid}`);
         return null;
