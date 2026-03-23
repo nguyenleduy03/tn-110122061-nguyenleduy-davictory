@@ -30,6 +30,7 @@ public class ExamAttemptResponse {
     private Integer totalCorrect;
     private Double rawScore;
     private Double bandScore;
+    private String feedback;
 
     private Integer attemptNumber;
     

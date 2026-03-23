@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, User, Clock, FileText, Award, ClipboardList, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Save, User, Clock, FileText, Award, ClipboardList } from 'lucide-react';
 import { teacherApi } from '../../services/teacherApi';
 import { ieltsApi } from '../../services/ieltsApi';
 import QuestionRenderer from '../../components/question/QuestionRenderer';
@@ -15,7 +15,15 @@ export default function LmsGradeSubmission() {
   const [reviewAnswers, setReviewAnswers] = useState({});
   const [activeQuestion, setActiveQuestion] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [savingExamGrade, setSavingExamGrade] = useState(false);
   const [error, setError] = useState('');
+  const [gradeHistory, setGradeHistory] = useState([]);
+  const [examGrade, setExamGrade] = useState({
+    totalCorrect: '',
+    bandScore: '',
+    feedback: '',
+    editReason: ''
+  });
   const [grading, setGrading] = useState({
     score: '',
     feedback: '',
@@ -45,7 +53,7 @@ export default function LmsGradeSubmission() {
     return '';
   };
 
-  const resolveOptionLikeAnswer = (rawValue, options = []) => {
+  const resolveSingleOptionValue = (rawValue, options = []) => {
     if (typeof rawValue !== 'string' || !Array.isArray(options) || options.length === 0) {
       return rawValue;
     }
@@ -63,8 +71,22 @@ export default function LmsGradeSubmission() {
       const text = String(opt).trim();
       return new RegExp(`^${shortLabel}[\\).:-]`, 'i').test(text);
     });
+    if (matchedByPrefix) return matchedByPrefix;
 
-    return matchedByPrefix || rawValue;
+    // Fallback: map A/B/C... by option index when option text does not carry label prefix.
+    const index = shortLabel.charCodeAt(0) - 65;
+    if (index >= 0 && index < options.length) {
+      return options[index];
+    }
+
+    return rawValue;
+  };
+
+  const resolveOptionLikeAnswer = (rawValue, options = []) => {
+    if (Array.isArray(rawValue)) {
+      return rawValue.map((item) => resolveSingleOptionValue(item, options));
+    }
+    return resolveSingleOptionValue(rawValue, options);
   };
 
   const buildReviewAnswers = (attemptAnswers = [], reviewSession = null) => {
@@ -121,6 +143,21 @@ export default function LmsGradeSubmission() {
         } else {
           const data = await teacherApi.getExamAttemptDetail(id);
           setSubmission(data);
+          setExamGrade({
+            totalCorrect: data?.totalCorrect ?? '',
+            bandScore: data?.bandScore ?? '',
+            feedback: data?.feedback || '',
+            editReason: ''
+          });
+
+          try {
+            const history = await teacherApi.getExamAttemptGradeHistory(id);
+            setGradeHistory(Array.isArray(history) ? history : []);
+          } catch (historyError) {
+            // Keep the grading page usable even if history endpoint is temporarily forbidden.
+            console.warn('Cannot load grade history:', historyError);
+            setGradeHistory([]);
+          }
 
           if (data?.testId && data?.skillType) {
             const reviewSession = await ieltsApi.getTestSession(data.testId, data.skillType);
@@ -150,6 +187,48 @@ export default function LmsGradeSubmission() {
     } catch (error) {
       console.error('Error grading:', error);
       alert('Lỗi khi chấm bài');
+    }
+  };
+
+  const handleSaveExamGrade = async () => {
+    const parsedTotalCorrect = examGrade.totalCorrect === '' ? null : Number(examGrade.totalCorrect);
+    const parsedBandScore = examGrade.bandScore === '' ? null : Number(examGrade.bandScore);
+
+    if (parsedTotalCorrect !== null && (!Number.isInteger(parsedTotalCorrect) || parsedTotalCorrect < 0)) {
+      alert('Số câu đúng phải là số nguyên không âm');
+      return;
+    }
+
+    if (parsedBandScore !== null && (Number.isNaN(parsedBandScore) || parsedBandScore < 0 || parsedBandScore > 9)) {
+      alert('Band score phải nằm trong khoảng 0.0 đến 9.0');
+      return;
+    }
+
+    try {
+      setSavingExamGrade(true);
+      const payload = {
+        totalCorrect: parsedTotalCorrect,
+        bandScore: parsedBandScore,
+        feedback: examGrade.feedback,
+        editReason: examGrade.editReason
+      };
+
+      const updated = await teacherApi.updateExamAttemptGrade(id, payload);
+      setSubmission(updated);
+      setExamGrade({
+        totalCorrect: updated?.totalCorrect ?? '',
+        bandScore: updated?.bandScore ?? '',
+        feedback: updated?.feedback || '',
+        editReason: ''
+      });
+      const history = await teacherApi.getExamAttemptGradeHistory(id);
+      setGradeHistory(Array.isArray(history) ? history : []);
+      alert('Đã cập nhật điểm bài thi thành công!');
+    } catch (saveError) {
+      console.error('Error updating exam grade:', saveError);
+      alert('Không thể lưu chỉnh sửa điểm. Vui lòng thử lại.');
+    } finally {
+      setSavingExamGrade(false);
     }
   };
 
@@ -393,10 +472,13 @@ export default function LmsGradeSubmission() {
               <Save size={14} /> Lưu điểm
             </button>
           ) : (
-            <span className="lms-pill success">
-              <CheckCircle2 size={14} style={{ marginRight: 6 }} />
-              Chế độ xem chấm bài thi
-            </span>
+            <button
+              className="lms-cta"
+              onClick={handleSaveExamGrade}
+              disabled={savingExamGrade}
+            >
+              <Save size={14} /> {savingExamGrade ? 'Đang lưu...' : 'Lưu chỉnh sửa điểm'}
+            </button>
           )}
         </div>
       </div>
@@ -545,6 +627,98 @@ export default function LmsGradeSubmission() {
                       <div style={{ fontWeight: 700 }}>{submission.status || 'N/A'}</div>
                     </div>
                   </div>
+
+                  <div style={{
+                    marginTop: 16,
+                    paddingTop: 16,
+                    borderTop: '1px solid #e5e7eb',
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                    gap: 12
+                  }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: 12, color: '#64748b', marginBottom: 6 }}>
+                        Số câu đúng
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        max={submission?.totalAnswered ?? getTotalQuestionCount()}
+                        value={examGrade.totalCorrect}
+                        onChange={(e) => setExamGrade((prev) => ({ ...prev, totalCorrect: e.target.value }))}
+                        style={{
+                          width: '100%',
+                          padding: '10px 12px',
+                          border: '1px solid #cbd5e1',
+                          borderRadius: 8,
+                          fontSize: 14
+                        }}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: 12, color: '#64748b', marginBottom: 6 }}>
+                        Band score (0.0 - 9.0)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.5"
+                        min="0"
+                        max="9"
+                        value={examGrade.bandScore}
+                        onChange={(e) => setExamGrade((prev) => ({ ...prev, bandScore: e.target.value }))}
+                        style={{
+                          width: '100%',
+                          padding: '10px 12px',
+                          border: '1px solid #cbd5e1',
+                          borderRadius: 8,
+                          fontSize: 14
+                        }}
+                      />
+                    </div>
+
+                    <div style={{ gridColumn: '1 / -1' }}>
+                      <label style={{ display: 'block', fontSize: 12, color: '#64748b', marginBottom: 6 }}>
+                        Nhận xét (tuỳ chọn)
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={examGrade.feedback}
+                        onChange={(e) => setExamGrade((prev) => ({ ...prev, feedback: e.target.value }))}
+                        placeholder="Ghi chú lý do chỉnh sửa điểm..."
+                        style={{
+                          width: '100%',
+                          padding: '10px 12px',
+                          border: '1px solid #cbd5e1',
+                          borderRadius: 8,
+                          fontSize: 14,
+                          lineHeight: 1.5,
+                          resize: 'vertical'
+                        }}
+                      />
+                    </div>
+
+                    <div style={{ gridColumn: '1 / -1' }}>
+                      <label style={{ display: 'block', fontSize: 12, color: '#64748b', marginBottom: 6 }}>
+                        Lý do chỉnh sửa điểm
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={examGrade.editReason}
+                        onChange={(e) => setExamGrade((prev) => ({ ...prev, editReason: e.target.value }))}
+                        placeholder="Ví dụ: Điều chỉnh theo rà soát đáp án thủ công"
+                        style={{
+                          width: '100%',
+                          padding: '10px 12px',
+                          border: '1px solid #cbd5e1',
+                          borderRadius: 8,
+                          fontSize: 14,
+                          lineHeight: 1.5,
+                          resize: 'vertical'
+                        }}
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <div style={{
@@ -562,6 +736,67 @@ export default function LmsGradeSubmission() {
                     Review dap an hoc vien
                   </h3>
                   {renderExamReviewByQuestions()}
+                </div>
+
+                <div style={{
+                  background: 'white',
+                  borderRadius: 12,
+                  padding: 24,
+                  border: '1px solid #e5e7eb',
+                  marginTop: 20
+                }}>
+                  <h3 style={{
+                    margin: '0 0 16px 0',
+                    fontSize: 18,
+                    fontWeight: 600,
+                    color: '#1f2937'
+                  }}>
+                    Lịch sử sửa điểm
+                  </h3>
+
+                  {gradeHistory.length === 0 ? (
+                    <div style={{ color: '#64748b', fontSize: 14 }}>Chưa có lần chỉnh sửa điểm nào.</div>
+                  ) : (
+                    <div style={{ display: 'grid', gap: 12 }}>
+                      {gradeHistory.map((item) => (
+                        <div
+                          key={item.id}
+                          style={{
+                            border: '1px solid #e2e8f0',
+                            borderRadius: 10,
+                            padding: 14,
+                            background: '#f8fafc'
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                            <div style={{ fontSize: 13, color: '#334155' }}>
+                              <strong>{item.editedByUsername || 'N/A'}</strong> ({item.editorRole || 'N/A'})
+                            </div>
+                            <div style={{ fontSize: 12, color: '#64748b' }}>
+                              {item.editedAt ? new Date(item.editedAt).toLocaleString('vi-VN') : 'N/A'}
+                            </div>
+                          </div>
+
+                          <div style={{ marginTop: 8, fontSize: 14, color: '#0f172a' }}>
+                            Điểm đúng: {item.oldTotalCorrect ?? '-'} {'->'} {item.newTotalCorrect ?? '-'}
+                            {' | '}
+                            Band: {item.oldBandScore ?? '-'} {'->'} {item.newBandScore ?? '-'}
+                          </div>
+
+                          {(item.editReason || item.newFeedback) && (
+                            <div style={{ marginTop: 8, fontSize: 13, color: '#334155' }}>
+                              {item.editReason && (
+                                <div><strong>Lý do:</strong> {item.editReason}</div>
+                              )}
+                              {item.newFeedback && (
+                                <div><strong>Nhận xét:</strong> {item.newFeedback}</div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </>
             )}
@@ -705,8 +940,8 @@ export default function LmsGradeSubmission() {
             fontSize: 14
           }}>
             {examType === 'SPEAKING'
-              ? 'Bai thi Speaking can quy trinh cham thu cong rieng. Hien tai trang nay hien thi chi tiet bai nop de giang vien review nhanh.'
-              : 'Bai thi Reading/Listening duoc he thong auto-grade. Trang nay duoc bo sung de giang vien xem chi tiet dap an khi bam Cham bai.'}
+              ? 'Bài thi Speaking cần quy trình chấm thủ công riêng. Bạn có thể chỉnh sửa điểm thủ công ở phần tổng quan phía trên.'
+              : 'Bài thi Reading/Listening được auto-grade. Nếu có sai sót, bạn có thể chỉnh sửa điểm và lưu lại ngay trên màn hình này.'}
           </div>
         )}
       </div>

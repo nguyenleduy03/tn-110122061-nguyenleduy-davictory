@@ -37,6 +37,16 @@ export const teacherApi = {
     return res.data;
   },
 
+  updateExamAttemptGrade: async (attemptId, payload) => {
+    const res = await apiClient.put(`/exam-attempts/${attemptId}/grade`, payload);
+    return res.data;
+  },
+
+  getExamAttemptGradeHistory: async (attemptId) => {
+    const res = await apiClient.get(`/exam-attempts/${attemptId}/grade-history`);
+    return res.data;
+  },
+
   gradeWritingSubmission: async (submissionId, payload) => {
     const res = await apiClient.post(`/writing/${submissionId}/grade`, payload);
     return res.data;

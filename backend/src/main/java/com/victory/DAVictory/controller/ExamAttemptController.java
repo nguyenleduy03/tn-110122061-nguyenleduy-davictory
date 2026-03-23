@@ -1,6 +1,8 @@
 package com.victory.DAVictory.controller;
 
 import com.victory.DAVictory.dto.ExamAttemptResponse;
+import com.victory.DAVictory.dto.ExamAttemptGradeHistoryResponse;
+import com.victory.DAVictory.dto.ExamAttemptManualGradeRequest;
 import com.victory.DAVictory.dto.ExamAttemptStartRequest;
 import com.victory.DAVictory.dto.ExamAttemptSubmitRequest;
 import com.victory.DAVictory.service.ExamAttemptService;
@@ -115,6 +117,32 @@ public class ExamAttemptController {
             String username = authentication.getName();
             ExamAttemptResponse response = examAttemptService.getAttemptDetailForTeacher(username, id);
             return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PutMapping("/{id}/grade")
+    @PreAuthorize("hasAnyRole('TEACHER', 'MANAGER', 'ADMIN')")
+    public ResponseEntity<?> updateAttemptGrade(@PathVariable Long id,
+                                                @RequestBody ExamAttemptManualGradeRequest request,
+                                                Authentication authentication) {
+        try {
+            String username = authentication.getName();
+            ExamAttemptResponse response = examAttemptService.updateAttemptGrade(username, id, request);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/{id}/grade-history")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> getAttemptGradeHistory(@PathVariable Long id, Authentication authentication) {
+        try {
+            String username = authentication.getName();
+            List<ExamAttemptGradeHistoryResponse> list = examAttemptService.getAttemptGradeHistory(username, id);
+            return ResponseEntity.ok(list);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }

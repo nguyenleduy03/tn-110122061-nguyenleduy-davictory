@@ -21,6 +21,8 @@
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/AttemptAnswerSave.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/AuthResponse.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/ChangePasswordRequest.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/ExamAttemptGradeHistoryResponse.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/ExamAttemptManualGradeRequest.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/ExamAttemptResponse.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/ExamAttemptStartRequest.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/ExamAttemptSubmitRequest.java
@@ -57,6 +59,7 @@
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/entity/ClassTeacher.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/entity/DifficultyLevel.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/entity/ExamAttempt.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/entity/ExamAttemptGradeHistory.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/entity/FullTestProgress.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/entity/MatchingPair.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/entity/MediaFile.java
@@ -118,6 +121,7 @@
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/repository/ClassStudentRepository.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/repository/ClassTeacherRepository.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/repository/DifficultyLevelRepository.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/repository/ExamAttemptGradeHistoryRepository.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/repository/ExamAttemptRepository.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/repository/FullTestProgressRepository.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/repository/MatchingPairRepository.java

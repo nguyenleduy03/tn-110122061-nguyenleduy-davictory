@@ -147,6 +147,8 @@ const TestBuilder = () => {
   const [structure, setStructure] = useState(null); // Backend session/part IDs
   const [saveMessage, setSaveMessage] = useState('');
   const [roleError, setRoleError] = useState(false);
+  const [builderMode, setBuilderMode] = useState('format'); // 'format' | 'builder'
+  const [activeTool, setActiveTool] = useState('region');
 
   // ─── Fetch backend structure + load existing test on mount ───
   useEffect(() => {
@@ -1158,6 +1160,10 @@ const TestBuilder = () => {
           shuffling={shuffling}
           saveMessage={saveMessage}
           onSkillModeChange={handleSkillModeChange}
+          builderMode={builderMode}
+          activeTool={activeTool}
+          onModeChange={setBuilderMode}
+          onToolChange={setActiveTool}
         />
 
         <div className="tb-workspace">

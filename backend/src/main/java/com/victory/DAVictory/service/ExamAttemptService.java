@@ -3,6 +3,8 @@ package com.victory.DAVictory.service;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.victory.DAVictory.dto.AttemptAnswerSave;
+import com.victory.DAVictory.dto.ExamAttemptGradeHistoryResponse;
+import com.victory.DAVictory.dto.ExamAttemptManualGradeRequest;
 import com.victory.DAVictory.dto.ExamAttemptResponse;
 import com.victory.DAVictory.dto.ExamAttemptStartRequest;
 import com.victory.DAVictory.dto.ExamAttemptSubmitRequest;
@@ -10,6 +12,8 @@ import com.victory.DAVictory.entity.*;
 import com.victory.DAVictory.enums.SkillType;
 import com.victory.DAVictory.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,6 +38,7 @@ public class ExamAttemptService {
     private final UserRepository userRepository;
     private final ClassTeacherRepository classTeacherRepository;
     private final ClassStudentRepository classStudentRepository;
+    private final JdbcTemplate jdbcTemplate;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -133,8 +138,7 @@ public class ExamAttemptService {
 
         // Kiểm tra GV có dạy lớp này không (hoặc là ADMIN/MANAGER)
         boolean isTeacher = classTeacherRepository.existsByUserIdAndClazzIdAndIsActiveTrue(teacher.getId(), classId);
-        boolean isAdmin = teacher.getRoles().stream()
-            .anyMatch(r -> r.getName().equals("ADMIN") || r.getName().equals("MANAGER"));
+        boolean isAdmin = hasRoleLike(teacher, "ADMIN") || hasRoleLike(teacher, "MANAGER");
 
         if (!isTeacher && !isAdmin) {
             throw new RuntimeException("Bạn không có quyền xem bài làm của lớp này");
@@ -152,8 +156,7 @@ public class ExamAttemptService {
 
         // Kiểm tra GV có dạy lớp này không
         boolean isTeacher = classTeacherRepository.existsByUserIdAndClazzIdAndIsActiveTrue(teacher.getId(), classId);
-        boolean isAdmin = teacher.getRoles().stream()
-            .anyMatch(r -> r.getName().equals("ADMIN") || r.getName().equals("MANAGER"));
+        boolean isAdmin = hasRoleLike(teacher, "ADMIN") || hasRoleLike(teacher, "MANAGER");
 
         if (!isTeacher && !isAdmin) {
             throw new RuntimeException("Bạn không có quyền xem bài làm của lớp này");
@@ -187,14 +190,213 @@ public class ExamAttemptService {
                 .toList()
         );
 
-        boolean isAdmin = teacher.getRoles().stream()
-            .anyMatch(r -> r.getName().equals("ADMIN") || r.getName().equals("MANAGER"));
+        boolean isAdmin = hasRoleLike(teacher, "ADMIN") || hasRoleLike(teacher, "MANAGER");
 
         if (!isTeachingStudent && !isAdmin) {
             throw new RuntimeException("Bạn không có quyền xem bài làm của học viên này");
         }
 
         return toResponseWithAnswers(attempt);
+    }
+
+    @Transactional
+    public ExamAttemptResponse updateAttemptGrade(String teacherUsername,
+                                                  Long attemptId,
+                                                  ExamAttemptManualGradeRequest request) {
+        if (request == null) {
+            throw new RuntimeException("Thiếu dữ liệu chỉnh sửa điểm");
+        }
+
+        User teacher = userRepository.findByUsername(teacherUsername)
+            .orElseThrow(() -> new RuntimeException("Không tìm thấy giáo viên"));
+
+        ExamAttempt attempt = examAttemptRepository.findById(attemptId)
+            .orElseThrow(() -> new RuntimeException("Không tìm thấy attempt ID=" + attemptId));
+
+        validateTeacherCanAccessAttempt(teacher, attempt);
+
+        Integer oldTotalCorrect = attempt.getTotalCorrect();
+        Double oldBandScore = attempt.getBandScore();
+        String oldFeedback = attempt.getFeedback();
+
+        boolean hasUpdate = false;
+
+        if (request.getTotalCorrect() != null) {
+            Integer totalAnswered = attempt.getTotalAnswered();
+            if (request.getTotalCorrect() < 0) {
+                throw new RuntimeException("Số câu đúng không hợp lệ");
+            }
+            if (totalAnswered != null && request.getTotalCorrect() > totalAnswered) {
+                throw new RuntimeException("Số câu đúng không thể lớn hơn số câu đã trả lời");
+            }
+            attempt.setTotalCorrect(request.getTotalCorrect());
+            attempt.setRawScore(request.getTotalCorrect().doubleValue());
+            hasUpdate = true;
+        }
+
+        if (request.getBandScore() != null) {
+            double band = request.getBandScore();
+            if (band < 0 || band > 9) {
+                throw new RuntimeException("Band score phải nằm trong khoảng 0.0 đến 9.0");
+            }
+            attempt.setBandScore(band);
+            hasUpdate = true;
+        }
+
+        if (request.getFeedback() != null) {
+            attempt.setFeedback(request.getFeedback().trim());
+            hasUpdate = true;
+        }
+
+        if (!hasUpdate) {
+            throw new RuntimeException("Không có dữ liệu nào để cập nhật");
+        }
+
+        attempt.setStatus("GRADED");
+        attempt.setGradedAt(LocalDateTime.now());
+
+        ExamAttempt saved = examAttemptRepository.save(attempt);
+
+        saveGradeHistoryRecord(
+            saved,
+            teacher,
+            oldTotalCorrect,
+            oldBandScore,
+            oldFeedback,
+            request.getEditReason()
+        );
+
+        return toResponseWithAnswers(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ExamAttemptGradeHistoryResponse> getAttemptGradeHistory(String teacherUsername, Long attemptId) {
+        User teacher = userRepository.findByUsername(teacherUsername)
+            .orElseThrow(() -> new RuntimeException("Không tìm thấy giáo viên"));
+
+        ExamAttempt attempt = examAttemptRepository.findById(attemptId)
+            .orElseThrow(() -> new RuntimeException("Không tìm thấy attempt ID=" + attemptId));
+
+        validateTeacherCanAccessAttempt(teacher, attempt);
+
+        try {
+            String sql = """
+                SELECT id,
+                       edited_by_username,
+                       editor_role,
+                       old_total_correct,
+                       new_total_correct,
+                       old_band_score,
+                       new_band_score,
+                       old_feedback,
+                       new_feedback,
+                       edit_reason,
+                       edited_at
+                FROM exam_attempt_grade_history
+                WHERE exam_attempt_id = ?
+                ORDER BY edited_at DESC
+                """;
+
+            return jdbcTemplate.query(sql, (rs, rowNum) -> {
+                ExamAttemptGradeHistoryResponse dto = new ExamAttemptGradeHistoryResponse();
+                dto.setId(rs.getLong("id"));
+                dto.setEditedByUsername(rs.getString("edited_by_username"));
+                dto.setEditorRole(rs.getString("editor_role"));
+                dto.setOldTotalCorrect((Integer) rs.getObject("old_total_correct"));
+                dto.setNewTotalCorrect((Integer) rs.getObject("new_total_correct"));
+                dto.setOldBandScore((Double) rs.getObject("old_band_score"));
+                dto.setNewBandScore((Double) rs.getObject("new_band_score"));
+                dto.setOldFeedback(rs.getString("old_feedback"));
+                dto.setNewFeedback(rs.getString("new_feedback"));
+                dto.setEditReason(rs.getString("edit_reason"));
+                var ts = rs.getTimestamp("edited_at");
+                dto.setEditedAt(ts != null ? ts.toLocalDateTime() : null);
+                return dto;
+            }, attemptId);
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Không thể tải lịch sử sửa điểm. Vui lòng kiểm tra bảng exam_attempt_grade_history.");
+        }
+    }
+
+    private void validateTeacherCanAccessAttempt(User teacher, ExamAttempt attempt) {
+        Long studentId = attempt.getUser().getId();
+        boolean isTeachingStudent = classTeacherRepository.existsByUserIdAndClazzIdInAndIsActiveTrue(
+            teacher.getId(),
+            classStudentRepository.findByUserIdOrderByEnrolledAtDesc(studentId).stream()
+                .map(cs -> cs.getClazz().getId())
+                .toList()
+        );
+
+        boolean isAdmin = hasRoleLike(teacher, "ADMIN") || hasRoleLike(teacher, "MANAGER");
+
+        if (!isTeachingStudent && !isAdmin) {
+            throw new RuntimeException("Bạn không có quyền xem/chấm bài làm của học viên này");
+        }
+    }
+
+    private String resolveEditorRole(User user) {
+        boolean isAdmin = hasRoleLike(user, "ADMIN");
+        if (isAdmin) return "ADMIN";
+        boolean isManager = hasRoleLike(user, "MANAGER");
+        if (isManager) return "MANAGER";
+        boolean isTeacher = hasRoleLike(user, "TEACHER");
+        if (isTeacher) return "TEACHER";
+        return "UNKNOWN";
+    }
+
+    private boolean hasRoleLike(User user, String expected) {
+        if (user == null || user.getRoles() == null || expected == null) return false;
+        String normalizedExpected = expected.trim().toUpperCase(Locale.ROOT);
+        return user.getRoles().stream().anyMatch(role -> {
+            String roleName = role != null ? role.getName() : null;
+            if (roleName == null || roleName.isBlank()) return false;
+            String normalized = roleName.trim().toUpperCase(Locale.ROOT);
+            return normalized.equals(normalizedExpected) || normalized.equals("ROLE_" + normalizedExpected);
+        });
+    }
+
+    private void saveGradeHistoryRecord(ExamAttempt attempt,
+                                        User teacher,
+                                        Integer oldTotalCorrect,
+                                        Double oldBandScore,
+                                        String oldFeedback,
+                                        String editReason) {
+        try {
+            String sql = """
+                INSERT INTO exam_attempt_grade_history (
+                    exam_attempt_id,
+                    edited_by_user_id,
+                    edited_by_username,
+                    editor_role,
+                    old_total_correct,
+                    new_total_correct,
+                    old_band_score,
+                    new_band_score,
+                    old_feedback,
+                    new_feedback,
+                    edit_reason,
+                    edited_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """;
+
+            jdbcTemplate.update(
+                sql,
+                attempt.getId(),
+                teacher.getId(),
+                teacher.getUsername(),
+                resolveEditorRole(teacher),
+                oldTotalCorrect,
+                attempt.getTotalCorrect(),
+                oldBandScore,
+                attempt.getBandScore(),
+                oldFeedback,
+                attempt.getFeedback(),
+                editReason != null ? editReason.trim() : null,
+                java.sql.Timestamp.valueOf(LocalDateTime.now())
+            );
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Không thể lưu lịch sử sửa điểm. Vui lòng kiểm tra bảng exam_attempt_grade_history.");
+        }
     }
 
     @Transactional
@@ -372,6 +574,7 @@ public class ExamAttemptService {
         r.setTotalCorrect(attempt.getTotalCorrect());
         r.setRawScore(attempt.getRawScore());
         r.setBandScore(attempt.getBandScore());
+        r.setFeedback(attempt.getFeedback());
         r.setAttemptNumber(attempt.getAttemptNumber());
         return r;
     }
