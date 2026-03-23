@@ -6,6 +6,7 @@ import TFNGQuestion from './TFNGQuestion';
 import DragDropGroupQuestion from './DragDropGroupQuestion';
 import SummaryCompletionQuestion from './SummaryCompletionQuestion';
 import DropdownGroupQuestion from './DropdownGroupQuestion';
+import MatchingFillQuestion from './MatchingFillQuestion';
 import { formatTextWithWhitespace } from '../../utils/textFormatters';
 
 const normalizeQuestionType = (rawType) => {
@@ -150,6 +151,21 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
         );
     }
 
+    if (normalizedType === 'matching_fillable' || normalizedType === 'matching_fill') {
+        return (
+            <MatchingFillQuestion
+                q={q}
+                activeQuestion={activeQuestion}
+                setActiveQuestion={setActiveQuestion}
+                answers={answers || {}}
+                handleAnswerChange={handleAnswerChange}
+                bookmarks={bookmarks}
+                toggleBookmark={toggleBookmark}
+                isReview={isReview}
+            />
+        );
+    }
+
     if (normalizedType === 'summary-completion' || normalizedType === 'note-completion') {
         return (
             <SummaryCompletionQuestion
@@ -171,6 +187,7 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
         const tableRows = q.tableRows || [];
         const subQuestions = q.subQuestions || [];
         const answerMap = answers || answer || {};
+        const opts = q.validationOptions || {};
 
         const normalizeBlankTokens = (text) => {
             let s = String(text || '');
@@ -215,14 +232,31 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
             return count;
         };
 
+        const checkAnswer = (userAnswer, correctAnswer) => {
+            const normalizeAnswer = (text) => {
+                let s = String(text || '').trim();
+                if (opts.ignoreCase !== false) s = s.toLowerCase();
+                if (opts.ignoreSpaces) s = s.replace(/\s+/g, '');
+                if (opts.ignorePunctuation) s = s.replace(/[.,!?;:'"()]/g, '');
+                if (opts.ignoreChars) {
+                    const chars = opts.ignoreChars.split('');
+                    chars.forEach(c => { s = s.split(c).join(''); });
+                }
+                return s;
+            };
+            const normalized = normalizeAnswer(userAnswer);
+            const acceptedAnswers = String(correctAnswer || '').split('|').map(a => normalizeAnswer(a));
+            return acceptedAnswers.includes(normalized);
+        };
+
         const renderBlankInput = (info) => {
             if (!info?.subQ) return null;
             const subQ = info.subQ;
             const isActive = activeQuestion === subQ.number;
             const currentValue = answerMap[subQ.id] || '';
-            const isCorrect = String(currentValue).trim().toLowerCase() === String(subQ.correctAnswer || '').trim().toLowerCase();
+            const isCorrect = checkAnswer(currentValue, subQ.correctAnswer);
             const displayValue = (isReview && !isCorrect)
-                ? String(subQ.correctAnswer || '')
+                ? String(subQ.correctAnswer || '').split('|')[0]
                 : String(currentValue || '');
 
             return (
@@ -269,20 +303,10 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
             });
         };
 
-        const numbers = subQuestions.map((sq) => sq.number).filter((n) => Number.isFinite(n));
-        const minNum = numbers.length ? Math.min(...numbers) : null;
-        const maxNum = numbers.length ? Math.max(...numbers) : null;
-        const heading = q.heading || (minNum !== null && maxNum !== null ? `Questions ${minNum}-${maxNum}` : 'Questions');
-        const instruction = q.instruction || 'Complete the table. Write ONE WORD ONLY for each answer.';
-
         // Fallback nếu dữ liệu bảng chưa có cấu trúc
         if (!columns.length || !tableRows.length) {
             return (
                 <div className="table-completion-container">
-                    <div className="question-header-container">
-                        <p className="question-heading">{heading}</p>
-                        <p className="question-instruction" dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(instruction) }} />
-                    </div>
                     <div className="table-completion-grid">
                         {subQuestions.map((subQ) => (
                             <div key={subQ.id} className="table-cell-input relative-pos">
@@ -297,9 +321,9 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
                                 )}
                                 {(() => {
                                     const rawValue = answerMap[subQ.id] || '';
-                                    const isCorrect = String(rawValue).trim().toLowerCase() === String(subQ.correctAnswer || '').trim().toLowerCase();
+                                    const isCorrect = checkAnswer(rawValue, subQ.correctAnswer);
                                     const displayValue = (isReview && !isCorrect)
-                                        ? String(subQ.correctAnswer || '')
+                                        ? String(subQ.correctAnswer || '').split('|')[0]
                                         : String(rawValue || '');
                                     return (
                                         <input
@@ -323,10 +347,6 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
 
         return (
             <div className="table-completion-container">
-                <div className="question-header-container">
-                    <p className="question-heading">{heading}</p>
-                    <p className="question-instruction" dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(instruction) }} />
-                </div>
                 <div className="tc-table-wrap">
                     <table className="tc-table">
                         {(q.tableTitle || columns.some((c) => c.header)) && (

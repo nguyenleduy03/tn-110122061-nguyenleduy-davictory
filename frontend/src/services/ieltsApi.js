@@ -1,5 +1,5 @@
 import { API_CONFIG } from '../config/api';
-import { formatTextWithWhitespace } from '../utils/textFormatters';
+import { formatTextWithWhitespace, stripInlineStyles } from '../utils/textFormatters';
 
 // ─── Helper: auth headers ───────────────────────────────────────────
 function authHeaders() {
@@ -68,9 +68,9 @@ function mapQuestionType(questionTypeCode) {
       return 'mcq_dropdown_group';
     // Biến thể: Matching → Fill-in
     case 'MATCHING_FILLABLE':
-      return 'fill-in-the-blank';
+      return 'matching_fillable';
     case 'MATCHING_HEADINGS_FILLABLE':
-      return 'fill-in-the-blank';
+      return 'matching_fillable';
     // Biến thể: Fill-in → Drag-drop
     case 'FILL_BLANK_DRAG':
       return 'drag_drop_group';
@@ -114,6 +114,8 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
     feType = 'matching_info';
   } else if (contentType === 'MATCHING_FEATURES') {
     feType = 'matching_features';
+  } else if (contentType === 'MATCHING_FILLABLE' || contentType === 'MATCHING_HEADINGS_FILLABLE') {
+    feType = 'matching_fillable';
   } else if (contentType === 'AUDIO_TRANSCRIPT') {
     // Audio transcript groups - skip questions, just extract audio
     return [];
@@ -285,24 +287,16 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
       return { id: `q${q.id}`, number: num, text: q.questionText || '', correctAnswer };
     });
 
-    const numbers = subQuestions.map((sq) => sq.number).filter((n) => Number.isFinite(n));
-    const minNum = numbers.length ? Math.min(...numbers) : null;
-    const maxNum = numbers.length ? Math.max(...numbers) : null;
-    const heading = (minNum !== null && maxNum !== null)
-      ? (minNum === maxNum ? `Question ${minNum}` : `Questions ${minNum}-${maxNum}`)
-      : '';
-
     return [{
       id: `group-${group.questionGroupId || group.id}`,
       type: 'table-completion',
       questionTypeCode: typeCode,
-      heading,
-      instruction: group.instructions || 'Complete the table. Write ONE WORD ONLY for each answer.',
       title: group.title || '',
       tableTitle,
       columns,
       tableRows,
       subQuestions,
+      validationOptions: group.validationOptions || null,
     }];
   }
 
@@ -325,9 +319,9 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
       type: 'note-completion',
       questionTypeCode: typeCode,
       title: group.title || '',
-      instruction: group.instructions || '',
       text: noteText,
       subQuestions,
+      validationOptions: group.validationOptions || null,
     }];
   }
 
@@ -350,9 +344,9 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
       type: 'summary-completion',
       questionTypeCode: typeCode,
       title: group.title || '',
-      instruction: group.instructions || '',
       text: summaryText,
       subQuestions,
+      validationOptions: group.validationOptions || null,
     }];
   }
 
@@ -369,6 +363,7 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
     let flowInstruction = 'Complete the flow-chart. Choose the correct answer and move it into the gap.';
     let bankTitle = '';
     let bankOptions = [];
+    let allowOptionReuse = true;
     if (group.passageText) {
       try {
         const parsed = JSON.parse(group.passageText);
@@ -389,9 +384,14 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
           }
           if (Array.isArray(parsed.optionBank)) {
             bankOptions = parsed.optionBank.map((item) => {
-              if (typeof item === 'string') return item;
-              return item?.text || item?.label || item?.value || '';
+              let text = '';
+              if (typeof item === 'string') text = item;
+              else text = item?.text || item?.label || item?.value || '';
+              return stripInlineStyles(text);
             }).filter(Boolean);
+          }
+          if (typeof parsed.allowOptionReuse === 'boolean') {
+            allowOptionReuse = parsed.allowOptionReuse;
           }
         }
       } catch {
@@ -434,6 +434,7 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
       bankOptions,
       flowNodes,
       subQuestions,
+      allowOptionReuse,
     }];
   }
 
@@ -463,10 +464,12 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
       };
     });
 
-    const fallbackOptions = (questions[0]?.options || []).map(o => o.optionText || o.optionLabel).filter(Boolean);
+    const fallbackOptions = (questions[0]?.options || []).map(o => stripInlineStyles(o.optionText || o.optionLabel)).filter(Boolean);
     const mapMetaOptions = (parsedMapMeta.optionBank || []).map((o) => {
-      if (typeof o === 'string') return o;
-      return o?.text || '';
+      let text = '';
+      if (typeof o === 'string') text = o;
+      else text = o?.text || '';
+      return stripInlineStyles(text);
     }).filter(Boolean);
     const bankOptions = mapMetaOptions.length > 0 ? mapMetaOptions : fallbackOptions;
     const numbers = subQuestions.map((sq) => sq.number).filter((n) => Number.isFinite(n));
@@ -483,11 +486,12 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
       questionTypeCode: typeCode,
       heading,
       instruction,
-      rightTitle: parsedMapMeta.rightTitle || '',
+      rightTitle: stripInlineStyles(parsedMapMeta.rightTitle || ''),
       imageUrl: group.imageUrl || null,
       imageWidth: parsedMapMeta.imageWidth ?? 100,
       pinBoxWidth: parsedMapMeta.pinBoxWidth ?? 60,
       constrainHalfPage: Boolean(parsedMapMeta.constrainHalfPage),
+      allowOptionReuse: (typeof parsedMapMeta.allowOptionReuse === 'boolean') ? parsedMapMeta.allowOptionReuse : true,
       bankOptions,
       subQuestions,
     }];
@@ -508,8 +512,10 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
     }
 
     const normalizeBank = (items) => (items || []).map(item => {
-      if (typeof item === 'string') return item;
-      return item?.text || item?.label || item?.value || '';
+      let text = '';
+      if (typeof item === 'string') text = item;
+      else text = item?.text || item?.label || item?.value || '';
+      return stripInlineStyles(text);
     }).filter(Boolean);
 
     let bankOptions = [];
@@ -544,8 +550,9 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
       id: `group-${group.questionGroupId || group.id}`,
       type: feType,
       questionTypeCode: typeCode,
-      leftHeader: parsedBank?.leftTitle || group.leftTitle || 'Questions',
-      rightHeader: parsedBank?.rightTitle || group.rightTitle || 'Options',
+      leftHeader: stripInlineStyles(parsedBank?.leftTitle || group.leftTitle || 'Questions'),
+      rightHeader: stripInlineStyles(parsedBank?.rightTitle || group.rightTitle || 'Options'),
+      allowOptionReuse: (typeof parsedBank?.allowOptionReuse === 'boolean') ? parsedBank.allowOptionReuse : true,
       bankOptions,
       subQuestions,
     }];
@@ -617,8 +624,50 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
       categoryTitle,
       categories,
       subQuestions,
+      allowOptionReuse: (typeof group.allowOptionReuse === 'boolean') ? group.allowOptionReuse : true,
     }];
   }
+
+  // ─── MATCHING_FILLABLE → 1 group question (fill-in variant) ───────────
+  if (feType === 'matching_fillable') {
+    const subQuestions = questions.map((q) => {
+      const num = globalCounterRef.counter++;
+      const correctAnswer = (q.answers || [])[0]?.answerText || '';
+      return {
+        id: q.id,
+        number: num,
+        text: q.questionText || q.blankContext || '',
+        correctAnswer: correctAnswer.trim(),
+      };
+    });
+
+    const numbers = subQuestions.map((sq) => sq.number).filter((n) => Number.isFinite(n));
+    const minNum = numbers.length ? Math.min(...numbers) : null;
+    const maxNum = numbers.length ? Math.max(...numbers) : null;
+    const heading = (minNum !== null && maxNum !== null)
+      ? (minNum === maxNum ? `Question ${minNum}` : `Questions ${minNum}–${maxNum}`)
+      : '';
+
+    let leftHeader = '';
+    if (group.passageText) {
+      try {
+        const parsed = JSON.parse(group.passageText);
+        leftHeader = parsed.leftTitle || '';
+      } catch {}
+    }
+
+    return [{
+      id: `group-${group.questionGroupId || group.id}`,
+      type: 'matching_fillable',
+      questionTypeCode: typeCode,
+      heading,
+      instruction: formatTextWithWhitespace(group.instructions || 'Complete each statement with the correct answer.'),
+      leftHeader,
+      subQuestions,
+      validationOptions: group.validationOptions || null,
+    }];
+  }
+
 
   // Fallback: đối xử như fill-in-the-blank
   return questions.map((q) => {
@@ -733,7 +782,12 @@ export const ieltsApi = {
       }
 
       // Flatten transformed questions for backward compatibility
-      const flattenedQuestions = transformedGroups.flatMap(g => g.questions || []);
+      const flattenedQuestions = transformedGroups.flatMap(g => 
+        (g.questions || []).map(q => ({
+          ...q,
+          groupInstruction: q.groupInstruction || g.instructions || null
+        }))
+      );
 
       // --- NEW: Inject Heading Gaps for Matching Heading questions ---
       // Find the group containing matching_heading questions
@@ -826,8 +880,8 @@ export const ieltsApi = {
         title: part.name || `Part ${part.orderIndex || index + 1}`,
 
         // Extracted metadata
-        instruction: mergedInstructions || part.instructions || (targetMode === 'WRITING' ? 'No task specified.' : 'Listen and answer questions.'),
-        instructions: mergedInstructions || part.instructions,
+        instruction: part.instructions || mergedInstructions || (targetMode === 'WRITING' ? 'No task specified.' : 'Listen and answer questions.'),
+        instructions: part.instructions || mergedInstructions,
         passageTitle: mergedPassageTitle,
         passageContent: mergedPassageContent,
         questionsLabel: mergedPassageTitle || 'Questions',

@@ -30,8 +30,8 @@ const PALETTE_ITEMS = [
   { type: 'group', contentType: 'NOTE_COMPLETION',      label: 'Note / Form',            icon: ClipboardList, skills: ['READING', 'LISTENING'] },
   { type: 'image', contentType: 'PARA_IMAGE',           label: 'Ảnh cho đoạn văn',       icon: ImageIcon, skills: ['READING'] },
   // ── Biến thể mới: Matching → Fill-in ──
-  { type: 'group', contentType: 'MATCHING_FILLABLE',    label: 'Matching (Fill-in)',     icon: PenLine, skills: ['READING'] },
-  { type: 'group', contentType: 'MATCHING_HEADINGS_FILLABLE', label: 'Match Headings (Fill)', icon: ClipboardList, skills: ['READING'] },
+  { type: 'group', contentType: 'MATCHING_FILLABLE',    label: 'Matching (Fill-in)',     icon: PenLine, skills: ['READING', 'LISTENING'] },
+  { type: 'group', contentType: 'MATCHING_HEADINGS_FILLABLE', label: 'Match Headings (Fill)', icon: ClipboardList, skills: ['READING', 'LISTENING'] },
   // ── LISTENING + READING ──
   { type: 'group', contentType: 'AUDIO_TRANSCRIPT',     label: 'Audio / Nghe',           icon: Headphones, skills: ['LISTENING'] },
   { type: 'group', contentType: 'MAP',                  label: 'Bản đồ',                 icon: BookOpen, skills: ['LISTENING'] },
@@ -75,6 +75,8 @@ const TYPE_META = {
   SENTENCE_COMPLETION:   { label: 'SC', bg: '#ecfdf5', color: '#065f46' },
   SHORT_ANSWER_GROUP:    { label: 'SA', bg: '#f0fdf4', color: '#166534' },
   FLOW_CHART:            { label: 'FC', bg: '#f0fdfa', color: '#0f766e' },
+  MATCHING_FILLABLE:     { label: 'MF', bg: '#e0f2fe', color: '#0369a1' },
+  MATCHING_HEADINGS_FILLABLE: { label: 'MH', bg: '#e0f2fe', color: '#0369a1' },
   WRITING_TASK:          { label: 'WT', bg: '#fef9c3', color: '#a16207' },
   SPEAKING_INTERVIEW:    { label: 'IV', bg: '#fce7f3', color: '#be185d' },
   SPEAKING_CUECARD:      { label: 'CC', bg: '#fdf4ff', color: '#7e22ce' },

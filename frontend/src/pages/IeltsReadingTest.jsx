@@ -631,14 +631,23 @@ const IeltsReadingTest = () => {
         return Math.max(220, Math.min(720, paddedWidth));
     })();
 
-    // Group consecutive questions of the same type for sequential rendering
+    // Group consecutive questions by type, allowMultipleAnswers AND groupInstruction
     const questionGroups = [];
     let currentGroup = null;
     for (const q of part.questions) {
         const groupType = (q.type === 'drag-and-drop' || q.type === 'matching_heading' || q.type === 'matching_info')
             ? 'drag-drop' : q.type;
-        if (!currentGroup || currentGroup.type !== groupType) {
-            currentGroup = { type: groupType, questions: [] };
+        const groupInstr = q.groupInstruction || '';
+        const isMulti = q.allowMultipleAnswers ? '1' : '0';
+        const groupKey = `${groupType}|${isMulti}|${groupInstr}`;
+        
+        if (!currentGroup || currentGroup.key !== groupKey) {
+            currentGroup = { 
+                key: groupKey,
+                type: groupType, 
+                instructions: groupInstr,
+                questions: [] 
+            };
             questionGroups.push(currentGroup);
         }
         currentGroup.questions.push(q);
@@ -661,7 +670,9 @@ const IeltsReadingTest = () => {
 
             <div className="instruction-bar">
                 <h3 dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(part.title || '') }} />
-                {part.instruction && <p dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(part.instruction) }} />}
+                {(part.instructions || part.instruction) && (
+                    <p dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(part.instructions || part.instruction) }} />
+                )}
                 {isReview && scoreInfo && (
                     <div className="review-score-banner">
                         <div className="review-score-main">
@@ -705,11 +716,37 @@ const IeltsReadingTest = () => {
                 <div className="questions-section" id="questions-area" style={{ minWidth: 0, width: '100%' }}>
                     <div className="questions-content" style={{ paddingBottom: '80px' }}>
                         {questionGroups.map((group, gi) => {
-                            // Get instruction from first question in group
-                            const groupInstruction = group.questions[0]?.groupInstruction;
+                            // Get instruction from group
+                            const groupInstruction = group.instructions;
                             
                             return (
                                 <div key={gi} style={{ marginBottom: '40px' }}>
+                                    {/* Questions range header */}
+                                    {(() => {
+                                        const allNums = group.questions.flatMap(q => {
+                                            // For drag-drop groups, get numbers from subQuestions
+                                            if (q?.subQuestions?.length) {
+                                                return q.subQuestions.map(sq => sq.number).filter(n => n != null);
+                                            }
+                                            return q?.numberRange || (q?.number ? [q.number] : []);
+                                        }).filter(n => n != null);
+                                        if (allNums.length > 0) {
+                                            const first = Math.min(...allNums);
+                                            const last = Math.max(...allNums);
+                                            return (
+                                                <div className="question-range-header" style={{ 
+                                                    fontSize: '15px', 
+                                                    fontWeight: 600, 
+                                                    color: '#1e293b',
+                                                    marginBottom: '8px'
+                                                }}>
+                                                    Questions {first}{last !== first ? `–${last}` : ''}
+                                                </div>
+                                            );
+                                        }
+                                        return null;
+                                    })()}
+                                    
                                     {/* Group instruction - show once at top */}
                                     {groupInstruction && (
                                         <div className="mcq-group-instruction" dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(groupInstruction) }} />

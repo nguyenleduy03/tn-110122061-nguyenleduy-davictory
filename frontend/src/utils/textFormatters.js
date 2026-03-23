@@ -96,3 +96,55 @@ export const normalizeRichHtml = (text) => {
     .replace(/\\t|\/t|\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;')
     .replace(/\\n|\n/g, '<br/>');
 };
+
+/**
+ * Strip inline styles and unwanted attributes from HTML
+ * Keep semantic tags like <strong>, <em>, <u>, <b>, <i>
+ */
+export const stripInlineStyles = (html) => {
+  if (typeof html !== 'string') return html || '';
+  
+  try {
+    const temp = document.createElement('div');
+    temp.innerHTML = html;
+    
+    // Remove style, class, id from all elements
+    const allElements = temp.querySelectorAll('*');
+    allElements.forEach(el => {
+      el.removeAttribute('style');
+      el.removeAttribute('class');
+      el.removeAttribute('id');
+    });
+    
+    // Unwrap only span and div tags (keep strong, em, u, b, i, etc.)
+    let changed = true;
+    while (changed) {
+      changed = false;
+      const wrappers = temp.querySelectorAll('span, div');
+      wrappers.forEach(el => {
+        if (el.parentNode) {
+          while (el.firstChild) {
+            el.parentNode.insertBefore(el.firstChild, el);
+          }
+          el.parentNode.removeChild(el);
+          changed = true;
+        }
+      });
+    }
+    
+    // Remove HTML comments
+    let result = temp.innerHTML.trim();
+    result = result.replace(/<!--[\s\S]*?-->/g, '');
+    
+    return result;
+  } catch (e) {
+    // Fallback to regex if DOM parsing fails
+    return html
+      .replace(/<!--[\s\S]*?-->/g, '')
+      .replace(/<span[^>]*>/gi, '')
+      .replace(/<\/span>/gi, '')
+      .replace(/<div[^>]*>/gi, '')
+      .replace(/<\/div>/gi, '')
+      .trim();
+  }
+};

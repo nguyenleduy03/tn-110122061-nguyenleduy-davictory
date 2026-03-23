@@ -3,8 +3,8 @@ import { Bookmark } from 'lucide-react';
 import { formatTextWithWhitespace } from '../../utils/textFormatters';
 
 const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answers, handleAnswerChange, inputRefs, bookmarks, toggleBookmark, isReview }) => {
-    const instructionText = q.instruction || q.title;
-
+    const opts = q.validationOptions || {};
+    
     const normalizeBlankTokens = (text) => {
         let s = String(text || '');
         // Replace editor blank chips with [blank]
@@ -12,6 +12,24 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
         // Normalize token form
         s = s.replace(/\[\s*blank\s*\]/gi, '[blank]');
         return s;
+    };
+
+    const normalizeAnswer = (text) => {
+        let s = String(text || '').trim();
+        if (opts.ignoreCase !== false) s = s.toLowerCase();
+        if (opts.ignoreSpaces) s = s.replace(/\s+/g, '');
+        if (opts.ignorePunctuation) s = s.replace(/[.,!?;:'"()]/g, '');
+        if (opts.ignoreChars) {
+            const chars = opts.ignoreChars.split('');
+            chars.forEach(c => { s = s.split(c).join(''); });
+        }
+        return s;
+    };
+
+    const checkAnswer = (userAnswer, correctAnswer) => {
+        const normalized = normalizeAnswer(userAnswer);
+        const acceptedAnswers = String(correctAnswer || '').split('|').map(a => normalizeAnswer(a));
+        return acceptedAnswers.includes(normalized);
     };
 
     // Parse text to find placeholders like [blank] or [24]
@@ -38,11 +56,9 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
                 const qId = subQ ? subQ.id : `q${qNum}`;
                 const isActive = activeQuestion === qNum;
                 const answer = answers?.[qId] || '';
-                const normalizedAnswer = String(answer || '').trim().toLowerCase();
-                const normalizedCorrect = String(subQ?.correctAnswer || '').trim().toLowerCase();
-                const isCorrect = normalizedAnswer === normalizedCorrect;
+                const isCorrect = checkAnswer(answer, subQ?.correctAnswer);
                 const displayAnswer = (isReview && !isCorrect)
-                    ? String(subQ?.correctAnswer || '')
+                    ? String(subQ?.correctAnswer || '').split('|')[0]
                     : String(answer || '');
 
                 blankIndex++; // Tăng index cho ô trống tiếp theo
@@ -86,11 +102,9 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
                 const qId = subQ ? subQ.id : `q${qNum}`;
                 const isActive = activeQuestion === qNum;
                 const answer = answers?.[qId] || '';
-                const normalizedAnswer = String(answer || '').trim().toLowerCase();
-                const normalizedCorrect = String(subQ?.correctAnswer || '').trim().toLowerCase();
-                const isCorrect = normalizedAnswer === normalizedCorrect;
+                const isCorrect = checkAnswer(answer, subQ?.correctAnswer);
                 const displayAnswer = (isReview && !isCorrect)
-                    ? String(subQ?.correctAnswer || '')
+                    ? String(subQ?.correctAnswer || '').split('|')[0]
                     : String(answer || '');
 
                 return (
@@ -129,7 +143,6 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
 
     return (
         <div className="summary-completion-container">
-            {instructionText && <p className="summary-title" dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(instructionText) }} />}
             <div className="summary-text">
                 {renderParagraph()}
             </div>

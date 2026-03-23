@@ -14,7 +14,7 @@
 }
 
 .exam-library-page .site-navbar-inner {
-  max-width: 1280px;
+  max-width: 1460px;
   margin: 0 auto;
   height: 100%;
   display: flex;
@@ -31,6 +31,7 @@
   gap: 10px;
   margin-right: 12px;
   flex-shrink: 0;
+  min-width: 180px;
 }
 
 .exam-library-page .site-logo-mark {
@@ -66,7 +67,8 @@
   display: flex;
   align-items: center;
   flex: 1;
-  gap: 2px;
+  gap: 4px;
+  justify-content: center;
 }
 
 .exam-library-page .nav-link {
@@ -100,6 +102,8 @@
   align-items: center;
   gap: 6px;
   margin-left: auto;
+  min-width: 180px;
+  justify-content: flex-end;
 }
 
 .exam-library-page .nav-icon-btn {
@@ -648,7 +652,7 @@
 
 .skill-cards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 16px;
 }
 
@@ -1458,6 +1462,10 @@
     padding: 20px 16px 40px;
   }
 
+  .skill-cards-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .test-card-items {
     grid-template-columns: 1fr;
   }
@@ -1484,6 +1492,15 @@
 
   .exam-library-wrapper {
     padding: 16px 12px 32px;
+  }
+
+  .skill-cards-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .skill-card {
+    min-height: 200px;
   }
 
   .sm-modal {

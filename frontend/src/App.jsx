@@ -22,6 +22,11 @@ import LmsGradeSubmission from './pages/lms/LmsGradeSubmission'
 import LmsTeacherAnalytics from './pages/lms/LmsTeacherAnalytics'
 import LmsTeacherClassDetail from './pages/lms/LmsTeacherClassDetail'
 import LmsTeacherSettings from './pages/lms/LmsTeacherSettings'
+import ManagerDashboard from './pages/ManagerDashboard'
+import ManagerClasses from './pages/ManagerClasses'
+import ManagerClassDetail from './pages/ManagerClassDetail'
+import ManagerOperations from './pages/ManagerOperations'
+import ManagerReports from './pages/ManagerReports'
 import MyDashboard from './pages/MyDashboard'
 import TestComplete from './pages/TestComplete'
 import DashboardHistory from './pages/DashboardHistory'
@@ -29,6 +34,7 @@ import DashboardProfile from './pages/DashboardProfile'
 import DashboardSettings from './pages/DashboardSettings'
 import ApiDebugPage from './pages/ApiDebugPage'
 import ProtectedRoute from './components/common/ProtectedRoute'
+import RoleBasedRoute from './components/common/RoleBasedRoute'
 import ErrorBoundary from './components/common/ErrorBoundary'
 import TestApiPage from './pages/TestApiPage';
 import './App.css'
@@ -59,25 +65,32 @@ function App() {
         <Route path="/my-dashboard/history" element={<ProtectedRoute><DashboardHistory /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><DashboardProfile /></ProtectedRoute>} />
         <Route path="/my-dashboard/settings" element={<ProtectedRoute><DashboardSettings /></ProtectedRoute>} />
-        <Route path="/admin" element={<ProtectedRoute><ErrorBoundary><AdminDashboard /></ErrorBoundary></ProtectedRoute>} />
-        <Route path="/admin/users" element={<ProtectedRoute><ErrorBoundary><AdminUsers /></ErrorBoundary></ProtectedRoute>} />
-        <Route path="/admin/teacher-class" element={<ProtectedRoute><ErrorBoundary><ClassManagement /></ErrorBoundary></ProtectedRoute>} />
-        <Route path="/teacher/manage" element={<ProtectedRoute><TeacherManage /></ProtectedRoute>} />
+        <Route path="/admin" element={<RoleBasedRoute requiredRole="ADMIN"><ErrorBoundary><AdminDashboard /></ErrorBoundary></RoleBasedRoute>} />
+        <Route path="/admin/users" element={<RoleBasedRoute requiredRole="ADMIN"><ErrorBoundary><AdminUsers /></ErrorBoundary></RoleBasedRoute>} />
+        <Route path="/admin/teacher-class" element={<RoleBasedRoute requiredRole="ADMIN"><ErrorBoundary><ClassManagement /></ErrorBoundary></RoleBasedRoute>} />
+
+        <Route path="/manager" element={<RoleBasedRoute requiredRole="MANAGER"><ErrorBoundary><ManagerDashboard /></ErrorBoundary></RoleBasedRoute>} />
+        <Route path="/manager/classes" element={<RoleBasedRoute requiredRole="MANAGER"><ErrorBoundary><ManagerClasses /></ErrorBoundary></RoleBasedRoute>} />
+        <Route path="/manager/classes/:id" element={<RoleBasedRoute requiredRole="MANAGER"><ErrorBoundary><ManagerClassDetail /></ErrorBoundary></RoleBasedRoute>} />
+        <Route path="/manager/operations" element={<RoleBasedRoute requiredRole="MANAGER"><ErrorBoundary><ManagerOperations /></ErrorBoundary></RoleBasedRoute>} />
+        <Route path="/manager/reports" element={<RoleBasedRoute requiredRole="MANAGER"><ErrorBoundary><ManagerReports /></ErrorBoundary></RoleBasedRoute>} />
+
+        <Route path="/teacher/manage" element={<RoleBasedRoute requiredRole="TEACHER"><TeacherManage /></RoleBasedRoute>} />
         {/* Teacher routes - removed old pages, use LMS instead */}
         <Route path="/teacher/tests" element={<Navigate to="/lms/teacher/tests" replace />} />
-        <Route path="/teacher/tests/new" element={<ProtectedRoute><TestBuilder /></ProtectedRoute>} />
-        <Route path="/teacher/tests/:id/edit" element={<ProtectedRoute><TestBuilder /></ProtectedRoute>} />
+        <Route path="/teacher/tests/new" element={<RoleBasedRoute requiredRole="TEACHER"><TestBuilder /></RoleBasedRoute>} />
+        <Route path="/teacher/tests/:id/edit" element={<RoleBasedRoute requiredRole="TEACHER"><TestBuilder /></RoleBasedRoute>} />
 
-        <Route path="/lms/teacher" element={<ProtectedRoute><LmsTeacherDashboard /></ProtectedRoute>} />
-        <Route path="/lms/teacher/classes" element={<ProtectedRoute><LmsTeacherClasses /></ProtectedRoute>} />
-        <Route path="/lms/teacher/classes/:id" element={<ProtectedRoute><LmsTeacherClassDetail /></ProtectedRoute>} />
-        <Route path="/lms/teacher/tests" element={<ProtectedRoute><LmsTeacherTests /></ProtectedRoute>} />
-        <Route path="/lms/teacher/assignments" element={<ProtectedRoute><LmsTeacherAssignments /></ProtectedRoute>} />
-        <Route path="/lms/teacher/submissions" element={<ProtectedRoute><LmsTeacherSubmissions /></ProtectedRoute>} />
-        <Route path="/lms/submission/:type/:id" element={<ProtectedRoute><LmsSubmissionDetail /></ProtectedRoute>} />
-        <Route path="/lms/grade/:type/:id" element={<ProtectedRoute><LmsGradeSubmission /></ProtectedRoute>} />
-        <Route path="/lms/teacher/analytics" element={<ProtectedRoute><LmsTeacherAnalytics /></ProtectedRoute>} />
-        <Route path="/lms/teacher/settings" element={<ProtectedRoute><LmsTeacherSettings /></ProtectedRoute>} />
+        <Route path="/lms/teacher" element={<RoleBasedRoute requiredRole="TEACHER"><LmsTeacherDashboard /></RoleBasedRoute>} />
+        <Route path="/lms/teacher/classes" element={<RoleBasedRoute requiredRole="TEACHER"><LmsTeacherClasses /></RoleBasedRoute>} />
+        <Route path="/lms/teacher/classes/:id" element={<RoleBasedRoute requiredRole="TEACHER"><LmsTeacherClassDetail /></RoleBasedRoute>} />
+        <Route path="/lms/teacher/tests" element={<RoleBasedRoute requiredRole="TEACHER"><LmsTeacherTests /></RoleBasedRoute>} />
+        <Route path="/lms/teacher/assignments" element={<RoleBasedRoute requiredRole="TEACHER"><LmsTeacherAssignments /></RoleBasedRoute>} />
+        <Route path="/lms/teacher/submissions" element={<RoleBasedRoute requiredRole="TEACHER"><LmsTeacherSubmissions /></RoleBasedRoute>} />
+        <Route path="/lms/submission/:type/:id" element={<RoleBasedRoute requiredRole="TEACHER"><LmsSubmissionDetail /></RoleBasedRoute>} />
+        <Route path="/lms/grade/:type/:id" element={<RoleBasedRoute requiredRole="TEACHER"><LmsGradeSubmission /></RoleBasedRoute>} />
+        <Route path="/lms/teacher/analytics" element={<RoleBasedRoute requiredRole="TEACHER"><LmsTeacherAnalytics /></RoleBasedRoute>} />
+        <Route path="/lms/teacher/settings" element={<RoleBasedRoute requiredRole="TEACHER"><LmsTeacherSettings /></RoleBasedRoute>} />
       </Routes>
     </Router>
   )

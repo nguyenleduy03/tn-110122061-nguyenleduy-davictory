@@ -48,7 +48,6 @@ export default function LmsTeacherClasses() {
   const [refreshTick, setRefreshTick] = useState(0);
   const [data, setData] = useState({ classes: [], teacher: null });
   const [search, setSearch] = useState('');
-  const [selectedClassId, setSelectedClassId] = useState(null);
 
   const [handoverLoading, setHandoverLoading] = useState(false);
   const [handoverForm, setHandoverForm] = useState({ classCode: '', studentCodesText: '', notes: '' });
@@ -96,23 +95,25 @@ export default function LmsTeacherClasses() {
 
   const filteredClasses = useMemo(() => {
     const q = (search || '').toLowerCase().trim();
-    if (!q) return classes;
-    return classes.filter((c) =>
-      String(getClassCode(c) || '').toLowerCase().includes(q) ||
-      String(c?.name || '').toLowerCase().includes(q) ||
-      String(c?.status || '').toLowerCase().includes(q)
-    );
+    const source = !q
+      ? classes
+      : classes.filter((c) =>
+        String(getClassCode(c) || '').toLowerCase().includes(q) ||
+        String(c?.name || '').toLowerCase().includes(q) ||
+        String(c?.status || '').toLowerCase().includes(q)
+      );
+
+    // Teacher được toàn quyền nhưng chỉ trong lớp chính của mình.
+    return source.slice(0, 1);
   }, [classes, search]);
 
   const selectedClass = useMemo(() => {
     if (!filteredClasses.length) return null;
-    if (!selectedClassId) return filteredClasses[0];
-    return filteredClasses.find((c) => c.id === selectedClassId) || filteredClasses[0];
-  }, [filteredClasses, selectedClassId]);
+    return filteredClasses[0];
+  }, [filteredClasses]);
 
   useEffect(() => {
     if (!selectedClass?.id) return;
-    setSelectedClassId(selectedClass.id);
     setHandoverForm((prev) => ({ ...prev, classCode: getClassCode(selectedClass) || prev.classCode }));
   }, [selectedClass?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 

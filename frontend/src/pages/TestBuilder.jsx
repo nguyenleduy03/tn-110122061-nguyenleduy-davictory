@@ -46,6 +46,25 @@ const SESSION_META = {
 let _nextId = 1000;
 const nextId = () => ++_nextId;
 
+// Tính lại fromQuestion và toQuestion cho tất cả groups trong một part
+const recalculateQuestionNumbers = (groups) => {
+  let runningTotal = 0;
+  return groups.map((g) => {
+    const questionCount = (g.questions ?? []).reduce((sum, q) => sum + (q.questionCount || 1), 0);
+    
+    const fromQuestion = questionCount > 0 ? runningTotal + 1 : null;
+    const toQuestion = questionCount > 0 ? runningTotal + questionCount : null;
+    
+    runningTotal += questionCount;
+    
+    return {
+      ...g,
+      fromQuestion,
+      toQuestion,
+    };
+  });
+};
+
 const makeDefaultParts = (skillKey) => {
   if (skillKey === 'LISTENING') {
     return [1, 2, 3, 4].map((i) => ({
@@ -588,9 +607,18 @@ const TestBuilder = () => {
         if (p.id !== partId) return p;
         return {
           ...p,
-          questionGroups: p.questionGroups.map((g) =>
-            g.id === groupId ? { ...g, ...updates } : g
-          ),
+          questionGroups: p.questionGroups.map((g) => {
+            if (g.id !== groupId) return g;
+            const updated = { ...g, ...updates };
+            // Nếu là Multiple Choice (nhiều) và chooseCount thay đổi, cập nhật questionCount cho tất cả câu hỏi
+            if (updated.contentType === 'MULTIPLE_CHOICE_MULTI' && 'chooseCount' in updates) {
+              updated.questions = (updated.questions || []).map(q => ({
+                ...q,
+                questionCount: updates.chooseCount
+              }));
+            }
+            return updated;
+          }),
         };
       })
     );
@@ -603,7 +631,9 @@ const TestBuilder = () => {
     setParts((prev) =>
       prev.map((p) => {
         if (p.id !== partId) return p;
-        return { ...p, questionGroups: p.questionGroups.filter((g) => g.id !== groupId) };
+        
+        const filteredGroups = p.questionGroups.filter((g) => g.id !== groupId);
+        return { ...p, questionGroups: recalculateQuestionNumbers(filteredGroups) };
       })
     );
     if (selection?.type === 'group' && selection.data.id === groupId) setSelection(null);
@@ -620,7 +650,9 @@ const TestBuilder = () => {
 
       return prev.map((p) => {
         if (p.id !== partId) return p;
-        return { ...p, questionGroups: arrayMove(groups, idx, targetIdx) };
+        
+        const reorderedGroups = arrayMove(groups, idx, targetIdx);
+        return { ...p, questionGroups: recalculateQuestionNumbers(reorderedGroups) };
       });
     });
   };
@@ -681,10 +713,22 @@ const TestBuilder = () => {
       answers: isSharedDrop ? [{ answerText: '', blankIndex: 1, isCaseSensitive: false }] : [],
       points: 1,
       orderIndex: (group.questions?.length ?? 0) + 1,
+      ...(isMMCQ && { questionCount: group.chooseCount || 2 }),
     };
-    updateGroup(group.partId, group.id, {
-      questions: [...(group.questions ?? []), newQ],
-    });
+    
+    const updatedQuestions = [...(group.questions ?? []), newQ];
+    
+    // Tự động cập nhật fromQuestion và toQuestion cho TẤT CẢ groups trong part
+    setParts((prev) => prev.map((p) => {
+      if (p.id !== group.partId) return p;
+      
+      const updatedGroups = p.questionGroups.map((g) => 
+        g.id === group.id ? { ...g, questions: updatedQuestions } : g
+      );
+      
+      return { ...p, questionGroups: recalculateQuestionNumbers(updatedGroups) };
+    }));
+    
     setSelection({ type: 'question', data: newQ });
   };
 
@@ -715,13 +759,14 @@ const TestBuilder = () => {
     setParts((prev) =>
       prev.map((p) => {
         if (p.id !== partId) return p;
-        return {
-          ...p,
-          questionGroups: p.questionGroups.map((g) => {
-            if (g.id !== groupId) return g;
-            return { ...g, questions: g.questions.filter((q) => q.id !== questionId) };
-          }),
-        };
+        
+        const updatedGroups = p.questionGroups.map((g) => 
+          g.id === groupId 
+            ? { ...g, questions: g.questions.filter((q) => q.id !== questionId) }
+            : g
+        );
+        
+        return { ...p, questionGroups: recalculateQuestionNumbers(updatedGroups) };
       })
     );
     if (selection?.type === 'question' && selection.data.id === questionId) setSelection(null);
@@ -879,7 +924,7 @@ const TestBuilder = () => {
               if (srcIdx === dstIdx) return prev;
               return prev.map((p) =>
                 p.id === sourcePartId
-                  ? { ...p, questionGroups: arrayMove(srcGroups, srcIdx, dstIdx) }
+                  ? { ...p, questionGroups: recalculateQuestionNumbers(arrayMove(srcGroups, srcIdx, dstIdx)) }
                   : p
               );
             }
@@ -893,8 +938,8 @@ const TestBuilder = () => {
             nextDst.splice(dstIdx, 0, movingGroup);
 
             return prev.map((p) => {
-              if (p.id === sourcePartId) return { ...p, questionGroups: nextSrc };
-              if (p.id === targetPartId) return { ...p, questionGroups: nextDst };
+              if (p.id === sourcePartId) return { ...p, questionGroups: recalculateQuestionNumbers(nextSrc) };
+              if (p.id === targetPartId) return { ...p, questionGroups: recalculateQuestionNumbers(nextDst) };
               return p;
             });
           });
@@ -936,8 +981,8 @@ const TestBuilder = () => {
             nextDst.push(movingGroup);
 
             return prev.map((p) => {
-              if (p.id === sourcePartId) return { ...p, questionGroups: nextSrc };
-              if (p.id === targetPartId) return { ...p, questionGroups: nextDst };
+              if (p.id === sourcePartId) return { ...p, questionGroups: recalculateQuestionNumbers(nextSrc) };
+              if (p.id === targetPartId) return { ...p, questionGroups: recalculateQuestionNumbers(nextDst) };
               return p;
             });
           });

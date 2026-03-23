@@ -85,14 +85,14 @@ button {
 
 .site-navbar-inner {
   width: 100%;
-  max-width: 1280px;
+  max-width: 1460px;
   margin: 0 auto;
   height: 100%;
   padding: 0 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
   position: relative;
 }
 
@@ -103,6 +103,7 @@ button {
   gap: 0;
   line-height: 0;
   flex-shrink: 0;
+  min-width: 180px;
 }
 
 .site-logo-image {
@@ -115,7 +116,7 @@ button {
 /* Navigation Links */
 .nav-links {
   display: flex;
-  gap: 24px;
+  gap: 14px;
   align-items: center;
   flex: 1;
   min-width: 0;
@@ -131,7 +132,7 @@ button {
 .nav-link {
   color: var(--text-secondary);
   font-weight: 600;
-  font-size: 15px;
+  font-size: 18px;
   line-height: 1.2;
   display: flex;
   align-items: center;
@@ -164,8 +165,10 @@ button {
 .nav-actions {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 10px;
   flex-shrink: 0;
+  min-width: 180px;
+  justify-content: flex-end;
 }
 
 .nav-auth-buttons {
@@ -245,7 +248,7 @@ button {
 .site-navbar .nav-user-btn,
 .site-navbar .mobile-nav-link,
 .site-navbar .user-dropdown-item {
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.2;
 }
 
@@ -393,12 +396,20 @@ button {
     padding: 0 16px;
   }
 
+  .site-logo {
+    min-width: 160px;
+  }
+
   .nav-links {
-    gap: 18px;
+    gap: 12px;
   }
 
   .nav-link {
     font-size: 14px;
+  }
+
+  .nav-actions {
+    min-width: 160px;
   }
 
   .site-navbar .nav-user-btn span {

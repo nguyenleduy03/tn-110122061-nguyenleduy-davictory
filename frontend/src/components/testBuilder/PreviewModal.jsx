@@ -4,13 +4,14 @@
  */
 import React, { useState, useMemo } from 'react';
 import { X, Volume2, BookOpen, Headphones, PenLine, Mic, ChevronLeft, ChevronRight, Clock, FileText } from 'lucide-react';
-import { normalizeRichHtml } from '../../utils/textFormatters';
+import { normalizeRichHtml, stripInlineStyles } from '../../utils/textFormatters';
 import DropdownGroupQuestion from '../question/DropdownGroupQuestion';
 
 // ---- Helpers (mirrors ExamCanvas) ----
 
 const formatPreviewText = (text) => {
-  return normalizeRichHtml(text);
+  const normalized = normalizeRichHtml(text);
+  return stripInlineStyles(normalized);
 };
 
 const toRoman = (n) => {
@@ -41,14 +42,22 @@ const toPlainText = (value) => {
 // Helper: Hiển thị "Questions X-Y" từ group
 const QuestionRange = ({ group }) => {
   const questions = group.questions ?? [];
-  const first = group.fromQuestion ?? questions[0]?.questionNumber;
-  const last = group.toQuestion ?? questions[questions.length - 1]?.questionNumber;
-
-  if (first == null) return null;
+  
+  const allNums = questions.flatMap(q => {
+    if (q?.subQuestions?.length) {
+      return q.subQuestions.map(sq => sq.number).filter(n => n != null);
+    }
+    return q?.numberRange || (q?.questionNumber ? [q.questionNumber] : []);
+  }).filter(n => n != null);
+  
+  if (allNums.length === 0) return null;
+  
+  const first = Math.min(...allNums);
+  const last = Math.max(...allNums);
 
   return (
     <div className="pv-questions-range">
-      Questions {first}{last != null && last !== first ? `–${last}` : ''}
+      Questions {first}{last !== first ? `–${last}` : ''}
     </div>
   );
 };
@@ -153,7 +162,9 @@ const MCQQuestion = ({ q, multiple, active, onSetActive }) => {
               <span className="pv-opt-text">
                 {o.optionMode === 'image' && o.optionImageUrl
                   ? <img src={o.optionImageUrl} alt={o.optionLabel} style={{ maxWidth: 140, maxHeight: 90, borderRadius: 4, display: 'block' }} />
-                  : (o.optionText || <em className="pv-empty">...</em>)
+                  : (o.optionText 
+                      ? <span dangerouslySetInnerHTML={{ __html: formatPreviewText(o.optionText) }} />
+                      : <em className="pv-empty">...</em>)
                 }
               </span>
             </label>
@@ -505,15 +516,16 @@ const ImageNoteFormGroup = ({ group, activeQ, onSetActive }) => {
 const DragMatchingGroup = ({ group, activeQ, onSetActive }) => {
   const questions = group.questions ?? [];
   const allOptions = (group.optionBank ?? []).map((o, i) => ({ id: i, text: o.text }));
+  const allowReuse = (typeof group.allowOptionReuse === 'boolean') ? group.allowOptionReuse : true;
 
   // answers: { questionNumber -> { id, text } | null }
   const [answers, setAnswers] = useState({});
   const [dragId, setDragId] = useState(null); // id of chip being dragged
   const [dragOver, setDragOver] = useState(null); // questionNumber of gap being hovered
 
-  // chips still in the bank = options not placed anywhere
+  // chips still in the bank = options not placed anywhere (if allowReuse=false)
   const placed = new Set(Object.values(answers).filter(Boolean).map((v) => v.id));
-  const bankChips = allOptions.filter((o) => !placed.has(o.id));
+  const bankChips = allowReuse ? allOptions : allOptions.filter((o) => !placed.has(o.id));
 
   const placeChip = (qNum, chip) => {
     setAnswers((prev) => {
@@ -712,12 +724,13 @@ const TableCompletionGroup = ({ group, activeQ, onSetActive }) => {
       for (const col of columns) {
         const n = ((row.cells?.[col.id] ?? '').match(/\[blank\]/g) ?? []).length;
         for (let i = 0; i < n; i++) {
-          map.push({ rowId: row.id, colId: col.id, qNum: questions[map.length]?.questionNumber ?? (group.fromQuestion ?? 1) + map.length });
+          const q = questions[map.length];
+          map.push({ rowId: row.id, colId: col.id, qNum: q?.questionNumber ?? null });
         }
       }
     }
     return map;
-  }, [tableRows, columns, questions, group.fromQuestion]);
+  }, [tableRows, columns, questions]);
 
   const parseBold = (text) =>
     text.split(/\*\*(.*?)\*\*/).map((chunk, i) =>

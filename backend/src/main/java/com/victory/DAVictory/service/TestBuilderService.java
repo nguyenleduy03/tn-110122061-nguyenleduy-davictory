@@ -169,6 +169,7 @@ public class TestBuilderService {
                                             if (gs.getFromQuestion() != null) qg.setFromQuestion(gs.getFromQuestion());
                                             if (gs.getToQuestion() != null) qg.setToQuestion(gs.getToQuestion());
                                             if (gs.getOrderIndex() != null) qg.setOrderIndex(gs.getOrderIndex());
+                                            if (gs.getAllowOptionReuse() != null) qg.setAllowOptionReuse(gs.getAllowOptionReuse());
                                             qg = questionGroupRepository.save(qg);
 
                                             // Xóa cứng theo thứ tự đúng để tránh FK constraint
@@ -477,6 +478,7 @@ public class TestBuilderService {
         qg.setFromQuestion(gs.getFromQuestion());
         qg.setToQuestion(gs.getToQuestion());
         qg.setOrderIndex(gs.getOrderIndex());
+        qg.setAllowOptionReuse(gs.getAllowOptionReuse() != null ? gs.getAllowOptionReuse() : false);
 
         if (gs.getQuestions() != null && !gs.getQuestions().isEmpty()) {
             TestSaveRequest.QuestionSave firstQ = gs.getQuestions().get(0);

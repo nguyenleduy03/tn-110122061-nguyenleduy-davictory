@@ -21,7 +21,13 @@ const normalizeRoles = (roles) => {
 
 const isTeacherOrAbove = (roles) => {
   const rolesArray = normalizeRoles(roles);
-  return ['ADMIN', 'MANAGER', 'TEACHER'].some(r => rolesArray.includes(r));
+  return ['ADMIN', 'MANAGER', 'TEACHER'].some((r) => rolesArray.includes(r));
+};
+
+const getWorkspaceLabel = (isAdmin, isManager) => {
+  if (isAdmin) return 'Quản trị';
+  if (isManager) return 'Bảng quản lý';
+  return 'LMS giảng viên';
 };
 
 const Navbar = () => {
@@ -32,6 +38,7 @@ const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const userRoles = normalizeRoles(user?.roles);
   const isAdmin = userRoles.includes('ADMIN');
+  const isManager = userRoles.includes('MANAGER');
 
   useEffect(() => {
     // Lấy thông tin user từ localStorage
@@ -51,13 +58,13 @@ const Navbar = () => {
 
   const getRoleName = (roles) => {
     if (!roles || roles.length === 0) return 'Khách';
-    
+
     const roleMap = {
       'ADMIN': 'Quản trị viên',
       'MANAGER': 'Quản lý',
       'TEACHER': 'Giáo viên',
       'STUDENT': 'Học viên',
-      'GUEST': 'Khách'
+      'GUEST': 'Khách',
     };
 
     // roles là Set<String> từ backend: ["ADMIN", "STUDENT", ...]
@@ -78,8 +85,8 @@ const Navbar = () => {
   return (
     <nav className="site-navbar">
       <div className="site-navbar-inner">
-        <button 
-          className="mobile-menu-toggle" 
+        <button
+          className="mobile-menu-toggle"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           aria-label="Menu"
         >
@@ -89,7 +96,7 @@ const Navbar = () => {
         <Link to="/" className="site-logo">
           <img src={logoImage} alt="DAVictory" className="site-logo-image" />
         </Link>
-        
+
         {/* Mobile Menu Overlay */}
         {mobileMenuOpen && (
           <div className="mobile-menu-overlay">
@@ -106,11 +113,16 @@ const Navbar = () => {
               ))}
               {user && isTeacherOrAbove(user.roles) && (
                 <Link
-                  to="/lms/teacher"
-                  className={`mobile-nav-link${location.pathname.startsWith('/lms/teacher') ? ' active' : ''}`}
+                  to={isAdmin ? '/admin' : (isManager ? '/manager' : '/lms/teacher')}
+                  className={`mobile-nav-link${(isAdmin && location.pathname.startsWith('/admin')) ||
+                      (isManager && location.pathname.startsWith('/manager')) ||
+                      (!isAdmin && !isManager && location.pathname.startsWith('/lms/teacher'))
+                      ? ' active'
+                      : ''
+                    }`}
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  LMS Giảng viên
+                  {getWorkspaceLabel(isAdmin, isManager)}
                 </Link>
               )}
             </div>
@@ -130,14 +142,14 @@ const Navbar = () => {
           ))}
           {user && isTeacherOrAbove(user.roles) && (
             <Link
-              to={isAdmin ? '/admin' : '/lms/teacher'}
-              className={`nav-link${
-                (isAdmin && location.pathname.startsWith('/admin')) ||
-                (!isAdmin && location.pathname.startsWith('/lms/teacher')) 
-                ? ' nav-link-active' : ''
-              }`}
+              to={isAdmin ? '/admin' : (isManager ? '/manager' : '/lms/teacher')}
+              className={`nav-link${(isAdmin && location.pathname.startsWith('/admin')) ||
+                  (isManager && location.pathname.startsWith('/manager')) ||
+                  (!isAdmin && location.pathname.startsWith('/lms/teacher'))
+                  ? ' nav-link-active' : ''
+                }`}
             >
-              {isAdmin ? 'Quản trị' : 'LMS Giảng viên'}
+              {getWorkspaceLabel(isAdmin, isManager)}
               <ChevronDown size={13} />
             </Link>
           )}
@@ -149,8 +161,9 @@ const Navbar = () => {
               <button className="nav-icon-btn" aria-label="Thông báo">
                 <Bell size={20} />
               </button>
+
               <div className="nav-user-dropdown">
-                <button 
+                <button
                   className="nav-user-btn"
                   onClick={() => setShowDropdown(!showDropdown)}
                 >
@@ -158,7 +171,7 @@ const Navbar = () => {
                   <span>{user.fullName || user.username}</span>
                   <ChevronDown size={13} />
                 </button>
-                
+
                 {showDropdown && (
                   <div className="user-dropdown-menu">
                     <div className="user-dropdown-header">
@@ -173,12 +186,14 @@ const Navbar = () => {
                       <User size={16} />
                       <span>Thông tin cá nhân</span>
                     </Link>
+
                     {isTeacherOrAbove(user.roles) && (
-                      <Link to="/lms/teacher" className="user-dropdown-item">
+                      <Link to={isAdmin ? '/admin' : (isManager ? '/manager' : '/lms/teacher')} className="user-dropdown-item">
                         <FilePlus size={16} />
-                        <span>LMS Giảng viên</span>
+                        <span>{isAdmin ? 'Quản trị hệ thống' : getWorkspaceLabel(isAdmin, isManager)}</span>
                       </Link>
                     )}
+
                     <Link to="/settings" className="user-dropdown-item">
                       <Settings size={16} />
                       <span>Cài đặt</span>

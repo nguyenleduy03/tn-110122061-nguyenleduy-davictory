@@ -54,13 +54,13 @@ export default function ClassManagement() {
   const [selectedClassId, setSelectedClassId] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const [createForm, setCreateForm] = useState({ 
-    className: '', 
-    classCode: '', 
+  const [createForm, setCreateForm] = useState({
+    className: '',
+    classCode: '',
     level: '',
     targetBand: '',
     classType: 'OFFLINE',
-    maxStudents: '', 
+    maxStudents: '',
     startDate: '',
     endDate: '',
     schedule: '',
@@ -106,11 +106,11 @@ export default function ClassManagement() {
   const [studentSearch, setStudentSearch] = useState('');
   const [availableStudents, setAvailableStudents] = useState([]);
   const [selectedStudents, setSelectedStudents] = useState([]);
-  
+
   const [deleteClassTarget, setDeleteClassTarget] = useState(null);
   const [deleteClassPassword, setDeleteClassPassword] = useState('');
   const [deletingClass, setDeletingClass] = useState(false);
-  
+
   const [isEditMode, setIsEditMode] = useState(false);
 
   useEffect(() => {
@@ -119,10 +119,10 @@ export default function ClassManagement() {
       try {
         setLoading(true);
         console.log('🔄 Loading class management data...');
-        
+
         const res = await authApi.getMyClassManagement();
         console.log('✅ Class management data loaded:', res);
-        
+
         if (!mounted) return;
         const nextData = {
           classes: Array.isArray(res?.classes) ? res.classes : [],
@@ -160,6 +160,34 @@ export default function ClassManagement() {
     return list.find((c) => c.id === selectedClassId) || null;
   }, [managementData, selectedClassId]);
 
+  const selectedClassStudentCodeSet = useMemo(() => {
+    const students = selectedClass?.students || [];
+    return new Set(
+      students
+        .map((s) => String(s?.studentCode || '').trim().toLowerCase())
+        .filter(Boolean)
+    );
+  }, [selectedClass]);
+
+  const selectableStudents = useMemo(() => {
+    const q = studentSearch.trim().toLowerCase();
+
+    return (availableStudents || []).filter((s) => {
+      const studentCode = String(s?.studentCode || s?.username || '').trim();
+      if (!studentCode) return false;
+
+      if (selectedClassStudentCodeSet.has(studentCode.toLowerCase())) {
+        return false;
+      }
+
+      if (!q) return true;
+
+      const fullName = String(s?.fullName || '').toLowerCase();
+      const email = String(s?.email || '').toLowerCase();
+      return studentCode.toLowerCase().includes(q) || fullName.includes(q) || email.includes(q);
+    });
+  }, [availableStudents, selectedClassStudentCodeSet, studentSearch]);
+
   useEffect(() => {
     if (selectedClass) {
       setEditForm({
@@ -194,25 +222,45 @@ export default function ClassManagement() {
   const handleAddStudents = async () => {
     if (selectedStudents.length === 0) return;
     try {
-      console.log('Adding students:', { classId: selectedClassId, studentIds: selectedStudents });
-      
-      // Call API to add students to class
-      const payload = {
-        classId: selectedClassId,
-        studentIds: selectedStudents
-      };
-      const result = await authApi.addStudentsToClass(payload);
+      if (!selectedClass?.code) {
+        alert('Lớp chưa có mã, không thể thêm học viên theo danh sách mã');
+        return;
+      }
+
+      const selectedStudentCodes = selectedStudents
+        .map((id) => availableStudents.find((s) => s.id === id))
+        .map((s) => String(s?.studentCode || s?.username || '').trim())
+        .filter(Boolean);
+
+      if (selectedStudentCodes.length === 0) {
+        alert('Không tìm thấy mã học viên hợp lệ trong danh sách đã chọn');
+        return;
+      }
+
+      console.log('Assigning students by class code:', {
+        classCode: selectedClass.code,
+        studentCodes: selectedStudentCodes,
+      });
+
+      const result = await authApi.assignStudentsByClassCode({
+        classCode: selectedClass.code,
+        studentCodes: selectedStudentCodes,
+        notes: 'Thêm học viên từ màn quản lý lớp',
+      });
       console.log('Add students result:', result);
-      
-      alert('Đã thêm học viên thành công!');
+
+      const successCount = Number(result?.success || 0);
+      const failedCount = Number(result?.failed || 0);
+      alert(`Đã thêm học viên: ${successCount} thành công, ${failedCount} thất bại`);
+
       setSelectedStudents([]);
       setShowAddStudents(false);
-      // Reload data
-      window.location.reload();
+      setStudentSearch('');
+      setRefreshTick((prev) => prev + 1);
     } catch (err) {
       console.error('Add students error:', err);
       console.error('Error response:', err.response?.data);
-      alert('Lỗi: ' + (err.response?.data?.error || err.message));
+      alert('Lỗi: ' + (err.response?.data?.message || err.response?.data?.error || err.message));
     }
   };
 
@@ -228,10 +276,10 @@ export default function ClassManagement() {
       alert('Vui lòng nhập tên lớp');
       return;
     }
-    
+
     try {
       setCreateLoading(true);
-      
+
       // Bước 1: Nếu có file CSV, import học viên trước
       let importedCount = 0;
       if (createCsvInputRef.current?.files?.[0]) {
@@ -247,7 +295,7 @@ export default function ClassManagement() {
           return;
         }
       }
-      
+
       // Bước 2: Tạo lớp
       const payload = {
         className: createForm.className,
@@ -263,11 +311,11 @@ export default function ClassManagement() {
         notes: createForm.notes || null,
         centerId: createForm.centerId || null
       };
-      
+
       console.log('Payload tạo lớp:', payload);
       const result = await authApi.createClassForAdmin(payload);
       console.log('Kết quả tạo lớp:', result);
-      
+
       // Bước 3: Nếu có học viên từ CSV, gán vào lớp
       if (createForm.studentCodes.length > 0 && result?.code) {
         try {
@@ -283,14 +331,14 @@ export default function ClassManagement() {
       } else {
         alert(importedCount > 0 ? `✅ Tạo lớp thành công và import ${importedCount} học viên!` : '✅ Tạo lớp thành công!');
       }
-      
-      setCreateForm({ 
-        className: '', 
-        classCode: '', 
+
+      setCreateForm({
+        className: '',
+        classCode: '',
         level: '',
         targetBand: '',
         classType: 'OFFLINE',
-        maxStudents: '', 
+        maxStudents: '',
         startDate: '',
         endDate: '',
         schedule: '',
@@ -302,10 +350,10 @@ export default function ClassManagement() {
       setCreateCsvFile(null);
       setCreateCsvError('');
       if (createCsvInputRef.current) createCsvInputRef.current.value = '';
-      
+
       // Refresh data từ server thay vì update local state
       setRefreshTick(prev => prev + 1);
-      
+
     } catch (error) {
       console.error('Lỗi tạo lớp:', error);
       alert('Lỗi tạo lớp: ' + (error?.response?.data?.message || error.message));
@@ -316,26 +364,26 @@ export default function ClassManagement() {
 
   const handleCreateCsvFile = async (file) => {
     if (!file) return;
-    
+
     setCreateCsvError('');
     setCreateCsvFile(file.name);
-    
+
     if (!file.name.toLowerCase().endsWith('.csv')) {
       setCreateForm(p => ({ ...p, studentCodes: [] }));
       setCreateCsvError('Chỉ chấp nhận file .csv');
       return;
     }
-    
+
     try {
       const text = await file.text();
       const parsedCodes = parseCodesFromCsv(text);
-      
+
       if (parsedCodes.length === 0) {
         setCreateForm(p => ({ ...p, studentCodes: [] }));
         setCreateCsvError('Không đọc được mã học viên từ file CSV');
         return;
       }
-      
+
       setCreateForm(p => ({ ...p, studentCodes: parsedCodes }));
     } catch (error) {
       setCreateForm(p => ({ ...p, studentCodes: [] }));
@@ -345,10 +393,10 @@ export default function ClassManagement() {
 
   const handleUpdateClass = async () => {
     if (!selectedClass?.id) return;
-    
+
     try {
       setEditLoading(true);
-      
+
       const payload = {
         status: editForm.status,
         notes: editForm.notes,
@@ -362,18 +410,18 @@ export default function ClassManagement() {
         schedule: editForm.schedule || null,
         roomLocation: editForm.roomLocation || null
       };
-      
+
       console.log('Payload cập nhật lớp:', payload);
-      
+
       const result = await authApi.updateClassInfo(selectedClass.id, payload);
       console.log('Kết quả cập nhật:', result);
-      
+
       alert('Cập nhật thành công!');
       setIsEditMode(false); // Thoát chế độ chỉnh sửa
-      
+
       // Refresh data từ server thay vì update local state
       setRefreshTick(prev => prev + 1);
-      
+
     } catch (error) {
       console.error('Lỗi cập nhật:', error);
       alert('Lỗi cập nhật: ' + (error?.response?.data?.message || error.message));
@@ -384,12 +432,12 @@ export default function ClassManagement() {
 
   const handleDeleteClass = async () => {
     if (!deleteClassTarget) return;
-    
+
     if (!deleteClassPassword.trim()) {
       alert('Vui lòng nhập mật khẩu admin để xác nhận xóa lớp');
       return;
     }
-    
+
     try {
       setDeletingClass(true);
       await authApi.deleteClass(deleteClassTarget.id, deleteClassPassword.trim());
@@ -412,15 +460,15 @@ export default function ClassManagement() {
       alert('Không tìm thấy thông tin lớp');
       return;
     }
-    
+
     if (!editForm.teacherId) {
       alert('Vui lòng chọn giảng viên');
       return;
     }
-    
+
     try {
       setEditLoading(true);
-      
+
       // Thử dùng API assignTeacherByClassCode nếu có classCode
       if (selectedClass.classCode) {
         await authApi.assignTeacherByClassCode({
@@ -434,23 +482,23 @@ export default function ClassManagement() {
           teacherId: editForm.teacherId
         });
       }
-      
+
       // Tìm thông tin giảng viên mới
       const newTeacher = managementData.teachers.find(t => String(t.id) === String(editForm.teacherId));
-      
+
       // Cập nhật state local
       setManagementData(prev => ({
         ...prev,
-        classes: prev.classes.map(c => 
-          c.id === selectedClass.id 
-            ? { 
-                ...c, 
-                teachers: newTeacher ? [{ ...newTeacher, role: 'MAIN_TEACHER' }] : []
-              }
+        classes: prev.classes.map(c =>
+          c.id === selectedClass.id
+            ? {
+              ...c,
+              teachers: newTeacher ? [{ ...newTeacher, role: 'MAIN_TEACHER' }] : []
+            }
             : c
         )
       }));
-      
+
       alert('Đã thay đổi giảng viên!');
     } catch (error) {
       console.error('Chi tiết lỗi:', error);
@@ -462,24 +510,24 @@ export default function ClassManagement() {
 
   const handleRemoveStudent = async (studentId) => {
     if (!confirm('Xác nhận xóa học viên khỏi lớp?')) return;
-    
+
     try {
       await authApi.removeStudentFromClass(selectedClass.id, studentId);
-      
+
       // Cập nhật state local
       setManagementData(prev => ({
         ...prev,
-        classes: prev.classes.map(c => 
-          c.id === selectedClass.id 
-            ? { 
-                ...c, 
-                students: c.students.filter(s => s.id !== studentId),
-                studentCount: (c.studentCount || 0) - 1
-              }
+        classes: prev.classes.map(c =>
+          c.id === selectedClass.id
+            ? {
+              ...c,
+              students: c.students.filter(s => s.id !== studentId),
+              studentCount: (c.studentCount || 0) - 1
+            }
             : c
         )
       }));
-      
+
       alert('Đã xóa học viên');
     } catch (error) {
       alert('Lỗi xóa học viên: ' + (error?.response?.data?.message || error.message));
@@ -568,44 +616,44 @@ export default function ClassManagement() {
                 </div>
                 <h4 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#111827' }}>Tạo lớp mới</h4>
               </div>
-              
+
               <div style={{ display: 'grid', gap: 12 }}>
                 <div>
                   <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Tên lớp <span style={{ color: '#ef4444' }}>*</span></label>
-                  <input 
-                    style={{ ...inputStyle, background: '#fff' }} 
-                    placeholder="VD: IELTS 6.5 - Sáng thứ 2, 4, 6" 
-                    value={createForm.className} 
-                    onChange={(e) => setCreateForm(p => ({ ...p, className: e.target.value }))} 
+                  <input
+                    style={{ ...inputStyle, background: '#fff' }}
+                    placeholder="VD: IELTS 6.5 - Sáng thứ 2, 4, 6"
+                    value={createForm.className}
+                    onChange={(e) => setCreateForm(p => ({ ...p, className: e.target.value }))}
                   />
                 </div>
-                
+
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
                   <div>
                     <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Mã lớp</label>
-                    <input 
-                      style={{ ...inputStyle, background: '#fff' }} 
-                      placeholder="VD: IELTS-001" 
-                      value={createForm.classCode} 
-                      onChange={(e) => setCreateForm(p => ({ ...p, classCode: e.target.value }))} 
+                    <input
+                      style={{ ...inputStyle, background: '#fff' }}
+                      placeholder="VD: IELTS-001"
+                      value={createForm.classCode}
+                      onChange={(e) => setCreateForm(p => ({ ...p, classCode: e.target.value }))}
                     />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Sĩ số tối đa</label>
-                    <input 
-                      type="number" 
-                      min="1" 
-                      style={{ ...inputStyle, background: '#fff' }} 
-                      placeholder="VD: 20" 
-                      value={createForm.maxStudents} 
-                      onChange={(e) => setCreateForm(p => ({ ...p, maxStudents: e.target.value }))} 
+                    <input
+                      type="number"
+                      min="1"
+                      style={{ ...inputStyle, background: '#fff' }}
+                      placeholder="VD: 20"
+                      value={createForm.maxStudents}
+                      onChange={(e) => setCreateForm(p => ({ ...p, maxStudents: e.target.value }))}
                     />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Loại lớp</label>
-                    <select 
-                      style={{ ...inputStyle, background: '#fff' }} 
-                      value={createForm.classType} 
+                    <select
+                      style={{ ...inputStyle, background: '#fff' }}
+                      value={createForm.classType}
                       onChange={(e) => setCreateForm(p => ({ ...p, classType: e.target.value }))}
                     >
                       <option value="OFFLINE">Offline</option>
@@ -618,9 +666,9 @@ export default function ClassManagement() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <div>
                     <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Trình độ</label>
-                    <select 
-                      style={{ ...inputStyle, background: '#fff' }} 
-                      value={createForm.level} 
+                    <select
+                      style={{ ...inputStyle, background: '#fff' }}
+                      value={createForm.level}
                       onChange={(e) => setCreateForm(p => ({ ...p, level: e.target.value }))}
                     >
                       <option value="">Chọn trình độ</option>
@@ -633,11 +681,11 @@ export default function ClassManagement() {
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Mục tiêu Band</label>
-                    <input 
-                      style={{ ...inputStyle, background: '#fff' }} 
-                      placeholder="VD: 6.5" 
-                      value={createForm.targetBand} 
-                      onChange={(e) => setCreateForm(p => ({ ...p, targetBand: e.target.value }))} 
+                    <input
+                      style={{ ...inputStyle, background: '#fff' }}
+                      placeholder="VD: 6.5"
+                      value={createForm.targetBand}
+                      onChange={(e) => setCreateForm(p => ({ ...p, targetBand: e.target.value }))}
                     />
                   </div>
                 </div>
@@ -645,69 +693,69 @@ export default function ClassManagement() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <div>
                     <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Ngày khai giảng</label>
-                    <input 
+                    <input
                       type="date"
-                      style={{ ...inputStyle, background: '#fff' }} 
-                      value={createForm.startDate} 
-                      onChange={(e) => setCreateForm(p => ({ ...p, startDate: e.target.value }))} 
+                      style={{ ...inputStyle, background: '#fff' }}
+                      value={createForm.startDate}
+                      onChange={(e) => setCreateForm(p => ({ ...p, startDate: e.target.value }))}
                     />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Ngày bế giảng</label>
-                    <input 
+                    <input
                       type="date"
-                      style={{ ...inputStyle, background: '#fff' }} 
-                      value={createForm.endDate} 
-                      onChange={(e) => setCreateForm(p => ({ ...p, endDate: e.target.value }))} 
+                      style={{ ...inputStyle, background: '#fff' }}
+                      value={createForm.endDate}
+                      onChange={(e) => setCreateForm(p => ({ ...p, endDate: e.target.value }))}
                     />
                   </div>
                 </div>
 
                 <div>
                   <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Lịch học</label>
-                  <input 
-                    style={{ ...inputStyle, background: '#fff' }} 
-                    placeholder="VD: Thứ 2,4,6 - 18:00-20:00" 
-                    value={createForm.schedule} 
-                    onChange={(e) => setCreateForm(p => ({ ...p, schedule: e.target.value }))} 
+                  <input
+                    style={{ ...inputStyle, background: '#fff' }}
+                    placeholder="VD: Thứ 2,4,6 - 18:00-20:00"
+                    value={createForm.schedule}
+                    onChange={(e) => setCreateForm(p => ({ ...p, schedule: e.target.value }))}
                   />
                 </div>
 
                 <div>
                   <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Phòng học / Link online</label>
-                  <input 
-                    style={{ ...inputStyle, background: '#fff' }} 
-                    placeholder="VD: Phòng 301 hoặc https://zoom.us/..." 
-                    value={createForm.roomLocation} 
-                    onChange={(e) => setCreateForm(p => ({ ...p, roomLocation: e.target.value }))} 
+                  <input
+                    style={{ ...inputStyle, background: '#fff' }}
+                    placeholder="VD: Phòng 301 hoặc https://zoom.us/..."
+                    value={createForm.roomLocation}
+                    onChange={(e) => setCreateForm(p => ({ ...p, roomLocation: e.target.value }))}
                   />
                 </div>
 
                 <div>
                   <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Ghi chú</label>
-                  <textarea 
-                    style={{ ...inputStyle, background: '#fff', minHeight: 60, resize: 'vertical' }} 
-                    placeholder="Ghi chú về lớp học..." 
-                    value={createForm.notes} 
-                    onChange={(e) => setCreateForm(p => ({ ...p, notes: e.target.value }))} 
+                  <textarea
+                    style={{ ...inputStyle, background: '#fff', minHeight: 60, resize: 'vertical' }}
+                    placeholder="Ghi chú về lớp học..."
+                    value={createForm.notes}
+                    onChange={(e) => setCreateForm(p => ({ ...p, notes: e.target.value }))}
                   />
                 </div>
-                
+
                 <div style={{ border: '2px dashed #d1d5db', borderRadius: 12, padding: 16, background: '#f9fafb', marginTop: 4 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
                     <Users size={16} color="#6b7280" />
                     <div style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>Thêm học viên (tùy chọn)</div>
                   </div>
                   <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 10 }}>Upload file CSV với cột: studentCode, fullName, email</div>
-                  
-                  <label style={{ 
-                    display: 'inline-flex', 
-                    alignItems: 'center', 
-                    gap: 8, 
-                    padding: '10px 16px', 
-                    background: '#fff', 
-                    border: '1px solid #d1d5db', 
-                    borderRadius: 10, 
+
+                  <label style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '10px 16px',
+                    background: '#fff',
+                    border: '1px solid #d1d5db',
+                    borderRadius: 10,
                     cursor: 'pointer',
                     fontSize: 13,
                     fontWeight: 600,
@@ -715,28 +763,28 @@ export default function ClassManagement() {
                     transition: 'all 0.2s',
                     boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
                   }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#f9fafb';
-                    e.currentTarget.style.borderColor = '#3b82f6';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = '#fff';
-                    e.currentTarget.style.borderColor = '#d1d5db';
-                  }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = '#f9fafb';
+                      e.currentTarget.style.borderColor = '#3b82f6';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = '#fff';
+                      e.currentTarget.style.borderColor = '#d1d5db';
+                    }}
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
                     </svg>
                     {createCsvFile ? createCsvFile : 'Chọn file CSV'}
-                    <input 
-                      type="file" 
-                      accept=".csv" 
+                    <input
+                      type="file"
+                      accept=".csv"
                       ref={createCsvInputRef}
-                      style={{ display: 'none' }} 
-                      onChange={(e) => handleCreateCsvFile(e.target.files?.[0])} 
+                      style={{ display: 'none' }}
+                      onChange={(e) => handleCreateCsvFile(e.target.files?.[0])}
                     />
                   </label>
-                  
+
                   {createCsvError && (
                     <div style={{ marginTop: 10, padding: '10px 12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, color: '#dc2626', fontSize: 12 }}>
                       ⚠️ {createCsvError}
@@ -749,10 +797,10 @@ export default function ClassManagement() {
                     </div>
                   )}
                 </div>
-                
-                <button 
-                  style={{ ...buttonPrimary, marginTop: 8, height: 44, fontSize: 15, display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }} 
-                  onClick={handleCreateClass} 
+
+                <button
+                  style={{ ...buttonPrimary, marginTop: 8, height: 44, fontSize: 15, display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}
+                  onClick={handleCreateClass}
                   disabled={createLoading}
                 >
                   <GraduationCap size={18} /> {createLoading ? 'Đang tạo lớp...' : 'Tạo lớp ngay'}
@@ -774,15 +822,15 @@ export default function ClassManagement() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            
+
             <div style={{ maxHeight: 400, overflowY: 'auto' }}>
               {classes.map((c) => (
-                <div 
-                  key={c.id} 
-                  style={{ 
-                    border: '1px solid #e5e7eb', 
-                    borderRadius: 10, 
-                    padding: 12, 
+                <div
+                  key={c.id}
+                  style={{
+                    border: '1px solid #e5e7eb',
+                    borderRadius: 10,
+                    padding: 12,
                     marginBottom: 10,
                     background: selectedClassId === c.id ? '#eff6ff' : '#fff',
                     cursor: 'pointer',
@@ -799,7 +847,7 @@ export default function ClassManagement() {
                     </div>
                     <button
                       type="button"
-                      style={{ 
+                      style={{
                         padding: '4px 8px',
                         fontSize: 12,
                         background: '#fee2e2',
@@ -831,14 +879,14 @@ export default function ClassManagement() {
                 </h2>
                 <div style={{ display: 'flex', gap: 8 }}>
                   {!isEditMode ? (
-                    <button 
-                      style={{ 
-                        padding: '6px 12px', 
-                        fontSize: 12, 
-                        background: '#2563eb', 
+                    <button
+                      style={{
+                        padding: '6px 12px',
+                        fontSize: 12,
+                        background: '#2563eb',
                         color: 'white',
-                        border: 'none', 
-                        borderRadius: 4, 
+                        border: 'none',
+                        borderRadius: 4,
                         cursor: 'pointer',
                         fontWeight: 600,
                         display: 'flex',
@@ -850,14 +898,14 @@ export default function ClassManagement() {
                       <Edit2 size={14} /> Chỉnh sửa
                     </button>
                   ) : (
-                    <button 
-                      style={{ 
-                        padding: '6px 12px', 
-                        fontSize: 12, 
-                        background: '#6b7280', 
+                    <button
+                      style={{
+                        padding: '6px 12px',
+                        fontSize: 12,
+                        background: '#6b7280',
                         color: 'white',
-                        border: 'none', 
-                        borderRadius: 4, 
+                        border: 'none',
+                        borderRadius: 4,
                         cursor: 'pointer',
                         fontWeight: 600,
                         display: 'flex',
@@ -887,14 +935,14 @@ export default function ClassManagement() {
                       <X size={14} /> Hủy
                     </button>
                   )}
-                  <button 
-                    style={{ 
-                      padding: '6px 12px', 
-                      fontSize: 12, 
-                      background: '#dc2626', 
+                  <button
+                    style={{
+                      padding: '6px 12px',
+                      fontSize: 12,
+                      background: '#dc2626',
                       color: 'white',
-                      border: 'none', 
-                      borderRadius: 4, 
+                      border: 'none',
+                      borderRadius: 4,
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
@@ -913,7 +961,7 @@ export default function ClassManagement() {
                   <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 600, color: '#1f2937' }}>
                     Thông tin chi tiết lớp
                   </h3>
-                  
+
                   {/* Hiển thị thông tin */}
                   <div style={{ background: isEditMode ? '#fef3c7' : '#f0f9ff', padding: 12, borderRadius: 6, border: `1px solid ${isEditMode ? '#fbbf24' : '#bae6fd'}`, marginBottom: 12 }}>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 13 }}>
@@ -949,10 +997,10 @@ export default function ClassManagement() {
                       </div>
                       <div>
                         <span style={{ color: '#6b7280', fontWeight: 600 }}>Trạng thái:</span>{' '}
-                        <span style={{ 
-                          padding: '2px 8px', 
-                          borderRadius: 4, 
-                          fontSize: 11, 
+                        <span style={{
+                          padding: '2px 8px',
+                          borderRadius: 4,
+                          fontSize: 11,
                           fontWeight: 600,
                           background: selectedClass.status === 'ACTIVE' ? '#dcfce7' : '#fee2e2',
                           color: selectedClass.status === 'ACTIVE' ? '#166534' : '#991b1b'
@@ -1010,20 +1058,20 @@ export default function ClassManagement() {
                         <div style={{ display: 'grid', gap: 8 }}>
                           <div>
                             <label style={{ fontSize: 12, color: '#6b7280', marginBottom: 4, display: 'block' }}>Tên lớp:</label>
-                            <input 
-                              value={editForm.className} 
-                              onChange={(e) => setEditForm(prev => ({...prev, className: e.target.value}))}
+                            <input
+                              value={editForm.className}
+                              onChange={(e) => setEditForm(prev => ({ ...prev, className: e.target.value }))}
                               style={{ ...inputStyle, margin: 0 }}
                               placeholder="Tên lớp học"
                             />
                           </div>
-                          
+
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                             <div>
                               <label style={{ fontSize: 12, color: '#6b7280', marginBottom: 4, display: 'block' }}>Trình độ:</label>
-                              <select 
-                                value={editForm.level} 
-                                onChange={(e) => setEditForm(prev => ({...prev, level: e.target.value}))}
+                              <select
+                                value={editForm.level}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, level: e.target.value }))}
                                 style={{ ...inputStyle, margin: 0 }}
                               >
                                 <option value="">Chọn trình độ</option>
@@ -1036,9 +1084,9 @@ export default function ClassManagement() {
                             </div>
                             <div>
                               <label style={{ fontSize: 12, color: '#6b7280', marginBottom: 4, display: 'block' }}>Mục tiêu Band:</label>
-                              <input 
-                                value={editForm.targetBand} 
-                                onChange={(e) => setEditForm(prev => ({...prev, targetBand: e.target.value}))}
+                              <input
+                                value={editForm.targetBand}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, targetBand: e.target.value }))}
                                 style={{ ...inputStyle, margin: 0 }}
                                 placeholder="VD: 6.5"
                               />
@@ -1048,9 +1096,9 @@ export default function ClassManagement() {
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                             <div>
                               <label style={{ fontSize: 12, color: '#6b7280', marginBottom: 4, display: 'block' }}>Loại lớp:</label>
-                              <select 
-                                value={editForm.classType} 
-                                onChange={(e) => setEditForm(prev => ({...prev, classType: e.target.value}))}
+                              <select
+                                value={editForm.classType}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, classType: e.target.value }))}
                                 style={{ ...inputStyle, margin: 0 }}
                               >
                                 <option value="OFFLINE">Offline</option>
@@ -1060,10 +1108,10 @@ export default function ClassManagement() {
                             </div>
                             <div>
                               <label style={{ fontSize: 12, color: '#6b7280', marginBottom: 4, display: 'block' }}>Sĩ số tối đa:</label>
-                              <input 
+                              <input
                                 type="number"
-                                value={editForm.maxStudents} 
-                                onChange={(e) => setEditForm(prev => ({...prev, maxStudents: e.target.value}))}
+                                value={editForm.maxStudents}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, maxStudents: e.target.value }))}
                                 style={{ ...inputStyle, margin: 0 }}
                                 placeholder="VD: 20"
                               />
@@ -1073,19 +1121,19 @@ export default function ClassManagement() {
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                             <div>
                               <label style={{ fontSize: 12, color: '#6b7280', marginBottom: 4, display: 'block' }}>Ngày khai giảng:</label>
-                              <input 
+                              <input
                                 type="date"
-                                value={editForm.startDate} 
-                                onChange={(e) => setEditForm(prev => ({...prev, startDate: e.target.value}))}
+                                value={editForm.startDate}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, startDate: e.target.value }))}
                                 style={{ ...inputStyle, margin: 0 }}
                               />
                             </div>
                             <div>
                               <label style={{ fontSize: 12, color: '#6b7280', marginBottom: 4, display: 'block' }}>Ngày bế giảng:</label>
-                              <input 
+                              <input
                                 type="date"
-                                value={editForm.endDate} 
-                                onChange={(e) => setEditForm(prev => ({...prev, endDate: e.target.value}))}
+                                value={editForm.endDate}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, endDate: e.target.value }))}
                                 style={{ ...inputStyle, margin: 0 }}
                               />
                             </div>
@@ -1093,9 +1141,9 @@ export default function ClassManagement() {
 
                           <div>
                             <label style={{ fontSize: 12, color: '#6b7280', marginBottom: 4, display: 'block' }}>Lịch học:</label>
-                            <input 
-                              value={editForm.schedule} 
-                              onChange={(e) => setEditForm(prev => ({...prev, schedule: e.target.value}))}
+                            <input
+                              value={editForm.schedule}
+                              onChange={(e) => setEditForm(prev => ({ ...prev, schedule: e.target.value }))}
                               style={{ ...inputStyle, margin: 0 }}
                               placeholder="VD: Thứ 2,4,6 - 18:00-20:00"
                             />
@@ -1103,19 +1151,19 @@ export default function ClassManagement() {
 
                           <div>
                             <label style={{ fontSize: 12, color: '#6b7280', marginBottom: 4, display: 'block' }}>Phòng học / Link online:</label>
-                            <input 
-                              value={editForm.roomLocation} 
-                              onChange={(e) => setEditForm(prev => ({...prev, roomLocation: e.target.value}))}
+                            <input
+                              value={editForm.roomLocation}
+                              onChange={(e) => setEditForm(prev => ({ ...prev, roomLocation: e.target.value }))}
                               style={{ ...inputStyle, margin: 0 }}
                               placeholder="VD: Phòng 301 hoặc https://zoom.us/..."
                             />
                           </div>
-                          
+
                           <div>
                             <label style={{ fontSize: 12, color: '#6b7280', marginBottom: 4, display: 'block' }}>Trạng thái:</label>
-                            <select 
-                              value={editForm.status} 
-                              onChange={(e) => setEditForm(prev => ({...prev, status: e.target.value}))}
+                            <select
+                              value={editForm.status}
+                              onChange={(e) => setEditForm(prev => ({ ...prev, status: e.target.value }))}
                               style={{ ...inputStyle, margin: 0 }}
                             >
                               <option value="UPCOMING">Sắp khai giảng</option>
@@ -1124,14 +1172,14 @@ export default function ClassManagement() {
                               <option value="CANCELLED">Đã hủy</option>
                             </select>
                           </div>
-                          
+
                           <div>
                             <label style={{ fontSize: 12, color: '#6b7280', marginBottom: 4, display: 'block' }}>Giảng viên chính:</label>
-                            
+
                             <div style={{ display: 'flex', gap: 6 }}>
-                              <select 
-                                value={editForm.teacherId} 
-                                onChange={(e) => setEditForm(prev => ({...prev, teacherId: e.target.value}))}
+                              <select
+                                value={editForm.teacherId}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, teacherId: e.target.value }))}
                                 style={{ ...inputStyle, margin: 0, flex: 1 }}
                               >
                                 <option value="">Chọn giảng viên</option>
@@ -1139,10 +1187,10 @@ export default function ClassManagement() {
                                   <option key={t.id} value={t.id}>{t.fullName}</option>
                                 ))}
                               </select>
-                              <button 
+                              <button
                                 onClick={handleChangeTeacher}
                                 disabled={editLoading || !editForm.teacherId}
-                                style={{ 
+                                style={{
                                   padding: '8px 12px',
                                   fontSize: 12,
                                   background: editLoading ? '#9ca3af' : (!editForm.teacherId ? '#9ca3af' : '#2563eb'),
@@ -1156,23 +1204,23 @@ export default function ClassManagement() {
                               </button>
                             </div>
                           </div>
-                          
+
                           <div>
                             <label style={{ fontSize: 12, color: '#6b7280', marginBottom: 4, display: 'block' }}>Ghi chú:</label>
-                            <textarea 
-                              value={editForm.notes} 
-                              onChange={(e) => setEditForm(prev => ({...prev, notes: e.target.value}))}
+                            <textarea
+                              value={editForm.notes}
+                              onChange={(e) => setEditForm(prev => ({ ...prev, notes: e.target.value }))}
                               style={{ ...inputStyle, margin: 0, minHeight: 60, resize: 'vertical' }}
                               placeholder="Ghi chú về lớp học..."
                             />
                           </div>
-                          
-                          <button 
+
+                          <button
                             onClick={handleUpdateClass}
                             disabled={editLoading}
-                            style={{ 
-                              ...buttonPrimary, 
-                              margin: 0, 
+                            style={{
+                              ...buttonPrimary,
+                              margin: 0,
                               background: editLoading ? '#9ca3af' : '#059669',
                               fontSize: 13,
                               display: 'flex',
@@ -1208,13 +1256,13 @@ export default function ClassManagement() {
                             <tr key={`${t.id}-${t.role}`} style={{ borderBottom: '1px solid #f3f4f6' }}>
                               <td style={{ padding: '8px 12px', fontSize: 13 }}>{t.fullName}</td>
                               <td style={{ padding: '8px 12px', fontSize: 13 }}>
-                                <span style={{ 
-                                  padding: '2px 6px', 
-                                  background: '#dbeafe', 
-                                  color: '#1e40af', 
-                                  borderRadius: 3, 
-                                  fontSize: 11, 
-                                  fontWeight: 600 
+                                <span style={{
+                                  padding: '2px 6px',
+                                  background: '#dbeafe',
+                                  color: '#1e40af',
+                                  borderRadius: 3,
+                                  fontSize: 11,
+                                  fontWeight: 600
                                 }}>
                                   {t.role}
                                 </span>
@@ -1330,7 +1378,7 @@ export default function ClassManagement() {
               <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 600 }}>
                 Thêm học viên vào lớp: {selectedClass?.name}
               </h3>
-              
+
               {/* Search */}
               <input
                 type="text"
@@ -1342,15 +1390,11 @@ export default function ClassManagement() {
 
               {/* Student List */}
               <div style={{ maxHeight: 300, overflowY: 'auto', border: '1px solid #e5e7eb', borderRadius: 6, marginBottom: 16 }}>
-                {availableStudents
-                  .filter(s => 
-                    !studentSearch || 
-                    s.username?.toLowerCase().includes(studentSearch.toLowerCase()) ||
-                    s.fullName?.toLowerCase().includes(studentSearch.toLowerCase())
-                  )
-                  .map(student => (
-                    <div key={student.id} style={{ 
-                      padding: 12, 
+                {selectableStudents.map(student => {
+                  const studentCode = student.studentCode || student.username;
+                  return (
+                    <div key={student.id} style={{
+                      padding: 12,
                       borderBottom: '1px solid #f3f4f6',
                       display: 'flex',
                       justifyContent: 'space-between',
@@ -1358,7 +1402,7 @@ export default function ClassManagement() {
                     }}>
                       <div>
                         <div style={{ fontWeight: 500, fontSize: 14 }}>{student.fullName}</div>
-                        <div style={{ fontSize: 12, color: '#6b7280' }}>Mã: {student.username}</div>
+                        <div style={{ fontSize: 12, color: '#6b7280' }}>Mã: {studentCode || 'N/A'}</div>
                       </div>
                       <button
                         onClick={() => {
@@ -1378,8 +1422,13 @@ export default function ClassManagement() {
                         {selectedStudents.includes(student.id) ? 'Bỏ chọn' : 'Chọn'}
                       </button>
                     </div>
-                  ))
-                }
+                  );
+                })}
+                {selectableStudents.length === 0 && (
+                  <div style={{ padding: 12, color: '#6b7280', fontSize: 13, textAlign: 'center' }}>
+                    Không có học viên phù hợp để thêm
+                  </div>
+                )}
               </div>
 
               {/* Selected Count */}
@@ -1404,9 +1453,9 @@ export default function ClassManagement() {
                 <button
                   onClick={handleAddStudents}
                   disabled={selectedStudents.length === 0}
-                  style={{ 
-                    ...buttonPrimary, 
-                    opacity: selectedStudents.length === 0 ? 0.5 : 1 
+                  style={{
+                    ...buttonPrimary,
+                    opacity: selectedStudents.length === 0 ? 0.5 : 1
                   }}
                 >
                   Thêm {selectedStudents.length} học viên
@@ -1424,9 +1473,9 @@ export default function ClassManagement() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
               <div style={{ width: 48, height: 48, borderRadius: 12, background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2">
-                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                  <line x1="12" y1="9" x2="12" y2="13"/>
-                  <line x1="12" y1="17" x2="12.01" y2="17"/>
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                  <line x1="12" y1="9" x2="12" y2="13" />
+                  <line x1="12" y1="17" x2="12.01" y2="17" />
                 </svg>
               </div>
               <div>
@@ -1434,14 +1483,14 @@ export default function ClassManagement() {
                 <p style={{ margin: '4px 0 0', fontSize: 13, color: '#6b7280' }}>Hành động này không thể hoàn tác</p>
               </div>
             </div>
-            
+
             <div style={{ padding: 16, background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 12, marginBottom: 16 }}>
               <p style={{ margin: 0, fontSize: 14, color: '#991b1b' }}>
                 Bạn sắp xóa lớp <strong>{deleteClassTarget.name}</strong> ({deleteClassTarget.code || 'Chưa có mã'})
               </p>
               <p style={{ margin: '8px 0 0', fontSize: 13, color: '#dc2626' }}>
-                • Tất cả học viên sẽ bị gỡ khỏi lớp<br/>
-                • Giảng viên sẽ bị hủy phân công<br/>
+                • Tất cả học viên sẽ bị gỡ khỏi lớp<br />
+                • Giảng viên sẽ bị hủy phân công<br />
                 • Dữ liệu lớp sẽ bị xóa vĩnh viễn
               </p>
             </div>
@@ -1456,10 +1505,10 @@ export default function ClassManagement() {
                 onChange={(e) => setDeleteClassPassword(e.target.value)}
                 placeholder="Mật khẩu admin"
                 disabled={deletingClass}
-                style={{ 
-                  width: '100%', 
-                  padding: '10px 14px', 
-                  borderRadius: 10, 
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  borderRadius: 10,
                   border: '1px solid #d1d5db',
                   fontSize: 14,
                   boxSizing: 'border-box'
@@ -1469,15 +1518,15 @@ export default function ClassManagement() {
             </div>
 
             <div style={{ display: 'flex', gap: 10 }}>
-              <button 
-                onClick={() => setDeleteClassTarget(null)} 
+              <button
+                onClick={() => setDeleteClassTarget(null)}
                 disabled={deletingClass}
-                style={{ 
+                style={{
                   flex: 1,
-                  padding: '10px 16px', 
-                  borderRadius: 10, 
-                  border: '1px solid #d1d5db', 
-                  background: '#fff', 
+                  padding: '10px 16px',
+                  borderRadius: 10,
+                  border: '1px solid #d1d5db',
+                  background: '#fff',
                   cursor: 'pointer',
                   fontWeight: 600,
                   fontSize: 14
@@ -1485,16 +1534,16 @@ export default function ClassManagement() {
               >
                 Hủy
               </button>
-              <button 
-                onClick={handleDeleteClass} 
+              <button
+                onClick={handleDeleteClass}
                 disabled={deletingClass}
-                style={{ 
+                style={{
                   flex: 1,
-                  padding: '10px 16px', 
-                  borderRadius: 10, 
-                  border: 'none', 
-                  background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)', 
-                  color: 'white', 
+                  padding: '10px 16px',
+                  borderRadius: 10,
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)',
+                  color: 'white',
                   cursor: 'pointer',
                   fontWeight: 600,
                   fontSize: 14,
@@ -1514,20 +1563,20 @@ export default function ClassManagement() {
 function parseCodesFromCsv(csvText) {
   const cleanText = String(csvText || '').replace(/^\uFEFF/, ''); // Remove BOM
   const lines = cleanText.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
-  
+
   if (lines.length === 0) return [];
-  
+
   const parseRow = (line) => line.split(',').map(cell => cell.trim().replace(/^"|"$/g, ''));
   const header = parseRow(lines[0]).map(h => h.toLowerCase());
-  
+
   // Tìm cột username (studentCode)
   const usernameCol = header.findIndex(h => ['username', 'studentcode', 'student_code', 'code', 'mahv'].includes(h));
-  
+
   if (usernameCol === -1) {
     console.warn('Không tìm thấy cột username/studentCode trong CSV');
     return [];
   }
-  
+
   const codes = [];
   for (let i = 1; i < lines.length; i++) {
     const row = parseRow(lines[i]);
@@ -1536,6 +1585,6 @@ function parseCodesFromCsv(csvText) {
       codes.push(code.trim());
     }
   }
-  
+
   return [...new Set(codes)]; // Remove duplicates
 }

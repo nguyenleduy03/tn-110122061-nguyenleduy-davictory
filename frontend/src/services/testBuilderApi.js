@@ -211,8 +211,14 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
           fromQuestion: group.fromQuestion || null,
           toQuestion: group.toQuestion || null,
           orderIndex: gIdx + 1,
-          allowOptionReuse: group.allowOptionReuse ?? false,
+          allowOptionReuse: group.allowOptionReuse !== false, // Default true
           instructions: group.instructions || null,  // Add group-level instructions
+          validationOptions: group.ignoreCase !== undefined || group.ignoreSpaces || group.ignorePunctuation || group.ignoreChars ? {
+            ignoreCase: group.ignoreCase !== false,
+            ignoreSpaces: group.ignoreSpaces || false,
+            ignorePunctuation: group.ignorePunctuation || false,
+            ignoreChars: group.ignoreChars || ''
+          } : null,
           questions: (group.questions || []).map((q, qIdx) => {
             console.log(`🔄 Processing question ${qIdx}/${group.questions.length} for group ${group.contentType}`);
             console.log(`   - questionText: "${q.questionText}"`);
@@ -407,6 +413,12 @@ function serializeGroupContent(group, part) {
       allowOptionReuse,
     });
   }
+  // Matching fillable: chỉ lưu leftTitle
+  if (ct === 'MATCHING_FILLABLE' || ct === 'MATCHING_HEADINGS_FILLABLE') {
+    return JSON.stringify({
+      leftTitle: group.leftTitle || '',
+    });
+  }
   // Map labelling
   if (ct === 'MAP_LABELLING') {
     return JSON.stringify({
@@ -568,13 +580,21 @@ export function parseLoadedTest(data) {
     const skillKey = sessionResp.skillType;
     const parts = (sessionResp.parts || []).map(partResp => {
       const mappedGroups = (partResp.questionGroups || []).map(groupResp => {
+        // Normalize contentType for MCQ groups
+        let contentType = groupResp.contentType;
+        if (contentType === 'MULTIPLE_CHOICE') {
+          contentType = 'MULTIPLE_CHOICE_GROUP';
+        } else if (contentType === 'MULTIPLE_CHOICE_MULTI') {
+          // Keep as is
+        }
+        
         const base = {
           id: nextId++,
           backendGroupId: groupResp.questionGroupId,
           backendTestQGId: groupResp.testQuestionGroupId,
           title: groupResp.title,
           instructions: groupResp.instructions || '',
-          contentType: groupResp.contentType,
+          contentType: contentType,
           audioUrl: groupResp.audioUrl,
           imageUrl: groupResp.imageUrl,
           fromQuestion: groupResp.fromQuestion,
@@ -587,6 +607,32 @@ export function parseLoadedTest(data) {
             const numberRange = questionCount > 1 
               ? Array.from({length: questionCount}, (_, i) => startNum + i)
               : [startNum];
+            
+            const mappedType = mapBackendTypeToFrontend(qResp.questionTypeCode);
+            const isMCQ = mappedType === 'MULTIPLE_CHOICE' || mappedType === 'MULTIPLE_CHOICE_MULTIPLE';
+            
+            // Ensure MCQ questions always have options
+            let options = (qResp.options || []).map(opt => ({
+              id: nextId++,
+              optionLabel: opt.optionLabel,
+              optionText: opt.optionText,
+              isCorrect: opt.isCorrect,
+              orderIndex: opt.orderIndex,
+            }));
+            
+            // If MCQ but no options from backend, create defaults
+            if (isMCQ && options.length === 0) {
+              const labels = mappedType === 'MULTIPLE_CHOICE_MULTIPLE' 
+                ? ['A', 'B', 'C', 'D', 'E'] 
+                : ['A', 'B', 'C', 'D'];
+              options = labels.map((label, i) => ({
+                id: nextId++,
+                optionLabel: label,
+                optionText: '',
+                isCorrect: false,
+                orderIndex: i,
+              }));
+            }
             
             return {
               id: nextId++,
@@ -601,18 +647,10 @@ export function parseLoadedTest(data) {
               imageUrl: qResp.imageUrl,
               points: qResp.points,
               orderIndex: qResp.orderIndex,
-              // Khôi phục answerText từ answers[0] để UI hiển thị đúng (fill-blank, TFNG, matching...)
-              // Với drag matching, mỗi câu hỏi có đáp án riêng trong answers[0]
               answerText: qResp.answers?.[0]?.answerText || '',
               groupInstruction: qResp.groupInstruction || null,
-              questionType: { typeName: mapBackendTypeToFrontend(qResp.questionTypeCode) },
-              options: (qResp.options || []).map(opt => ({
-                id: nextId++,
-                optionLabel: opt.optionLabel,
-                optionText: opt.optionText,
-                isCorrect: opt.isCorrect,
-                orderIndex: opt.orderIndex,
-              })),
+              questionType: { typeName: mappedType },
+              options: options,
               answers: (qResp.answers || []).map(ans => ({
                 answerText: ans.answerText,
                 alternativeAnswers: ans.alternativeAnswers,
@@ -620,7 +658,6 @@ export function parseLoadedTest(data) {
                 blankIndex: ans.blankIndex,
                 wordLimit: ans.wordLimit,
               })),
-              // Debug info
               _debug: groupResp.contentType === 'DRAG_MATCHING' ? {
                 backendAnswers: qResp.answers?.length || 0,
                 loadedAnswerText: qResp.answers?.[0]?.answerText || 'EMPTY'
@@ -702,6 +739,10 @@ function deserializeGroupContent(contentType, passageText) {
     if (contentType === 'DRAG_MATCHING') {
       const parsed = JSON.parse(passageText);
       return { leftTitle: parsed.leftTitle, rightTitle: parsed.rightTitle, optionBank: parsed.optionBank || [], allowOptionReuse: (typeof parsed.allowOptionReuse === 'boolean') ? parsed.allowOptionReuse : true };
+    }
+    if (contentType === 'MATCHING_FILLABLE' || contentType === 'MATCHING_HEADINGS_FILLABLE') {
+      const parsed = JSON.parse(passageText);
+      return { leftTitle: parsed.leftTitle || '' };
     }
     if (contentType === 'MAP_LABELLING') {
       const parsed = JSON.parse(passageText);

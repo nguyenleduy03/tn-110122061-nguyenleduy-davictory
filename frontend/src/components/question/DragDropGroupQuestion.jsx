@@ -1,6 +1,8 @@
 import React from 'react';
 import { Bookmark } from 'lucide-react';
-import { formatTextWithWhitespace } from '../../utils/textFormatters';
+import { formatTextWithWhitespace, stripInlineStyles } from '../../utils/textFormatters';
+
+const formatAndClean = (text) => stripInlineStyles(formatTextWithWhitespace(text));
 
 const normalizeGroupType = (rawType) => String(rawType || '')
     .trim()
@@ -120,7 +122,7 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                 : undefined}
         >
             {isMatchingHeading && <h4 className="bank-section-title">List of Headings</h4>}
-            {isMatchingInfo && <h4 className="bank-section-title info-title">{q.rightHeader || 'Options'}</h4>}
+            {isMatchingInfo && <h4 className="bank-section-title info-title" dangerouslySetInnerHTML={{ __html: q.rightHeader || 'Options' }} />}
             <div className="options-bank">
                 {bankOptions.map((opt, idx) => {
                     const isUsed = usedOptions.includes(opt);
@@ -145,7 +147,7 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
 
     const renderQuestions = () => (
         <div className={`dd-sub-questions ${isMatchingInfo ? 'dd-info-padded' : ''}`}>
-            {isMatchingInfo && <h4 className="bank-section-title info-title">{q.leftHeader || 'Questions'}</h4>}
+            {isMatchingInfo && <h4 className="bank-section-title info-title" dangerouslySetInnerHTML={{ __html: q.leftHeader || 'Questions' }} />}
             <div className="dd-questions-list">
                 {(q.subQuestions || []).map((subQ) => {
                     const isActive = activeQuestion === subQ.number;
@@ -224,12 +226,12 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                                     {bookmarkNode}
                                     {hasInlineBlank ? (
                                         <span className="dd-inline-content">
-                                            <span dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(inlineBlankParts.before) }} />
+                                            <span dangerouslySetInnerHTML={{ __html: formatAndClean(inlineBlankParts.before) }} />
                                             {dropZoneNode}
-                                            <span dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(inlineBlankParts.after) }} />
+                                            <span dangerouslySetInnerHTML={{ __html: formatAndClean(inlineBlankParts.after) }} />
                                         </span>
                                     ) : (
-                                        <span>{subQ.text}</span>
+                                        <span dangerouslySetInnerHTML={{ __html: formatAndClean(subQ.text || '') }} />
                                     )}
                                 </div>
                             ) : null}
@@ -243,14 +245,14 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                                     hasInlineBlank ? (
                                         <span className="dd-question-text dd-question-inline">
                                             <span className="dd-inline-content">
-                                                <span dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(inlineBlankParts.before) }} />
+                                                <span dangerouslySetInnerHTML={{ __html: formatAndClean(inlineBlankParts.before) }} />
                                                 {dropZoneNode}
-                                                <span dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(inlineBlankParts.after) }} />
+                                                <span dangerouslySetInnerHTML={{ __html: formatAndClean(inlineBlankParts.after) }} />
                                             </span>
                                         </span>
                                     ) : (
                                         <>
-                                            <span className="dd-question-text">{subQ.text}</span>
+                                            <span className="dd-question-text" dangerouslySetInnerHTML={{ __html: formatAndClean(subQ.text || '') }} />
                                             {dropZoneNode}
                                         </>
                                     )
@@ -268,14 +270,6 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
     const renderFlowChart = () => {
         const flowNodes = q.flowNodes ?? [];
         const subQuestions = q.subQuestions ?? [];
-        const numbers = subQuestions.map((sq) => sq.number).filter((n) => Number.isFinite(n));
-        const minNum = numbers.length ? Math.min(...numbers) : null;
-        const maxNum = numbers.length ? Math.max(...numbers) : null;
-        const fallbackHeading = (minNum !== null && maxNum !== null)
-            ? (minNum === maxNum ? `Question ${minNum}` : `Questions ${minNum}-${maxNum}`)
-            : '';
-        const heading = q.heading || fallbackHeading;
-        const instruction = q.instruction || 'Complete the flow-chart. Choose the correct answer and move it into the gap.';
         const chartTitle = /^\s*(nh[oó]m|group)\s*\d*\s*$/i.test(String(q.title || '')) ? '' : q.title;
         const bankTitle = q.bankTitle || '';
 
@@ -295,11 +289,6 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
 
         return (
             <div className="fc-container">
-                <div className="fc-header">
-                    {heading && <h4 className="fc-heading">{heading}</h4>}
-                    {instruction && <p className="fc-instruction" dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(instruction) }} />}
-                </div>
-
                 <div className="fc-layout">
                     <div className="fc-chart">
                         {chartTitle && <div className="fc-chart-title">{chartTitle}</div>}
@@ -394,37 +383,25 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
             : '';
         const heading = q.heading || fallbackHeading;
         const instruction = q.instruction || '';
-        const imageWidth = Number.isFinite(Number(q.imageWidth)) ? Number(q.imageWidth) : 100;
+        const imageWidth = Number.isFinite(Number(q.imageWidth)) ? Number(q.imageWidth) + 45 : 100;
         const pinBoxWidth = Number.isFinite(Number(q.pinBoxWidth)) ? Number(q.pinBoxWidth) : 60;
         const constrainHalfPage = Boolean(q.constrainHalfPage);
         const allowReuse = (typeof q.allowOptionReuse === 'boolean') ? q.allowOptionReuse : true;
 
         return (
             <div className="image-drag-drop-container">
-                {(heading || instruction) && (
-                    <div className="question-header-container">
-                        {heading && (
-                            <p className="question-heading">
-                                {heading}
-                            </p>
-                        )}
-                        {instruction && (
-                            <div className="question-instruction" dangerouslySetInnerHTML={{ __html: instruction }} />
-                        )}
-                    </div>
-                )}
-
                 <div className="image-drag-drop-body">
                     <div className={`image-area${constrainHalfPage ? ' half-page' : ''}`}>
-                        {q.imageUrl ? (
-                            <img src={q.imageUrl} alt="Map" className="idd-map-image" style={{ width: `${imageWidth}%` }} />
-                        ) : (
-                            <div className="image-placeholder">
-                                Image Placeholder (Add imageUrl to data)
-                            </div>
-                        )}
+                        <div style={{ position: 'relative', width: `${imageWidth}%`, margin: '0 auto' }}>
+                            {q.imageUrl ? (
+                                <img src={q.imageUrl} alt="Map" className="idd-map-image" style={{ width: '100%', display: 'block' }} />
+                            ) : (
+                                <div className="image-placeholder">
+                                    Image Placeholder (Add imageUrl to data)
+                                </div>
+                            )}
 
-                        {subQuestions.map((subQ) => {
+                            {subQuestions.map((subQ) => {
                             const answer = answers[subQ.id];
                             const normalizedAnswer = String(answer || '').trim().toLowerCase();
                             const normalizedCorrect = String(subQ.correctAnswer || '').trim().toLowerCase();
@@ -483,11 +460,12 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                                 </div>
                             );
                         })}
+                        </div>
                     </div>
 
                     <div className="bank-area" onDragOver={handleDragOver} onDrop={handleBankDrop}>
                         {q.rightTitle && (
-                            <div className="dd-bank-title" dangerouslySetInnerHTML={{ __html: q.rightTitle }} />
+                            <div className="dd-bank-title" dangerouslySetInnerHTML={{ __html: formatAndClean(q.rightTitle) }} />
                         )}
                         <div className="bank-options-list">
                             {(q.bankOptions || []).map((opt, idx) => {
@@ -519,6 +497,21 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
         const subQuestions = q.subQuestions || [];
         const answerMap = answers || {};
 
+        // Check if options can be reused (default: true)
+        const allowOptionReuse = (typeof q.allowOptionReuse === 'boolean')
+            ? q.allowOptionReuse
+            : true;
+
+        console.log('🔍 Matching Features allowOptionReuse:', allowOptionReuse, 'from q:', q.allowOptionReuse);
+
+        // Track used options if reuse is disabled
+        const usedOptions = new Set();
+        if (!allowOptionReuse) {
+            Object.values(answerMap).filter(Boolean).forEach(opt => usedOptions.add(opt));
+        }
+
+        console.log('🔍 Used options:', Array.from(usedOptions), 'answerMap:', answerMap);
+
         const numbers = subQuestions.map((sq) => sq.number).filter((n) => Number.isFinite(n));
         const minNum = numbers.length ? Math.min(...numbers) : null;
         const maxNum = numbers.length ? Math.max(...numbers) : null;
@@ -542,7 +535,7 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                     <p className="question-heading">{heading}</p>
                     <p
                         className="question-instruction"
-                        dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(instruction) }}
+                        dangerouslySetInnerHTML={{ __html: formatAndClean(instruction) }}
                     />
                 </div>
 
@@ -551,7 +544,7 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                         {q.categoryTitle && (
                             <div
                                 className="mf-category-title"
-                                dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(q.categoryTitle) }}
+                                dangerouslySetInnerHTML={{ __html: formatAndClean(q.categoryTitle) }}
                             />
                         )}
                         <div className="mf-category-list">
@@ -560,7 +553,7 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                                     <span className="mf-cat-label">{cat.label}</span>
                                     <span
                                         className="mf-cat-text"
-                                        dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(cat.text || '') }}
+                                        dangerouslySetInnerHTML={{ __html: formatAndClean(cat.text || '') }}
                                     />
                                 </div>
                             ))}
@@ -612,7 +605,7 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                                                 <span
                                                     className="mf-q-text"
                                                     dangerouslySetInnerHTML={{
-                                                        __html: formatTextWithWhitespace(subQ.text || '')
+                                                        __html: formatAndClean(subQ.text || '')
                                                     }}
                                                 />
                                             </div>
@@ -622,12 +615,17 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                                             const isSelected = selectedLabel === cat.label;
                                             const isCorrectCell = isReview && cat.label === String(subQ.correctAnswer || '').trim();
                                             const isWrongCell = isReview && isSelected && !isCorrect;
+                                            
+                                            // Disable option if already used and reuse is not allowed
+                                            const isUsed = !allowOptionReuse && usedOptions.has(cat.label) && selectedLabel !== cat.label;
+                                            const isDisabled = !isReview && isUsed;
 
                                             let cellClass = 'mf-choice-cell';
                                             if (isSelected && !isReview) cellClass += ' mf-selected';
                                             if (isCorrectCell) cellClass += ' mf-review-correct';
                                             if (isWrongCell) cellClass += ' mf-review-wrong';
                                             if (isReview && isSelected && isCorrect) cellClass += ' mf-review-correct';
+                                            if (isDisabled) cellClass += ' mf-disabled';
 
                                             return (
                                                 <td
@@ -635,9 +633,12 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                                                     className={cellClass}
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        handleSelect(subQ.id, cat.label);
+                                                        if (!isDisabled) {
+                                                            handleSelect(subQ.id, cat.label);
+                                                        }
                                                     }}
-                                                    title={isReview ? undefined : `Chọn ${cat.label}`}
+                                                    title={isReview ? undefined : (isDisabled ? 'Đã sử dụng' : `Chọn ${cat.label}`)}
+                                                    style={isDisabled ? { cursor: 'not-allowed', opacity: 0.4 } : undefined}
                                                 >
                                                     {isSelected && (
                                                         <span className="mf-check-mark">

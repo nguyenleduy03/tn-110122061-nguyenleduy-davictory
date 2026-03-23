@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { stripInlineStyles } from '../../utils/textFormatters';
 
 /**
  * RichInput — contentEditable text field with rich formatting toolbar.
@@ -162,6 +163,13 @@ const RichInput = ({ value, onChange, placeholder, style, multiline, className, 
         onInput={(e) => { onChange(e.currentTarget.innerHTML); updateActive(); }}
         onKeyUp={updateActive}
         onMouseUp={updateActive}
+        onPaste={(e) => {
+          e.preventDefault();
+          const text = e.clipboardData.getData('text/html') || e.clipboardData.getData('text/plain');
+          const cleaned = stripInlineStyles(text);
+          document.execCommand('insertHTML', false, cleaned);
+          onChange(ref.current.innerHTML);
+        }}
       />
     </div>
   );
