@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Plus, Volume2, Image, ChevronUp, ChevronDown } from 'lucide-react';
+import { X, Plus, Volume2, Image, ChevronUp, ChevronDown, Mic, PenLine } from 'lucide-react';
 import GroupToolbar from './shared/GroupToolbar';
 import RichInput from '../../common/RichInput';
 import RichBlankEditor from './shared/RichBlankEditor';

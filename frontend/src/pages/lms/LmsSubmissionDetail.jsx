@@ -4,6 +4,7 @@ import { ArrowLeft, FileText, Clock, User } from 'lucide-react';
 import LmsLayout from '../../components/lms/LmsLayout';
 import { teacherApi } from '../../services/teacherApi';
 import { ieltsApi } from '../../services/ieltsApi';
+import { calculateExamBand, formatBand } from '../../utils/ieltsScoring';
 
 export default function LmsSubmissionDetail() {
   const { id, type } = useParams();
@@ -86,6 +87,13 @@ export default function LmsSubmissionDetail() {
     );
   }
 
+  const displayExamBand = (type !== 'writing')
+    ? (submission.bandScore ?? calculateExamBand({
+      skillType: submission.skillType || submission.examType,
+      totalCorrect: submission.totalCorrect,
+    }))
+    : null;
+
   console.log('📊 Rendering submission:', submission);
 
   return (
@@ -155,7 +163,7 @@ export default function LmsSubmissionDetail() {
             <div style={{ marginBottom: 8 }}>
               <span style={{ fontSize: 12, color: '#6b7280' }}>Điểm: </span>
               <span style={{ fontWeight: 600, fontSize: 18, color: '#16a34a' }}>
-                {submission.bandScore || 0} / 9.0
+                {formatBand(displayExamBand)} / 9.0
               </span>
             </div>
             <div style={{ fontSize: 12, color: '#6b7280' }}>
@@ -167,7 +175,7 @@ export default function LmsSubmissionDetail() {
 
       {/* Nút chấm bài */}
       <div className="lms-panel">
-        <button 
+        <button
           className="lms-cta"
           onClick={() => {
             if (type === 'writing') {

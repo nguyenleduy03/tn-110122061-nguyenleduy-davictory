@@ -3,6 +3,7 @@ import { CheckCircle2, Loader2, FileText, Clock, Award } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import LmsLayout from '../../components/lms/LmsLayout';
 import { teacherApi } from '../../services/teacherApi';
+import { calculateExamBand, formatBand } from '../../utils/ieltsScoring';
 
 export default function LmsTeacherSubmissions() {
   const navigate = useNavigate();
@@ -16,12 +17,12 @@ export default function LmsTeacherSubmissions() {
       try {
         const data = await teacherApi.getAllSubmissions();
         console.log('📊 All Submissions:', data);
-        
+
         const allSubmissions = [
           ...(data.writingSubmissions || []).map(s => ({ ...s, type: 'WRITING' })),
           ...(data.examAttempts || []).map(a => ({ ...a, type: a.examType }))
         ].sort((a, b) => new Date(b.submittedAt || b.startedAt) - new Date(a.submittedAt || a.startedAt));
-        
+
         setSubmissions(allSubmissions);
       } catch (err) {
         setError('Không thể tải danh sách bài nộp');
@@ -45,6 +46,24 @@ export default function LmsTeacherSubmissions() {
     total: submissions.length,
     pending: submissions.filter(s => s.status === 'SUBMITTED').length,
     graded: submissions.filter(s => s.status === 'GRADED').length,
+  };
+
+  const getDisplayScore = (submission) => {
+    const direct = submission.score ?? submission.bandScore ?? submission.overallBandScore;
+    if (direct !== null && direct !== undefined && direct !== '') {
+      const numeric = Number(direct);
+      return Number.isFinite(numeric) ? formatBand(numeric) : direct;
+    }
+
+    if (submission.type === 'READING' || submission.type === 'LISTENING') {
+      const calculated = calculateExamBand({
+        skillType: submission.type,
+        totalCorrect: submission.totalCorrect,
+      });
+      return calculated !== null ? formatBand(calculated) : '—';
+    }
+
+    return '—';
   };
 
   if (loading) {
@@ -92,19 +111,19 @@ export default function LmsTeacherSubmissions() {
       {/* Filter */}
       <div className="lms-panel" style={{ marginBottom: 16 }}>
         <div className="lms-chip-row">
-          <button 
+          <button
             className={`lms-cta ${filter === 'ALL' ? '' : 'ghost'}`}
             onClick={() => setFilter('ALL')}
           >
             Tất cả ({stats.total})
           </button>
-          <button 
+          <button
             className={`lms-cta ${filter === 'SUBMITTED' ? '' : 'ghost'}`}
             onClick={() => setFilter('SUBMITTED')}
           >
             <Clock size={14} /> Chờ chấm ({stats.pending})
           </button>
-          <button 
+          <button
             className={`lms-cta ${filter === 'GRADED' ? '' : 'ghost'}`}
             onClick={() => setFilter('GRADED')}
           >
@@ -131,14 +150,13 @@ export default function LmsTeacherSubmissions() {
               </thead>
               <tbody>
                 {filteredSubmissions.map((s, idx) => (
-                  <tr key={s.id || idx}>
+                  <tr key={`${s.type || 'UNKNOWN'}-${s.id ?? 'NO_ID'}-${s.submittedAt || s.startedAt || 'NO_DATE'}-${idx}`}>
                     <td style={{ fontWeight: 600 }}>{s.username || 'N/A'}</td>
                     <td>
-                      <span className={`lms-pill ${
-                        s.type === 'WRITING' ? 'neutral' :
+                      <span className={`lms-pill ${s.type === 'WRITING' ? 'neutral' :
                         s.type === 'READING' ? 'success' :
-                        s.type === 'LISTENING' ? 'warn' : 'neutral'
-                      }`}>
+                          s.type === 'LISTENING' ? 'warn' : 'neutral'
+                        }`}>
                         {s.type}
                       </span>
                     </td>
@@ -147,21 +165,20 @@ export default function LmsTeacherSubmissions() {
                       {(s.submittedAt || s.startedAt) ? new Date(s.submittedAt || s.startedAt).toLocaleDateString('vi-VN') : '—'}
                     </td>
                     <td>
-                      <span className={`lms-pill ${
-                        s.status === 'SUBMITTED' ? 'warn' : 
-                        s.status === 'GRADED' ? 'success' : 
-                        'neutral'
-                      }`}>
-                        {s.status === 'SUBMITTED' ? 'Chờ chấm' : 
-                         s.status === 'GRADED' ? 'Đã chấm' : 
-                         s.status || 'N/A'}
+                      <span className={`lms-pill ${s.status === 'SUBMITTED' ? 'warn' :
+                        s.status === 'GRADED' ? 'success' :
+                          'neutral'
+                        }`}>
+                        {s.status === 'SUBMITTED' ? 'Chờ chấm' :
+                          s.status === 'GRADED' ? 'Đã chấm' :
+                            s.status || 'N/A'}
                       </span>
                     </td>
-                    <td style={{ fontWeight: 600, color: (s.score || s.bandScore || s.overallBandScore) ? '#16a34a' : '#9ca3af' }}>
-                      {s.score || s.bandScore || s.overallBandScore || '—'}
+                    <td style={{ fontWeight: 600, color: getDisplayScore(s) !== '—' ? '#16a34a' : '#9ca3af' }}>
+                      {getDisplayScore(s)}
                     </td>
                     <td>
-                      <button 
+                      <button
                         className="lms-cta ghost"
                         onClick={() => {
                           if (s.type === 'WRITING') navigate(`/lms/submission/writing/${s.id}`);
@@ -180,9 +197,9 @@ export default function LmsTeacherSubmissions() {
           <div style={{ textAlign: 'center', padding: 40, color: '#6b7280' }}>
             <FileText size={48} style={{ margin: '0 auto 16px', opacity: 0.3 }} />
             <p style={{ margin: 0, fontSize: 14 }}>
-              {filter === 'ALL' ? 'Chưa có bài nộp nào' : 
-               filter === 'SUBMITTED' ? 'Không có bài chờ chấm' : 
-               'Chưa có bài đã chấm'}
+              {filter === 'ALL' ? 'Chưa có bài nộp nào' :
+                filter === 'SUBMITTED' ? 'Không có bài chờ chấm' :
+                  'Chưa có bài đã chấm'}
             </p>
           </div>
         )}

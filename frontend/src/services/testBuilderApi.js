@@ -254,8 +254,8 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
             // Xây dựng answers[] để gửi lên backend
             let answers;
             
-            // Đặc biệt xử lý DRAG_MATCHING và MATCHING_FEATURES - luôn tạo answer cho mọi câu hỏi
-            if (group.contentType === 'DRAG_MATCHING' || group.contentType === 'MATCHING_FEATURES') {
+            // Đặc biệt xử lý DRAG_MATCHING, MATCHING_FEATURES, SUMMARY_COMPLETION_SELECT - luôn tạo answer cho mọi câu hỏi
+            if (group.contentType === 'DRAG_MATCHING' || group.contentType === 'MATCHING_FEATURES' || group.contentType === 'SUMMARY_COMPLETION_SELECT') {
               const existingAnswer = q.answers?.[0];
               answers = [{
                 answerText: q.answerText || '', // Có thể rỗng
@@ -344,7 +344,7 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
 // Kiểm tra type code có phải dạng lưu vào bảng answers không
 // TFNG/YNNG: answerText là 'TRUE'/'FALSE'/'NOT GIVEN' cũng lưu vào answers
 function isTextAnswerType(typeCode) {
-  return ['FILL_BLANK', 'SHORT_ANSWER', 'SENTENCE_COMPLETION', 'SUMMARY_COMPLETION',
+  return ['FILL_BLANK', 'SHORT_ANSWER', 'SENTENCE_COMPLETION', 'SUMMARY_COMPLETION', 'SUMMARY_COMPLETION_SELECT',
     'NOTE_COMPLETION', 'FLOW_CHART', 'MAP_DIAGRAM', 'TABLE_FORM', 'MATCHING', 'MATCHING_HEADINGS',
     'TFNG', 'YNNG', 'MCQ_DROPDOWN'].includes(typeCode);
 }
@@ -387,6 +387,15 @@ function serializeGroupContent(group, part) {
   // Note/Summary: lưu text
   if (ct === 'NOTE_COMPLETION') return group.noteText || '';
   if (ct === 'SUMMARY_COMPLETION') return group.summaryText || '';
+  if (ct === 'SUMMARY_COMPLETION_SELECT') {
+    return JSON.stringify({
+      noteText: group.noteText || '',
+      title: group.title || '',
+      instructions: group.instructions || '',
+      optionBank: group.optionBank || [],
+      allowOptionReuse: group.allowOptionReuse !== false,
+    });
+  }
   // Image + Note Form: lưu noteText, imagePosition, imageWidth
   if (ct === 'IMAGE_NOTE_FORM') {
     const topNoteText = group.topNoteText ?? (group.imagePosition === 'bottom' ? '' : (group.noteText || ''));
@@ -528,6 +537,7 @@ function mapQuestionTypeCode(typeName) {
     // Completion types
     'SENTENCE_COMPLETION': 'SENTENCE_COMPLETION',
     'SUMMARY_COMPLETION': 'SUMMARY_COMPLETION',
+    'SUMMARY_COMPLETION_SELECT': 'SUMMARY_COMPLETION',
     'NOTE_COMPLETION': 'NOTE_COMPLETION',
     'TABLE_COMPLETION': 'NOTE_COMPLETION',
     'IMAGE_NOTE_FORM': 'NOTE_COMPLETION',
@@ -717,6 +727,15 @@ function deserializeGroupContent(contentType, passageText) {
     }
     if (contentType === 'NOTE_COMPLETION') return { noteText: passageText };
     if (contentType === 'SUMMARY_COMPLETION') return { summaryText: passageText };
+    if (contentType === 'SUMMARY_COMPLETION_SELECT') {
+      const parsed = JSON.parse(passageText);
+      return {
+        noteText: parsed.noteText || '',
+        title: parsed.title || '',
+        instructions: parsed.instructions || '',
+        optionBank: parsed.optionBank || [],
+      };
+    }
     if (contentType === 'IMAGE_NOTE_FORM') {
       const parsed = JSON.parse(passageText);
       const topNoteText = parsed.topNoteText ?? (parsed.imagePosition === 'bottom' ? '' : (parsed.noteText || ''));
@@ -843,6 +862,7 @@ function mapBackendTypeToFrontend(code) {
     'MATCHING_HEADINGS': 'FILL_IN_BLANK',
     'SENTENCE_COMPLETION': 'FILL_IN_BLANK',
     'SUMMARY_COMPLETION': 'FILL_IN_BLANK',
+    'SUMMARY_COMPLETION_SELECT': 'FILL_IN_BLANK',
     'NOTE_COMPLETION': 'FILL_IN_BLANK',
     'FLOW_CHART': 'FILL_IN_BLANK',
     'MAP_DIAGRAM': 'FILL_IN_BLANK',

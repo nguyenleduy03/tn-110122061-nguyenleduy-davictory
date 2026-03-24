@@ -15,6 +15,7 @@ import { stripInlineStyles } from '../../utils/textFormatters';
  */
 const RichInput = ({ value, onChange, placeholder, style, multiline, className, rows }) => {
   const ref = useRef(null);
+  const savedRangeRef = useRef(null);
   const [focused, setFocused] = useState(false);
   const [active, setActive] = useState({});
 
@@ -52,12 +53,35 @@ const RichInput = ({ value, onChange, placeholder, style, multiline, className, 
     } catch (_) {}
   };
 
+  const saveSelection = () => {
+    const selection = window.getSelection?.();
+    if (!selection || !selection.rangeCount || !ref.current) return;
+
+    const range = selection.getRangeAt(0);
+    if (ref.current.contains(range.commonAncestorContainer)) {
+      savedRangeRef.current = range.cloneRange();
+    }
+  };
+
+  const restoreSelection = () => {
+    const range = savedRangeRef.current;
+    if (!range || !ref.current) return false;
+
+    const selection = window.getSelection?.();
+    if (!selection) return false;
+
+    selection.removeAllRanges();
+    selection.addRange(range);
+    return true;
+  };
+
   const exec = (cmd, e) => {
     e.preventDefault();
     e.stopPropagation();
     
     if (ref.current) {
       ref.current.focus();
+      restoreSelection();
       
       // Direct CSS approach for alignment commands
       if (cmd.startsWith('justify')) {
@@ -162,7 +186,7 @@ const RichInput = ({ value, onChange, placeholder, style, multiline, className, 
         onBlur={(e) => { setFocused(false); onChange(e.currentTarget.innerHTML); }}
         onInput={(e) => { onChange(e.currentTarget.innerHTML); updateActive(); }}
         onKeyUp={updateActive}
-        onMouseUp={updateActive}
+        onMouseUp={() => { saveSelection(); updateActive(); }}
         onPaste={(e) => {
           e.preventDefault();
           const text = e.clipboardData.getData('text/html') || e.clipboardData.getData('text/plain');

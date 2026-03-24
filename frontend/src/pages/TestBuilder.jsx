@@ -527,7 +527,7 @@ const TestBuilder = () => {
 
         case 'SPEAKING_INTERVIEW':
           return {
-            title: `Speaking Interview ${groupIdx}`,
+            title: `Part 1 - Interview ${groupIdx}`,
             passageText: '',
             fromQuestion: null, toQuestion: null,
             questions: [
@@ -539,10 +539,21 @@ const TestBuilder = () => {
 
         case 'SPEAKING_CUECARD':
           return {
-            title: `Cue Card ${groupIdx}`,
+            title: `Part 2 - Cue Card ${groupIdx}`,
             passageText: '',
             fromQuestion: null, toQuestion: null,
             questions: [makeQ(1, 'SPEAKING_CUECARD', { questionText: '' })],
+          };
+
+        case 'SPEAKING_DISCUSSION':
+          return {
+            title: `Part 3 - Discussion ${groupIdx}`,
+            passageText: '',
+            fromQuestion: null, toQuestion: null,
+            questions: [
+              makeQ(1, 'SPEAKING_DISCUSSION', { questionText: '' }),
+              makeQ(2, 'SPEAKING_DISCUSSION', { questionText: '' }),
+            ],
           };
 
         case 'CUSTOM':
@@ -1195,6 +1206,14 @@ const TestBuilder = () => {
                   onSelectSession={(key) => { setActiveSkill(key); setSelection(null); }}
                   onSelectPart={(p) => setSelection({ type: 'part', data: p })}
                   onSelectGroup={(g) => setSelection({ type: 'group', data: { ...g } })}
+                  onUpdateSessionTime={(skillKey, minutes) => {
+                    setSessions(prev => ({
+                      ...prev,
+                      [skillKey]: (prev[skillKey] || []).map((part, idx) => 
+                        idx === 0 ? { ...part, durationMinutes: minutes } : part
+                      )
+                    }));
+                  }}
                 />
               </ErrorBoundary>
 
@@ -1206,6 +1225,7 @@ const TestBuilder = () => {
                   dragOverPartId={dragOverPartId}
                   dragOverPassagePaneId={dragOverPassagePaneId}
                   draggingContentType={activeOverlayItem?.contentType ?? null}
+                  onUpdatePart={updatePart}
                   onMoveGroupUp={(groupId) => {
                     const part = parts.find((p) => p.questionGroups?.some((g) => g.id === groupId));
                     if (part) moveGroupByStep(part.id, groupId, -1);

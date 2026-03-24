@@ -5,6 +5,7 @@ import MultipleChoiceQuestion from './MultipleChoiceQuestion';
 import TFNGQuestion from './TFNGQuestion';
 import DragDropGroupQuestion from './DragDropGroupQuestion';
 import SummaryCompletionQuestion from './SummaryCompletionQuestion';
+import SummaryCompletionSelectQuestion from './SummaryCompletionSelectQuestion';
 import DropdownGroupQuestion from './DropdownGroupQuestion';
 import MatchingFillQuestion from './MatchingFillQuestion';
 import { formatTextWithWhitespace } from '../../utils/textFormatters';
@@ -20,6 +21,7 @@ const normalizeQuestionType = (rawType) => {
         case 'fill_in_the_blank': return 'fill-in-the-blank';
         case 'multiple_choice': return 'multiple-choice';
         case 'summary_completion': return 'summary-completion';
+        case 'summary_completion_select': return 'summary-completion-select';
         case 'note_completion': return 'note-completion';
         case 'table_completion': return 'table-completion';
         case 'image_drag_drop': return 'image-drag-drop';
@@ -169,6 +171,22 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
     if (normalizedType === 'summary-completion' || normalizedType === 'note-completion') {
         return (
             <SummaryCompletionQuestion
+                q={q}
+                activeQuestion={activeQuestion}
+                setActiveQuestion={setActiveQuestion}
+                answers={answers || {}}
+                handleAnswerChange={handleAnswerChange}
+                inputRefs={inputRefs}
+                bookmarks={bookmarks}
+                toggleBookmark={toggleBookmark}
+                isReview={isReview}
+            />
+        );
+    }
+
+    if (normalizedType === 'summary-completion-select') {
+        return (
+            <SummaryCompletionSelectQuestion
                 q={q}
                 activeQuestion={activeQuestion}
                 setActiveQuestion={setActiveQuestion}

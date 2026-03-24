@@ -13,8 +13,12 @@ export { default as ShortAnswerBlock } from './ShortAnswerBlock';
 export { default as NoteCompletionBlock } from './NoteCompletionBlock';
 export { default as ImageNoteFormBlock } from './ImageNoteFormBlock';
 export { default as SummaryCompletionBlock, FlowChartBlock } from './SummaryCompletionBlock';
+export { default as SummaryCompletionSelectBlock } from './SummaryCompletionSelectBlock';
 export { default as SpeakingInterviewBlock } from './SpeakingInterviewBlock';
 export { default as SpeakingCueCardBlock } from './SpeakingCueCardBlock';
+export { default as SpeakingPart1Block } from './SpeakingPart1Block';
+export { default as SpeakingPart2Block } from './SpeakingPart2Block';
+export { default as SpeakingPart3Block } from './SpeakingPart3Block';
 export { default as WritingTaskBlock } from './WritingTaskBlock';
 
 // Export shared utilities

@@ -14,13 +14,12 @@ const SummaryCompletionBlock = ({ group, onUpdate, onDelete, onSelect, selected,
       <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4, color: '#555' }}>
         Hướng dẫn:
       </label>
-      <input
-        type="text"
-        style={{ width: '100%', padding: '6px 10px', border: '1px solid #ddd', borderRadius: 4, fontSize: 13 }}
+      <RichInput
+        multiline
+        rows={2}
         value={group.instructions || ''}
         placeholder="Complete the summary. Write ONE WORD ONLY from the text for each answer."
-        onChange={(e) => onUpdate(group.id, { instructions: e.target.value })}
-        onClick={(e) => e.stopPropagation()}
+        onChange={(html) => onUpdate(group.id, { instructions: html })}
       />
     </div>
 
@@ -250,12 +249,12 @@ function FlowChartBlock({ group, onUpdate, onDelete, onSelect, selected, dragHan
         <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4, color: '#555' }}>
           Hướng dẫn:
         </label>
-        <input
-          type="text"
-          style={{ width: '100%', padding: '6px 10px', border: '1px solid #ddd', borderRadius: 4, fontSize: 13 }}
+        <RichInput
+          multiline
+          rows={2}
           value={group.instructions || ''}
           placeholder="Complete the flow-chart below. Choose NO MORE THAN TWO WORDS from the passage for each answer."
-          onChange={(e) => onUpdate(group.id, { instructions: e.target.value })}
+          onChange={(html) => onUpdate(group.id, { instructions: html })}
         />
       </div>
 

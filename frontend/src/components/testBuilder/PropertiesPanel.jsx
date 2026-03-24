@@ -1,11 +1,12 @@
 import React from 'react';
 import { Trash2, MousePointerClick } from 'lucide-react';
 import RichInput from '../common/RichInput';
+import { toPlainText } from './blocks/shared/blockHelpers';
 
 const CONTENT_TYPES = [
   'READING_PASSAGE', 'AUDIO_TRANSCRIPT', 'STANDALONE',
-  'DIAGRAM', 'MAP', 'MAP_LABELLING', 'TABLE', 'TABLE_COMPLETION', 'MATCHING_HEADING', 'DRAG_MATCHING', 'SUMMARY_COMPLETION', 'NOTE_COMPLETION', 'FLOW_CHART', 'WRITING_TASK',
-  'SPEAKING_INTERVIEW', 'SPEAKING_CUECARD',
+  'DIAGRAM', 'MAP', 'MAP_LABELLING', 'TABLE', 'TABLE_COMPLETION', 'MATCHING_HEADING', 'DRAG_MATCHING', 'SUMMARY_COMPLETION', 'SUMMARY_COMPLETION_SELECT', 'NOTE_COMPLETION', 'FLOW_CHART', 'WRITING_TASK',
+  'SPEAKING_INTERVIEW', 'SPEAKING_CUECARD', 'SPEAKING_PART1', 'SPEAKING_PART2', 'SPEAKING_PART3',
   'CUSTOM',
 ];
 const QUESTION_TYPES = [
@@ -93,12 +94,12 @@ const GroupPanel = ({ group, onChange, onDelete }) => (
 
     <div className="tb-field">
       <label className="tb-label">Tiêu đề nhóm <span>*</span></label>
-      <input
-        className="tb-input"
+      <RichInput
+        multiline
+        rows={2}
         value={group.title ?? ''}
-        onChange={(e) => onChange({ title: e.target.value })}
+        onChange={(html) => onChange({ title: html })}
         placeholder="VD: Questions 1-13"
-        maxLength={200}
       />
     </div>
 
@@ -147,6 +148,15 @@ const GroupPanel = ({ group, onChange, onDelete }) => (
         <label className="tb-label">ℹ️ Summary Completion</label>
         <div style={{ fontSize: 12, color: '#6b7280', padding: '6px 10px', background: '#f0f9ff', borderRadius: 6, border: '1px solid #bae6fd' }}>
           Nhập văn bản tóm tắt vào canvas trực tiếp. Dùng <code>[blank]</code> để đánh dấu ô trống.
+        </div>
+      </div>
+    )}
+
+    {(group.contentType === 'SUMMARY_COMPLETION_SELECT') && (
+      <div className="tb-field">
+        <label className="tb-label">ℹ️ Summary Completion (Select)</label>
+        <div style={{ fontSize: 12, color: '#6b7280', padding: '6px 10px', background: '#fef3c7', borderRadius: 6, border: '1px solid #fbbf24' }}>
+          Học viên chọn từ trong danh sách để điền vào ô trống. Thêm từ vào Word Bank trong canvas.
         </div>
       </div>
     )}
@@ -223,6 +233,33 @@ const GroupPanel = ({ group, onChange, onDelete }) => (
         <label className="tb-label">ℹ️ Table Completion</label>
         <div style={{ fontSize: 12, color: '#6b7280', padding: '6px 10px', background: '#e0e7ff', borderRadius: 6, border: '1px solid #a5b4fc' }}>
           Thêm cột/hàng → Nhập nội dung ô → Nhấn <code>+□</code> để chèn ô trống → Điền đáp án đúng bên dưới.
+        </div>
+      </div>
+    )}
+
+    {(group.contentType === 'SPEAKING_PART1') && (
+      <div className="tb-field">
+        <label className="tb-label">ℹ️ Speaking Part 1</label>
+        <div style={{ fontSize: 12, color: '#6b7280', padding: '6px 10px', background: '#dbeafe', borderRadius: 6, border: '1px solid #bfdbfe' }}>
+          Introduction & Interview: Tạo 2-3 topics với 3-4 câu hỏi mỗi topic về bản thân, công việc, sở thích.
+        </div>
+      </div>
+    )}
+
+    {(group.contentType === 'SPEAKING_PART2') && (
+      <div className="tb-field">
+        <label className="tb-label">ℹ️ Speaking Part 2</label>
+        <div style={{ fontSize: 12, color: '#6b7280', padding: '6px 10px', background: '#fef3c7', borderRadius: 6, border: '1px solid #fde68a' }}>
+          Individual Long Turn: Cue card với topic, bullet points, thời gian chuẩn bị (60s) và nói (1-2 phút), kèm follow-up questions.
+        </div>
+      </div>
+    )}
+
+    {(group.contentType === 'SPEAKING_PART3') && (
+      <div className="tb-field">
+        <label className="tb-label">ℹ️ Speaking Part 3</label>
+        <div style={{ fontSize: 12, color: '#6b7280', padding: '6px 10px', background: '#e0e7ff', borderRadius: 6, border: '1px solid #c7d2fe' }}>
+          Two-way Discussion: Thảo luận sâu về chủ đề Part 2 với 4-6 câu hỏi trừu tượng, phân tích.
         </div>
       </div>
     )}
@@ -588,7 +625,7 @@ const PropertiesPanel = ({ selection, onChange, onDelete }) => {
   const panelSub = () => {
     if (!selection) return 'Chọn một phần tử';
     if (selection.type === 'part') return selection.data.name || '—';
-    if (selection.type === 'group') return selection.data.title || '—';
+    if (selection.type === 'group') return toPlainText(selection.data.title) || '—';
     return `Câu ${selection.data.questionNumber ?? ''}`;
   };
 

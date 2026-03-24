@@ -75,7 +75,17 @@ public enum QuestionTypeEnum {
             "Viết thư cho Writing Task 1 General Training"),
 
     ESSAY("Essay (Academic Writing)", "WRITING", false, false, false,
-            "Viết bài luận cho Writing Task 2");
+            "Viết bài luận cho Writing Task 2"),
+
+    // ─── Dạng nói (Speaking) ───
+    SPEAKING_INTERVIEW("Speaking Part 1 - Interview", "SPEAKING", false, false, false,
+            "Câu hỏi phỏng vấn ngắn về bản thân, gia đình, sở thích"),
+
+    SPEAKING_CUECARD("Speaking Part 2 - Cue Card", "SPEAKING", false, false, false,
+            "Nói về chủ đề cho sẵn trong 1-2 phút"),
+
+    SPEAKING_DISCUSSION("Speaking Part 3 - Discussion", "SPEAKING", false, false, false,
+            "Thảo luận sâu về chủ đề liên quan Part 2");
 
     private final String displayName;
     private final String applicableSkills;

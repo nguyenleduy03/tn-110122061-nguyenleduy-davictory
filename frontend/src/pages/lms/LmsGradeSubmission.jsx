@@ -5,6 +5,7 @@ import { teacherApi } from '../../services/teacherApi';
 import { ieltsApi } from '../../services/ieltsApi';
 import QuestionRenderer from '../../components/question/QuestionRenderer';
 import { formatTextWithWhitespace } from '../../utils/textFormatters';
+import { calculateExamBand, calculateWritingBandFromCriteria, formatBand } from '../../utils/ieltsScoring';
 import '../../styles/ieltsTest.css';
 
 export default function LmsGradeSubmission() {
@@ -24,6 +25,12 @@ export default function LmsGradeSubmission() {
     lexicalResource: '',
     grammaticalRange: ''
   });
+
+  const parseBandInput = (value) => {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric) || numeric < 0 || numeric > 9) return null;
+    return numeric;
+  };
 
   const normalizeAnswerValue = (ans) => {
     if (ans?.matchingAnswer && String(ans.matchingAnswer).trim() !== '') {
@@ -177,8 +184,22 @@ export default function LmsGradeSubmission() {
 
   const handleSubmitGrade = async () => {
     try {
+      const manualBand = parseBandInput(grading.score);
+      const computedBand = calculateWritingBandFromCriteria({
+        taskAchievement: grading.taskAchievement,
+        coherenceCohesion: grading.coherenceCohesion,
+        lexicalResource: grading.lexicalResource,
+        grammaticalRange: grading.grammaticalRange,
+      });
+      const finalBand = manualBand ?? computedBand;
+
+      if (finalBand === null) {
+        alert('Vui lòng nhập Band Score hoặc đủ 4 tiêu chí rubric để tính band tự động.');
+        return;
+      }
+
       await teacherApi.gradeWritingSubmission(id, {
-        overallBandScore: parseFloat(grading.score),
+        overallBandScore: finalBand,
         overallFeedback: grading.feedback
       });
       alert('Đã chấm bài thành công!');
@@ -299,7 +320,7 @@ export default function LmsGradeSubmission() {
             {getTotalQuestionCount()}
           </div>
           <div className="review-score-sub">
-            Band score: {submission?.bandScore ?? 0} / 9.0
+            Band score: {formatBand(displayExamBand)} / 9.0
           </div>
         </div>
 
@@ -349,9 +370,9 @@ export default function LmsGradeSubmission() {
                   activeQuestion={activeQuestion}
                   setActiveQuestion={setActiveQuestion}
                   answers={reviewAnswers}
-                  handleAnswerChange={() => {}}
+                  handleAnswerChange={() => { }}
                   bookmarks={{}}
-                  toggleBookmark={() => {}}
+                  toggleBookmark={() => { }}
                   inputRefs={{ current: {} }}
                   isReview
                 />
@@ -401,12 +422,24 @@ export default function LmsGradeSubmission() {
 
   const isWriting = type === 'writing';
   const examType = submission.skillType || submission.examType || 'EXAM';
-  const canSaveWritingGrade = isWriting && grading.score;
+  const computedWritingBand = calculateWritingBandFromCriteria({
+    taskAchievement: grading.taskAchievement,
+    coherenceCohesion: grading.coherenceCohesion,
+    lexicalResource: grading.lexicalResource,
+    grammaticalRange: grading.grammaticalRange,
+  });
+  const finalWritingBand = parseBandInput(grading.score) ?? computedWritingBand;
+  const canSaveWritingGrade = isWriting && finalWritingBand !== null;
+  const calculatedExamBand = calculateExamBand({
+    skillType: examType,
+    totalCorrect: submission.totalCorrect,
+  });
+  const displayExamBand = submission?.bandScore ?? calculatedExamBand;
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f3f4f6' }}>
-      <div style={{ 
-        background: 'white', 
+    <div style={{ minHeight: '100vh', background: '#f3f4f6', fontFamily: 'Sora, sans-serif' }}>
+      <div style={{
+        background: 'white',
         borderBottom: '2px solid #e5e7eb',
         padding: '16px 24px',
         position: 'sticky',
@@ -416,7 +449,7 @@ export default function LmsGradeSubmission() {
       }}>
         <div style={{ maxWidth: 1400, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <button 
+            <button
               className="lms-cta ghost"
               onClick={() => navigate(-1)}
               style={{ marginBottom: 8 }}
@@ -428,7 +461,7 @@ export default function LmsGradeSubmission() {
             </h2>
           </div>
           {isWriting ? (
-            <button 
+            <button
               className="lms-cta"
               onClick={handleSubmitGrade}
               disabled={!canSaveWritingGrade}
@@ -447,9 +480,9 @@ export default function LmsGradeSubmission() {
       <div style={{ maxWidth: 1400, margin: '0 auto', padding: 24 }}>
         <div style={{ display: 'grid', gridTemplateColumns: isWriting ? '1fr 400px' : '1fr', gap: 24 }}>
           <div>
-            <div style={{ 
-              background: 'white', 
-              borderRadius: 12, 
+            <div style={{
+              background: 'white',
+              borderRadius: 12,
               padding: 20,
               marginBottom: 20,
               border: '1px solid #e5e7eb'
@@ -487,26 +520,26 @@ export default function LmsGradeSubmission() {
 
             {isWriting ? (
               <>
-                <div style={{ 
-                  background: 'white', 
-                  borderRadius: 12, 
+                <div style={{
+                  background: 'white',
+                  borderRadius: 12,
                   padding: 24,
                   marginBottom: 20,
                   border: '1px solid #e5e7eb'
                 }}>
-                  <h3 style={{ 
-                    margin: '0 0 16px 0', 
-                    fontSize: 18, 
+                  <h3 style={{
+                    margin: '0 0 16px 0',
+                    fontSize: 18,
                     fontWeight: 600,
                     color: '#1f2937',
                     borderBottom: '2px solid #3b82f6',
                     paddingBottom: 12
                   }}>
-                    De bai: {submission.groupTitle || 'N/A'}
+                    Đề bài: {submission.groupTitle || 'N/A'}
                   </h3>
-                  <div style={{ 
-                    padding: 16, 
-                    background: '#fef3c7', 
+                  <div style={{
+                    padding: 16,
+                    background: '#fef3c7',
                     borderRadius: 8,
                     border: '1px solid #fbbf24',
                     fontSize: 14,
@@ -518,35 +551,35 @@ export default function LmsGradeSubmission() {
                   </div>
                 </div>
 
-                <div style={{ 
-                  background: 'white', 
-                  borderRadius: 12, 
+                <div style={{
+                  background: 'white',
+                  borderRadius: 12,
                   padding: 24,
                   border: '1px solid #e5e7eb'
                 }}>
-                  <h3 style={{ 
-                    margin: '0 0 16px 0', 
-                    fontSize: 18, 
+                  <h3 style={{
+                    margin: '0 0 16px 0',
+                    fontSize: 18,
                     fontWeight: 600,
                     color: '#1f2937',
                     borderBottom: '2px solid #10b981',
                     paddingBottom: 12
                   }}>
-                    Bai lam cua hoc vien
+                    Bài làm của học viên
                   </h3>
-                  <div style={{ 
-                    padding: 20, 
-                    background: '#f9fafb', 
+                  <div style={{
+                    padding: 20,
+                    background: '#f9fafb',
                     borderRadius: 8,
                     border: '1px solid #e5e7eb',
                     minHeight: 400,
                     fontSize: 15,
                     lineHeight: 1.8,
-                    fontFamily: 'Georgia, serif',
+                    fontFamily: 'inherit',
                     whiteSpace: 'pre-wrap',
                     wordWrap: 'break-word'
                   }}>
-                    {submission.submissionText || 'Khong co noi dung bai lam'}
+                    {submission.submissionText || 'Không có nội dung bài làm'}
                   </div>
                 </div>
               </>
@@ -568,26 +601,26 @@ export default function LmsGradeSubmission() {
                     alignItems: 'center',
                     gap: 8
                   }}>
-                    <ClipboardList size={20} /> Tong quan bai thi
+                    <ClipboardList size={20} /> Tổng quan bài thi
                   </h3>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
                     <div className="lms-panel" style={{ margin: 0 }}>
-                      <div style={{ color: '#6b7280', fontSize: 12 }}>Ten bai thi</div>
+                      <div style={{ color: '#6b7280', fontSize: 12 }}>Tên bài thi</div>
                       <div style={{ fontWeight: 700 }}>{submission.testTitle || submission.examTitle || 'N/A'}</div>
                     </div>
                     <div className="lms-panel" style={{ margin: 0 }}>
-                      <div style={{ color: '#6b7280', fontSize: 12 }}>Diem band</div>
-                      <div style={{ fontWeight: 700, color: '#16a34a' }}>{submission.bandScore ?? 0} / 9.0</div>
+                      <div style={{ color: '#6b7280', fontSize: 12 }}>Điểm band</div>
+                      <div style={{ fontWeight: 700, color: '#16a34a' }}>{formatBand(displayExamBand)} / 9.0</div>
                     </div>
                     <div className="lms-panel" style={{ margin: 0 }}>
-                      <div style={{ color: '#6b7280', fontSize: 12 }}>So cau dung</div>
+                      <div style={{ color: '#6b7280', fontSize: 12 }}>Số câu đúng</div>
                       <div style={{ fontWeight: 700 }}>{submission.totalCorrect ?? 0} / {getTotalQuestionCount()}</div>
                       <div style={{ marginTop: 4, fontSize: 12, color: '#64748b' }}>
-                        Da tra loi: {submission.totalAnswered ?? 0}
+                        Đã trả lời: {submission.totalAnswered ?? 0}
                       </div>
                     </div>
                     <div className="lms-panel" style={{ margin: 0 }}>
-                      <div style={{ color: '#6b7280', fontSize: 12 }}>Trang thai</div>
+                      <div style={{ color: '#6b7280', fontSize: 12 }}>Trạng thái</div>
                       <div style={{ fontWeight: 700 }}>{submission.status || 'N/A'}</div>
                     </div>
                   </div>
@@ -605,7 +638,7 @@ export default function LmsGradeSubmission() {
                     fontWeight: 600,
                     color: '#1f2937'
                   }}>
-                    Review dap an hoc vien
+                    Review đáp án học viên
                   </h3>
                   {renderExamReviewByQuestions()}
                 </div>
@@ -635,30 +668,30 @@ export default function LmsGradeSubmission() {
 
           {isWriting && (
             <div style={{ position: 'sticky', top: 90, height: 'fit-content' }}>
-              <div style={{ 
-                background: 'white', 
-                borderRadius: 12, 
+              <div style={{
+                background: 'white',
+                borderRadius: 12,
                 padding: 24,
                 border: '1px solid #e5e7eb',
                 boxShadow: '0 4px 6px rgba(0,0,0,0.05)'
               }}>
-                <h3 style={{ 
-                  margin: '0 0 20px 0', 
-                  fontSize: 18, 
+                <h3 style={{
+                  margin: '0 0 20px 0',
+                  fontSize: 18,
                   fontWeight: 600,
                   display: 'flex',
                   alignItems: 'center',
                   gap: 8
                 }}>
                   <Award size={20} style={{ color: '#f59e0b' }} />
-                  Cham diem
+                  Chấm điểm
                 </h3>
 
                 <div style={{ marginBottom: 20 }}>
-                  <label style={{ 
-                    display: 'block', 
-                    fontSize: 14, 
-                    fontWeight: 600, 
+                  <label style={{
+                    display: 'block',
+                    fontSize: 14,
+                    fontWeight: 600,
                     marginBottom: 8,
                     color: '#374151'
                   }}>
@@ -681,19 +714,76 @@ export default function LmsGradeSubmission() {
                       textAlign: 'center',
                       color: '#1f2937'
                     }}
-                    placeholder="Nhap diem"
+                    placeholder="Nhập điểm"
                   />
+                  <div style={{ marginTop: 8, fontSize: 12, color: '#64748b' }}>
+                    Có thể nhập trực tiếp band hoặc để hệ thống tự tính từ 4 tiêu chí bên dưới.
+                  </div>
                 </div>
 
                 <div style={{ marginBottom: 20 }}>
-                  <label style={{ 
-                    display: 'block', 
-                    fontSize: 14, 
-                    fontWeight: 600, 
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 10, color: '#374151' }}>
+                    Cham theo rubric (moi tieu chi 0.0 - 9.0)
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="0"
+                      max="9"
+                      value={grading.taskAchievement}
+                      onChange={(e) => setGrading({ ...grading, taskAchievement: e.target.value })}
+                      placeholder="Task Achievement"
+                      style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: 8 }}
+                    />
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="0"
+                      max="9"
+                      value={grading.coherenceCohesion}
+                      onChange={(e) => setGrading({ ...grading, coherenceCohesion: e.target.value })}
+                      placeholder="Coherence & Cohesion"
+                      style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: 8 }}
+                    />
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="0"
+                      max="9"
+                      value={grading.lexicalResource}
+                      onChange={(e) => setGrading({ ...grading, lexicalResource: e.target.value })}
+                      placeholder="Lexical Resource"
+                      style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: 8 }}
+                    />
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="0"
+                      max="9"
+                      value={grading.grammaticalRange}
+                      onChange={(e) => setGrading({ ...grading, grammaticalRange: e.target.value })}
+                      placeholder="Grammatical Range"
+                      style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: 8 }}
+                    />
+                  </div>
+                  <div style={{ marginTop: 10, fontSize: 13, color: '#0f766e', fontWeight: 600 }}>
+                    Band tự tính: {computedWritingBand !== null ? formatBand(computedWritingBand) : 'Chưa đủ tiêu chí'}
+                  </div>
+                  <div style={{ marginTop: 4, fontSize: 12, color: '#64748b' }}>
+                    Band sẽ lưu: {finalWritingBand !== null ? formatBand(finalWritingBand) : 'Chưa hợp lệ'}
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: 20 }}>
+                  <label style={{
+                    display: 'block',
+                    fontSize: 14,
+                    fontWeight: 600,
                     marginBottom: 8,
                     color: '#374151'
                   }}>
-                    Nhan xet chung
+                    Nhận xét chung
                   </label>
                   <textarea
                     value={grading.feedback}
@@ -709,19 +799,19 @@ export default function LmsGradeSubmission() {
                       resize: 'vertical',
                       fontFamily: 'inherit'
                     }}
-                    placeholder="Nhap nhan xet ve bai lam cua hoc vien..."
+                    placeholder="Nhập nhận xét về bài làm của học viên..."
                   />
                 </div>
 
-                <div style={{ 
-                  padding: 16, 
-                  background: '#f0f9ff', 
+                <div style={{
+                  padding: 16,
+                  background: '#f0f9ff',
                   borderRadius: 8,
                   border: '1px solid #bfdbfe',
                   marginBottom: 20
                 }}>
                   <h4 style={{ margin: '0 0 12px 0', fontSize: 13, fontWeight: 600, color: '#1e40af' }}>
-                    Tieu chi cham IELTS Writing
+                    Tiêu chí chấm IELTS Writing
                   </h4>
                   <ul style={{ margin: 0, paddingLeft: 20, fontSize: 12, color: '#1e40af', lineHeight: 1.8 }}>
                     <li>Task Achievement (25%)</li>
@@ -731,29 +821,29 @@ export default function LmsGradeSubmission() {
                   </ul>
                 </div>
 
-                <div style={{ 
-                  padding: 12, 
+                <div style={{
+                  padding: 12,
                   background: submission.status === 'GRADED' ? '#d1fae5' : '#fef3c7',
                   borderRadius: 8,
                   marginBottom: 20,
                   textAlign: 'center'
                 }}>
-                  <span style={{ 
-                    fontSize: 13, 
+                  <span style={{
+                    fontSize: 13,
                     fontWeight: 600,
                     color: submission.status === 'GRADED' ? '#065f46' : '#92400e'
                   }}>
-                    {submission.status === 'GRADED' ? 'Da cham' : 'Cho cham'}
+                    {submission.status === 'GRADED' ? 'Đã chấm' : 'Chờ chấm'}
                   </span>
                 </div>
 
-                <button 
+                <button
                   className="lms-cta"
                   onClick={handleSubmitGrade}
                   disabled={!canSaveWritingGrade}
                   style={{ width: '100%', justifyContent: 'center', padding: '14px' }}
                 >
-                  <Save size={16} /> Luu diem va nhan xet
+                  <Save size={16} /> Lưu điểm và nhận xét
                 </button>
               </div>
             </div>

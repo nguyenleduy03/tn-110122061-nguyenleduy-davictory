@@ -14,13 +14,12 @@ const NoteCompletionBlock = ({ group, onUpdate, onDelete, onSelect, selected, dr
       <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4, color: '#555' }}>
         Hướng dẫn:
       </label>
-      <input
-        type="text"
-        style={{ width: '100%', padding: '6px 10px', border: '1px solid #ddd', borderRadius: 4, fontSize: 13 }}
+      <RichInput
+        multiline
+        rows={2}
         value={group.instructions || ''}
         placeholder="Complete the notes below. Write ONE WORD AND/OR A NUMBER for each answer."
-        onChange={(e) => onUpdate(group.id, { instructions: e.target.value })}
-        onClick={(e) => e.stopPropagation()}
+        onChange={(html) => onUpdate(group.id, { instructions: html })}
       />
     </div>
 

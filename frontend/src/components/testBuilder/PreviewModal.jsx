@@ -3,7 +3,7 @@
  * Student-view preview — styled like the real IELTS exam interface.
  */
 import React, { useState, useMemo } from 'react';
-import { X, Volume2, BookOpen, Headphones, PenLine, Mic, ChevronLeft, ChevronRight, Clock, FileText } from 'lucide-react';
+import { X, Volume2, BookOpen, Headphones, PenLine, Mic, Clock, FileText } from 'lucide-react';
 import { normalizeRichHtml, stripInlineStyles } from '../../utils/textFormatters';
 import DropdownGroupQuestion from '../question/DropdownGroupQuestion';
 
@@ -394,6 +394,114 @@ const NoteCompletionGroup = ({ group, activeQ, onSetActive }) => {
       {group.title && <div className="pv-summary-title" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.title) }} />}
       <div className="pv-note-text">
         {parseNotePreview(group.noteText, questions, activeQ, onSetActive, answers, handleAnswer)}
+      </div>
+    </div>
+  );
+};
+
+const SummaryCompletionSelectGroup = ({ group, activeQ, onSetActive }) => {
+  const questions = group.questions ?? [];
+  const options = group.optionBank ?? [];
+  const allowReuse = group.allowOptionReuse !== false;
+  const [answers, setAnswers] = useState({});
+  const usedOptions = new Set(allowReuse ? [] : Object.values(answers).filter(Boolean));
+
+  const handleDrop = (e, qNum) => {
+    e.preventDefault();
+    const text = e.dataTransfer.getData('text/plain');
+    const sourceQNum = e.dataTransfer.getData('sourceQNum');
+    
+    if (text) {
+      setAnswers(prev => ({ ...prev, [qNum]: text }));
+      
+      // Clear source if dragging from another blank
+      if (sourceQNum && sourceQNum !== String(qNum)) {
+        setAnswers(prev => ({ ...prev, [sourceQNum]: '' }));
+      }
+    }
+  };
+
+  const handleBankDrop = (e) => {
+    e.preventDefault();
+    const sourceQNum = e.dataTransfer.getData('sourceQNum');
+    if (sourceQNum) {
+      setAnswers(prev => ({ ...prev, [sourceQNum]: '' }));
+    }
+  };
+
+  const parts = (group.noteText || '').split(/\[blank\]/gi);
+  
+  return (
+    <div className="pv-group-block">
+      <QuestionRange group={group} />
+      {group.instructions && (
+        <div className="pv-group-instructions" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.instructions) }} />
+      )}
+      {group.title && <div className="pv-summary-title" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.title) }} />}
+      
+      <div className="pv-summary-text">
+        {parts.map((part, i) => {
+          if (i >= parts.length - 1) return <React.Fragment key={`t${i}`}>{part}</React.Fragment>;
+          const q = questions[i];
+          const num = q?.questionNumber ?? i + 1;
+          const isActive = activeQ === num;
+          const answer = answers[num] || '';
+          
+          return (
+            <React.Fragment key={i}>
+              {part}
+              <span
+                className={`pv-blank-box pv-drop-blank${isActive ? ' active' : ''}`}
+                onClick={() => onSetActive(num)}
+                onDrop={(e) => handleDrop(e, num)}
+                onDragOver={(e) => e.preventDefault()}
+                style={{ minWidth: 100, cursor: 'pointer' }}
+              >
+                {answer ? (
+                  <span
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData('text/plain', answer);
+                      e.dataTransfer.setData('sourceQNum', String(num));
+                    }}
+                    style={{ cursor: 'grab' }}
+                  >
+                    {answer}
+                  </span>
+                ) : num}
+              </span>
+            </React.Fragment>
+          );
+        })}
+      </div>
+
+      <div style={{ marginTop: 16 }} onDragOver={(e) => e.preventDefault()} onDrop={handleBankDrop}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          {options.map((o, i) => {
+            const text = typeof o === 'string' ? o : (o.text || '');
+            const isUsed = usedOptions.has(text);
+            if (isUsed) return null;
+            
+            return (
+              <div
+                key={i}
+                draggable
+                onDragStart={(e) => e.dataTransfer.setData('text/plain', text)}
+                style={{
+                  padding: '6px 12px',
+                  background: 'white',
+                  border: '1px solid #d1d5db',
+                  borderRadius: 4,
+                  fontSize: 13,
+                  cursor: 'grab',
+                  userSelect: 'none'
+                }}
+              >
+                {text}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -1304,6 +1412,7 @@ const renderGroup = (group, activeQ, onSetActive) => {
   if (ct === 'TABLE_COMPLETION') return <TableCompletionGroup {...props} />;
   if (ct === 'MAP_LABELLING') return <MapLabellingGroup {...props} />;
   if (ct === 'SUMMARY_COMPLETION') return <SummaryGroup {...props} />;
+  if (ct === 'SUMMARY_COMPLETION_SELECT') return <SummaryCompletionSelectGroup {...props} />;
   if (ct === 'NOTE_COMPLETION') return <NoteCompletionGroup {...props} />;
   if (ct === 'IMAGE_NOTE_FORM') return <ImageNoteFormGroup {...props} />;
   if (ct === 'FLOW_CHART') return <FlowChartGroup {...props} />;
@@ -1390,8 +1499,18 @@ const PreviewModal = ({ test, sessions, onClose }) => {
   const skillKeys = Object.keys(SESSION_META);
   const [activeSkill, setActiveSkill] = useState(skillKeys[0] ?? 'LISTENING');
   const [activeQ, setActiveQ] = useState(null);
+  const [skillDurations, setSkillDurations] = useState(() => (
+    skillKeys.reduce((acc, key) => {
+      acc[key] = SESSION_META[key]?.durationMinutes ?? 60;
+      return acc;
+    }, {})
+  ));
 
   const parts = sessions[activeSkill] ?? [];
+  const skillMeta = SESSION_META[activeSkill];
+  const currentDuration = Number.isFinite(skillDurations[activeSkill])
+    ? skillDurations[activeSkill]
+    : (skillMeta?.durationMinutes ?? 60);
 
   // Flat list of all questions for current skill (for footer nav)
   const allQuestions = useMemo(() =>
@@ -1403,15 +1522,14 @@ const PreviewModal = ({ test, sessions, onClose }) => {
 
   const goToQ = (num) => setActiveQ(num);
 
-  const goPrev = () => {
-    const idx = allQuestions.findIndex((q) => q.questionNumber === activeQ);
-    if (idx > 0) setActiveQ(allQuestions[idx - 1].questionNumber);
-    else if (allQuestions.length > 0) setActiveQ(allQuestions[0].questionNumber);
-  };
+  const handleSetSkillTime = () => {
+    const raw = window.prompt(`Đặt thời gian cho ${skillMeta?.label || 'kỹ năng'} (nhập số phút, 0 = không giới hạn)`, String(currentDuration));
+    if (raw === null) return;
 
-  const goNext = () => {
-    const idx = allQuestions.findIndex((q) => q.questionNumber === activeQ);
-    if (idx < allQuestions.length - 1) setActiveQ(allQuestions[idx + 1].questionNumber);
+    const nextValue = Number.parseInt(raw, 10);
+    if (!Number.isFinite(nextValue) || nextValue < 0) return;
+
+    setSkillDurations((prev) => ({ ...prev, [activeSkill]: nextValue }));
   };
 
   // Part info for footer
@@ -1420,8 +1538,6 @@ const PreviewModal = ({ test, sessions, onClose }) => {
       (g.questions ?? []).some((q) => q.questionNumber === activeQ)
     )
   ) ?? parts[0];
-
-  const skillMeta = SESSION_META[activeSkill];
 
   return (
     <div className="pv-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
@@ -1461,7 +1577,7 @@ const PreviewModal = ({ test, sessions, onClose }) => {
           <div className="pv-ielts-header-right">
             <div className="pv-timer">
               <Clock size={14} />
-              <span>{skillMeta?.durationMinutes ?? 60}:00</span>
+              <span>{currentDuration === 0 ? 'Không giới hạn' : `${currentDuration}:00`}</span>
             </div>
             <span className="pv-preview-badge">XEM TRƯỚC</span>
             <button className="pv-close-btn" onClick={onClose} title="Đóng xem trước">
@@ -1478,7 +1594,7 @@ const PreviewModal = ({ test, sessions, onClose }) => {
               <span className="pv-instruction-text"> — {toPlainText(activePart.instructions)}</span>
             )}
             <span className="pv-instruction-meta">
-              {totalQ} câu hỏi · {skillMeta?.durationMinutes ?? 60} phút
+              {totalQ} câu hỏi · {currentDuration === 0 ? 'Không giới hạn' : `${currentDuration} phút`}
             </span>
           </div>
         )}
@@ -1511,11 +1627,12 @@ const PreviewModal = ({ test, sessions, onClose }) => {
         {/* ── Footer navigation ── */}
         <footer className="pv-footer">
           <div className="pv-footer-left">
-            <button className="pv-nav-btn" onClick={goPrev} disabled={!activeQ || allQuestions[0]?.questionNumber === activeQ}>
-              <ChevronLeft size={18} />
-            </button>
-            <button className="pv-nav-btn" onClick={goNext} disabled={!activeQ || allQuestions[allQuestions.length - 1]?.questionNumber === activeQ}>
-              <ChevronRight size={18} />
+            <button className="pv-set-time-btn" onClick={handleSetSkillTime}>
+              <Clock size={16} />
+              <span>
+                Đặt thời gian
+                <small>{skillMeta?.label || 'Kỹ năng'} · {currentDuration === 0 ? 'Không giới hạn' : `${currentDuration} phút`}</small>
+              </span>
             </button>
             {activePart && (
               <span className="pv-footer-part-label">{activePart.name}</span>

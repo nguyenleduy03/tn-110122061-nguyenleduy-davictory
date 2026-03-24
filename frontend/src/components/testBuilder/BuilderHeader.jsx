@@ -152,6 +152,7 @@ const BuilderHeader = ({
   const rbnCls = (cmd) => `tb-rbn-btn${activeFormats[cmd] ? ' tb-rbn-active' : ''}`;
 
   return (
+    <>
     <header className="tb-header">
 
       {/* ══════════════ ROW 1 — Title / Document bar ══════════════ */}
@@ -370,6 +371,8 @@ const BuilderHeader = ({
       </div>
 
     </header>
+
+    </>
   );
 };
 

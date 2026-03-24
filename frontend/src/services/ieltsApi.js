@@ -54,6 +54,8 @@ function mapQuestionType(questionTypeCode) {
       return 'note-completion';
     case 'SUMMARY_COMPLETION':
       return 'summary-completion';
+    case 'SUMMARY_COMPLETION_SELECT':
+      return 'summary-completion-select';
     case 'FLOW_CHART':
       return 'flow_chart';
     case 'MAP_DIAGRAM':
@@ -98,6 +100,8 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
   // Map contentType directly to FE type (higher priority)
   if (contentType === 'SUMMARY_COMPLETION') {
     feType = 'summary-completion';
+  } else if (contentType === 'SUMMARY_COMPLETION_SELECT') {
+    feType = 'summary-completion-select';
   } else if (contentType === 'FLOW_CHART') {
     feType = 'flow_chart';
   } else if (contentType === 'TABLE_COMPLETION') {
@@ -339,6 +343,54 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
       title: group.title || '',
       text: summaryText,
       subQuestions,
+      validationOptions: group.validationOptions || null,
+    }];
+  }
+
+  // ─── SUMMARY_COMPLETION_SELECT → 1 group question with optionBank ────────────────────────────
+  if (feType === 'summary-completion-select') {
+    let summaryText = group.passageText || group.title || '';
+    let optionBank = group.optionBank || [];
+    let instructions = '';
+    let allowOptionReuse = group.allowOptionReuse !== false;
+    
+    // Parse passageText if it's JSON
+    if (summaryText && typeof summaryText === 'string' && summaryText.trim().startsWith('{')) {
+      try {
+        const parsed = JSON.parse(summaryText);
+        summaryText = parsed.noteText || parsed.text || '';
+        instructions = parsed.instructions || '';
+        if (parsed.optionBank && Array.isArray(parsed.optionBank)) {
+          optionBank = parsed.optionBank;
+        }
+        if (parsed.allowOptionReuse !== undefined) {
+          allowOptionReuse = parsed.allowOptionReuse;
+        }
+      } catch (e) {
+        // Keep original if parse fails
+      }
+    }
+
+    const blankCount = (summaryText.match(/\[blank\]/gi) || []).length;
+    const totalBlanks = Math.max(blankCount, questions.length);
+    const subQuestions = Array.from({ length: totalBlanks }, (_, idx) => {
+      const q = questions[idx] || null;
+      const num = globalCounterRef.counter++;
+      const correctAnswer = q ? ((q.answers || [])[0]?.answerText || '') : '';
+      const id = q ? `q${q.id}` : `tmp-summary-select-${group.questionGroupId || group.id}-${idx + 1}`;
+      return { id, number: num, correctAnswer };
+    });
+
+    return [{
+      id: `group-${group.questionGroupId || group.id}`,
+      type: 'summary-completion-select',
+      questionTypeCode: typeCode,
+      title: group.title || '',
+      text: summaryText,
+      instructions,
+      subQuestions,
+      optionBank,
+      allowOptionReuse,
       validationOptions: group.validationOptions || null,
     }];
   }

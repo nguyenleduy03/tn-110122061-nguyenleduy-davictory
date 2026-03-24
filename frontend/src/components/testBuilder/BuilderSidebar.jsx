@@ -49,13 +49,15 @@ const PALETTE_ITEMS = [
   { type: 'group', contentType: 'FILL_BLANK_DRAG',      label: 'Fill Blank (Drag)',      icon: List, skills: ['LISTENING', 'READING'] },
   { type: 'group', contentType: 'SENTENCE_COMPLETION_DRAG', label: 'Sentence (Drag)',    icon: List, skills: ['LISTENING', 'READING'] },
   { type: 'group', contentType: 'SUMMARY_COMPLETION_DRAG', label: 'Summary (Drag)',      icon: List, skills: ['LISTENING', 'READING'] },
+  { type: 'group', contentType: 'SUMMARY_COMPLETION_SELECT', label: 'Summary (Select)',  icon: List, skills: ['LISTENING', 'READING'] },
   { type: 'group', contentType: 'NOTE_COMPLETION_DRAG', label: 'Note (Drag)',            icon: List, skills: ['LISTENING'] },
   // ── WRITING / SPEAKING only ──
   { type: 'group', contentType: 'STANDALONE',           label: 'Câu độc lập',            icon: FileText, skills: ['LISTENING', 'WRITING', 'SPEAKING'] },
   { type: 'group', contentType: 'WRITING_TASK',         label: 'Writing Task',           icon: PenLine, skills: ['WRITING'] },
   // ── SPEAKING only ──
-  { type: 'group', contentType: 'SPEAKING_INTERVIEW',   label: 'Câu hỏi Phỏng vấn',      icon: Mic, skills: ['SPEAKING'] },
-  { type: 'group', contentType: 'SPEAKING_CUECARD',     label: 'Cue Card (Part 2)',      icon: Mic, skills: ['SPEAKING'] },
+  { type: 'group', contentType: 'SPEAKING_INTERVIEW',   label: 'Part 1 - Interview',     icon: Mic, skills: ['SPEAKING'] },
+  { type: 'group', contentType: 'SPEAKING_CUECARD',     label: 'Part 2 - Cue Card',      icon: Mic, skills: ['SPEAKING'] },
+  { type: 'group', contentType: 'SPEAKING_DISCUSSION',  label: 'Part 3 - Discussion',    icon: Mic, skills: ['SPEAKING'] },
   // ── CUSTOM (all) ──
   { type: 'group', contentType: 'CUSTOM',              label: 'Tự thiết kế (Custom)',    icon: ClipboardList, skills: ['READING', 'LISTENING', 'WRITING', 'SPEAKING'] },
 ];
@@ -78,8 +80,9 @@ const TYPE_META = {
   MATCHING_FILLABLE:     { label: 'MF', bg: '#e0f2fe', color: '#0369a1' },
   MATCHING_HEADINGS_FILLABLE: { label: 'MH', bg: '#e0f2fe', color: '#0369a1' },
   WRITING_TASK:          { label: 'WT', bg: '#fef9c3', color: '#a16207' },
-  SPEAKING_INTERVIEW:    { label: 'IV', bg: '#fce7f3', color: '#be185d' },
-  SPEAKING_CUECARD:      { label: 'CC', bg: '#fdf4ff', color: '#7e22ce' },
+  SPEAKING_INTERVIEW:    { label: 'P1', bg: '#fce7f3', color: '#be185d' },
+  SPEAKING_CUECARD:      { label: 'P2', bg: '#fdf4ff', color: '#7e22ce' },
+  SPEAKING_DISCUSSION:   { label: 'P3', bg: '#ede9fe', color: '#6d28d9' },
   MATCHING_FEATURES:     { label: 'MF', bg: '#f3e8ff', color: '#7c3aed' },
   CUSTOM:                { label: 'CT', bg: '#fff7ed', color: '#c2410c' },
 };
@@ -150,7 +153,7 @@ function DraggablePaletteItem({ item }) {
   }
 }
 
-const BuilderSidebar = ({ parts, sessions, activeSessionKey, selection, onSelectSession, onSelectPart, onSelectGroup, enabledSkills }) => {
+const BuilderSidebar = ({ parts, sessions, activeSessionKey, selection, onSelectSession, onSelectPart, onSelectGroup, enabledSkills, onUpdateSessionTime }) => {
   const [openParts, setOpenParts] = useState({});
   const [paletteQuery, setPaletteQuery] = useState('');
 
@@ -182,13 +185,20 @@ const BuilderSidebar = ({ parts, sessions, activeSessionKey, selection, onSelect
           const Icon = s.icon;
           const isActive = activeSessionKey === s.key;
           return (
-            <button key={s.key} className={`tb-skill-tab${isActive ? ' active' : ''}`}
-              onClick={() => onSelectSession(s.key)}>
-              <div className="tb-skill-icon" style={{ background: s.iconBg, color: s.iconColor }}>
-                <Icon size={14} />
-              </div>
-              {s.label}
-            </button>
+            <div key={s.key} className="tb-skill-card">
+              <button
+                className={`tb-skill-tab${isActive ? ' active' : ''}`}
+                onClick={() => onSelectSession(s.key)}>
+                <div className="tb-skill-tab-top">
+                  <div className="tb-skill-icon" style={{ background: s.iconBg, color: s.iconColor }}>
+                    <Icon size={14} />
+                  </div>
+                  <div className="tb-skill-tab-texts">
+                    <span className="tb-skill-tab-label">{s.label}</span>
+                  </div>
+                </div>
+              </button>
+            </div>
           );
         })}
       </div>
@@ -261,6 +271,7 @@ const BuilderSidebar = ({ parts, sessions, activeSessionKey, selection, onSelect
           <div className="tb-palette-empty">Không có thành phần phù hợp từ khóa.</div>
         )}
       </div>
+
     </aside>
   );
 };

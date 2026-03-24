@@ -2680,6 +2680,14 @@
     line-height: 2;
 }
 
+.summary-instructions {
+    font-size: 14px;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 16px;
+    line-height: 1.6;
+}
+
 .summary-title {
     margin-top: 0;
     margin-bottom: 15px;
@@ -2712,6 +2720,78 @@
     width: 120px;
     text-align: center;
     font-weight: 400;
+}
+
+.drag-drop-blank {
+    border: 1px solid #333;
+    border-radius: 4px;
+    padding: 4px 10px;
+    min-height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: transparent;
+    cursor: pointer;
+}
+
+.drag-drop-blank:hover {
+    border-color: #5b9bd5;
+    background-color: rgba(91, 155, 213, 0.05);
+}
+
+.summary-word-bank {
+    margin-top: 20px;
+    min-height: 60px;
+    padding: 8px;
+    border: 2px dashed transparent;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.summary-word-bank.drag-over {
+    border-color: #3b82f6;
+    background: #eff6ff;
+}
+
+.summary-bank-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 12px;
+}
+
+.summary-bank-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.summary-bank-chip {
+    padding: 8px 16px;
+    background: white;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: grab;
+    user-select: none;
+    transition: all 0.2s;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.summary-bank-chip:hover {
+    border-color: #9ca3af;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
+}
+
+.summary-bank-chip:active {
+    cursor: grabbing;
+    transform: scale(0.98);
+}
+
+.summary-bank-chip.used {
+    opacity: 0.4;
+    cursor: not-allowed;
 }
 
 /* Image Drag Drop Question */

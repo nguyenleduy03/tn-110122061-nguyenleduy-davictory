@@ -23,8 +23,37 @@ export const teacherApi = {
   },
 
   getAllSubmissions: async (params = {}) => {
-    const res = await apiClient.get('/writing/teacher/all-submissions', { params });
-    return res.data;
+    const [writingResult, examResult] = await Promise.allSettled([
+      apiClient.get('/writing/teacher/submissions', { params }),
+      apiClient.get('/exam-attempts')
+    ]);
+
+    const writingSubmissions = writingResult.status === 'fulfilled'
+      ? (Array.isArray(writingResult.value.data) ? writingResult.value.data : [])
+      : [];
+
+    let examAttempts = [];
+    if (examResult.status === 'fulfilled') {
+      const examData = examResult.value.data;
+      if (Array.isArray(examData)) {
+        examAttempts = examData.map((a) => ({
+          ...a,
+          examType: a.examType || a.skillType || 'EXAM',
+          examTitle: a.examTitle || a.testTitle || 'N/A'
+        }));
+      } else if (examData && Array.isArray(examData.examAttempts)) {
+        examAttempts = examData.examAttempts;
+      }
+    }
+
+    if (writingResult.status === 'rejected' && examResult.status === 'rejected') {
+      throw writingResult.reason || examResult.reason;
+    }
+
+    return {
+      writingSubmissions,
+      examAttempts
+    };
   },
 
   getWritingSubmission: async (submissionId) => {

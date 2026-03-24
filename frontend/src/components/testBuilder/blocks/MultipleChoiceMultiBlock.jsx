@@ -47,13 +47,13 @@ const MultipleChoiceMultiBlock = ({ group, onUpdate, onDelete, onSelect, selecte
           Hướng dẫn:
         </label>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <input
-            type="text"
-            style={{ flex: 1, padding: '6px 10px', border: '1px solid #ddd', borderRadius: 4, fontSize: 13 }}
+          <RichInput
+            multiline
+            rows={2}
+            style={{ flex: 1 }}
             value={group.instructions || ''}
             placeholder="Choose TWO letters, A–E."
-            onChange={(e) => onUpdate(group.id, { instructions: e.target.value })}
-            onClick={(e) => e.stopPropagation()}
+            onChange={(html) => onUpdate(group.id, { instructions: html })}
           />
           <input type="number" min={1} max={8} className="exam-choose-n-input" style={{ width: 50 }}
             value={group.chooseCount ?? 2}

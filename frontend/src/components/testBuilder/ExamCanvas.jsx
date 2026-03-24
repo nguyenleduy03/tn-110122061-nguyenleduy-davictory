@@ -9,7 +9,8 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useDroppable } from '@dnd-kit/core';
-import { Plus, X } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { Plus, X, Clock, TimerReset, Check } from 'lucide-react';
 import { normalizeRichHtml } from '../../utils/textFormatters';
 import SharedOptionsDropdownBlock from './SharedOptionsDropdownBlock';
 
@@ -31,9 +32,13 @@ import {
   NoteCompletionBlock,
   ImageNoteFormBlock,
   SummaryCompletionBlock,
+  SummaryCompletionSelectBlock,
   FlowChartBlock,
   SpeakingInterviewBlock,
   SpeakingCueCardBlock,
+  SpeakingPart1Block,
+  SpeakingPart2Block,
+  SpeakingPart3Block,
   WritingTaskBlock,
   GroupToolbar,
   TYPE_META,
@@ -270,6 +275,13 @@ const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUp
       onUpdateQuestion={onUpdateQuestion} onDeleteQuestion={onDeleteQuestion} onAddQuestion={onAddQuestion}
       selectedQuestionId={selectedQuestionId} />;
   }
+  if (ct === 'SUMMARY_COMPLETION_SELECT') {
+    return <SummaryCompletionSelectBlock group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
+      onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps}
+      onSelectQuestion={(q) => onSelectQuestion(q, group.id)}
+      onUpdateQuestion={onUpdateQuestion} onDeleteQuestion={onDeleteQuestion} onAddQuestion={onAddQuestion}
+      selectedQuestionId={selectedQuestionId} />;
+  }
   if (ct === 'FLOW_CHART') {
     return <FlowChartBlock group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
       onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps}
@@ -286,6 +298,22 @@ const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUp
   }
   if (ct === 'SPEAKING_CUECARD') {
     return <SpeakingCueCardBlock group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
+      onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps} />;
+  }
+  if (ct === 'SPEAKING_DISCUSSION') {
+    return <SpeakingInterviewBlock group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
+      onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps} />;
+  }
+  if (ct === 'SPEAKING_PART1') {
+    return <SpeakingPart1Block group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
+      onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps} />;
+  }
+  if (ct === 'SPEAKING_PART2') {
+    return <SpeakingPart2Block group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
+      onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps} />;
+  }
+  if (ct === 'SPEAKING_PART3') {
+    return <SpeakingPart3Block group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
       onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps} />;
   }
   if (ct === 'READING_PASSAGE') {
@@ -415,6 +443,7 @@ const ExamCanvas = ({
   onSelectQuestion,
   onUpdateGroup,
   onUpdateQuestion,
+  onUpdatePart,
   onDeleteGroup,
   onDeleteQuestion,
   onAddQuestion,
@@ -427,6 +456,23 @@ const ExamCanvas = ({
   draggingContentType,
 }) => {
   const [activePartId, setActivePartId] = useState(null);
+  const [showTimeModal, setShowTimeModal] = useState(false);
+  const [draftTimeValue, setDraftTimeValue] = useState('');
+  const skillLabel = useMemo(() => {
+    const map = {
+      LISTENING: 'Listening',
+      READING: 'Reading',
+      WRITING: 'Writing',
+      SPEAKING: 'Speaking',
+    };
+    return map[skill] || skill || 'Skill';
+  }, [skill]);
+  const skillDefaultDuration = useMemo(() => ({
+    LISTENING: 30,
+    READING: 60,
+    WRITING: 60,
+    SPEAKING: 12,
+  }[skill] ?? 60), [skill]);
 
   // Reset active part when skill changes
   useEffect(() => { setActivePartId(null); }, [skill]);
@@ -435,6 +481,33 @@ const ExamCanvas = ({
     if (parts.length === 0) return null;
     return parts.find((p) => p.id === activePartId) ?? parts[0];
   }, [parts, activePartId]);
+
+  const targetTimePart = parts[0] ?? activePart;
+  const currentDuration = Number.isFinite(targetTimePart?.durationMinutes) && targetTimePart.durationMinutes > 0
+    ? targetTimePart.durationMinutes
+    : 60;
+
+  const handleSetPartTime = () => {
+    if (!targetTimePart || !onUpdatePart) return;
+    setDraftTimeValue(String(currentDuration));
+    setShowTimeModal(true);
+  };
+
+  const confirmSetPartTime = () => {
+    if (!targetTimePart || !onUpdatePart) return;
+    const nextValue = Number.parseInt(String(draftTimeValue).trim(), 10);
+    if (!Number.isFinite(nextValue) || nextValue < 0) return;
+    onUpdatePart(targetTimePart.id, { durationMinutes: nextValue });
+    setShowTimeModal(false);
+  };
+
+  const resetPartTime = () => {
+    setDraftTimeValue(String(skillDefaultDuration));
+  };
+
+  const closeTimeModal = () => {
+    setShowTimeModal(false);
+  };
 
   if (parts.length === 0) {
     return (
@@ -495,13 +568,18 @@ const ExamCanvas = ({
               <span style={{ color: '#ddd' }}>|</span>
               <span>ID: 12345678</span>
               <span style={{ color: '#ddd' }}>|</span>
-              <span className="exam-mock-timer">60:00</span>
-              <div className="exam-mock-nav">
-                <button className="exam-mock-nav-btn">‹</button>
-                <button className="exam-mock-nav-btn">›</button>
+              <span className="exam-mock-timer">
+                {currentDuration === 0 ? 'No limit' : `${String(currentDuration).padStart(2, '0')}:00`}
+              </span>
+              <button type="button" className="exam-mock-time-btn" onClick={handleSetPartTime}>
+                <Clock size={14} />
+                <span>
+                  Đặt thời gian
+                  <small>{skillLabel} · {currentDuration === 0 ? 'Không giới hạn' : `${currentDuration} phút`}</small>
+                </span>
+              </button>
               </div>
             </div>
-          </div>
 
           {/* Part instruction bar */}
           <div className="exam-instruction">
@@ -536,6 +614,50 @@ const ExamCanvas = ({
               isMHLocked={isMHLocked} />
           </div>
         </div>
+      )}
+
+      {showTimeModal && targetTimePart && createPortal(
+        <div className="exam-time-modal-overlay" onClick={closeTimeModal}>
+          <div className="exam-time-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="exam-time-modal-header">
+              <div className="exam-time-modal-icon">
+                <Clock size={18} />
+              </div>
+              <div>
+                <h3>Đặt thời gian</h3>
+                <p>{skillLabel} · {targetTimePart.name || 'Part'}</p>
+              </div>
+            </div>
+
+            <div className="exam-time-modal-body">
+              <label className="exam-time-modal-label">Số phút</label>
+              <input
+                type="number"
+                min={0}
+                className="exam-time-modal-input"
+                value={draftTimeValue}
+                onChange={(e) => setDraftTimeValue(e.target.value)}
+                autoFocus
+              />
+              <div className="exam-time-modal-hint">
+                Nhập <strong>0</strong> để tắt giới hạn thời gian.
+              </div>
+            </div>
+
+            <div className="exam-time-modal-actions">
+              <button type="button" className="exam-time-modal-btn secondary" onClick={closeTimeModal}>
+                Hủy
+              </button>
+              <button type="button" className="exam-time-modal-btn ghost" onClick={resetPartTime}>
+                <TimerReset size={14} /> Mặc định
+              </button>
+              <button type="button" className="exam-time-modal-btn primary" onClick={confirmSetPartTime}>
+                <Check size={14} /> Lưu
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );
