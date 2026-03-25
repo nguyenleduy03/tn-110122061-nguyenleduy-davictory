@@ -1,0 +1,26 @@
+# Credentials
+backend/credentials/
+backend/credentials/*.json
+google-drive-credentials.json
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Build
+backend/target/
+frontend/node_modules/
+frontend/dist/
+
+# Logs
+*.log
+.run/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.local

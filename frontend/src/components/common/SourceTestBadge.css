@@ -1,0 +1,53 @@
+.source-test-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin-left: 8px;
+  background: #e3f2fd;
+  border-radius: 50%;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s;
+}
+
+.source-test-badge:hover {
+  background: #1976d2;
+  color: white;
+}
+
+.source-test-badge svg {
+  width: 14px;
+  height: 14px;
+}
+
+.source-test-tooltip {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: #333;
+  color: white;
+  border-radius: 6px;
+  font-size: 13px;
+  white-space: nowrap;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.source-test-tooltip::before {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-bottom-color: #333;
+}
+
+.source-test-tooltip strong {
+  color: #64b5f6;
+}

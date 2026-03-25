@@ -9,7 +9,7 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
@@ -37,6 +37,14 @@ jwt:
   secret: DAVictorySecretKey2026SuperLongAndSecureBase64EncodedKeyForJWTSigning1234567890ABCDEF
   expiration: 86400000   # 24 giờ (ms)
   refresh-expiration: 604800000  # 7 ngày (ms)
+
+# Google Drive Configuration
+google:
+  drive:
+    credentials:
+      path: ./credentials/google-drive-credentials.json
+    folder:
+      id: 1VuSeTs0V248E4X7co4a4kc6MSi4ke_3r
 
 logging:
   

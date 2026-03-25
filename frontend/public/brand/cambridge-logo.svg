@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 120" role="img" aria-label="University of Cambridge">
+  <rect width="320" height="120" fill="#ffffff"/>
+  <g transform="translate(8 18)">
+    <text x="0" y="46" font-family="Georgia, 'Times New Roman', serif" font-size="34" font-weight="700" fill="#111111" letter-spacing="0.5">UNIVERSITY OF</text>
+    <text x="0" y="84" font-family="Georgia, 'Times New Roman', serif" font-size="40" font-weight="700" fill="#111111" letter-spacing="1">CAMBRIDGE</text>
+  </g>
+</svg>

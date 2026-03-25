@@ -1,0 +1,234 @@
+.shuffle-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.shuffle-modal {
+  background: white;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+}
+
+.shuffle-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.shuffle-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.shuffle-modal-title h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.shuffle-modal-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  color: #6b7280;
+  transition: all 0.2s;
+}
+
+.shuffle-modal-close:hover {
+  background: #f3f4f6;
+  color: #1f2937;
+}
+
+.shuffle-modal-body {
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.shuffle-step h3 {
+  margin: 0 0 20px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.shuffle-form-group {
+  margin-bottom: 20px;
+}
+
+.shuffle-form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.shuffle-form-group input[type="text"],
+.shuffle-form-group input[type="number"],
+.shuffle-form-group select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.shuffle-form-group input:focus,
+.shuffle-form-group select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.shuffle-radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.shuffle-radio {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.shuffle-radio:hover {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.shuffle-radio input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.shuffle-radio input[type="radio"]:checked + span {
+  color: #3b82f6;
+  font-weight: 600;
+}
+
+.shuffle-parts-list,
+.shuffle-tests-list {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.shuffle-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.shuffle-checkbox:hover {
+  background: #f9fafb;
+}
+
+.shuffle-checkbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.shuffle-filter-group {
+  background: #f9fafb;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.shuffle-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.shuffle-step-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.shuffle-btn {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.shuffle-btn.primary {
+  background: #3b82f6;
+  color: white;
+}
+
+.shuffle-btn.primary:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.shuffle-btn.primary:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+.shuffle-btn.secondary {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.shuffle-btn.secondary:hover {
+  background: #e5e7eb;
+}
+
+.shuffle-error {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #dc2626;
+  font-size: 14px;
+  margin-top: 16px;
+}
