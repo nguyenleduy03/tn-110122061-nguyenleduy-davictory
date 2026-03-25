@@ -5,7 +5,155 @@
 [vite] 🌐 Public IP: 123.22.61.173
 [vite] 🔗 API Base URL: http://123.22.61.173:8080/api
 
-  VITE v8.0.0-beta.16  ready in 1214 ms
+  VITE v8.0.0-beta.16  ready in 1271 ms
 
   ➜  Local:   http://localhost:5173/
   ➜  Network: http://192.168.1.20:5173/
+17:16:39 [vite] (client) hmr update /src/pages/AdminDashboard.jsx
+17:16:55 [vite] (client) hmr update /src/pages/AdminDashboard.jsx
+17:17:46 [vite] (client) hmr update /src/pages/AdminDashboard.jsx
+17:18:07 [vite] (client) hmr update /src/pages/AdminDashboard.jsx
+17:18:19 [vite] (client) hmr update /src/pages/AdminDashboard.jsx
+17:20:35 [vite] (client) hmr update /src/pages/AdminDashboard.jsx
+17:20:35 [vite] Internal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] Error:[0m Identifier `AdminCard` has already been declared
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/AdminDashboard.jsx:356:10 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m356 │[0m [38;5;249mf[0m[38;5;249mu[0m[38;5;249mn[0m[38;5;249mc[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m [0mAdminCard[38;5;249m([0m[38;5;249m{[0m[38;5;249m [0m[38;5;249mi[0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249mI[0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mt[0m[38;5;249ml[0m[38;5;249me[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249md[0m[38;5;249me[0m[38;5;249ms[0m[38;5;249mc[0m[38;5;249mr[0m[38;5;249mi[0m[38;5;249mp[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249ml[0m[38;5;249mo[0m[38;5;249mr[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mb[0m[38;5;249ma[0m[38;5;249md[0m[38;5;249mg[0m[38;5;249me[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249ma[0m[38;5;249mc[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249ms[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249ma[0m[38;5;249mt[0m[38;5;249ms[0m[38;5;249m [0m[38;5;249m}[0m[38;5;249m)[0m[38;5;249m [0m[38;5;249m{[0m
+ [38;5;240m    │[0m          ────┬────  
+ [38;5;240m    │[0m              ╰────── `AdminCard` has already been declared here
+ [38;5;240m    │[0m 
+ [38;5;246m406 │[0m [38;5;249mc[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249m [0mAdminCard[38;5;249m [0m[38;5;249m=[0m[38;5;249m [0m[38;5;249m([0m[38;5;249m{[0m[38;5;249m [0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mt[0m[38;5;249ml[0m[38;5;249me[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249md[0m[38;5;249me[0m[38;5;249ms[0m[38;5;249mc[0m[38;5;249mr[0m[38;5;249mi[0m[38;5;249mp[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mi[0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249mI[0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249ml[0m[38;5;249mo[0m[38;5;249mr[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249ma[0m[38;5;249mt[0m[38;5;249ms[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249ma[0m[38;5;249mc[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249ms[0m[38;5;249m [0m[38;5;249m}[0m[38;5;249m)[0m[38;5;249m [0m[38;5;249m=[0m[38;5;249m>[0m[38;5;249m [0m[38;5;249m{[0m
+ [38;5;240m    │[0m       ────┬────  
+ [38;5;240m    │[0m           ╰────── It can not be redeclared here
+[38;5;246m─────╯[0m
+
+  Plugin: vite:oxc
+  File: /home/hv/DuAn/DAVictory/frontend/src/pages/AdminDashboard.jsx
+      at transformWithOxc (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:3970:19)
+      at TransformPluginContext.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:4046:26)
+      at EnvironmentPluginContainer.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:29893:51)
+      at async loadAndTransform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:24542:26)
+17:20:35 [vite] Internal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] Error:[0m Identifier `AdminCard` has already been declared
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/AdminDashboard.jsx:356:10 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m356 │[0m [38;5;249mf[0m[38;5;249mu[0m[38;5;249mn[0m[38;5;249mc[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m [0mAdminCard[38;5;249m([0m[38;5;249m{[0m[38;5;249m [0m[38;5;249mi[0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249mI[0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mt[0m[38;5;249ml[0m[38;5;249me[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249md[0m[38;5;249me[0m[38;5;249ms[0m[38;5;249mc[0m[38;5;249mr[0m[38;5;249mi[0m[38;5;249mp[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249ml[0m[38;5;249mo[0m[38;5;249mr[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mb[0m[38;5;249ma[0m[38;5;249md[0m[38;5;249mg[0m[38;5;249me[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249ma[0m[38;5;249mc[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249ms[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249ma[0m[38;5;249mt[0m[38;5;249ms[0m[38;5;249m [0m[38;5;249m}[0m[38;5;249m)[0m[38;5;249m [0m[38;5;249m{[0m
+ [38;5;240m    │[0m          ────┬────  
+ [38;5;240m    │[0m              ╰────── `AdminCard` has already been declared here
+ [38;5;240m    │[0m 
+ [38;5;246m406 │[0m [38;5;249mc[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249m [0mAdminCard[38;5;249m [0m[38;5;249m=[0m[38;5;249m [0m[38;5;249m([0m[38;5;249m{[0m[38;5;249m [0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mt[0m[38;5;249ml[0m[38;5;249me[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249md[0m[38;5;249me[0m[38;5;249ms[0m[38;5;249mc[0m[38;5;249mr[0m[38;5;249mi[0m[38;5;249mp[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mi[0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249mI[0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249ml[0m[38;5;249mo[0m[38;5;249mr[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249ma[0m[38;5;249mt[0m[38;5;249ms[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249ma[0m[38;5;249mc[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249ms[0m[38;5;249m [0m[38;5;249m}[0m[38;5;249m)[0m[38;5;249m [0m[38;5;249m=[0m[38;5;249m>[0m[38;5;249m [0m[38;5;249m{[0m
+ [38;5;240m    │[0m       ────┬────  
+ [38;5;240m    │[0m           ╰────── It can not be redeclared here
+[38;5;246m─────╯[0m
+
+  Plugin: vite:oxc
+  File: /home/hv/DuAn/DAVictory/frontend/src/pages/AdminDashboard.jsx
+      at transformWithOxc (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:3970:19)
+      at TransformPluginContext.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:4046:26)
+      at EnvironmentPluginContainer.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:29893:51)
+      at async loadAndTransform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:24542:26)
+17:20:35 [vite] Internal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] Error:[0m Identifier `AdminCard` has already been declared
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/AdminDashboard.jsx:356:10 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m356 │[0m [38;5;249mf[0m[38;5;249mu[0m[38;5;249mn[0m[38;5;249mc[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m [0mAdminCard[38;5;249m([0m[38;5;249m{[0m[38;5;249m [0m[38;5;249mi[0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249mI[0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mt[0m[38;5;249ml[0m[38;5;249me[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249md[0m[38;5;249me[0m[38;5;249ms[0m[38;5;249mc[0m[38;5;249mr[0m[38;5;249mi[0m[38;5;249mp[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249ml[0m[38;5;249mo[0m[38;5;249mr[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mb[0m[38;5;249ma[0m[38;5;249md[0m[38;5;249mg[0m[38;5;249me[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249ma[0m[38;5;249mc[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249ms[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249ma[0m[38;5;249mt[0m[38;5;249ms[0m[38;5;249m [0m[38;5;249m}[0m[38;5;249m)[0m[38;5;249m [0m[38;5;249m{[0m
+ [38;5;240m    │[0m          ────┬────  
+ [38;5;240m    │[0m              ╰────── `AdminCard` has already been declared here
+ [38;5;240m    │[0m 
+ [38;5;246m406 │[0m [38;5;249mc[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249m [0mAdminCard[38;5;249m [0m[38;5;249m=[0m[38;5;249m [0m[38;5;249m([0m[38;5;249m{[0m[38;5;249m [0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mt[0m[38;5;249ml[0m[38;5;249me[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249md[0m[38;5;249me[0m[38;5;249ms[0m[38;5;249mc[0m[38;5;249mr[0m[38;5;249mi[0m[38;5;249mp[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mi[0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249mI[0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249ml[0m[38;5;249mo[0m[38;5;249mr[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249ma[0m[38;5;249mt[0m[38;5;249ms[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249ma[0m[38;5;249mc[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249ms[0m[38;5;249m [0m[38;5;249m}[0m[38;5;249m)[0m[38;5;249m [0m[38;5;249m=[0m[38;5;249m>[0m[38;5;249m [0m[38;5;249m{[0m
+ [38;5;240m    │[0m       ────┬────  
+ [38;5;240m    │[0m           ╰────── It can not be redeclared here
+[38;5;246m─────╯[0m
+
+  Plugin: vite:oxc
+  File: /home/hv/DuAn/DAVictory/frontend/src/pages/AdminDashboard.jsx
+      at transformWithOxc (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:3970:19)
+      at TransformPluginContext.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:4046:26)
+      at EnvironmentPluginContainer.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:29893:51)
+      at async loadAndTransform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:24542:26)
+17:20:39 [vite] (client) Pre-transform error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] Error:[0m Identifier `AdminCard` has already been declared
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/AdminDashboard.jsx:356:10 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m356 │[0m [38;5;249mf[0m[38;5;249mu[0m[38;5;249mn[0m[38;5;249mc[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m [0mAdminCard[38;5;249m([0m[38;5;249m{[0m[38;5;249m [0m[38;5;249mi[0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249mI[0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mt[0m[38;5;249ml[0m[38;5;249me[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249md[0m[38;5;249me[0m[38;5;249ms[0m[38;5;249mc[0m[38;5;249mr[0m[38;5;249mi[0m[38;5;249mp[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249ml[0m[38;5;249mo[0m[38;5;249mr[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mb[0m[38;5;249ma[0m[38;5;249md[0m[38;5;249mg[0m[38;5;249me[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249ma[0m[38;5;249mc[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249ms[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249ma[0m[38;5;249mt[0m[38;5;249ms[0m[38;5;249m [0m[38;5;249m}[0m[38;5;249m)[0m[38;5;249m [0m[38;5;249m{[0m
+ [38;5;240m    │[0m          ────┬────  
+ [38;5;240m    │[0m              ╰────── `AdminCard` has already been declared here
+ [38;5;240m    │[0m 
+ [38;5;246m406 │[0m [38;5;249mc[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249m [0mAdminCard[38;5;249m [0m[38;5;249m=[0m[38;5;249m [0m[38;5;249m([0m[38;5;249m{[0m[38;5;249m [0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mt[0m[38;5;249ml[0m[38;5;249me[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249md[0m[38;5;249me[0m[38;5;249ms[0m[38;5;249mc[0m[38;5;249mr[0m[38;5;249mi[0m[38;5;249mp[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mi[0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249mI[0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249ml[0m[38;5;249mo[0m[38;5;249mr[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249ma[0m[38;5;249mt[0m[38;5;249ms[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249ma[0m[38;5;249mc[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249ms[0m[38;5;249m [0m[38;5;249m}[0m[38;5;249m)[0m[38;5;249m [0m[38;5;249m=[0m[38;5;249m>[0m[38;5;249m [0m[38;5;249m{[0m
+ [38;5;240m    │[0m       ────┬────  
+ [38;5;240m    │[0m           ╰────── It can not be redeclared here
+[38;5;246m─────╯[0m
+
+  Plugin: vite:oxc
+  File: /home/hv/DuAn/DAVictory/frontend/src/pages/AdminDashboard.jsx
+17:20:53 [vite] (client) hmr update /src/pages/AdminDashboard.jsx
+17:20:53 [vite] Internal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] Error:[0m Identifier `AdminCard` has already been declared
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/AdminDashboard.jsx:365:10 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m365 │[0m [38;5;249mf[0m[38;5;249mu[0m[38;5;249mn[0m[38;5;249mc[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m [0mAdminCard[38;5;249m([0m[38;5;249m{[0m[38;5;249m [0m[38;5;249mi[0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249mI[0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mt[0m[38;5;249ml[0m[38;5;249me[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249md[0m[38;5;249me[0m[38;5;249ms[0m[38;5;249mc[0m[38;5;249mr[0m[38;5;249mi[0m[38;5;249mp[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249ml[0m[38;5;249mo[0m[38;5;249mr[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mb[0m[38;5;249ma[0m[38;5;249md[0m[38;5;249mg[0m[38;5;249me[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249ma[0m[38;5;249mc[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249ms[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249ma[0m[38;5;249mt[0m[38;5;249ms[0m[38;5;249m [0m[38;5;249m}[0m[38;5;249m)[0m[38;5;249m [0m[38;5;249m{[0m
+ [38;5;240m    │[0m          ────┬────  
+ [38;5;240m    │[0m              ╰────── `AdminCard` has already been declared here
+ [38;5;240m    │[0m 
+ [38;5;246m415 │[0m [38;5;249mc[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249m [0mAdminCard[38;5;249m [0m[38;5;249m=[0m[38;5;249m [0m[38;5;249m([0m[38;5;249m{[0m[38;5;249m [0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mt[0m[38;5;249ml[0m[38;5;249me[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249md[0m[38;5;249me[0m[38;5;249ms[0m[38;5;249mc[0m[38;5;249mr[0m[38;5;249mi[0m[38;5;249mp[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mi[0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249mI[0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249ml[0m[38;5;249mo[0m[38;5;249mr[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249ma[0m[38;5;249mt[0m[38;5;249ms[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249ma[0m[38;5;249mc[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249ms[0m[38;5;249m [0m[38;5;249m}[0m[38;5;249m)[0m[38;5;249m [0m[38;5;249m=[0m[38;5;249m>[0m[38;5;249m [0m[38;5;249m{[0m
+ [38;5;240m    │[0m       ────┬────  
+ [38;5;240m    │[0m           ╰────── It can not be redeclared here
+[38;5;246m─────╯[0m
+
+  Plugin: vite:oxc
+  File: /home/hv/DuAn/DAVictory/frontend/src/pages/AdminDashboard.jsx
+      at transformWithOxc (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:3970:19)
+      at TransformPluginContext.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:4046:26)
+      at EnvironmentPluginContainer.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:29893:51)
+      at async loadAndTransform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:24542:26)
+17:20:53 [vite] Internal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] Error:[0m Identifier `AdminCard` has already been declared
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/AdminDashboard.jsx:365:10 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m365 │[0m [38;5;249mf[0m[38;5;249mu[0m[38;5;249mn[0m[38;5;249mc[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m [0mAdminCard[38;5;249m([0m[38;5;249m{[0m[38;5;249m [0m[38;5;249mi[0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249mI[0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mt[0m[38;5;249ml[0m[38;5;249me[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249md[0m[38;5;249me[0m[38;5;249ms[0m[38;5;249mc[0m[38;5;249mr[0m[38;5;249mi[0m[38;5;249mp[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249ml[0m[38;5;249mo[0m[38;5;249mr[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mb[0m[38;5;249ma[0m[38;5;249md[0m[38;5;249mg[0m[38;5;249me[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249ma[0m[38;5;249mc[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249ms[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249ma[0m[38;5;249mt[0m[38;5;249ms[0m[38;5;249m [0m[38;5;249m}[0m[38;5;249m)[0m[38;5;249m [0m[38;5;249m{[0m
+ [38;5;240m    │[0m          ────┬────  
+ [38;5;240m    │[0m              ╰────── `AdminCard` has already been declared here
+ [38;5;240m    │[0m 
+ [38;5;246m415 │[0m [38;5;249mc[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249m [0mAdminCard[38;5;249m [0m[38;5;249m=[0m[38;5;249m [0m[38;5;249m([0m[38;5;249m{[0m[38;5;249m [0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mt[0m[38;5;249ml[0m[38;5;249me[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249md[0m[38;5;249me[0m[38;5;249ms[0m[38;5;249mc[0m[38;5;249mr[0m[38;5;249mi[0m[38;5;249mp[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mi[0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249mI[0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249ml[0m[38;5;249mo[0m[38;5;249mr[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249ma[0m[38;5;249mt[0m[38;5;249ms[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249ma[0m[38;5;249mc[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249ms[0m[38;5;249m [0m[38;5;249m}[0m[38;5;249m)[0m[38;5;249m [0m[38;5;249m=[0m[38;5;249m>[0m[38;5;249m [0m[38;5;249m{[0m
+ [38;5;240m    │[0m       ────┬────  
+ [38;5;240m    │[0m           ╰────── It can not be redeclared here
+[38;5;246m─────╯[0m
+
+  Plugin: vite:oxc
+  File: /home/hv/DuAn/DAVictory/frontend/src/pages/AdminDashboard.jsx
+      at transformWithOxc (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:3970:19)
+      at TransformPluginContext.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:4046:26)
+      at EnvironmentPluginContainer.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:29893:51)
+      at async loadAndTransform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:24542:26)
+17:20:53 [vite] Internal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] Error:[0m Identifier `AdminCard` has already been declared
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/AdminDashboard.jsx:365:10 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m365 │[0m [38;5;249mf[0m[38;5;249mu[0m[38;5;249mn[0m[38;5;249mc[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m [0mAdminCard[38;5;249m([0m[38;5;249m{[0m[38;5;249m [0m[38;5;249mi[0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249mI[0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mt[0m[38;5;249ml[0m[38;5;249me[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249md[0m[38;5;249me[0m[38;5;249ms[0m[38;5;249mc[0m[38;5;249mr[0m[38;5;249mi[0m[38;5;249mp[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249ml[0m[38;5;249mo[0m[38;5;249mr[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mb[0m[38;5;249ma[0m[38;5;249md[0m[38;5;249mg[0m[38;5;249me[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249ma[0m[38;5;249mc[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249ms[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249ma[0m[38;5;249mt[0m[38;5;249ms[0m[38;5;249m [0m[38;5;249m}[0m[38;5;249m)[0m[38;5;249m [0m[38;5;249m{[0m
+ [38;5;240m    │[0m          ────┬────  
+ [38;5;240m    │[0m              ╰────── `AdminCard` has already been declared here
+ [38;5;240m    │[0m 
+ [38;5;246m415 │[0m [38;5;249mc[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249m [0mAdminCard[38;5;249m [0m[38;5;249m=[0m[38;5;249m [0m[38;5;249m([0m[38;5;249m{[0m[38;5;249m [0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mt[0m[38;5;249ml[0m[38;5;249me[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249md[0m[38;5;249me[0m[38;5;249ms[0m[38;5;249mc[0m[38;5;249mr[0m[38;5;249mi[0m[38;5;249mp[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mi[0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249mI[0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249ml[0m[38;5;249mo[0m[38;5;249mr[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249ma[0m[38;5;249mt[0m[38;5;249ms[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249ma[0m[38;5;249mc[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249ms[0m[38;5;249m [0m[38;5;249m}[0m[38;5;249m)[0m[38;5;249m [0m[38;5;249m=[0m[38;5;249m>[0m[38;5;249m [0m[38;5;249m{[0m
+ [38;5;240m    │[0m       ────┬────  
+ [38;5;240m    │[0m           ╰────── It can not be redeclared here
+[38;5;246m─────╯[0m
+
+  Plugin: vite:oxc
+  File: /home/hv/DuAn/DAVictory/frontend/src/pages/AdminDashboard.jsx
+      at transformWithOxc (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:3970:19)
+      at TransformPluginContext.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:4046:26)
+      at EnvironmentPluginContainer.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:29893:51)
+      at async loadAndTransform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:24542:26)
+17:21:57 [vite] (client) hmr update /src/pages/AdminDashboard.jsx
+17:23:38 [vite] (client) hmr update /src/pages/GoogleDriveSettings.jsx
+17:23:43 [vite] (client) hmr update /src/pages/GoogleDriveSettings.jsx
+17:23:55 [vite] (client) hmr update /src/pages/GoogleDriveSettings.jsx
+17:23:59 [vite] (client) hmr update /src/pages/GoogleDriveSettings.jsx

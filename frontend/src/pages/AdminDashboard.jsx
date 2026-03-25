@@ -13,8 +13,11 @@ import {
   TrendingUp,
   AlertCircle,
   Loader2,
+  Plus,
 } from 'lucide-react';
 import AdminLayout from '../components/admin/AdminLayout.jsx';
+import AdminHeader from '../components/admin/AdminHeader.jsx';
+import AddUserModal from '../components/admin/AddUserModal.jsx';
 import { authApi } from '../services/authApi';
 import '../styles/adminDashboard.css';
 
@@ -31,6 +34,7 @@ export default function AdminDashboard() {
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState(null);
   const [error, setError] = useState('');
+  const [showAddUser, setShowAddUser] = useState(false);
   const [stats, setStats] = useState({
     totalUsers: 0,
     activeUsers: 0,
@@ -96,6 +100,30 @@ export default function AdminDashboard() {
       title="Bảng điều khiển quản trị"
       subtitle="Quản lý toàn bộ hệ thống DAVictory theo thời gian thực"
     >
+      <AdminHeader />
+      
+      <div className="admin-quick-actions" style={{ marginBottom: 20 }}>
+        <button 
+          className="quick-action-btn"
+          onClick={() => setShowAddUser(true)}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '10px 16px',
+            background: '#3b82f6',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: '500'
+          }}
+        >
+          <Upload size={16} />
+          Thêm tài khoản
+        </button>
+      </div>
       <div className="admin-quick-stats" style={{ marginBottom: 20 }}>
         <QuickStat 
           icon={Users} 
@@ -198,6 +226,21 @@ export default function AdminDashboard() {
             ]}
           />
 
+          <AdminCard
+            icon={Database}
+            title="Google Drive"
+            description="Quản lý kết nối và lưu trữ file trên Google Drive"
+            color="#4285f4"
+            size="large"
+            actions={[
+              { label: 'Quản lý', href: '/admin/drive', primary: true }
+            ]}
+            stats={[
+              { label: 'Trạng thái', value: 'Đã kết nối' },
+              { label: 'Dung lượng', value: '15 GB' }
+            ]}
+          />
+
           <div className="admin-card admin-import-card">
             <div className="admin-import-head">
                 <Upload size={24} />
@@ -291,6 +334,15 @@ export default function AdminDashboard() {
 
         </section>
       </main>
+      
+      <AddUserModal 
+        isOpen={showAddUser}
+        onClose={() => setShowAddUser(false)}
+        onSuccess={() => {
+          fetchStats();
+          setShowAddUser(false);
+        }}
+      />
     </AdminLayout>
   );
 }

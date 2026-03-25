@@ -46,6 +46,7 @@ public class SecurityConfig {
                 // ===== PUBLIC ENDPOINTS (không cần đăng nhập) =====
                 .requestMatchers(
                     "/api/auth/**",
+                    "/api/drive/**",
                     "/api-docs/**",
                     "/swagger-ui/**",
                     "/swagger-ui.html",
@@ -164,6 +165,10 @@ public class SecurityConfig {
                 // ===== MEDIA =====
                 .requestMatchers(HttpMethod.POST, "/api/media/**").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
                 .requestMatchers(HttpMethod.GET, "/api/media/**").authenticated()
+
+                // ===== ADMIN =====
+                .requestMatchers("/api/admin/drive/**").hasAnyRole("ADMIN", "MANAGER")
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
                 // Tất cả các request còn lại: cần đăng nhập
                 .anyRequest().authenticated()

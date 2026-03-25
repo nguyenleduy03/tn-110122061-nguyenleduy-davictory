@@ -11,6 +11,7 @@ import TestBuilder from './pages/TestBuilder'
 import TeacherManage from './pages/TeacherManage'
 import AdminDashboard from './pages/AdminDashboard'
 import AdminUsers from './pages/AdminUsers'
+import GoogleDriveSettings from './pages/GoogleDriveSettings'
 import LmsTeacherDashboard from './pages/lms/LmsTeacherDashboard'
 import ClassManagement from './pages/ClassManagement'
 import LmsTeacherClasses from './pages/lms/LmsTeacherClasses'
@@ -67,6 +68,7 @@ function App() {
         <Route path="/my-dashboard/settings" element={<ProtectedRoute><DashboardSettings /></ProtectedRoute>} />
         <Route path="/admin" element={<RoleBasedRoute requiredRole="ADMIN"><ErrorBoundary><AdminDashboard /></ErrorBoundary></RoleBasedRoute>} />
         <Route path="/admin/users" element={<RoleBasedRoute requiredRole="ADMIN"><ErrorBoundary><AdminUsers /></ErrorBoundary></RoleBasedRoute>} />
+        <Route path="/admin/drive" element={<RoleBasedRoute requiredRole="ADMIN"><ErrorBoundary><GoogleDriveSettings /></ErrorBoundary></RoleBasedRoute>} />
         <Route path="/admin/teacher-class" element={<RoleBasedRoute requiredRole="ADMIN"><ErrorBoundary><ClassManagement /></ErrorBoundary></RoleBasedRoute>} />
 
         <Route path="/manager" element={<RoleBasedRoute requiredRole="MANAGER"><ErrorBoundary><ManagerDashboard /></ErrorBoundary></RoleBasedRoute>} />

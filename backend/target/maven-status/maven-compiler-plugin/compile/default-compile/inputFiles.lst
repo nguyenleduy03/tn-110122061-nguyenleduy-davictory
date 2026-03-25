@@ -5,11 +5,13 @@
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/config/SecurityConfig.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/config/SwaggerConfig.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/config/TestStructureInitializer.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/AdminDriveController.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/AuthController.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/ClassManagementController.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/ExamAttemptController.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/FileUploadController.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/FullTestProgressController.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/GoogleDriveAuthController.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/QuestionGroupController.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/StudentWritingController.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/SubmissionBridgeController.java
@@ -176,7 +178,7 @@
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/service/ExamAttemptService.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/service/FileUploadService.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/service/FullTestProgressService.java
-/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/service/GoogleDriveService.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/service/GoogleDriveOAuth2Service.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/service/MediaService.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/service/QuestionBankService.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/service/RoleService.java

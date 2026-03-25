@@ -18,7 +18,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class FileUploadService {
 
-    private final GoogleDriveService googleDriveService;
+    private final GoogleDriveOAuth2Service googleDriveService;
     private final MediaFileRepository mediaFileRepository;
 
     @Transactional
