@@ -417,8 +417,13 @@ function serializeGroupContent(group, part) {
       tableRows: group.tableRows,
     });
   }
-  // Note/Summary: lưu text
-  if (ct === 'NOTE_COMPLETION') return group.noteText || '';
+  // Note/Summary: lưu text với cấu trúc
+  if (ct === 'NOTE_COMPLETION') {
+    return JSON.stringify({
+      noteText: group.noteText || '',
+      title: group.title || ''
+    });
+  }
   if (ct === 'SUMMARY_COMPLETION') return group.summaryText || '';
   if (ct === 'SUMMARY_COMPLETION_SELECT') {
     return JSON.stringify({
@@ -772,7 +777,18 @@ function deserializeGroupContent(contentType, passageText) {
       const parsed = JSON.parse(passageText);
       return { tableTitle: parsed.tableTitle, columns: parsed.columns, tableRows: parsed.tableRows };
     }
-    if (contentType === 'NOTE_COMPLETION') return { noteText: passageText };
+    if (contentType === 'NOTE_COMPLETION') {
+      try {
+        const parsed = JSON.parse(passageText);
+        return { 
+          noteText: parsed.noteText || passageText,
+          title: parsed.title || ''
+        };
+      } catch {
+        // Fallback cho dữ liệu cũ (string thuần)
+        return { noteText: passageText };
+      }
+    }
     if (contentType === 'SUMMARY_COMPLETION') return { summaryText: passageText };
     if (contentType === 'SUMMARY_COMPLETION_SELECT') {
       const parsed = JSON.parse(passageText);

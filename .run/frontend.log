@@ -9,3 +9,95 @@
 
   ➜  Local:   http://localhost:5173/
   ➜  Network: http://192.168.1.20:5173/
+16:08:59 [vite] (client) hmr update /src/App.jsx
+16:09:12 [vite] (client) hmr update /src/App.jsx
+16:11:45 [vite] (client) hmr update /src/pages/TestBuilder.jsx, /src/pages/TeacherManage.jsx, /src/pages/lms/LmsTeacherTests.jsx, /src/pages/ApiDebugPage.jsx, /src/components/shuffle/ShuffleTestModal.jsx
+16:13:24 [vite] (client) hmr update /src/pages/TestBuilder.jsx, /src/pages/TeacherManage.jsx, /src/pages/lms/LmsTeacherTests.jsx, /src/pages/ApiDebugPage.jsx, /src/components/shuffle/ShuffleTestModal.jsx
+16:15:14 [vite] (client) hmr update /src/components/testBuilder/blocks/shared/RichBlankEditor.jsx
+16:15:56 [vite] (client) hmr update /src/components/testBuilder/blocks/shared/RichBlankEditor.jsx
+16:21:15 [vite] (client) hmr update /src/components/testBuilder/blocks/shared/RichBlankEditor.jsx
+16:23:09 [vite] (client) hmr update /src/components/testBuilder/blocks/shared/RichBlankEditor.jsx
+16:23:33 [vite] (client) hmr update /src/components/testBuilder/blocks/shared/RichBlankEditor.jsx
+16:26:15 [vite] (client) hmr update /src/pages/lms/LmsTeacherDashboard.jsx, /src/pages/lms/LmsTeacherSubmissions.jsx, /src/pages/lms/LmsSubmissionDetail.jsx, /src/pages/lms/LmsGradeSubmission.jsx, /src/pages/lms/LmsTeacherAnalytics.jsx, /src/pages/ManagerDashboard.jsx, /src/pages/ManagerOperations.jsx, /src/components/lms/LmsLayout.jsx
+16:26:27 [vite] (client) hmr update /src/pages/lms/LmsTeacherDashboard.jsx, /src/pages/lms/LmsTeacherSubmissions.jsx, /src/pages/lms/LmsSubmissionDetail.jsx, /src/pages/lms/LmsGradeSubmission.jsx, /src/pages/lms/LmsTeacherAnalytics.jsx, /src/pages/ManagerDashboard.jsx, /src/pages/ManagerOperations.jsx, /src/components/lms/LmsLayout.jsx
+16:26:38 [vite] (client) hmr update /src/pages/teacher/GradeSpeaking.jsx
+16:26:45 [vite] (client) hmr update /src/pages/teacher/GradeSpeaking.jsx
+16:26:51 [vite] (client) hmr update /src/pages/teacher/GradeSpeaking.jsx
+16:27:01 [vite] (client) hmr update /src/pages/teacher/GradeWriting.jsx
+16:27:15 [vite] (client) hmr update /src/pages/lms/LmsTeacherDashboard.jsx, /src/pages/lms/LmsTeacherSubmissions.jsx, /src/pages/lms/LmsSubmissionDetail.jsx, /src/pages/lms/LmsGradeSubmission.jsx, /src/pages/lms/LmsTeacherAnalytics.jsx, /src/pages/ManagerDashboard.jsx, /src/pages/ManagerOperations.jsx, /src/components/lms/LmsLayout.jsx, /src/pages/teacher/GradeSpeaking.jsx, /src/pages/teacher/GradeWriting.jsx
+16:27:23 [vite] (client) hmr update /src/pages/teacher/GradeWriting.jsx
+16:27:30 [vite] (client) hmr update /src/pages/teacher/GradeWriting.jsx
+16:27:55 [vite] (client) hmr update /src/components/testBuilder/blocks/shared/RichBlankEditor.jsx
+16:28:02 [vite] (client) hmr update /src/components/testBuilder/blocks/shared/RichBlankEditor.jsx
+16:28:02 [vite] Internal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] Error:[0m Unexpected token
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/components/testBuilder/blocks/shared/RichBlankEditor.jsx:231:1 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m231 │[0m }[38;5;249m;[0m
+ [38;5;240m    │[0m ┬  
+ [38;5;240m    │[0m ╰── 
+[38;5;246m─────╯[0m
+
+  Plugin: vite:oxc
+  File: /home/hv/DuAn/DAVictory/frontend/src/components/testBuilder/blocks/shared/RichBlankEditor.jsx
+      at transformWithOxc (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:3970:19)
+      at TransformPluginContext.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:4046:26)
+      at EnvironmentPluginContainer.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:29893:51)
+      at async loadAndTransform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:24542:26)
+      at async viteTransformMiddleware (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:25356:20)
+16:28:02 [vite] Internal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] Error:[0m Unexpected token
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/components/testBuilder/blocks/shared/RichBlankEditor.jsx:231:1 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m231 │[0m }[38;5;249m;[0m
+ [38;5;240m    │[0m ┬  
+ [38;5;240m    │[0m ╰── 
+[38;5;246m─────╯[0m
+
+  Plugin: vite:oxc
+  File: /home/hv/DuAn/DAVictory/frontend/src/components/testBuilder/blocks/shared/RichBlankEditor.jsx
+      at transformWithOxc (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:3970:19)
+      at TransformPluginContext.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:4046:26)
+      at EnvironmentPluginContainer.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:29893:51)
+      at async loadAndTransform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:24542:26)
+      at async viteTransformMiddleware (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:25356:20)
+16:28:02 [vite] Internal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] Error:[0m Unexpected token
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/components/testBuilder/blocks/shared/RichBlankEditor.jsx:231:1 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m231 │[0m }[38;5;249m;[0m
+ [38;5;240m    │[0m ┬  
+ [38;5;240m    │[0m ╰── 
+[38;5;246m─────╯[0m
+
+  Plugin: vite:oxc
+  File: /home/hv/DuAn/DAVictory/frontend/src/components/testBuilder/blocks/shared/RichBlankEditor.jsx
+      at transformWithOxc (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:3970:19)
+      at TransformPluginContext.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:4046:26)
+      at EnvironmentPluginContainer.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:29893:51)
+      at async loadAndTransform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:24542:26)
+      at async viteTransformMiddleware (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:25356:20)
+16:28:02 [vite] Internal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] Error:[0m Unexpected token
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/components/testBuilder/blocks/shared/RichBlankEditor.jsx:231:1 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m231 │[0m }[38;5;249m;[0m
+ [38;5;240m    │[0m ┬  
+ [38;5;240m    │[0m ╰── 
+[38;5;246m─────╯[0m
+
+  Plugin: vite:oxc
+  File: /home/hv/DuAn/DAVictory/frontend/src/components/testBuilder/blocks/shared/RichBlankEditor.jsx
+      at transformWithOxc (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:3970:19)
+      at TransformPluginContext.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:4046:26)
+      at EnvironmentPluginContainer.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:29893:51)
+      at async loadAndTransform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:24542:26)
+      at async viteTransformMiddleware (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:25356:20)
+16:28:10 [vite] (client) hmr update /src/components/testBuilder/blocks/shared/RichBlankEditor.jsx
+16:28:16 [vite] (client) hmr update /src/components/testBuilder/blocks/shared/RichBlankEditor.jsx
+16:28:22 [vite] (client) hmr update /src/components/testBuilder/blocks/shared/RichBlankEditor.jsx
+16:30:24 [vite] (client) hmr update /src/components/testBuilder/blocks/shared/RichBlankEditor.jsx

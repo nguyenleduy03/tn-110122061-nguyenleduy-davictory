@@ -34,6 +34,8 @@ import DashboardHistory from './pages/DashboardHistory'
 import DashboardProfile from './pages/DashboardProfile'
 import DashboardSettings from './pages/DashboardSettings'
 import ApiDebugPage from './pages/ApiDebugPage'
+import GradeWriting from './pages/teacher/GradeWriting'
+import GradeSpeaking from './pages/teacher/GradeSpeaking'
 import ProtectedRoute from './components/common/ProtectedRoute'
 import RoleBasedRoute from './components/common/RoleBasedRoute'
 import ErrorBoundary from './components/common/ErrorBoundary'
@@ -93,6 +95,10 @@ function App() {
         <Route path="/lms/grade/:type/:id" element={<RoleBasedRoute requiredRole="TEACHER"><LmsGradeSubmission /></RoleBasedRoute>} />
         <Route path="/lms/teacher/analytics" element={<RoleBasedRoute requiredRole="TEACHER"><LmsTeacherAnalytics /></RoleBasedRoute>} />
         <Route path="/lms/teacher/settings" element={<RoleBasedRoute requiredRole="TEACHER"><LmsTeacherSettings /></RoleBasedRoute>} />
+        
+        {/* Grading routes */}
+        <Route path="/teacher/grade/writing/:id" element={<RoleBasedRoute requiredRole="TEACHER"><GradeWriting /></RoleBasedRoute>} />
+        <Route path="/teacher/grade/speaking/:id" element={<RoleBasedRoute requiredRole="TEACHER"><GradeSpeaking /></RoleBasedRoute>} />
       </Routes>
     </Router>
   )

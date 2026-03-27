@@ -77,7 +77,22 @@ export const teacherApi = {
   },
 
   gradeWritingSubmission: async (submissionId, payload) => {
-    const res = await apiClient.post(`/writing/${submissionId}/grade`, payload);
+    const res = await apiClient.post(`/writing/grade/${submissionId}`, payload);
+    return res.data;
+  },
+
+  getWritingCriteria: async () => {
+    const res = await apiClient.get('/writing/criteria');
+    return res.data;
+  },
+
+  gradeSpeakingAttempt: async (attemptId, payload) => {
+    const res = await apiClient.post(`/speaking/grade/${attemptId}`, payload);
+    return res.data;
+  },
+
+  getSpeakingAttempt: async (attemptId) => {
+    const res = await apiClient.get(`/speaking/attempts/${attemptId}`);
     return res.data;
   },
 

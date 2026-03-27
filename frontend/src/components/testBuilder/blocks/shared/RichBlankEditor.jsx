@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { List, ListOrdered } from 'lucide-react';
 
 /**
  * RichBlankEditor
@@ -18,10 +19,21 @@ const RichBlankEditor = ({
 
   const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-  const toHTML = (text) => {
-    if (!text) return '';
+  const toHTML = (htmlOrText) => {
+    if (!htmlOrText) return '';
+    
+    // Nếu đã là HTML (có thẻ), giữ nguyên và chỉ xử lý [blank]
+    if (htmlOrText.includes('<')) {
+      let n = startNumber - 1;
+      return htmlOrText.replace(/\[blank\]/gi, () => {
+        n++;
+        return `<span class="rbe-blank ${blankClass}" contenteditable="false" data-blank="true"><span class="rbe-blank-num">${n}</span><button class="rbe-blank-del" data-del="true" type="button">×</button></span>`;
+      });
+    }
+    
+    // Nếu là text thuần, chuyển thành HTML
     let n = startNumber - 1;
-    return esc(text)
+    return esc(htmlOrText)
       .replace(/\n/g, '<br>')
       .replace(/\[blank\]/gi, () => {
         n++;
@@ -30,21 +42,13 @@ const RichBlankEditor = ({
   };
 
   const toText = (el) => {
-    let out = '';
-    for (const node of el.childNodes) {
-      if (node.nodeType === 3) {
-        out += node.textContent;
-      } else if (node.nodeName === 'BR') {
-        out += '\n';
-      } else if (node.dataset?.blank === 'true') {
-        out += '[blank]';
-      } else if (node.nodeName === 'DIV' || node.nodeName === 'P') {
-        out += '\n' + toText(node);
-      } else {
-        out += toText(node);
-      }
-    }
-    return out;
+    // Giữ lại HTML để bảo toàn formatting, nhưng xử lý đặc biệt cho [blank]
+    let html = el.innerHTML;
+    
+    // Chuyển các blank span thành [blank] token
+    html = html.replace(/<span[^>]*data-blank="true"[^>]*>.*?<\/span>/g, '[blank]');
+    
+    return html;
   };
 
   // Set initial HTML on mount only (avoids cursor-jumping on re-renders)
@@ -80,6 +84,57 @@ const RichBlankEditor = ({
     span.appendChild(num);
     span.appendChild(btn);
     return span;
+  };
+
+  const insertList = (ordered = false) => {
+    editorRef.current?.focus();
+    const sel = window.getSelection();
+    if (sel.rangeCount) {
+      const range = sel.getRangeAt(0);
+      
+      // Kiểm tra xem cursor có đang trong li không
+      const currentLi = range.startContainer.nodeType === 3 
+        ? range.startContainer.parentElement?.closest('li')
+        : range.startContainer.closest?.('li');
+      
+      if (currentLi) {
+        // Đang trong li, tạo nested list
+        const listTag = ordered ? 'ol' : 'ul';
+        const nestedList = document.createElement(listTag);
+        const newLi = document.createElement('li');
+        newLi.innerHTML = '&nbsp;';
+        nestedList.appendChild(newLi);
+        
+        // Chèn nested list vào cuối li hiện tại
+        currentLi.appendChild(nestedList);
+        
+        // Đặt cursor vào li mới
+        const newRange = document.createRange();
+        newRange.selectNodeContents(newLi);
+        newRange.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(newRange);
+      } else {
+        // Không trong li, tạo list mới
+        const listTag = ordered ? 'ol' : 'ul';
+        const list = document.createElement(listTag);
+        const li = document.createElement('li');
+        li.innerHTML = '&nbsp;';
+        list.appendChild(li);
+        
+        range.deleteContents();
+        range.insertNode(list);
+        
+        // Đặt cursor vào li
+        const newRange = document.createRange();
+        newRange.selectNodeContents(li);
+        newRange.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(newRange);
+      }
+      
+      onChange(toText(editorRef.current));
+    }
   };
 
   const insertChipAtCaret = () => {
@@ -123,6 +178,13 @@ const RichBlankEditor = ({
         <button type="button" className="rbe-insert-btn" onClick={insertChipAtCaret}>
           + Chèn tại con trỏ
         </button>
+        <div className="rbe-sep" />
+        <button type="button" className="rbe-insert-btn" onClick={() => insertList(false)} title="Gạch đầu dòng">
+          <List size={14} />
+        </button>
+        <button type="button" className="rbe-insert-btn" onClick={() => insertList(true)} title="Đánh số">
+          <ListOrdered size={14} />
+        </button>
         <span className="rbe-hint">× để xóa ô trống</span>
       </div>
       <div
@@ -132,10 +194,28 @@ const RichBlankEditor = ({
         suppressContentEditableWarning
         data-placeholder={placeholder}
         onInput={() => { renumber(); onChange(toText(editorRef.current)); }}
+        onKeyUp={() => { renumber(); onChange(toText(editorRef.current)); }}
+        onPaste={() => { 
+          setTimeout(() => { renumber(); onChange(toText(editorRef.current)); }, 0); 
+        }}
+        onCut={() => { 
+          setTimeout(() => { renumber(); onChange(toText(editorRef.current)); }, 0); 
+        }}
         onKeyDown={(e) => {
           if (e.key === 'Enter') {
             e.preventDefault();
-            document.execCommand('insertLineBreak');
+            // Thay vì dùng execCommand deprecated, chèn <br> trực tiếp
+            const sel = window.getSelection();
+            if (sel.rangeCount) {
+              const range = sel.getRangeAt(0);
+              range.deleteContents();
+              const br = document.createElement('br');
+              range.insertNode(br);
+              range.setStartAfter(br);
+              range.collapse(true);
+              sel.removeAllRanges();
+              sel.addRange(range);
+            }
             onChange(toText(editorRef.current));
           }
         }}

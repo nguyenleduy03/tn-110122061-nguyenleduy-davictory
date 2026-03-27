@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { authApi } from '../../services/authApi';
+import { teacherApi } from '../../services/teacherApi';
 import './GradeSpeaking.css';
 
 const CRITERIA = [
@@ -24,17 +24,17 @@ const GradeSpeaking = () => {
 
   const loadData = async () => {
     try {
-      const res = await authApi.get(`/api/speaking/attempts/${id}`);
-      setAttempt(res.data);
+      const res = await teacherApi.getSpeakingAttempt(id);
+      setAttempt(res);
       
-      if (res.data.score) {
+      if (res.score) {
         setScores({
-          fluencyCoherence: res.data.score.fluencyCoherence,
-          lexicalResource: res.data.score.lexicalResource,
-          grammaticalRangeAccuracy: res.data.score.grammaticalRangeAccuracy,
-          pronunciation: res.data.score.pronunciation
+          fluencyCoherence: res.score.fluencyCoherence,
+          lexicalResource: res.score.lexicalResource,
+          grammaticalRangeAccuracy: res.score.grammaticalRangeAccuracy,
+          pronunciation: res.score.pronunciation
         });
-        setFeedback(res.data.feedback || '');
+        setFeedback(res.feedback || '');
       }
     } catch (err) {
       alert('Lỗi tải dữ liệu: ' + err.message);
@@ -54,9 +54,9 @@ const GradeSpeaking = () => {
     }
 
     try {
-      await authApi.post(`/api/speaking/grade/${id}`, { ...scores, feedback });
+      await teacherApi.gradeSpeakingAttempt(id, { ...scores, feedback });
       alert('Chấm bài thành công!');
-      navigate('/teacher/submissions');
+      navigate('/lms/teacher/submissions');
     } catch (err) {
       alert('Lỗi: ' + err.message);
     }

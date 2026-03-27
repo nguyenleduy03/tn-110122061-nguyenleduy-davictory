@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { authApi } from '../../services/authApi';
+import { teacherApi } from '../../services/teacherApi';
 import './GradeWriting.css';
 
 const GradeWriting = () => {
@@ -18,22 +18,22 @@ const GradeWriting = () => {
 
   const loadData = async () => {
     try {
-      const [subRes, critRes] = await Promise.all([
-        authApi.get(`/api/writing/teacher/submissions/${id}`),
-        authApi.get('/api/writing/criteria')
+      const [submission, criteria] = await Promise.all([
+        teacherApi.getWritingSubmission(id),
+        teacherApi.getWritingCriteria()
       ]);
-      setSubmission(subRes.data);
-      setCriteria(critRes.data);
+      setSubmission(submission);
+      setCriteria(criteria);
       
       // Pre-fill nếu đã chấm
-      if (subRes.data.scores) {
+      if (submission.scores) {
         const scoreMap = {};
-        subRes.data.scores.forEach(s => {
+        submission.scores.forEach(s => {
           scoreMap[s.criteriaId] = { score: s.score, feedback: s.feedback || '' };
         });
         setScores(scoreMap);
       }
-      setFeedback(subRes.data.overallFeedback || '');
+      setFeedback(submission.overallFeedback || '');
     } catch (err) {
       alert('Lỗi tải dữ liệu: ' + err.message);
     } finally {
@@ -61,12 +61,12 @@ const GradeWriting = () => {
     }
 
     try {
-      await authApi.post(`/api/writing/grade/${id}`, {
+      await teacherApi.gradeWritingSubmission(id, {
         criteriaScores,
         overallFeedback: feedback
       });
       alert('Chấm bài thành công!');
-      navigate('/teacher/submissions');
+      navigate('/lms/teacher/submissions');
     } catch (err) {
       alert('Lỗi: ' + err.message);
     }
