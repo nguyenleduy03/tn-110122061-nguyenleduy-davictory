@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { CheckCircle, ArrowRight } from 'lucide-react';
 import { ieltsApi } from '../services/ieltsApi';
 import { calculateExamBand, formatBand } from '../utils/ieltsScoring';
+import { clearSubmittedLockByTest } from '../utils/testRuntimeState';
 import '../styles/ieltsTest.css';
 
 const TestComplete = () => {
@@ -36,6 +37,14 @@ const TestComplete = () => {
             document.exitFullscreen().catch(() => { });
         }
     }, []);
+
+    // Clear submitted lock so "Xem kết quả" won't appear in ExamLibrary
+    // after user has already viewed the results page
+    React.useEffect(() => {
+        if (testId) {
+            clearSubmittedLockByTest(testId, skill);
+        }
+    }, [testId, skill]);
 
     React.useEffect(() => {
         const handlePopState = () => {

@@ -92,7 +92,15 @@ export const authApi = {
   // Lấy user từ localStorage
   getStoredUser: () => {
     const userJson = localStorage.getItem('user');
-    return userJson ? JSON.parse(userJson) : null;
+    if (!userJson) return null;
+
+    try {
+      return JSON.parse(userJson);
+    } catch (error) {
+      console.warn('[authApi] Invalid stored user JSON, clearing cache:', error);
+      localStorage.removeItem('user');
+      return null;
+    }
   },
 
   // Kiểm tra role của user

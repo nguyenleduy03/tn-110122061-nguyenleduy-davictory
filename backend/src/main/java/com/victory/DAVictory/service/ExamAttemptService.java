@@ -66,13 +66,23 @@ public class ExamAttemptService {
         if (attemptNumber == null)
             attemptNumber = 1;
 
+        Integer timeLimitSeconds = req.getTimeLimitSeconds();
+        if (timeLimitSeconds == null) {
+            Integer durationMinutes = testSession.getDurationMinutes() != null 
+                ? testSession.getDurationMinutes() 
+                : session.getDurationMinutes();
+            if (durationMinutes != null) {
+                timeLimitSeconds = durationMinutes * 60;
+            }
+        }
+
         ExamAttempt attempt = new ExamAttempt();
         attempt.setUser(user);
         attempt.setTest(test);
         attempt.setSession(testSession.getSession());
         attempt.setStatus("IN_PROGRESS");
         attempt.setStartedAt(LocalDateTime.now());
-        attempt.setTimeLimitSeconds(req.getTimeLimitSeconds());
+        attempt.setTimeLimitSeconds(timeLimitSeconds);
         attempt.setAttemptNumber(attemptNumber);
 
         attempt = examAttemptRepository.save(attempt);

@@ -75,6 +75,9 @@ public class ExamAttempt {
     @Column(nullable = false)
     private Integer attemptNumber; // Lần thứ mấy làm bài thi này (1, 2, 3...)
 
+    @Column(length = 50)
+    private String attemptType; // FULL_TEST, SINGLE_SKILL, PRACTICE_FULL_TEST, PRACTICE_SINGLE_SKILL, CUSTOM
+
     @Column(nullable = false)
     private Boolean isActive = true;
 

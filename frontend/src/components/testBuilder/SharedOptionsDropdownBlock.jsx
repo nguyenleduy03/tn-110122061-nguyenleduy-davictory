@@ -4,8 +4,9 @@
  * `toolbar`: truyền từ ExamCanvas (GroupToolbar + kéo thả / xóa / di chuyển).
  */
 import React from 'react';
-import { X, Plus } from 'lucide-react';
+import { X, Plus, Upload, Image as ImageIcon } from 'lucide-react';
 import RichInput from '../common/RichInput';
+import { fileApi } from '../../services/fileApi';
 
 const defaultSharedOptions = () => [
   { id: `so-${Date.now()}-a`, key: 'A', label: '' },
@@ -30,6 +31,18 @@ const SharedOptionsDropdownBlock = ({
 
   const syncSharedOptions = (next) => {
     onUpdate(group.id, { sharedOptions: next });
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const result = await fileApi.uploadImage(file);
+      onUpdate(group.id, { imageUrl: result.url });
+    } catch (err) {
+      console.error('Upload failed:', err);
+      alert(`Upload ảnh thất bại: ${err.response?.data?.error || err.message}`);
+    }
   };
 
   const updateOptionLabel = (idx, label) => {
@@ -138,6 +151,55 @@ const SharedOptionsDropdownBlock = ({
               placeholder="Write the correct letter, A, B or C, next to questions 26–30."
               onChange={(html) => onUpdate(group.id, { subInstruction: html })}
             />
+          </div>
+
+          {/* Image upload */}
+          <div className="tb-sod-field">
+            <label className="tb-sod-label">Ảnh minh họa (tùy chọn)</label>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <label className="exam-upload-btn">
+                <Upload size={14} /> Upload ảnh
+                <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} />
+              </label>
+              {group.imageUrl && (
+                <button
+                  type="button"
+                  className="exam-group-tool-btn danger"
+                  onClick={() => onUpdate(group.id, { imageUrl: null })}
+                  title="Xóa ảnh"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+            {group.imageUrl && (
+              <div style={{ marginTop: 12 }}>
+                <img
+                  src={group.imageUrl}
+                  alt="Preview"
+                  style={{
+                    maxWidth: `${group.imageWidth || 100}%`,
+                    height: 'auto',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: 4,
+                  }}
+                />
+                <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <label style={{ fontSize: 12, color: '#6b7280' }}>Kích thước:</label>
+                  <input
+                    type="range"
+                    min="30"
+                    max="100"
+                    value={group.imageWidth || 100}
+                    onChange={(e) => onUpdate(group.id, { imageWidth: Number(e.target.value) })}
+                    style={{ flex: 1 }}
+                  />
+                  <span style={{ fontSize: 12, color: '#6b7280', minWidth: 40 }}>
+                    {group.imageWidth || 100}%
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="tb-sod-questions">

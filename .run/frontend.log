@@ -5,8 +5,20 @@
 [vite] 🌐 Public IP: 123.22.61.173
 [vite] 🔗 API Base URL: http://123.22.61.173:8080/api
 
-  VITE v8.0.0-beta.16  ready in 1211 ms
+  VITE v8.0.0-beta.16  ready in 9785 ms
 
   ➜  Local:   http://localhost:5173/
   ➜  Network: http://192.168.1.20:5173/
-10:12:31 [vite] (client) hmr update /src/pages/lms/LmsGradeSubmission.jsx
+12:33:01 [vite] (client) hmr update /src/components/common/TestHeader.jsx
+12:33:56 [vite] (client) hmr update /src/pages/IeltsReadingTest.jsx
+12:34:19 [vite] (client) hmr update /src/styles/ieltsTest.css
+12:34:27 [vite] (client) hmr update /src/pages/IeltsListeningTest.jsx
+12:35:04 [vite] (client) hmr update /src/pages/IeltsReadingTest.jsx
+12:42:59 [vite] (client) hmr update /src/components/admin/AdminHeader.css
+12:44:49 [vite] (client) hmr update /src/pages/IeltsReadingTest.jsx
+12:45:07 [vite] (client) hmr update /src/components/common/TextHighlighter.jsx
+12:45:16 [vite] (client) hmr update /src/pages/ExamLibrary.jsx, /src/pages/IeltsReadingTest.jsx, /src/pages/IeltsListeningTest.jsx, /src/pages/IeltsWritingTest.jsx, /src/pages/IeltsSpeakingTest.jsx, /src/pages/lms/LmsSubmissionDetail.jsx, /src/pages/lms/LmsGradeSubmission.jsx, /src/pages/TestComplete.jsx, /src/pages/ApiDebugPage.jsx
+12:45:21 [vite] (client) hmr update /src/components/common/TextHighlighter.jsx
+12:45:47 [vite] (client) hmr update /src/pages/ExamLibrary.jsx, /src/pages/IeltsReadingTest.jsx, /src/pages/IeltsListeningTest.jsx, /src/pages/IeltsWritingTest.jsx, /src/pages/IeltsSpeakingTest.jsx, /src/pages/lms/LmsSubmissionDetail.jsx, /src/pages/lms/LmsGradeSubmission.jsx, /src/pages/TestComplete.jsx, /src/pages/ApiDebugPage.jsx
+12:45:52 [vite] (client) hmr update /src/components/common/NotesPanel.jsx
+12:47:16 [vite] (client) hmr update /src/pages/IeltsReadingTest.jsx

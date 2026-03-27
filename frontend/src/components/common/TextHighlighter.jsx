@@ -1,32 +1,48 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
+import { MessageSquareQuote, Highlighter, Trash2 } from 'lucide-react';
 
-
-const TextHighlighter = ({ containerRef, onHighlightChange }) => {
-    const [selectionInfo, setSelectionInfo] = useState(null);
+const TextHighlighter = ({ containerRef, onHighlightChange, onAddNote, currentPartIndex = 0 }) => {
+    const [popup, setPopup] = useState(null);
 
     useEffect(() => {
-        const handleMouseUp = () => {
+        const handleMouseUp = (e) => {
+            // Ignore mouseup from inside the popup — let the click handler handle it
+            if (e.target.closest('.highlight-popup')) return;
             requestAnimationFrame(() => {
                 const selection = window.getSelection();
+
+                // Case 1: clicked on an existing highlight with no new selection
+                const clickedHighlight = e.target.closest('.custom-highlight');
+                if (clickedHighlight && containerRef.current?.contains(clickedHighlight)) {
+                    if (!selection || selection.isCollapsed || !selection.toString().trim()) {
+                        const rect = clickedHighlight.getBoundingClientRect();
+                        setPopup({
+                            top: rect.top + window.scrollY - 80,
+                            left: rect.left + window.scrollX + rect.width / 2,
+                            mode: 'clear',
+                            highlightEl: clickedHighlight,
+                        });
+                        return;
+                    }
+                }
+
+                // Case 2: new text selected
                 if (!selection || selection.isCollapsed || !selection.toString().trim()) {
-                    setSelectionInfo(null);
+                    setPopup(null);
                     return;
                 }
 
                 const range = selection.getRangeAt(0);
-
-                // Ensure selection is inside the valid container
                 if (containerRef.current && !containerRef.current.contains(range.commonAncestorContainer)) {
-                    setSelectionInfo(null);
+                    setPopup(null);
                     return;
                 }
 
                 const rect = range.getBoundingClientRect();
-
-                // Compute position relative to viewport
-                setSelectionInfo({
-                    top: rect.top + window.scrollY - 50, // 50px above selection
-                    left: rect.left + window.scrollX + (rect.width / 2),
+                setPopup({
+                    top: rect.top + window.scrollY - 80,
+                    left: rect.left + window.scrollX + rect.width / 2,
+                    mode: 'new',
                     range: range.cloneRange(),
                     text: selection.toString().trim(),
                 });
@@ -34,12 +50,10 @@ const TextHighlighter = ({ containerRef, onHighlightChange }) => {
         };
 
         const handleMouseDown = (e) => {
-            // Document click to clear popup if clicking outside selection/popup
             if (e.target.closest('.highlight-popup')) return;
-            // Delay to allow new selection to occur
             setTimeout(() => {
-                const selection = window.getSelection();
-                if (!selection || selection.isCollapsed) setSelectionInfo(null);
+                const sel = window.getSelection();
+                if (!sel || sel.isCollapsed) setPopup(null);
             }, 10);
         };
 
@@ -52,102 +66,79 @@ const TextHighlighter = ({ containerRef, onHighlightChange }) => {
     }, [containerRef]);
 
     const highlightText = () => {
-        if (!selectionInfo || !selectionInfo.range) return;
-
+        if (!popup?.range) return;
         try {
-            const range = selectionInfo.range;
-
-            // Allow execCommand to work on non-editable text
-            document.designMode = "on";
-
-            // Re-apply selection so execCommand targets the right text
+            const range = popup.range;
+            document.designMode = 'on';
             const sel = window.getSelection();
             sel.removeAllRanges();
             sel.addRange(range);
-
             if (!document.execCommand('hiliteColor', false, 'rgb(255, 221, 0)')) {
-                // Fallback for browsers not supporting hiliteColor
                 document.execCommand('BackColor', false, 'rgb(255, 221, 0)');
             }
-
-            document.designMode = "off";
-            let marks = document.querySelectorAll('span[style*="background-color"], font[style*="background-color"]');
-            marks.forEach(mark => {
-                if (mark.style.backgroundColor === 'rgb(255, 221, 0)' || mark.style.backgroundColor === '#fff5b0') {
+            document.designMode = 'off';
+            document.querySelectorAll('span[style*="background-color"], font[style*="background-color"]').forEach((mark) => {
+                if (mark.classList.contains('custom-highlight')) return;
+                if (mark.style.backgroundColor === 'rgb(255, 221, 0)') {
                     mark.classList.add('custom-highlight');
-                    mark.style.borderRadius = '3px';
-                    mark.style.padding = '2px 0';
-                    mark.style.cursor = 'pointer';
                     mark.title = 'Click to remove highlight';
-                    mark.onclick = function () {
-                        const parent = this.parentNode;
-                        while (this.firstChild) {
-                            parent.insertBefore(this.firstChild, this);
-                        }
-                        if (this.parentNode) parent.removeChild(this); // Clean up span
-                        if (onHighlightChange && containerRef.current) {
-                            onHighlightChange(containerRef.current.innerHTML);
-                        }
-                    };
                 }
             });
-
-        } catch (e) {
-            console.error(e);
+        } catch (err) {
+            console.error(err);
         }
-
         window.getSelection()?.removeAllRanges();
-        setSelectionInfo(null);
-        if (onHighlightChange && containerRef.current) {
-            onHighlightChange(containerRef.current.innerHTML);
-        }
+        setPopup(null);
+        if (onHighlightChange && containerRef.current) onHighlightChange(containerRef.current.innerHTML);
     };
 
-    const clearSelection = () => {
-        setSelectionInfo(null);
-        window.getSelection()?.removeAllRanges();
+    const clearHighlight = () => {
+        const el = popup?.highlightEl;
+        if (!el) { setPopup(null); return; }
+        const parent = el.parentNode;
+        while (el.firstChild) parent.insertBefore(el.firstChild, el);
+        if (el.parentNode) parent.removeChild(el);
+        setPopup(null);
+        if (onHighlightChange && containerRef.current) onHighlightChange(containerRef.current.innerHTML);
     };
 
-    if (!selectionInfo) return null;
+    if (!popup) return null;
 
     return (
-        <div
-            className="highlight-popup"
-            style={{
-                position: 'absolute',
-                top: `${selectionInfo.top}px`,
-                left: `${selectionInfo.left}px`,
-                transform: 'translateX(-50%)',
-                backgroundColor: '#333',
-                color: 'white',
-                padding: '6px 10px',
-                borderRadius: '6px',
-                display: 'flex',
-                gap: '12px',
-                alignItems: 'center',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                zIndex: 9999,
-                fontSize: '13px',
-                fontWeight: '500',
-                cursor: 'pointer',
-                animation: 'fadeIn 0.2s ease-in-out'
-            }}
-        >
-            <div
-                style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}
-                onClick={(e) => { e.preventDefault(); e.stopPropagation(); highlightText(); }}
-            >
-                Highlight
-            </div>
-            <div
-                style={{ width: '1px', height: '14px', backgroundColor: '#666' }}
-            ></div>
-            <div
-                style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#ccc', cursor: 'pointer' }}
-                onClick={(e) => { e.preventDefault(); e.stopPropagation(); clearSelection(); }}
-            >
-                Clear
-            </div>
+        <div className="highlight-popup" style={{ top: `${popup.top}px`, left: `${popup.left}px` }}>
+            {popup.mode === 'new' ? (
+                <>
+                    <button
+                        className="highlight-popup-btn"
+                        onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (onAddNote && popup?.text) onAddNote(popup.text, currentPartIndex);
+                            setPopup(null);
+                            window.getSelection()?.removeAllRanges();
+                        }}
+                    >
+                        <MessageSquareQuote size={20} />
+                        <span>Note</span>
+                    </button>
+                    <div className="highlight-popup-divider" />
+                    <button
+                        className="highlight-popup-btn"
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); highlightText(); }}
+                    >
+                        <Highlighter size={20} />
+                        <span>Highlight</span>
+                    </button>
+                </>
+            ) : (
+                <button
+                    className="highlight-popup-btn highlight-popup-btn--danger"
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); clearHighlight(); }}
+                >
+                    <Trash2 size={20} />
+                    <span>Delete Highlight</span>
+                </button>
+            )}
         </div>
     );
 };

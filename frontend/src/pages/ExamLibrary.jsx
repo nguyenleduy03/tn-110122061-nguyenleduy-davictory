@@ -19,6 +19,7 @@ import {
   Timer,
   Target,
   Laptop,
+  Eye,
 } from 'lucide-react';
 import Navbar from '../components/layout/Navbar';
 import { API_CONFIG } from '../config/api';
@@ -144,6 +145,26 @@ const parseResumeFromTimerKey = (storageKey, skill, testId) => {
   };
 };
 
+// Scan sessionStorage for any submitted lock matching skill + testId → return redirectUrl or null
+const getSubmittedResultUrl = (skill, testId) => {
+  if (typeof window === 'undefined') return null;
+  const safeSkill = String(skill || '').toLowerCase();
+  const safeTestId = String(testId || '').trim();
+  if (!safeSkill || !safeTestId) return null;
+
+  // Pattern: ieltsSubmittedLock_{skill}_{testId}_*
+  const prefix = `ieltsSubmittedLock_${safeSkill}_${safeTestId}_`;
+  for (let i = 0; i < sessionStorage.length; i++) {
+    const key = sessionStorage.key(i);
+    if (!key || !key.startsWith(prefix)) continue;
+    try {
+      const payload = JSON.parse(sessionStorage.getItem(key) || '');
+      if (payload && payload.redirectUrl) return { key, redirectUrl: payload.redirectUrl };
+    } catch { /* ignore */ }
+  }
+  return null;
+};
+
 function BookCover({ series, index, small }) {
   const p = COVER_PALETTE[index % COVER_PALETTE.length];
   return (
@@ -241,6 +262,10 @@ function SeriesDetail({ series, index, onBack, fullTestProgress }) {
       const testId = String(skillGroups[skill]?.[0]?.id || '');
       if (!testId) return;
 
+      // Skip resume detection if test has been submitted (submitted lock exists)
+      // In that case, skillSubmittedMap will handle showing "Xem kết quả"
+      if (getSubmittedResultUrl(skill, testId)) return;
+
       const prefix = `ieltsDraft_${skill.toLowerCase()}_`;
       const suffix = `_${testId}`;
       let latest = null;
@@ -299,6 +324,19 @@ function SeriesDetail({ series, index, onBack, fullTestProgress }) {
       }
     });
 
+    return map;
+  }, [available, skillGroups]);
+
+  // Map skill → { key, redirectUrl } for submitted-but-not-reviewed tests
+  const skillSubmittedMap = useMemo(() => {
+    const map = {};
+    if (typeof window === 'undefined') return map;
+    available.forEach((skill) => {
+      const testId = String(skillGroups[skill]?.[0]?.id || '');
+      if (!testId) return;
+      const result = getSubmittedResultUrl(skill, testId);
+      if (result) map[skill] = result;
+    });
     return map;
   }, [available, skillGroups]);
 
@@ -479,6 +517,7 @@ function SeriesDetail({ series, index, onBack, fullTestProgress }) {
         {available.map(skill => {
           const m = SKILL_META[skill];
           const tests = skillGroups[skill];
+          const submitted = skillSubmittedMap[skill];
           return (
             <div key={skill} className="skill-card">
               <div className="skill-card-top">
@@ -489,8 +528,14 @@ function SeriesDetail({ series, index, onBack, fullTestProgress }) {
               <button
                 type="button"
                 className="skill-card-btn"
-                style={{ background: m.btnColor }}
+                style={{ background: submitted ? '#16a34a' : m.btnColor }}
                 onClick={() => {
+                  if (submitted) {
+                    // Navigate to results and clear the lock
+                    sessionStorage.removeItem(submitted.key);
+                    navigate(submitted.redirectUrl);
+                    return;
+                  }
                   const resume = skillResumeMap[skill];
                   if (resume) {
                     const rawQuery = String(resume.queryString || '').replace(/^\?/, '');
@@ -507,7 +552,9 @@ function SeriesDetail({ series, index, onBack, fullTestProgress }) {
                   openSkillModeModal(skill, tests[0].id);
                 }}
               >
-                <Zap size={15} fill="white" color="white" /> {skillResumeMap[skill] ? 'Tiếp tục' : 'Làm bài'}
+                {submitted
+                  ? <><Eye size={15} color="white" /> Xem kết quả</>
+                  : <><Zap size={15} fill="white" color="white" /> {skillResumeMap[skill] ? 'Tiếp tục' : 'Làm bài'}</>}
               </button>
             </div>
           );

@@ -77,3 +77,37 @@ export const clearSubmittedLock = (persistKey) => {
     if (!key) return;
     sessionStorage.removeItem(key);
 };
+
+// Clear all submitted locks related to a specific testId (and optionally skill)
+// Called when the user actually views the results page, so "Xem kết quả" won't re-appear
+// Also clears draft and timer keys so "Tiếp tục" won't appear either
+export const clearSubmittedLockByTest = (testId, skill = '') => {
+    if (typeof window === 'undefined') return;
+    const safeId = sanitizeKeyPart(testId);
+    const safeSkill = sanitizeKeyPart(skill).toLowerCase();
+    if (!safeId) return;
+
+    const sessionKeysToRemove = [];
+    for (let i = 0; i < sessionStorage.length; i++) {
+        const key = sessionStorage.key(i);
+        if (!key) continue;
+        const inner = key.startsWith('ieltsSubmittedLock_') ? key.slice('ieltsSubmittedLock_'.length) : null;
+        if (inner && inner.includes(safeId) && (!safeSkill || inner.startsWith(safeSkill))) {
+            sessionKeysToRemove.push(key);
+        }
+    }
+    sessionKeysToRemove.forEach((key) => sessionStorage.removeItem(key));
+
+    // Also clear draft and timer from localStorage so "Tiếp tục" doesn't appear
+    const localKeysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (!key) continue;
+        const isDraft = key.startsWith('ieltsDraft_') && key.endsWith(`_${safeId}`);
+        const isTimer = key.startsWith('ieltsTimerDeadline_') && key.includes(safeId);
+        if ((isDraft || isTimer) && (!safeSkill || key.includes(safeSkill))) {
+            localKeysToRemove.push(key);
+        }
+    }
+    localKeysToRemove.forEach((key) => localStorage.removeItem(key));
+};

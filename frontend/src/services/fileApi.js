@@ -1,6 +1,7 @@
 import axios from 'axios';
+import { API_CONFIG } from '../config/api';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+const API_BASE_URL = API_CONFIG.BASE_URL;
 
 export const fileApi = {
   /**
@@ -16,9 +17,11 @@ export const fileApi = {
     formData.append('mediaType', mediaType);
     formData.append('module', module);
 
-    const response = await axios.post(`${API_BASE_URL}/api/files/upload`, formData, {
+    const token = localStorage.getItem('authToken');
+    const response = await axios.post(`${API_BASE_URL}/files/upload`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
+        ...(token && { Authorization: `Bearer ${token}` }),
       },
       timeout: 60000, // 60 seconds for large files
     });
@@ -51,7 +54,12 @@ export const fileApi = {
    * Delete file từ Google Drive
    */
   deleteFile: async (fileId) => {
-    const response = await axios.delete(`${API_BASE_URL}/api/files/${fileId}`);
+    const token = localStorage.getItem('authToken');
+    const response = await axios.delete(`${API_BASE_URL}/files/${fileId}`, {
+      headers: {
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+    });
     return response.data;
   },
 };

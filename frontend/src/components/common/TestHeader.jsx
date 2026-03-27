@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Wifi, Bell, Menu, Send, ChevronRight, ChevronLeft, X, Contrast, ZoomIn, Check, LogOut, ArrowLeftRight } from 'lucide-react';
+import { Wifi, Bell, Menu, Send, ChevronRight, ChevronLeft, X, Contrast, ZoomIn, Check, LogOut, ArrowLeftRight, NotebookPen } from 'lucide-react';
 
 const SERIES_LOGO_SRC = {
     IELTS: '/IELTS%20Logo.png',
     Cambridge: '/Cambridge%20Logo.png',
 };
 
-const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isReview, isFullTest, skill, navigate, duration = 0, noTimeLimit = false, onTimeUp, seriesLabel, logoUrl, timerPersistKey }) => {
+const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isReview, isFullTest, skill, navigate, duration = 0, noTimeLimit = false, onTimeUp, seriesLabel, logoUrl, timerPersistKey, timerPaused = false, isNotesOpen = false, onToggleNotes }) => {
     const [isOptionsOpen, setIsOptionsOpen] = useState(false);
-    const [optionsView, setOptionsView] = useState('main'); // 'main', 'contrast', 'text-size'
+    const [optionsView, setOptionsView] = useState('main');
     const [showSubmitModal, setShowSubmitModal] = useState(false);
     const [isFullscreenLocked, setIsFullscreenLocked] = useState(false);
     const [showFullscreenWarning, setShowFullscreenWarning] = useState(false);
@@ -203,6 +203,7 @@ const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isRevie
     useEffect(() => {
         hasTriggeredTimeUpRef.current = false;
 
+        if (timerPaused) return; // Wait until timer is unpaused (e.g. Play pressed in Listening)
         if (noTimeLimit || isReview) {
             if (timerStorageKey) {
                 localStorage.removeItem(timerStorageKey);
@@ -244,9 +245,10 @@ const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isRevie
         }
 
         setTimeLeft(Math.max(0, Math.ceil((deadlineMs - now) / 1000)));
-    }, [duration, noTimeLimit, timerStorageKey, isReview]);
+    }, [duration, noTimeLimit, timerStorageKey, isReview, timerPaused]);
 
     useEffect(() => {
+        if (timerPaused) return; // Don't tick until timer is started
         if (isReview) return;
         if (noTimeLimit) return;
         const safeDuration = Number.isFinite(duration) ? duration : 0;
@@ -294,7 +296,7 @@ const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isRevie
         const timer = setInterval(tick, 1000);
 
         return () => clearInterval(timer);
-    }, [isReview, noTimeLimit, onTimeUp, duration, timerStorageKey]);
+    }, [isReview, noTimeLimit, onTimeUp, duration, timerStorageKey, timerPaused]);
 
     const formatTime = (seconds) => {
         const h = Math.floor(seconds / 3600);
@@ -436,9 +438,19 @@ const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isRevie
                     )}
                     <button className="icon-btn" title="Network status"><Wifi size={22} /></button>
                     <button className="icon-btn" title="Messages"><Bell size={22} /></button>
+                    {!isReview && (
+                        <button
+                            className={`icon-btn${isNotesOpen ? ' icon-btn--active' : ''}`}
+                            title="Notes"
+                            onClick={onToggleNotes}
+                        >
+                            <NotebookPen size={22} />
+                        </button>
+                    )}
                     <button className="icon-btn" title="Options" onClick={() => { setIsOptionsOpen(true); setOptionsView('main'); }}><Menu size={26} /></button>
                 </div>
             </header>
+
 
             {/* ── Submit confirmation modal ── */}
             {showSubmitModal && createPortal(

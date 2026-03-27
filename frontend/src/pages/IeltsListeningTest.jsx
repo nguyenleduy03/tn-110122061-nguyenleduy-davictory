@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { Bookmark, Volume2, ArrowLeftRight, Headphones, Play } from "lucide-react";
+import { Bookmark, Volume2, ArrowLeftRight, Headphones, Play, ArrowLeft, ArrowRight } from "lucide-react";
 import { useSearchParams, useNavigate, useParams } from "react-router-dom";
 import "../styles/ieltsTest.css";
 import TestHeader from "../components/common/TestHeader";
@@ -17,7 +17,29 @@ const IeltsListeningTest = () => {
     const [error, setError] = useState(null);
     const [bookmarks, setBookmarks] = useState({});
     const [scoreInfo, setScoreInfo] = useState(null);
-    const [audioStarted, setAudioStarted] = useState(false);
+    const [audioStarted, setAudioStarted] = useState(() => {
+        // Immediately check if resuming a started session to avoid overlay flash
+        if (typeof window === 'undefined') return false;
+        try {
+            const params = new URLSearchParams(window.location.search);
+            const reviewParam = params.get('review');
+            if (reviewParam === 'true') return true; // review mode: skip overlay
+            const modeParam = params.get('mode') || 'practice';
+            const draftModeKey = modeParam === 'exam' ? 'exam' : 'practice';
+            // Extract testId from URL path /test/listening/:id
+            const pathMatch = window.location.pathname.match(/\/test\/listening\/([^/?]+)/);
+            const testIdFromPath = pathMatch ? pathMatch[1] : '';
+            if (!testIdFromPath) return false;
+            const safeId = testIdFromPath.trim().replace(/[^a-zA-Z0-9_-]+/g, '_').replace(/^_+|_+$/g, '');
+            const key = `ieltsDraft_listening_${draftModeKey}_${safeId}`;
+            const raw = localStorage.getItem(key);
+            if (!raw) return false;
+            const saved = JSON.parse(raw);
+            return Boolean(saved?.audioStarted);
+        } catch {
+            return false;
+        }
+    });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [startTime] = useState(() => Date.now());
     const audioRef = useRef(null);
@@ -490,6 +512,7 @@ const IeltsListeningTest = () => {
                 noTimeLimit={noTimeLimit && !isReview}
                 onTimeUp={submitTest}
                 timerPersistKey={timerPersistKey}
+                timerPaused={!audioStarted && !isReview}
             />
 
             {/* Hidden audio element */}
@@ -531,7 +554,16 @@ const IeltsListeningTest = () => {
             </div>
 
             <main className="ielts-main" style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-                <div className="questions-section" id="questions-area" style={{ width: '100%', padding: '20px 40px', paddingBottom: '80px', margin: '0' }}>
+                <div
+                    className="questions-section"
+                    id="questions-area"
+                    style={{
+                        width: '100%',
+                        minWidth: 0,
+                        padding: '16px clamp(16px, 2.5vw, 40px) 80px',
+                        margin: '0',
+                    }}
+                >
                     {part.passageContent && part.passageContent !== "<p>Nội dung bài đọc chưa được thiết lập.</p>" && (
                         <div
                             className="listening-visuals passage-content"

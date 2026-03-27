@@ -30,6 +30,20 @@ const DropdownGroupQuestion = ({
         />
       )}
 
+      {group.imageUrl && (
+        <div style={{ margin: '16px 0' }}>
+          <img
+            src={group.imageUrl}
+            alt="Question illustration"
+            style={{
+              maxWidth: `${group.imageWidth || 100}%`,
+              height: 'auto',
+              display: 'block',
+            }}
+          />
+        </div>
+      )}
+
       {options.length > 0 && (
         <ul className="mcq-dropdown-legend">
           {options.map((opt) => (

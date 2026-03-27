@@ -1,5 +1,5 @@
 import React from 'react';
-import { Trash2, MousePointerClick } from 'lucide-react';
+import { Trash2, MousePointerClick, ChevronLeft, ChevronRight } from 'lucide-react';
 import RichInput from '../common/RichInput';
 import { toPlainText } from './blocks/shared/blockHelpers';
 
@@ -564,7 +564,7 @@ const QuestionPanel = ({ question, onChange, onDelete }) => {
 };
 
 // ---- Main PropertiesPanel ----
-const PropertiesPanel = ({ selection, onChange, onDelete }) => {
+const PropertiesPanel = ({ selection, onChange, onDelete, collapsed = false, onToggleCollapsed }) => {
   const renderContent = () => {
     if (!selection) {
       return (
@@ -630,7 +630,17 @@ const PropertiesPanel = ({ selection, onChange, onDelete }) => {
   };
 
   return (
-    <aside className="tb-panel">
+    <aside className={`tb-panel${collapsed ? ' collapsed' : ''}`}>
+      <button
+        type="button"
+        className="tb-panel-toggle tb-panel-toggle-right"
+        onClick={onToggleCollapsed}
+        title={collapsed ? 'Hiện bảng thuộc tính' : 'Ẩn bảng thuộc tính'}
+        aria-label={collapsed ? 'Hiện bảng thuộc tính' : 'Ẩn bảng thuộc tính'}
+      >
+        {collapsed ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
+      </button>
+
       <div className="tb-panel-header">
         <div>
           <div className="tb-panel-title">{panelTitle()}</div>

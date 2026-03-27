@@ -2,6 +2,7 @@ com/victory/DAVictory/entity/QuestionHint.class
 com/victory/DAVictory/repository/WritingFeedbackTemplateRepository.class
 com/victory/DAVictory/dto/TestResponse.class
 com/victory/DAVictory/dto/QuestionGroupResponse$AnswerResp.class
+com/victory/DAVictory/dto/TestAttemptResponse.class
 com/victory/DAVictory/repository/SpeakingCueCardRepository.class
 com/victory/DAVictory/dto/QuestionGroupRequest$OptionRequest.class
 com/victory/DAVictory/config/SwaggerConfig.class
@@ -12,6 +13,7 @@ com/victory/DAVictory/entity/QuestionExplanation.class
 com/victory/DAVictory/entity/Role.class
 com/victory/DAVictory/repository/PassageContentRepository.class
 com/victory/DAVictory/service/ExamAttemptService$1.class
+com/victory/DAVictory/dto/SubmitAnswersRequest$QuestionAnswer.class
 com/victory/DAVictory/repository/TestPartRepository.class
 com/victory/DAVictory/service/MediaService.class
 com/victory/DAVictory/service/ExamAttemptService.class
@@ -68,6 +70,7 @@ com/victory/DAVictory/security/CustomUserDetailsService.class
 com/victory/DAVictory/entity/Tag.class
 com/victory/DAVictory/entity/Class.class
 com/victory/DAVictory/entity/StudentProgress.class
+com/victory/DAVictory/controller/TestAttemptController.class
 com/victory/DAVictory/controller/TestSessionController.class
 com/victory/DAVictory/repository/TestSessionRepository.class
 com/victory/DAVictory/dto/TestFullResponse.class
@@ -115,16 +118,20 @@ com/victory/DAVictory/service/GoogleDriveOAuth2Service.class
 com/victory/DAVictory/controller/FullTestProgressController.class
 com/victory/DAVictory/entity/StudentProfile.class
 com/victory/DAVictory/service/TestManagementService.class
+com/victory/DAVictory/dto/TestAttemptRequest.class
 com/victory/DAVictory/controller/ClassManagementController.class
 com/victory/DAVictory/config/TestStructureInitializer.class
 com/victory/DAVictory/repository/AnswerRepository.class
 com/victory/DAVictory/entity/SpeakingScore.class
 com/victory/DAVictory/dto/TestFullResponse$OptionResp.class
+com/victory/DAVictory/service/TestAttemptService.class
 com/victory/DAVictory/config/SecurityConfig.class
 com/victory/DAVictory/controller/WritingController.class
+com/victory/DAVictory/dto/TestResultResponse$SkillResult.class
 com/victory/DAVictory/entity/DifficultyLevel.class
 com/victory/DAVictory/repository/TagRepository.class
 com/victory/DAVictory/dto/RegisterRequest.class
+com/victory/DAVictory/dto/SubmitAnswersRequest.class
 com/victory/DAVictory/entity/ClassStudent.class
 com/victory/DAVictory/dto/UserDTO.class
 com/victory/DAVictory/repository/ExamAttemptRepository.class
@@ -180,6 +187,7 @@ com/victory/DAVictory/config/PublicIpService.class
 com/victory/DAVictory/controller/UserImportController.class
 com/victory/DAVictory/repository/QuestionTagMapRepository.class
 com/victory/DAVictory/service/RoleService.class
+com/victory/DAVictory/dto/TestResultResponse.class
 com/victory/DAVictory/repository/ClassStudentRepository.class
 com/victory/DAVictory/dto/ShuffleTestRequest.class
 com/victory/DAVictory/dto/TestPartResponse.class
@@ -192,6 +200,7 @@ com/victory/DAVictory/repository/QuestionGroupRepository.class
 com/victory/DAVictory/entity/AttemptQuestionTime.class
 com/victory/DAVictory/entity/AttemptAnswer.class
 com/victory/DAVictory/enums/QuestionTypeEnum.class
+com/victory/DAVictory/dto/TestAttemptResponse$SessionAttemptInfo.class
 com/victory/DAVictory/entity/TestQuestionGroup.class
 com/victory/DAVictory/repository/WritingPromptRepository.class
 com/victory/DAVictory/service/FullTestProgressService.class
@@ -199,6 +208,7 @@ com/victory/DAVictory/dto/TestRequest.class
 com/victory/DAVictory/repository/StudentWritingSubmissionRepository.class
 com/victory/DAVictory/dto/TestResponse$SessionSummary.class
 com/victory/DAVictory/dto/QuestionGroupRequest$AnswerRequest.class
+com/victory/DAVictory/dto/TestResultResponse$QuestionResult.class
 com/victory/DAVictory/repository/MediaFileRepository.class
 com/victory/DAVictory/dto/TestSaveRequest$OptionSave.class
 com/victory/DAVictory/entity/MediaFile.class

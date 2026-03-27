@@ -59,58 +59,6 @@ export default function LmsGradeSubmission() {
     return true;
   };
 
-  const buildNextInputValue = (input, insertedText) => {
-    const current = String(input?.value || '');
-    const start = input?.selectionStart ?? current.length;
-    const end = input?.selectionEnd ?? current.length;
-    return `${current.slice(0, start)}${insertedText}${current.slice(end)}`;
-  };
-
-  const handleDecimalKeyDown = (event) => {
-    const { key, currentTarget } = event;
-    const ctrlOrMeta = event.ctrlKey || event.metaKey;
-
-    if (ctrlOrMeta && ['a', 'c', 'v', 'x'].includes(key.toLowerCase())) return;
-    if (['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Home', 'End'].includes(key)) return;
-
-    if (/^[0-9]$/.test(key) || key === '.' || key === ',') {
-      const inserted = key === ',' ? '.' : key;
-      const nextValue = buildNextInputValue(currentTarget, inserted);
-      if (!isValidIeltsBandPartial(nextValue)) {
-        event.preventDefault();
-      }
-      return;
-    }
-
-    event.preventDefault();
-  };
-
-  const handleDecimalBeforeInput = (event) => {
-    if (!event.inputType || !event.inputType.startsWith('insert')) return;
-    const inserted = normalizeDecimalInputText(event.data ?? '');
-    if (!inserted) return;
-
-    const nextValue = buildNextInputValue(event.currentTarget, inserted);
-    if (!isValidIeltsBandPartial(nextValue)) {
-      event.preventDefault();
-    }
-  };
-
-  const handleDecimalPaste = (event) => {
-    event.preventDefault();
-    const pasted = normalizeDecimalInputText(event.clipboardData?.getData('text') || '').trim();
-    if (!pasted) return;
-
-    const input = event.currentTarget;
-    const start = input.selectionStart ?? input.value.length;
-    const end = input.selectionEnd ?? input.value.length;
-    const next = `${input.value.slice(0, start)}${pasted}${input.value.slice(end)}`;
-    if (!isValidIeltsBandPartial(next)) return;
-
-    input.value = next;
-    input.dispatchEvent(new Event('input', { bubbles: true }));
-  };
-
   const handleBandFieldChange = (field) => (event) => {
     const nextValue = normalizeDecimalInputText(event.target.value);
     if (!isValidIeltsBandPartial(nextValue)) return;
@@ -916,9 +864,6 @@ export default function LmsGradeSubmission() {
                       value={grading.taskAchievement}
                       onChange={handleBandFieldChange('taskAchievement')}
                       onBlur={handleBandFieldBlur('taskAchievement')}
-                      onKeyDown={handleDecimalKeyDown}
-                      onBeforeInput={handleDecimalBeforeInput}
-                      onPaste={handleDecimalPaste}
                       placeholder="Task Achievement"
                       style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: 8 }}
                     />
@@ -929,9 +874,6 @@ export default function LmsGradeSubmission() {
                       value={grading.coherenceCohesion}
                       onChange={handleBandFieldChange('coherenceCohesion')}
                       onBlur={handleBandFieldBlur('coherenceCohesion')}
-                      onKeyDown={handleDecimalKeyDown}
-                      onBeforeInput={handleDecimalBeforeInput}
-                      onPaste={handleDecimalPaste}
                       placeholder="Coherence & Cohesion"
                       style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: 8 }}
                     />
@@ -942,9 +884,6 @@ export default function LmsGradeSubmission() {
                       value={grading.lexicalResource}
                       onChange={handleBandFieldChange('lexicalResource')}
                       onBlur={handleBandFieldBlur('lexicalResource')}
-                      onKeyDown={handleDecimalKeyDown}
-                      onBeforeInput={handleDecimalBeforeInput}
-                      onPaste={handleDecimalPaste}
                       placeholder="Lexical Resource"
                       style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: 8 }}
                     />
@@ -955,9 +894,6 @@ export default function LmsGradeSubmission() {
                       value={grading.grammaticalRange}
                       onChange={handleBandFieldChange('grammaticalRange')}
                       onBlur={handleBandFieldBlur('grammaticalRange')}
-                      onKeyDown={handleDecimalKeyDown}
-                      onBeforeInput={handleDecimalBeforeInput}
-                      onPaste={handleDecimalPaste}
                       placeholder="Grammatical Range"
                       style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: 8 }}
                     />

@@ -34,22 +34,22 @@
 
  :: Spring Boot ::                (v4.0.3)
 
-2026-03-27T10:10:52.479+07:00  INFO 786495 --- [DAVictory] [           main] c.v.DAVictory.DaVictoryApplication       : Starting DaVictoryApplication using Java 21.0.10 with PID 786495 (/home/hv/DuAn/DAVictory/backend/target/classes started by hv in /home/hv/DuAn/DAVictory/backend)
-2026-03-27T10:10:52.483+07:00  INFO 786495 --- [DAVictory] [           main] c.v.DAVictory.DaVictoryApplication       : No active profile set, falling back to 1 default profile: "default"
-2026-03-27T10:10:53.706+07:00  INFO 786495 --- [DAVictory] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
-2026-03-27T10:10:53.928+07:00  INFO 786495 --- [DAVictory] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 212 ms. Found 57 JPA repository interfaces.
-2026-03-27T10:10:54.747+07:00  INFO 786495 --- [DAVictory] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 8080 (http)
-2026-03-27T10:10:54.765+07:00  INFO 786495 --- [DAVictory] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
-2026-03-27T10:10:54.765+07:00  INFO 786495 --- [DAVictory] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/11.0.18]
-2026-03-27T10:10:54.827+07:00  INFO 786495 --- [DAVictory] [           main] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 2272 ms
-2026-03-27T10:10:55.099+07:00  INFO 786495 --- [DAVictory] [           main] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
-2026-03-27T10:10:55.164+07:00  INFO 786495 --- [DAVictory] [           main] org.hibernate.orm.core                   : HHH000001: Hibernate ORM core version 7.2.4.Final
-2026-03-27T10:10:55.846+07:00  INFO 786495 --- [DAVictory] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
-2026-03-27T10:10:55.897+07:00  INFO 786495 --- [DAVictory] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
-2026-03-27T10:10:56.200+07:00  INFO 786495 --- [DAVictory] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@45f95ac0
-2026-03-27T10:10:56.203+07:00  INFO 786495 --- [DAVictory] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
-2026-03-27T10:10:56.290+07:00  WARN 786495 --- [DAVictory] [           main] org.hibernate.orm.deprecation            : HHH90000025: MySQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
-2026-03-27T10:10:56.325+07:00  INFO 786495 --- [DAVictory] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+2026-03-27T12:37:52.799+07:00  INFO 12472 --- [DAVictory] [           main] c.v.DAVictory.DaVictoryApplication       : Starting DaVictoryApplication using Java 21.0.10 with PID 12472 (/home/hv/DuAn/DAVictory/backend/target/classes started by hv in /home/hv/DuAn/DAVictory/backend)
+2026-03-27T12:37:52.806+07:00  INFO 12472 --- [DAVictory] [           main] c.v.DAVictory.DaVictoryApplication       : No active profile set, falling back to 1 default profile: "default"
+2026-03-27T12:37:54.390+07:00  INFO 12472 --- [DAVictory] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-03-27T12:37:54.646+07:00  INFO 12472 --- [DAVictory] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 244 ms. Found 57 JPA repository interfaces.
+2026-03-27T12:37:55.771+07:00  INFO 12472 --- [DAVictory] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 8080 (http)
+2026-03-27T12:37:55.806+07:00  INFO 12472 --- [DAVictory] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-03-27T12:37:55.806+07:00  INFO 12472 --- [DAVictory] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/11.0.18]
+2026-03-27T12:37:55.909+07:00  INFO 12472 --- [DAVictory] [           main] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 3005 ms
+2026-03-27T12:37:56.227+07:00  INFO 12472 --- [DAVictory] [           main] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-03-27T12:37:56.341+07:00  INFO 12472 --- [DAVictory] [           main] org.hibernate.orm.core                   : HHH000001: Hibernate ORM core version 7.2.4.Final
+2026-03-27T12:37:57.177+07:00  INFO 12472 --- [DAVictory] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-03-27T12:37:57.259+07:00  INFO 12472 --- [DAVictory] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-03-27T12:37:57.682+07:00  INFO 12472 --- [DAVictory] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@749ee0e3
+2026-03-27T12:37:57.688+07:00  INFO 12472 --- [DAVictory] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-03-27T12:37:57.771+07:00  WARN 12472 --- [DAVictory] [           main] org.hibernate.orm.deprecation            : HHH90000025: MySQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-03-27T12:37:57.799+07:00  INFO 12472 --- [DAVictory] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
 	Database JDBC URL [jdbc:mysql://localhost:3306/DAVictory?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true]
 	Database driver: MySQL Connector/J
 	Database dialect: MySQLDialect
@@ -61,25 +61,496 @@
 	Pool: DataSourceConnectionProvider
 	Minimum pool size: undefined/unknown
 	Maximum pool size: undefined/unknown
-2026-03-27T10:10:59.151+07:00  INFO 786495 --- [DAVictory] [           main] org.hibernate.orm.core                   : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
-2026-03-27T10:10:59.501+07:00  INFO 786495 --- [DAVictory] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
-2026-03-27T10:10:59.612+07:00  INFO 786495 --- [DAVictory] [           main] o.s.d.j.r.query.QueryEnhancerFactories   : Hibernate is in classpath; If applicable, HQL parser will be used.
-2026-03-27T10:11:01.745+07:00  INFO 786495 --- [DAVictory] [           main] c.v.DAVictory.config.PublicIpService     : ✅ Lấy IP từ https://api.ipify.org: 123.22.61.173
-2026-03-27T10:11:01.746+07:00  INFO 786495 --- [DAVictory] [           main] c.v.DAVictory.config.PublicIpService     : 🌐 Public IP đã phát hiện: 123.22.61.173
-2026-03-27T10:11:01.753+07:00  INFO 786495 --- [DAVictory] [           main] c.victory.DAVictory.config.CorsConfig    : 🔓 CORS: Thêm IP public 123.22.61.173 vào allowed origins
-2026-03-27T10:11:01.754+07:00  INFO 786495 --- [DAVictory] [           main] c.victory.DAVictory.config.CorsConfig    : ✅ CORS allowed origins: [http://localhost:5173, http://localhost:3000, http://localhost:80, http://localhost, https://davictory.io.vn, http://davictory.io.vn, http://123.22.61.173:5173, http://123.22.61.173:3000, http://123.22.61.173:80, http://123.22.61.173]
-2026-03-27T10:11:02.421+07:00  INFO 786495 --- [DAVictory] [           main] eAuthenticationProviderManagerConfigurer : Global AuthenticationManager configured with AuthenticationProvider bean with name authenticationProvider
-2026-03-27T10:11:02.421+07:00  WARN 786495 --- [DAVictory] [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with an AuthenticationProvider bean. UserDetailsService beans will not be used by Spring Security for automatically configuring username/password login. Consider removing the AuthenticationProvider bean. Alternatively, consider using the UserDetailsService in a manually instantiated DaoAuthenticationProvider. If the current configuration is intentional, to turn off this warning, increase the logging level of 'org.springframework.security.config.annotation.authentication.configuration.InitializeUserDetailsBeanManagerConfigurer' to ERROR
-2026-03-27T10:11:04.230+07:00  WARN 786495 --- [DAVictory] [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
-2026-03-27T10:11:04.705+07:00  INFO 786495 --- [DAVictory] [           main] o.s.v.b.OptionalValidatorFactoryBean     : Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
-2026-03-27T10:11:06.177+07:00  INFO 786495 --- [DAVictory] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat started on port 8080 (http) with context path '/'
-2026-03-27T10:11:06.191+07:00  INFO 786495 --- [DAVictory] [           main] c.v.DAVictory.DaVictoryApplication       : Started DaVictoryApplication in 14.266 seconds (process running for 14.861)
-2026-03-27T10:11:06.443+07:00  INFO 786495 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    : 🔧 [TestStructureInitializer] Bắt đầu khởi tạo cấu trúc IELTS...
-2026-03-27T10:11:06.458+07:00  INFO 786495 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ DifficultyLevels (5 cấp độ)
-2026-03-27T10:11:06.483+07:00  INFO 786495 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ Sessions (Listening / Reading / Writing / Speaking × Academic & General)
-2026-03-27T10:11:06.591+07:00  INFO 786495 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ Parts (các phần trong mỗi kỹ năng)
-2026-03-27T10:11:06.648+07:00  INFO 786495 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ QuestionTypes (14 loại câu hỏi IELTS)
-2026-03-27T10:11:06.649+07:00  INFO 786495 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    : ✅ [TestStructureInitializer] Hoàn tất khởi tạo cấu trúc IELTS.
-2026-03-27T10:11:12.139+07:00  INFO 786495 --- [DAVictory] [nio-8080-exec-2] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
-2026-03-27T10:11:12.140+07:00  INFO 786495 --- [DAVictory] [nio-8080-exec-2] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
-2026-03-27T10:11:12.142+07:00  INFO 786495 --- [DAVictory] [nio-8080-exec-2] o.s.web.servlet.DispatcherServlet        : Completed initialization in 2 ms
+2026-03-27T12:38:01.194+07:00  INFO 12472 --- [DAVictory] [           main] org.hibernate.orm.core                   : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-03-27T12:38:01.851+07:00  INFO 12472 --- [DAVictory] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-03-27T12:38:02.066+07:00  INFO 12472 --- [DAVictory] [           main] o.s.d.j.r.query.QueryEnhancerFactories   : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-03-27T12:38:04.543+07:00  INFO 12472 --- [DAVictory] [           main] c.v.DAVictory.config.PublicIpService     : ✅ Lấy IP từ https://api.ipify.org: 123.22.61.173
+2026-03-27T12:38:04.544+07:00  INFO 12472 --- [DAVictory] [           main] c.v.DAVictory.config.PublicIpService     : 🌐 Public IP đã phát hiện: 123.22.61.173
+2026-03-27T12:38:04.558+07:00  INFO 12472 --- [DAVictory] [           main] c.victory.DAVictory.config.CorsConfig    : 🔓 CORS: Thêm IP public 123.22.61.173 vào allowed origins
+2026-03-27T12:38:04.560+07:00  INFO 12472 --- [DAVictory] [           main] c.victory.DAVictory.config.CorsConfig    : ✅ CORS allowed origins: [http://localhost:5173, http://localhost:3000, http://localhost:80, http://localhost, https://davictory.io.vn, http://davictory.io.vn, http://123.22.61.173:5173, http://123.22.61.173:3000, http://123.22.61.173:80, http://123.22.61.173]
+2026-03-27T12:38:05.564+07:00  INFO 12472 --- [DAVictory] [           main] eAuthenticationProviderManagerConfigurer : Global AuthenticationManager configured with AuthenticationProvider bean with name authenticationProvider
+2026-03-27T12:38:05.564+07:00  WARN 12472 --- [DAVictory] [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with an AuthenticationProvider bean. UserDetailsService beans will not be used by Spring Security for automatically configuring username/password login. Consider removing the AuthenticationProvider bean. Alternatively, consider using the UserDetailsService in a manually instantiated DaoAuthenticationProvider. If the current configuration is intentional, to turn off this warning, increase the logging level of 'org.springframework.security.config.annotation.authentication.configuration.InitializeUserDetailsBeanManagerConfigurer' to ERROR
+2026-03-27T12:38:08.046+07:00  WARN 12472 --- [DAVictory] [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-03-27T12:38:08.694+07:00  INFO 12472 --- [DAVictory] [           main] o.s.v.b.OptionalValidatorFactoryBean     : Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2026-03-27T12:38:10.533+07:00  INFO 12472 --- [DAVictory] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat started on port 8080 (http) with context path '/'
+2026-03-27T12:38:10.546+07:00  INFO 12472 --- [DAVictory] [           main] c.v.DAVictory.DaVictoryApplication       : Started DaVictoryApplication in 18.899 seconds (process running for 19.504)
+2026-03-27T12:38:11.021+07:00  INFO 12472 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    : 🔧 [TestStructureInitializer] Bắt đầu khởi tạo cấu trúc IELTS...
+2026-03-27T12:38:11.104+07:00  INFO 12472 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ DifficultyLevels (5 cấp độ)
+2026-03-27T12:38:11.162+07:00  INFO 12472 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ Sessions (Listening / Reading / Writing / Speaking × Academic & General)
+2026-03-27T12:38:11.346+07:00  INFO 12472 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ Parts (các phần trong mỗi kỹ năng)
+2026-03-27T12:38:11.445+07:00  INFO 12472 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ QuestionTypes (14 loại câu hỏi IELTS)
+2026-03-27T12:38:11.445+07:00  INFO 12472 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    : ✅ [TestStructureInitializer] Hoàn tất khởi tạo cấu trúc IELTS.
+2026-03-27T12:38:17.205+07:00  INFO 12472 --- [DAVictory] [nio-8080-exec-3] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-03-27T12:38:17.207+07:00  INFO 12472 --- [DAVictory] [nio-8080-exec-3] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-03-27T12:38:17.217+07:00  INFO 12472 --- [DAVictory] [nio-8080-exec-3] o.s.web.servlet.DispatcherServlet        : Completed initialization in 9 ms
+🗑️ Deleting old questions for group: 2142
+✅ Deleted old questions, now creating new ones
+🔍 Saving 3 questions for group: Multiple Choice 1
+📝 Question 1: <div><span style="background-color: rgb(221, 227, 238); color: rgb(0, 0, 0); font-family: Arial, Helvetica, sans-serif; font-size: 14px;">Why did Judy choose to study the East End of London?</span></div> | Answers: 0
+💾 Saving 0 answers for question: <div><span style="background-color: rgb(221, 227, 238); color: rgb(0, 0, 0); font-family: Arial, Helvetica, sans-serif; font-size: 14px;">Why did Judy choose to study the East End of London?</span></div>
+✅ Successfully saved question 1
+📝 Question 2: <span style="color: rgb(0, 0, 0); font-family: Arial, Helvetica, sans-serif; font-size: 14px; background-color: rgb(221, 227, 238);">What was Judy’s main source of materials?</span> | Answers: 0
+💾 Saving 0 answers for question: <span style="color: rgb(0, 0, 0); font-family: Arial, Helvetica, sans-serif; font-size: 14px; background-color: rgb(221, 227, 238);">What was Judy’s main source of materials?</span>
+✅ Successfully saved question 2
+📝 Question 3: <div><span style="background-color: rgb(221, 227, 238); color: rgb(0, 0, 0); font-family: Arial, Helvetica, sans-serif; font-size: 14px;">What difficulty did Judy have with her dissertation?</span></div> | Answers: 0
+💾 Saving 0 answers for question: <div><span style="background-color: rgb(221, 227, 238); color: rgb(0, 0, 0); font-family: Arial, Helvetica, sans-serif; font-size: 14px;">What difficulty did Judy have with her dissertation?</span></div>
+✅ Successfully saved question 3
+🗑️ Deleting old questions for group: 2143
+✅ Deleted old questions, now creating new ones
+🔍 Saving 1 questions for group: Multiple Choice (nhiều) 2
+📝 Question 1: <span style="color: rgb(0, 0, 0); font-family: Arial, Helvetica, sans-serif; font-size: 14px; background-color: rgb(221, 227, 238);">Which&nbsp;</span><strong style="margin: 0px; border: 0px; font-variant-numeric: inherit; font-variant-east-asian: inherit; font-variant-alternates: inherit; font-variant-position: inherit; font-variant-emoji: inherit; font-weight: bold; font-stretch: inherit; font-family: Arial, Helvetica, sans-serif; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 14px; line-height: inherit; text-decoration-line: inherit; background: rgb(221, 227, 238); color: rgb(0, 0, 0); padding: 0px;">THREE</strong><span style="color: rgb(0, 0, 0); font-family: Arial, Helvetica, sans-serif; font-size: 14px; background-color: rgb(221, 227, 238);">&nbsp;things does the Guide to the Library have information about?</span> | Answers: 0
+💾 Saving 0 answers for question: <span style="color: rgb(0, 0, 0); font-family: Arial, Helvetica, sans-serif; font-size: 14px; background-color: rgb(221, 227, 238);">Which&nbsp;</span><strong style="margin: 0px; border: 0px; font-variant-numeric: inherit; font-variant-east-asian: inherit; font-variant-alternates: inherit; font-variant-position: inherit; font-variant-emoji: inherit; font-weight: bold; font-stretch: inherit; font-family: Arial, Helvetica, sans-serif; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 14px; line-height: inherit; text-decoration-line: inherit; background: rgb(221, 227, 238); color: rgb(0, 0, 0); padding: 0px;">THREE</strong><span style="color: rgb(0, 0, 0); font-family: Arial, Helvetica, sans-serif; font-size: 14px; background-color: rgb(221, 227, 238);">&nbsp;things does the Guide to the Library have information about?</span>
+✅ Successfully saved question 1
+🗑️ Deleting old questions for group: 2436
+✅ Deleted old questions, now creating new ones
+🔍 Saving 3 questions for group: Drag Matching 3
+📝 Question 1: <!--StartFragment-->Mary Brown<!--EndFragment--> | Answers: 1
+💾 Saving 1 answers for question: <!--StartFragment-->Mary Brown<!--EndFragment-->
+📝 Answer 1: 'food'
+✅ Saved answer 1 with ID: 10936
+✅ Successfully saved question 1
+📝 Question 2: <!--StartFragment-->Mary Brown1<!--EndFragment--> | Answers: 1
+💾 Saving 1 answers for question: <!--StartFragment-->Mary Brown1<!--EndFragment-->
+📝 Answer 1: 'food2'
+✅ Saved answer 1 with ID: 10937
+✅ Successfully saved question 2
+📝 Question 3: <!--StartFragment-->Mary&nbsp;<!--EndFragment--> | Answers: 1
+💾 Saving 1 answers for question: <!--StartFragment-->Mary&nbsp;<!--EndFragment-->
+📝 Answer 1: 'food3'
+✅ Saved answer 1 with ID: 10938
+✅ Successfully saved question 3
+🗑️ Deleting old questions for group: 2145
+✅ Deleted old questions, now creating new ones
+🔍 Saving 3 questions for group: Map Labelling 4
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: '11'
+✅ Saved answer 1 with ID: 10939
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: '111'
+✅ Saved answer 1 with ID: 10940
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 10941
+✅ Successfully saved question 3
+🗑️ Deleting old questions for group: 2146
+✅ Deleted old questions, now creating new ones
+🔍 Saving 2 questions for group: Note Completion 5
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'cho|bo'
+✅ Saved answer 1 with ID: 10942
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'heo'
+✅ Saved answer 1 with ID: 10943
+✅ Successfully saved question 2
+🗑️ Deleting old questions for group: 2147
+✅ Deleted old questions, now creating new ones
+🔍 Saving 3 questions for group: Table Completion 6
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: '1|one'
+✅ Saved answer 1 with ID: 10944
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'aa'
+✅ Saved answer 1 with ID: 10945
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'ee'
+✅ Saved answer 1 with ID: 10946
+✅ Successfully saved question 3
+🗑️ Deleting old questions for group: 2148
+✅ Deleted old questions, now creating new ones
+🔍 Saving 3 questions for group: Nhóm 7
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'hehe'
+✅ Saved answer 1 with ID: 10947
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'hehe'
+✅ Saved answer 1 with ID: 10948
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 10949
+✅ Successfully saved question 3
+🔍 Saving 2 questions for group: Nhóm 8
+📝 Question 1: cdvcvrvrv&nbsp    [blank]   dfgrgfewfef | Answers: 1
+💾 Saving 1 answers for question: cdvcvrvrv&nbsp    [blank]   dfgrgfewfef
+📝 Answer 1: 'hehe
+'
+✅ Saved answer 1 with ID: 10950
+✅ Successfully saved question 1
+📝 Question 2: feeffffffffffff[blank] | Answers: 0
+💾 Saving 0 answers for question: feeffffffffffff[blank]
+✅ Successfully saved question 2
+🗑️ Deleting old questions for group: 2150
+✅ Deleted old questions, now creating new ones
+🔍 Saving 5 questions for group: Questions 21–25
+📝 Question 1: dcdc | Answers: 1
+💾 Saving 1 answers for question: dcdc
+📝 Answer 1: 'A'
+✅ Saved answer 1 with ID: 10951
+✅ Successfully saved question 1
+📝 Question 2: cdc | Answers: 1
+💾 Saving 1 answers for question: cdc
+📝 Answer 1: 'B'
+✅ Saved answer 1 with ID: 10952
+✅ Successfully saved question 2
+📝 Question 3: cce | Answers: 1
+💾 Saving 1 answers for question: cce
+📝 Answer 1: 'C'
+✅ Saved answer 1 with ID: 10953
+✅ Successfully saved question 3
+📝 Question 4:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 10954
+✅ Successfully saved question 4
+📝 Question 5:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 10955
+✅ Successfully saved question 5
+🗑️ Deleting old questions for group: 2151
+✅ Deleted old questions, now creating new ones
+🔍 Saving 5 questions for group: Image + Note Form 1
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 10956
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 10957
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 10958
+✅ Successfully saved question 3
+📝 Question 4:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 10959
+✅ Successfully saved question 4
+📝 Question 5:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 10960
+✅ Successfully saved question 5
+🔍 Saving 3 questions for group: Multiple Choice 2
+📝 Question 1: sdwfrefr3g5 | Answers: 0
+💾 Saving 0 answers for question: sdwfrefr3g5
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 0
+💾 Saving 0 answers for question: 
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 0
+💾 Saving 0 answers for question: 
+✅ Successfully saved question 3
+🗑️ Deleting old questions for group: 2153
+✅ Deleted old questions, now creating new ones
+🔍 Saving 0 questions for group: Nhóm 3
+🗑️ Deleting old questions for group: 2154
+✅ Deleted old questions, now creating new ones
+🔍 Saving 0 questions for group: Nhóm 1
+🗑️ Deleting old questions for group: 2155
+✅ Deleted old questions, now creating new ones
+🔍 Saving 1 questions for group: Multiple Choice (nhiều) 2
+📝 Question 1: <b>The list below gives some of the advantages of employing older workers.&nbsp;</b><div><b>&nbsp;Which TWO advantages are mentioned by the writer of the text?</b></div> | Answers: 0
+💾 Saving 0 answers for question: <b>The list below gives some of the advantages of employing older workers.&nbsp;</b><div><b>&nbsp;Which TWO advantages are mentioned by the writer of the text?</b></div>
+✅ Successfully saved question 1
+🗑️ Deleting old questions for group: 2156
+✅ Deleted old questions, now creating new ones
+🔍 Saving 0 questions for group: Nhóm 1
+🔍 Saving 3 questions for group: Nhóm 2
+📝 Question 1: Marie Curie’s husband was a joint winner of both Marie’s Nobel Prizes. | Answers: 1
+💾 Saving 1 answers for question: Marie Curie’s husband was a joint winner of both Marie’s Nobel Prizes.
+📝 Answer 1: 'TRUE'
+✅ Saved answer 1 with ID: 10961
+✅ Successfully saved question 1
+📝 Question 2: Marie Curie’s husband was a joint winner of both Marie’s Nobel Prizes. | Answers: 1
+💾 Saving 1 answers for question: Marie Curie’s husband was a joint winner of both Marie’s Nobel Prizes.
+📝 Answer 1: 'FALSE'
+✅ Saved answer 1 with ID: 10962
+✅ Successfully saved question 2
+📝 Question 3: Marie Curie’s husband was a joint winner of both Marie’s Nobel Prizes. | Answers: 1
+💾 Saving 1 answers for question: Marie Curie’s husband was a joint winner of both Marie’s Nobel Prizes.
+📝 Answer 1: 'NOT GIVEN'
+✅ Saved answer 1 with ID: 10963
+✅ Successfully saved question 3
+🗑️ Deleting old questions for group: 2158
+✅ Deleted old questions, now creating new ones
+🔍 Saving 1 questions for group: Note Completion 3
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'cho'
+✅ Saved answer 1 with ID: 10964
+✅ Successfully saved question 1
+🗑️ Deleting old questions for group: 2159
+✅ Deleted old questions, now creating new ones
+🔍 Saving 2 questions for group: Match Headings 4
+📝 Question 1: Section A | Answers: 1
+💾 Saving 1 answers for question: Section A
+📝 Answer 1: 'nvhgd'
+✅ Saved answer 1 with ID: 10965
+✅ Successfully saved question 1
+📝 Question 2: Section B | Answers: 1
+💾 Saving 1 answers for question: Section B
+📝 Answer 1: 'ghcghg'
+✅ Saved answer 1 with ID: 10966
+✅ Successfully saved question 2
+🗑️ Deleting old questions for group: 2160
+✅ Deleted old questions, now creating new ones
+🔍 Saving 0 questions for group: Nhóm 5
+🗑️ Cleaning up unused group: 2518
+🗑️ Cleaning up unused group: 2519
+🗑️ Cleaning up unused group: 2520
+🗑️ Deleting old questions for group: 2142
+✅ Deleted old questions, now creating new ones
+🔍 Saving 3 questions for group: Multiple Choice 1
+📝 Question 1: <div><span style="background-color: rgb(221, 227, 238); color: rgb(0, 0, 0); font-family: Arial, Helvetica, sans-serif; font-size: 14px;">Why did Judy choose to study the East End of London?</span></div> | Answers: 0
+💾 Saving 0 answers for question: <div><span style="background-color: rgb(221, 227, 238); color: rgb(0, 0, 0); font-family: Arial, Helvetica, sans-serif; font-size: 14px;">Why did Judy choose to study the East End of London?</span></div>
+✅ Successfully saved question 1
+📝 Question 2: <span style="color: rgb(0, 0, 0); font-family: Arial, Helvetica, sans-serif; font-size: 14px; background-color: rgb(221, 227, 238);">What was Judy’s main source of materials?</span> | Answers: 0
+💾 Saving 0 answers for question: <span style="color: rgb(0, 0, 0); font-family: Arial, Helvetica, sans-serif; font-size: 14px; background-color: rgb(221, 227, 238);">What was Judy’s main source of materials?</span>
+✅ Successfully saved question 2
+📝 Question 3: <div><span style="background-color: rgb(221, 227, 238); color: rgb(0, 0, 0); font-family: Arial, Helvetica, sans-serif; font-size: 14px;">What difficulty did Judy have with her dissertation?</span></div> | Answers: 0
+💾 Saving 0 answers for question: <div><span style="background-color: rgb(221, 227, 238); color: rgb(0, 0, 0); font-family: Arial, Helvetica, sans-serif; font-size: 14px;">What difficulty did Judy have with her dissertation?</span></div>
+✅ Successfully saved question 3
+🗑️ Deleting old questions for group: 2143
+✅ Deleted old questions, now creating new ones
+🔍 Saving 1 questions for group: Multiple Choice (nhiều) 2
+📝 Question 1: <span style="color: rgb(0, 0, 0); font-family: Arial, Helvetica, sans-serif; font-size: 14px; background-color: rgb(221, 227, 238);">Which&nbsp;</span><strong style="margin: 0px; border: 0px; font-variant-numeric: inherit; font-variant-east-asian: inherit; font-variant-alternates: inherit; font-variant-position: inherit; font-variant-emoji: inherit; font-weight: bold; font-stretch: inherit; font-family: Arial, Helvetica, sans-serif; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 14px; line-height: inherit; text-decoration-line: inherit; background: rgb(221, 227, 238); color: rgb(0, 0, 0); padding: 0px;">THREE</strong><span style="color: rgb(0, 0, 0); font-family: Arial, Helvetica, sans-serif; font-size: 14px; background-color: rgb(221, 227, 238);">&nbsp;things does the Guide to the Library have information about?</span> | Answers: 0
+💾 Saving 0 answers for question: <span style="color: rgb(0, 0, 0); font-family: Arial, Helvetica, sans-serif; font-size: 14px; background-color: rgb(221, 227, 238);">Which&nbsp;</span><strong style="margin: 0px; border: 0px; font-variant-numeric: inherit; font-variant-east-asian: inherit; font-variant-alternates: inherit; font-variant-position: inherit; font-variant-emoji: inherit; font-weight: bold; font-stretch: inherit; font-family: Arial, Helvetica, sans-serif; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 14px; line-height: inherit; text-decoration-line: inherit; background: rgb(221, 227, 238); color: rgb(0, 0, 0); padding: 0px;">THREE</strong><span style="color: rgb(0, 0, 0); font-family: Arial, Helvetica, sans-serif; font-size: 14px; background-color: rgb(221, 227, 238);">&nbsp;things does the Guide to the Library have information about?</span>
+✅ Successfully saved question 1
+🗑️ Deleting old questions for group: 2436
+✅ Deleted old questions, now creating new ones
+🔍 Saving 3 questions for group: Drag Matching 3
+📝 Question 1: <!--StartFragment-->Mary Brown<!--EndFragment--> | Answers: 1
+💾 Saving 1 answers for question: <!--StartFragment-->Mary Brown<!--EndFragment-->
+📝 Answer 1: 'food'
+✅ Saved answer 1 with ID: 10967
+✅ Successfully saved question 1
+📝 Question 2: <!--StartFragment-->Mary Brown1<!--EndFragment--> | Answers: 1
+💾 Saving 1 answers for question: <!--StartFragment-->Mary Brown1<!--EndFragment-->
+📝 Answer 1: 'food2'
+✅ Saved answer 1 with ID: 10968
+✅ Successfully saved question 2
+📝 Question 3: <!--StartFragment-->Mary&nbsp;<!--EndFragment--> | Answers: 1
+💾 Saving 1 answers for question: <!--StartFragment-->Mary&nbsp;<!--EndFragment-->
+📝 Answer 1: 'food3'
+✅ Saved answer 1 with ID: 10969
+✅ Successfully saved question 3
+🗑️ Deleting old questions for group: 2145
+✅ Deleted old questions, now creating new ones
+🔍 Saving 3 questions for group: Map Labelling 4
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: '11'
+✅ Saved answer 1 with ID: 10970
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: '111'
+✅ Saved answer 1 with ID: 10971
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 10972
+✅ Successfully saved question 3
+🗑️ Deleting old questions for group: 2146
+✅ Deleted old questions, now creating new ones
+🔍 Saving 2 questions for group: Note Completion 5
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'cho|bo'
+✅ Saved answer 1 with ID: 10973
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'heo'
+✅ Saved answer 1 with ID: 10974
+✅ Successfully saved question 2
+🗑️ Deleting old questions for group: 2147
+✅ Deleted old questions, now creating new ones
+🔍 Saving 3 questions for group: Table Completion 6
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: '1|one'
+✅ Saved answer 1 with ID: 10975
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'aa'
+✅ Saved answer 1 with ID: 10976
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'ee'
+✅ Saved answer 1 with ID: 10977
+✅ Successfully saved question 3
+🗑️ Deleting old questions for group: 2148
+✅ Deleted old questions, now creating new ones
+🔍 Saving 3 questions for group: Nhóm 7
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'hehe'
+✅ Saved answer 1 with ID: 10978
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'hehe'
+✅ Saved answer 1 with ID: 10979
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 10980
+✅ Successfully saved question 3
+🔍 Saving 2 questions for group: Nhóm 8
+📝 Question 1: cdvcvrvrv&nbsp    [blank]   dfgrgfewfef | Answers: 1
+💾 Saving 1 answers for question: cdvcvrvrv&nbsp    [blank]   dfgrgfewfef
+📝 Answer 1: 'hehe
+'
+✅ Saved answer 1 with ID: 10981
+✅ Successfully saved question 1
+📝 Question 2: feeffffffffffff[blank] | Answers: 0
+💾 Saving 0 answers for question: feeffffffffffff[blank]
+✅ Successfully saved question 2
+🗑️ Deleting old questions for group: 2150
+✅ Deleted old questions, now creating new ones
+🔍 Saving 5 questions for group: Questions 21–25
+📝 Question 1: dcdc | Answers: 1
+💾 Saving 1 answers for question: dcdc
+📝 Answer 1: 'A'
+✅ Saved answer 1 with ID: 10982
+✅ Successfully saved question 1
+📝 Question 2: cdc | Answers: 1
+💾 Saving 1 answers for question: cdc
+📝 Answer 1: 'B'
+✅ Saved answer 1 with ID: 10983
+✅ Successfully saved question 2
+📝 Question 3: cce | Answers: 1
+💾 Saving 1 answers for question: cce
+📝 Answer 1: 'C'
+✅ Saved answer 1 with ID: 10984
+✅ Successfully saved question 3
+📝 Question 4:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 10985
+✅ Successfully saved question 4
+📝 Question 5:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 10986
+✅ Successfully saved question 5
+🗑️ Deleting old questions for group: 2151
+✅ Deleted old questions, now creating new ones
+🔍 Saving 5 questions for group: Image + Note Form 1
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 10987
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 10988
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 10989
+✅ Successfully saved question 3
+📝 Question 4:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 10990
+✅ Successfully saved question 4
+📝 Question 5:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 10991
+✅ Successfully saved question 5
+🔍 Saving 3 questions for group: Multiple Choice 2
+📝 Question 1: sdwfrefr3g5 | Answers: 0
+💾 Saving 0 answers for question: sdwfrefr3g5
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 0
+💾 Saving 0 answers for question: 
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 0
+💾 Saving 0 answers for question: 
+✅ Successfully saved question 3
+🗑️ Deleting old questions for group: 2153
+✅ Deleted old questions, now creating new ones
+🔍 Saving 0 questions for group: Nhóm 3
+🗑️ Deleting old questions for group: 2154
+✅ Deleted old questions, now creating new ones
+🔍 Saving 0 questions for group: Nhóm 1
+🗑️ Deleting old questions for group: 2155
+✅ Deleted old questions, now creating new ones
+🔍 Saving 1 questions for group: Multiple Choice (nhiều) 2
+📝 Question 1: <b>The list below gives some of the advantages of employing older workers.&nbsp;</b><div><b>&nbsp;Which TWO advantages are mentioned by the writer of the text?</b></div> | Answers: 0
+💾 Saving 0 answers for question: <b>The list below gives some of the advantages of employing older workers.&nbsp;</b><div><b>&nbsp;Which TWO advantages are mentioned by the writer of the text?</b></div>
+✅ Successfully saved question 1
+🗑️ Deleting old questions for group: 2156
+✅ Deleted old questions, now creating new ones
+🔍 Saving 0 questions for group: Nhóm 1
+🔍 Saving 3 questions for group: Nhóm 2
+📝 Question 1: Marie Curie’s husband was a joint winner of both Marie’s Nobel Prizes. | Answers: 1
+💾 Saving 1 answers for question: Marie Curie’s husband was a joint winner of both Marie’s Nobel Prizes.
+📝 Answer 1: 'TRUE'
+✅ Saved answer 1 with ID: 10992
+✅ Successfully saved question 1
+📝 Question 2: Marie Curie’s husband was a joint winner of both Marie’s Nobel Prizes. | Answers: 1
+💾 Saving 1 answers for question: Marie Curie’s husband was a joint winner of both Marie’s Nobel Prizes.
+📝 Answer 1: 'FALSE'
+✅ Saved answer 1 with ID: 10993
+✅ Successfully saved question 2
+📝 Question 3: Marie Curie’s husband was a joint winner of both Marie’s Nobel Prizes. | Answers: 1
+💾 Saving 1 answers for question: Marie Curie’s husband was a joint winner of both Marie’s Nobel Prizes.
+📝 Answer 1: 'NOT GIVEN'
+✅ Saved answer 1 with ID: 10994
+✅ Successfully saved question 3
+🗑️ Deleting old questions for group: 2158
+✅ Deleted old questions, now creating new ones
+🔍 Saving 1 questions for group: Note Completion 3
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'cho'
+✅ Saved answer 1 with ID: 10995
+✅ Successfully saved question 1
+🗑️ Deleting old questions for group: 2159
+✅ Deleted old questions, now creating new ones
+🔍 Saving 2 questions for group: Match Headings 4
+📝 Question 1: Section A | Answers: 1
+💾 Saving 1 answers for question: Section A
+📝 Answer 1: 'nvhgd'
+✅ Saved answer 1 with ID: 10996
+✅ Successfully saved question 1
+📝 Question 2: Section B | Answers: 1
+💾 Saving 1 answers for question: Section B
+📝 Answer 1: 'ghcghg'
+✅ Saved answer 1 with ID: 10997
+✅ Successfully saved question 2
+🗑️ Deleting old questions for group: 2160
+✅ Deleted old questions, now creating new ones
+🔍 Saving 0 questions for group: Nhóm 5

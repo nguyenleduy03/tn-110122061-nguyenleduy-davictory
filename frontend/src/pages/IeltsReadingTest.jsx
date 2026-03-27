@@ -8,10 +8,12 @@ import { useDividerResize } from "../hooks/useDividerResize";
 import { useTestNavigation } from "../hooks/useTestNavigation";
 import { ieltsApi } from "../services/ieltsApi";
 import TextHighlighter from "../components/common/TextHighlighter";
+import NotesPanel from "../components/common/NotesPanel";
 import { createPortal } from "react-dom";
 import { formatTextWithWhitespace } from "../utils/textFormatters";
 import { computeFullTestProgressPercent, getFullTestSessionState, parseJsonSafe } from "../utils/fullTestProgress";
 import { buildTimerPersistKey, clearDraftByTest, markTestSubmitted, getSubmittedRedirect } from "../utils/testRuntimeState";
+import { useNotes } from "../hooks/useNotes";
 
 const HeadingGap = ({ qId, number, answer, correctAnswer, handleAnswerChange, isActive, setActiveQuestion, bookmarks, toggleBookmark, isReview }) => {
     const handleDragOver = (e) => { if (isReview) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
@@ -215,6 +217,8 @@ const IeltsReadingTest = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const { id: testId } = useParams();
+    const { notes, addNote, deleteNote } = useNotes('reading', testId);
+    const [isNotesOpen, setIsNotesOpen] = useState(false);
     const isFullTest = searchParams.get('fullTest') === 'true';
     const mode = searchParams.get('mode') || 'practice';
     const isReview = searchParams.get('review') === 'true';
@@ -689,6 +693,8 @@ const IeltsReadingTest = () => {
                 duration={testData?.totalMinutes}
                 onTimeUp={submitTest}
                 timerPersistKey={timerPersistKey}
+                isNotesOpen={isNotesOpen}
+                onToggleNotes={() => setIsNotesOpen(v => !v)}
             />
 
             <div className="instruction-bar">
@@ -826,14 +832,14 @@ const IeltsReadingTest = () => {
 
                     <div className="pane-nav-buttons">
                         <button className="black-nav-btn" onClick={goPrev} disabled={isFirstQuestion} style={{ opacity: isFirstQuestion ? 0.5 : 1 }}>
-                            <ArrowLeft size={24} color="white" />
+                            <span className="nav-arrow-fallback" aria-hidden="true">&#8592;</span>
                         </button>
                         <button className="black-nav-btn" onClick={goNext} disabled={isLastQuestion} style={{ opacity: isLastQuestion ? 0.5 : 1 }}>
-                            <ArrowRight size={24} color="white" />
+                            <span className="nav-arrow-fallback" aria-hidden="true">&#8594;</span>
                         </button>
                     </div>
                 </div>
-                <TextHighlighter containerRef={containerRef} onHighlightChange={handleHighlightChange} />
+                <TextHighlighter containerRef={containerRef} onHighlightChange={handleHighlightChange} onAddNote={addNote} currentPartIndex={currentPartIndex} />
             </main>
 
             <footer className="ielts-footer">
@@ -919,6 +925,24 @@ const IeltsReadingTest = () => {
                     })}
                 </div>
             </footer>
+
+            {/* Notes Panel — rendered directly to avoid prop-drilling through TestHeader */}
+            {isNotesOpen && (
+                <NotesPanel
+                    notes={notes}
+                    onDelete={deleteNote}
+                    onClose={() => setIsNotesOpen(false)}
+                    onNoteClick={(note, scrollFn) => {
+                        // Navigate to the part the note was created in, then scroll to text
+                        if (Number.isFinite(note.partIndex) && note.partIndex !== currentPartIndex) {
+                            setCurrentPartIndex(note.partIndex);
+                            setTimeout(scrollFn, 300);
+                        } else {
+                            scrollFn();
+                        }
+                    }}
+                />
+            )}
         </div>
     );
 };

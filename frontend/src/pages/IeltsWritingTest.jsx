@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { ArrowLeftRight } from "lucide-react";
+import { ArrowLeftRight, ArrowLeft, ArrowRight } from "lucide-react";
 import { useSearchParams, useNavigate, useParams } from "react-router-dom";
 import "../styles/ieltsTest.css";
 import TestHeader from "../components/common/TestHeader";
@@ -166,18 +166,19 @@ const IeltsWritingTest = () => {
                     ...data,
                     parts: configuredParts,
                 };
+            }
 
-                if (Number.isFinite(durationOverrideMinutes) && durationOverrideMinutes > 0) {
-                    configuredData = {
-                        ...configuredData,
-                        totalMinutes: durationOverrideMinutes,
-                    };
-                } else if (noTimeLimit) {
-                    configuredData = {
-                        ...configuredData,
-                        totalMinutes: 0,
-                    };
-                }
+            // Apply duration override for ALL modes (practice & exam)
+            if (Number.isFinite(durationOverrideMinutes) && durationOverrideMinutes > 0) {
+                configuredData = {
+                    ...configuredData,
+                    totalMinutes: durationOverrideMinutes,
+                };
+            } else if (noTimeLimit) {
+                configuredData = {
+                    ...configuredData,
+                    totalMinutes: 0,
+                };
             }
 
             const resolvedStartPartIndex = Number.isFinite(startPartNumber) && startPartNumber > 0

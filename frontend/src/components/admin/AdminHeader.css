@@ -2,10 +2,16 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 16px;
   padding: 16px 24px;
   background: white;
   border-bottom: 1px solid #e5e7eb;
   margin-bottom: 24px;
+}
+
+.admin-header-left {
+  min-width: 0;
 }
 
 .admin-header-left h1 {
@@ -19,6 +25,8 @@
   display: flex;
   align-items: center;
   gap: 16px;
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 .user-info {
@@ -83,4 +91,22 @@
 .logout-btn:hover {
   background: #fef2f2;
   color: #dc2626;
+}
+
+@media (max-width: 640px) {
+  .admin-header {
+    padding: 14px 16px;
+    align-items: flex-start;
+  }
+
+  .admin-header-right {
+    width: 100%;
+    justify-content: space-between;
+    margin-left: 0;
+  }
+
+  .user-info {
+    flex: 1;
+    min-width: 0;
+  }
 }

@@ -209,15 +209,19 @@ const BuilderHeader = ({
               <Save size={15} /><span>{saving ? 'Đang lưu...' : 'Lưu'}</span>
             </button>
             {onToggleAutoSave && (
-              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer', padding: '0 8px' }}>
-                <input 
-                  type="checkbox" 
-                  checked={autoSaveEnabled} 
-                  onChange={onToggleAutoSave}
-                  style={{ cursor: 'pointer' }}
-                />
-                <span>Tự động lưu</span>
-              </label>
+              <button 
+                className={`tb-tool-btn ${autoSaveEnabled ? 'tb-tool-btn-active' : ''}`}
+                onClick={onToggleAutoSave}
+                title={autoSaveEnabled ? 'Tắt tự động lưu' : 'Bật tự động lưu'}
+                style={{ 
+                  background: autoSaveEnabled ? '#dcfce7' : 'transparent',
+                  color: autoSaveEnabled ? '#15803d' : '#6b7280',
+                  border: autoSaveEnabled ? '1px solid #86efac' : '1px solid #e5e7eb'
+                }}
+              >
+                <Save size={15} style={{ opacity: autoSaveEnabled ? 1 : 0.5 }} />
+                <span>Tự động</span>
+              </button>
             )}
             {test.status === 'DRAFT' && (
               <button className="tb-tool-btn tb-tool-btn-success" onClick={onSubmitReview} title="Gửi kiểm duyệt">
@@ -347,35 +351,10 @@ const BuilderHeader = ({
       )}
 
       {/* Nút mũi tên ở giữa */}
-      <div style={{ 
-        textAlign: 'center', 
-        background: 'linear-gradient(to bottom, #f1f5f9, #e2e8f0)',
-        borderTop: '1px solid #cbd5e1'
-      }}>
+      <div className="tb-ribbon-toggle-wrap">
         <button
+          className="tb-ribbon-toggle-btn"
           onClick={onToggleFormatToolbar}
-          style={{
-            width: 36,
-            height: 16,
-            background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
-            border: 'none',
-            borderRadius: '0 0 6px 6px',
-            cursor: 'pointer',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#fff',
-            boxShadow: '0 2px 4px rgba(59, 130, 246, 0.3)',
-            transition: 'all 0.2s',
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.background = 'linear-gradient(135deg, #2563eb, #1d4ed8)';
-            e.target.style.transform = 'scale(1.05)';
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.background = 'linear-gradient(135deg, #3b82f6, #2563eb)';
-            e.target.style.transform = 'scale(1)';
-          }}
           title={showFormatToolbar ? 'Ẩn thanh công cụ' : 'Hiện thanh công cụ'}
         >
           {showFormatToolbar ? <ChevronUp size={12} /> : <ChevronDown size={12} />}

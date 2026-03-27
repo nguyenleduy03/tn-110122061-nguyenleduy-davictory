@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
   DndContext,
   DragOverlay,
@@ -118,6 +118,7 @@ const initialSessions = () =>
 // ---- Main Component ----
 const TestBuilder = () => {
   const { id: editTestId } = useParams(); // /teacher/tests/:id/edit
+  const navigate = useNavigate();
 
   const [test, setTest] = useState({
     title: '',
@@ -128,12 +129,6 @@ const TestBuilder = () => {
     isFullTest: true,
     durationMinutes: 165,
     targetBand: '6.5',
-    sessionDurations: {
-      LISTENING: 30,
-      READING: 60,
-      WRITING: 60,
-      SPEAKING: 12,
-    },
   });
 
   // parts per skill key
@@ -156,6 +151,8 @@ const TestBuilder = () => {
   const [saveMessage, setSaveMessage] = useState('');
   const [roleError, setRoleError] = useState(false);
   const [showFormatToolbar, setShowFormatToolbar] = useState(true);
+  const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false);
+  const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false);
   const lastAutoSaveSnapshotRef = useRef(JSON.stringify({ test, sessions }));
   const autoSaveTimerRef = useRef(null);
 
@@ -194,12 +191,6 @@ const TestBuilder = () => {
             return merged;
           });
           setSavedTestId(testId);
-          
-          // Set activeSkill dựa trên loại đề
-          if (!loadedTest.isFullTest && loadedTest.singleSkill) {
-            setActiveSkill(loadedTest.singleSkill);
-          }
-          
           lastAutoSaveSnapshotRef.current = JSON.stringify({ test: nextTest, sessions: nextSessions });
         }
       } catch (err) {
@@ -1074,6 +1065,10 @@ const TestBuilder = () => {
       setSavedTestId(result.id);
       lastAutoSaveSnapshotRef.current = JSON.stringify({ test, sessions });
       setSaveMessage('Đã lưu đề thi thành công!');
+      
+      // Chuyển đến trang chỉnh sửa đề vừa lưu
+      navigate(`/teacher/tests/${result.id}/edit`, { replace: true });
+      
       setTimeout(() => setSaveMessage(''), 3000);
     } catch (err) {
       console.error('Lỗi lưu đề thi:', err);
@@ -1085,7 +1080,7 @@ const TestBuilder = () => {
     } finally {
       setSaving(false);
     }
-  }, [sessions, savedTestId, structure, test]);
+  }, [sessions, savedTestId, structure, test, navigate]);
 
   useEffect(() => {
     if (!autoSaveEnabled || roleError || saving) return undefined;
@@ -1224,6 +1219,24 @@ const TestBuilder = () => {
           onToggleFormatToolbar={() => setShowFormatToolbar(!showFormatToolbar)}
         />
 
+        {leftSidebarCollapsed && (
+          <div
+            className="tb-hover-zone tb-hover-zone-left"
+            onMouseEnter={() => setLeftSidebarCollapsed(false)}
+            title="Hiện thanh thành phần"
+            aria-hidden="true"
+          />
+        )}
+
+        {rightPanelCollapsed && (
+          <div
+            className="tb-hover-zone tb-hover-zone-right"
+            onMouseEnter={() => setRightPanelCollapsed(false)}
+            title="Hiện bảng thuộc tính"
+            aria-hidden="true"
+          />
+        )}
+
         <div className="tb-workspace">
           <ErrorBoundary>
             <DndContext
@@ -1253,9 +1266,19 @@ const TestBuilder = () => {
                   activeSessionKey={activeSkill}
                   selection={selection}
                   enabledSkills={enabledSkills}
+                  collapsed={leftSidebarCollapsed}
+                  onToggleCollapsed={() => setLeftSidebarCollapsed((prev) => !prev)}
                   onSelectSession={(key) => { setActiveSkill(key); setSelection(null); }}
                   onSelectPart={(p) => setSelection({ type: 'part', data: p })}
                   onSelectGroup={(g) => setSelection({ type: 'group', data: { ...g } })}
+                  onUpdateSessionTime={(skillKey, minutes) => {
+                    setSessions(prev => ({
+                      ...prev,
+                      [skillKey]: (prev[skillKey] || []).map((part, idx) => 
+                        idx === 0 ? { ...part, durationMinutes: minutes } : part
+                      )
+                    }));
+                  }}
                 />
               </ErrorBoundary>
 
@@ -1313,16 +1336,6 @@ const TestBuilder = () => {
                   onAddQuestion={(group) => addQuestion(group)}
                   onAddGroup={(part, contentType) => addGroup(part, contentType)}
                   onAddPart={addPart}
-                  sessionDuration={test.sessionDurations?.[activeSkill]}
-                  onUpdateSessionTime={(skillKey, minutes) => {
-                    setTest(prev => ({
-                      ...prev,
-                      sessionDurations: {
-                        ...prev.sessionDurations,
-                        [skillKey]: minutes
-                      }
-                    }));
-                  }}
                 />
               </ErrorBoundary>
 
@@ -1350,6 +1363,8 @@ const TestBuilder = () => {
               selection={selection}
               onChange={handlePanelChange}
               onDelete={handlePanelDelete}
+              collapsed={rightPanelCollapsed}
+              onToggleCollapsed={() => setRightPanelCollapsed((prev) => !prev)}
             />
           </ErrorBoundary>
         </div>

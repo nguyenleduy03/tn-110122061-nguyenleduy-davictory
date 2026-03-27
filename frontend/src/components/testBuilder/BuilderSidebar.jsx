@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import {
   Headphones,
@@ -9,6 +9,9 @@ import {
   ClipboardList,
   CheckCircle2,
   List,
+  GripVertical,
+  ChevronLeft,
+  ChevronRight,
   Image as ImageIcon,
 } from 'lucide-react';
 
@@ -87,6 +90,41 @@ const TYPE_META = {
   CUSTOM:                { label: 'CT', bg: '#fff7ed', color: '#c2410c' },
 };
 
+const PALETTE_ORDER = {
+  READING_PASSAGE: 10,
+  AUDIO_TRANSCRIPT: 10,
+  STANDALONE: 15,
+  WRITING_TASK: 15,
+  SPEAKING_INTERVIEW: 15,
+  SPEAKING_CUECARD: 16,
+  SPEAKING_DISCUSSION: 17,
+  MATCHING_HEADING: 20,
+  MATCHING_FEATURES: 21,
+  MATCHING_FILLABLE: 22,
+  MATCHING_HEADINGS_FILLABLE: 23,
+  DRAG_MATCHING: 24,
+  TABLE: 30,
+  TABLE_COMPLETION: 31,
+  DIAGRAM: 32,
+  FLOW_CHART: 33,
+  MAP: 34,
+  MAP_LABELLING: 35,
+  IMAGE_NOTE_FORM: 36,
+  MULTIPLE_CHOICE_GROUP: 40,
+  MULTIPLE_CHOICE_MULTI: 41,
+  SHARED_OPTIONS_DROPDOWN: 42,
+  NOTE_COMPLETION: 43,
+  NOTE_COMPLETION_DRAG: 44,
+  SUMMARY_COMPLETION_SELECT: 45,
+  SUMMARY_COMPLETION_DRAG: 46,
+  SENTENCE_COMPLETION: 50,
+  SENTENCE_COMPLETION_DRAG: 51,
+  SHORT_ANSWER_GROUP: 52,
+  FILL_BLANK_DRAG: 53,
+  TRUE_FALSE_NG: 60,
+  CUSTOM: 90,
+};
+
 const toTreePlainText = (value) => {
   if (!value) return '';
   if (typeof value !== 'string') return String(value);
@@ -141,6 +179,7 @@ function DraggablePaletteItem({ item }) {
         }}>
         <span className="tb-palette-item-icon">{Icon ? <Icon size={15} strokeWidth={2} /> : null}</span>
         <span className="tb-palette-item-label">{item.label}</span>
+        <span className="tb-palette-item-drag-hint" aria-hidden="true"><GripVertical size={13} /></span>
       </div>
     );
   } catch (error) {
@@ -153,9 +192,23 @@ function DraggablePaletteItem({ item }) {
   }
 }
 
-const BuilderSidebar = ({ parts, sessions, activeSessionKey, selection, onSelectSession, onSelectPart, onSelectGroup, enabledSkills }) => {
+const BuilderSidebar = ({
+  parts,
+  sessions,
+  activeSessionKey,
+  selection,
+  onSelectSession,
+  onSelectPart,
+  onSelectGroup,
+  enabledSkills,
+  collapsed = false,
+  onToggleCollapsed,
+}) => {
   const [openParts, setOpenParts] = useState({});
   const [paletteQuery, setPaletteQuery] = useState('');
+  const [splitRatio, setSplitRatio] = useState(62);
+  const splitRef = useRef(null);
+  const draggingRef = useRef(false);
 
   const togglePart = (partId) => setOpenParts((prev) => ({ ...prev, [partId]: !prev[partId] }));
 
@@ -177,8 +230,58 @@ const BuilderSidebar = ({ parts, sessions, activeSessionKey, selection, onSelect
     });
   }, [activeSessionKey, paletteQuery]);
 
+  const sortedPalette = useMemo(() => {
+    return [...filteredPalette].sort((a, b) => {
+      const orderA = PALETTE_ORDER[a.contentType] ?? 999;
+      const orderB = PALETTE_ORDER[b.contentType] ?? 999;
+      if (orderA !== orderB) return orderA - orderB;
+      return a.label.localeCompare(b.label, 'vi');
+    });
+  }, [filteredPalette]);
+
+  useEffect(() => {
+    if (!draggingRef.current) return undefined;
+
+    const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
+      const updateRatioFromEvent = (clientY) => {
+      const el = splitRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const next = ((clientY - rect.top) / rect.height) * 100;
+        setSplitRatio(clamp(next, 3, 97));
+    };
+
+    const onMove = (event) => updateRatioFromEvent(event.clientY);
+    const onUp = () => {
+      draggingRef.current = false;
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      document.body.classList.remove('tb-split-dragging');
+    };
+
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      document.body.classList.remove('tb-split-dragging');
+    };
+  }, [splitRatio]);
+
   return (
-    <aside className="tb-sidebar">
+    <aside className={`tb-sidebar${collapsed ? ' collapsed' : ''}`}>
+      <button
+        type="button"
+        className="tb-panel-toggle tb-panel-toggle-left"
+        onClick={onToggleCollapsed}
+        title={collapsed ? 'Hiện thanh thành phần' : 'Ẩn thanh thành phần'}
+        aria-label={collapsed ? 'Hiện thanh thành phần' : 'Ẩn thanh thành phần'}
+      >
+        {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+      </button>
+
       {/* Skill tabs */}
       <div className="tb-skill-tabs">
         {SESSIONS.filter(s => !enabledSkills || enabledSkills.includes(s.key)).map((s) => {
@@ -204,8 +307,9 @@ const BuilderSidebar = ({ parts, sessions, activeSessionKey, selection, onSelect
         })}
       </div>
 
+      <div className="tb-sidebar-split" ref={splitRef}>
       {/* Structure tree */}
-      <div className="tb-tree">
+      <div className="tb-tree" style={{ flex: `0 0 ${splitRatio}%` }}>
         <div className="tb-tree-section-label">Cấu trúc đề</div>
         {(parts ?? []).map((part) => {
           const isPartOpen   = openParts[part.id] !== false; // default open
@@ -244,8 +348,27 @@ const BuilderSidebar = ({ parts, sessions, activeSessionKey, selection, onSelect
         )}
       </div>
 
+      <div
+        className="tb-sidebar-split-handle"
+        role="separator"
+        aria-orientation="vertical"
+        title="Kéo lên/xuống để đổi chiều cao"
+        onPointerDown={(e) => {
+          draggingRef.current = true;
+          document.body.classList.add('tb-split-dragging');
+          e.currentTarget.setPointerCapture?.(e.pointerId);
+          const el = splitRef.current;
+          if (!el) return;
+          const rect = el.getBoundingClientRect();
+          const next = ((e.clientY - rect.top) / rect.height) * 100;
+          setSplitRatio(Math.max(3, Math.min(97, next)));
+        }}
+      >
+        <span />
+      </div>
+
       {/* Drag palette */}
-      <div className="tb-palette">
+      <div className="tb-palette" style={{ flex: `0 0 ${100 - splitRatio}%` }}>
         <div className="tb-palette-title">Kéo thành phần vào đề</div>
         <input
           className="tb-palette-search"
@@ -264,13 +387,14 @@ const BuilderSidebar = ({ parts, sessions, activeSessionKey, selection, onSelect
         </div>
 
         <div className="tb-palette-grid">
-          {filteredPalette.map((item) => (
+          {sortedPalette.map((item) => (
             <DraggablePaletteItem key={item.contentType} item={item} />
           ))}
         </div>
-        {filteredPalette.length === 0 && (
+        {sortedPalette.length === 0 && (
           <div className="tb-palette-empty">Không có thành phần phù hợp từ khóa.</div>
         )}
+      </div>
       </div>
 
     </aside>

@@ -7,6 +7,11 @@ function authHeaders() {
   return token ? { 'Authorization': `Bearer ${token}` } : {};
 }
 
+// ─── Helper: check if user is authenticated ─────────────────────────
+function isAuthenticated() {
+  return !!localStorage.getItem('authToken');
+}
+
 // ─── Helper: fetch với timeout + auth ───────────────────────────────
 async function apiFetch(url, options = {}) {
   const res = await fetch(url, {
@@ -21,6 +26,20 @@ async function apiFetch(url, options = {}) {
   if (res.status === 401 || res.status === 403) {
     throw new Error('AUTH_REQUIRED');
   }
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.message || `HTTP ${res.status}: ${url}`);
+  }
+  return res.json();
+}
+
+// ─── Helper: fetch without auth (for guest) ─────────────────────────
+async function guestFetch(url, options = {}) {
+  const res = await fetch(url, {
+    ...options,
+    signal: AbortSignal.timeout(15000),
+  });
+
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.message || `HTTP ${res.status}: ${url}`);
@@ -958,7 +977,7 @@ export const ieltsApi = {
       candidateName: 'Guest Student',
       candidateId: 'DEFAULT-ID',
       testType: testData.testType || `Academic ${targetMode.charAt(0) + targetMode.slice(1).toLowerCase()}`,
-      totalMinutes: testData.durationMinutes || targetSession.durationMinutes || 60,
+      totalMinutes: targetSession.durationMinutes || testData.durationMinutes || 60,
       parts: populatedParts,
     };
   },
@@ -1094,4 +1113,46 @@ export const ieltsApi = {
 
     return results;
   },
+
+  // ─── Guest Exam APIs ────────────────────────────────────────────────
+  startGuestAttempt: async (guestInfo, testId, skillType, timeLimitSeconds = null) => {
+    const baseUrl = API_CONFIG.BASE_URL;
+    const payload = {
+      fullName: guestInfo.fullName,
+      email: guestInfo.email || null,
+      phone: guestInfo.phone || null,
+      testId,
+      skillType,
+      timeLimitSeconds,
+    };
+
+    return await guestFetch(`${baseUrl}/guest/exam-attempts/start`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+  },
+
+  submitGuestAttempt: async (attemptId, timeSpentSeconds, answers) => {
+    const baseUrl = API_CONFIG.BASE_URL;
+    const answerPayloads = answers.map((ans) => {
+      const { questionId, selectedOptionLabel, textAnswer, matchingAnswer, isFlagged } = ans;
+      return {
+        questionId,
+        textAnswer,
+        selectedOptionLabel,
+        matchingAnswer,
+        isFlagged,
+      };
+    }).filter(Boolean);
+
+    return await guestFetch(`${baseUrl}/guest/exam-attempts/${attemptId}/submit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ timeSpentSeconds, answers: answerPayloads }),
+    });
+  },
+
+  // ─── Check if user is authenticated ─────────────────────────────────
+  isAuthenticated,
 };

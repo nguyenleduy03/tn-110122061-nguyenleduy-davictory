@@ -45,6 +45,7 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/api/drive/**",
+                                "/api/guest/**",
                                 "/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
@@ -105,8 +106,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/test-builder/**").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
 
                         // ===== TEST STRUCTURE =====
-                        // Xem: tất cả đã đăng nhập; Tạo/sửa/xóa: TEACHER+
-                        .requestMatchers(HttpMethod.GET, "/api/test-structure/**").authenticated()
+                        // Xem: public (cho TestBuilder); Tạo/sửa/xóa: TEACHER+
+                        .requestMatchers(HttpMethod.GET, "/api/test-structure/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/test-structure/**")
                         .hasAnyRole("TEACHER", "MANAGER", "ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/test-structure/**")
@@ -203,6 +204,10 @@ public class SecurityConfig {
                         // ===== MEDIA =====
                         .requestMatchers(HttpMethod.POST, "/api/media/**").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/media/**").authenticated()
+
+                        // ===== FILE UPLOAD =====
+                        .requestMatchers(HttpMethod.POST, "/api/files/upload").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/files/**").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
 
                         // ===== ADMIN =====
                         .requestMatchers("/api/admin/drive/**").hasAnyRole("ADMIN", "MANAGER")

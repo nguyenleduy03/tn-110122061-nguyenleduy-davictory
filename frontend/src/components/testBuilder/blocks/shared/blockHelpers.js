@@ -135,3 +135,15 @@ export const loadImageFile = (file, setImageUrl) => {
   };
   reader.readAsDataURL(file);
 };
+
+export const loadAudioFile = (file, setAudioUrl) => {
+  if (!file || !file.type?.startsWith('audio/')) return;
+  const reader = new FileReader();
+  reader.onerror = () => console.error('Audio upload failed: Không đọc được file âm thanh');
+  reader.onload = () => {
+    const rawDataUrl = String(reader.result || '');
+    if (!rawDataUrl) return;
+    setAudioUrl(rawDataUrl);
+  };
+  reader.readAsDataURL(file);
+};
