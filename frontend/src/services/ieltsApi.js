@@ -1155,4 +1155,39 @@ export const ieltsApi = {
 
   // ─── Check if user is authenticated ─────────────────────────────────
   isAuthenticated,
+
+  // ─── Backup answers (auto-save) ─────────────────────────────────────
+  backupAnswers: async (attemptId, answers) => {
+    const baseUrl = API_CONFIG.BASE_URL;
+    const answerPayloads = Object.entries(answers).map(([qId, ans]) => {
+      const questionId = parseInt(qId);
+      let textAnswer = null;
+      let selectedOptionLabel = null;
+      let matchingAnswer = null;
+
+      if (typeof ans === 'string') {
+        textAnswer = ans;
+        selectedOptionLabel = ans;
+      } else if (Array.isArray(ans)) {
+        matchingAnswer = JSON.stringify(ans);
+      }
+
+      return { questionId, textAnswer, selectedOptionLabel, matchingAnswer };
+    }).filter(Boolean);
+
+    return await apiFetch(`${baseUrl}/exam-attempts/${attemptId}/backup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ answers: answerPayloads }),
+    });
+  },
+
+  // ─── Auto-submit khi timeout ────────────────────────────────────────
+  autoSubmitTimeout: async (attemptId) => {
+    const baseUrl = API_CONFIG.BASE_URL;
+    return await apiFetch(`${baseUrl}/exam-attempts/${attemptId}/timeout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+  },
 };

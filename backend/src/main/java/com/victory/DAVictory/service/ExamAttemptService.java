@@ -98,6 +98,16 @@ public class ExamAttemptService {
             throw new RuntimeException("Không có quyền nộp bài cho attempt này");
         }
 
+        // Server-side timer validation
+        if (attempt.getTimeLimitSeconds() != null && attempt.getTimeLimitSeconds() > 0) {
+            long elapsedSeconds = java.time.Duration.between(attempt.getStartedAt(), LocalDateTime.now()).getSeconds();
+            if (elapsedSeconds > attempt.getTimeLimitSeconds() + 60) { // Grace period 60s
+                attempt.setStatus("TIMED_OUT");
+                examAttemptRepository.save(attempt);
+                throw new RuntimeException("Đã quá thời gian làm bài");
+            }
+        }
+
         if (req != null && req.getAnswers() != null) {
             saveAnswers(attempt, req.getAnswers());
         }
@@ -330,6 +340,53 @@ public class ExamAttemptService {
             throw new RuntimeException(
                     "Không thể tải lịch sử sửa điểm. Vui lòng kiểm tra bảng exam_attempt_grade_history.");
         }
+    }
+
+    @Transactional
+    public ExamAttemptResponse autoSubmitTimeout(Long attemptId) {
+        ExamAttempt attempt = examAttemptRepository.findById(attemptId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy attempt ID=" + attemptId));
+
+        if (!"IN_PROGRESS".equals(attempt.getStatus())) {
+            throw new RuntimeException("Bài thi đã được nộp hoặc hết hạn");
+        }
+
+        // Verify timeout
+        if (attempt.getTimeLimitSeconds() != null && attempt.getTimeLimitSeconds() > 0) {
+            long elapsedSeconds = java.time.Duration.between(attempt.getStartedAt(), LocalDateTime.now()).getSeconds();
+            if (elapsedSeconds < attempt.getTimeLimitSeconds()) {
+                throw new RuntimeException("Chưa hết thời gian làm bài");
+            }
+        }
+
+        attempt.setStatus("TIMED_OUT");
+        attempt.setSubmittedAt(LocalDateTime.now());
+        attempt.setTimeSpentSeconds(attempt.getTimeLimitSeconds());
+
+        boolean autoGraded = gradeAttempt(attempt);
+        if (autoGraded) {
+            attempt.setStatus("GRADED");
+            attempt.setGradedAt(LocalDateTime.now());
+        }
+
+        attempt = examAttemptRepository.save(attempt);
+        return toResponse(attempt);
+    }
+
+    @Transactional
+    public void backupAnswers(String username, Long attemptId, List<AttemptAnswerSave> answers) {
+        ExamAttempt attempt = examAttemptRepository.findById(attemptId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy attempt ID=" + attemptId));
+
+        if (!attempt.getUser().getUsername().equals(username)) {
+            throw new RuntimeException("Không có quyền backup bài này");
+        }
+
+        if (!"IN_PROGRESS".equals(attempt.getStatus())) {
+            throw new RuntimeException("Bài thi đã kết thúc");
+        }
+
+        saveAnswers(attempt, answers);
     }
 
     private void validateTeacherCanAccessAttempt(User teacher, ExamAttempt attempt) {

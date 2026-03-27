@@ -1199,6 +1199,7 @@ const TestBuilder = () => {
             test={test}
             sessions={sessions}
             onClose={() => setPreviewOpen(false)}
+            seriesLabel={test.seriesLabel}
           />
         )}
 
@@ -1217,6 +1218,7 @@ const TestBuilder = () => {
           onSkillModeChange={handleSkillModeChange}
           showFormatToolbar={showFormatToolbar}
           onToggleFormatToolbar={() => setShowFormatToolbar(!showFormatToolbar)}
+          seriesLabel={test.seriesLabel}
         />
 
         {leftSidebarCollapsed && (
@@ -1286,6 +1288,7 @@ const TestBuilder = () => {
                 <ExamCanvas
                   test={test}
                   skill={activeSkill}
+                  seriesLabel={test.seriesLabel}
                   parts={parts}
                   selection={selection}
                   dragOverPartId={dragOverPartId}

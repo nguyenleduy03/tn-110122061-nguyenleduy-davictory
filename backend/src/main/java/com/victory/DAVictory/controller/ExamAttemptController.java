@@ -147,4 +147,29 @@ public class ExamAttemptController {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
+
+    @PostMapping("/{id}/timeout")
+    @PreAuthorize("hasAnyRole('STUDENT', 'TEACHER', 'MANAGER', 'ADMIN')")
+    public ResponseEntity<?> autoSubmitTimeout(@PathVariable Long id, Authentication authentication) {
+        try {
+            ExamAttemptResponse response = examAttemptService.autoSubmitTimeout(id);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/{id}/backup")
+    @PreAuthorize("hasAnyRole('STUDENT', 'TEACHER', 'MANAGER', 'ADMIN')")
+    public ResponseEntity<?> backupAnswers(@PathVariable Long id, 
+                                           @RequestBody ExamAttemptSubmitRequest request,
+                                           Authentication authentication) {
+        try {
+            String username = authentication.getName();
+            examAttemptService.backupAnswers(username, id, request.getAnswers());
+            return ResponseEntity.ok(Map.of("message", "Backup thành công"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
 }

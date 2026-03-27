@@ -920,6 +920,13 @@
   font-family: "Arial Black", Impact, sans-serif;
   user-select: none;
 }
+.exam-mock-logo-image {
+  display: block;
+  height: 34px;
+  width: auto;
+  object-fit: contain;
+  user-select: none;
+}
 .exam-mock-info { display: flex; align-items: center; gap: 16px; font-size: 13px; color: #555; }
 .exam-mock-timer { font-weight: 700; font-size: 15px; color: #222; font-family: monospace; }
 .exam-mock-time-btn {
@@ -2284,6 +2291,13 @@
   font-family: "Arial Black", Impact, sans-serif;
   font-size: 30px; font-weight: 900; color: #e01c22; letter-spacing: -1px;
   line-height: 1;
+}
+.pv-ielts-logo-image {
+  display: block;
+  height: 34px;
+  width: auto;
+  object-fit: contain;
+  user-select: none;
 }
 .pv-ielts-test-info {
   display: flex; flex-direction: column; gap: 1px;

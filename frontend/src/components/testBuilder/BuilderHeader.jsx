@@ -178,6 +178,16 @@ const BuilderHeader = ({
               <option value="ACADEMIC">Academic</option>
               <option value="GENERAL">General Training</option>
             </select>
+            <select
+              className="tb-select"
+              value={test.seriesLabel || 'IELTS'}
+              onChange={(e) => onTestChange({ seriesLabel: e.target.value })}
+              title="Đổi logo đề thi"
+              style={{ minWidth: 112 }}
+            >
+              <option value="IELTS">IELTS</option>
+              <option value="Cambridge">Cambridge</option>
+            </select>
             <select className="tb-select"
               value={test.isFullTest ? 'FULL' : (test.singleSkill || 'LISTENING')}
               onChange={(e) => {

@@ -51,6 +51,11 @@ import {
 } from './blocks';
 import MatchingFillBlock from './blocks/MatchingFillBlock';
 
+const SERIES_LOGO_SRC = {
+  IELTS: '/IELTS%20Logo.png',
+  Cambridge: '/Cambridge%20Logo.png',
+};
+
 // ---- Sortable wrapper ----
 const SortableGroupWrapper = ({ group, children }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -437,6 +442,7 @@ const PartView = ({ skill, part, selection, onSelectGroup, onSelectQuestion, onU
 
 const ExamCanvas = ({
   skill,
+  seriesLabel = 'IELTS',
   parts,
   selection,
   onSelectGroup,
@@ -485,6 +491,8 @@ const ExamCanvas = ({
   }, [parts, activePartId]);
 
   const currentDuration = sessionDuration || skillDefaultDuration;
+  const resolvedLogoSrc = SERIES_LOGO_SRC[seriesLabel] || SERIES_LOGO_SRC.IELTS;
+  const resolvedLogoAlt = seriesLabel || 'IELTS';
 
   const handleSetPartTime = () => {
     setDraftTimeValue(String(currentDuration));
@@ -561,7 +569,11 @@ const ExamCanvas = ({
         <div className="exam-viewport">
           {/* Mocked exam header */}
           <div className="exam-mock-header">
-            <span className="exam-mock-logo">IELTS</span>
+            <img
+              src={resolvedLogoSrc}
+              alt={resolvedLogoAlt}
+              className="exam-mock-logo-image"
+            />
             <div className="exam-mock-info">
               <span>Nguyễn Văn A</span>
               <span style={{ color: '#ddd' }}>|</span>

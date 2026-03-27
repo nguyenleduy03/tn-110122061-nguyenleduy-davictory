@@ -17,6 +17,7 @@ const IeltsListeningTest = () => {
     const [showGuestForm, setShowGuestForm] = useState(false);
     const [guestInfo, setGuestInfo] = useState(null);
     const [isGuest, setIsGuest] = useState(false);
+    const [attemptId, setAttemptId] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [bookmarks, setBookmarks] = useState({});
@@ -180,6 +181,16 @@ const IeltsListeningTest = () => {
             setCurrentPartIndex(initialPartIndex);
             setLoading(false);
 
+            // Start attempt for guest
+            if (isGuest && guestInfo && !attemptId) {
+                ieltsApi.startGuestAttempt(guestInfo, testId, 'LISTENING')
+                    .then(attempt => {
+                        setAttemptId(attempt.id);
+                        console.log('Guest attempt started:', attempt.id);
+                    })
+                    .catch(err => console.error('Failed to start guest attempt:', err));
+            }
+
             if (isReview) {
                 setAudioStarted(true);
                 const savedAnswers = sessionStorage.getItem('lastAnswers_listening');
@@ -198,7 +209,7 @@ const IeltsListeningTest = () => {
                 : `Không thể tải bài thi: ${err.message}`);
             setLoading(false);
         });
-    }, [testId, isReview, mode, isFullTest, selectedPracticeParts, startPartNumber, durationOverrideMinutes, noTimeLimit, setCurrentPartIndex]);
+    }, [testId, isReview, mode, isFullTest, selectedPracticeParts, startPartNumber, durationOverrideMinutes, noTimeLimit, setCurrentPartIndex, isGuest, guestInfo, attemptId]);
 
     useEffect(() => {
         if (!isFullTest || isReview || !testData || !testId) return undefined;
@@ -441,12 +452,19 @@ const IeltsListeningTest = () => {
 
     const submitTest = () => {
         if (isSubmitting) return;
+        
+        // Validate attemptId for guest
+        if (isGuest && !attemptId) {
+            setError('Lỗi: Không tìm thấy ID bài thi. Vui lòng làm lại.');
+            return;
+        }
+        
         const timeSpentSeconds = Math.floor((Date.now() - startTime) / 1000);
         sessionStorage.setItem('lastAnswers_listening', JSON.stringify(answers));
         setIsSubmitting(true);
 
         const submitPromise = isGuest
-            ? ieltsApi.submitGuestAttempt(testId, timeSpentSeconds, Object.entries(answers).map(([qId, ans]) => ({
+            ? ieltsApi.submitGuestAttempt(attemptId, timeSpentSeconds, Object.entries(answers).map(([qId, ans]) => ({
                 questionId: parseInt(qId),
                 textAnswer: typeof ans === 'string' ? ans : null,
                 selectedOptionLabel: typeof ans === 'string' ? ans : null,

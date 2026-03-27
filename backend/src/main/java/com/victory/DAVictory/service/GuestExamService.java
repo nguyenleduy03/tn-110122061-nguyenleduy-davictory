@@ -35,6 +35,17 @@ public class GuestExamService {
             throw new RuntimeException("Thiếu testId hoặc skillType");
         }
 
+        // Rate limiting: Max 5 attempts per email per day
+        if (req.getEmail() != null && !req.getEmail().isBlank()) {
+            LocalDateTime oneDayAgo = LocalDateTime.now().minusDays(1);
+            long recentAttempts = guestAttemptRepository.countByEmailAndCreatedAtAfter(
+                req.getEmail(), oneDayAgo
+            );
+            if (recentAttempts >= 5) {
+                throw new RuntimeException("Bạn đã vượt quá số lần làm bài trong ngày (tối đa 5 lần)");
+            }
+        }
+
         Test test = testRepository.findById(req.getTestId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đề thi"));
 

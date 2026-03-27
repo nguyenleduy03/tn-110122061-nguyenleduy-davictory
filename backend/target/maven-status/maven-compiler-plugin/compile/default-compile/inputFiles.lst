@@ -24,6 +24,7 @@
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/UserController.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/UserImportController.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/WritingController.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/AnswerBackupRequest.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/AttemptAnswerSave.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/AuthResponse.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/ChangePasswordRequest.java

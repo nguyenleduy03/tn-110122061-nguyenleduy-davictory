@@ -7,6 +7,11 @@ import { X, Volume2, BookOpen, Headphones, PenLine, Mic, Clock, FileText } from 
 import { normalizeRichHtml, stripInlineStyles } from '../../utils/textFormatters';
 import DropdownGroupQuestion from '../question/DropdownGroupQuestion';
 
+const SERIES_LOGO_SRC = {
+  IELTS: '/IELTS%20Logo.png',
+  Cambridge: '/Cambridge%20Logo.png',
+};
+
 // ---- Helpers (mirrors ExamCanvas) ----
 
 const formatPreviewText = (text) => {
@@ -1518,6 +1523,8 @@ const PreviewModal = ({ test, sessions, onClose }) => {
   const currentDuration = Number.isFinite(skillDurations[activeSkill])
     ? skillDurations[activeSkill]
     : (skillMeta?.durationMinutes ?? 60);
+  const resolvedLogoSrc = SERIES_LOGO_SRC[test?.seriesLabel] || SERIES_LOGO_SRC.IELTS;
+  const resolvedLogoAlt = test?.seriesLabel || 'IELTS';
 
   // Flat list of all questions for current skill (for footer nav)
   const allQuestions = useMemo(() =>
@@ -1553,7 +1560,11 @@ const PreviewModal = ({ test, sessions, onClose }) => {
         {/* ── IELTS Exam Header ── */}
         <header className="pv-ielts-header">
           <div className="pv-ielts-header-left">
-            <span className="pv-ielts-logo">IELTS</span>
+            <img
+              src={resolvedLogoSrc}
+              alt={resolvedLogoAlt}
+              className="pv-ielts-logo-image"
+            />
             <div className="pv-ielts-test-info">
               <span className="pv-ielts-test-name">{test.title || 'Đề thi chưa đặt tên'}</span>
               <span className="pv-ielts-test-type">{test.testType ?? 'ACADEMIC'}</span>
