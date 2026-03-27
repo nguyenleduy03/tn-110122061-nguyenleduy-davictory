@@ -21,9 +21,12 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -163,8 +166,10 @@ public class GoogleDriveOAuth2Service {
         Path tempFile = Files.createTempFile("upload-", multipartFile.getOriginalFilename());
         multipartFile.transferTo(tempFile.toFile());
 
+        String uniqueFileName = generateUniqueFileName(multipartFile.getOriginalFilename(), folder);
+        
         File fileMetadata = new File();
-        fileMetadata.setName(multipartFile.getOriginalFilename());
+        fileMetadata.setName(uniqueFileName);
         fileMetadata.setParents(Collections.singletonList(getFolderIdByName(folder)));
 
         FileContent mediaContent = new FileContent(multipartFile.getContentType(), tempFile.toFile());
@@ -177,6 +182,29 @@ public class GoogleDriveOAuth2Service {
         Files.delete(tempFile);
 
         return String.format("https://drive.google.com/uc?export=view&id=%s", uploadedFile.getId());
+    }
+
+    private String generateUniqueFileName(String originalFilename, String folder) {
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss_SSS"));
+        String uuid = UUID.randomUUID().toString().substring(0, 8);
+        String sanitized = originalFilename.replaceAll("[^a-zA-Z0-9._-]", "_");
+        
+        int lastDot = sanitized.lastIndexOf('.');
+        if (lastDot > 0) {
+            String name = sanitized.substring(0, lastDot);
+            String ext = sanitized.substring(lastDot);
+            return String.format("DAVictory_%s_%s_%s_%s%s", 
+                folder != null ? folder.toUpperCase() : "FILE", 
+                timestamp, 
+                uuid, 
+                name, 
+                ext);
+        }
+        return String.format("DAVictory_%s_%s_%s_%s", 
+            folder != null ? folder.toUpperCase() : "FILE", 
+            timestamp, 
+            uuid, 
+            sanitized);
     }
 
     private void makeFilePublic(String fileId) throws Exception {

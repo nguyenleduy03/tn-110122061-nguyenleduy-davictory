@@ -2,16 +2,9 @@ package com.victory.DAVictory.service;
 
 import com.victory.DAVictory.dto.WritingSubmitRequest;
 import com.victory.DAVictory.dto.WritingSubmissionResponse;
-import com.victory.DAVictory.entity.QuestionGroup;
-import com.victory.DAVictory.entity.ClassStudent;
-import com.victory.DAVictory.entity.StudentWritingSubmission;
-import com.victory.DAVictory.entity.User;
-import com.victory.DAVictory.entity.ExamAttempt;
-import com.victory.DAVictory.repository.QuestionGroupRepository;
-import com.victory.DAVictory.repository.StudentWritingSubmissionRepository;
-import com.victory.DAVictory.repository.UserRepository;
-import com.victory.DAVictory.repository.ClassStudentRepository;
-import com.victory.DAVictory.repository.ExamAttemptRepository;
+import com.victory.DAVictory.dto.WritingGradeRequest;
+import com.victory.DAVictory.entity.*;
+import com.victory.DAVictory.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +22,8 @@ public class WritingService {
     private final QuestionGroupRepository questionGroupRepository;
     private final ClassStudentRepository classStudentRepository;
     private final ExamAttemptRepository examAttemptRepository;
+    private final WritingScoreRepository writingScoreRepository;
+    private final WritingScoringCriteriaRepository writingScoringCriteriaRepository;
 
     // ─── Nộp bài Writing ────────────────────────────────────────────
     @Transactional
@@ -186,5 +181,59 @@ public class WritingService {
         r.setAttemptNumber(s.getAttemptNumber());
         r.setCreatedAt(s.getCreatedAt());
         return r;
+    }
+
+    // ─── Chấm bài Writing ────────────────────────────────────────────
+    @Transactional
+    public WritingSubmissionResponse gradeWriting(Long submissionId, String teacherUsername, WritingGradeRequest req) {
+        User teacher = userRepository.findByUsername(teacherUsername)
+                .orElseThrow(() -> new RuntimeException("Teacher not found"));
+        
+        StudentWritingSubmission submission = submissionRepository.findById(submissionId)
+                .orElseThrow(() -> new RuntimeException("Submission not found"));
+        
+        // Xóa điểm cũ nếu có
+        writingScoreRepository.deleteBySubmissionId(submissionId);
+        
+        // Lưu điểm từng tiêu chí
+        double totalScore = 0;
+        int count = 0;
+        
+        for (WritingGradeRequest.CriteriaScore cs : req.getCriteriaScores()) {
+            WritingScoringCriteria criteria = writingScoringCriteriaRepository.findById(cs.getCriteriaId())
+                    .orElseThrow(() -> new RuntimeException("Criteria not found"));
+            
+            WritingScore score = new WritingScore();
+            score.setSubmission(submission);
+            score.setCriteria(criteria);
+            score.setScore(cs.getScore());
+            score.setFeedback(cs.getFeedback());
+            score.setScoredBy(teacher);
+            score.setScoredAt(LocalDateTime.now());
+            writingScoreRepository.save(score);
+            
+            totalScore += cs.getScore();
+            count++;
+        }
+        
+        // Tính band score trung bình
+        double avgBand = count > 0 ? roundBandScore(totalScore / count) : 0;
+        
+        submission.setBandScore(avgBand);
+        submission.setOverallFeedback(req.getOverallFeedback());
+        submission.setGradedBy(teacher);
+        submission.setGradedAt(LocalDateTime.now());
+        submission.setStatus("GRADED");
+        submissionRepository.save(submission);
+        
+        return toResponse(submission);
+    }
+    
+    private double roundBandScore(double score) {
+        // Làm tròn theo quy tắc IELTS: .25 -> .5, .75 -> up
+        double decimal = score - Math.floor(score);
+        if (decimal < 0.25) return Math.floor(score);
+        if (decimal < 0.75) return Math.floor(score) + 0.5;
+        return Math.ceil(score);
     }
 }

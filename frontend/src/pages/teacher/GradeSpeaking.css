@@ -1,0 +1,133 @@
+.grade-speaking {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.grade-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.grade-header h1 {
+  font-size: 28px;
+  color: #1e293b;
+}
+
+.grade-header button {
+  padding: 10px 20px;
+  background: #64748b;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.grade-content {
+  display: grid;
+  gap: 20px;
+}
+
+.attempt-info, .audio-section, .grading-section {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.attempt-info h3, .audio-section h3, .grading-section h3 {
+  margin-bottom: 15px;
+  color: #0f172a;
+}
+
+.criteria-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  margin-bottom: 12px;
+}
+
+.criteria-header h4 {
+  color: #0f172a;
+  margin-bottom: 4px;
+}
+
+.criteria-header p {
+  color: #64748b;
+  font-size: 14px;
+}
+
+.criteria-item input {
+  width: 100px;
+  padding: 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  text-align: center;
+  font-size: 16px;
+}
+
+.overall-band {
+  background: #fef3c7;
+  padding: 20px;
+  border-radius: 6px;
+  text-align: center;
+  margin: 20px 0;
+}
+
+.overall-band h4 {
+  color: #92400e;
+  font-size: 20px;
+}
+
+.overall-band span {
+  color: #b45309;
+  font-size: 36px;
+  font-weight: bold;
+}
+
+.feedback-section {
+  margin-top: 20px;
+}
+
+.feedback-section label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.feedback-section textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  resize: vertical;
+}
+
+.submit-grade-btn {
+  width: 100%;
+  padding: 15px;
+  background: #d97706;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 20px;
+}
+
+.submit-grade-btn:hover {
+  background: #b45309;
+}
+
+.grade-loading {
+  text-align: center;
+  padding: 50px;
+  font-size: 18px;
+  color: #64748b;
+}

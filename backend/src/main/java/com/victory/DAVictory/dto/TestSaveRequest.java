@@ -50,6 +50,7 @@ public class TestSaveRequest {
         private String passageText;   // Nội dung bài đọc hoặc JSON metadata (bảng, sơ đồ...)
         private String audioUrl;
         private String imageUrl;
+        private Integer imageWidth;
         private Integer fromQuestion;
         private Integer toQuestion;
         private Integer orderIndex;

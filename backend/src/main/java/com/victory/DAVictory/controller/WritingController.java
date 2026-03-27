@@ -2,6 +2,7 @@ package com.victory.DAVictory.controller;
 
 import com.victory.DAVictory.dto.WritingSubmitRequest;
 import com.victory.DAVictory.dto.WritingSubmissionResponse;
+import com.victory.DAVictory.dto.WritingGradeRequest;
 import com.victory.DAVictory.service.WritingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -118,6 +119,24 @@ public class WritingController {
             String teacherUsername = authentication.getName();
             Map<String, Object> result = writingService.getAllSubmissionsForTeacher(teacherUsername);
             return ResponseEntity.ok(result);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Chấm bài Writing.
+     */
+    @PostMapping("/grade/{submissionId}")
+    @PreAuthorize("hasAnyRole('TEACHER', 'MANAGER', 'ADMIN')")
+    public ResponseEntity<?> gradeWriting(
+            @PathVariable Long submissionId,
+            @RequestBody WritingGradeRequest request,
+            Authentication authentication) {
+        try {
+            String teacherUsername = authentication.getName();
+            WritingSubmissionResponse response = writingService.gradeWriting(submissionId, teacherUsername, request);
+            return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }

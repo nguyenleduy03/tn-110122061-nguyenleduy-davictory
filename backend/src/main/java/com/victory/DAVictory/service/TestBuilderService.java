@@ -19,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.stream.Collectors;
 
 /**
  * Service xử lý logic lưu / tải / trộn đề thi.
@@ -174,6 +173,7 @@ public class TestBuilderService {
                                             if (gs.getPassageText() != null) qg.setPassageText(gs.getPassageText());
                                             if (gs.getAudioUrl() != null) qg.setAudioUrl(gs.getAudioUrl());
                                             if (gs.getImageUrl() != null) qg.setImageUrl(gs.getImageUrl());
+                                            if (gs.getImageWidth() != null) qg.setImageWidth(gs.getImageWidth());
                                             if (gs.getFromQuestion() != null) qg.setFromQuestion(gs.getFromQuestion());
                                             if (gs.getToQuestion() != null) qg.setToQuestion(gs.getToQuestion());
                                             if (gs.getOrderIndex() != null) qg.setOrderIndex(gs.getOrderIndex());
@@ -542,6 +542,7 @@ public class TestBuilderService {
         qg.setPassageText(gs.getPassageText());
         qg.setAudioUrl(gs.getAudioUrl());
         qg.setImageUrl(gs.getImageUrl());
+        qg.setImageWidth(gs.getImageWidth());
         qg.setFromQuestion(gs.getFromQuestion());
         qg.setToQuestion(gs.getToQuestion());
         qg.setOrderIndex(gs.getOrderIndex());

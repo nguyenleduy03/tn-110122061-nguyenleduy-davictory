@@ -1,0 +1,51 @@
+spring:
+  application:
+    name: DAVictory
+  datasource:
+    url: jdbc:mysql://localhost:3306/DAVictory?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    username: root
+    password: 1111
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+
+server:
+  tomcat:
+    max-http-form-post-size: 20MB
+    max-swallow-size: 20MB
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+    tagsSorter: alpha
+
+# JWT Configuration
+jwt:
+  secret: DAVictorySecretKey2026SuperLongAndSecureBase64EncodedKeyForJWTSigning1234567890ABCDEF
+  expiration: 86400000   # 24 giờ (ms)
+  refresh-expiration: 604800000  # 7 ngày (ms)
+
+# Google Drive Configuration
+google:
+  drive:
+    client-id: 701620301832-2bu7es690lnhev3269vqqo56qj0qkl36.apps.googleusercontent.com
+    client-secret: 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
+    redirect-uri: https://davictory.io.vn/api/drive/oauth2callback
+    folder:
+      id: 1VuSeTs0V248E4X7co4a4kc6MSi4ke_3r
+
+logging:
+  

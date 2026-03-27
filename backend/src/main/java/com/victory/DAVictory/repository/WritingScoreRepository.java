@@ -17,6 +17,8 @@ public interface WritingScoreRepository extends JpaRepository<WritingScore, Long
     Optional<WritingScore> findBySubmissionIdAndCriteriaId(Long submissionId, Long criteriaId);
 
     boolean existsBySubmissionIdAndCriteriaId(Long submissionId, Long criteriaId);
+    
+    void deleteBySubmissionId(Long submissionId);
 
     // Trung bình điểm từng tiêu chí của một học viên
     @Query("SELECT ws.criteria.code, AVG(ws.score) FROM WritingScore ws " +

@@ -34,22 +34,22 @@
 
  :: Spring Boot ::                (v4.0.3)
 
-2026-03-27T14:20:44.310+07:00  INFO 91939 --- [DAVictory] [           main] c.v.DAVictory.DaVictoryApplication       : Starting DaVictoryApplication using Java 21.0.10 with PID 91939 (/home/hv/DuAn/DAVictory/backend/target/classes started by hv in /home/hv/DuAn/DAVictory/backend)
-2026-03-27T14:20:44.317+07:00  INFO 91939 --- [DAVictory] [           main] c.v.DAVictory.DaVictoryApplication       : No active profile set, falling back to 1 default profile: "default"
-2026-03-27T14:20:45.818+07:00  INFO 91939 --- [DAVictory] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
-2026-03-27T14:20:46.090+07:00  INFO 91939 --- [DAVictory] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 260 ms. Found 58 JPA repository interfaces.
-2026-03-27T14:20:47.074+07:00  INFO 91939 --- [DAVictory] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 8080 (http)
-2026-03-27T14:20:47.094+07:00  INFO 91939 --- [DAVictory] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
-2026-03-27T14:20:47.095+07:00  INFO 91939 --- [DAVictory] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/11.0.18]
-2026-03-27T14:20:47.165+07:00  INFO 91939 --- [DAVictory] [           main] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 2729 ms
-2026-03-27T14:20:47.435+07:00  INFO 91939 --- [DAVictory] [           main] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
-2026-03-27T14:20:47.501+07:00  INFO 91939 --- [DAVictory] [           main] org.hibernate.orm.core                   : HHH000001: Hibernate ORM core version 7.2.4.Final
-2026-03-27T14:20:48.177+07:00  INFO 91939 --- [DAVictory] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
-2026-03-27T14:20:48.217+07:00  INFO 91939 --- [DAVictory] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
-2026-03-27T14:20:48.457+07:00  INFO 91939 --- [DAVictory] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@349aeec4
-2026-03-27T14:20:48.460+07:00  INFO 91939 --- [DAVictory] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
-2026-03-27T14:20:48.542+07:00  WARN 91939 --- [DAVictory] [           main] org.hibernate.orm.deprecation            : HHH90000025: MySQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
-2026-03-27T14:20:48.578+07:00  INFO 91939 --- [DAVictory] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+2026-03-27T15:32:02.113+07:00  INFO 132303 --- [DAVictory] [           main] c.v.DAVictory.DaVictoryApplication       : Starting DaVictoryApplication using Java 21.0.10 with PID 132303 (/home/hv/DuAn/DAVictory/backend/target/classes started by hv in /home/hv/DuAn/DAVictory/backend)
+2026-03-27T15:32:02.118+07:00  INFO 132303 --- [DAVictory] [           main] c.v.DAVictory.DaVictoryApplication       : No active profile set, falling back to 1 default profile: "default"
+2026-03-27T15:32:03.660+07:00  INFO 132303 --- [DAVictory] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-03-27T15:32:03.922+07:00  INFO 132303 --- [DAVictory] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 251 ms. Found 58 JPA repository interfaces.
+2026-03-27T15:32:04.927+07:00  INFO 132303 --- [DAVictory] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 8080 (http)
+2026-03-27T15:32:04.946+07:00  INFO 132303 --- [DAVictory] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-03-27T15:32:04.947+07:00  INFO 132303 --- [DAVictory] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/11.0.18]
+2026-03-27T15:32:05.052+07:00  INFO 132303 --- [DAVictory] [           main] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 2853 ms
+2026-03-27T15:32:05.339+07:00  INFO 132303 --- [DAVictory] [           main] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-03-27T15:32:05.397+07:00  INFO 132303 --- [DAVictory] [           main] org.hibernate.orm.core                   : HHH000001: Hibernate ORM core version 7.2.4.Final
+2026-03-27T15:32:05.994+07:00  INFO 132303 --- [DAVictory] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-03-27T15:32:06.033+07:00  INFO 132303 --- [DAVictory] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-03-27T15:32:06.238+07:00  INFO 132303 --- [DAVictory] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@349aeec4
+2026-03-27T15:32:06.240+07:00  INFO 132303 --- [DAVictory] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-03-27T15:32:06.318+07:00  WARN 132303 --- [DAVictory] [           main] org.hibernate.orm.deprecation            : HHH90000025: MySQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-03-27T15:32:06.345+07:00  INFO 132303 --- [DAVictory] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
 	Database JDBC URL [jdbc:mysql://localhost:3306/DAVictory?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true]
 	Database driver: MySQL Connector/J
 	Database dialect: MySQLDialect
@@ -61,147 +61,1655 @@
 	Pool: DataSourceConnectionProvider
 	Minimum pool size: undefined/unknown
 	Maximum pool size: undefined/unknown
-2026-03-27T14:20:51.546+07:00  INFO 91939 --- [DAVictory] [           main] org.hibernate.orm.core                   : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
-2026-03-27T14:20:52.425+07:00  INFO 91939 --- [DAVictory] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
-2026-03-27T14:20:52.591+07:00  INFO 91939 --- [DAVictory] [           main] o.s.d.j.r.query.QueryEnhancerFactories   : Hibernate is in classpath; If applicable, HQL parser will be used.
-2026-03-27T14:20:54.701+07:00  INFO 91939 --- [DAVictory] [           main] c.v.DAVictory.config.PublicIpService     : ✅ Lấy IP từ https://api.ipify.org: 123.22.61.173
-2026-03-27T14:20:54.702+07:00  INFO 91939 --- [DAVictory] [           main] c.v.DAVictory.config.PublicIpService     : 🌐 Public IP đã phát hiện: 123.22.61.173
-2026-03-27T14:20:54.714+07:00  INFO 91939 --- [DAVictory] [           main] c.victory.DAVictory.config.CorsConfig    : 🔓 CORS: Thêm IP public 123.22.61.173 vào allowed origins
-2026-03-27T14:20:54.716+07:00  INFO 91939 --- [DAVictory] [           main] c.victory.DAVictory.config.CorsConfig    : ✅ CORS allowed origins: [http://localhost:5173, http://localhost:3000, http://localhost:80, http://localhost, https://davictory.io.vn, http://davictory.io.vn, http://123.22.61.173:5173, http://123.22.61.173:3000, http://123.22.61.173:80, http://123.22.61.173]
-2026-03-27T14:20:55.631+07:00  INFO 91939 --- [DAVictory] [           main] eAuthenticationProviderManagerConfigurer : Global AuthenticationManager configured with AuthenticationProvider bean with name authenticationProvider
-2026-03-27T14:20:55.632+07:00  WARN 91939 --- [DAVictory] [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with an AuthenticationProvider bean. UserDetailsService beans will not be used by Spring Security for automatically configuring username/password login. Consider removing the AuthenticationProvider bean. Alternatively, consider using the UserDetailsService in a manually instantiated DaoAuthenticationProvider. If the current configuration is intentional, to turn off this warning, increase the logging level of 'org.springframework.security.config.annotation.authentication.configuration.InitializeUserDetailsBeanManagerConfigurer' to ERROR
-2026-03-27T14:20:57.700+07:00  WARN 91939 --- [DAVictory] [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
-2026-03-27T14:20:58.322+07:00  INFO 91939 --- [DAVictory] [           main] o.s.v.b.OptionalValidatorFactoryBean     : Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
-2026-03-27T14:21:00.213+07:00  INFO 91939 --- [DAVictory] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat started on port 8080 (http) with context path '/'
-2026-03-27T14:21:00.224+07:00  INFO 91939 --- [DAVictory] [           main] c.v.DAVictory.DaVictoryApplication       : Started DaVictoryApplication in 16.917 seconds (process running for 17.592)
-2026-03-27T14:21:00.532+07:00  INFO 91939 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    : 🔧 [TestStructureInitializer] Bắt đầu khởi tạo cấu trúc IELTS...
-2026-03-27T14:21:00.546+07:00  INFO 91939 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ DifficultyLevels (5 cấp độ)
-2026-03-27T14:21:00.571+07:00  INFO 91939 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ Sessions (Listening / Reading / Writing / Speaking × Academic & General)
-2026-03-27T14:21:00.687+07:00  INFO 91939 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ Parts (các phần trong mỗi kỹ năng)
-2026-03-27T14:21:00.738+07:00  INFO 91939 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ QuestionTypes (14 loại câu hỏi IELTS)
-2026-03-27T14:21:00.738+07:00  INFO 91939 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    : ✅ [TestStructureInitializer] Hoàn tất khởi tạo cấu trúc IELTS.
-2026-03-27T14:21:31.754+07:00  INFO 91939 --- [DAVictory] [nio-8080-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
-2026-03-27T14:21:31.755+07:00  INFO 91939 --- [DAVictory] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
-2026-03-27T14:21:31.761+07:00  INFO 91939 --- [DAVictory] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 6 ms
-🗑️ Cleaning up unused group: 2542
-🔍 Saving 0 questions for group: Map Labelling 1
+2026-03-27T15:32:09.313+07:00  INFO 132303 --- [DAVictory] [           main] org.hibernate.orm.core                   : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-03-27T15:32:10.113+07:00  INFO 132303 --- [DAVictory] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-03-27T15:32:10.294+07:00  INFO 132303 --- [DAVictory] [           main] o.s.d.j.r.query.QueryEnhancerFactories   : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-03-27T15:32:12.287+07:00  INFO 132303 --- [DAVictory] [           main] c.v.DAVictory.config.PublicIpService     : ✅ Lấy IP từ https://api.ipify.org: 123.22.61.173
+2026-03-27T15:32:12.288+07:00  INFO 132303 --- [DAVictory] [           main] c.v.DAVictory.config.PublicIpService     : 🌐 Public IP đã phát hiện: 123.22.61.173
+2026-03-27T15:32:12.298+07:00  INFO 132303 --- [DAVictory] [           main] c.victory.DAVictory.config.CorsConfig    : 🔓 CORS: Thêm IP public 123.22.61.173 vào allowed origins
+2026-03-27T15:32:12.299+07:00  INFO 132303 --- [DAVictory] [           main] c.victory.DAVictory.config.CorsConfig    : ✅ CORS allowed origins: [http://localhost:5173, http://localhost:3000, http://localhost:80, http://localhost, https://davictory.io.vn, http://davictory.io.vn, http://123.22.61.173:5173, http://123.22.61.173:3000, http://123.22.61.173:80, http://123.22.61.173]
+2026-03-27T15:32:13.286+07:00  INFO 132303 --- [DAVictory] [           main] eAuthenticationProviderManagerConfigurer : Global AuthenticationManager configured with AuthenticationProvider bean with name authenticationProvider
+2026-03-27T15:32:13.287+07:00  WARN 132303 --- [DAVictory] [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with an AuthenticationProvider bean. UserDetailsService beans will not be used by Spring Security for automatically configuring username/password login. Consider removing the AuthenticationProvider bean. Alternatively, consider using the UserDetailsService in a manually instantiated DaoAuthenticationProvider. If the current configuration is intentional, to turn off this warning, increase the logging level of 'org.springframework.security.config.annotation.authentication.configuration.InitializeUserDetailsBeanManagerConfigurer' to ERROR
+2026-03-27T15:32:15.577+07:00  WARN 132303 --- [DAVictory] [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-03-27T15:32:16.173+07:00  INFO 132303 --- [DAVictory] [           main] o.s.v.b.OptionalValidatorFactoryBean     : Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2026-03-27T15:32:18.219+07:00  INFO 132303 --- [DAVictory] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat started on port 8080 (http) with context path '/'
+2026-03-27T15:32:18.229+07:00  INFO 132303 --- [DAVictory] [           main] c.v.DAVictory.DaVictoryApplication       : Started DaVictoryApplication in 16.825 seconds (process running for 17.633)
+2026-03-27T15:32:18.521+07:00  INFO 132303 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    : 🔧 [TestStructureInitializer] Bắt đầu khởi tạo cấu trúc IELTS...
+2026-03-27T15:32:18.535+07:00  INFO 132303 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ DifficultyLevels (5 cấp độ)
+2026-03-27T15:32:18.558+07:00  INFO 132303 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ Sessions (Listening / Reading / Writing / Speaking × Academic & General)
+2026-03-27T15:32:18.668+07:00  INFO 132303 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ Parts (các phần trong mỗi kỹ năng)
+2026-03-27T15:32:18.727+07:00  INFO 132303 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ QuestionTypes (14 loại câu hỏi IELTS)
+2026-03-27T15:32:18.728+07:00  INFO 132303 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    : ✅ [TestStructureInitializer] Hoàn tất khởi tạo cấu trúc IELTS.
+2026-03-27T15:32:21.030+07:00  INFO 132303 --- [DAVictory] [nio-8080-exec-2] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-03-27T15:32:21.031+07:00  INFO 132303 --- [DAVictory] [nio-8080-exec-2] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-03-27T15:32:21.038+07:00  INFO 132303 --- [DAVictory] [nio-8080-exec-2] o.s.web.servlet.DispatcherServlet        : Completed initialization in 5 ms
+🗑️ Cleaning up unused group: 2585
 🔍 Saving 5 questions for group: Questions 1–5
 📝 Question 1:  | Answers: 1
 💾 Saving 1 answers for question: 
 📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11273
+✅ Saved answer 1 with ID: 11453
 ✅ Successfully saved question 1
 📝 Question 2:  | Answers: 1
 💾 Saving 1 answers for question: 
 📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11274
+✅ Saved answer 1 with ID: 11454
 ✅ Successfully saved question 2
 📝 Question 3:  | Answers: 1
 💾 Saving 1 answers for question: 
 📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11275
+✅ Saved answer 1 with ID: 11455
 ✅ Successfully saved question 3
 📝 Question 4:  | Answers: 1
 💾 Saving 1 answers for question: 
 📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11276
+✅ Saved answer 1 with ID: 11456
 ✅ Successfully saved question 4
 📝 Question 5:  | Answers: 1
 💾 Saving 1 answers for question: 
 📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11277
+✅ Saved answer 1 with ID: 11457
 ✅ Successfully saved question 5
-🗑️ Cleaning up unused group: 2552
-🗑️ Cleaning up unused group: 2553
-🔍 Saving 0 questions for group: Map Labelling 1
+🗑️ Cleaning up unused group: 2586
 🔍 Saving 5 questions for group: Questions 1–5
 📝 Question 1:  | Answers: 1
 💾 Saving 1 answers for question: 
 📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11278
+✅ Saved answer 1 with ID: 11458
 ✅ Successfully saved question 1
 📝 Question 2:  | Answers: 1
 💾 Saving 1 answers for question: 
 📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11279
+✅ Saved answer 1 with ID: 11459
 ✅ Successfully saved question 2
 📝 Question 3:  | Answers: 1
 💾 Saving 1 answers for question: 
 📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11280
+✅ Saved answer 1 with ID: 11460
 ✅ Successfully saved question 3
 📝 Question 4:  | Answers: 1
 💾 Saving 1 answers for question: 
 📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11281
+✅ Saved answer 1 with ID: 11461
 ✅ Successfully saved question 4
 📝 Question 5:  | Answers: 1
 💾 Saving 1 answers for question: 
 📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11282
+✅ Saved answer 1 with ID: 11462
 ✅ Successfully saved question 5
-🗑️ Cleaning up unused group: 2554
-🗑️ Cleaning up unused group: 2555
-🔍 Saving 0 questions for group: Map Labelling 1
+🗑️ Cleaning up unused group: 2587
 🔍 Saving 5 questions for group: Questions 1–5
 📝 Question 1:  | Answers: 1
 💾 Saving 1 answers for question: 
 📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11283
+✅ Saved answer 1 with ID: 11463
 ✅ Successfully saved question 1
 📝 Question 2:  | Answers: 1
 💾 Saving 1 answers for question: 
 📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11284
+✅ Saved answer 1 with ID: 11464
 ✅ Successfully saved question 2
 📝 Question 3:  | Answers: 1
 💾 Saving 1 answers for question: 
 📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11285
+✅ Saved answer 1 with ID: 11465
 ✅ Successfully saved question 3
 📝 Question 4:  | Answers: 1
 💾 Saving 1 answers for question: 
 📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11286
+✅ Saved answer 1 with ID: 11466
 ✅ Successfully saved question 4
 📝 Question 5:  | Answers: 1
 💾 Saving 1 answers for question: 
 📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11287
+✅ Saved answer 1 with ID: 11467
 ✅ Successfully saved question 5
-🗑️ Cleaning up unused group: 2556
-🗑️ Cleaning up unused group: 2557
-🔍 Saving 0 questions for group: Map Labelling 1
+🗑️ Cleaning up unused group: 2588
 🔍 Saving 5 questions for group: Questions 1–5
 📝 Question 1:  | Answers: 1
 💾 Saving 1 answers for question: 
 📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11288
+✅ Saved answer 1 with ID: 11468
 ✅ Successfully saved question 1
 📝 Question 2:  | Answers: 1
 💾 Saving 1 answers for question: 
 📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11289
+✅ Saved answer 1 with ID: 11469
 ✅ Successfully saved question 2
 📝 Question 3:  | Answers: 1
 💾 Saving 1 answers for question: 
 📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11290
+✅ Saved answer 1 with ID: 11470
 ✅ Successfully saved question 3
 📝 Question 4:  | Answers: 1
 💾 Saving 1 answers for question: 
 📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11291
+✅ Saved answer 1 with ID: 11471
 ✅ Successfully saved question 4
 📝 Question 5:  | Answers: 1
 💾 Saving 1 answers for question: 
 📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11292
+✅ Saved answer 1 with ID: 11472
 ✅ Successfully saved question 5
-2026-03-27T15:00:23.094+07:00  INFO 91939 --- [DAVictory] [nio-8080-exec-3] o.apache.coyote.http11.Http11Processor   : Error parsing HTTP request header
+🗑️ Cleaning up unused group: 2589
+🔍 Saving 5 questions for group: Questions 1–5
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11473
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11474
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11475
+✅ Successfully saved question 3
+📝 Question 4:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11476
+✅ Successfully saved question 4
+📝 Question 5:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11477
+✅ Successfully saved question 5
+🗑️ Cleaning up unused group: 2590
+🔍 Saving 5 questions for group: Questions 1–5
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11478
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11479
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11480
+✅ Successfully saved question 3
+📝 Question 4:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11481
+✅ Successfully saved question 4
+📝 Question 5:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11482
+✅ Successfully saved question 5
+🗑️ Cleaning up unused group: 2591
+🔍 Saving 5 questions for group: Questions 1–5
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11483
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11484
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11485
+✅ Successfully saved question 3
+📝 Question 4:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11486
+✅ Successfully saved question 4
+📝 Question 5:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11487
+✅ Successfully saved question 5
+🗑️ Cleaning up unused group: 2592
+🔍 Saving 5 questions for group: Questions 1–5
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11488
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11489
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11490
+✅ Successfully saved question 3
+📝 Question 4:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11491
+✅ Successfully saved question 4
+📝 Question 5:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11492
+✅ Successfully saved question 5
+🗑️ Cleaning up unused group: 2577
+🗑️ Cleaning up unused group: 2578
+🗑️ Cleaning up unused group: 2579
+🗑️ Deleting old questions for group: 136
+✅ Deleted old questions, now creating new ones
+🔍 Saving 0 questions for group: Part 1
+🔍 Saving 10 questions for group: hihi
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: '1jkhjknjkn'
+✅ Saved answer 1 with ID: 11493
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: '2'
+✅ Saved answer 1 with ID: 11494
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: '3'
+✅ Saved answer 1 with ID: 11495
+✅ Successfully saved question 3
+📝 Question 4:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: '4'
+✅ Saved answer 1 with ID: 11496
+✅ Successfully saved question 4
+📝 Question 5:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: '5'
+✅ Saved answer 1 with ID: 11497
+✅ Successfully saved question 5
+📝 Question 6:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: '6'
+✅ Saved answer 1 with ID: 11498
+✅ Successfully saved question 6
+📝 Question 7:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: '7'
+✅ Saved answer 1 with ID: 11499
+✅ Successfully saved question 7
+📝 Question 8:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: '8'
+✅ Saved answer 1 with ID: 11500
+✅ Successfully saved question 8
+📝 Question 9:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: '9'
+✅ Saved answer 1 with ID: 11501
+✅ Successfully saved question 9
+📝 Question 10:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: '10'
+✅ Saved answer 1 with ID: 11502
+✅ Successfully saved question 10
+🗑️ Deleting old questions for group: 2414
+✅ Deleted old questions, now creating new ones
+🔍 Saving 3 questions for group: Multiple Choice 3
+📝 Question 1:  | Answers: 0
+💾 Saving 0 answers for question: 
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 0
+💾 Saving 0 answers for question: 
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 0
+💾 Saving 0 answers for question: 
+✅ Successfully saved question 3
+🗑️ Deleting old questions for group: 2415
+✅ Deleted old questions, now creating new ones
+🔍 Saving 3 questions for group: Sentence Completion 4
+📝 Question 1: jbnkjnjn / câu | Answers: 1
+💾 Saving 1 answers for question: jbnkjnjn / câu
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11503
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11504
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11505
+✅ Successfully saved question 3
+🗑️ Deleting old questions for group: 2416
+✅ Deleted old questions, now creating new ones
+🔍 Saving 5 questions for group: Questions 17–21
+📝 Question 1: fe | Answers: 1
+💾 Saving 1 answers for question: fe
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11506
+✅ Successfully saved question 1
+📝 Question 2: fef | Answers: 1
+💾 Saving 1 answers for question: fef
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11507
+✅ Successfully saved question 2
+📝 Question 3: fef | Answers: 1
+💾 Saving 1 answers for question: fef
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11508
+✅ Successfully saved question 3
+📝 Question 4:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11509
+✅ Successfully saved question 4
+📝 Question 5:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11510
+✅ Successfully saved question 5
+🗑️ Deleting old questions for group: 2417
+✅ Deleted old questions, now creating new ones
+🔍 Saving 9 questions for group: Image + Note Form 6
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'vghggh'
+✅ Saved answer 1 with ID: 11511
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11512
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'ygyg'
+✅ Saved answer 1 with ID: 11513
+✅ Successfully saved question 3
+📝 Question 4: bjbj | Answers: 1
+💾 Saving 1 answers for question: bjbj
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11514
+✅ Successfully saved question 4
+📝 Question 5:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11515
+✅ Successfully saved question 5
+📝 Question 6:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'njzxnjSxj'
+✅ Saved answer 1 with ID: 11516
+✅ Successfully saved question 6
+📝 Question 7:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11517
+✅ Successfully saved question 7
+📝 Question 8:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11518
+✅ Successfully saved question 8
+📝 Question 9:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11519
+✅ Successfully saved question 9
+🗑️ Deleting old questions for group: 2418
+✅ Deleted old questions, now creating new ones
+🔍 Saving 5 questions for group: Map Labelling 2
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'chicken'
+✅ Saved answer 1 with ID: 11520
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'chicken2'
+✅ Saved answer 1 with ID: 11521
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'chicken3'
+✅ Saved answer 1 with ID: 11522
+✅ Successfully saved question 3
+📝 Question 4:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'chicken4'
+✅ Saved answer 1 with ID: 11523
+✅ Successfully saved question 4
+📝 Question 5:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'chicken5'
+✅ Saved answer 1 with ID: 11524
+✅ Successfully saved question 5
+🗑️ Deleting old questions for group: 2419
+✅ Deleted old questions, now creating new ones
+🔍 Saving 5 questions for group: Drag Matching 2
+📝 Question 1: jsbcjs | Answers: 1
+💾 Saving 1 answers for question: jsbcjs
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11525
+✅ Successfully saved question 1
+📝 Question 2: sadbcs | Answers: 1
+💾 Saving 1 answers for question: sadbcs
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11526
+✅ Successfully saved question 2
+📝 Question 3: dascasc | Answers: 1
+💾 Saving 1 answers for question: dascasc
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11527
+✅ Successfully saved question 3
+📝 Question 4: cwscws | Answers: 1
+💾 Saving 1 answers for question: cwscws
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11528
+✅ Successfully saved question 4
+📝 Question 5: cwevcew | Answers: 1
+💾 Saving 1 answers for question: cwevcew
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11529
+✅ Successfully saved question 5
+🔍 Saving 6 questions for group: Drag Matching 1
+📝 Question 1: Impression fossils | Answers: 1
+💾 Saving 1 answers for question: Impression fossils
+📝 Answer 1: 'We are chicken'
+✅ Saved answer 1 with ID: 11530
+✅ Successfully saved question 1
+📝 Question 2: Cast fossils | Answers: 1
+💾 Saving 1 answers for question: Cast fossils
+📝 Answer 1: 'We are chicken'
+✅ Saved answer 1 with ID: 11531
+✅ Successfully saved question 2
+📝 Question 3: Permineralisation fossils | Answers: 1
+💾 Saving 1 answers for question: Permineralisation fossils
+📝 Answer 1: 'We are chicken'
+✅ Saved answer 1 with ID: 11532
+✅ Successfully saved question 3
+📝 Question 4:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11533
+✅ Successfully saved question 4
+📝 Question 5: Compaction fossils | Answers: 1
+💾 Saving 1 answers for question: Compaction fossils
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11534
+✅ Successfully saved question 5
+📝 Question 6: Fusain fossils | Answers: 1
+💾 Saving 1 answers for question: Fusain fossils
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11535
+✅ Successfully saved question 6
+🔍 Saving 5 questions for group: Nhóm 2
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11536
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11537
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11538
+✅ Successfully saved question 3
+📝 Question 4:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11539
+✅ Successfully saved question 4
+📝 Question 5:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11540
+✅ Successfully saved question 5
+🗑️ Deleting old questions for group: 140
+✅ Deleted old questions, now creating new ones
+🔍 Saving 2 questions for group: Questions 31–32Choose the correct answer.
+📝 Question 1: <div><span style="color: rgb(0, 0, 0); font-family: Arial, sans-serif; font-size: medium;">Participants in the Learner Persistence study were all drawn from the same</span></div> | Answers: 0
+💾 Saving 0 answers for question: <div><span style="color: rgb(0, 0, 0); font-family: Arial, sans-serif; font-size: medium;">Participants in the Learner Persistence study were all drawn from the same</span></div>
+✅ Successfully saved question 1
+📝 Question 2: <div><span style="color: rgb(0, 0, 0); font-family: Arial, sans-serif; font-size: medium;">The study showed that when starting their course, older students were most concerned about</span></div> | Answers: 0
+💾 Saving 0 answers for question: <div><span style="color: rgb(0, 0, 0); font-family: Arial, sans-serif; font-size: medium;">The study showed that when starting their course, older students were most concerned about</span></div>
+✅ Successfully saved question 2
+🗑️ Deleting old questions for group: 2135
+✅ Deleted old questions, now creating new ones
+🔍 Saving 5 questions for group: Table Completion 3
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11541
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11542
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11543
+✅ Successfully saved question 3
+📝 Question 4:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11544
+✅ Successfully saved question 4
+📝 Question 5:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11545
+✅ Successfully saved question 5
+🗑️ Deleting old questions for group: 141
+✅ Deleted old questions, now creating new ones
+🔍 Saving 0 questions for group: Questions 38–40 Complete the notes. Write&nbsp;ONE WORD ONLY&nbsp;for each answer.
+🗑️ Deleting old questions for group: 717
+✅ Deleted old questions, now creating new ones
+🔍 Saving 0 questions for group: Nhóm 1
+🗑️ Deleting old questions for group: 2422
+✅ Deleted old questions, now creating new ones
+🔍 Saving 6 questions for group: Choose <strong>TRUE</strong> if the statement agrees with the information given in the text, choose FALSE if the statement contradicts the information, or choose NOT GIVEN if there is no information on this.
+📝 Question 1: <span class="order-number active" id="scorableItem-128121896_1"></span><span class="text">Marie Curie’s husband was a joint winner of both Marie’s Nobel Prizes.</span> | Answers: 1
+💾 Saving 1 answers for question: <span class="order-number active" id="scorableItem-128121896_1"></span><span class="text">Marie Curie’s husband was a joint winner of both Marie’s Nobel Prizes.</span>
+📝 Answer 1: 'FALSE'
+✅ Saved answer 1 with ID: 11546
+✅ Successfully saved question 1
+📝 Question 2: <span class="order-number" id="scorableItem-128121896_2"></span><span class="text">Marie became interested in science when she was a child.</span> | Answers: 1
+💾 Saving 1 answers for question: <span class="order-number" id="scorableItem-128121896_2"></span><span class="text">Marie became interested in science when she was a child.</span>
+📝 Answer 1: 'TRUE'
+✅ Saved answer 1 with ID: 11547
+✅ Successfully saved question 2
+📝 Question 3: <span class="order-number" id="scorableItem-128121896_3"></span><span class="text">Marie was able to attend the Sorbonne because of her sister’s financial contribution.</span> | Answers: 1
+💾 Saving 1 answers for question: <span class="order-number" id="scorableItem-128121896_3"></span><span class="text">Marie was able to attend the Sorbonne because of her sister’s financial contribution.</span>
+📝 Answer 1: 'TRUE'
+✅ Saved answer 1 with ID: 11548
+✅ Successfully saved question 3
+📝 Question 4: <span class="text">Marie st<font color="#ffa348">opped doing research for several years whe</font>n her children were born.</span> | Answers: 1
+💾 Saving 1 answers for question: <span class="text">Marie st<font color="#ffa348">opped doing research for several years whe</font>n her children were born.</span>
+📝 Answer 1: 'TRUE'
+✅ Saved answer 1 with ID: 11549
+✅ Successfully saved question 4
+📝 Question 5: <span class="order-number" id="scorableItem-128121896_5"></span><span class="text" style="text-align: left;">Marie took over the <font color="#e01b24">teaching p</font>osition her husband had held.</span> | Answers: 1
+💾 Saving 1 answers for question: <span class="order-number" id="scorableItem-128121896_5"></span><span class="text" style="text-align: left;">Marie took over the <font color="#e01b24">teaching p</font>osition her husband had held.</span>
+📝 Answer 1: 'FALSE'
+✅ Saved answer 1 with ID: 11550
+✅ Successfully saved question 5
+📝 Question 6: <span class="order-number" id="scorableItem-128121896_6"></span><span class="text">Marie’s sister Bronia studied the medical uses of radioactivity.</span> | Answers: 1
+💾 Saving 1 answers for question: <span class="order-number" id="scorableItem-128121896_6"></span><span class="text">Marie’s sister Bronia studied the medical uses of radioactivity.</span>
+📝 Answer 1: 'FALSE'
+✅ Saved answer 1 with ID: 11551
+✅ Successfully saved question 6
+🗑️ Deleting old questions for group: 719
+✅ Deleted old questions, now creating new ones
+🔍 Saving 7 questions for group: <div class="QuestionDisplay__rubricContent___1byNW"><p><span style="font-weight: normal;">Complete the notes. Write</span> ONE WORD ONLY <span style="font-weight: normal;">from the text for each answer.</span></p></div>
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'dap an 1'
+✅ Saved answer 1 with ID: 11552
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'dap an 2đ'
+✅ Saved answer 1 with ID: 11553
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'hh'
+✅ Saved answer 1 with ID: 11554
+✅ Successfully saved question 3
+📝 Question 4:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'dap an '
+✅ Saved answer 1 with ID: 11555
+✅ Successfully saved question 4
+📝 Question 5:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'hhh'
+✅ Saved answer 1 with ID: 11556
+✅ Successfully saved question 5
+📝 Question 6:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'yyyy'
+✅ Saved answer 1 with ID: 11557
+✅ Successfully saved question 6
+📝 Question 7:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'hi'
+✅ Saved answer 1 with ID: 11558
+✅ Successfully saved question 7
+🗑️ Deleting old questions for group: 2423
+✅ Deleted old questions, now creating new ones
+🔍 Saving 2 questions for group: Table Completion 4
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11559
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11560
+✅ Successfully saved question 2
+🗑️ Deleting old questions for group: 720
+✅ Deleted old questions, now creating new ones
+🔍 Saving 0 questions for group: <h1 class="title">The Physics of Traffic Behavior</h1>
+🗑️ Deleting old questions for group: 721
+✅ Deleted old questions, now creating new ones
+🔍 Saving 4 questions for group: Match Headings 2
+📝 Question 1: Section A | Answers: 1
+💾 Saving 1 answers for question: Section A
+📝 Answer 1: 'test'
+✅ Saved answer 1 with ID: 11561
+✅ Successfully saved question 1
+📝 Question 2: Section B | Answers: 1
+💾 Saving 1 answers for question: Section B
+📝 Answer 1: 'test'
+✅ Saved answer 1 with ID: 11562
+✅ Successfully saved question 2
+📝 Question 3: Section C | Answers: 1
+💾 Saving 1 answers for question: Section C
+📝 Answer 1: 'test'
+✅ Saved answer 1 with ID: 11563
+✅ Successfully saved question 3
+📝 Question 4: Section D | Answers: 1
+💾 Saving 1 answers for question: Section D
+📝 Answer 1: 'test'
+✅ Saved answer 1 with ID: 11564
+✅ Successfully saved question 4
+🗑️ Deleting old questions for group: 2138
+✅ Deleted old questions, now creating new ones
+🔍 Saving 1 questions for group: Multiple Choice (nhiều) 3
+📝 Question 1: cau hoi | Answers: 0
+💾 Saving 0 answers for question: cau hoi
+✅ Successfully saved question 1
+🗑️ Deleting old questions for group: 2139
+✅ Deleted old questions, now creating new ones
+🔍 Saving 0 questions for group: Nhóm 1
+🗑️ Deleting old questions for group: 2140
+✅ Deleted old questions, now creating new ones
+🔍 Saving 4 questions for group: Match Headings 2
+📝 Question 1: Section A | Answers: 1
+💾 Saving 1 answers for question: Section A
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11565
+✅ Successfully saved question 1
+📝 Question 2: Section B | Answers: 1
+💾 Saving 1 answers for question: Section B
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11566
+✅ Successfully saved question 2
+📝 Question 3: Section C | Answers: 1
+💾 Saving 1 answers for question: Section C
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11567
+✅ Successfully saved question 3
+📝 Question 4: Section D | Answers: 1
+💾 Saving 1 answers for question: Section D
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11568
+✅ Successfully saved question 4
+🗑️ Deleting old questions for group: 2141
+✅ Deleted old questions, now creating new ones
+🔍 Saving 1 questions for group: Nhóm 3
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11569
+✅ Successfully saved question 1
+🗑️ Cleaning up unused group: 2594
+🗑️ Cleaning up unused group: 2595
+🗑️ Cleaning up unused group: 2596
+🗑️ Deleting old questions for group: 136
+✅ Deleted old questions, now creating new ones
+🔍 Saving 0 questions for group: Part 1
+🔍 Saving 10 questions for group: hihi
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: '1jkhjknjkn'
+✅ Saved answer 1 with ID: 11570
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: '2'
+✅ Saved answer 1 with ID: 11571
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: '3'
+✅ Saved answer 1 with ID: 11572
+✅ Successfully saved question 3
+📝 Question 4:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: '4'
+✅ Saved answer 1 with ID: 11573
+✅ Successfully saved question 4
+📝 Question 5:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: '5'
+✅ Saved answer 1 with ID: 11574
+✅ Successfully saved question 5
+📝 Question 6:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: '6'
+✅ Saved answer 1 with ID: 11575
+✅ Successfully saved question 6
+📝 Question 7:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: '7'
+✅ Saved answer 1 with ID: 11576
+✅ Successfully saved question 7
+📝 Question 8:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: '8'
+✅ Saved answer 1 with ID: 11577
+✅ Successfully saved question 8
+📝 Question 9:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: '9'
+✅ Saved answer 1 with ID: 11578
+✅ Successfully saved question 9
+📝 Question 10:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: '10'
+✅ Saved answer 1 with ID: 11579
+✅ Successfully saved question 10
+🗑️ Deleting old questions for group: 2414
+✅ Deleted old questions, now creating new ones
+🔍 Saving 3 questions for group: Multiple Choice 3
+📝 Question 1:  | Answers: 0
+💾 Saving 0 answers for question: 
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 0
+💾 Saving 0 answers for question: 
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 0
+💾 Saving 0 answers for question: 
+✅ Successfully saved question 3
+🗑️ Deleting old questions for group: 2415
+✅ Deleted old questions, now creating new ones
+🔍 Saving 3 questions for group: Sentence Completion 4
+📝 Question 1: jbnkjnjn / câu | Answers: 1
+💾 Saving 1 answers for question: jbnkjnjn / câu
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11580
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11581
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11582
+✅ Successfully saved question 3
+🗑️ Deleting old questions for group: 2416
+✅ Deleted old questions, now creating new ones
+🔍 Saving 5 questions for group: Questions 17–21
+📝 Question 1: fe | Answers: 1
+💾 Saving 1 answers for question: fe
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11583
+✅ Successfully saved question 1
+📝 Question 2: fef | Answers: 1
+💾 Saving 1 answers for question: fef
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11584
+✅ Successfully saved question 2
+📝 Question 3: fef | Answers: 1
+💾 Saving 1 answers for question: fef
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11585
+✅ Successfully saved question 3
+📝 Question 4:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11586
+✅ Successfully saved question 4
+📝 Question 5:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11587
+✅ Successfully saved question 5
+🗑️ Deleting old questions for group: 2417
+✅ Deleted old questions, now creating new ones
+🔍 Saving 9 questions for group: Image + Note Form 6
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'vghggh'
+✅ Saved answer 1 with ID: 11588
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11589
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'ygyg'
+✅ Saved answer 1 with ID: 11590
+✅ Successfully saved question 3
+📝 Question 4: bjbj | Answers: 1
+💾 Saving 1 answers for question: bjbj
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11591
+✅ Successfully saved question 4
+📝 Question 5:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11592
+✅ Successfully saved question 5
+📝 Question 6:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'njzxnjSxj'
+✅ Saved answer 1 with ID: 11593
+✅ Successfully saved question 6
+📝 Question 7:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11594
+✅ Successfully saved question 7
+📝 Question 8:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11595
+✅ Successfully saved question 8
+📝 Question 9:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11596
+✅ Successfully saved question 9
+🗑️ Deleting old questions for group: 2418
+✅ Deleted old questions, now creating new ones
+🔍 Saving 5 questions for group: Map Labelling 2
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'chicken'
+✅ Saved answer 1 with ID: 11597
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'chicken2'
+✅ Saved answer 1 with ID: 11598
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'chicken3'
+✅ Saved answer 1 with ID: 11599
+✅ Successfully saved question 3
+📝 Question 4:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'chicken4'
+✅ Saved answer 1 with ID: 11600
+✅ Successfully saved question 4
+📝 Question 5:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'chicken5'
+✅ Saved answer 1 with ID: 11601
+✅ Successfully saved question 5
+🗑️ Deleting old questions for group: 2419
+✅ Deleted old questions, now creating new ones
+🔍 Saving 5 questions for group: Drag Matching 2
+📝 Question 1: jsbcjs | Answers: 1
+💾 Saving 1 answers for question: jsbcjs
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11602
+✅ Successfully saved question 1
+📝 Question 2: sadbcs | Answers: 1
+💾 Saving 1 answers for question: sadbcs
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11603
+✅ Successfully saved question 2
+📝 Question 3: dascasc | Answers: 1
+💾 Saving 1 answers for question: dascasc
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11604
+✅ Successfully saved question 3
+📝 Question 4: cwscws | Answers: 1
+💾 Saving 1 answers for question: cwscws
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11605
+✅ Successfully saved question 4
+📝 Question 5: cwevcew | Answers: 1
+💾 Saving 1 answers for question: cwevcew
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11606
+✅ Successfully saved question 5
+🔍 Saving 6 questions for group: Drag Matching 1
+📝 Question 1: Impression fossils | Answers: 1
+💾 Saving 1 answers for question: Impression fossils
+📝 Answer 1: 'We are chicken'
+✅ Saved answer 1 with ID: 11607
+✅ Successfully saved question 1
+📝 Question 2: Cast fossils | Answers: 1
+💾 Saving 1 answers for question: Cast fossils
+📝 Answer 1: 'We are chicken'
+✅ Saved answer 1 with ID: 11608
+✅ Successfully saved question 2
+📝 Question 3: Permineralisation fossils | Answers: 1
+💾 Saving 1 answers for question: Permineralisation fossils
+📝 Answer 1: 'We are chicken'
+✅ Saved answer 1 with ID: 11609
+✅ Successfully saved question 3
+📝 Question 4:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11610
+✅ Successfully saved question 4
+📝 Question 5: Compaction fossils | Answers: 1
+💾 Saving 1 answers for question: Compaction fossils
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11611
+✅ Successfully saved question 5
+📝 Question 6: Fusain fossils | Answers: 1
+💾 Saving 1 answers for question: Fusain fossils
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11612
+✅ Successfully saved question 6
+🔍 Saving 5 questions for group: Nhóm 2
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11613
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11614
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11615
+✅ Successfully saved question 3
+📝 Question 4:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11616
+✅ Successfully saved question 4
+📝 Question 5:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11617
+✅ Successfully saved question 5
+🗑️ Deleting old questions for group: 140
+✅ Deleted old questions, now creating new ones
+🔍 Saving 2 questions for group: Questions 31–32Choose the correct answer.
+📝 Question 1: <div><span style="color: rgb(0, 0, 0); font-family: Arial, sans-serif; font-size: medium;">Participants in the Learner Persistence study were all drawn from the same</span></div> | Answers: 0
+💾 Saving 0 answers for question: <div><span style="color: rgb(0, 0, 0); font-family: Arial, sans-serif; font-size: medium;">Participants in the Learner Persistence study were all drawn from the same</span></div>
+✅ Successfully saved question 1
+📝 Question 2: <div><span style="color: rgb(0, 0, 0); font-family: Arial, sans-serif; font-size: medium;">The study showed that when starting their course, older students were most concerned about</span></div> | Answers: 0
+💾 Saving 0 answers for question: <div><span style="color: rgb(0, 0, 0); font-family: Arial, sans-serif; font-size: medium;">The study showed that when starting their course, older students were most concerned about</span></div>
+✅ Successfully saved question 2
+🗑️ Deleting old questions for group: 2135
+✅ Deleted old questions, now creating new ones
+🔍 Saving 5 questions for group: Table Completion 3
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11618
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11619
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11620
+✅ Successfully saved question 3
+📝 Question 4:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11621
+✅ Successfully saved question 4
+📝 Question 5:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11622
+✅ Successfully saved question 5
+🗑️ Deleting old questions for group: 141
+✅ Deleted old questions, now creating new ones
+🔍 Saving 0 questions for group: Questions 38–40 Complete the notes. Write&nbsp;ONE WORD ONLY&nbsp;for each answer.
+🗑️ Deleting old questions for group: 717
+✅ Deleted old questions, now creating new ones
+🔍 Saving 0 questions for group: Nhóm 1
+🗑️ Deleting old questions for group: 2422
+✅ Deleted old questions, now creating new ones
+🔍 Saving 6 questions for group: Choose <strong>TRUE</strong> if the statement agrees with the information given in the text, choose FALSE if the statement contradicts the information, or choose NOT GIVEN if there is no information on this.
+📝 Question 1: <span class="order-number active" id="scorableItem-128121896_1"></span><span class="text">Marie Curie’s husband was a joint winner of both Marie’s Nobel Prizes.</span> | Answers: 1
+💾 Saving 1 answers for question: <span class="order-number active" id="scorableItem-128121896_1"></span><span class="text">Marie Curie’s husband was a joint winner of both Marie’s Nobel Prizes.</span>
+📝 Answer 1: 'FALSE'
+✅ Saved answer 1 with ID: 11623
+✅ Successfully saved question 1
+📝 Question 2: <span class="order-number" id="scorableItem-128121896_2"></span><span class="text">Marie became interested in science when she was a child.</span> | Answers: 1
+💾 Saving 1 answers for question: <span class="order-number" id="scorableItem-128121896_2"></span><span class="text">Marie became interested in science when she was a child.</span>
+📝 Answer 1: 'TRUE'
+✅ Saved answer 1 with ID: 11624
+✅ Successfully saved question 2
+📝 Question 3: <span class="order-number" id="scorableItem-128121896_3"></span><span class="text">Marie was able to attend the Sorbonne because of her sister’s financial contribution.</span> | Answers: 1
+💾 Saving 1 answers for question: <span class="order-number" id="scorableItem-128121896_3"></span><span class="text">Marie was able to attend the Sorbonne because of her sister’s financial contribution.</span>
+📝 Answer 1: 'TRUE'
+✅ Saved answer 1 with ID: 11625
+✅ Successfully saved question 3
+📝 Question 4: <span class="text">Marie st<font color="#ffa348">opped doing research for several years whe</font>n her children were born.</span> | Answers: 1
+💾 Saving 1 answers for question: <span class="text">Marie st<font color="#ffa348">opped doing research for several years whe</font>n her children were born.</span>
+📝 Answer 1: 'TRUE'
+✅ Saved answer 1 with ID: 11626
+✅ Successfully saved question 4
+📝 Question 5: <span class="order-number" id="scorableItem-128121896_5"></span><span class="text" style="text-align: left;">Marie took over the <font color="#e01b24">teaching p</font>osition her husband had held.</span> | Answers: 1
+💾 Saving 1 answers for question: <span class="order-number" id="scorableItem-128121896_5"></span><span class="text" style="text-align: left;">Marie took over the <font color="#e01b24">teaching p</font>osition her husband had held.</span>
+📝 Answer 1: 'FALSE'
+✅ Saved answer 1 with ID: 11627
+✅ Successfully saved question 5
+📝 Question 6: <span class="order-number" id="scorableItem-128121896_6"></span><span class="text">Marie’s sister Bronia studied the medical uses of radioactivity.</span> | Answers: 1
+💾 Saving 1 answers for question: <span class="order-number" id="scorableItem-128121896_6"></span><span class="text">Marie’s sister Bronia studied the medical uses of radioactivity.</span>
+📝 Answer 1: 'FALSE'
+✅ Saved answer 1 with ID: 11628
+✅ Successfully saved question 6
+🗑️ Deleting old questions for group: 719
+✅ Deleted old questions, now creating new ones
+🔍 Saving 7 questions for group: <div class="QuestionDisplay__rubricContent___1byNW"><p><span style="font-weight: normal;">Complete the notes. Write</span> ONE WORD ONLY <span style="font-weight: normal;">from the text for each answer.</span></p></div>
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'dap an 1'
+✅ Saved answer 1 with ID: 11629
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'dap an 2đ'
+✅ Saved answer 1 with ID: 11630
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'hh'
+✅ Saved answer 1 with ID: 11631
+✅ Successfully saved question 3
+📝 Question 4:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'dap an '
+✅ Saved answer 1 with ID: 11632
+✅ Successfully saved question 4
+📝 Question 5:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'hhh'
+✅ Saved answer 1 with ID: 11633
+✅ Successfully saved question 5
+📝 Question 6:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'yyyy'
+✅ Saved answer 1 with ID: 11634
+✅ Successfully saved question 6
+📝 Question 7:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'hi'
+✅ Saved answer 1 with ID: 11635
+✅ Successfully saved question 7
+🗑️ Deleting old questions for group: 2423
+✅ Deleted old questions, now creating new ones
+🔍 Saving 2 questions for group: Table Completion 4
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11636
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11637
+✅ Successfully saved question 2
+🗑️ Deleting old questions for group: 720
+✅ Deleted old questions, now creating new ones
+🔍 Saving 0 questions for group: <h1 class="title">The Physics of Traffic Behavior</h1>
+🗑️ Deleting old questions for group: 721
+✅ Deleted old questions, now creating new ones
+🔍 Saving 4 questions for group: Match Headings 2
+📝 Question 1: Section A | Answers: 1
+💾 Saving 1 answers for question: Section A
+📝 Answer 1: 'test'
+✅ Saved answer 1 with ID: 11638
+✅ Successfully saved question 1
+📝 Question 2: Section B | Answers: 1
+💾 Saving 1 answers for question: Section B
+📝 Answer 1: 'test'
+✅ Saved answer 1 with ID: 11639
+✅ Successfully saved question 2
+📝 Question 3: Section C | Answers: 1
+💾 Saving 1 answers for question: Section C
+📝 Answer 1: 'test'
+✅ Saved answer 1 with ID: 11640
+✅ Successfully saved question 3
+📝 Question 4: Section D | Answers: 1
+💾 Saving 1 answers for question: Section D
+📝 Answer 1: 'test'
+✅ Saved answer 1 with ID: 11641
+✅ Successfully saved question 4
+🗑️ Deleting old questions for group: 2138
+✅ Deleted old questions, now creating new ones
+🔍 Saving 1 questions for group: Multiple Choice (nhiều) 3
+📝 Question 1: cau hoi | Answers: 0
+💾 Saving 0 answers for question: cau hoi
+✅ Successfully saved question 1
+🗑️ Deleting old questions for group: 2139
+✅ Deleted old questions, now creating new ones
+🔍 Saving 0 questions for group: Nhóm 1
+🗑️ Deleting old questions for group: 2140
+✅ Deleted old questions, now creating new ones
+🔍 Saving 4 questions for group: Match Headings 2
+📝 Question 1: Section A | Answers: 1
+💾 Saving 1 answers for question: Section A
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11642
+✅ Successfully saved question 1
+📝 Question 2: Section B | Answers: 1
+💾 Saving 1 answers for question: Section B
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11643
+✅ Successfully saved question 2
+📝 Question 3: Section C | Answers: 1
+💾 Saving 1 answers for question: Section C
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11644
+✅ Successfully saved question 3
+📝 Question 4: Section D | Answers: 1
+💾 Saving 1 answers for question: Section D
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11645
+✅ Successfully saved question 4
+🗑️ Deleting old questions for group: 2141
+✅ Deleted old questions, now creating new ones
+🔍 Saving 1 questions for group: Nhóm 3
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11646
+✅ Successfully saved question 1
+🗑️ Cleaning up unused group: 2597
+🗑️ Cleaning up unused group: 2598
+🗑️ Cleaning up unused group: 2599
+🗑️ Deleting old questions for group: 136
+✅ Deleted old questions, now creating new ones
+🔍 Saving 0 questions for group: Part 1
+🔍 Saving 10 questions for group: hihi
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: '1jkhjknjkn'
+✅ Saved answer 1 with ID: 11647
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: '2'
+✅ Saved answer 1 with ID: 11648
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: '3'
+✅ Saved answer 1 with ID: 11649
+✅ Successfully saved question 3
+📝 Question 4:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: '4'
+✅ Saved answer 1 with ID: 11650
+✅ Successfully saved question 4
+📝 Question 5:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: '5'
+✅ Saved answer 1 with ID: 11651
+✅ Successfully saved question 5
+📝 Question 6:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: '6'
+✅ Saved answer 1 with ID: 11652
+✅ Successfully saved question 6
+📝 Question 7:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: '7'
+✅ Saved answer 1 with ID: 11653
+✅ Successfully saved question 7
+📝 Question 8:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: '8'
+✅ Saved answer 1 with ID: 11654
+✅ Successfully saved question 8
+📝 Question 9:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: '9'
+✅ Saved answer 1 with ID: 11655
+✅ Successfully saved question 9
+📝 Question 10:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: '10'
+✅ Saved answer 1 with ID: 11656
+✅ Successfully saved question 10
+🗑️ Deleting old questions for group: 2414
+✅ Deleted old questions, now creating new ones
+🔍 Saving 3 questions for group: Multiple Choice 3
+📝 Question 1:  | Answers: 0
+💾 Saving 0 answers for question: 
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 0
+💾 Saving 0 answers for question: 
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 0
+💾 Saving 0 answers for question: 
+✅ Successfully saved question 3
+🗑️ Deleting old questions for group: 2415
+✅ Deleted old questions, now creating new ones
+🔍 Saving 3 questions for group: Sentence Completion 4
+📝 Question 1: jbnkjnjn / câu | Answers: 1
+💾 Saving 1 answers for question: jbnkjnjn / câu
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11657
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11658
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11659
+✅ Successfully saved question 3
+🗑️ Deleting old questions for group: 2416
+✅ Deleted old questions, now creating new ones
+🔍 Saving 5 questions for group: Questions 17–21
+📝 Question 1: fe | Answers: 1
+💾 Saving 1 answers for question: fe
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11660
+✅ Successfully saved question 1
+📝 Question 2: fef | Answers: 1
+💾 Saving 1 answers for question: fef
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11661
+✅ Successfully saved question 2
+📝 Question 3: fef | Answers: 1
+💾 Saving 1 answers for question: fef
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11662
+✅ Successfully saved question 3
+📝 Question 4:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11663
+✅ Successfully saved question 4
+📝 Question 5:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11664
+✅ Successfully saved question 5
+🗑️ Deleting old questions for group: 2417
+✅ Deleted old questions, now creating new ones
+🔍 Saving 9 questions for group: Image + Note Form 6
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'vghggh'
+✅ Saved answer 1 with ID: 11665
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11666
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'ygyg'
+✅ Saved answer 1 with ID: 11667
+✅ Successfully saved question 3
+📝 Question 4: bjbj | Answers: 1
+💾 Saving 1 answers for question: bjbj
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11668
+✅ Successfully saved question 4
+📝 Question 5:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11669
+✅ Successfully saved question 5
+📝 Question 6:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'njzxnjSxj'
+✅ Saved answer 1 with ID: 11670
+✅ Successfully saved question 6
+📝 Question 7:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11671
+✅ Successfully saved question 7
+📝 Question 8:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11672
+✅ Successfully saved question 8
+📝 Question 9:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11673
+✅ Successfully saved question 9
+🗑️ Deleting old questions for group: 2418
+✅ Deleted old questions, now creating new ones
+🔍 Saving 5 questions for group: Map Labelling 2
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'chicken'
+✅ Saved answer 1 with ID: 11674
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'chicken2'
+✅ Saved answer 1 with ID: 11675
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'chicken3'
+✅ Saved answer 1 with ID: 11676
+✅ Successfully saved question 3
+📝 Question 4:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'chicken4'
+✅ Saved answer 1 with ID: 11677
+✅ Successfully saved question 4
+📝 Question 5:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'chicken5'
+✅ Saved answer 1 with ID: 11678
+✅ Successfully saved question 5
+🗑️ Deleting old questions for group: 2419
+✅ Deleted old questions, now creating new ones
+🔍 Saving 5 questions for group: Drag Matching 2
+📝 Question 1: jsbcjs | Answers: 1
+💾 Saving 1 answers for question: jsbcjs
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11679
+✅ Successfully saved question 1
+📝 Question 2: sadbcs | Answers: 1
+💾 Saving 1 answers for question: sadbcs
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11680
+✅ Successfully saved question 2
+📝 Question 3: dascasc | Answers: 1
+💾 Saving 1 answers for question: dascasc
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11681
+✅ Successfully saved question 3
+📝 Question 4: cwscws | Answers: 1
+💾 Saving 1 answers for question: cwscws
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11682
+✅ Successfully saved question 4
+📝 Question 5: cwevcew | Answers: 1
+💾 Saving 1 answers for question: cwevcew
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11683
+✅ Successfully saved question 5
+🔍 Saving 6 questions for group: Drag Matching 1
+📝 Question 1: Impression fossils | Answers: 1
+💾 Saving 1 answers for question: Impression fossils
+📝 Answer 1: 'We are chicken'
+✅ Saved answer 1 with ID: 11684
+✅ Successfully saved question 1
+📝 Question 2: Cast fossils | Answers: 1
+💾 Saving 1 answers for question: Cast fossils
+📝 Answer 1: 'We are chicken'
+✅ Saved answer 1 with ID: 11685
+✅ Successfully saved question 2
+📝 Question 3: Permineralisation fossils | Answers: 1
+💾 Saving 1 answers for question: Permineralisation fossils
+📝 Answer 1: 'We are chicken'
+✅ Saved answer 1 with ID: 11686
+✅ Successfully saved question 3
+📝 Question 4:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11687
+✅ Successfully saved question 4
+📝 Question 5: Compaction fossils | Answers: 1
+💾 Saving 1 answers for question: Compaction fossils
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11688
+✅ Successfully saved question 5
+📝 Question 6: Fusain fossils | Answers: 1
+💾 Saving 1 answers for question: Fusain fossils
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11689
+✅ Successfully saved question 6
+🔍 Saving 5 questions for group: Nhóm 2
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11690
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11691
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11692
+✅ Successfully saved question 3
+📝 Question 4:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11693
+✅ Successfully saved question 4
+📝 Question 5:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11694
+✅ Successfully saved question 5
+🗑️ Deleting old questions for group: 140
+✅ Deleted old questions, now creating new ones
+🔍 Saving 2 questions for group: Questions 31–32Choose the correct answer.
+📝 Question 1: <div><span style="color: rgb(0, 0, 0); font-family: Arial, sans-serif; font-size: medium;">Participants in the Learner Persistence study were all drawn from the same</span></div> | Answers: 0
+💾 Saving 0 answers for question: <div><span style="color: rgb(0, 0, 0); font-family: Arial, sans-serif; font-size: medium;">Participants in the Learner Persistence study were all drawn from the same</span></div>
+✅ Successfully saved question 1
+📝 Question 2: <div><span style="color: rgb(0, 0, 0); font-family: Arial, sans-serif; font-size: medium;">The study showed that when starting their course, older students were most concerned about</span></div> | Answers: 0
+💾 Saving 0 answers for question: <div><span style="color: rgb(0, 0, 0); font-family: Arial, sans-serif; font-size: medium;">The study showed that when starting their course, older students were most concerned about</span></div>
+✅ Successfully saved question 2
+🗑️ Deleting old questions for group: 2135
+✅ Deleted old questions, now creating new ones
+🔍 Saving 5 questions for group: Table Completion 3
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11695
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11696
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11697
+✅ Successfully saved question 3
+📝 Question 4:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11698
+✅ Successfully saved question 4
+📝 Question 5:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11699
+✅ Successfully saved question 5
+🗑️ Deleting old questions for group: 141
+✅ Deleted old questions, now creating new ones
+🔍 Saving 0 questions for group: Questions 38–40 Complete the notes. Write&nbsp;ONE WORD ONLY&nbsp;for each answer.
+🗑️ Deleting old questions for group: 717
+✅ Deleted old questions, now creating new ones
+🔍 Saving 0 questions for group: Nhóm 1
+🗑️ Deleting old questions for group: 2422
+✅ Deleted old questions, now creating new ones
+🔍 Saving 6 questions for group: Choose <strong>TRUE</strong> if the statement agrees with the information given in the text, choose FALSE if the statement contradicts the information, or choose NOT GIVEN if there is no information on this.
+📝 Question 1: <span class="order-number active" id="scorableItem-128121896_1"></span><span class="text">Marie Curie’s husband was a joint winner of both Marie’s Nobel Prizes.</span> | Answers: 1
+💾 Saving 1 answers for question: <span class="order-number active" id="scorableItem-128121896_1"></span><span class="text">Marie Curie’s husband was a joint winner of both Marie’s Nobel Prizes.</span>
+📝 Answer 1: 'FALSE'
+✅ Saved answer 1 with ID: 11700
+✅ Successfully saved question 1
+📝 Question 2: <span class="order-number" id="scorableItem-128121896_2"></span><span class="text">Marie became interested in science when she was a child.</span> | Answers: 1
+💾 Saving 1 answers for question: <span class="order-number" id="scorableItem-128121896_2"></span><span class="text">Marie became interested in science when she was a child.</span>
+📝 Answer 1: 'TRUE'
+✅ Saved answer 1 with ID: 11701
+✅ Successfully saved question 2
+📝 Question 3: <span class="order-number" id="scorableItem-128121896_3"></span><span class="text">Marie was able to attend the Sorbonne because of her sister’s financial contribution.</span> | Answers: 1
+💾 Saving 1 answers for question: <span class="order-number" id="scorableItem-128121896_3"></span><span class="text">Marie was able to attend the Sorbonne because of her sister’s financial contribution.</span>
+📝 Answer 1: 'TRUE'
+✅ Saved answer 1 with ID: 11702
+✅ Successfully saved question 3
+📝 Question 4: <span class="text">Marie st<font color="#ffa348">opped doing research for several years whe</font>n her children were born.</span> | Answers: 1
+💾 Saving 1 answers for question: <span class="text">Marie st<font color="#ffa348">opped doing research for several years whe</font>n her children were born.</span>
+📝 Answer 1: 'TRUE'
+✅ Saved answer 1 with ID: 11703
+✅ Successfully saved question 4
+📝 Question 5: <span class="order-number" id="scorableItem-128121896_5"></span><span class="text" style="text-align: left;">Marie took over the <font color="#e01b24">teaching p</font>osition her husband had held.</span> | Answers: 1
+💾 Saving 1 answers for question: <span class="order-number" id="scorableItem-128121896_5"></span><span class="text" style="text-align: left;">Marie took over the <font color="#e01b24">teaching p</font>osition her husband had held.</span>
+📝 Answer 1: 'FALSE'
+✅ Saved answer 1 with ID: 11704
+✅ Successfully saved question 5
+📝 Question 6: <span class="order-number" id="scorableItem-128121896_6"></span><span class="text">Marie’s sister Bronia studied the medical uses of radioactivity.</span> | Answers: 1
+💾 Saving 1 answers for question: <span class="order-number" id="scorableItem-128121896_6"></span><span class="text">Marie’s sister Bronia studied the medical uses of radioactivity.</span>
+📝 Answer 1: 'FALSE'
+✅ Saved answer 1 with ID: 11705
+✅ Successfully saved question 6
+🗑️ Deleting old questions for group: 719
+✅ Deleted old questions, now creating new ones
+🔍 Saving 7 questions for group: <div class="QuestionDisplay__rubricContent___1byNW"><p><span style="font-weight: normal;">Complete the notes. Write</span> ONE WORD ONLY <span style="font-weight: normal;">from the text for each answer.</span></p></div>
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'dap an 1'
+✅ Saved answer 1 with ID: 11706
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'dap an 2đ'
+✅ Saved answer 1 with ID: 11707
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'hh'
+✅ Saved answer 1 with ID: 11708
+✅ Successfully saved question 3
+📝 Question 4:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'dap an '
+✅ Saved answer 1 with ID: 11709
+✅ Successfully saved question 4
+📝 Question 5:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'hhh'
+✅ Saved answer 1 with ID: 11710
+✅ Successfully saved question 5
+📝 Question 6:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'yyyy'
+✅ Saved answer 1 with ID: 11711
+✅ Successfully saved question 6
+📝 Question 7:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: 'hi'
+✅ Saved answer 1 with ID: 11712
+✅ Successfully saved question 7
+🗑️ Deleting old questions for group: 2423
+✅ Deleted old questions, now creating new ones
+🔍 Saving 2 questions for group: Table Completion 4
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11713
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11714
+✅ Successfully saved question 2
+🗑️ Deleting old questions for group: 720
+✅ Deleted old questions, now creating new ones
+🔍 Saving 0 questions for group: <h1 class="title">The Physics of Traffic Behavior</h1>
+🗑️ Deleting old questions for group: 721
+✅ Deleted old questions, now creating new ones
+🔍 Saving 4 questions for group: Match Headings 2
+📝 Question 1: Section A | Answers: 1
+💾 Saving 1 answers for question: Section A
+📝 Answer 1: 'test'
+✅ Saved answer 1 with ID: 11715
+✅ Successfully saved question 1
+📝 Question 2: Section B | Answers: 1
+💾 Saving 1 answers for question: Section B
+📝 Answer 1: 'test'
+✅ Saved answer 1 with ID: 11716
+✅ Successfully saved question 2
+📝 Question 3: Section C | Answers: 1
+💾 Saving 1 answers for question: Section C
+📝 Answer 1: 'test'
+✅ Saved answer 1 with ID: 11717
+✅ Successfully saved question 3
+📝 Question 4: Section D | Answers: 1
+💾 Saving 1 answers for question: Section D
+📝 Answer 1: 'test'
+✅ Saved answer 1 with ID: 11718
+✅ Successfully saved question 4
+🗑️ Deleting old questions for group: 2138
+✅ Deleted old questions, now creating new ones
+🔍 Saving 1 questions for group: Multiple Choice (nhiều) 3
+📝 Question 1: cau hoi | Answers: 0
+💾 Saving 0 answers for question: cau hoi
+✅ Successfully saved question 1
+🗑️ Deleting old questions for group: 2139
+✅ Deleted old questions, now creating new ones
+🔍 Saving 0 questions for group: Nhóm 1
+🗑️ Deleting old questions for group: 2140
+✅ Deleted old questions, now creating new ones
+🔍 Saving 4 questions for group: Match Headings 2
+📝 Question 1: Section A | Answers: 1
+💾 Saving 1 answers for question: Section A
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11719
+✅ Successfully saved question 1
+📝 Question 2: Section B | Answers: 1
+💾 Saving 1 answers for question: Section B
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11720
+✅ Successfully saved question 2
+📝 Question 3: Section C | Answers: 1
+💾 Saving 1 answers for question: Section C
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11721
+✅ Successfully saved question 3
+📝 Question 4: Section D | Answers: 1
+💾 Saving 1 answers for question: Section D
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11722
+✅ Successfully saved question 4
+🗑️ Deleting old questions for group: 2141
+✅ Deleted old questions, now creating new ones
+🔍 Saving 1 questions for group: Nhóm 3
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11723
+✅ Successfully saved question 1
+2026-03-27T16:00:40.673+07:00  INFO 132303 --- [DAVictory] [io-8080-exec-10] o.apache.coyote.http11.Http11Processor   : Error parsing HTTP request header
  Note: further occurrences of HTTP request parsing errors will be logged at DEBUG level.
 
-java.lang.IllegalArgumentException: Invalid character found in method name [0x160x030x010x000xf20x010x000x000xee0x030x030x840xc10xfb]0xf00xd50xdfWo8Co0xec0xce0xf40xaa|0x0f0xa680x9bI0x84o0xb50x09pB_0xd9[6 ]. HTTP method names must be tokens
+java.lang.IllegalArgumentException: Invalid character found in method name [MGLNDD_123.22.61.173_80800x0a...]. HTTP method names must be tokens
 	at org.apache.coyote.http11.Http11InputBuffer.parseRequestLine(Http11InputBuffer.java:391) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
 	at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:270) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
 	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:63) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
@@ -213,212 +1721,3 @@ java.lang.IllegalArgumentException: Invalid character found in method name [0x16
 	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:57) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
 	at java.base/java.lang.Thread.run(Thread.java:1583) ~[na:na]
 
-🗑️ Cleaning up unused group: 2558
-🗑️ Cleaning up unused group: 2559
-🔍 Saving 1 questions for group: Map Labelling 1
-📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question: 
-📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11293
-✅ Successfully saved question 1
-🔍 Saving 5 questions for group: Questions 1–5
-📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question: 
-📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11294
-✅ Successfully saved question 1
-📝 Question 2:  | Answers: 1
-💾 Saving 1 answers for question: 
-📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11295
-✅ Successfully saved question 2
-📝 Question 3:  | Answers: 1
-💾 Saving 1 answers for question: 
-📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11296
-✅ Successfully saved question 3
-📝 Question 4:  | Answers: 1
-💾 Saving 1 answers for question: 
-📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11297
-✅ Successfully saved question 4
-📝 Question 5:  | Answers: 1
-💾 Saving 1 answers for question: 
-📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11298
-✅ Successfully saved question 5
-🗑️ Cleaning up unused group: 2560
-🗑️ Cleaning up unused group: 2561
-🔍 Saving 1 questions for group: Map Labelling 1
-📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question: 
-📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11299
-✅ Successfully saved question 1
-🔍 Saving 5 questions for group: Questions 1–5
-📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question: 
-📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11300
-✅ Successfully saved question 1
-📝 Question 2:  | Answers: 1
-💾 Saving 1 answers for question: 
-📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11301
-✅ Successfully saved question 2
-📝 Question 3:  | Answers: 1
-💾 Saving 1 answers for question: 
-📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11302
-✅ Successfully saved question 3
-📝 Question 4:  | Answers: 1
-💾 Saving 1 answers for question: 
-📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11303
-✅ Successfully saved question 4
-📝 Question 5:  | Answers: 1
-💾 Saving 1 answers for question: 
-📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11304
-✅ Successfully saved question 5
-🗑️ Cleaning up unused group: 2562
-🗑️ Cleaning up unused group: 2563
-🔍 Saving 1 questions for group: Map Labelling 1
-📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question: 
-📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11305
-✅ Successfully saved question 1
-🔍 Saving 5 questions for group: Questions 1–5
-📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question: 
-📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11306
-✅ Successfully saved question 1
-📝 Question 2:  | Answers: 1
-💾 Saving 1 answers for question: 
-📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11307
-✅ Successfully saved question 2
-📝 Question 3:  | Answers: 1
-💾 Saving 1 answers for question: 
-📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11308
-✅ Successfully saved question 3
-📝 Question 4:  | Answers: 1
-💾 Saving 1 answers for question: 
-📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11309
-✅ Successfully saved question 4
-📝 Question 5:  | Answers: 1
-💾 Saving 1 answers for question: 
-📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11310
-✅ Successfully saved question 5
-🗑️ Cleaning up unused group: 2564
-🗑️ Cleaning up unused group: 2565
-🔍 Saving 1 questions for group: Map Labelling 1
-📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question: 
-📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11311
-✅ Successfully saved question 1
-🔍 Saving 5 questions for group: Questions 1–5
-📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question: 
-📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11312
-✅ Successfully saved question 1
-📝 Question 2:  | Answers: 1
-💾 Saving 1 answers for question: 
-📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11313
-✅ Successfully saved question 2
-📝 Question 3:  | Answers: 1
-💾 Saving 1 answers for question: 
-📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11314
-✅ Successfully saved question 3
-📝 Question 4:  | Answers: 1
-💾 Saving 1 answers for question: 
-📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11315
-✅ Successfully saved question 4
-📝 Question 5:  | Answers: 1
-💾 Saving 1 answers for question: 
-📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11316
-✅ Successfully saved question 5
-🗑️ Cleaning up unused group: 2566
-🗑️ Cleaning up unused group: 2567
-🔍 Saving 1 questions for group: Map Labelling 1
-📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question: 
-📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11317
-✅ Successfully saved question 1
-🔍 Saving 5 questions for group: Questions 1–5
-📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question: 
-📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11318
-✅ Successfully saved question 1
-📝 Question 2:  | Answers: 1
-💾 Saving 1 answers for question: 
-📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11319
-✅ Successfully saved question 2
-📝 Question 3:  | Answers: 1
-💾 Saving 1 answers for question: 
-📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11320
-✅ Successfully saved question 3
-📝 Question 4:  | Answers: 1
-💾 Saving 1 answers for question: 
-📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11321
-✅ Successfully saved question 4
-📝 Question 5:  | Answers: 1
-💾 Saving 1 answers for question: 
-📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11322
-✅ Successfully saved question 5
-🗑️ Cleaning up unused group: 2568
-🗑️ Cleaning up unused group: 2569
-🔍 Saving 1 questions for group: Map Labelling 1
-📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question: 
-📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11323
-✅ Successfully saved question 1
-🔍 Saving 5 questions for group: Questions 1–5
-📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question: 
-📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11324
-✅ Successfully saved question 1
-📝 Question 2:  | Answers: 1
-💾 Saving 1 answers for question: 
-📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11325
-✅ Successfully saved question 2
-📝 Question 3:  | Answers: 1
-💾 Saving 1 answers for question: 
-📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11326
-✅ Successfully saved question 3
-📝 Question 4:  | Answers: 1
-💾 Saving 1 answers for question: 
-📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11327
-✅ Successfully saved question 4
-📝 Question 5:  | Answers: 1
-💾 Saving 1 answers for question: 
-📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11328
-✅ Successfully saved question 5
-2026-03-27T15:07:59.019+07:00  INFO 91939 --- [DAVictory] [ionShutdownHook] o.s.boot.tomcat.GracefulShutdown         : Commencing graceful shutdown. Waiting for active requests to complete
-2026-03-27T15:07:59.023+07:00  INFO 91939 --- [DAVictory] [tomcat-shutdown] o.s.boot.tomcat.GracefulShutdown         : Graceful shutdown complete
-2026-03-27T15:07:59.046+07:00  INFO 91939 --- [DAVictory] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
-2026-03-27T15:07:59.051+07:00  INFO 91939 --- [DAVictory] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
-2026-03-27T15:07:59.055+07:00  INFO 91939 --- [DAVictory] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
