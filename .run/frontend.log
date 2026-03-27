@@ -14,3 +14,6 @@
 13:31:27 [vite] (client) hmr update /src/styles/testBuilder.css
 13:37:59 [vite] (client) hmr update /src/components/common/RichInput.jsx
 13:38:27 [vite] (client) hmr update /src/components/common/RichInput.jsx
+13:52:51 [vite] (client) hmr update /src/components/testBuilder/BuilderHeader.jsx
+13:52:51 [vite] (client) hmr update /src/components/common/RichInput.jsx
+13:52:51 [vite] (client) hmr update /src/styles/testBuilder.css
