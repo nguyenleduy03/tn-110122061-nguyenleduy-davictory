@@ -23,6 +23,7 @@ import {
 import Navbar from '../components/layout/Navbar';
 import { API_CONFIG } from '../config/api';
 import { ieltsApi } from '../services/ieltsApi';
+import { buildTimerPersistKey, clearSubmittedLock } from '../utils/testRuntimeState';
 import '../styles/examLibrary.css';
 
 const TYPE_TABS = [
@@ -94,6 +95,53 @@ const parseJsonSafe = (raw, fallback = null) => {
   } catch {
     return fallback;
   }
+};
+
+const isAnsweredValue = (value) => {
+  if (typeof value === 'string') return value.trim() !== '';
+  if (Array.isArray(value)) return value.length > 0;
+  return Boolean(value);
+};
+
+const hasMeaningfulSkillDraft = (skill, payload) => {
+  if (!payload || typeof payload !== 'object') return false;
+
+  if (skill === 'WRITING') {
+    const answers = payload.writingAnswers;
+    if (!answers || typeof answers !== 'object') return false;
+    return Object.values(answers).some((v) => typeof v === 'string' && v.trim() !== '');
+  }
+
+  if (skill === 'READING' || skill === 'LISTENING') {
+    const answers = payload.answers;
+    const bookmarks = payload.bookmarks;
+    const hasAnswers = answers && typeof answers === 'object' && Object.values(answers).some(isAnsweredValue);
+    const hasBookmarks = bookmarks && typeof bookmarks === 'object' && Object.values(bookmarks).some(Boolean);
+    const hasMovedPart = Number(payload.currentPartIndex) > 0;
+    return Boolean(hasAnswers || hasBookmarks || hasMovedPart);
+  }
+
+  if (skill === 'SPEAKING') {
+    return Number(payload.recordedQuestionCount) > 0 || Number(payload.currentPartIdx) > 0;
+  }
+
+  return false;
+};
+
+const parseResumeFromTimerKey = (storageKey, skill, testId) => {
+  const safeSkill = String(skill || '').toLowerCase();
+  const safeTestId = String(testId || '').trim();
+  if (!safeSkill || !safeTestId || !storageKey) return null;
+
+  const pattern = new RegExp(
+    `^ieltsTimerDeadline_${safeSkill}_${safeTestId}_(?:full_test|single_test)_(practice|exam)_(.+)$`
+  );
+  const match = storageKey.match(pattern);
+  if (!match) return null;
+
+  return {
+    mode: match[1] || 'practice',
+  };
 };
 
 function BookCover({ series, index, small }) {
@@ -176,7 +224,108 @@ function SeriesDetail({ series, index, onBack, fullTestProgress }) {
   const skillOrder = ['LISTENING', 'READING', 'WRITING', 'SPEAKING'];
   const available = skillOrder.filter(s => skillGroups[s]);
   const fullTestProgressPercent = Math.max(0, Math.min(100, Number(fullTestProgress?.progressPercent) || 0));
-  const hasSavedFullTestProgress = Boolean(fullTestProgress?.routePath) && fullTestProgressPercent < 100;
+  const hasRemoteFullTestProgress = Boolean(fullTestProgress?.routePath) && fullTestProgressPercent < 100;
+  const localFullTestSession = useMemo(() => {
+    const localSession = parseJsonSafe(sessionStorage.getItem('ieltsFullTest'), null);
+    if (!localSession?.sections?.length) return null;
+    const inSameSeries = localSession.sections.some((section) => String(section?.testId || '') === String(series.backendId));
+    return inSameSeries ? localSession : null;
+  }, [series.backendId]);
+  const hasSavedFullTestProgress = hasRemoteFullTestProgress || Boolean(localFullTestSession);
+  const skillResumeMap = useMemo(() => {
+    const map = {};
+    if (typeof window === 'undefined') return map;
+    const now = Date.now();
+
+    available.forEach((skill) => {
+      const testId = String(skillGroups[skill]?.[0]?.id || '');
+      if (!testId) return;
+
+      const prefix = `ieltsDraft_${skill.toLowerCase()}_`;
+      const suffix = `_${testId}`;
+      let latest = null;
+      let latestTimer = null;
+
+      for (let i = 0; i < localStorage.length; i += 1) {
+        const key = localStorage.key(i);
+        if (!key || !key.startsWith(prefix) || !key.endsWith(suffix)) continue;
+
+        const payload = parseJsonSafe(localStorage.getItem(key), null);
+        if (!payload || typeof payload !== 'object') continue;
+        if (!hasMeaningfulSkillDraft(skill, payload)) continue;
+
+        const mode = key.slice(prefix.length, key.length - suffix.length) || 'practice';
+        const savedAt = Number(payload.savedAt) || 0;
+        if (!latest || savedAt > latest.savedAt) {
+          const fallbackQuery = mode === 'exam' ? 'mode=exam&allowReview=true' : `mode=${mode}`;
+          latest = {
+            mode,
+            queryString: payload.queryString || fallbackQuery,
+            savedAt,
+          };
+        }
+      }
+
+      for (let i = 0; i < localStorage.length; i += 1) {
+        const key = localStorage.key(i);
+        if (!key || !key.startsWith('ieltsTimerDeadline_')) continue;
+
+        const parsedTimer = parseResumeFromTimerKey(key, skill, testId);
+        if (!parsedTimer) continue;
+
+        const timerPayload = parseJsonSafe(localStorage.getItem(key), null);
+        if (!timerPayload || typeof timerPayload !== 'object') continue;
+
+        const deadlineMs = Number(timerPayload.deadlineMs);
+        if (!Number.isFinite(deadlineMs) || deadlineMs <= now) continue;
+
+        const savedAt = Number(timerPayload.savedAt) || 0;
+        if (!latestTimer || savedAt > latestTimer.savedAt) {
+          const resumeQuery = parsedTimer.mode === 'exam'
+            ? 'mode=exam&allowReview=true'
+            : `mode=${parsedTimer.mode}`;
+          latestTimer = {
+            mode: parsedTimer.mode,
+            queryString: resumeQuery,
+            savedAt,
+          };
+        }
+      }
+
+      if (latest) {
+        map[skill] = latest;
+      } else if (latestTimer) {
+        map[skill] = latestTimer;
+      }
+    });
+
+    return map;
+  }, [available, skillGroups]);
+
+  const clearSubmittedLockForRoute = (skill, testId, rawQuery = '') => {
+    const queryString = String(rawQuery || '').replace(/^\?/, '');
+    const params = new URLSearchParams(queryString);
+    const mode = params.get('mode') || 'practice';
+    const isFullTest = params.get('fullTest') === 'true';
+
+    const persistKey = buildTimerPersistKey({
+      skill: String(skill || '').toLowerCase(),
+      testId,
+      mode,
+      isFullTest,
+      queryString,
+    });
+
+    clearSubmittedLock(persistKey);
+  };
+
+  const clearSubmittedLocksForSections = (sections, rawQuery = '') => {
+    if (!Array.isArray(sections)) return;
+    sections.forEach((section) => {
+      if (!section?.skill || !section?.testId) return;
+      clearSubmittedLockForRoute(section.skill, section.testId, rawQuery);
+    });
+  };
 
   const handleStartFullTest = () => {
     const sections = available.map((s, i) => ({
@@ -193,11 +342,14 @@ function SeriesDetail({ series, index, onBack, fullTestProgress }) {
       mode: 'practice',
     };
 
-    if (hasSavedFullTestProgress) {
+    if (hasRemoteFullTestProgress) {
       const restoredSession = parseJsonSafe(fullTestProgress?.sessionStateJson, initialSessionState);
       const resumeQuery = fullTestProgress?.queryString
         ? (fullTestProgress.queryString.startsWith('?') ? fullTestProgress.queryString : `?${fullTestProgress.queryString}`)
         : '';
+      const normalizedResumeQuery = String(resumeQuery || '').replace(/^\?/, '') || `fullTest=true&mode=${restoredSession?.mode || 'practice'}`;
+
+      clearSubmittedLocksForSections(restoredSession?.sections, normalizedResumeQuery);
 
       sessionStorage.setItem('ieltsFullTest', JSON.stringify(restoredSession));
       setShowFullTestModal(false);
@@ -205,11 +357,28 @@ function SeriesDetail({ series, index, onBack, fullTestProgress }) {
       return;
     }
 
+    if (localFullTestSession?.sections?.length) {
+      const safeCurrentSection = Number.isFinite(localFullTestSession.currentSection)
+        ? Math.max(0, Math.min(localFullTestSession.sections.length - 1, localFullTestSession.currentSection))
+        : 0;
+      const currentSection = localFullTestSession.sections[safeCurrentSection];
+      if (currentSection?.skill && currentSection?.testId) {
+        const localQuery = `fullTest=true&mode=${localFullTestSession.mode || 'practice'}`;
+        clearSubmittedLocksForSections(localFullTestSession.sections, localQuery);
+        sessionStorage.setItem('ieltsFullTest', JSON.stringify(localFullTestSession));
+        setShowFullTestModal(false);
+        navigate(`/test/${currentSection.skill}/${currentSection.testId}?${localQuery}`);
+        return;
+      }
+    }
+
     sessionStorage.setItem('ieltsFullTest', JSON.stringify(initialSessionState));
 
     sections.forEach((section) => {
       sessionStorage.removeItem(`ieltsFullTestSnapshot_${section.skill}_${section.testId}`);
     });
+
+    clearSubmittedLocksForSections(sections, 'fullTest=true&mode=practice');
 
     setShowFullTestModal(false);
     navigate(`/test/${sections[0].skill}/${sections[0].testId}?fullTest=true&mode=practice`);
@@ -297,7 +466,9 @@ function SeriesDetail({ series, index, onBack, fullTestProgress }) {
     }
 
     closeSkillModeModal();
-    navigate(`/test/${skill.toLowerCase()}/${testId}?${params.toString()}`);
+    const queryString = params.toString();
+    clearSubmittedLockForRoute(skill, testId, queryString);
+    navigate(`/test/${skill.toLowerCase()}/${testId}?${queryString}`);
   };
 
   return (
@@ -319,9 +490,24 @@ function SeriesDetail({ series, index, onBack, fullTestProgress }) {
                 type="button"
                 className="skill-card-btn"
                 style={{ background: m.btnColor }}
-                onClick={() => openSkillModeModal(skill, tests[0].id)}
+                onClick={() => {
+                  const resume = skillResumeMap[skill];
+                  if (resume) {
+                    const rawQuery = String(resume.queryString || '').replace(/^\?/, '');
+                    const query = rawQuery || `mode=${resume.mode || 'practice'}`;
+                    const normalizedParams = new URLSearchParams(query);
+                    if ((normalizedParams.get('mode') || 'practice') === 'exam' && !normalizedParams.has('allowReview')) {
+                      normalizedParams.set('allowReview', 'true');
+                    }
+                    const normalizedQuery = normalizedParams.toString();
+                    clearSubmittedLockForRoute(skill, tests[0].id, normalizedQuery);
+                    navigate(`/test/${skill.toLowerCase()}/${tests[0].id}?${normalizedQuery}`);
+                    return;
+                  }
+                  openSkillModeModal(skill, tests[0].id);
+                }}
               >
-                <Zap size={15} fill="white" color="white" /> Làm bài
+                <Zap size={15} fill="white" color="white" /> {skillResumeMap[skill] ? 'Tiếp tục' : 'Làm bài'}
               </button>
             </div>
           );
@@ -342,7 +528,7 @@ function SeriesDetail({ series, index, onBack, fullTestProgress }) {
           </div>
         </div>
         <button className="full-test-start-btn" onClick={() => setShowFullTestModal(true)}>
-          <Zap size={15} fill="white" color="white" /> {hasSavedFullTestProgress ? 'Continue' : 'Start'}
+          <Zap size={15} fill="white" color="white" /> {hasSavedFullTestProgress ? 'Tiếp tục' : 'Bắt đầu'}
         </button>
       </div>
 
@@ -367,13 +553,13 @@ function SeriesDetail({ series, index, onBack, fullTestProgress }) {
                 <li>This test includes the Listening, Reading, Writing and Speaking sections.</li>
                 <li>It takes about 3 hours to complete (same as the real IELTS test).</li>
                 {hasSavedFullTestProgress && (
-                  <li>You have saved progress at {fullTestProgressPercent}%. Continue from your last position.</li>
+                  <li>Bạn đang có tiến trình làm dở. Hệ thống sẽ mở lại đúng vị trí đang làm.</li>
                 )}
               </ul>
             </div>
             <p className="ft-modal-confirm-text">Please confirm if you would like to continue.</p>
             <button className="ft-modal-confirm-btn" onClick={handleStartFullTest}>
-              {hasSavedFullTestProgress ? 'Continue full test' : 'Xác nhận'}
+              {hasSavedFullTestProgress ? 'Tiếp tục full test' : 'Xác nhận'}
             </button>
           </div>
         </div>
@@ -523,6 +709,25 @@ export default function ExamLibrary() {
   const [loadingTests, setLoadingTests] = useState(true);
   const [fetchError, setFetchError] = useState(null);
   const [fullTestProgressMap, setFullTestProgressMap] = useState({});
+
+  useEffect(() => {
+    const forceExit = sessionStorage.getItem('forceExitFullscreen') === 'true';
+    const shouldExit = forceExit || Boolean(document.fullscreenElement);
+    if (!shouldExit || !document.exitFullscreen) {
+      if (forceExit) sessionStorage.removeItem('forceExitFullscreen');
+      return;
+    }
+
+    document.exitFullscreen().catch(() => { });
+    const timeoutId = window.setTimeout(() => {
+      if (document.fullscreenElement && document.exitFullscreen) {
+        document.exitFullscreen().catch(() => { });
+      }
+    }, 180);
+
+    sessionStorage.removeItem('forceExitFullscreen');
+    return () => window.clearTimeout(timeoutId);
+  }, []);
 
   // Fetch published tests from backend - đơn giản hóa
   useEffect(() => {

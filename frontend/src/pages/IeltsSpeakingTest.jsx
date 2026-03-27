@@ -10,8 +10,11 @@ import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import "../styles/ieltsTest.css";
 import TestHeader from "../components/common/TestHeader";
 import { ieltsApi } from "../services/ieltsApi";
-import { formatTextWithWhitespace } from "../utils/textFormatters";
+import { normalizeRichHtml, stripInlineStyles } from "../utils/textFormatters";
 import { computeFullTestProgressPercent, getFullTestSessionState, parseJsonSafe } from "../utils/fullTestProgress";
+import { buildTimerPersistKey, markTestSubmitted, getSubmittedRedirect } from "../utils/testRuntimeState";
+
+const formatSpeakingHtml = (value) => stripInlineStyles(normalizeRichHtml(value || ''));
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const fmtTime = (sec) => {
@@ -68,20 +71,20 @@ const Waveform = ({ analyser }) => {
 const CueCard = ({ question }) => (
   <div className="spk-cuecard">
     {question.topic
-      ? <div className="spk-cuecard-topic" dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(question.topic) }} />
+      ? <div className="spk-cuecard-topic" dangerouslySetInnerHTML={{ __html: formatSpeakingHtml(question.topic) }} />
       : <div className="spk-cuecard-topic" />}
     {question.instruction && (
-      <div className="spk-cuecard-desc" dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(question.instruction) }} />
+      <div className="spk-cuecard-desc" dangerouslySetInnerHTML={{ __html: formatSpeakingHtml(question.instruction) }} />
     )}
     {question.bulletPoints?.length > 0 && (
       <ul className="spk-cuecard-bullets">
         {question.bulletPoints.map((bp, i) => (
-          <li key={i} dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(bp) }} />
+          <li key={i} dangerouslySetInnerHTML={{ __html: formatSpeakingHtml(bp) }} />
         ))}
       </ul>
     )}
     {question.closingSentence && (
-      <div className="spk-cuecard-closing" dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(question.closingSentence) }} />
+      <div className="spk-cuecard-closing" dangerouslySetInnerHTML={{ __html: formatSpeakingHtml(question.closingSentence) }} />
     )}
   </div>
 );
@@ -101,7 +104,7 @@ const IeltsSpeakingTest = () => {
   const startPartNumber = Number.parseInt(searchParams.get('startPart') || '', 10);
   const durationOverrideMinutes = Number.parseInt(searchParams.get('duration') || '', 10);
   const noTimeLimit = searchParams.get('noTimeLimit') === 'true' || searchParams.get('duration') === '0';
-  const allowReviewInExam = searchParams.get('allowReview') === 'true';
+  const allowReviewInExam = mode === 'exam' ? searchParams.get('allowReview') !== 'false' : false;
   const selectedPracticeParts = useMemo(() => {
     return Array.from(new Set(
       selectedPartsParam
@@ -111,6 +114,19 @@ const IeltsSpeakingTest = () => {
     )).sort((a, b) => a - b);
   }, [selectedPartsParam]);
   const queryString = searchParams.toString();
+  const timerPersistKey = useMemo(() => buildTimerPersistKey({
+    skill: 'speaking',
+    testId,
+    mode,
+    isFullTest,
+    queryString,
+  }), [testId, mode, isFullTest, queryString]);
+
+  useEffect(() => {
+    const submittedRedirect = getSubmittedRedirect(timerPersistKey);
+    if (!submittedRedirect) return;
+    navigate(submittedRedirect, { replace: true });
+  }, [timerPersistKey, navigate]);
 
   const [currentPartIdx, setCurrentPartIdx] = useState(0);
   const [currentQIdx, setCurrentQIdx] = useState(0);
@@ -549,6 +565,7 @@ const IeltsSpeakingTest = () => {
       return acc;
     }, {});
     const submitPromise = ieltsApi.submitAnswers(testId, 'SPEAKING', recordedAnswers, timeSpentSeconds);
+    localStorage.removeItem(`ieltsTimerDeadline_${timerPersistKey}`);
 
     if (isFullTest) {
       try {
@@ -577,7 +594,9 @@ const IeltsSpeakingTest = () => {
               snapshotJson: '{}',
             }).catch(() => { });
             submitPromise.finally(() => {
-              navigate(`/test/${next.skill}/${next.testId}?fullTest=true&mode=${session.mode || mode}`);
+              const nextUrl = `/test/${next.skill}/${next.testId}?fullTest=true&mode=${session.mode || mode}`;
+              markTestSubmitted(timerPersistKey, nextUrl);
+              navigate(nextUrl);
             });
             return;
           } else {
@@ -585,7 +604,18 @@ const IeltsSpeakingTest = () => {
             sessionStorage.removeItem(`ieltsFullTestSnapshot_speaking_${testId}`);
             ieltsApi.clearFullTestProgress(testId).catch(() => { });
             submitPromise.finally(() => {
-              navigate(`/test/complete?mode=${session.mode || mode}&skill=speaking&fullTest=true&testId=${testId}`);
+              const completeParams = new URLSearchParams({
+                mode: session.mode || mode,
+                skill: 'speaking',
+                fullTest: 'true',
+                testId: String(testId),
+              });
+              if ((session.mode || mode) === 'exam') {
+                completeParams.set('allowReview', 'true');
+              }
+              const completeUrl = `/test/complete?${completeParams.toString()}`;
+              markTestSubmitted(timerPersistKey, completeUrl);
+              navigate(completeUrl);
             });
             return;
           }
@@ -603,10 +633,12 @@ const IeltsSpeakingTest = () => {
         if (mode === 'exam' && allowReviewInExam) {
           completeParams.set('allowReview', 'true');
         }
-        navigate(`/test/complete?${completeParams.toString()}`);
+        const completeUrl = `/test/complete?${completeParams.toString()}`;
+        markTestSubmitted(timerPersistKey, completeUrl);
+        navigate(completeUrl);
       }, 2000);
     });
-  }, [audioUrls, startTime, testId, isFullTest, navigate, mode, allowReviewInExam]);
+  }, [audioUrls, startTime, testId, isFullTest, navigate, mode, allowReviewInExam, timerPersistKey]);
 
   // ── Render ─────────────────────────────────────────────────────────────────
   if (loading)
@@ -659,6 +691,10 @@ const IeltsSpeakingTest = () => {
         duration={testData.totalMinutes}
         noTimeLimit={noTimeLimit}
         onTimeUp={submitTest}
+        isFullTest={isFullTest}
+        skill="speaking"
+        navigate={navigate}
+        timerPersistKey={timerPersistKey}
       />
 
       <div className="instruction-bar">
@@ -740,7 +776,7 @@ const IeltsSpeakingTest = () => {
           <div className="spk-card">
             {/* Part label */}
             <div className="spk-part-label">
-              Part {currentPart.partNumber} · <span dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(currentPart.title || '') }} />
+              Part {currentPart.partNumber} · <span dangerouslySetInnerHTML={{ __html: formatSpeakingHtml(currentPart.title || '') }} />
               <span className="spk-part-meta">
                 ({currentPart.questions.length} questions) · {noTimeLimit ? 'No time limit' : fmtTime(partSecondsLeft)}
               </span>
@@ -755,7 +791,7 @@ const IeltsSpeakingTest = () => {
             ) : (
               <div className="spk-question-text">
                 <span className="spk-q-number">Q{currentQIdx + 1}.</span>{" "}
-                <span dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(currentQ.text || '') }} />
+                <div className="spk-question-rich" dangerouslySetInnerHTML={{ __html: formatSpeakingHtml(currentQ.text || '') }} />
               </div>
             )}
 

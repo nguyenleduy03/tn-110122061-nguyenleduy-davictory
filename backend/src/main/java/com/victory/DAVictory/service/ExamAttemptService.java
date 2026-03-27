@@ -45,24 +45,26 @@ public class ExamAttemptService {
     @Transactional
     public ExamAttemptResponse startAttempt(String username, ExamAttemptStartRequest req) {
         User user = userRepository.findByUsername(username)
-            .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng: " + username));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng: " + username));
 
         if (req.getTestId() == null || req.getSkillType() == null) {
             throw new RuntimeException("Thiếu testId hoặc skillType");
         }
 
         Test test = testRepository.findById(req.getTestId())
-            .orElseThrow(() -> new RuntimeException("Không tìm thấy đề thi ID=" + req.getTestId()));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đề thi ID=" + req.getTestId()));
 
         SkillType skillType = req.getSkillType();
         Session session = sessionRepository.findBySkillTypeAndTestType(skillType, test.getTestType())
-            .orElseThrow(() -> new RuntimeException("Không tìm thấy session cho skill " + skillType));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy session cho skill " + skillType));
 
         TestSession testSession = testSessionRepository.findByTestIdAndSessionId(test.getId(), session.getId())
-            .orElseThrow(() -> new RuntimeException("Session này chưa được thêm vào đề thi"));
+                .orElseThrow(() -> new RuntimeException("Session này chưa được thêm vào đề thi"));
 
-        Integer attemptNumber = examAttemptRepository.getNextAttemptNumberByTest(user.getId(), test.getId(), session.getId());
-        if (attemptNumber == null) attemptNumber = 1;
+        Integer attemptNumber = examAttemptRepository.getNextAttemptNumberByTest(user.getId(), test.getId(),
+                session.getId());
+        if (attemptNumber == null)
+            attemptNumber = 1;
 
         ExamAttempt attempt = new ExamAttempt();
         attempt.setUser(user);
@@ -80,7 +82,7 @@ public class ExamAttemptService {
     @Transactional
     public ExamAttemptResponse submitAttempt(String username, Long attemptId, ExamAttemptSubmitRequest req) {
         ExamAttempt attempt = examAttemptRepository.findById(attemptId)
-            .orElseThrow(() -> new RuntimeException("Không tìm thấy attempt ID=" + attemptId));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy attempt ID=" + attemptId));
 
         if (!attempt.getUser().getUsername().equals(username)) {
             throw new RuntimeException("Không có quyền nộp bài cho attempt này");
@@ -108,10 +110,10 @@ public class ExamAttemptService {
     @Transactional(readOnly = true)
     public List<ExamAttemptResponse> getMyAttempts(String username) {
         User user = userRepository.findByUsername(username)
-            .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng: " + username));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng: " + username));
 
         return examAttemptRepository.findByUserIdOrderByCreatedAtDesc(user.getId())
-            .stream().map(this::toResponse).toList();
+                .stream().map(this::toResponse).toList();
     }
 
     @Transactional(readOnly = true)
@@ -122,7 +124,7 @@ public class ExamAttemptService {
     @Transactional(readOnly = true)
     public ExamAttemptResponse getAttempt(Long attemptId, String username) {
         ExamAttempt attempt = examAttemptRepository.findById(attemptId)
-            .orElseThrow(() -> new RuntimeException("Không tìm thấy attempt ID=" + attemptId));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy attempt ID=" + attemptId));
 
         if (!attempt.getUser().getUsername().equals(username)) {
             throw new RuntimeException("Không có quyền xem attempt này");
@@ -134,7 +136,7 @@ public class ExamAttemptService {
     @Transactional(readOnly = true)
     public List<ExamAttemptResponse> getAttemptsByClass(String teacherUsername, Long classId) {
         User teacher = userRepository.findByUsername(teacherUsername)
-            .orElseThrow(() -> new RuntimeException("Không tìm thấy giáo viên"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy giáo viên"));
 
         // Kiểm tra GV có dạy lớp này không (hoặc là ADMIN/MANAGER)
         boolean isTeacher = classTeacherRepository.existsByUserIdAndClazzIdAndIsActiveTrue(teacher.getId(), classId);
@@ -145,14 +147,14 @@ public class ExamAttemptService {
         }
 
         return examAttemptRepository.findByClassId(classId).stream()
-            .map(this::toResponse)
-            .toList();
+                .map(this::toResponse)
+                .toList();
     }
 
     @Transactional(readOnly = true)
     public List<ExamAttemptResponse> getStudentAttemptsByClass(String teacherUsername, Long classId, Long studentId) {
         User teacher = userRepository.findByUsername(teacherUsername)
-            .orElseThrow(() -> new RuntimeException("Không tìm thấy giáo viên"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy giáo viên"));
 
         // Kiểm tra GV có dạy lớp này không
         boolean isTeacher = classTeacherRepository.existsByUserIdAndClazzIdAndIsActiveTrue(teacher.getId(), classId);
@@ -169,26 +171,25 @@ public class ExamAttemptService {
         }
 
         return examAttemptRepository.findByStudentIdAndClassId(studentId, classId).stream()
-            .map(this::toResponse)
-            .toList();
+                .map(this::toResponse)
+                .toList();
     }
 
     @Transactional(readOnly = true)
     public ExamAttemptResponse getAttemptDetailForTeacher(String teacherUsername, Long attemptId) {
         User teacher = userRepository.findByUsername(teacherUsername)
-            .orElseThrow(() -> new RuntimeException("Không tìm thấy giáo viên"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy giáo viên"));
 
         ExamAttempt attempt = examAttemptRepository.findById(attemptId)
-            .orElseThrow(() -> new RuntimeException("Không tìm thấy attempt ID=" + attemptId));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy attempt ID=" + attemptId));
 
         // Kiểm tra GV có dạy học viên này không
         Long studentId = attempt.getUser().getId();
         boolean isTeachingStudent = classTeacherRepository.existsByUserIdAndClazzIdInAndIsActiveTrue(
-            teacher.getId(),
-            classStudentRepository.findByUserIdOrderByEnrolledAtDesc(studentId).stream()
-                .map(cs -> cs.getClazz().getId())
-                .toList()
-        );
+                teacher.getId(),
+                classStudentRepository.findByUserIdOrderByEnrolledAtDesc(studentId).stream()
+                        .map(cs -> cs.getClazz().getId())
+                        .toList());
 
         boolean isAdmin = hasRoleLike(teacher, "ADMIN") || hasRoleLike(teacher, "MANAGER");
 
@@ -201,17 +202,17 @@ public class ExamAttemptService {
 
     @Transactional
     public ExamAttemptResponse updateAttemptGrade(String teacherUsername,
-                                                  Long attemptId,
-                                                  ExamAttemptManualGradeRequest request) {
+            Long attemptId,
+            ExamAttemptManualGradeRequest request) {
         if (request == null) {
             throw new RuntimeException("Thiếu dữ liệu chỉnh sửa điểm");
         }
 
         User teacher = userRepository.findByUsername(teacherUsername)
-            .orElseThrow(() -> new RuntimeException("Không tìm thấy giáo viên"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy giáo viên"));
 
         ExamAttempt attempt = examAttemptRepository.findById(attemptId)
-            .orElseThrow(() -> new RuntimeException("Không tìm thấy attempt ID=" + attemptId));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy attempt ID=" + attemptId));
 
         validateTeacherCanAccessAttempt(teacher, attempt);
 
@@ -227,6 +228,13 @@ public class ExamAttemptService {
             }
             attempt.setTotalCorrect(request.getTotalCorrect());
             attempt.setRawScore(request.getTotalCorrect().doubleValue());
+
+            Double autoBand = calculateExamBand(
+                    attempt.getSession() != null ? attempt.getSession().getSkillType() : null,
+                    request.getTotalCorrect());
+            if (autoBand != null) {
+                attempt.setBandScore(autoBand);
+            }
             hasUpdate = true;
         }
 
@@ -254,13 +262,12 @@ public class ExamAttemptService {
         ExamAttempt saved = examAttemptRepository.save(attempt);
 
         saveGradeHistoryRecord(
-            saved,
-            teacher,
-            oldTotalCorrect,
-            oldBandScore,
-            oldFeedback,
-            request.getEditReason()
-        );
+                saved,
+                teacher,
+                oldTotalCorrect,
+                oldBandScore,
+                oldFeedback,
+                request.getEditReason());
 
         return toResponseWithAnswers(saved);
     }
@@ -268,30 +275,30 @@ public class ExamAttemptService {
     @Transactional(readOnly = true)
     public List<ExamAttemptGradeHistoryResponse> getAttemptGradeHistory(String teacherUsername, Long attemptId) {
         User teacher = userRepository.findByUsername(teacherUsername)
-            .orElseThrow(() -> new RuntimeException("Không tìm thấy giáo viên"));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy giáo viên"));
 
         ExamAttempt attempt = examAttemptRepository.findById(attemptId)
-            .orElseThrow(() -> new RuntimeException("Không tìm thấy attempt ID=" + attemptId));
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy attempt ID=" + attemptId));
 
         validateTeacherCanAccessAttempt(teacher, attempt);
 
         try {
             String sql = """
-                SELECT id,
-                       edited_by_username,
-                       editor_role,
-                       old_total_correct,
-                       new_total_correct,
-                       old_band_score,
-                       new_band_score,
-                       old_feedback,
-                       new_feedback,
-                       edit_reason,
-                       edited_at
-                FROM exam_attempt_grade_history
-                WHERE exam_attempt_id = ?
-                ORDER BY edited_at DESC
-                """;
+                    SELECT id,
+                           edited_by_username,
+                           editor_role,
+                           old_total_correct,
+                           new_total_correct,
+                           old_band_score,
+                           new_band_score,
+                           old_feedback,
+                           new_feedback,
+                           edit_reason,
+                           edited_at
+                    FROM exam_attempt_grade_history
+                    WHERE exam_attempt_id = ?
+                    ORDER BY edited_at DESC
+                    """;
 
             return jdbcTemplate.query(sql, (rs, rowNum) -> {
                 ExamAttemptGradeHistoryResponse dto = new ExamAttemptGradeHistoryResponse();
@@ -310,18 +317,18 @@ public class ExamAttemptService {
                 return dto;
             }, attemptId);
         } catch (DataAccessException e) {
-            throw new RuntimeException("Không thể tải lịch sử sửa điểm. Vui lòng kiểm tra bảng exam_attempt_grade_history.");
+            throw new RuntimeException(
+                    "Không thể tải lịch sử sửa điểm. Vui lòng kiểm tra bảng exam_attempt_grade_history.");
         }
     }
 
     private void validateTeacherCanAccessAttempt(User teacher, ExamAttempt attempt) {
         Long studentId = attempt.getUser().getId();
         boolean isTeachingStudent = classTeacherRepository.existsByUserIdAndClazzIdInAndIsActiveTrue(
-            teacher.getId(),
-            classStudentRepository.findByUserIdOrderByEnrolledAtDesc(studentId).stream()
-                .map(cs -> cs.getClazz().getId())
-                .toList()
-        );
+                teacher.getId(),
+                classStudentRepository.findByUserIdOrderByEnrolledAtDesc(studentId).stream()
+                        .map(cs -> cs.getClazz().getId())
+                        .toList());
 
         boolean isAdmin = hasRoleLike(teacher, "ADMIN") || hasRoleLike(teacher, "MANAGER");
 
@@ -332,80 +339,87 @@ public class ExamAttemptService {
 
     private String resolveEditorRole(User user) {
         boolean isAdmin = hasRoleLike(user, "ADMIN");
-        if (isAdmin) return "ADMIN";
+        if (isAdmin)
+            return "ADMIN";
         boolean isManager = hasRoleLike(user, "MANAGER");
-        if (isManager) return "MANAGER";
+        if (isManager)
+            return "MANAGER";
         boolean isTeacher = hasRoleLike(user, "TEACHER");
-        if (isTeacher) return "TEACHER";
+        if (isTeacher)
+            return "TEACHER";
         return "UNKNOWN";
     }
 
     private boolean hasRoleLike(User user, String expected) {
-        if (user == null || user.getRoles() == null || expected == null) return false;
+        if (user == null || user.getRoles() == null || expected == null)
+            return false;
         String normalizedExpected = expected.trim().toUpperCase(Locale.ROOT);
         return user.getRoles().stream().anyMatch(role -> {
             String roleName = role != null ? role.getName() : null;
-            if (roleName == null || roleName.isBlank()) return false;
+            if (roleName == null || roleName.isBlank())
+                return false;
             String normalized = roleName.trim().toUpperCase(Locale.ROOT);
             return normalized.equals(normalizedExpected) || normalized.equals("ROLE_" + normalizedExpected);
         });
     }
 
     private void saveGradeHistoryRecord(ExamAttempt attempt,
-                                        User teacher,
-                                        Integer oldTotalCorrect,
-                                        Double oldBandScore,
-                                        String oldFeedback,
-                                        String editReason) {
+            User teacher,
+            Integer oldTotalCorrect,
+            Double oldBandScore,
+            String oldFeedback,
+            String editReason) {
         try {
             String sql = """
-                INSERT INTO exam_attempt_grade_history (
-                    exam_attempt_id,
-                    edited_by_user_id,
-                    edited_by_username,
-                    editor_role,
-                    old_total_correct,
-                    new_total_correct,
-                    old_band_score,
-                    new_band_score,
-                    old_feedback,
-                    new_feedback,
-                    edit_reason,
-                    edited_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """;
+                    INSERT INTO exam_attempt_grade_history (
+                        exam_attempt_id,
+                        edited_by_user_id,
+                        edited_by_username,
+                        editor_role,
+                        old_total_correct,
+                        new_total_correct,
+                        old_band_score,
+                        new_band_score,
+                        old_feedback,
+                        new_feedback,
+                        edit_reason,
+                        edited_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """;
 
             jdbcTemplate.update(
-                sql,
-                attempt.getId(),
-                teacher.getId(),
-                teacher.getUsername(),
-                resolveEditorRole(teacher),
-                oldTotalCorrect,
-                attempt.getTotalCorrect(),
-                oldBandScore,
-                attempt.getBandScore(),
-                oldFeedback,
-                attempt.getFeedback(),
-                editReason != null ? editReason.trim() : null,
-                java.sql.Timestamp.valueOf(LocalDateTime.now())
-            );
+                    sql,
+                    attempt.getId(),
+                    teacher.getId(),
+                    teacher.getUsername(),
+                    resolveEditorRole(teacher),
+                    oldTotalCorrect,
+                    attempt.getTotalCorrect(),
+                    oldBandScore,
+                    attempt.getBandScore(),
+                    oldFeedback,
+                    attempt.getFeedback(),
+                    editReason != null ? editReason.trim() : null,
+                    java.sql.Timestamp.valueOf(LocalDateTime.now()));
         } catch (DataAccessException e) {
-            throw new RuntimeException("Không thể lưu lịch sử sửa điểm. Vui lòng kiểm tra bảng exam_attempt_grade_history.");
+            throw new RuntimeException(
+                    "Không thể lưu lịch sử sửa điểm. Vui lòng kiểm tra bảng exam_attempt_grade_history.");
         }
     }
 
     @Transactional
     public void saveAnswers(ExamAttempt attempt, List<AttemptAnswerSave> answers) {
-        if (answers == null) return;
+        if (answers == null)
+            return;
         for (AttemptAnswerSave save : answers) {
-            if (save.getQuestionId() == null) continue;
+            if (save.getQuestionId() == null)
+                continue;
             Question question = questionRepository.findById(save.getQuestionId())
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy question ID=" + save.getQuestionId()));
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy question ID=" + save.getQuestionId()));
 
             AttemptAnswer attemptAnswer = attemptAnswerRepository
-                .findByExamAttemptIdAndQuestionId(attempt.getId(), question.getId())
-                .orElseGet(AttemptAnswer::new);
+                    .findByExamAttemptIdAndQuestionId(attempt.getId(), question.getId())
+                    .orElseGet(AttemptAnswer::new);
 
             attemptAnswer.setExamAttempt(attempt);
             attemptAnswer.setQuestion(question);
@@ -433,7 +447,8 @@ public class ExamAttemptService {
 
         for (AttemptAnswer aa : attemptAnswers) {
             boolean answered = Boolean.TRUE.equals(aa.getIsAnswered());
-            if (answered) totalAnswered++;
+            if (answered)
+                totalAnswered++;
 
             if (!autoGrade) {
                 aa.setIsCorrect(null);
@@ -457,22 +472,56 @@ public class ExamAttemptService {
         attempt.setTotalAnswered(totalAnswered);
         attempt.setTotalCorrect(totalCorrect);
         attempt.setRawScore(rawScore);
+        if (autoGrade) {
+            attempt.setBandScore(calculateExamBand(skill, totalCorrect));
+        }
         return autoGrade;
     }
 
+    private Double calculateExamBand(SkillType skillType, Integer totalCorrect) {
+        if (skillType == null || totalCorrect == null)
+            return null;
+        int correct = Math.max(0, totalCorrect);
+
+        if (skillType == SkillType.LISTENING) {
+            return scoreToBand(correct, new int[] { 39, 37, 35, 32, 30, 26, 23, 18, 16, 13, 10, 8, 6, 4, 2, 1, 0 },
+                    new double[] { 9.0, 8.5, 8.0, 7.5, 7.0, 6.5, 6.0, 5.5, 5.0, 4.5, 4.0, 3.5, 3.0, 2.5, 2.0, 1.0,
+                            0.0 });
+        }
+
+        if (skillType == SkillType.READING) {
+            return scoreToBand(correct, new int[] { 39, 37, 35, 33, 30, 27, 23, 19, 15, 13, 10, 8, 6, 4, 2, 1, 0 },
+                    new double[] { 9.0, 8.5, 8.0, 7.5, 7.0, 6.5, 6.0, 5.5, 5.0, 4.5, 4.0, 3.5, 3.0, 2.5, 2.0, 1.0,
+                            0.0 });
+        }
+
+        return null;
+    }
+
+    private Double scoreToBand(int score, int[] thresholds, double[] bands) {
+        for (int i = 0; i < thresholds.length; i++) {
+            if (score >= thresholds[i]) {
+                return bands[i];
+            }
+        }
+        return null;
+    }
+
     private boolean isAnswerCorrect(Question question, AttemptAnswer aa) {
-        if (question == null || question.getQuestionType() == null) return false;
+        if (question == null || question.getQuestionType() == null)
+            return false;
         QuestionType qt = question.getQuestionType();
 
         if (qt.getHasOptions()) {
             List<String> correctOptions = questionOptionRepository
-                .findByQuestionIdOrderByOrderIndexAsc(question.getId())
-                .stream()
-                .filter(QuestionOption::getIsCorrect)
-                .map(opt -> opt.getOptionText() != null && !opt.getOptionText().isBlank()
-                    ? opt.getOptionText() : opt.getOptionLabel())
-                .filter(s -> s != null && !s.isBlank())
-                .toList();
+                    .findByQuestionIdOrderByOrderIndexAsc(question.getId())
+                    .stream()
+                    .filter(QuestionOption::getIsCorrect)
+                    .map(opt -> opt.getOptionText() != null && !opt.getOptionText().isBlank()
+                            ? opt.getOptionText()
+                            : opt.getOptionLabel())
+                    .filter(s -> s != null && !s.isBlank())
+                    .toList();
 
             List<String> answerList = parseAnswerList(aa);
             if (!answerList.isEmpty()) {
@@ -504,29 +553,33 @@ public class ExamAttemptService {
 
     private boolean hasAnyAnswer(AttemptAnswerSave save) {
         return (save.getSelectedOptionLabel() != null && !save.getSelectedOptionLabel().isBlank())
-            || (save.getTextAnswer() != null && !save.getTextAnswer().isBlank())
-            || (save.getMatchingAnswer() != null && !save.getMatchingAnswer().isBlank());
+                || (save.getTextAnswer() != null && !save.getTextAnswer().isBlank())
+                || (save.getMatchingAnswer() != null && !save.getMatchingAnswer().isBlank());
     }
 
     private List<String> parseAlternativeAnswers(String json) {
         try {
-            return objectMapper.readValue(json, new TypeReference<List<String>>() {});
+            return objectMapper.readValue(json, new TypeReference<List<String>>() {
+            });
         } catch (Exception e) {
             return Collections.emptyList();
         }
     }
 
     private List<String> parseAnswerList(AttemptAnswer aa) {
-        if (aa.getMatchingAnswer() == null || aa.getMatchingAnswer().isBlank()) return Collections.emptyList();
+        if (aa.getMatchingAnswer() == null || aa.getMatchingAnswer().isBlank())
+            return Collections.emptyList();
         try {
-            return objectMapper.readValue(aa.getMatchingAnswer(), new TypeReference<List<String>>() {});
+            return objectMapper.readValue(aa.getMatchingAnswer(), new TypeReference<List<String>>() {
+            });
         } catch (Exception e) {
             return Collections.emptyList();
         }
     }
 
     private String normalize(String val) {
-        if (val == null) return "";
+        if (val == null)
+            return "";
         return val.trim().toLowerCase(Locale.ROOT);
     }
 
@@ -535,19 +588,23 @@ public class ExamAttemptService {
     }
 
     private boolean equalsIgnoreOrder(List<String> a, List<String> b) {
-        if (a.size() != b.size()) return false;
+        if (a.size() != b.size())
+            return false;
         return a.stream().allMatch(b::contains);
     }
 
     private boolean isInNormalized(String value, List<String> candidates) {
-        if (value == null || value.isBlank()) return false;
+        if (value == null || value.isBlank())
+            return false;
         String n = normalize(value);
         return candidates.stream().anyMatch(c -> normalize(c).equals(n));
     }
 
     private String firstNonBlank(String a, String b) {
-        if (a != null && !a.isBlank()) return a;
-        if (b != null && !b.isBlank()) return b;
+        if (a != null && !a.isBlank())
+            return a;
+        if (b != null && !b.isBlank())
+            return b;
         return null;
     }
 
@@ -577,7 +634,7 @@ public class ExamAttemptService {
 
     private ExamAttemptResponse toResponseWithAnswers(ExamAttempt attempt) {
         ExamAttemptResponse r = toResponse(attempt);
-        
+
         // Thêm chi tiết câu trả lời
         List<AttemptAnswer> answers = attemptAnswerRepository.findByExamAttemptIdOrderByQuestionIdAsc(attempt.getId());
         r.setAnswers(answers.stream().map(ans -> {
@@ -589,7 +646,7 @@ public class ExamAttemptService {
             dto.setIsFlagged(ans.getIsFlagged());
             return dto;
         }).toList());
-        
+
         return r;
     }
 }

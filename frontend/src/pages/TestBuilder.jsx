@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import {
   DndContext,
@@ -123,10 +123,17 @@ const TestBuilder = () => {
     title: '',
     description: '',
     testType: 'ACADEMIC',
+    seriesLabel: 'IELTS',
     status: 'DRAFT',
     isFullTest: true,
     durationMinutes: 165,
     targetBand: '6.5',
+    sessionDurations: {
+      LISTENING: 30,
+      READING: 60,
+      WRITING: 60,
+      SPEAKING: 12,
+    },
   });
 
   // parts per skill key
@@ -139,6 +146,7 @@ const TestBuilder = () => {
 
   const [saving, setSaving] = useState(false);
   const [shuffling, setShuffling] = useState(false);
+  const [autoSaveEnabled, setAutoSaveEnabled] = useState(false);
   const [activeOverlayItem, setActiveOverlayItem] = useState(null);
   const [dragOverPartId, setDragOverPartId] = useState(null);
   const [dragOverPassagePaneId, setDragOverPassagePaneId] = useState(null);
@@ -148,6 +156,8 @@ const TestBuilder = () => {
   const [saveMessage, setSaveMessage] = useState('');
   const [roleError, setRoleError] = useState(false);
   const [showFormatToolbar, setShowFormatToolbar] = useState(true);
+  const lastAutoSaveSnapshotRef = useRef(JSON.stringify({ test, sessions }));
+  const autoSaveTimerRef = useRef(null);
 
   // ─── Fetch backend structure + load existing test on mount ───
   useEffect(() => {
@@ -167,6 +177,14 @@ const TestBuilder = () => {
         if (editTestId) {
           const loaded = await testBuilderApi.loadFullTest(editTestId);
           const { test: loadedTest, sessions: loadedSessions, testId } = parseLoadedTest(loaded);
+          const nextTest = { ...test, ...loadedTest };
+          const nextSessions = (() => {
+            const merged = { ...sessions };
+            for (const [skill, parts] of Object.entries(loadedSessions)) {
+              if (parts.length > 0) merged[skill] = parts;
+            }
+            return merged;
+          })();
           setTest(prev => ({ ...prev, ...loadedTest }));
           setSessions(prev => {
             const merged = { ...prev };
@@ -176,6 +194,13 @@ const TestBuilder = () => {
             return merged;
           });
           setSavedTestId(testId);
+          
+          // Set activeSkill dựa trên loại đề
+          if (!loadedTest.isFullTest && loadedTest.singleSkill) {
+            setActiveSkill(loadedTest.singleSkill);
+          }
+          
+          lastAutoSaveSnapshotRef.current = JSON.stringify({ test: nextTest, sessions: nextSessions });
         }
       } catch (err) {
         console.error('Không thể tải cấu trúc bài thi:', err);
@@ -183,6 +208,13 @@ const TestBuilder = () => {
     };
     init();
   }, [editTestId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Luôn đồng bộ tab đang mở với chế độ 1 kỹ năng sau khi load/đổi kiểu đề
+  useEffect(() => {
+    if (!test.isFullTest && test.singleSkill && activeSkill !== test.singleSkill) {
+      setActiveSkill(test.singleSkill);
+    }
+  }, [test.isFullTest, test.singleSkill, activeSkill]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { 
@@ -1022,7 +1054,7 @@ const TestBuilder = () => {
 
   // ------------ Save ------------
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     setSaving(true);
     setSaveMessage('');
     try {
@@ -1040,6 +1072,7 @@ const TestBuilder = () => {
       const result = await testBuilderApi.saveFullTest(payload);
 
       setSavedTestId(result.id);
+      lastAutoSaveSnapshotRef.current = JSON.stringify({ test, sessions });
       setSaveMessage('Đã lưu đề thi thành công!');
       setTimeout(() => setSaveMessage(''), 3000);
     } catch (err) {
@@ -1052,7 +1085,21 @@ const TestBuilder = () => {
     } finally {
       setSaving(false);
     }
-  };
+  }, [sessions, savedTestId, structure, test]);
+
+  useEffect(() => {
+    if (!autoSaveEnabled || roleError || saving) return undefined;
+
+    const currentSnapshot = JSON.stringify({ test, sessions });
+    if (currentSnapshot === lastAutoSaveSnapshotRef.current) return undefined;
+
+    clearTimeout(autoSaveTimerRef.current);
+    autoSaveTimerRef.current = setTimeout(() => {
+      handleSave();
+    }, 1200);
+
+    return () => clearTimeout(autoSaveTimerRef.current);
+  }, [autoSaveEnabled, handleSave, roleError, saving, test, sessions]);
 
   const handleSubmitReview = () => {
     updateTest({ status: 'REVIEWING' });
@@ -1070,6 +1117,7 @@ const TestBuilder = () => {
       const result = await testBuilderApi.shuffleTest({
         title: `Đề trộn - ${new Date().toLocaleDateString('vi-VN')}`,
         testType: test.testType,
+        seriesLabel: test.seriesLabel,
         createdByUserId: userId,
         isFullTest: true,
       });
@@ -1169,6 +1217,8 @@ const TestBuilder = () => {
           onShuffle={handleShuffle}
           shuffling={shuffling}
           saveMessage={saveMessage}
+          autoSaveEnabled={autoSaveEnabled}
+          onToggleAutoSave={() => setAutoSaveEnabled((prev) => !prev)}
           onSkillModeChange={handleSkillModeChange}
           showFormatToolbar={showFormatToolbar}
           onToggleFormatToolbar={() => setShowFormatToolbar(!showFormatToolbar)}
@@ -1206,19 +1256,12 @@ const TestBuilder = () => {
                   onSelectSession={(key) => { setActiveSkill(key); setSelection(null); }}
                   onSelectPart={(p) => setSelection({ type: 'part', data: p })}
                   onSelectGroup={(g) => setSelection({ type: 'group', data: { ...g } })}
-                  onUpdateSessionTime={(skillKey, minutes) => {
-                    setSessions(prev => ({
-                      ...prev,
-                      [skillKey]: (prev[skillKey] || []).map((part, idx) => 
-                        idx === 0 ? { ...part, durationMinutes: minutes } : part
-                      )
-                    }));
-                  }}
                 />
               </ErrorBoundary>
 
               <ErrorBoundary>
                 <ExamCanvas
+                  test={test}
                   skill={activeSkill}
                   parts={parts}
                   selection={selection}
@@ -1270,6 +1313,16 @@ const TestBuilder = () => {
                   onAddQuestion={(group) => addQuestion(group)}
                   onAddGroup={(part, contentType) => addGroup(part, contentType)}
                   onAddPart={addPart}
+                  sessionDuration={test.sessionDurations?.[activeSkill]}
+                  onUpdateSessionTime={(skillKey, minutes) => {
+                    setTest(prev => ({
+                      ...prev,
+                      sessionDurations: {
+                        ...prev.sessionDurations,
+                        [skillKey]: minutes
+                      }
+                    }));
+                  }}
                 />
               </ErrorBoundary>
 

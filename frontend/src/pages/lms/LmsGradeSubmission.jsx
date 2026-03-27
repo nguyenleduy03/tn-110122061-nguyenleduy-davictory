@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Save, User, Clock, FileText, Award, ClipboardList, CheckCircle2 } from 'lucide-react';
 import { teacherApi } from '../../services/teacherApi';
 import { ieltsApi } from '../../services/ieltsApi';
@@ -11,14 +11,17 @@ import '../../styles/ieltsTest.css';
 export default function LmsGradeSubmission() {
   const { type, id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const sourceParam = String(searchParams.get('source') || '').toLowerCase();
   const [submission, setSubmission] = useState(null);
   const [examReviewSession, setExamReviewSession] = useState(null);
   const [reviewAnswers, setReviewAnswers] = useState({});
   const [activeQuestion, setActiveQuestion] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [writingSource, setWritingSource] = useState('writing');
+  const [forceWritingMode, setForceWritingMode] = useState(type === 'writing');
   const [grading, setGrading] = useState({
-    score: '',
     feedback: '',
     taskAchievement: '',
     coherenceCohesion: '',
@@ -26,10 +29,104 @@ export default function LmsGradeSubmission() {
     grammaticalRange: ''
   });
 
-  const parseBandInput = (value) => {
-    const numeric = Number(value);
-    if (!Number.isFinite(numeric) || numeric < 0 || numeric > 9) return null;
-    return numeric;
+  const normalizeDecimalInputText = (rawValue) => String(rawValue ?? '').replace(/,/g, '.');
+
+  const normalizeIeltsBandValue = (rawValue) => {
+    const raw = normalizeDecimalInputText(rawValue).trim();
+    if (!raw) return '';
+    if (!isValidIeltsBandPartial(raw)) return '';
+
+    const numeric = Number(raw);
+    if (!Number.isFinite(numeric) || numeric < 0 || numeric > 9) return '';
+    if (Math.abs((numeric * 2) - Math.round(numeric * 2)) > 1e-9) return '';
+
+    return numeric.toFixed(1);
+  };
+
+  const isValidIeltsBandPartial = (rawValue) => {
+    const value = normalizeDecimalInputText(rawValue).trim();
+    if (value === '') return true;
+    if (!/^\d(?:\.\d?)?$/.test(value)) return false;
+
+    const [intPartRaw, decPartRaw] = value.split('.');
+    const intPart = Number(intPartRaw);
+    if (!Number.isFinite(intPart) || intPart < 0 || intPart > 9) return false;
+
+    if (decPartRaw === undefined || decPartRaw === '') return true;
+    if (decPartRaw !== '0' && decPartRaw !== '5') return false;
+    if (intPart === 9 && decPartRaw === '5') return false;
+
+    return true;
+  };
+
+  const buildNextInputValue = (input, insertedText) => {
+    const current = String(input?.value || '');
+    const start = input?.selectionStart ?? current.length;
+    const end = input?.selectionEnd ?? current.length;
+    return `${current.slice(0, start)}${insertedText}${current.slice(end)}`;
+  };
+
+  const handleDecimalKeyDown = (event) => {
+    const { key, currentTarget } = event;
+    const ctrlOrMeta = event.ctrlKey || event.metaKey;
+
+    if (ctrlOrMeta && ['a', 'c', 'v', 'x'].includes(key.toLowerCase())) return;
+    if (['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Home', 'End'].includes(key)) return;
+
+    if (/^[0-9]$/.test(key) || key === '.' || key === ',') {
+      const inserted = key === ',' ? '.' : key;
+      const nextValue = buildNextInputValue(currentTarget, inserted);
+      if (!isValidIeltsBandPartial(nextValue)) {
+        event.preventDefault();
+      }
+      return;
+    }
+
+    event.preventDefault();
+  };
+
+  const handleDecimalBeforeInput = (event) => {
+    if (!event.inputType || !event.inputType.startsWith('insert')) return;
+    const inserted = normalizeDecimalInputText(event.data ?? '');
+    if (!inserted) return;
+
+    const nextValue = buildNextInputValue(event.currentTarget, inserted);
+    if (!isValidIeltsBandPartial(nextValue)) {
+      event.preventDefault();
+    }
+  };
+
+  const handleDecimalPaste = (event) => {
+    event.preventDefault();
+    const pasted = normalizeDecimalInputText(event.clipboardData?.getData('text') || '').trim();
+    if (!pasted) return;
+
+    const input = event.currentTarget;
+    const start = input.selectionStart ?? input.value.length;
+    const end = input.selectionEnd ?? input.value.length;
+    const next = `${input.value.slice(0, start)}${pasted}${input.value.slice(end)}`;
+    if (!isValidIeltsBandPartial(next)) return;
+
+    input.value = next;
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  };
+
+  const handleBandFieldChange = (field) => (event) => {
+    const nextValue = normalizeDecimalInputText(event.target.value);
+    if (!isValidIeltsBandPartial(nextValue)) return;
+
+    setGrading((prev) => ({
+      ...prev,
+      [field]: nextValue,
+    }));
+  };
+
+  const handleBandFieldBlur = (field) => (event) => {
+    const normalizedValue = normalizeIeltsBandValue(event.target.value);
+    setGrading((prev) => ({
+      ...prev,
+      [field]: normalizedValue,
+    }));
   };
 
   const normalizeAnswerValue = (ans) => {
@@ -50,6 +147,31 @@ export default function LmsGradeSubmission() {
     }
 
     return '';
+  };
+
+  const buildWritingLikeFromExamAttempt = (attempt) => {
+    const answers = Array.isArray(attempt?.answers) ? attempt.answers : [];
+    const submissionText = answers
+      .map((a) => String(a?.textAnswer || '').trim())
+      .find(Boolean) || '';
+
+    const derivedWordCount = submissionText
+      ? submissionText.split(/\s+/).filter(Boolean).length
+      : 0;
+
+    return {
+      id: attempt?.id,
+      username: attempt?.username,
+      submittedAt: attempt?.submittedAt || attempt?.startedAt,
+      startedAt: attempt?.startedAt,
+      status: attempt?.status,
+      groupTitle: attempt?.testTitle || 'Writing Submission',
+      submissionText,
+      wordCount: attempt?.wordCount ?? derivedWordCount,
+      sourceExamAttemptId: attempt?.id,
+      overallBandScore: attempt?.bandScore,
+      overallFeedback: attempt?.feedback,
+    };
   };
 
   const resolveSingleOptionValue = (rawValue, options = []) => {
@@ -148,12 +270,29 @@ export default function LmsGradeSubmission() {
   useEffect(() => {
     const loadSubmission = async () => {
       try {
-        if (type === 'writing') {
+        let effectiveSource = sourceParam;
+
+        if (!effectiveSource && type === 'writing') {
+          try {
+            const all = await teacherApi.getAllSubmissions();
+            const targetId = String(id);
+            const hasWriting = (all?.writingSubmissions || []).some((item) => String(item?.id) === targetId);
+            const hasExam = (all?.examAttempts || []).some((item) => String(item?.id) === targetId);
+
+            if (hasExam && !hasWriting) effectiveSource = 'exam';
+            if (hasWriting && !hasExam) effectiveSource = 'writing';
+          } catch (lookupError) {
+            console.warn('Cannot pre-resolve grading source:', lookupError);
+          }
+        }
+
+        if (effectiveSource === 'writing') {
           const data = await teacherApi.getWritingSubmission(id);
           setSubmission(data);
+          setWritingSource('writing');
+          setForceWritingMode(true);
           if (data.overallBandScore) {
             setGrading({
-              score: String(data.overallBandScore),
               feedback: data.overallFeedback || '',
               taskAchievement: '',
               coherenceCohesion: '',
@@ -161,11 +300,84 @@ export default function LmsGradeSubmission() {
               grammaticalRange: ''
             });
           }
+          return;
+        }
+
+        if (effectiveSource === 'exam') {
+          const data = await teacherApi.getExamAttemptDetail(id);
+          const skill = String(data?.skillType || data?.examType || '').toUpperCase();
+          if (skill === 'WRITING') {
+            const mapped = buildWritingLikeFromExamAttempt(data);
+            setSubmission(mapped);
+            setWritingSource('exam');
+            setForceWritingMode(true);
+            if (mapped.overallBandScore !== null && mapped.overallBandScore !== undefined) {
+              setGrading({
+                feedback: mapped.overallFeedback || '',
+                taskAchievement: '',
+                coherenceCohesion: '',
+                lexicalResource: '',
+                grammaticalRange: ''
+              });
+            }
+          } else {
+            setSubmission(data);
+            if (data?.testId && data?.skillType) {
+              const reviewSession = await ieltsApi.getTestSession(data.testId, data.skillType);
+              setExamReviewSession(reviewSession);
+              setReviewAnswers(buildReviewAnswers(data.answers || [], reviewSession));
+            }
+          }
+          return;
+        }
+
+        if (type === 'writing') {
+          try {
+            const data = await teacherApi.getWritingSubmission(id);
+            setSubmission(data);
+            setWritingSource('writing');
+            if (data.overallBandScore) {
+              setGrading({
+                feedback: data.overallFeedback || '',
+                taskAchievement: '',
+                coherenceCohesion: '',
+                lexicalResource: '',
+                grammaticalRange: ''
+              });
+            }
+          } catch {
+            const examData = await teacherApi.getExamAttemptDetail(id);
+            const skill = String(examData?.skillType || examData?.examType || '').toUpperCase();
+            if (skill !== 'WRITING') {
+              throw new Error('Submission is not WRITING');
+            }
+
+            const mapped = buildWritingLikeFromExamAttempt(examData);
+            setSubmission(mapped);
+            setWritingSource('exam');
+            if (mapped.overallBandScore !== null && mapped.overallBandScore !== undefined) {
+              setGrading({
+                feedback: mapped.overallFeedback || '',
+                taskAchievement: '',
+                coherenceCohesion: '',
+                lexicalResource: '',
+                grammaticalRange: ''
+              });
+            }
+          }
         } else {
           const data = await teacherApi.getExamAttemptDetail(id);
-          setSubmission(data);
+          const skill = String(data?.skillType || data?.examType || '').toUpperCase();
+          if (skill === 'WRITING') {
+            const mapped = buildWritingLikeFromExamAttempt(data);
+            setSubmission(mapped);
+            setWritingSource('exam');
+            setForceWritingMode(true);
+          } else {
+            setSubmission(data);
+          }
 
-          if (data?.testId && data?.skillType) {
+          if (skill !== 'WRITING' && data?.testId && data?.skillType) {
             const reviewSession = await ieltsApi.getTestSession(data.testId, data.skillType);
             setExamReviewSession(reviewSession);
 
@@ -180,28 +392,33 @@ export default function LmsGradeSubmission() {
       }
     };
     loadSubmission();
-  }, [id, type]);
+  }, [id, type, sourceParam]);
 
   const handleSubmitGrade = async () => {
     try {
-      const manualBand = parseBandInput(grading.score);
-      const computedBand = calculateWritingBandFromCriteria({
+      const finalBand = calculateWritingBandFromCriteria({
         taskAchievement: grading.taskAchievement,
         coherenceCohesion: grading.coherenceCohesion,
         lexicalResource: grading.lexicalResource,
         grammaticalRange: grading.grammaticalRange,
       });
-      const finalBand = manualBand ?? computedBand;
 
       if (finalBand === null) {
-        alert('Vui lòng nhập Band Score hoặc đủ 4 tiêu chí rubric để tính band tự động.');
+        alert('Vui lòng nhập đủ 4 tiêu chí rubric để tính band tự động.');
         return;
       }
 
-      await teacherApi.gradeWritingSubmission(id, {
-        overallBandScore: finalBand,
-        overallFeedback: grading.feedback
-      });
+      if (writingSource === 'writing') {
+        await teacherApi.gradeWritingSubmission(id, {
+          overallBandScore: finalBand,
+          overallFeedback: grading.feedback
+        });
+      } else {
+        await teacherApi.updateExamAttemptGrade(id, {
+          bandScore: finalBand,
+          feedback: grading.feedback,
+        });
+      }
       alert('Đã chấm bài thành công!');
       navigate(-1);
     } catch (error) {
@@ -420,7 +637,7 @@ export default function LmsGradeSubmission() {
     );
   }
 
-  const isWriting = type === 'writing';
+  const isWriting = forceWritingMode || String(submission?.skillType || submission?.examType || '').toUpperCase() === 'WRITING';
   const examType = submission.skillType || submission.examType || 'EXAM';
   const computedWritingBand = calculateWritingBandFromCriteria({
     taskAchievement: grading.taskAchievement,
@@ -428,7 +645,7 @@ export default function LmsGradeSubmission() {
     lexicalResource: grading.lexicalResource,
     grammaticalRange: grading.grammaticalRange,
   });
-  const finalWritingBand = parseBandInput(grading.score) ?? computedWritingBand;
+  const finalWritingBand = computedWritingBand;
   const canSaveWritingGrade = isWriting && finalWritingBand !== null;
   const calculatedExamBand = calculateExamBand({
     skillType: examType,
@@ -688,81 +905,59 @@ export default function LmsGradeSubmission() {
                 </h3>
 
                 <div style={{ marginBottom: 20 }}>
-                  <label style={{
-                    display: 'block',
-                    fontSize: 14,
-                    fontWeight: 600,
-                    marginBottom: 8,
-                    color: '#374151'
-                  }}>
-                    Band Score (0.0 - 9.0) *
-                  </label>
-                  <input
-                    type="number"
-                    step="0.5"
-                    min="0"
-                    max="9"
-                    value={grading.score}
-                    onChange={(e) => setGrading({ ...grading, score: e.target.value })}
-                    style={{
-                      width: '100%',
-                      padding: '12px 16px',
-                      border: '2px solid #e5e7eb',
-                      borderRadius: 8,
-                      fontSize: 16,
-                      fontWeight: 600,
-                      textAlign: 'center',
-                      color: '#1f2937'
-                    }}
-                    placeholder="Nhập điểm"
-                  />
-                  <div style={{ marginTop: 8, fontSize: 12, color: '#64748b' }}>
-                    Có thể nhập trực tiếp band hoặc để hệ thống tự tính từ 4 tiêu chí bên dưới.
-                  </div>
-                </div>
-
-                <div style={{ marginBottom: 20 }}>
                   <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 10, color: '#374151' }}>
-                    Cham theo rubric (moi tieu chi 0.0 - 9.0)
+                    Chấm theo rubric (mỗi tiêu chí 0.0 - 9.0)
                   </label>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                     <input
-                      type="number"
-                      step="0.5"
-                      min="0"
-                      max="9"
+                      type="text"
+                      inputMode="decimal"
+                      maxLength={3}
                       value={grading.taskAchievement}
-                      onChange={(e) => setGrading({ ...grading, taskAchievement: e.target.value })}
+                      onChange={handleBandFieldChange('taskAchievement')}
+                      onBlur={handleBandFieldBlur('taskAchievement')}
+                      onKeyDown={handleDecimalKeyDown}
+                      onBeforeInput={handleDecimalBeforeInput}
+                      onPaste={handleDecimalPaste}
                       placeholder="Task Achievement"
                       style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: 8 }}
                     />
                     <input
-                      type="number"
-                      step="0.5"
-                      min="0"
-                      max="9"
+                      type="text"
+                      inputMode="decimal"
+                      maxLength={3}
                       value={grading.coherenceCohesion}
-                      onChange={(e) => setGrading({ ...grading, coherenceCohesion: e.target.value })}
+                      onChange={handleBandFieldChange('coherenceCohesion')}
+                      onBlur={handleBandFieldBlur('coherenceCohesion')}
+                      onKeyDown={handleDecimalKeyDown}
+                      onBeforeInput={handleDecimalBeforeInput}
+                      onPaste={handleDecimalPaste}
                       placeholder="Coherence & Cohesion"
                       style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: 8 }}
                     />
                     <input
-                      type="number"
-                      step="0.5"
-                      min="0"
-                      max="9"
+                      type="text"
+                      inputMode="decimal"
+                      maxLength={3}
                       value={grading.lexicalResource}
-                      onChange={(e) => setGrading({ ...grading, lexicalResource: e.target.value })}
+                      onChange={handleBandFieldChange('lexicalResource')}
+                      onBlur={handleBandFieldBlur('lexicalResource')}
+                      onKeyDown={handleDecimalKeyDown}
+                      onBeforeInput={handleDecimalBeforeInput}
+                      onPaste={handleDecimalPaste}
                       placeholder="Lexical Resource"
                       style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: 8 }}
                     />
                     <input
-                      type="number"
-                      step="0.5"
-                      min="0"
-                      max="9"
+                      type="text"
+                      inputMode="decimal"
+                      maxLength={3}
                       value={grading.grammaticalRange}
-                      onChange={(e) => setGrading({ ...grading, grammaticalRange: e.target.value })}
+                      onChange={handleBandFieldChange('grammaticalRange')}
+                      onBlur={handleBandFieldBlur('grammaticalRange')}
+                      onKeyDown={handleDecimalKeyDown}
+                      onBeforeInput={handleDecimalBeforeInput}
+                      onPaste={handleDecimalPaste}
                       placeholder="Grammatical Range"
                       style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: 8 }}
                     />

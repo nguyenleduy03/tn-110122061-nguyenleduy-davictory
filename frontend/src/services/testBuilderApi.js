@@ -100,13 +100,38 @@ export const testBuilderApi = {
   },
 
   // ─── Trộn đề mới ─────────────────────────────────────────────
-  shuffleTest: async ({ title, testType, createdByUserId, isFullTest = true }) => {
+  shuffleTest: async ({
+    title,
+    description,
+    testType,
+    shuffleMode,
+    skillType,
+    partIds,
+    shuffleSource,
+    sourceTestIds,
+    filterCriteria,
+    createdByUserId,
+    isFullTest = true
+  }) => {
     const res = await apiClient.post('/test-builder/shuffle', {
       title,
+      description,
       testType,
+      shuffleMode,
+      skillType,
+      partIds,
+      shuffleSource,
+      sourceTestIds,
+      filterCriteria,
       isFullTest,
       createdByUserId,
     });
+    return res.data;
+  },
+
+  // ─── Lọc đề thi ──────────────────────────────────────────────
+  filterTests: async (filter) => {
+    const res = await apiClient.post('/test-builder/filter', filter);
     return res.data;
   },
 
@@ -322,7 +347,7 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
     sessionPayloads.push({
       sessionId: structInfo.sessionId,
       orderIndex: sessionPayloads.length + 1,
-      durationMinutes: structInfo.durationMinutes,
+      durationMinutes: test.sessionDurations?.[skillKey] || structInfo.durationMinutes,
       instructions: null,
       parts: partPayloads,
     });
@@ -581,6 +606,12 @@ export function parseLoadedTest(data) {
     isFullTest: data.isFullTest,
     durationMinutes: data.durationMinutes,
     targetBand: data.targetBand,
+    sessionDurations: data.sessionDurations || {
+      LISTENING: 30,
+      READING: 60,
+      WRITING: 60,
+      SPEAKING: 12,
+    },
   };
 
   const sessions = {};
@@ -588,6 +619,12 @@ export function parseLoadedTest(data) {
 
   for (const sessionResp of (data.sessions || [])) {
     const skillKey = sessionResp.skillType;
+    
+    // Nếu backend có durationMinutes cho session, lưu vào sessionDurations
+    if (sessionResp.durationMinutes) {
+      test.sessionDurations[skillKey] = sessionResp.durationMinutes;
+    }
+    
     const parts = (sessionResp.parts || []).map(partResp => {
       const mappedGroups = (partResp.questionGroups || []).map(groupResp => {
         // Normalize contentType for MCQ groups

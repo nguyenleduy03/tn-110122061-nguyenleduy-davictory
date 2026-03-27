@@ -22,5 +22,7 @@ public interface SessionRepository extends JpaRepository<Session, Long> {
 
     List<Session> findByTestTypeOrderByOrderIndexAsc(TestType testType);
 
+    List<Session> findByTestTypeAndSkillTypeOrderByOrderIndexAsc(TestType testType, SkillType skillType);
+
     boolean existsBySkillTypeAndTestType(SkillType skillType, TestType testType);
 }

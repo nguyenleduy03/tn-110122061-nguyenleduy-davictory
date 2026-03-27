@@ -79,8 +79,10 @@ const ShuffleTestModal = ({ isOpen, onClose, onSuccess, currentUser }) => {
     try {
       const request = {
         title,
+        description: `Đề trộn tự động - ${shuffleMode === 'FULL_TEST' ? 'Full Test' : shuffleMode === 'SINGLE_SKILL' ? `${skillType}` : 'Custom Parts'}`,
         testType,
         shuffleMode,
+        isFullTest: shuffleMode === 'FULL_TEST',
         createdByUserId: currentUser.id,
         shuffleSource
       };
@@ -96,7 +98,7 @@ const ShuffleTestModal = ({ isOpen, onClose, onSuccess, currentUser }) => {
       } else if (shuffleSource === 'BY_FILTER') {
         request.filterCriteria = {
           ...filterCriteria,
-          createdByIds: filterCriteria.createdByIds.length > 0 ? filterCriteria.createdByIds : null,
+          createdByIds: filterCriteria.createdByIds?.length > 0 ? filterCriteria.createdByIds : null,
           minDuration: filterCriteria.minDuration ? parseInt(filterCriteria.minDuration) : null,
           maxDuration: filterCriteria.maxDuration ? parseInt(filterCriteria.maxDuration) : null
         };

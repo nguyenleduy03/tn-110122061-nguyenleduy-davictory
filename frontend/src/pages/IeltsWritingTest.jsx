@@ -1,28 +1,59 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { ArrowLeft, ArrowRight, ArrowLeftRight } from "lucide-react";
+import { ArrowLeftRight } from "lucide-react";
 import { useSearchParams, useNavigate, useParams } from "react-router-dom";
 import "../styles/ieltsTest.css";
 import TestHeader from "../components/common/TestHeader";
 import { useDividerResize } from "../hooks/useDividerResize";
 import { ieltsApi } from "../services/ieltsApi";
-import { formatTextWithWhitespace } from "../utils/textFormatters";
+import { formatTextWithWhitespace, normalizeRichHtml, stripInlineStyles } from "../utils/textFormatters";
 import { computeFullTestProgressPercent, getFullTestSessionState, parseJsonSafe } from "../utils/fullTestProgress";
+import { buildDraftStorageKey, buildTimerPersistKey, clearDraftByTest, parseJsonSafe as parseRuntimeJsonSafe, markTestSubmitted, getSubmittedRedirect } from "../utils/testRuntimeState";
 
 const countWords = (text) => {
     if (!text || !text.trim()) return 0;
     return text.trim().split(/\s+/).filter(Boolean).length;
 };
 
+const toHtmlContent = (value) => {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    if (!/<[^>]+>/.test(raw)) {
+        return formatTextWithWhitespace(raw);
+    }
+
+    const normalized = normalizeRichHtml(raw);
+    return stripInlineStyles(normalized);
+};
+
+const toComparableText = (value) => String(value || '')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+
 const WritingTaskPane = ({ part, style }) => {
     if (!part) return null;
+    const firstQuestionText = part?.questions?.find((q) => q?.text || q?.questionText || q?.blankContext);
+    const taskBodyRaw = part.taskInstruction
+        || part.prompt
+        || part.description
+        || firstQuestionText?.text
+        || firstQuestionText?.questionText
+        || firstQuestionText?.blankContext
+        || part.instruction
+        || '';
+    const taskBodyHtml = toHtmlContent(taskBodyRaw);
+    const showTaskBody = Boolean(taskBodyHtml);
+
     return (
         <div className="writing-task-pane" style={style}>
             <div className="writing-task-inner">
-                <h2 className="writing-task-title" dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(part.taskLabel || part.title || '') }} />
-                <div
-                    className="writing-task-instruction"
-                    dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(part.instruction || 'No instructions provided.') }}
-                />
+                {showTaskBody && (
+                    <div
+                        className="writing-task-instruction"
+                        dangerouslySetInnerHTML={{ __html: taskBodyHtml }}
+                    />
+                )}
                 {part.taskImageSvg && (
                     <div
                         className="writing-task-image"
@@ -91,6 +122,21 @@ const IeltsWritingTest = () => {
         )).sort((a, b) => a - b);
     }, [selectedPartsParam]);
     const queryString = searchParams.toString();
+    const draftMode = mode === 'exam' ? 'exam' : 'practice';
+    const draftStorageKey = useMemo(() => buildDraftStorageKey('writing', draftMode, testId), [draftMode, testId]);
+    const timerPersistKey = useMemo(() => buildTimerPersistKey({
+        skill: 'writing',
+        testId,
+        mode,
+        isFullTest,
+        queryString,
+    }), [testId, mode, isFullTest, queryString]);
+
+    useEffect(() => {
+        const submittedRedirect = getSubmittedRedirect(timerPersistKey);
+        if (!submittedRedirect) return;
+        navigate(submittedRedirect, { replace: true });
+    }, [timerPersistKey, navigate]);
     const autosaveStateRef = useRef({
         writingAnswers: {},
         currentPartIndex: 0,
@@ -194,6 +240,20 @@ const IeltsWritingTest = () => {
     }, [isFullTest, testData, testId]);
 
     useEffect(() => {
+        if (isFullTest || !testData || !testId) return;
+        const savedDraft = parseRuntimeJsonSafe(localStorage.getItem(draftStorageKey), null);
+        if (!savedDraft || typeof savedDraft !== 'object') return;
+
+        if (savedDraft.writingAnswers && typeof savedDraft.writingAnswers === 'object') {
+            setWritingAnswers(savedDraft.writingAnswers);
+        }
+        if (Number.isFinite(savedDraft.currentPartIndex)) {
+            const maxIndex = Math.max(0, (testData.parts?.length || 1) - 1);
+            setCurrentPartIndex(Math.max(0, Math.min(maxIndex, savedDraft.currentPartIndex)));
+        }
+    }, [isFullTest, testData, testId, draftStorageKey]);
+
+    useEffect(() => {
         autosaveStateRef.current = {
             writingAnswers,
             currentPartIndex,
@@ -275,6 +335,29 @@ const IeltsWritingTest = () => {
         currentPartIndex,
     ]);
 
+    useEffect(() => {
+        if (isFullTest || !testData || !testId) return;
+
+        const snapshot = {
+            mode: draftMode,
+            queryString,
+            writingAnswers,
+            currentPartIndex,
+            savedAt: Date.now(),
+        };
+
+        localStorage.setItem(draftStorageKey, JSON.stringify(snapshot));
+    }, [
+        isFullTest,
+        testData,
+        testId,
+        draftStorageKey,
+        draftMode,
+        queryString,
+        writingAnswers,
+        currentPartIndex,
+    ]);
+
     const handleAnswerChange = useCallback((partId, value) => {
         setWritingAnswers((prev) => ({ ...prev, [partId]: value }));
     }, []);
@@ -312,12 +395,25 @@ const IeltsWritingTest = () => {
                     sessionStateJson: JSON.stringify(updated),
                     snapshotJson: '{}',
                 }).catch(() => { });
-                navigate(`/test/${next.skill}/${next.testId}?fullTest=true&mode=${session.mode || mode}`);
+                const nextUrl = `/test/${next.skill}/${next.testId}?fullTest=true&mode=${session.mode || mode}`;
+                markTestSubmitted(timerPersistKey, nextUrl);
+                navigate(nextUrl);
             } else {
                 sessionStorage.removeItem('ieltsFullTest');
                 sessionStorage.removeItem(`ieltsFullTestSnapshot_writing_${testId}`);
                 ieltsApi.clearFullTestProgress(testId).catch(() => { });
-                navigate(`/test/complete?mode=${session.mode || mode}&skill=writing&fullTest=true&testId=${testId}`);
+                const completeParams = new URLSearchParams({
+                    mode: session.mode || mode,
+                    skill: 'writing',
+                    fullTest: 'true',
+                    testId: String(testId),
+                });
+                if ((session.mode || mode) === 'exam') {
+                    completeParams.set('allowReview', 'true');
+                }
+                const completeUrl = `/test/complete?${completeParams.toString()}`;
+                markTestSubmitted(timerPersistKey, completeUrl);
+                navigate(completeUrl);
             }
         } catch { navigate('/exam-library'); }
     };
@@ -325,18 +421,51 @@ const IeltsWritingTest = () => {
     const submitTest = () => {
         const timeTakenSeconds = Math.floor((Date.now() - startTime) / 1000);
         const parts = testData?.parts || [];
-        Promise.allSettled([
-            ieltsApi.submitWriting(parts, writingAnswers, timeTakenSeconds),
-            ieltsApi.submitAnswers(testId, 'WRITING', {}, timeTakenSeconds),
-        ])
+
+        // Submit Writing through the same exam-attempt pipeline as other skills.
+        // Map each part answer to its real question ID (q123 -> 123) so backend stores content.
+        const writingPayload = {};
+        parts.forEach((partItem) => {
+            const partAnswer = String(writingAnswers?.[partItem.id] || '').trim();
+            if (!partAnswer) return;
+
+            const firstQuestionId = partItem?.questions?.[0]?.id;
+            if (firstQuestionId) {
+                writingPayload[firstQuestionId] = partAnswer;
+            }
+        });
+
+        ieltsApi.submitAnswers(testId, 'WRITING', writingPayload, timeTakenSeconds)
             .then(() => {
+                clearDraftByTest('writing', testId);
+                localStorage.removeItem(`ieltsTimerDeadline_${timerPersistKey}`);
                 if (isFullTest) { handleFullTestNext(); return; }
-                navigate(`/test/complete?mode=${mode}&skill=writing&testId=${testId}`);
+                const completeParams = new URLSearchParams({
+                    mode,
+                    skill: 'writing',
+                    testId: String(testId),
+                });
+                if (mode === 'exam') {
+                    completeParams.set('allowReview', 'true');
+                }
+                const completeUrl = `/test/complete?${completeParams.toString()}`;
+                markTestSubmitted(timerPersistKey, completeUrl);
+                navigate(completeUrl);
             })
             .catch((err) => {
                 console.error('[Writing] Lỗi nộp bài:', err);
                 // Nếu chưa đăng nhập vẫn cho qua màn hình complete
-                navigate(`/test/complete?mode=${mode}&skill=writing&testId=${testId}`);
+                const completeParams = new URLSearchParams({
+                    mode,
+                    skill: 'writing',
+                    testId: String(testId),
+                });
+                if (mode === 'exam') {
+                    completeParams.set('allowReview', 'true');
+                }
+                const completeUrl = `/test/complete?${completeParams.toString()}`;
+                markTestSubmitted(timerPersistKey, completeUrl);
+                navigate(completeUrl);
             });
     };
 
@@ -359,6 +488,8 @@ const IeltsWritingTest = () => {
     const part = parts[currentPartIndex];
     const isFirstPart = currentPartIndex === 0;
     const isLastPart = currentPartIndex === parts.length - 1;
+    const defaultGuidance = `You should spend about ${part?.recommendedMinutes || 20} minutes on this task. Write at least ${part?.minWords || 150} words.`;
+    const topInstructionHtml = toHtmlContent(part?.instruction || defaultGuidance);
 
     return (
         <div className="ielts-container">
@@ -369,19 +500,23 @@ const IeltsWritingTest = () => {
                 duration={testData.totalMinutes}
                 noTimeLimit={noTimeLimit}
                 onTimeUp={submitTest}
+                isFullTest={isFullTest}
+                skill="writing"
+                navigate={navigate}
+                timerPersistKey={timerPersistKey}
             />
 
             <div className="instruction-bar">
                 <h3 dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(part.title || '') }} />
-                {part.instruction && <p dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(part.instruction) }} />}
-                <p>
-                    {`Recommended time: ${part.recommendedMinutes} minutes — Write at least ${part.minWords} words.`}
-                </p>
+                <p dangerouslySetInnerHTML={{ __html: topInstructionHtml }} />
             </div>
 
             <main className="ielts-main" ref={containerRef}>
                 {/* Left pane: task prompt + image */}
-                <WritingTaskPane part={part} style={{ width: `${leftWidth}%` }} />
+                <WritingTaskPane
+                    part={part}
+                    style={{ width: `${leftWidth}%` }}
+                />
 
                 <div className="divider" onMouseDown={handleDragStart}>
                     <div className="divider-icon">
@@ -400,10 +535,10 @@ const IeltsWritingTest = () => {
 
                 <div className="pane-nav-buttons">
                     <button className="black-nav-btn" onClick={() => setCurrentPartIndex((i) => Math.max(0, i - 1))} disabled={isFirstPart} style={{ opacity: isFirstPart ? 0.5 : 1 }}>
-                        <ArrowLeft size={24} color="white" />
+                        <span className="nav-arrow-fallback" aria-hidden="true">&#8592;</span>
                     </button>
                     <button className="black-nav-btn" onClick={() => setCurrentPartIndex((i) => Math.min(parts.length - 1, i + 1))} disabled={isLastPart} style={{ opacity: isLastPart ? 0.5 : 1 }}>
-                        <ArrowRight size={24} color="white" />
+                        <span className="nav-arrow-fallback" aria-hidden="true">&#8594;</span>
                     </button>
                 </div>
             </main>

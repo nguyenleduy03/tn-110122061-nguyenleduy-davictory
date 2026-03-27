@@ -19,8 +19,8 @@ export default function LmsTeacherSubmissions() {
         console.log('📊 All Submissions:', data);
 
         const allSubmissions = [
-          ...(data.writingSubmissions || []).map(s => ({ ...s, type: 'WRITING' })),
-          ...(data.examAttempts || []).map(a => ({ ...a, type: a.examType }))
+          ...(data.writingSubmissions || []).map(s => ({ ...s, type: 'WRITING', source: 'writing' })),
+          ...(data.examAttempts || []).map(a => ({ ...a, type: a.examType, source: 'exam' }))
         ].sort((a, b) => new Date(b.submittedAt || b.startedAt) - new Date(a.submittedAt || a.startedAt));
 
         setSubmissions(allSubmissions);
@@ -181,8 +181,12 @@ export default function LmsTeacherSubmissions() {
                       <button
                         className="lms-cta ghost"
                         onClick={() => {
-                          if (s.type === 'WRITING') navigate(`/lms/submission/writing/${s.id}`);
-                          else navigate(`/lms/submission/exam/${s.id}`);
+                          if (s.type === 'WRITING') {
+                            const source = s.source === 'exam' ? 'exam' : 'writing';
+                            navigate(`/lms/submission/writing/${s.id}?source=${source}`);
+                          } else {
+                            navigate(`/lms/submission/exam/${s.id}?source=exam`);
+                          }
                         }}
                       >
                         <FileText size={14} /> Xem bài

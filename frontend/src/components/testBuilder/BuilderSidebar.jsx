@@ -153,7 +153,7 @@ function DraggablePaletteItem({ item }) {
   }
 }
 
-const BuilderSidebar = ({ parts, sessions, activeSessionKey, selection, onSelectSession, onSelectPart, onSelectGroup, enabledSkills, onUpdateSessionTime }) => {
+const BuilderSidebar = ({ parts, sessions, activeSessionKey, selection, onSelectSession, onSelectPart, onSelectGroup, enabledSkills }) => {
   const [openParts, setOpenParts] = useState({});
   const [paletteQuery, setPaletteQuery] = useState('');
 
@@ -184,6 +184,7 @@ const BuilderSidebar = ({ parts, sessions, activeSessionKey, selection, onSelect
         {SESSIONS.filter(s => !enabledSkills || enabledSkills.includes(s.key)).map((s) => {
           const Icon = s.icon;
           const isActive = activeSessionKey === s.key;
+          
           return (
             <div key={s.key} className="tb-skill-card">
               <button

@@ -1295,6 +1295,13 @@ const ShortAnswerGroup = ({ group, activeQ, onSetActive }) => {
 
 const ImageGroup = ({ group, activeQ, onSetActive }) => {
   const questions = group.questions ?? [];
+  const [answers, setAnswers] = useState({});
+  
+  const handleAnswer = (qNum, val) => {
+    setAnswers(prev => ({ ...prev, [qNum]: val }));
+    onSetActive(qNum);
+  };
+  
   return (
     <div className="pv-group-block">
       {group.title && <div className="pv-group-instructions" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.title) }} />}

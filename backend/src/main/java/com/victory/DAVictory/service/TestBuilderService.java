@@ -1,17 +1,25 @@
 package com.victory.DAVictory.service;
 
 import com.victory.DAVictory.dto.ShuffleTestRequest;
+import com.victory.DAVictory.dto.TestFilterRequest;
 import com.victory.DAVictory.dto.TestFullResponse;
 import com.victory.DAVictory.dto.TestSaveRequest;
 import com.victory.DAVictory.entity.*;
 import com.victory.DAVictory.enums.TestStatus;
 import com.victory.DAVictory.repository.*;
+import com.victory.DAVictory.specification.TestSpecification;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.stream.Collectors;
 
 /**
  * Service xử lý logic lưu / tải / trộn đề thi.
@@ -352,30 +360,43 @@ public class TestBuilderService {
         setting.setTest(newTest);
         testSettingRepository.save(setting);
 
-        // 2. Lấy danh sách sessions theo testType
-        List<Session> sessions = sessionRepository.findByTestTypeOrderByOrderIndexAsc(req.getTestType());
+        // 2. Xác định sessions cần trộn
+        List<Session> sessions;
+        if ("SINGLE_SKILL".equals(req.getShuffleMode()) && req.getSkillType() != null) {
+            // Chỉ lấy session của skill được chọn
+            sessions = sessionRepository.findByTestTypeAndSkillTypeOrderByOrderIndexAsc(
+                req.getTestType(), req.getSkillType());
+        } else {
+            // Full test hoặc custom parts
+            sessions = sessionRepository.findByTestTypeOrderByOrderIndexAsc(req.getTestType());
+        }
 
         int sessionOrder = 1;
-        int globalQuestionNumber = 0; // Đánh số câu hỏi liên tục
+        int globalQuestionNumber = 0;
 
         for (Session session : sessions) {
-            // Tạo TestSession
             TestSession newTs = new TestSession();
             newTs.setTest(newTest);
             newTs.setSession(session);
             newTs.setOrderIndex(sessionOrder++);
             newTs = testSessionRepository.save(newTs);
 
-            // 3. Lấy danh sách Parts của session
+            // 3. Lấy parts của session
             List<Part> partsOfSession = partRepository.findBySessionIdOrderByOrderIndexAsc(session.getId());
 
             int partOrder = 1;
             for (Part part : partsOfSession) {
-                // 4. Tìm tất cả TestPart từ đề PUBLISHED dùng Part này
-                List<TestPart> candidates = testPartRepository.findPublishedTestPartsByPartId(part.getId());
+                // Nếu CUSTOM_PARTS, chỉ lấy parts được chọn
+                if ("CUSTOM_PARTS".equals(req.getShuffleMode()) && req.getPartIds() != null) {
+                    if (!req.getPartIds().contains(part.getId())) {
+                        continue; // Bỏ qua part không được chọn
+                    }
+                }
+
+                // 4. Tìm TestPart candidates theo nguồn
+                List<TestPart> candidates = findCandidateTestParts(part.getId(), req);
 
                 if (candidates.isEmpty()) {
-                    // Không có đề nào PUBLISHED cho Part này → bỏ qua
                     continue;
                 }
 
@@ -383,14 +404,14 @@ public class TestBuilderService {
                 TestPart picked = candidates.get(
                         ThreadLocalRandom.current().nextInt(candidates.size()));
 
-                // 6. Tạo TestPart mới trong đề trộn
+                // 6. Tạo TestPart mới
                 TestPart newTp = new TestPart();
                 newTp.setTestSession(newTs);
                 newTp.setPart(part);
                 newTp.setOrderIndex(partOrder++);
                 newTp = testPartRepository.save(newTp);
 
-                // 7. Copy toàn bộ TestQuestionGroups từ Part được chọn
+                // 7. Copy TestQuestionGroups
                 List<TestQuestionGroup> sourceTqgs = testQuestionGroupRepository
                         .findByTestPartIdOrderByOrderIndexAsc(picked.getId());
 
@@ -402,7 +423,7 @@ public class TestBuilderService {
 
                     TestQuestionGroup newTqg = new TestQuestionGroup();
                     newTqg.setTestPart(newTp);
-                    newTqg.setQuestionGroup(srcTqg.getQuestionGroup()); // Tham chiếu cùng QuestionGroup
+                    newTqg.setQuestionGroup(srcTqg.getQuestionGroup());
                     newTqg.setOrderIndex(groupOrder++);
                     newTqg.setQuestionFrom(fromQ);
                     newTqg.setQuestionTo(toQ);
@@ -424,8 +445,53 @@ public class TestBuilderService {
         return loadFullTest(newTest.getId());
     }
 
+    /**
+     * Tìm TestPart candidates theo nguồn trộn
+     */
+    private List<TestPart> findCandidateTestParts(Long partId, ShuffleTestRequest req) {
+        if ("SPECIFIC_TESTS".equals(req.getShuffleSource()) && req.getSourceTestIds() != null && !req.getSourceTestIds().isEmpty()) {
+            // Lấy từ các đề cụ thể
+            return testPartRepository.findByPartIdAndTestIds(partId, req.getSourceTestIds());
+        } else {
+            // Mặc định: tất cả đề PUBLISHED (BY_FILTER tạm thời cũng dùng này)
+            return testPartRepository.findPublishedTestPartsByPartId(partId);
+        }
+    }
+
     // ═══════════════════════════════════════════════════════════════
-    //  4. LẤY DANH SÁCH ĐỀ THI
+    //  4. LỌC ĐỀ THI
+    // ═══════════════════════════════════════════════════════════════
+
+    @Transactional(readOnly = true)
+    public Map<String, Object> filterTests(TestFilterRequest filter) {
+        Specification<Test> spec = TestSpecification.filterTests(filter);
+        
+        Sort sort = Sort.by(Sort.Direction.DESC, "createdAt");
+        if (filter.getSortBy() != null) {
+            Sort.Direction direction = "ASC".equalsIgnoreCase(filter.getSortOrder()) 
+                ? Sort.Direction.ASC : Sort.Direction.DESC;
+            sort = Sort.by(direction, filter.getSortBy());
+        }
+        
+        Pageable pageable = PageRequest.of(
+            filter.getPage() != null ? filter.getPage() : 0,
+            filter.getSize() != null ? filter.getSize() : 20,
+            sort
+        );
+        
+        Page<Test> page = testRepository.findAll(spec, pageable);
+        
+        return Map.of(
+            "content", page.getContent().stream().map(this::mapTestSummary).toList(),
+            "totalElements", page.getTotalElements(),
+            "totalPages", page.getTotalPages(),
+            "currentPage", page.getNumber(),
+            "pageSize", page.getSize()
+        );
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  5. LẤY DANH SÁCH ĐỀ THI
     // ═══════════════════════════════════════════════════════════════
 
     @Transactional(readOnly = true)

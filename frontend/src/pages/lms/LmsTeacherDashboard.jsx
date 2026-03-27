@@ -24,22 +24,22 @@ export default function LmsTeacherDashboard() {
           authApi.getMyClassManagement(),
           teacherApi.getAllSubmissions().catch(() => ({ writingSubmissions: [], examAttempts: [] }))
         ]);
-        
+
         console.log('📊 Submission Response:', submissionResponse);
-        
+
         setData({
           classes: classResponse?.classes || [],
           teachers: classResponse?.teachers || [],
           currentUser: classResponse?.teacher || classResponse?.currentUser || null
         });
-        
+
         const allSubmissions = [
-          ...(submissionResponse.writingSubmissions || []).map(s => ({ ...s, type: 'WRITING' })),
-          ...(submissionResponse.examAttempts || []).map(a => ({ ...a, type: a.examType }))
+          ...(submissionResponse.writingSubmissions || []).map(s => ({ ...s, type: 'WRITING', source: 'writing' })),
+          ...(submissionResponse.examAttempts || []).map(a => ({ ...a, type: a.examType, source: 'exam' }))
         ].sort((a, b) => new Date(b.submittedAt || b.startedAt) - new Date(a.submittedAt || a.startedAt));
-        
+
         console.log('📝 All Submissions:', allSubmissions.length, allSubmissions);
-        
+
         setSubmissions(allSubmissions);
       } catch (error) {
         console.error('Error loading dashboard data:', error);
@@ -54,7 +54,7 @@ export default function LmsTeacherDashboard() {
   const totalClasses = data.classes.length;
   const totalStudents = data.classes.reduce((sum, c) => sum + (c.activeStudentCount || c.studentCount || 0), 0);
   const activeClasses = data.classes.filter(c => c.status === 'ACTIVE').length;
-  
+
   // Thống kê bài nộp
   const submissionStats = {
     total: submissions.length,
@@ -90,13 +90,13 @@ export default function LmsTeacherDashboard() {
       {/* Tab Navigation */}
       <div className="lms-panel" style={{ marginBottom: 16 }}>
         <div className="lms-chip-row">
-          <button 
+          <button
             className={`lms-cta ${activeTab === 'overview' ? '' : 'ghost'}`}
             onClick={() => setActiveTab('overview')}
           >
             <TrendingUp size={14} /> Tổng quan
           </button>
-          <button 
+          <button
             className={`lms-cta ${activeTab === 'submissions' ? '' : 'ghost'}`}
             onClick={() => setActiveTab('submissions')}
           >
@@ -161,7 +161,7 @@ export default function LmsTeacherDashboard() {
                   </thead>
                   <tbody>
                     {upcomingClasses.map((cls) => (
-                      <tr 
+                      <tr
                         key={cls.id}
                         onClick={() => navigate(`/lms/teacher/classes/${cls.id}`)}
                         style={{ cursor: 'pointer' }}
@@ -181,8 +181,8 @@ export default function LmsTeacherDashboard() {
               ) : (
                 <p className="lms-subtitle">Chưa có lớp học nào</p>
               )}
-              <button 
-                className="lms-cta ghost" 
+              <button
+                className="lms-cta ghost"
                 style={{ marginTop: 12 }}
                 onClick={() => navigate('/lms/teacher/classes')}
               >
@@ -194,11 +194,11 @@ export default function LmsTeacherDashboard() {
               <h3 className="lms-panel-title">Thông tin chi tiết</h3>
               <div style={{ display: 'grid', gap: 12 }}>
                 {data.classes.slice(0, 3).map((cls) => (
-                  <div 
+                  <div
                     key={cls.id}
-                    style={{ 
-                      padding: 12, 
-                      background: '#f9fafb', 
+                    style={{
+                      padding: 12,
+                      background: '#f9fafb',
                       borderRadius: 8,
                       cursor: 'pointer',
                       transition: 'all 0.2s'
@@ -269,11 +269,10 @@ export default function LmsTeacherDashboard() {
                       <tr key={s.id || idx}>
                         <td style={{ fontWeight: 600 }}>{s.username || 'N/A'}</td>
                         <td>
-                          <span className={`lms-pill ${
-                            s.type === 'WRITING' ? 'neutral' :
-                            s.type === 'READING' ? 'success' :
-                            s.type === 'LISTENING' ? 'warn' : 'neutral'
-                          }`}>
+                          <span className={`lms-pill ${s.type === 'WRITING' ? 'neutral' :
+                              s.type === 'READING' ? 'success' :
+                                s.type === 'LISTENING' ? 'warn' : 'neutral'
+                            }`}>
                             {s.type}
                           </span>
                         </td>
@@ -282,26 +281,29 @@ export default function LmsTeacherDashboard() {
                           {(s.submittedAt || s.startedAt) ? new Date(s.submittedAt || s.startedAt).toLocaleDateString('vi-VN') : '—'}
                         </td>
                         <td>
-                          <span className={`lms-pill ${
-                            s.status === 'SUBMITTED' ? 'warn' : 
-                            s.status === 'GRADED' ? 'success' : 
-                            s.status === 'IN_PROGRESS' ? 'neutral' : 'neutral'
-                          }`}>
-                            {s.status === 'SUBMITTED' ? 'Chờ chấm' : 
-                             s.status === 'GRADED' ? 'Đã chấm' : 
-                             s.status === 'IN_PROGRESS' ? 'Đang làm' :
-                             s.status || 'N/A'}
+                          <span className={`lms-pill ${s.status === 'SUBMITTED' ? 'warn' :
+                              s.status === 'GRADED' ? 'success' :
+                                s.status === 'IN_PROGRESS' ? 'neutral' : 'neutral'
+                            }`}>
+                            {s.status === 'SUBMITTED' ? 'Chờ chấm' :
+                              s.status === 'GRADED' ? 'Đã chấm' :
+                                s.status === 'IN_PROGRESS' ? 'Đang làm' :
+                                  s.status || 'N/A'}
                           </span>
                         </td>
                         <td style={{ fontWeight: 600, color: (s.score || s.bandScore) ? '#16a34a' : '#9ca3af' }}>
                           {s.score || s.bandScore || '—'}
                         </td>
                         <td>
-                          <button 
+                          <button
                             className="lms-cta ghost"
                             onClick={() => {
-                              if (s.type === 'WRITING') navigate(`/lms/submission/writing/${s.id}`);
-                              else navigate(`/lms/submission/exam/${s.id}`);
+                              if (s.type === 'WRITING') {
+                                const source = s.source === 'exam' ? 'exam' : 'writing';
+                                navigate(`/lms/submission/writing/${s.id}?source=${source}`);
+                              } else {
+                                navigate(`/lms/submission/exam/${s.id}?source=exam`);
+                              }
                             }}
                           >
                             <FileText size={14} /> Xem bài

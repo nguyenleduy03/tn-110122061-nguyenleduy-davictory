@@ -11,6 +11,7 @@ import TextHighlighter from "../components/common/TextHighlighter";
 import { createPortal } from "react-dom";
 import { formatTextWithWhitespace } from "../utils/textFormatters";
 import { computeFullTestProgressPercent, getFullTestSessionState, parseJsonSafe } from "../utils/fullTestProgress";
+import { buildTimerPersistKey, clearDraftByTest, markTestSubmitted, getSubmittedRedirect } from "../utils/testRuntimeState";
 
 const HeadingGap = ({ qId, number, answer, correctAnswer, handleAnswerChange, isActive, setActiveQuestion, bookmarks, toggleBookmark, isReview }) => {
     const handleDragOver = (e) => { if (isReview) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
@@ -221,7 +222,7 @@ const IeltsReadingTest = () => {
     const startPartNumber = Number.parseInt(searchParams.get('startPart') || '', 10);
     const durationOverrideMinutes = Number.parseInt(searchParams.get('duration') || '', 10);
     const noTimeLimit = searchParams.get('noTimeLimit') === 'true' || searchParams.get('duration') === '0';
-    const allowReviewInExam = searchParams.get('allowReview') === 'true';
+    const allowReviewInExam = mode === 'exam' ? searchParams.get('allowReview') !== 'false' : false;
     const selectedPracticeParts = useMemo(() => {
         return Array.from(new Set(
             selectedPartsParam
@@ -231,6 +232,13 @@ const IeltsReadingTest = () => {
         )).sort((a, b) => a - b);
     }, [selectedPartsParam]);
     const queryString = searchParams.toString();
+    const timerPersistKey = useMemo(() => buildTimerPersistKey({
+        skill: 'reading',
+        testId,
+        mode,
+        isFullTest,
+        queryString,
+    }), [testId, mode, isFullTest, queryString]);
     const autosaveStateRef = useRef({
         answers: {},
         bookmarks: {},
@@ -238,6 +246,12 @@ const IeltsReadingTest = () => {
         activeQuestion: 1,
         testData: null,
     });
+
+    useEffect(() => {
+        const submittedRedirect = getSubmittedRedirect(timerPersistKey);
+        if (!submittedRedirect) return;
+        navigate(submittedRedirect, { replace: true });
+    }, [timerPersistKey, navigate]);
 
     const toggleBookmark = (num) => {
         setBookmarks(prev => ({ ...prev, [num]: !prev[num] }));
@@ -523,12 +537,16 @@ const IeltsReadingTest = () => {
                     sessionStateJson: JSON.stringify(updated),
                     snapshotJson: '{}',
                 }).catch(() => { });
-                navigate(`/test/${next.skill}/${next.testId}?fullTest=true&mode=${session.mode || mode}`);
+                const nextUrl = `/test/${next.skill}/${next.testId}?fullTest=true&mode=${session.mode || mode}`;
+                markTestSubmitted(timerPersistKey, nextUrl);
+                navigate(nextUrl);
             } else {
                 sessionStorage.removeItem('ieltsFullTest');
                 sessionStorage.removeItem(`ieltsFullTestSnapshot_reading_${testId}`);
                 ieltsApi.clearFullTestProgress(testId).catch(() => { });
-                navigate(`/test/complete?mode=${session.mode || mode}&skill=reading&fullTest=true&testId=${testId}`);
+                const completeUrl = `/test/complete?mode=${session.mode || mode}&skill=reading&fullTest=true&testId=${testId}`;
+                markTestSubmitted(timerPersistKey, completeUrl);
+                navigate(completeUrl);
             }
         } catch { navigate('/exam-library'); }
     };
@@ -545,6 +563,8 @@ const IeltsReadingTest = () => {
             if (resp) {
                 sessionStorage.setItem('lastScore_reading', JSON.stringify(resp));
             }
+            clearDraftByTest('reading', testId);
+            localStorage.removeItem(`ieltsTimerDeadline_${timerPersistKey}`);
             if (isFullTest) { handleFullTestNext(); return; }
             const completeParams = new URLSearchParams({
                 mode,
@@ -554,7 +574,9 @@ const IeltsReadingTest = () => {
             if (mode === 'exam' && allowReviewInExam) {
                 completeParams.set('allowReview', 'true');
             }
-            navigate(`/test/complete?${completeParams.toString()}`);
+            const completeUrl = `/test/complete?${completeParams.toString()}`;
+            markTestSubmitted(timerPersistKey, completeUrl);
+            navigate(completeUrl);
         });
     };
 
@@ -640,13 +662,13 @@ const IeltsReadingTest = () => {
         const groupInstr = q.groupInstruction || '';
         const isMulti = q.allowMultipleAnswers ? '1' : '0';
         const groupKey = `${groupType}|${isMulti}|${groupInstr}`;
-        
+
         if (!currentGroup || currentGroup.key !== groupKey) {
-            currentGroup = { 
+            currentGroup = {
                 key: groupKey,
-                type: groupType, 
+                type: groupType,
                 instructions: groupInstr,
-                questions: [] 
+                questions: []
             };
             questionGroups.push(currentGroup);
         }
@@ -666,6 +688,7 @@ const IeltsReadingTest = () => {
                 navigate={navigate}
                 duration={testData?.totalMinutes}
                 onTimeUp={submitTest}
+                timerPersistKey={timerPersistKey}
             />
 
             <div className="instruction-bar">
@@ -718,7 +741,7 @@ const IeltsReadingTest = () => {
                         {questionGroups.map((group, gi) => {
                             // Get instruction from group
                             const groupInstruction = group.instructions;
-                            
+
                             return (
                                 <div key={gi} style={{ marginBottom: '40px' }}>
                                     {/* Questions range header */}
@@ -734,9 +757,9 @@ const IeltsReadingTest = () => {
                                             const first = Math.min(...allNums);
                                             const last = Math.max(...allNums);
                                             return (
-                                                <div className="question-range-header" style={{ 
-                                                    fontSize: '15px', 
-                                                    fontWeight: 600, 
+                                                <div className="question-range-header" style={{
+                                                    fontSize: '15px',
+                                                    fontWeight: 600,
                                                     color: '#1e293b',
                                                     marginBottom: '8px'
                                                 }}>
@@ -746,59 +769,59 @@ const IeltsReadingTest = () => {
                                         }
                                         return null;
                                     })()}
-                                    
+
                                     {/* Group instruction - show once at top */}
                                     {groupInstruction && (
                                         <div className="mcq-group-instruction" dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(groupInstruction) }} />
                                     )}
-                                    
+
                                     {group.questions.map(q => {
-                                    const questionNumbers = q?.numberRange?.length
-                                        ? q.numberRange
-                                        : q?.subQuestions?.length
-                                            ? q.subQuestions.map((sq) => sq.number).filter((n) => n != null)
-                                            : (q?.number != null ? [q.number] : []);
+                                        const questionNumbers = q?.numberRange?.length
+                                            ? q.numberRange
+                                            : q?.subQuestions?.length
+                                                ? q.subQuestions.map((sq) => sq.number).filter((n) => n != null)
+                                                : (q?.number != null ? [q.number] : []);
 
-                                    return (
-                                        <div
-                                            key={q.id}
-                                            data-question-numbers={questionNumbers.length ? questionNumbers.join(' ') : undefined}
-                                        >
-                                            <QuestionRenderer
-                                                q={q}
-                                                activeQuestion={activeQuestion}
-                                                setActiveQuestion={setActiveQuestion}
-                                                answers={answers}
-                                                handleAnswerChange={isReview ? () => { } : handleAnswerChange}
-                                                bookmarks={bookmarks}
-                                                toggleBookmark={toggleBookmark}
-                                                inputRefs={inputRefs}
-                                                isReview={isReview}
-                                            />
+                                        return (
+                                            <div
+                                                key={q.id}
+                                                data-question-numbers={questionNumbers.length ? questionNumbers.join(' ') : undefined}
+                                            >
+                                                <QuestionRenderer
+                                                    q={q}
+                                                    activeQuestion={activeQuestion}
+                                                    setActiveQuestion={setActiveQuestion}
+                                                    answers={answers}
+                                                    handleAnswerChange={isReview ? () => { } : handleAnswerChange}
+                                                    bookmarks={bookmarks}
+                                                    toggleBookmark={toggleBookmark}
+                                                    inputRefs={inputRefs}
+                                                    isReview={isReview}
+                                                />
+                                            </div>
+                                        );
+                                    })}
+
+                                    {/* Chú thích cho Fill Blank questions */}
+                                    {group.type === 'fill-in-the-blank' && group.questions.length > 0 && (
+                                        <div style={{
+                                            marginTop: '10px',
+                                            fontSize: '12px',
+                                            color: '#666',
+                                            fontStyle: 'italic',
+                                            borderTop: '1px solid #eee',
+                                            paddingTop: '8px'
+                                        }}>
+                                            <strong>Chú thích vị trí trong đoạn văn:</strong> {
+                                                group.questions.map((q, idx) =>
+                                                    `Câu ${q.number}(${idx + 1})`
+                                                ).join(', ')
+                                            }
                                         </div>
-                                    );
-                                })}
-
-                                {/* Chú thích cho Fill Blank questions */}
-                                {group.type === 'fill-in-the-blank' && group.questions.length > 0 && (
-                                    <div style={{
-                                        marginTop: '10px',
-                                        fontSize: '12px',
-                                        color: '#666',
-                                        fontStyle: 'italic',
-                                        borderTop: '1px solid #eee',
-                                        paddingTop: '8px'
-                                    }}>
-                                        <strong>Chú thích vị trí trong đoạn văn:</strong> {
-                                            group.questions.map((q, idx) =>
-                                                `Câu ${q.number}(${idx + 1})`
-                                            ).join(', ')
-                                        }
-                                    </div>
-                                )}
-                            </div>
-                        );
-                    })}
+                                    )}
+                                </div>
+                            );
+                        })}
                     </div>
 
                     <div className="pane-nav-buttons">

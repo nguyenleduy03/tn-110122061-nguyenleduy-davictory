@@ -1,6 +1,7 @@
 package com.victory.DAVictory.controller;
 
 import com.victory.DAVictory.dto.ShuffleTestRequest;
+import com.victory.DAVictory.dto.TestFilterRequest;
 import com.victory.DAVictory.dto.TestFullResponse;
 import com.victory.DAVictory.dto.TestSaveRequest;
 import com.victory.DAVictory.enums.TestStatus;
@@ -67,6 +68,20 @@ public class TestBuilderController {
         try {
             TestFullResponse result = testBuilderService.shuffleTest(request);
             return ResponseEntity.ok(result);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * POST /api/test-builder/filter
+     * Lọc đề thi theo nhiều tiêu chí.
+     */
+    @PostMapping("/filter")
+    @PreAuthorize("hasAnyRole('TEACHER', 'MANAGER', 'ADMIN')")
+    public ResponseEntity<?> filterTests(@RequestBody TestFilterRequest filter) {
+        try {
+            return ResponseEntity.ok(testBuilderService.filterTests(filter));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }

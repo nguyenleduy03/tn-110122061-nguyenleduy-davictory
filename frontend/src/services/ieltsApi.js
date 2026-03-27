@@ -737,6 +737,7 @@ export const ieltsApi = {
       let minWords = 150;
       let recommendedMinutes = 20;
       let taskImageSvg = null;
+      let taskInstruction = '';
 
       // Transform questionGroups — preserve group structure nhưng transform các questions bên trong
       const transformedGroups = [];
@@ -778,7 +779,23 @@ export const ieltsApi = {
             if (parsed.minWords) minWords = parsed.minWords;
             if (parsed.recommendedMinutes) recommendedMinutes = parsed.recommendedMinutes;
             if (parsed.taskImageSvg) taskImageSvg = parsed.taskImageSvg;
+            if (!taskInstruction) {
+              taskInstruction = parsed.taskInstruction
+                || parsed.prompt
+                || parsed.description
+                || parsed.content
+                || parsed.instruction
+                || '';
+            }
           } catch { /* plain text fallback */ }
+
+          if (!taskInstruction && typeof group.passageText === 'string') {
+            taskInstruction = group.passageText;
+          }
+        }
+
+        if (targetMode === 'WRITING' && !taskInstruction && group.instructions) {
+          taskInstruction = group.instructions;
         }
 
         // Transform group's questions using transformGroup()
@@ -806,6 +823,13 @@ export const ieltsApi = {
           groupInstruction: q.groupInstruction || g.instructions || null
         }))
       );
+
+      if (targetMode === 'WRITING' && !taskInstruction) {
+        const firstQuestion = flattenedQuestions.find(q => q && (q.text || q.questionText || q.blankContext));
+        if (firstQuestion) {
+          taskInstruction = firstQuestion.text || firstQuestion.questionText || firstQuestion.blankContext || '';
+        }
+      }
 
       // --- NEW: Inject Heading Gaps for Matching Heading questions ---
       // Find the group containing matching_heading questions
@@ -911,6 +935,7 @@ export const ieltsApi = {
         minWords: targetMode === 'WRITING' ? minWords : undefined,
         recommendedMinutes: targetMode === 'WRITING' ? recommendedMinutes : undefined,
         taskImageSvg: targetMode === 'WRITING' ? taskImageSvg : undefined,
+        taskInstruction: targetMode === 'WRITING' ? taskInstruction : undefined,
 
         // Preserve group structure with transformed questions
         questionGroups: transformedGroups,

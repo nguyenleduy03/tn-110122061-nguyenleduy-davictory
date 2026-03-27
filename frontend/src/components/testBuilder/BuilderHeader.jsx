@@ -54,6 +54,7 @@ const BuilderHeader = ({
   test, onTestChange, onSave, onSubmitReview,
   saving, onPreview, onShuffle, shuffling, saveMessage, onSkillModeChange,
   showFormatToolbar, onToggleFormatToolbar,
+  autoSaveEnabled, onToggleAutoSave,
 }) => {
   const [activeFormats, setActiveFormats] = useState({});
   const lastRangeRef = useRef(null);
@@ -207,6 +208,17 @@ const BuilderHeader = ({
             <button className="tb-tool-btn tb-tool-btn-primary" onClick={onSave} disabled={saving} title="Lưu đề thi">
               <Save size={15} /><span>{saving ? 'Đang lưu...' : 'Lưu'}</span>
             </button>
+            {onToggleAutoSave && (
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer', padding: '0 8px' }}>
+                <input 
+                  type="checkbox" 
+                  checked={autoSaveEnabled} 
+                  onChange={onToggleAutoSave}
+                  style={{ cursor: 'pointer' }}
+                />
+                <span>Tự động lưu</span>
+              </label>
+            )}
             {test.status === 'DRAFT' && (
               <button className="tb-tool-btn tb-tool-btn-success" onClick={onSubmitReview} title="Gửi kiểm duyệt">
                 <Send size={15} /><span>Gửi duyệt</span>

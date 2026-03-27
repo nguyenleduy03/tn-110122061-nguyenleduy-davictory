@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { Bookmark, ArrowLeft, ArrowRight, Volume2, ArrowLeftRight, Headphones, Play } from "lucide-react";
+import { Bookmark, Volume2, ArrowLeftRight, Headphones, Play } from "lucide-react";
 import { useSearchParams, useNavigate, useParams } from "react-router-dom";
 import "../styles/ieltsTest.css";
 import TestHeader from "../components/common/TestHeader";
@@ -8,6 +8,7 @@ import { useTestNavigation } from "../hooks/useTestNavigation";
 import { ieltsApi } from "../services/ieltsApi";
 import { formatTextWithWhitespace } from "../utils/textFormatters";
 import { computeFullTestProgressPercent, getFullTestSessionState, parseJsonSafe } from "../utils/fullTestProgress";
+import { buildDraftStorageKey, buildTimerPersistKey, clearDraftByTest, parseJsonSafe as parseRuntimeJsonSafe, markTestSubmitted, getSubmittedRedirect } from "../utils/testRuntimeState";
 
 const IeltsListeningTest = () => {
     const [testData, setTestData] = useState(null);
@@ -31,7 +32,7 @@ const IeltsListeningTest = () => {
     const startPartNumber = Number.parseInt(searchParams.get('startPart') || '', 10);
     const durationOverrideMinutes = Number.parseInt(searchParams.get('duration') || '', 10);
     const noTimeLimit = searchParams.get('noTimeLimit') === 'true' || searchParams.get('duration') === '0';
-    const allowReviewInExam = searchParams.get('allowReview') === 'true';
+    const allowReviewInExam = mode === 'exam' ? searchParams.get('allowReview') !== 'false' : false;
     const selectedPracticeParts = useMemo(() => {
         return Array.from(new Set(
             selectedPartsParam
@@ -41,6 +42,21 @@ const IeltsListeningTest = () => {
         )).sort((a, b) => a - b);
     }, [selectedPartsParam]);
     const queryString = searchParams.toString();
+    const draftMode = mode === 'exam' ? 'exam' : 'practice';
+    const draftStorageKey = useMemo(() => buildDraftStorageKey('listening', draftMode, testId), [draftMode, testId]);
+    const timerPersistKey = useMemo(() => buildTimerPersistKey({
+        skill: 'listening',
+        testId,
+        mode,
+        isFullTest,
+        queryString,
+    }), [testId, mode, isFullTest, queryString]);
+
+    useEffect(() => {
+        const submittedRedirect = getSubmittedRedirect(timerPersistKey);
+        if (!submittedRedirect) return;
+        navigate(submittedRedirect, { replace: true });
+    }, [timerPersistKey, navigate]);
     const autosaveStateRef = useRef({
         answers: {},
         bookmarks: {},
@@ -184,6 +200,29 @@ const IeltsListeningTest = () => {
     }, [isFullTest, isReview, testData, testId, setCurrentPartIndex, setActiveQuestion]);
 
     useEffect(() => {
+        if (isFullTest || isReview || !testData || !testId) return;
+        const savedDraft = parseRuntimeJsonSafe(localStorage.getItem(draftStorageKey), null);
+        if (!savedDraft || typeof savedDraft !== 'object') return;
+
+        if (savedDraft.answers && typeof savedDraft.answers === 'object') {
+            setAnswers(savedDraft.answers);
+        }
+        if (savedDraft.bookmarks && typeof savedDraft.bookmarks === 'object') {
+            setBookmarks(savedDraft.bookmarks);
+        }
+        if (Number.isFinite(savedDraft.currentPartIndex)) {
+            const maxIndex = Math.max(0, (testData.parts?.length || 1) - 1);
+            setCurrentPartIndex(Math.max(0, Math.min(maxIndex, savedDraft.currentPartIndex)));
+        }
+        if (Number.isFinite(savedDraft.activeQuestion)) {
+            setActiveQuestion(savedDraft.activeQuestion);
+        }
+        if (savedDraft.audioStarted) {
+            setAudioStarted(true);
+        }
+    }, [isFullTest, isReview, testData, testId, draftStorageKey, setCurrentPartIndex, setActiveQuestion]);
+
+    useEffect(() => {
         autosaveStateRef.current = {
             answers,
             bookmarks,
@@ -272,6 +311,36 @@ const IeltsListeningTest = () => {
     ]);
 
     useEffect(() => {
+        if (isFullTest || isReview || !testData || !testId) return;
+
+        const snapshot = {
+            mode: draftMode,
+            queryString,
+            answers,
+            bookmarks,
+            currentPartIndex,
+            activeQuestion,
+            audioStarted,
+            savedAt: Date.now(),
+        };
+
+        localStorage.setItem(draftStorageKey, JSON.stringify(snapshot));
+    }, [
+        isFullTest,
+        isReview,
+        testData,
+        testId,
+        draftStorageKey,
+        draftMode,
+        queryString,
+        answers,
+        bookmarks,
+        currentPartIndex,
+        activeQuestion,
+        audioStarted,
+    ]);
+
+    useEffect(() => {
         if (inputRefs.current && inputRefs.current[activeQuestion] && typeof inputRefs.current[activeQuestion].focus === 'function') {
             inputRefs.current[activeQuestion].focus({ preventScroll: true });
         }
@@ -307,12 +376,16 @@ const IeltsListeningTest = () => {
                     sessionStateJson: JSON.stringify(updated),
                     snapshotJson: '{}',
                 }).catch(() => { });
-                navigate(`/test/${next.skill}/${next.testId}?fullTest=true&mode=${session.mode || mode}`);
+                const nextUrl = `/test/${next.skill}/${next.testId}?fullTest=true&mode=${session.mode || mode}`;
+                markTestSubmitted(timerPersistKey, nextUrl);
+                navigate(nextUrl);
             } else {
                 sessionStorage.removeItem('ieltsFullTest');
                 sessionStorage.removeItem(`ieltsFullTestSnapshot_listening_${testId}`);
                 ieltsApi.clearFullTestProgress(testId).catch(() => { });
-                navigate(`/test/complete?mode=${session.mode || mode}&skill=listening&fullTest=true&testId=${testId}`);
+                const completeUrl = `/test/complete?mode=${session.mode || mode}&skill=listening&fullTest=true&testId=${testId}`;
+                markTestSubmitted(timerPersistKey, completeUrl);
+                navigate(completeUrl);
             }
         } catch { navigate('/exam-library'); }
     };
@@ -328,6 +401,8 @@ const IeltsListeningTest = () => {
                 if (resp) {
                     sessionStorage.setItem('lastScore_listening', JSON.stringify(resp));
                 }
+                clearDraftByTest('listening', testId);
+                localStorage.removeItem(`ieltsTimerDeadline_${timerPersistKey}`);
                 if (isFullTest) { handleFullTestNext(); return; }
                 const completeParams = new URLSearchParams({
                     mode,
@@ -337,7 +412,9 @@ const IeltsListeningTest = () => {
                 if (mode === 'exam' && allowReviewInExam) {
                     completeParams.set('allowReview', 'true');
                 }
-                navigate(`/test/complete?${completeParams.toString()}`);
+                const completeUrl = `/test/complete?${completeParams.toString()}`;
+                markTestSubmitted(timerPersistKey, completeUrl);
+                navigate(completeUrl);
             })
             .catch((err) => {
                 console.error('[Listening] Submit failed:', err);
@@ -412,6 +489,7 @@ const IeltsListeningTest = () => {
                 duration={testData.totalMinutes}
                 noTimeLimit={noTimeLimit && !isReview}
                 onTimeUp={submitTest}
+                timerPersistKey={timerPersistKey}
             />
 
             {/* Hidden audio element */}
@@ -473,13 +551,13 @@ const IeltsListeningTest = () => {
                             const groupInstr = q.groupInstruction || '';
                             const isMulti = q.allowMultipleAnswers ? '1' : '0';
                             const groupKey = `${groupType}|${isMulti}|${groupInstr}`;
-                            
+
                             if (!currentGroup || currentGroup.key !== groupKey) {
-                                currentGroup = { 
+                                currentGroup = {
                                     key: groupKey,
-                                    type: groupType, 
+                                    type: groupType,
                                     instructions: groupInstr,
-                                    questions: [] 
+                                    questions: []
                                 };
                                 questionGroups.push(currentGroup);
                             }
@@ -487,7 +565,7 @@ const IeltsListeningTest = () => {
                         }
                         return questionGroups.map((group, gi) => {
                             const groupInstruction = group.instructions;
-                            
+
                             return (
                                 <div key={gi} style={{ marginBottom: '40px' }}>
                                     {/* Questions range header */}
@@ -503,9 +581,9 @@ const IeltsListeningTest = () => {
                                             const first = Math.min(...allNums);
                                             const last = Math.max(...allNums);
                                             return (
-                                                <div className="question-range-header" style={{ 
-                                                    fontSize: '15px', 
-                                                    fontWeight: 600, 
+                                                <div className="question-range-header" style={{
+                                                    fontSize: '15px',
+                                                    fontWeight: 600,
                                                     color: '#1e293b',
                                                     marginBottom: '8px'
                                                 }}>
@@ -515,48 +593,48 @@ const IeltsListeningTest = () => {
                                         }
                                         return null;
                                     })()}
-                                    
+
                                     {groupInstruction && (
                                         <div className="mcq-group-instruction" dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(groupInstruction) }} />
                                     )}
-                                    
-                                    {group.questions.map(q => {
-                                    const questionNumbers = q?.numberRange?.length
-                                        ? q.numberRange
-                                        : q?.subQuestions?.length
-                                            ? q.subQuestions.map((sq) => sq.number).filter((n) => n != null)
-                                            : (q?.number != null ? [q.number] : []);
 
-                                    return (
-                                        <div
-                                            key={q.id}
-                                            data-question-numbers={questionNumbers.length ? questionNumbers.join(' ') : undefined}
-                                        >
-                                            <QuestionRenderer
-                                                q={q}
-                                                activeQuestion={activeQuestion}
-                                                setActiveQuestion={setActiveQuestion}
-                                                answers={answers}
-                                                handleAnswerChange={isReview ? () => { } : handleAnswerChange}
-                                                bookmarks={bookmarks}
-                                                toggleBookmark={toggleBookmark}
-                                                inputRefs={inputRefs}
-                                                isReview={isReview}
-                                            />
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        );
-                    });
+                                    {group.questions.map(q => {
+                                        const questionNumbers = q?.numberRange?.length
+                                            ? q.numberRange
+                                            : q?.subQuestions?.length
+                                                ? q.subQuestions.map((sq) => sq.number).filter((n) => n != null)
+                                                : (q?.number != null ? [q.number] : []);
+
+                                        return (
+                                            <div
+                                                key={q.id}
+                                                data-question-numbers={questionNumbers.length ? questionNumbers.join(' ') : undefined}
+                                            >
+                                                <QuestionRenderer
+                                                    q={q}
+                                                    activeQuestion={activeQuestion}
+                                                    setActiveQuestion={setActiveQuestion}
+                                                    answers={answers}
+                                                    handleAnswerChange={isReview ? () => { } : handleAnswerChange}
+                                                    bookmarks={bookmarks}
+                                                    toggleBookmark={toggleBookmark}
+                                                    inputRefs={inputRefs}
+                                                    isReview={isReview}
+                                                />
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            );
+                        });
                     })()}
 
                     {audioStarted && <div className="pane-nav-buttons">
                         <button className="black-nav-btn" onClick={goPrev} disabled={isFirstQuestion} style={{ opacity: isFirstQuestion ? 0.5 : 1 }}>
-                            <ArrowLeft size={24} color="white" />
+                            <span className="nav-arrow-fallback" aria-hidden="true">&#8592;</span>
                         </button>
                         <button className="black-nav-btn" onClick={goNext} disabled={isLastQuestion} style={{ opacity: isLastQuestion ? 0.5 : 1 }}>
-                            <ArrowRight size={24} color="white" />
+                            <span className="nav-arrow-fallback" aria-hidden="true">&#8594;</span>
                         </button>
                     </div>}
                 </div>
@@ -590,11 +668,9 @@ const IeltsListeningTest = () => {
                                     <h4 className="part-title hover-pointer"
                                         dangerouslySetInnerHTML={{ __html: p.title }}
                                     />
-                                    {!isActivePart && (
-                                        <span className="part-status">
-                                            {answeredCount} of {totalCount}
-                                        </span>
-                                    )}
+                                    <span className={`part-status ${isActivePart ? 'part-status-hidden' : ''}`} aria-hidden={isActivePart}>
+                                        {answeredCount} of {totalCount}
+                                    </span>
                                 </div>
 
                                 {isActivePart && (

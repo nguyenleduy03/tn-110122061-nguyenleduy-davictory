@@ -454,6 +454,8 @@ const ExamCanvas = ({
   dragOverPartId,
   dragOverPassagePaneId,
   draggingContentType,
+  sessionDuration,
+  onUpdateSessionTime,
 }) => {
   const [activePartId, setActivePartId] = useState(null);
   const [showTimeModal, setShowTimeModal] = useState(false);
@@ -482,22 +484,19 @@ const ExamCanvas = ({
     return parts.find((p) => p.id === activePartId) ?? parts[0];
   }, [parts, activePartId]);
 
-  const targetTimePart = parts[0] ?? activePart;
-  const currentDuration = Number.isFinite(targetTimePart?.durationMinutes) && targetTimePart.durationMinutes > 0
-    ? targetTimePart.durationMinutes
-    : 60;
+  const currentDuration = sessionDuration || skillDefaultDuration;
 
   const handleSetPartTime = () => {
-    if (!targetTimePart || !onUpdatePart) return;
     setDraftTimeValue(String(currentDuration));
     setShowTimeModal(true);
   };
 
   const confirmSetPartTime = () => {
-    if (!targetTimePart || !onUpdatePart) return;
     const nextValue = Number.parseInt(String(draftTimeValue).trim(), 10);
     if (!Number.isFinite(nextValue) || nextValue < 0) return;
-    onUpdatePart(targetTimePart.id, { durationMinutes: nextValue });
+    if (onUpdateSessionTime) {
+      onUpdateSessionTime(skill, nextValue);
+    }
     setShowTimeModal(false);
   };
 
@@ -616,7 +615,7 @@ const ExamCanvas = ({
         </div>
       )}
 
-      {showTimeModal && targetTimePart && createPortal(
+      {showTimeModal && createPortal(
         <div className="exam-time-modal-overlay" onClick={closeTimeModal}>
           <div className="exam-time-modal" onClick={(e) => e.stopPropagation()}>
             <div className="exam-time-modal-header">
@@ -625,7 +624,7 @@ const ExamCanvas = ({
               </div>
               <div>
                 <h3>Đặt thời gian</h3>
-                <p>{skillLabel} · {targetTimePart.name || 'Part'}</p>
+                <p>{skillLabel}</p>
               </div>
             </div>
 
@@ -640,7 +639,7 @@ const ExamCanvas = ({
                 autoFocus
               />
               <div className="exam-time-modal-hint">
-                Nhập <strong>0</strong> để tắt giới hạn thời gian.
+                Thời gian này áp dụng cho toàn bộ kỹ năng <strong>{skillLabel}</strong>.
               </div>
             </div>
 

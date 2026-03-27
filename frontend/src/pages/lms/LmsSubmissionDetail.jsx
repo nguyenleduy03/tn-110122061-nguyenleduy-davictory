@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, FileText, Clock, User } from 'lucide-react';
 import LmsLayout from '../../components/lms/LmsLayout';
 import { teacherApi } from '../../services/teacherApi';
@@ -9,9 +9,35 @@ import { calculateExamBand, formatBand } from '../../utils/ieltsScoring';
 export default function LmsSubmissionDetail() {
   const { id, type } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const sourceParam = String(searchParams.get('source') || '').toLowerCase();
   const [submission, setSubmission] = useState(null);
+  const [resolvedType, setResolvedType] = useState(type);
   const [totalSkillQuestions, setTotalSkillQuestions] = useState(0);
   const [loading, setLoading] = useState(true);
+
+  const buildWritingLikeFromExamAttempt = (attempt) => {
+    const answers = Array.isArray(attempt?.answers) ? attempt.answers : [];
+    const submissionText = answers
+      .map((a) => String(a?.textAnswer || '').trim())
+      .find(Boolean) || '';
+
+    const derivedWordCount = submissionText
+      ? submissionText.split(/\s+/).filter(Boolean).length
+      : 0;
+
+    return {
+      id: attempt?.id,
+      username: attempt?.username,
+      submittedAt: attempt?.submittedAt || attempt?.startedAt,
+      startedAt: attempt?.startedAt,
+      status: attempt?.status,
+      groupTitle: attempt?.testTitle || 'Writing Submission',
+      submissionText,
+      wordCount: attempt?.wordCount ?? derivedWordCount,
+      sourceExamAttemptId: attempt?.id,
+    };
+  };
 
   const countTotalQuestionsFromSession = (session) => {
     if (!session?.parts?.length) return 0;
@@ -36,16 +62,96 @@ export default function LmsSubmissionDetail() {
     const loadSubmission = async () => {
       try {
         console.log('🔍 Loading submission:', { id, type });
-        if (type === 'writing') {
+        let effectiveSource = sourceParam;
+
+        if (!effectiveSource && type === 'writing') {
+          try {
+            const all = await teacherApi.getAllSubmissions();
+            const targetId = String(id);
+            const hasWriting = (all?.writingSubmissions || []).some((item) => String(item?.id) === targetId);
+            const hasExam = (all?.examAttempts || []).some((item) => String(item?.id) === targetId);
+
+            if (hasExam && !hasWriting) effectiveSource = 'exam';
+            if (hasWriting && !hasExam) effectiveSource = 'writing';
+          } catch (lookupError) {
+            console.warn('Cannot pre-resolve submission source:', lookupError);
+          }
+        }
+
+        if (effectiveSource === 'writing') {
           const data = await teacherApi.getWritingSubmission(id);
-          console.log('✅ Writing submission loaded:', data);
           setSubmission(data);
+          setResolvedType('writing');
+          return;
+        }
+
+        if (effectiveSource === 'exam') {
+          const data = await teacherApi.getExamAttemptDetail(id);
+          const skill = String(data?.skillType || data?.examType || '').toUpperCase();
+          if (skill === 'WRITING') {
+            setSubmission(buildWritingLikeFromExamAttempt(data));
+            setResolvedType('writing');
+          } else {
+            setSubmission(data);
+            setResolvedType('exam');
+
+            if (data?.testId && data?.skillType) {
+              try {
+                const session = await ieltsApi.getTestSession(data.testId, data.skillType);
+                setTotalSkillQuestions(countTotalQuestionsFromSession(session));
+              } catch (sessionError) {
+                console.warn('Cannot load session to count total questions:', sessionError);
+                setTotalSkillQuestions(0);
+              }
+            }
+          }
+          return;
+        }
+
+        if (type === 'writing') {
+          try {
+            const data = await teacherApi.getWritingSubmission(id);
+            console.log('✅ Writing submission loaded:', data);
+            setSubmission(data);
+            setResolvedType('writing');
+          } catch (writingErr) {
+            // Some WRITING items in teacher list now come from exam-attempts pipeline.
+            // Fallback to exam detail so the page still loads instead of failing 400.
+            const examData = await teacherApi.getExamAttemptDetail(id);
+            console.log('✅ Fallback exam attempt loaded for writing type:', examData);
+            const skill = String(examData?.skillType || examData?.examType || '').toUpperCase();
+
+            if (skill === 'WRITING') {
+              setSubmission(buildWritingLikeFromExamAttempt(examData));
+              setResolvedType('writing');
+            } else {
+              setSubmission(examData);
+              setResolvedType('exam');
+            }
+
+            if (skill !== 'WRITING' && examData?.testId && examData?.skillType) {
+              try {
+                const session = await ieltsApi.getTestSession(examData.testId, examData.skillType);
+                setTotalSkillQuestions(countTotalQuestionsFromSession(session));
+              } catch (sessionError) {
+                console.warn('Cannot load session to count total questions:', sessionError);
+                setTotalSkillQuestions(0);
+              }
+            }
+          }
         } else {
           const data = await teacherApi.getExamAttemptDetail(id);
           console.log('✅ Exam attempt loaded:', data);
-          setSubmission(data);
+          const skill = String(data?.skillType || data?.examType || '').toUpperCase();
+          if (skill === 'WRITING') {
+            setSubmission(buildWritingLikeFromExamAttempt(data));
+            setResolvedType('writing');
+          } else {
+            setSubmission(data);
+            setResolvedType('exam');
+          }
 
-          if (data?.testId && data?.skillType) {
+          if (skill !== 'WRITING' && data?.testId && data?.skillType) {
             try {
               const session = await ieltsApi.getTestSession(data.testId, data.skillType);
               setTotalSkillQuestions(countTotalQuestionsFromSession(session));
@@ -62,7 +168,7 @@ export default function LmsSubmissionDetail() {
       }
     };
     loadSubmission();
-  }, [id, type]);
+  }, [id, type, sourceParam]);
 
   if (loading) {
     return (
@@ -87,7 +193,7 @@ export default function LmsSubmissionDetail() {
     );
   }
 
-  const displayExamBand = (type !== 'writing')
+  const displayExamBand = (resolvedType !== 'writing')
     ? (submission.bandScore ?? calculateExamBand({
       skillType: submission.skillType || submission.examType,
       totalCorrect: submission.totalCorrect,
@@ -116,7 +222,7 @@ export default function LmsSubmissionDetail() {
             <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 4 }}>Loại bài</div>
             <div style={{ fontWeight: 600 }}>
               <FileText size={14} style={{ display: 'inline', marginRight: 4 }} />
-              {type === 'writing' ? 'Writing' : (submission.skillType || submission.examType || 'Exam')}
+              {resolvedType === 'writing' ? 'Writing' : (submission.skillType || submission.examType || 'Exam')}
             </div>
           </div>
           <div>
@@ -136,7 +242,7 @@ export default function LmsSubmissionDetail() {
       </div>
 
       {/* Nội dung bài làm */}
-      {type === 'writing' && (
+      {resolvedType === 'writing' && (
         <div className="lms-panel" style={{ marginBottom: 16 }}>
           <h3 className="lms-panel-title">Đề bài: {submission.groupTitle || 'N/A'}</h3>
           <div style={{ padding: 16, background: '#f9fafb', borderRadius: 8, marginBottom: 16 }}>
@@ -156,7 +262,7 @@ export default function LmsSubmissionDetail() {
         </div>
       )}
 
-      {type !== 'writing' && (
+      {resolvedType !== 'writing' && (
         <div className="lms-panel" style={{ marginBottom: 16 }}>
           <h3 className="lms-panel-title">Bài thi: {submission.examTitle}</h3>
           <div style={{ padding: 16, background: '#f9fafb', borderRadius: 8 }}>
@@ -178,10 +284,10 @@ export default function LmsSubmissionDetail() {
         <button
           className="lms-cta"
           onClick={() => {
-            if (type === 'writing') {
-              navigate(`/lms/grade/writing/${id}`);
+            if (resolvedType === 'writing') {
+              navigate(`/lms/grade/writing/${submission.sourceExamAttemptId || id}?source=${submission.sourceExamAttemptId ? 'exam' : 'writing'}`);
             } else {
-              navigate(`/lms/grade/exam/${id}`);
+              navigate(`/lms/grade/exam/${id}?source=exam`);
             }
           }}
         >

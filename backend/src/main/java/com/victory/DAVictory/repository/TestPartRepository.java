@@ -32,4 +32,16 @@ public interface TestPartRepository extends JpaRepository<TestPart, Long> {
            "AND t.status = com.victory.DAVictory.enums.TestStatus.PUBLISHED " +
            "AND tp.isIncluded = true")
     List<TestPart> findPublishedTestPartsByPartId(@Param("partId") Long partId);
+
+    /**
+     * Tìm TestPart từ các đề cụ thể
+     */
+    @Query("SELECT tp FROM TestPart tp " +
+           "JOIN tp.testSession ts " +
+           "JOIN ts.test t " +
+           "WHERE tp.part.id = :partId " +
+           "AND t.id IN :testIds " +
+           "AND t.status = com.victory.DAVictory.enums.TestStatus.PUBLISHED " +
+           "AND tp.isIncluded = true")
+    List<TestPart> findByPartIdAndTestIds(@Param("partId") Long partId, @Param("testIds") List<Long> testIds);
 }

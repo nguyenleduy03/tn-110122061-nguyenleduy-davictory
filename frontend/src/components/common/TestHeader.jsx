@@ -1,11 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Wifi, Bell, Menu, Send, ChevronRight, ChevronLeft, X, Contrast, ZoomIn, Check, LogOut, ArrowLeftRight } from 'lucide-react';
 
-const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isReview, isFullTest, skill, navigate, duration = 60, noTimeLimit = false, onTimeUp }) => {
+const SERIES_LOGO_SRC = {
+    IELTS: '/IELTS%20Logo.png',
+    Cambridge: '/Cambridge%20Logo.png',
+};
+
+const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isReview, isFullTest, skill, navigate, duration = 0, noTimeLimit = false, onTimeUp, seriesLabel, logoUrl, timerPersistKey }) => {
     const [isOptionsOpen, setIsOptionsOpen] = useState(false);
     const [optionsView, setOptionsView] = useState('main'); // 'main', 'contrast', 'text-size'
     const [showSubmitModal, setShowSubmitModal] = useState(false);
+    const [isFullscreenLocked, setIsFullscreenLocked] = useState(false);
+    const [showFullscreenWarning, setShowFullscreenWarning] = useState(false);
+    const resumeFullscreenRef = useRef(false);
+    const resumeFallbackTimerRef = useRef(null);
+    const fullscreenWarningTimerRef = useRef(null);
+    const isExitingTestRef = useRef(false);
+    const hasTriggeredTimeUpRef = useRef(false);
+    const timerStorageKey = useMemo(() => {
+        if (!timerPersistKey) return null;
+        return `ieltsTimerDeadline_${timerPersistKey}`;
+    }, [timerPersistKey]);
     const [timeLeft, setTimeLeft] = useState(() => {
         const safeDuration = Number.isFinite(duration) ? duration : 0;
         return Math.max(0, safeDuration * 60);
@@ -14,6 +30,125 @@ const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isRevie
     // State to track current theme/size for radio buttons
     const [currentTheme, setCurrentTheme] = useState('standard');
     const [currentTextSize, setCurrentTextSize] = useState('regular');
+
+    useEffect(() => {
+        if (isReview) {
+            setIsFullscreenLocked(false);
+            return undefined;
+        }
+        if (typeof document === 'undefined') return undefined;
+
+        const root = document.documentElement;
+        const requestFullscreen = async () => {
+            try {
+                if (!document.fullscreenElement && root?.requestFullscreen) {
+                    await root.requestFullscreen();
+                }
+            } catch {
+                // Browsers may block fullscreen without direct user gesture.
+            } finally {
+                setIsFullscreenLocked(!document.fullscreenElement);
+            }
+        };
+
+        const handleFullscreenChange = () => {
+            if (isExitingTestRef.current) {
+                setIsFullscreenLocked(false);
+                return;
+            }
+
+            const inFullscreen = Boolean(document.fullscreenElement);
+            if (inFullscreen) {
+                if (resumeFallbackTimerRef.current) {
+                    clearTimeout(resumeFallbackTimerRef.current);
+                    resumeFallbackTimerRef.current = null;
+                }
+                if (fullscreenWarningTimerRef.current) {
+                    clearTimeout(fullscreenWarningTimerRef.current);
+                    fullscreenWarningTimerRef.current = null;
+                }
+                setShowFullscreenWarning(false);
+                resumeFullscreenRef.current = false;
+                setIsFullscreenLocked(false);
+                return;
+            }
+
+            if (resumeFullscreenRef.current) {
+                // User is actively returning to fullscreen; keep overlay hidden during transition.
+                if (root?.requestFullscreen) {
+                    root.requestFullscreen().catch(() => { });
+                }
+                return;
+            }
+
+            setIsFullscreenLocked(true);
+            setShowFullscreenWarning(true);
+            if (fullscreenWarningTimerRef.current) {
+                clearTimeout(fullscreenWarningTimerRef.current);
+            }
+            fullscreenWarningTimerRef.current = window.setTimeout(() => {
+                setShowFullscreenWarning(false);
+                fullscreenWarningTimerRef.current = null;
+            }, 2200);
+
+            // Try to restore fullscreen right away; if blocked, overlay will require user click.
+            if (root?.requestFullscreen) {
+                root.requestFullscreen().catch(() => { });
+            }
+        };
+
+        requestFullscreen();
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+
+        return () => {
+            if (resumeFallbackTimerRef.current) {
+                clearTimeout(resumeFallbackTimerRef.current);
+                resumeFallbackTimerRef.current = null;
+            }
+            if (fullscreenWarningTimerRef.current) {
+                clearTimeout(fullscreenWarningTimerRef.current);
+                fullscreenWarningTimerRef.current = null;
+            }
+            document.removeEventListener('fullscreenchange', handleFullscreenChange);
+        };
+    }, [isReview]);
+
+    const handleReturnFullscreen = async () => {
+        if (typeof document === 'undefined') return;
+        if (resumeFallbackTimerRef.current) {
+            clearTimeout(resumeFallbackTimerRef.current);
+            resumeFallbackTimerRef.current = null;
+        }
+        resumeFullscreenRef.current = true;
+        setIsFullscreenLocked(false);
+
+        // If browser blocks fullscreen, restore overlay after a short grace period.
+        resumeFallbackTimerRef.current = window.setTimeout(() => {
+            if (!document.fullscreenElement) {
+                resumeFullscreenRef.current = false;
+                setIsFullscreenLocked(true);
+            }
+            resumeFallbackTimerRef.current = null;
+        }, 500);
+
+        try {
+            if (!document.fullscreenElement && document.documentElement?.requestFullscreen) {
+                await document.documentElement.requestFullscreen();
+            }
+        } catch {
+            // Restore blocking overlay when fullscreen request is rejected.
+            resumeFullscreenRef.current = false;
+            if (resumeFallbackTimerRef.current) {
+                clearTimeout(resumeFallbackTimerRef.current);
+                resumeFallbackTimerRef.current = null;
+            }
+            setIsFullscreenLocked(true);
+        } finally {
+            if (!document.fullscreenElement && !resumeFullscreenRef.current) {
+                setIsFullscreenLocked(true);
+            }
+        }
+    };
 
     // Sync <html> element classes for zoom overflow control
     const syncHtmlClasses = () => {
@@ -64,27 +199,102 @@ const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isRevie
         }
     }, [isOptionsOpen, optionsView]);
 
-    // Timer logic
+    // Timer logic based on absolute deadline to survive reload/network interruptions.
     useEffect(() => {
-        if (noTimeLimit) return;
+        hasTriggeredTimeUpRef.current = false;
+
+        if (noTimeLimit || isReview) {
+            if (timerStorageKey) {
+                localStorage.removeItem(timerStorageKey);
+            }
+            return;
+        }
+
         const safeDuration = Number.isFinite(duration) ? duration : 0;
-        setTimeLeft(Math.max(0, safeDuration * 60));
-    }, [duration, noTimeLimit]);
+        const durationSeconds = Math.max(0, Math.floor(safeDuration * 60));
+        if (durationSeconds <= 0) {
+            setTimeLeft(0);
+            return;
+        }
+
+        const now = Date.now();
+        let deadlineMs = now + (durationSeconds * 1000);
+
+        if (timerStorageKey) {
+            try {
+                const storedRaw = localStorage.getItem(timerStorageKey);
+                const stored = storedRaw ? JSON.parse(storedRaw) : null;
+                if (
+                    stored
+                    && Number.isFinite(stored.deadlineMs)
+                    && Number.isFinite(stored.durationSeconds)
+                    && stored.durationSeconds === durationSeconds
+                ) {
+                    deadlineMs = stored.deadlineMs;
+                } else {
+                    localStorage.setItem(timerStorageKey, JSON.stringify({
+                        deadlineMs,
+                        durationSeconds,
+                        savedAt: now,
+                    }));
+                }
+            } catch {
+                // Ignore malformed timer cache and continue with a fresh deadline.
+            }
+        }
+
+        setTimeLeft(Math.max(0, Math.ceil((deadlineMs - now) / 1000)));
+    }, [duration, noTimeLimit, timerStorageKey, isReview]);
 
     useEffect(() => {
         if (isReview) return;
         if (noTimeLimit) return;
-        if (timeLeft <= 0) {
-            if (onTimeUp) onTimeUp();
-            return;
+        const safeDuration = Number.isFinite(duration) ? duration : 0;
+        const durationSeconds = Math.max(0, Math.floor(safeDuration * 60));
+        if (durationSeconds <= 0) return;
+
+        let deadlineMs = Date.now() + (durationSeconds * 1000);
+        if (timerStorageKey) {
+            try {
+                const storedRaw = localStorage.getItem(timerStorageKey);
+                const stored = storedRaw ? JSON.parse(storedRaw) : null;
+                if (
+                    stored
+                    && Number.isFinite(stored.deadlineMs)
+                    && Number.isFinite(stored.durationSeconds)
+                    && stored.durationSeconds === durationSeconds
+                ) {
+                    deadlineMs = stored.deadlineMs;
+                } else {
+                    localStorage.setItem(timerStorageKey, JSON.stringify({
+                        deadlineMs,
+                        durationSeconds,
+                        savedAt: Date.now(),
+                    }));
+                }
+            } catch {
+                // Ignore malformed timer cache and continue with local deadline.
+            }
         }
 
-        const timer = setInterval(() => {
-            setTimeLeft(prev => prev - 1);
-        }, 1000);
+        const tick = () => {
+            const remaining = Math.max(0, Math.ceil((deadlineMs - Date.now()) / 1000));
+            setTimeLeft(remaining);
+
+            if (remaining <= 0 && !hasTriggeredTimeUpRef.current) {
+                hasTriggeredTimeUpRef.current = true;
+                if (timerStorageKey) {
+                    localStorage.removeItem(timerStorageKey);
+                }
+                if (onTimeUp) onTimeUp();
+            }
+        };
+
+        tick();
+        const timer = setInterval(tick, 1000);
 
         return () => clearInterval(timer);
-    }, [timeLeft, isReview, noTimeLimit, onTimeUp]);
+    }, [isReview, noTimeLimit, onTimeUp, duration, timerStorageKey]);
 
     const formatTime = (seconds) => {
         const h = Math.floor(seconds / 3600);
@@ -128,7 +338,36 @@ const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isRevie
 
     const handleConfirmSubmit = () => {
         setShowSubmitModal(false);
+        if (timerStorageKey) {
+            localStorage.removeItem(timerStorageKey);
+        }
         if (submitTest) submitTest();
+    };
+
+    const handleExitTest = () => {
+        isExitingTestRef.current = true;
+        setIsOptionsOpen(false);
+        setIsFullscreenLocked(false);
+        sessionStorage.setItem('forceExitFullscreen', 'true');
+
+        const attemptExitFullscreen = async () => {
+            if (typeof document === 'undefined') return;
+            if (!document.fullscreenElement || !document.exitFullscreen) return;
+
+            try {
+                await document.exitFullscreen();
+            } catch {
+                // Ignore and rely on fallback cleanup in destination page.
+            }
+        };
+
+        const goToLibrary = () => {
+            if (navigate) {
+                navigate('/exam-library', { replace: true });
+            }
+        };
+
+        attemptExitFullscreen().finally(goToLibrary);
     };
 
     const handleSwitchReview = () => {
@@ -138,12 +377,16 @@ const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isRevie
     };
 
     const checkColor = currentTheme === 'yellow-black' ? '#e5ff00' : currentTheme === 'white-black' ? '#fff' : 'black';
+    const resolvedLogoSrc = useMemo(() => logoUrl || SERIES_LOGO_SRC[seriesLabel] || SERIES_LOGO_SRC.IELTS, [logoUrl, seriesLabel]);
+    const resolvedLogoAlt = seriesLabel || 'IELTS';
 
     return (
         <>
             <header className="ielts-header">
                 <div className="header-left">
-                    <div className="ielts-logo">IELTS</div>
+                    <div className="ielts-logo">
+                        <img src={resolvedLogoSrc} alt={resolvedLogoAlt} className="ielts-logo-image" />
+                    </div>
                     <div className="candidate-info">
                         <span>{candidateId}</span>
                         {extraInfo && (
@@ -249,10 +492,10 @@ const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isRevie
                         {optionsView === 'main' && (
                             <div className="options-fs-card">
                                 {submitTest && !isReview && (
-                                    <button className="go-submission-btn" onClick={handleSubmitClick}>
+                                    <button className="go-submission-btn" onClick={handleExitTest}>
                                         <div className="go-submission-left">
-                                            <Send size={20} />
-                                            <span>Submit test</span>
+                                            <LogOut size={20} />
+                                            <span>Exit</span>
                                         </div>
                                         <ChevronRight size={20} />
                                     </button>
@@ -318,6 +561,31 @@ const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isRevie
                             </div>
                         )}
                     </div>
+                </div>,
+                document.body
+            )}
+
+            {!isReview && isFullscreenLocked && createPortal(
+                <div className="fullscreen-lock-overlay">
+                    <div className="fullscreen-lock-card">
+                        <h3 className="fullscreen-lock-title">Fullscreen is required</h3>
+                        <p className="fullscreen-lock-text">
+                            Bài thi đang khóa ở chế độ toàn màn hình. Vui lòng quay lại fullscreen để tiếp tục làm bài.
+                        </p>
+                        <button
+                            onClick={handleReturnFullscreen}
+                            className="fullscreen-lock-btn"
+                        >
+                            Quay lại toàn màn hình
+                        </button>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {!isReview && showFullscreenWarning && createPortal(
+                <div className="fullscreen-warning-toast" role="status" aria-live="polite">
+                    Bạn vừa thoát fullscreen. Bài thi yêu cầu chế độ toàn màn hình.
                 </div>,
                 document.body
             )}
