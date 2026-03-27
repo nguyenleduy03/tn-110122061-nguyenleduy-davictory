@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { List, ListOrdered } from 'lucide-react';
+import { List, ListOrdered, Indent } from 'lucide-react';
 
 /**
  * RichBlankEditor
@@ -91,50 +91,32 @@ const RichBlankEditor = ({
     const sel = window.getSelection();
     if (sel.rangeCount) {
       const range = sel.getRangeAt(0);
+      const listTag = ordered ? 'ol' : 'ul';
+      const list = document.createElement(listTag);
+      const li = document.createElement('li');
+      li.innerHTML = '&nbsp;';
+      list.appendChild(li);
       
-      // Kiểm tra xem cursor có đang trong li không
-      const currentLi = range.startContainer.nodeType === 3 
-        ? range.startContainer.parentElement?.closest('li')
-        : range.startContainer.closest?.('li');
+      range.deleteContents();
+      range.insertNode(list);
       
-      if (currentLi) {
-        // Đang trong li, tạo nested list
-        const listTag = ordered ? 'ol' : 'ul';
-        const nestedList = document.createElement(listTag);
-        const newLi = document.createElement('li');
-        newLi.innerHTML = '&nbsp;';
-        nestedList.appendChild(newLi);
-        
-        // Chèn nested list vào cuối li hiện tại
-        currentLi.appendChild(nestedList);
-        
-        // Đặt cursor vào li mới
-        const newRange = document.createRange();
-        newRange.selectNodeContents(newLi);
-        newRange.collapse(true);
-        sel.removeAllRanges();
-        sel.addRange(newRange);
-      } else {
-        // Không trong li, tạo list mới
-        const listTag = ordered ? 'ol' : 'ul';
-        const list = document.createElement(listTag);
-        const li = document.createElement('li');
-        li.innerHTML = '&nbsp;';
-        list.appendChild(li);
-        
-        range.deleteContents();
-        range.insertNode(list);
-        
-        // Đặt cursor vào li
-        const newRange = document.createRange();
-        newRange.selectNodeContents(li);
-        newRange.collapse(true);
-        sel.removeAllRanges();
-        sel.addRange(newRange);
-      }
+      // Đặt cursor vào li
+      const newRange = document.createRange();
+      newRange.selectNodeContents(li);
+      newRange.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(newRange);
       
       onChange(toText(editorRef.current));
     }
+  };
+
+  const indentList = () => {
+    editorRef.current?.focus();
+    document.execCommand('indent');
+    setTimeout(() => {
+      onChange(toText(editorRef.current));
+    }, 0);
   };
 
   const insertChipAtCaret = () => {
@@ -184,6 +166,9 @@ const RichBlankEditor = ({
         </button>
         <button type="button" className="rbe-insert-btn" onClick={() => insertList(true)} title="Đánh số">
           <ListOrdered size={14} />
+        </button>
+        <button type="button" className="rbe-insert-btn" onClick={indentList} title="Tăng cấp độ">
+          <Indent size={14} />
         </button>
         <span className="rbe-hint">× để xóa ô trống</span>
       </div>
