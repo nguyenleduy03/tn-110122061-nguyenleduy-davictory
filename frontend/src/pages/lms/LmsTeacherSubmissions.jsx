@@ -3,7 +3,9 @@ import { CheckCircle2, Loader2, FileText, Clock, Award } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import LmsLayout from '../../components/lms/LmsLayout';
 import { teacherApi } from '../../services/teacherApi';
+import { ieltsApi } from '../../services/ieltsApi';
 import { calculateExamBand, formatBand } from '../../utils/ieltsScoring';
+import ExamAttemptFilter from '../../components/teacher/ExamAttemptFilter';
 
 export default function LmsTeacherSubmissions() {
   const navigate = useNavigate();
@@ -11,6 +13,7 @@ export default function LmsTeacherSubmissions() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('ALL'); // ALL, SUBMITTED, GRADED
+  const [useAdvancedFilter, setUseAdvancedFilter] = useState(false);
 
   useEffect(() => {
     const fetchSubmissions = async () => {
@@ -34,6 +37,43 @@ export default function LmsTeacherSubmissions() {
 
     fetchSubmissions();
   }, []);
+
+  const handleAdvancedFilter = async (filters) => {
+    setLoading(true);
+    try {
+      const examAttempts = await ieltsApi.filterAttempts(filters);
+      const formattedAttempts = examAttempts.map(a => ({ 
+        ...a, 
+        type: a.skillType, 
+        source: 'exam',
+        examType: a.skillType
+      }));
+      setSubmissions(formattedAttempts);
+      setUseAdvancedFilter(true);
+    } catch (err) {
+      setError('Không thể lọc bài nộp');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClearFilter = async () => {
+    setUseAdvancedFilter(false);
+    setLoading(true);
+    try {
+      const data = await teacherApi.getAllSubmissions();
+      const allSubmissions = [
+        ...(data.writingSubmissions || []).map(s => ({ ...s, type: 'WRITING', source: 'writing' })),
+        ...(data.examAttempts || []).map(a => ({ ...a, type: a.examType, source: 'exam' }))
+      ].sort((a, b) => new Date(b.submittedAt || b.startedAt) - new Date(a.submittedAt || a.startedAt));
+      setSubmissions(allSubmissions);
+    } catch (err) {
+      setError('Không thể tải lại danh sách');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredSubmissions = submissions.filter(s => {
     if (filter === 'ALL') return true;
@@ -108,29 +148,39 @@ export default function LmsTeacherSubmissions() {
         </div>
       </section>
 
-      {/* Filter */}
-      <div className="lms-panel" style={{ marginBottom: 16 }}>
-        <div className="lms-chip-row">
-          <button
-            className={`lms-cta ${filter === 'ALL' ? '' : 'ghost'}`}
-            onClick={() => setFilter('ALL')}
-          >
-            Tất cả ({stats.total})
-          </button>
-          <button
-            className={`lms-cta ${filter === 'SUBMITTED' ? '' : 'ghost'}`}
-            onClick={() => setFilter('SUBMITTED')}
-          >
-            <Clock size={14} /> Chờ chấm ({stats.pending})
-          </button>
-          <button
-            className={`lms-cta ${filter === 'GRADED' ? '' : 'ghost'}`}
-            onClick={() => setFilter('GRADED')}
-          >
-            <Award size={14} /> Đã chấm ({stats.graded})
-          </button>
-        </div>
+      {/* Advanced Filter */}
+      <div style={{ marginBottom: 16 }}>
+        <ExamAttemptFilter 
+          onFilter={handleAdvancedFilter}
+          onClear={handleClearFilter}
+        />
       </div>
+
+      {/* Basic Filter */}
+      {!useAdvancedFilter && (
+        <div className="lms-panel" style={{ marginBottom: 16 }}>
+          <div className="lms-chip-row">
+            <button
+              className={`lms-cta ${filter === 'ALL' ? '' : 'ghost'}`}
+              onClick={() => setFilter('ALL')}
+            >
+              Tất cả ({stats.total})
+            </button>
+            <button
+              className={`lms-cta ${filter === 'SUBMITTED' ? '' : 'ghost'}`}
+              onClick={() => setFilter('SUBMITTED')}
+            >
+              <Clock size={14} /> Chờ chấm ({stats.pending})
+            </button>
+            <button
+              className={`lms-cta ${filter === 'GRADED' ? '' : 'ghost'}`}
+              onClick={() => setFilter('GRADED')}
+            >
+              <Award size={14} /> Đã chấm ({stats.graded})
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Table */}
       <div className="lms-panel">

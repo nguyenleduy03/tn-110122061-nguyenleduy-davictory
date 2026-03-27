@@ -1190,4 +1190,14 @@ export const ieltsApi = {
       headers: { 'Content-Type': 'application/json' },
     });
   },
+
+  // ─── Filter attempts cho teacher ────────────────────────────────────
+  filterAttempts: async (filter) => {
+    const baseUrl = API_CONFIG.BASE_URL;
+    return await apiFetch(`${baseUrl}/exam-attempts/filter`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(filter),
+    });
+  },
 };

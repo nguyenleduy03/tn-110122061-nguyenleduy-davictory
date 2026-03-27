@@ -203,15 +203,20 @@ public class ExamAttemptService {
         ExamAttempt attempt = examAttemptRepository.findById(attemptId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy attempt ID=" + attemptId));
 
-        // Kiểm tra GV có dạy học viên này không
         Long studentId = attempt.getUser().getId();
+        boolean isAdmin = hasRoleLike(teacher, "ADMIN") || hasRoleLike(teacher, "MANAGER");
+        
+        // Teacher xem bài của chính mình
+        if (teacher.getId().equals(studentId)) {
+            return toResponseWithAnswers(attempt);
+        }
+
+        // Kiểm tra GV có dạy học viên này không
         boolean isTeachingStudent = classTeacherRepository.existsByUserIdAndClazzIdInAndIsActiveTrue(
                 teacher.getId(),
                 classStudentRepository.findByUserIdOrderByEnrolledAtDesc(studentId).stream()
                         .map(cs -> cs.getClazz().getId())
                         .toList());
-
-        boolean isAdmin = hasRoleLike(teacher, "ADMIN") || hasRoleLike(teacher, "MANAGER");
 
         if (!isTeachingStudent && !isAdmin) {
             throw new RuntimeException("Bạn không có quyền xem bài làm của học viên này");
@@ -387,6 +392,121 @@ public class ExamAttemptService {
         }
 
         saveAnswers(attempt, answers);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ExamAttemptResponse> filterAttempts(String teacherUsername, 
+                                                     com.victory.DAVictory.dto.ExamAttemptFilterRequest filter) {
+        User teacher = userRepository.findByUsername(teacherUsername)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy giáo viên"));
+
+        boolean isAdmin = hasRoleLike(teacher, "ADMIN") || hasRoleLike(teacher, "MANAGER");
+
+        // Get all attempts based on access rights
+        List<ExamAttempt> attempts;
+        
+        if (filter.getClassId() != null) {
+            // Filter by class
+            if (!isAdmin) {
+                boolean isTeachingClass = classTeacherRepository
+                    .existsByUserIdAndClazzIdAndIsActiveTrue(teacher.getId(), filter.getClassId());
+                if (!isTeachingClass) {
+                    throw new RuntimeException("Bạn không có quyền xem bài làm của lớp này");
+                }
+            }
+            
+            if (filter.getStudentId() != null) {
+                attempts = examAttemptRepository.findByStudentIdAndClassId(
+                    filter.getStudentId(), filter.getClassId());
+            } else {
+                attempts = examAttemptRepository.findByClassId(filter.getClassId());
+            }
+        } else if (filter.getStudentId() != null) {
+            // Filter by specific student
+            attempts = examAttemptRepository.findByUserIdOrderByCreatedAtDesc(filter.getStudentId());
+            
+            if (!isAdmin && !teacher.getId().equals(filter.getStudentId())) {
+                // Check if teacher teaches this student
+                List<Long> studentClasses = classStudentRepository
+                    .findByUserIdOrderByEnrolledAtDesc(filter.getStudentId())
+                    .stream()
+                    .map(cs -> cs.getClazz().getId())
+                    .toList();
+                
+                boolean isTeachingStudent = classTeacherRepository
+                    .existsByUserIdAndClazzIdInAndIsActiveTrue(teacher.getId(), studentClasses);
+                
+                if (!isTeachingStudent) {
+                    throw new RuntimeException("Bạn không có quyền xem bài làm của học viên này");
+                }
+            }
+        } else if (isAdmin) {
+            // Admin sees all
+            attempts = examAttemptRepository.findAll();
+        } else {
+            // Teacher sees attempts from their classes
+            List<Long> teacherClasses = classTeacherRepository
+                .findByUserIdAndIsActiveTrue(teacher.getId())
+                .stream()
+                .map(ct -> ct.getClazz().getId())
+                .toList();
+            
+            List<Long> studentIds = classStudentRepository.findAll().stream()
+                .filter(cs -> teacherClasses.contains(cs.getClazz().getId()))
+                .map(cs -> cs.getUser().getId())
+                .distinct()
+                .toList();
+            
+            if (studentIds.isEmpty()) {
+                return List.of();
+            }
+            
+            attempts = examAttemptRepository.findByUserIdInOrderByStartedAtDesc(studentIds);
+        }
+
+        // Apply filters
+        return attempts.stream()
+            .filter(a -> filter.getTestId() == null || 
+                        (a.getTest() != null && a.getTest().getId().equals(filter.getTestId())))
+            .filter(a -> filter.getSkillType() == null || 
+                        (a.getSession() != null && a.getSession().getSkillType() == filter.getSkillType()))
+            .filter(a -> filter.getStatus() == null || 
+                        a.getStatus().equals(filter.getStatus()))
+            .filter(a -> filter.getStartDate() == null || 
+                        a.getStartedAt().isAfter(filter.getStartDate()))
+            .filter(a -> filter.getEndDate() == null || 
+                        a.getStartedAt().isBefore(filter.getEndDate()))
+            .filter(a -> filter.getMinBandScore() == null || 
+                        (a.getBandScore() != null && a.getBandScore() >= filter.getMinBandScore()))
+            .filter(a -> filter.getMaxBandScore() == null || 
+                        (a.getBandScore() != null && a.getBandScore() <= filter.getMaxBandScore()))
+            .sorted((a1, a2) -> {
+                if ("DESC".equals(filter.getSortDirection())) {
+                    return compareAttempts(a2, a1, filter.getSortBy());
+                }
+                return compareAttempts(a1, a2, filter.getSortBy());
+            })
+            .skip((long) filter.getPage() * filter.getSize())
+            .limit(filter.getSize())
+            .map(this::toResponse)
+            .toList();
+    }
+
+    private int compareAttempts(ExamAttempt a1, ExamAttempt a2, String sortBy) {
+        return switch (sortBy) {
+            case "bandScore" -> {
+                Double score1 = a1.getBandScore() != null ? a1.getBandScore() : 0.0;
+                Double score2 = a2.getBandScore() != null ? a2.getBandScore() : 0.0;
+                yield score1.compareTo(score2);
+            }
+            case "createdAt" -> a1.getCreatedAt().compareTo(a2.getCreatedAt());
+            default -> { // submittedAt
+                if (a1.getSubmittedAt() == null && a2.getSubmittedAt() == null) yield 0;
+                if (a1.getSubmittedAt() == null) yield 1;
+                if (a2.getSubmittedAt() == null) yield -1;
+                yield a1.getSubmittedAt().compareTo(a2.getSubmittedAt());
+            }
+        };
     }
 
     private void validateTeacherCanAccessAttempt(User teacher, ExamAttempt attempt) {

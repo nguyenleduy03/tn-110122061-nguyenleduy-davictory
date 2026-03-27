@@ -172,4 +172,17 @@ public class ExamAttemptController {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
+
+    @PostMapping("/filter")
+    @PreAuthorize("hasAnyRole('TEACHER', 'MANAGER', 'ADMIN')")
+    public ResponseEntity<?> filterAttempts(@RequestBody com.victory.DAVictory.dto.ExamAttemptFilterRequest filter,
+                                            Authentication authentication) {
+        try {
+            String username = authentication.getName();
+            List<ExamAttemptResponse> list = examAttemptService.filterAttempts(username, filter);
+            return ResponseEntity.ok(list);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
 }

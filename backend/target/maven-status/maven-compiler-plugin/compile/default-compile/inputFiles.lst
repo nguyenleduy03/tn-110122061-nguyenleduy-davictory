@@ -28,6 +28,7 @@
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/AttemptAnswerSave.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/AuthResponse.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/ChangePasswordRequest.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/ExamAttemptFilterRequest.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/ExamAttemptGradeHistoryResponse.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/ExamAttemptManualGradeRequest.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/ExamAttemptResponse.java

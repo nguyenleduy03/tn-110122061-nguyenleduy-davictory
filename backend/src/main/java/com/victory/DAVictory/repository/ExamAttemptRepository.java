@@ -59,3 +59,4 @@ public interface ExamAttemptRepository extends JpaRepository<ExamAttempt, Long> 
     @Query("SELECT e FROM ExamAttempt e WHERE e.user.id IN :userIds ORDER BY e.startedAt DESC")
     List<ExamAttempt> findByUserIdInOrderByStartedAtDesc(@Param("userIds") List<Long> userIds);
 }
+

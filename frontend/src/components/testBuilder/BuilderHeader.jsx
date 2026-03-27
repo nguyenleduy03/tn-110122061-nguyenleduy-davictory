@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  ArrowLeft, Eye, Save, Send, Settings, Shuffle, List,
+  Home, Eye, Save, Send, Settings, Shuffle, List,
   Bold, Italic, Underline, Strikethrough,
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
   ListOrdered, Undo2, Redo2, Eraser, Subscript, Superscript,
@@ -159,8 +159,8 @@ const BuilderHeader = ({
       {/* ══════════════ ROW 1 — Title / Document bar ══════════════ */}
       <div className="tb-titlebar">
         <div className="tb-header-left">
-          <Link to="/" className="tb-back-btn" title="Trang chủ"><ArrowLeft size={16} /></Link>
           <Link to="/lms/teacher/tests" className="tb-back-btn" title="Danh sách đề thi"><List size={16} /></Link>
+          <Link to="/" className="tb-back-btn" title="Trang chủ"><Home size={16} /></Link>
           <div className="tb-divider" />
           <input
             className="tb-title-input"
@@ -238,7 +238,9 @@ const BuilderHeader = ({
                 <Send size={15} /><span>Gửi duyệt</span>
               </button>
             )}
-            <button className="tb-tool-btn" title="Cài đặt đề thi"><Settings size={15} /></button>
+            <button className="tb-tool-btn tb-tool-btn-icon" title="Cài đặt đề thi" aria-label="Cài đặt đề thi">
+              <Settings size={15} />
+            </button>
           </div>
           {saveMessage && (
             <div className={`tb-save-status ${saveMessage.includes('Lỗi') ? 'tb-save-error' : 'tb-save-success'}`}>
