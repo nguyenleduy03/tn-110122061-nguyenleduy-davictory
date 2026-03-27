@@ -70,7 +70,6 @@ com/victory/DAVictory/security/CustomUserDetailsService.class
 com/victory/DAVictory/entity/Tag.class
 com/victory/DAVictory/entity/Class.class
 com/victory/DAVictory/entity/StudentProgress.class
-com/victory/DAVictory/controller/TestAttemptController.class
 com/victory/DAVictory/controller/TestSessionController.class
 com/victory/DAVictory/repository/TestSessionRepository.class
 com/victory/DAVictory/dto/TestFullResponse.class
@@ -124,7 +123,6 @@ com/victory/DAVictory/config/TestStructureInitializer.class
 com/victory/DAVictory/repository/AnswerRepository.class
 com/victory/DAVictory/entity/SpeakingScore.class
 com/victory/DAVictory/dto/TestFullResponse$OptionResp.class
-com/victory/DAVictory/service/TestAttemptService.class
 com/victory/DAVictory/config/SecurityConfig.class
 com/victory/DAVictory/controller/WritingController.class
 com/victory/DAVictory/dto/TestResultResponse$SkillResult.class

@@ -9,10 +9,14 @@ import { ieltsApi } from "../services/ieltsApi";
 import { formatTextWithWhitespace } from "../utils/textFormatters";
 import { computeFullTestProgressPercent, getFullTestSessionState, parseJsonSafe } from "../utils/fullTestProgress";
 import { buildDraftStorageKey, buildTimerPersistKey, clearDraftByTest, parseJsonSafe as parseRuntimeJsonSafe, markTestSubmitted, getSubmittedRedirect } from "../utils/testRuntimeState";
+import GuestInfoForm from "../components/common/GuestInfoForm";
 
 const IeltsListeningTest = () => {
     const [testData, setTestData] = useState(null);
     const [answers, setAnswers] = useState({});
+    const [showGuestForm, setShowGuestForm] = useState(false);
+    const [guestInfo, setGuestInfo] = useState(null);
+    const [isGuest, setIsGuest] = useState(false);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [bookmarks, setBookmarks] = useState({});
@@ -79,6 +83,29 @@ const IeltsListeningTest = () => {
         if (!submittedRedirect) return;
         navigate(submittedRedirect, { replace: true });
     }, [timerPersistKey, navigate]);
+
+    // Check guest mode
+    useEffect(() => {
+        if (isReview) return;
+        
+        const savedGuestInfo = sessionStorage.getItem('guestExamInfo');
+        if (savedGuestInfo) {
+            try {
+                const info = JSON.parse(savedGuestInfo);
+                setGuestInfo(info);
+                setIsGuest(true);
+                return;
+            } catch (e) {
+                sessionStorage.removeItem('guestExamInfo');
+            }
+        }
+
+        const isAuth = ieltsApi.isAuthenticated();
+        if (!isAuth) {
+            setShowGuestForm(true);
+        }
+    }, [isReview]);
+
     const autosaveStateRef = useRef({
         answers: {},
         bookmarks: {},
@@ -418,7 +445,17 @@ const IeltsListeningTest = () => {
         sessionStorage.setItem('lastAnswers_listening', JSON.stringify(answers));
         setIsSubmitting(true);
 
-        ieltsApi.submitAnswers(testId, 'LISTENING', answers, timeSpentSeconds, testData)
+        const submitPromise = isGuest
+            ? ieltsApi.submitGuestAttempt(testId, timeSpentSeconds, Object.entries(answers).map(([qId, ans]) => ({
+                questionId: parseInt(qId),
+                textAnswer: typeof ans === 'string' ? ans : null,
+                selectedOptionLabel: typeof ans === 'string' ? ans : null,
+                matchingAnswer: Array.isArray(ans) ? JSON.stringify(ans) : null,
+                isFlagged: bookmarks[qId] || false
+            })))
+            : ieltsApi.submitAnswers(testId, 'LISTENING', answers, timeSpentSeconds, testData);
+
+        submitPromise
             .then((resp) => {
                 if (resp) {
                     sessionStorage.setItem('lastScore_listening', JSON.stringify(resp));
@@ -487,8 +524,17 @@ const IeltsListeningTest = () => {
     if (!testData) return <div style={{ padding: '20px' }}>No test data available</div>;
     if (!part) return <div style={{ padding: '20px' }}>Part not found</div>;
 
-
-
+    if (showGuestForm) {
+        return <GuestInfoForm 
+            onSubmit={(data) => {
+                setGuestInfo(data);
+                sessionStorage.setItem('guestExamInfo', JSON.stringify(data));
+                setIsGuest(true);
+                setShowGuestForm(false);
+            }}
+            onCancel={() => navigate(-1)}
+        />;
+    }
 
     const handlePlay = () => {
         setAudioStarted(true);

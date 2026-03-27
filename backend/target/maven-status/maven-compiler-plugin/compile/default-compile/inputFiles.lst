@@ -12,10 +12,10 @@
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/FileUploadController.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/FullTestProgressController.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/GoogleDriveAuthController.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/GuestExamController.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/QuestionGroupController.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/StudentWritingController.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/SubmissionBridgeController.java
-/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/TestAttemptController.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/TestBuilderController.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/TestController.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/TestPartController.java
@@ -34,6 +34,9 @@
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/ExamAttemptSubmitRequest.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/FullTestProgressResponse.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/FullTestProgressSaveRequest.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/GuestExamResponse.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/GuestExamStartRequest.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/GuestExamSubmitRequest.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/LoginRequest.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/QuestionGroupRequest.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/QuestionGroupResponse.java
@@ -72,6 +75,7 @@
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/entity/DifficultyLevel.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/entity/ExamAttempt.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/entity/FullTestProgress.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/entity/GuestExamAttempt.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/entity/MatchingPair.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/entity/MediaFile.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/entity/Part.java
@@ -134,6 +138,7 @@
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/repository/DifficultyLevelRepository.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/repository/ExamAttemptRepository.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/repository/FullTestProgressRepository.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/repository/GuestExamAttemptRepository.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/repository/MatchingPairRepository.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/repository/MediaFileRepository.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/repository/PartRepository.java
@@ -184,10 +189,10 @@
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/service/FileUploadService.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/service/FullTestProgressService.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/service/GoogleDriveOAuth2Service.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/service/GuestExamService.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/service/MediaService.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/service/QuestionBankService.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/service/RoleService.java
-/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/service/TestAttemptService.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/service/TestBuilderService.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/service/TestManagementService.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/service/TestStructureService.java

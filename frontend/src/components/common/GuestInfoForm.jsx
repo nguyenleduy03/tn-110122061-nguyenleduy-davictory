@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { User, Mail, Phone } from 'lucide-react';
-import '../styles/guestForm.css';
+import '../../styles/guestForm.css';
 
 const GuestInfoForm = ({ onSubmit, onCancel }) => {
   const [formData, setFormData] = useState({
