@@ -11,17 +11,13 @@
 [[1;34mINFO[m] Copying 0 resource from src/main/resources to target/classes
 [[1;34mINFO[m] 
 [[1;34mINFO[m] [1m--- [0;32mmaven-compiler-plugin:3.14.1:compile[m [1m(default-compile)[m @ [36mDAVictory[0;1m ---[m
-[[1;34mINFO[m] Recompiling the module because of [1madded or removed source files[m.
-[[1;34mINFO[m] Compiling 203 source files with javac [debug parameters release 21] to target/classes
-[[1;34mINFO[m] /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/config/PublicIpService.java: /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/config/PublicIpService.java uses or overrides a deprecated API.
-[[1;34mINFO[m] /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/config/PublicIpService.java: Recompile with -Xlint:deprecation for details.
+[[1;34mINFO[m] Nothing to compile - all classes are up to date.
 [[1;34mINFO[m] 
 [[1;34mINFO[m] [1m--- [0;32mmaven-resources-plugin:3.3.1:testResources[m [1m(default-testResources)[m @ [36mDAVictory[0;1m ---[m
 [[1;34mINFO[m] skip non existing resourceDirectory /home/hv/DuAn/DAVictory/backend/src/test/resources
 [[1;34mINFO[m] 
 [[1;34mINFO[m] [1m--- [0;32mmaven-compiler-plugin:3.14.1:testCompile[m [1m(default-testCompile)[m @ [36mDAVictory[0;1m ---[m
-[[1;34mINFO[m] Recompiling the module because of [1mchanged dependency[m.
-[[1;34mINFO[m] Compiling 1 source file with javac [debug parameters release 21] to target/test-classes
+[[1;34mINFO[m] Nothing to compile - all classes are up to date.
 [[1;34mINFO[m] 
 [[1;34mINFO[m] [1m<<< [0;32mspring-boot-maven-plugin:4.0.3:run[m [1m(default-cli)[0;1m < [0;1mtest-compile[m @ [36mDAVictory[0;1m <<<[m
 [[1;34mINFO[m] 
@@ -38,22 +34,22 @@
 
  :: Spring Boot ::                (v4.0.3)
 
-2026-03-27T13:26:50.881+07:00  INFO 59999 --- [DAVictory] [           main] c.v.DAVictory.DaVictoryApplication       : Starting DaVictoryApplication using Java 21.0.10 with PID 59999 (/home/hv/DuAn/DAVictory/backend/target/classes started by hv in /home/hv/DuAn/DAVictory/backend)
-2026-03-27T13:26:50.886+07:00  INFO 59999 --- [DAVictory] [           main] c.v.DAVictory.DaVictoryApplication       : No active profile set, falling back to 1 default profile: "default"
-2026-03-27T13:26:52.286+07:00  INFO 59999 --- [DAVictory] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
-2026-03-27T13:26:52.547+07:00  INFO 59999 --- [DAVictory] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 250 ms. Found 58 JPA repository interfaces.
-2026-03-27T13:26:53.542+07:00  INFO 59999 --- [DAVictory] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 8080 (http)
-2026-03-27T13:26:53.562+07:00  INFO 59999 --- [DAVictory] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
-2026-03-27T13:26:53.562+07:00  INFO 59999 --- [DAVictory] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/11.0.18]
-2026-03-27T13:26:53.633+07:00  INFO 59999 --- [DAVictory] [           main] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 2653 ms
-2026-03-27T13:26:53.929+07:00  INFO 59999 --- [DAVictory] [           main] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
-2026-03-27T13:26:53.995+07:00  INFO 59999 --- [DAVictory] [           main] org.hibernate.orm.core                   : HHH000001: Hibernate ORM core version 7.2.4.Final
-2026-03-27T13:26:54.626+07:00  INFO 59999 --- [DAVictory] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
-2026-03-27T13:26:54.674+07:00  INFO 59999 --- [DAVictory] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
-2026-03-27T13:26:54.927+07:00  INFO 59999 --- [DAVictory] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@5e2b512b
-2026-03-27T13:26:54.930+07:00  INFO 59999 --- [DAVictory] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
-2026-03-27T13:26:55.017+07:00  WARN 59999 --- [DAVictory] [           main] org.hibernate.orm.deprecation            : HHH90000025: MySQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
-2026-03-27T13:26:55.055+07:00  INFO 59999 --- [DAVictory] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+2026-03-27T14:20:44.310+07:00  INFO 91939 --- [DAVictory] [           main] c.v.DAVictory.DaVictoryApplication       : Starting DaVictoryApplication using Java 21.0.10 with PID 91939 (/home/hv/DuAn/DAVictory/backend/target/classes started by hv in /home/hv/DuAn/DAVictory/backend)
+2026-03-27T14:20:44.317+07:00  INFO 91939 --- [DAVictory] [           main] c.v.DAVictory.DaVictoryApplication       : No active profile set, falling back to 1 default profile: "default"
+2026-03-27T14:20:45.818+07:00  INFO 91939 --- [DAVictory] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-03-27T14:20:46.090+07:00  INFO 91939 --- [DAVictory] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 260 ms. Found 58 JPA repository interfaces.
+2026-03-27T14:20:47.074+07:00  INFO 91939 --- [DAVictory] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 8080 (http)
+2026-03-27T14:20:47.094+07:00  INFO 91939 --- [DAVictory] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-03-27T14:20:47.095+07:00  INFO 91939 --- [DAVictory] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/11.0.18]
+2026-03-27T14:20:47.165+07:00  INFO 91939 --- [DAVictory] [           main] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 2729 ms
+2026-03-27T14:20:47.435+07:00  INFO 91939 --- [DAVictory] [           main] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-03-27T14:20:47.501+07:00  INFO 91939 --- [DAVictory] [           main] org.hibernate.orm.core                   : HHH000001: Hibernate ORM core version 7.2.4.Final
+2026-03-27T14:20:48.177+07:00  INFO 91939 --- [DAVictory] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-03-27T14:20:48.217+07:00  INFO 91939 --- [DAVictory] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-03-27T14:20:48.457+07:00  INFO 91939 --- [DAVictory] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@349aeec4
+2026-03-27T14:20:48.460+07:00  INFO 91939 --- [DAVictory] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-03-27T14:20:48.542+07:00  WARN 91939 --- [DAVictory] [           main] org.hibernate.orm.deprecation            : HHH90000025: MySQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-03-27T14:20:48.578+07:00  INFO 91939 --- [DAVictory] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
 	Database JDBC URL [jdbc:mysql://localhost:3306/DAVictory?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true]
 	Database driver: MySQL Connector/J
 	Database dialect: MySQLDialect
@@ -65,263 +61,364 @@
 	Pool: DataSourceConnectionProvider
 	Minimum pool size: undefined/unknown
 	Maximum pool size: undefined/unknown
-2026-03-27T13:26:58.336+07:00  INFO 59999 --- [DAVictory] [           main] org.hibernate.orm.core                   : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
-2026-03-27T13:26:59.256+07:00  INFO 59999 --- [DAVictory] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
-2026-03-27T13:26:59.431+07:00  INFO 59999 --- [DAVictory] [           main] o.s.d.j.r.query.QueryEnhancerFactories   : Hibernate is in classpath; If applicable, HQL parser will be used.
-2026-03-27T13:27:01.445+07:00  INFO 59999 --- [DAVictory] [           main] c.v.DAVictory.config.PublicIpService     : ✅ Lấy IP từ https://api.ipify.org: 123.22.61.173
-2026-03-27T13:27:01.446+07:00  INFO 59999 --- [DAVictory] [           main] c.v.DAVictory.config.PublicIpService     : 🌐 Public IP đã phát hiện: 123.22.61.173
-2026-03-27T13:27:01.455+07:00  INFO 59999 --- [DAVictory] [           main] c.victory.DAVictory.config.CorsConfig    : 🔓 CORS: Thêm IP public 123.22.61.173 vào allowed origins
-2026-03-27T13:27:01.456+07:00  INFO 59999 --- [DAVictory] [           main] c.victory.DAVictory.config.CorsConfig    : ✅ CORS allowed origins: [http://localhost:5173, http://localhost:3000, http://localhost:80, http://localhost, https://davictory.io.vn, http://davictory.io.vn, http://123.22.61.173:5173, http://123.22.61.173:3000, http://123.22.61.173:80, http://123.22.61.173]
-2026-03-27T13:27:02.333+07:00  INFO 59999 --- [DAVictory] [           main] eAuthenticationProviderManagerConfigurer : Global AuthenticationManager configured with AuthenticationProvider bean with name authenticationProvider
-2026-03-27T13:27:02.333+07:00  WARN 59999 --- [DAVictory] [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with an AuthenticationProvider bean. UserDetailsService beans will not be used by Spring Security for automatically configuring username/password login. Consider removing the AuthenticationProvider bean. Alternatively, consider using the UserDetailsService in a manually instantiated DaoAuthenticationProvider. If the current configuration is intentional, to turn off this warning, increase the logging level of 'org.springframework.security.config.annotation.authentication.configuration.InitializeUserDetailsBeanManagerConfigurer' to ERROR
-2026-03-27T13:27:04.525+07:00  WARN 59999 --- [DAVictory] [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
-2026-03-27T13:27:05.114+07:00  INFO 59999 --- [DAVictory] [           main] o.s.v.b.OptionalValidatorFactoryBean     : Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
-2026-03-27T13:27:06.890+07:00  INFO 59999 --- [DAVictory] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat started on port 8080 (http) with context path '/'
-2026-03-27T13:27:06.900+07:00  INFO 59999 --- [DAVictory] [           main] c.v.DAVictory.DaVictoryApplication       : Started DaVictoryApplication in 16.729 seconds (process running for 17.213)
-2026-03-27T13:27:07.196+07:00  INFO 59999 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    : 🔧 [TestStructureInitializer] Bắt đầu khởi tạo cấu trúc IELTS...
-2026-03-27T13:27:07.213+07:00  INFO 59999 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ DifficultyLevels (5 cấp độ)
-2026-03-27T13:27:07.244+07:00  INFO 59999 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ Sessions (Listening / Reading / Writing / Speaking × Academic & General)
-2026-03-27T13:27:07.382+07:00  INFO 59999 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ Parts (các phần trong mỗi kỹ năng)
-2026-03-27T13:27:07.456+07:00  INFO 59999 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ QuestionTypes (14 loại câu hỏi IELTS)
-2026-03-27T13:27:07.457+07:00  INFO 59999 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    : ✅ [TestStructureInitializer] Hoàn tất khởi tạo cấu trúc IELTS.
-2026-03-27T13:28:06.072+07:00  INFO 59999 --- [DAVictory] [nio-8080-exec-2] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
-2026-03-27T13:28:06.073+07:00  INFO 59999 --- [DAVictory] [nio-8080-exec-2] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
-2026-03-27T13:28:06.080+07:00  INFO 59999 --- [DAVictory] [nio-8080-exec-2] o.s.web.servlet.DispatcherServlet        : Completed initialization in 6 ms
-🗑️ Cleaning up unused group: 2536
-🗑️ Cleaning up unused group: 2537
-🗑️ Cleaning up unused group: 2538
-🗑️ Deleting old questions for group: 2142
-✅ Deleted old questions, now creating new ones
-🔍 Saving 3 questions for group: Multiple Choice 1
-📝 Question 1: <div><span style="background-color: rgb(221, 227, 238); color: rgb(0, 0, 0); font-family: Arial, Helvetica, sans-serif; font-size: 14px;">Why did Ju</span><font color="#2ec27e"><span style="background-color: rgb(221, 227, 238); font-family: Arial, Helvetica, sans-serif; font-size: 14px;">dy choose to s</span></font><span style="background-color: rgb(221, 227, 238); color: rgb(0, 0, 0); font-family: Arial, Helvetica, sans-serif; font-size: 14px;">tudy the East End<span style="background-color: rgb(53, 132, 228);"> of London?</span></span></div> | Answers: 0
-💾 Saving 0 answers for question: <div><span style="background-color: rgb(221, 227, 238); color: rgb(0, 0, 0); font-family: Arial, Helvetica, sans-serif; font-size: 14px;">Why did Ju</span><font color="#2ec27e"><span style="background-color: rgb(221, 227, 238); font-family: Arial, Helvetica, sans-serif; font-size: 14px;">dy choose to s</span></font><span style="background-color: rgb(221, 227, 238); color: rgb(0, 0, 0); font-family: Arial, Helvetica, sans-serif; font-size: 14px;">tudy the East End<span style="background-color: rgb(53, 132, 228);"> of London?</span></span></div>
-✅ Successfully saved question 1
-📝 Question 2: <span style="color: rgb(0, 0, 0); font-family: Arial, Helvetica, sans-serif; font-size: 14px; background-color: rgb(221, 227, 238);">What was Judy’s main source of materials?</span> | Answers: 0
-💾 Saving 0 answers for question: <span style="color: rgb(0, 0, 0); font-family: Arial, Helvetica, sans-serif; font-size: 14px; background-color: rgb(221, 227, 238);">What was Judy’s main source of materials?</span>
-✅ Successfully saved question 2
-📝 Question 3: <div><span style="background-color: rgb(221, 227, 238); color: rgb(0, 0, 0); font-family: Arial, Helvetica, sans-serif; font-size: 14px;">What difficulty did Judy have with her dissertation?</span></div> | Answers: 0
-💾 Saving 0 answers for question: <div><span style="background-color: rgb(221, 227, 238); color: rgb(0, 0, 0); font-family: Arial, Helvetica, sans-serif; font-size: 14px;">What difficulty did Judy have with her dissertation?</span></div>
-✅ Successfully saved question 3
-🗑️ Deleting old questions for group: 2143
-✅ Deleted old questions, now creating new ones
-🔍 Saving 1 questions for group: Multiple Choice (nhiều) 2
-📝 Question 1: <span style="color: rgb(0, 0, 0); font-family: Arial, Helvetica, sans-serif; font-size: 14px; background-color: rgb(221, 227, 238);">Which&nbsp;</span><strong style="margin: 0px; border: 0px; font-variant-numeric: inherit; font-variant-east-asian: inherit; font-variant-alternates: inherit; font-variant-position: inherit; font-variant-emoji: inherit; font-weight: bold; font-stretch: inherit; font-family: Arial, Helvetica, sans-serif; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 14px; line-height: inherit; text-decoration-line: inherit; background: rgb(221, 227, 238); color: rgb(0, 0, 0); padding: 0px;">THREE</strong><span style="color: rgb(0, 0, 0); font-family: Arial, Helvetica, sans-serif; font-size: 14px; background-color: rgb(221, 227, 238);">&nbsp;things does the Guide to the Library have information about?</span> | Answers: 0
-💾 Saving 0 answers for question: <span style="color: rgb(0, 0, 0); font-family: Arial, Helvetica, sans-serif; font-size: 14px; background-color: rgb(221, 227, 238);">Which&nbsp;</span><strong style="margin: 0px; border: 0px; font-variant-numeric: inherit; font-variant-east-asian: inherit; font-variant-alternates: inherit; font-variant-position: inherit; font-variant-emoji: inherit; font-weight: bold; font-stretch: inherit; font-family: Arial, Helvetica, sans-serif; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; font-size: 14px; line-height: inherit; text-decoration-line: inherit; background: rgb(221, 227, 238); color: rgb(0, 0, 0); padding: 0px;">THREE</strong><span style="color: rgb(0, 0, 0); font-family: Arial, Helvetica, sans-serif; font-size: 14px; background-color: rgb(221, 227, 238);">&nbsp;things does the Guide to the Library have information about?</span>
-✅ Successfully saved question 1
-🗑️ Deleting old questions for group: 2436
-✅ Deleted old questions, now creating new ones
-🔍 Saving 3 questions for group: Drag Matching 3
-📝 Question 1: <!--StartFragment-->Mary Brown<!--EndFragment--> | Answers: 1
-💾 Saving 1 answers for question: <!--StartFragment-->Mary Brown<!--EndFragment-->
-📝 Answer 1: 'food'
-✅ Saved answer 1 with ID: 11153
-✅ Successfully saved question 1
-📝 Question 2: <!--StartFragment-->Mary Brown1<!--EndFragment--> | Answers: 1
-💾 Saving 1 answers for question: <!--StartFragment-->Mary Brown1<!--EndFragment-->
-📝 Answer 1: 'food2'
-✅ Saved answer 1 with ID: 11154
-✅ Successfully saved question 2
-📝 Question 3: <!--StartFragment-->Mary&nbsp;<!--EndFragment--> | Answers: 1
-💾 Saving 1 answers for question: <!--StartFragment-->Mary&nbsp;<!--EndFragment-->
-📝 Answer 1: 'food3'
-✅ Saved answer 1 with ID: 11155
-✅ Successfully saved question 3
-🗑️ Deleting old questions for group: 2145
-✅ Deleted old questions, now creating new ones
-🔍 Saving 3 questions for group: Map Labelling 4
+2026-03-27T14:20:51.546+07:00  INFO 91939 --- [DAVictory] [           main] org.hibernate.orm.core                   : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-03-27T14:20:52.425+07:00  INFO 91939 --- [DAVictory] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-03-27T14:20:52.591+07:00  INFO 91939 --- [DAVictory] [           main] o.s.d.j.r.query.QueryEnhancerFactories   : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-03-27T14:20:54.701+07:00  INFO 91939 --- [DAVictory] [           main] c.v.DAVictory.config.PublicIpService     : ✅ Lấy IP từ https://api.ipify.org: 123.22.61.173
+2026-03-27T14:20:54.702+07:00  INFO 91939 --- [DAVictory] [           main] c.v.DAVictory.config.PublicIpService     : 🌐 Public IP đã phát hiện: 123.22.61.173
+2026-03-27T14:20:54.714+07:00  INFO 91939 --- [DAVictory] [           main] c.victory.DAVictory.config.CorsConfig    : 🔓 CORS: Thêm IP public 123.22.61.173 vào allowed origins
+2026-03-27T14:20:54.716+07:00  INFO 91939 --- [DAVictory] [           main] c.victory.DAVictory.config.CorsConfig    : ✅ CORS allowed origins: [http://localhost:5173, http://localhost:3000, http://localhost:80, http://localhost, https://davictory.io.vn, http://davictory.io.vn, http://123.22.61.173:5173, http://123.22.61.173:3000, http://123.22.61.173:80, http://123.22.61.173]
+2026-03-27T14:20:55.631+07:00  INFO 91939 --- [DAVictory] [           main] eAuthenticationProviderManagerConfigurer : Global AuthenticationManager configured with AuthenticationProvider bean with name authenticationProvider
+2026-03-27T14:20:55.632+07:00  WARN 91939 --- [DAVictory] [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with an AuthenticationProvider bean. UserDetailsService beans will not be used by Spring Security for automatically configuring username/password login. Consider removing the AuthenticationProvider bean. Alternatively, consider using the UserDetailsService in a manually instantiated DaoAuthenticationProvider. If the current configuration is intentional, to turn off this warning, increase the logging level of 'org.springframework.security.config.annotation.authentication.configuration.InitializeUserDetailsBeanManagerConfigurer' to ERROR
+2026-03-27T14:20:57.700+07:00  WARN 91939 --- [DAVictory] [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-03-27T14:20:58.322+07:00  INFO 91939 --- [DAVictory] [           main] o.s.v.b.OptionalValidatorFactoryBean     : Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2026-03-27T14:21:00.213+07:00  INFO 91939 --- [DAVictory] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat started on port 8080 (http) with context path '/'
+2026-03-27T14:21:00.224+07:00  INFO 91939 --- [DAVictory] [           main] c.v.DAVictory.DaVictoryApplication       : Started DaVictoryApplication in 16.917 seconds (process running for 17.592)
+2026-03-27T14:21:00.532+07:00  INFO 91939 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    : 🔧 [TestStructureInitializer] Bắt đầu khởi tạo cấu trúc IELTS...
+2026-03-27T14:21:00.546+07:00  INFO 91939 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ DifficultyLevels (5 cấp độ)
+2026-03-27T14:21:00.571+07:00  INFO 91939 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ Sessions (Listening / Reading / Writing / Speaking × Academic & General)
+2026-03-27T14:21:00.687+07:00  INFO 91939 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ Parts (các phần trong mỗi kỹ năng)
+2026-03-27T14:21:00.738+07:00  INFO 91939 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ QuestionTypes (14 loại câu hỏi IELTS)
+2026-03-27T14:21:00.738+07:00  INFO 91939 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    : ✅ [TestStructureInitializer] Hoàn tất khởi tạo cấu trúc IELTS.
+2026-03-27T14:21:31.754+07:00  INFO 91939 --- [DAVictory] [nio-8080-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-03-27T14:21:31.755+07:00  INFO 91939 --- [DAVictory] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-03-27T14:21:31.761+07:00  INFO 91939 --- [DAVictory] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 6 ms
+🗑️ Cleaning up unused group: 2542
+🔍 Saving 0 questions for group: Map Labelling 1
+🔍 Saving 5 questions for group: Questions 1–5
 📝 Question 1:  | Answers: 1
 💾 Saving 1 answers for question: 
-📝 Answer 1: '11'
-✅ Saved answer 1 with ID: 11156
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11273
 ✅ Successfully saved question 1
 📝 Question 2:  | Answers: 1
 💾 Saving 1 answers for question: 
-📝 Answer 1: '111'
-✅ Saved answer 1 with ID: 11157
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11274
 ✅ Successfully saved question 2
 📝 Question 3:  | Answers: 1
 💾 Saving 1 answers for question: 
 📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11158
-✅ Successfully saved question 3
-🗑️ Deleting old questions for group: 2146
-✅ Deleted old questions, now creating new ones
-🔍 Saving 2 questions for group: Note Completion 5
-📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question: 
-📝 Answer 1: 'cho|bo'
-✅ Saved answer 1 with ID: 11159
-✅ Successfully saved question 1
-📝 Question 2:  | Answers: 1
-💾 Saving 1 answers for question: 
-📝 Answer 1: 'heo'
-✅ Saved answer 1 with ID: 11160
-✅ Successfully saved question 2
-🗑️ Deleting old questions for group: 2147
-✅ Deleted old questions, now creating new ones
-🔍 Saving 3 questions for group: Table Completion 6
-📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question: 
-📝 Answer 1: '1|one'
-✅ Saved answer 1 with ID: 11161
-✅ Successfully saved question 1
-📝 Question 2:  | Answers: 1
-💾 Saving 1 answers for question: 
-📝 Answer 1: 'aa'
-✅ Saved answer 1 with ID: 11162
-✅ Successfully saved question 2
-📝 Question 3:  | Answers: 1
-💾 Saving 1 answers for question: 
-📝 Answer 1: 'ee'
-✅ Saved answer 1 with ID: 11163
-✅ Successfully saved question 3
-🗑️ Deleting old questions for group: 2148
-✅ Deleted old questions, now creating new ones
-🔍 Saving 3 questions for group: Nhóm 7
-📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question: 
-📝 Answer 1: 'hehe'
-✅ Saved answer 1 with ID: 11164
-✅ Successfully saved question 1
-📝 Question 2:  | Answers: 1
-💾 Saving 1 answers for question: 
-📝 Answer 1: 'hehe'
-✅ Saved answer 1 with ID: 11165
-✅ Successfully saved question 2
-📝 Question 3:  | Answers: 1
-💾 Saving 1 answers for question: 
-📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11166
-✅ Successfully saved question 3
-🔍 Saving 2 questions for group: Nhóm 8
-📝 Question 1: cdvcvrvrv&nbsp    [blank]   dfgrgfewfef | Answers: 1
-💾 Saving 1 answers for question: cdvcvrvrv&nbsp    [blank]   dfgrgfewfef
-📝 Answer 1: 'hehe
-'
-✅ Saved answer 1 with ID: 11167
-✅ Successfully saved question 1
-📝 Question 2: feeffffffffffff[blank] | Answers: 0
-💾 Saving 0 answers for question: feeffffffffffff[blank]
-✅ Successfully saved question 2
-🗑️ Deleting old questions for group: 2150
-✅ Deleted old questions, now creating new ones
-🔍 Saving 5 questions for group: Questions 21–25
-📝 Question 1: dcdc | Answers: 1
-💾 Saving 1 answers for question: dcdc
-📝 Answer 1: 'A'
-✅ Saved answer 1 with ID: 11168
-✅ Successfully saved question 1
-📝 Question 2: cdc | Answers: 1
-💾 Saving 1 answers for question: cdc
-📝 Answer 1: 'B'
-✅ Saved answer 1 with ID: 11169
-✅ Successfully saved question 2
-📝 Question 3: cce | Answers: 1
-💾 Saving 1 answers for question: cce
-📝 Answer 1: 'C'
-✅ Saved answer 1 with ID: 11170
+✅ Saved answer 1 with ID: 11275
 ✅ Successfully saved question 3
 📝 Question 4:  | Answers: 1
 💾 Saving 1 answers for question: 
 📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11171
+✅ Saved answer 1 with ID: 11276
 ✅ Successfully saved question 4
 📝 Question 5:  | Answers: 1
 💾 Saving 1 answers for question: 
 📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11172
+✅ Saved answer 1 with ID: 11277
 ✅ Successfully saved question 5
-🗑️ Deleting old questions for group: 2151
-✅ Deleted old questions, now creating new ones
-🔍 Saving 5 questions for group: Image + Note Form 1
+🗑️ Cleaning up unused group: 2552
+🗑️ Cleaning up unused group: 2553
+🔍 Saving 0 questions for group: Map Labelling 1
+🔍 Saving 5 questions for group: Questions 1–5
 📝 Question 1:  | Answers: 1
 💾 Saving 1 answers for question: 
 📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11173
+✅ Saved answer 1 with ID: 11278
 ✅ Successfully saved question 1
 📝 Question 2:  | Answers: 1
 💾 Saving 1 answers for question: 
 📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11174
+✅ Saved answer 1 with ID: 11279
 ✅ Successfully saved question 2
 📝 Question 3:  | Answers: 1
 💾 Saving 1 answers for question: 
 📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11175
+✅ Saved answer 1 with ID: 11280
 ✅ Successfully saved question 3
 📝 Question 4:  | Answers: 1
 💾 Saving 1 answers for question: 
 📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11176
+✅ Saved answer 1 with ID: 11281
 ✅ Successfully saved question 4
 📝 Question 5:  | Answers: 1
 💾 Saving 1 answers for question: 
 📝 Answer 1: ''
-✅ Saved answer 1 with ID: 11177
+✅ Saved answer 1 with ID: 11282
 ✅ Successfully saved question 5
-🔍 Saving 3 questions for group: Multiple Choice 2
-📝 Question 1: sdwfrefr3g5 | Answers: 0
-💾 Saving 0 answers for question: sdwfrefr3g5
-✅ Successfully saved question 1
-📝 Question 2:  | Answers: 0
-💾 Saving 0 answers for question: 
-✅ Successfully saved question 2
-📝 Question 3:  | Answers: 0
-💾 Saving 0 answers for question: 
-✅ Successfully saved question 3
-🗑️ Deleting old questions for group: 2153
-✅ Deleted old questions, now creating new ones
-🔍 Saving 0 questions for group: Nhóm 3
-🗑️ Deleting old questions for group: 2154
-✅ Deleted old questions, now creating new ones
-🔍 Saving 0 questions for group: Nhóm 1
-🗑️ Deleting old questions for group: 2155
-✅ Deleted old questions, now creating new ones
-🔍 Saving 1 questions for group: Multiple Choice (nhiều) 2
-📝 Question 1: <b>The list below gives some of the advantages of employing older workers.&nbsp;</b><div><b>&nbsp;Which TWO advantages are mentioned by the writer of the text?</b></div> | Answers: 0
-💾 Saving 0 answers for question: <b>The list below gives some of the advantages of employing older workers.&nbsp;</b><div><b>&nbsp;Which TWO advantages are mentioned by the writer of the text?</b></div>
-✅ Successfully saved question 1
-🗑️ Deleting old questions for group: 2156
-✅ Deleted old questions, now creating new ones
-🔍 Saving 0 questions for group: Nhóm 1
-🔍 Saving 3 questions for group: Nhóm 2
-📝 Question 1: Marie Curie’s husband was a joint winner of both Marie’s Nobel Prizes. | Answers: 1
-💾 Saving 1 answers for question: Marie Curie’s husband was a joint winner of both Marie’s Nobel Prizes.
-📝 Answer 1: 'TRUE'
-✅ Saved answer 1 with ID: 11178
-✅ Successfully saved question 1
-📝 Question 2: Marie Curie’s husband was a joint winner of both Marie’s Nobel Prizes. | Answers: 1
-💾 Saving 1 answers for question: Marie Curie’s husband was a joint winner of both Marie’s Nobel Prizes.
-📝 Answer 1: 'FALSE'
-✅ Saved answer 1 with ID: 11179
-✅ Successfully saved question 2
-📝 Question 3: Marie Curie’s husband was a joint winner of both Marie’s Nobel Prizes. | Answers: 1
-💾 Saving 1 answers for question: Marie Curie’s husband was a joint winner of both Marie’s Nobel Prizes.
-📝 Answer 1: 'NOT GIVEN'
-✅ Saved answer 1 with ID: 11180
-✅ Successfully saved question 3
-🗑️ Deleting old questions for group: 2158
-✅ Deleted old questions, now creating new ones
-🔍 Saving 1 questions for group: Note Completion 3
+🗑️ Cleaning up unused group: 2554
+🗑️ Cleaning up unused group: 2555
+🔍 Saving 0 questions for group: Map Labelling 1
+🔍 Saving 5 questions for group: Questions 1–5
 📝 Question 1:  | Answers: 1
 💾 Saving 1 answers for question: 
-📝 Answer 1: 'cho'
-✅ Saved answer 1 with ID: 11181
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11283
 ✅ Successfully saved question 1
-🗑️ Deleting old questions for group: 2159
-✅ Deleted old questions, now creating new ones
-🔍 Saving 2 questions for group: Match Headings 4
-📝 Question 1: Section A | Answers: 1
-💾 Saving 1 answers for question: Section A
-📝 Answer 1: 'nvhgd'
-✅ Saved answer 1 with ID: 11182
-✅ Successfully saved question 1
-📝 Question 2: Section B | Answers: 1
-💾 Saving 1 answers for question: Section B
-📝 Answer 1: 'ghcghg'
-✅ Saved answer 1 with ID: 11183
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11284
 ✅ Successfully saved question 2
-🗑️ Deleting old questions for group: 2160
-✅ Deleted old questions, now creating new ones
-🔍 Saving 0 questions for group: Nhóm 5
-2026-03-27T13:39:43.512+07:00  WARN 59999 --- [DAVictory] [nio-8080-exec-2] .w.s.m.s.DefaultHandlerExceptionResolver : Ignoring exception, response committed already: org.springframework.http.converter.HttpMessageNotWritableException: Could not write JSON: ServletOutputStream failed to write: java.io.IOException: Broken pipe
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11285
+✅ Successfully saved question 3
+📝 Question 4:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11286
+✅ Successfully saved question 4
+📝 Question 5:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11287
+✅ Successfully saved question 5
+🗑️ Cleaning up unused group: 2556
+🗑️ Cleaning up unused group: 2557
+🔍 Saving 0 questions for group: Map Labelling 1
+🔍 Saving 5 questions for group: Questions 1–5
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11288
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11289
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11290
+✅ Successfully saved question 3
+📝 Question 4:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11291
+✅ Successfully saved question 4
+📝 Question 5:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11292
+✅ Successfully saved question 5
+2026-03-27T15:00:23.094+07:00  INFO 91939 --- [DAVictory] [nio-8080-exec-3] o.apache.coyote.http11.Http11Processor   : Error parsing HTTP request header
+ Note: further occurrences of HTTP request parsing errors will be logged at DEBUG level.
+
+java.lang.IllegalArgumentException: Invalid character found in method name [0x160x030x010x000xf20x010x000x000xee0x030x030x840xc10xfb]0xf00xd50xdfWo8Co0xec0xce0xf40xaa|0x0f0xa680x9bI0x84o0xb50x09pB_0xd9[6 ]. HTTP method names must be tokens
+	at org.apache.coyote.http11.Http11InputBuffer.parseRequestLine(Http11InputBuffer.java:391) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:270) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:63) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:903) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1779) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:52) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:946) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:480) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:57) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at java.base/java.lang.Thread.run(Thread.java:1583) ~[na:na]
+
+🗑️ Cleaning up unused group: 2558
+🗑️ Cleaning up unused group: 2559
+🔍 Saving 1 questions for group: Map Labelling 1
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11293
+✅ Successfully saved question 1
+🔍 Saving 5 questions for group: Questions 1–5
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11294
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11295
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11296
+✅ Successfully saved question 3
+📝 Question 4:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11297
+✅ Successfully saved question 4
+📝 Question 5:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11298
+✅ Successfully saved question 5
+🗑️ Cleaning up unused group: 2560
+🗑️ Cleaning up unused group: 2561
+🔍 Saving 1 questions for group: Map Labelling 1
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11299
+✅ Successfully saved question 1
+🔍 Saving 5 questions for group: Questions 1–5
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11300
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11301
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11302
+✅ Successfully saved question 3
+📝 Question 4:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11303
+✅ Successfully saved question 4
+📝 Question 5:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11304
+✅ Successfully saved question 5
+🗑️ Cleaning up unused group: 2562
+🗑️ Cleaning up unused group: 2563
+🔍 Saving 1 questions for group: Map Labelling 1
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11305
+✅ Successfully saved question 1
+🔍 Saving 5 questions for group: Questions 1–5
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11306
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11307
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11308
+✅ Successfully saved question 3
+📝 Question 4:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11309
+✅ Successfully saved question 4
+📝 Question 5:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11310
+✅ Successfully saved question 5
+🗑️ Cleaning up unused group: 2564
+🗑️ Cleaning up unused group: 2565
+🔍 Saving 1 questions for group: Map Labelling 1
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11311
+✅ Successfully saved question 1
+🔍 Saving 5 questions for group: Questions 1–5
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11312
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11313
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11314
+✅ Successfully saved question 3
+📝 Question 4:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11315
+✅ Successfully saved question 4
+📝 Question 5:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11316
+✅ Successfully saved question 5
+🗑️ Cleaning up unused group: 2566
+🗑️ Cleaning up unused group: 2567
+🔍 Saving 1 questions for group: Map Labelling 1
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11317
+✅ Successfully saved question 1
+🔍 Saving 5 questions for group: Questions 1–5
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11318
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11319
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11320
+✅ Successfully saved question 3
+📝 Question 4:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11321
+✅ Successfully saved question 4
+📝 Question 5:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11322
+✅ Successfully saved question 5
+🗑️ Cleaning up unused group: 2568
+🗑️ Cleaning up unused group: 2569
+🔍 Saving 1 questions for group: Map Labelling 1
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11323
+✅ Successfully saved question 1
+🔍 Saving 5 questions for group: Questions 1–5
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11324
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11325
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11326
+✅ Successfully saved question 3
+📝 Question 4:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11327
+✅ Successfully saved question 4
+📝 Question 5:  | Answers: 1
+💾 Saving 1 answers for question: 
+📝 Answer 1: ''
+✅ Saved answer 1 with ID: 11328
+✅ Successfully saved question 5
+2026-03-27T15:07:59.019+07:00  INFO 91939 --- [DAVictory] [ionShutdownHook] o.s.boot.tomcat.GracefulShutdown         : Commencing graceful shutdown. Waiting for active requests to complete
+2026-03-27T15:07:59.023+07:00  INFO 91939 --- [DAVictory] [tomcat-shutdown] o.s.boot.tomcat.GracefulShutdown         : Graceful shutdown complete
+2026-03-27T15:07:59.046+07:00  INFO 91939 --- [DAVictory] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-03-27T15:07:59.051+07:00  INFO 91939 --- [DAVictory] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
+2026-03-27T15:07:59.055+07:00  INFO 91939 --- [DAVictory] [ionShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.

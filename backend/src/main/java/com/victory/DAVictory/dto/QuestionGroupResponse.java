@@ -24,6 +24,7 @@ public class QuestionGroupResponse {
     private String passageText;
     private String audioUrl;
     private String imageUrl;
+    private Integer imageWidth;
     private String resourceUrl;
     private Integer fromQuestion;
     private Integer toQuestion;
@@ -58,6 +59,7 @@ public class QuestionGroupResponse {
         private Long id;
         private String optionLabel;
         private String optionText;
+        private String imageUrl;
         private Boolean isCorrect;
         private Integer orderIndex;
     }
@@ -79,6 +81,7 @@ public class QuestionGroupResponse {
         private String leftContent;
         private String rightLabel;
         private String rightContent;
+        private String imageUrl;
         private String matchType;
         private Integer orderIndex;
     }
@@ -103,6 +106,7 @@ public class QuestionGroupResponse {
         dto.setPassageText(group.getPassageText());
         dto.setAudioUrl(group.getAudioUrl());
         dto.setImageUrl(group.getImageUrl());
+        dto.setImageWidth(group.getImageWidth());
         dto.setResourceUrl(group.getResourceUrl());
         dto.setFromQuestion(group.getFromQuestion());
         dto.setToQuestion(group.getToQuestion());
@@ -180,6 +184,7 @@ public class QuestionGroupResponse {
                 opt.setId(o.getId());
                 opt.setOptionLabel(o.getOptionLabel());
                 opt.setOptionText(o.getOptionText());
+                opt.setImageUrl(o.getImageUrl());
                 opt.setIsCorrect(o.getIsCorrect());
                 opt.setOrderIndex(o.getOrderIndex());
                 return opt;
@@ -209,6 +214,7 @@ public class QuestionGroupResponse {
         resp.setLeftContent(mp.getLeftContent());
         resp.setRightLabel(mp.getRightLabel());
         resp.setRightContent(mp.getRightContent());
+        resp.setImageUrl(mp.getImageUrl());
         resp.setMatchType(mp.getMatchType());
         resp.setOrderIndex(mp.getOrderIndex());
         return resp;

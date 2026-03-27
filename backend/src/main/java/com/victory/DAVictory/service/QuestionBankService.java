@@ -164,6 +164,7 @@ public class QuestionBankService {
                 mp.setLeftContent(mpReq.getLeftContent());
                 mp.setRightLabel(mpReq.getRightLabel());
                 mp.setRightContent(mpReq.getRightContent());
+                mp.setImageUrl(mpReq.getImageUrl());
                 mp.setMatchType(mpReq.getMatchType());
                 mp.setOrderIndex(mpReq.getOrderIndex() != null ? mpReq.getOrderIndex() : i);
                 matchingPairRepository.save(mp);
@@ -250,6 +251,7 @@ public class QuestionBankService {
                 opt.setQuestion(question);
                 opt.setOptionLabel(oReq.getOptionLabel());
                 opt.setOptionText(oReq.getOptionText());
+                opt.setImageUrl(oReq.getImageUrl());
                 opt.setIsCorrect(oReq.getIsCorrect() != null ? oReq.getIsCorrect() : false);
                 opt.setOrderIndex(oReq.getOrderIndex() != null ? oReq.getOrderIndex() : i);
                 questionOptionRepository.save(opt);
@@ -321,6 +323,7 @@ public class QuestionBankService {
                 opt.setQuestion(savedQuestion);
                 opt.setOptionLabel(oReq.getOptionLabel());
                 opt.setOptionText(oReq.getOptionText());
+                opt.setImageUrl(oReq.getImageUrl());
                 opt.setIsCorrect(oReq.getIsCorrect() != null ? oReq.getIsCorrect() : false);
                 opt.setOrderIndex(oReq.getOrderIndex() != null ? oReq.getOrderIndex() : i);
                 questionOptionRepository.save(opt);

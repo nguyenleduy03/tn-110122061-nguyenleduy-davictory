@@ -46,6 +46,7 @@ public class QuestionGroupRequest {
     public static class OptionRequest {
         private String optionLabel;    // A, B, C, D hoặc TRUE, FALSE, NOT GIVEN
         private String optionText;     // Nội dung lựa chọn
+        private String imageUrl;       // URL ảnh cho option
         private Boolean isCorrect;
         private Integer orderIndex;
     }
@@ -65,6 +66,7 @@ public class QuestionGroupRequest {
         private String leftContent;     // Nội dung trái
         private String rightLabel;      // "1", "2" hoặc "A", "B"
         private String rightContent;    // Nội dung phải
+        private String imageUrl;        // URL ảnh cho dropdown
         private String matchType;       // HEADING_TO_PARAGRAPH, FEATURE_TO_STATEMENT...
         private Integer orderIndex;
     }

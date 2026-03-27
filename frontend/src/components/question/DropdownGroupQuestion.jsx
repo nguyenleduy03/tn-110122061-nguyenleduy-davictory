@@ -15,6 +15,8 @@ const DropdownGroupQuestion = ({
   const group = q || {};
   const questions = group.subQuestions || group.questions || [];
   const options = group.sharedOptions || [];
+  
+  console.log('DropdownGroupQuestion imageWidth:', group.imageWidth, 'imageUrl:', group.imageUrl);
 
   const handleChange = (questionId, value) => {
     if (isReview) return;
@@ -30,31 +32,44 @@ const DropdownGroupQuestion = ({
         />
       )}
 
-      {group.imageUrl && (
-        <div style={{ margin: '16px 0' }}>
-          <img
-            src={group.imageUrl}
-            alt="Question illustration"
-            style={{
-              maxWidth: `${group.imageWidth || 100}%`,
-              height: 'auto',
-              display: 'block',
-            }}
-          />
-        </div>
-      )}
-
-      {options.length > 0 && (
-        <ul className="mcq-dropdown-legend">
-          {options.map((opt) => (
-            <li key={opt.key}>
-              <strong>{opt.key}</strong>{' '}
-              <span
-                dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(opt.label || '') }}
+      {(group.imageUrl || options.length > 0) && (
+        <div style={{ display: 'flex', gap: '20px', margin: '16px 0', alignItems: 'flex-end' }}>
+          {group.imageUrl && (
+            <div style={{ width: `${group.imageWidth || 100}%` }}>
+              <img
+                src={group.imageUrl}
+                alt="Question illustration"
+                style={{
+                  width: '100%',
+                  height: 'auto',
+                  display: 'block',
+                }}
               />
-            </li>
-          ))}
-        </ul>
+            </div>
+          )}
+
+          {options.length > 0 && (
+            <ul className="mcq-dropdown-legend" style={{ flex: group.imageUrl ? 1 : 'none', margin: 0, width: group.imageUrl ? 'auto' : '100%' }}>
+              {options.map((opt) => (
+                <li key={opt.key} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ flex: 1 }}>
+                    <strong>{opt.key}</strong>{' '}
+                    <span
+                      dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(opt.label || '') }}
+                    />
+                  </div>
+                  {opt.imageUrl && (
+                    <img
+                      src={opt.imageUrl}
+                      alt={`Option ${opt.key}`}
+                      style={{ maxWidth: '150px', maxHeight: '100px', objectFit: 'contain' }}
+                    />
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       )}
 
       <div className="mcq-dropdown-list">

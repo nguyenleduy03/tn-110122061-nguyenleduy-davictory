@@ -16,10 +16,10 @@ import {
 } from 'lucide-react';
 
 const SESSIONS = [
-  { key: 'LISTENING', label: 'Listen',   icon: Headphones, iconBg: '#dbeafe', iconColor: '#1d4ed8', meta: '40 câu • 30p' },
-  { key: 'READING',   label: 'Reading',  icon: BookOpen,   iconBg: '#dcfce7', iconColor: '#15803d', meta: '40 câu • 60p' },
-  { key: 'WRITING',   label: 'Writing',  icon: PenLine,    iconBg: '#fef9c3', iconColor: '#a16207', meta: 'Task 1&2 • 60p' },
-  { key: 'SPEAKING',  label: 'Speaking', icon: Mic,        iconBg: '#fce7f3', iconColor: '#be185d', meta: 'Part 1-3 • 12p' },
+  { key: 'LISTENING', label: 'Listen',   icon: Headphones, iconBg: '#dbeafe', iconColor: '#1d4ed8', prefix: '40 câu', defaultDuration: 30 },
+  { key: 'READING',   label: 'Reading',  icon: BookOpen,   iconBg: '#dcfce7', iconColor: '#15803d', prefix: '40 câu', defaultDuration: 60 },
+  { key: 'WRITING',   label: 'Writing',  icon: PenLine,    iconBg: '#fef9c3', iconColor: '#a16207', prefix: 'Task 1&2', defaultDuration: 60 },
+  { key: 'SPEAKING',  label: 'Speaking', icon: Mic,        iconBg: '#fce7f3', iconColor: '#be185d', prefix: 'Part 1-3', defaultDuration: 12 },
 ];
 
 const PALETTE_ITEMS = [
@@ -201,6 +201,7 @@ const BuilderSidebar = ({
   onSelectPart,
   onSelectGroup,
   enabledSkills,
+  sessionDurations,
   collapsed = false,
   onToggleCollapsed,
 }) => {
@@ -287,6 +288,13 @@ const BuilderSidebar = ({
         {SESSIONS.filter(s => !enabledSkills || enabledSkills.includes(s.key)).map((s) => {
           const Icon = s.icon;
           const isActive = activeSessionKey === s.key;
+          const skillParts = sessions?.[s.key] ?? [];
+          const totalQuestions = skillParts.reduce((sum, part) => {
+            const value = Number(part?.totalQuestions ?? 0);
+            return sum + (Number.isFinite(value) ? value : 0);
+          }, 0);
+          const durationMinutes = sessionDurations?.[s.key] ?? s.defaultDuration;
+          const questionLabel = totalQuestions > 0 ? `${totalQuestions} câu` : s.prefix;
           
           return (
             <div key={s.key} className="tb-skill-card">
@@ -299,6 +307,7 @@ const BuilderSidebar = ({
                   </div>
                   <div className="tb-skill-tab-texts">
                     <span className="tb-skill-tab-label">{s.label}</span>
+                    <span className="tb-skill-tab-meta">{questionLabel} • {durationMinutes === 0 ? 'No limit' : `${durationMinutes}p`}</span>
                   </div>
                 </div>
               </button>

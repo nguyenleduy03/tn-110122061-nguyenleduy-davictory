@@ -19,6 +19,7 @@ public class TestQuestionGroupResponse {
     private String passageText;
     private String audioUrl;
     private String imageUrl;
+    private Integer imageWidth;
     private Integer fromQuestion;           // customFrom hoặc group.fromQuestion
     private Integer toQuestion;             // customTo hoặc group.toQuestion
     private Integer orderIndex;
@@ -57,6 +58,7 @@ public class TestQuestionGroupResponse {
         dto.setPassageText(tqg.getQuestionGroup().getPassageText());
         dto.setAudioUrl(tqg.getQuestionGroup().getAudioUrl());
         dto.setImageUrl(tqg.getQuestionGroup().getImageUrl());
+        dto.setImageWidth(tqg.getQuestionGroup().getImageWidth());
 
         // Hiển thị question range: tùy chỉnh nếu có, ngược lại dùng gốc
         dto.setFromQuestion(tqg.getQuestionFrom() != null

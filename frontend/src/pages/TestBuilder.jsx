@@ -115,6 +115,24 @@ const initialSessions = () =>
     Object.keys(SESSION_META).map((key) => [key, makeDefaultParts(key)])
   );
 
+const AUTO_SAVE_STORAGE_KEY = 'testBuilder:autoSaveEnabled';
+
+const DEFAULT_SESSION_DURATIONS = {
+  LISTENING: 30,
+  READING: 60,
+  WRITING: 60,
+  SPEAKING: 12,
+};
+
+const readAutoSaveEnabled = () => {
+  if (typeof window === 'undefined') return false;
+  try {
+    return window.localStorage.getItem(AUTO_SAVE_STORAGE_KEY) === 'true';
+  } catch {
+    return false;
+  }
+};
+
 // ---- Main Component ----
 const TestBuilder = () => {
   const { id: editTestId } = useParams(); // /teacher/tests/:id/edit
@@ -134,6 +152,7 @@ const TestBuilder = () => {
   // parts per skill key
   const [sessions, setSessions] = useState(initialSessions);
   const [activeSkill, setActiveSkill] = useState('LISTENING');
+  const [sessionDurations, setSessionDurations] = useState(DEFAULT_SESSION_DURATIONS);
 
   // selection state for properties panel
   const [selection, setSelection] = useState(null);
@@ -141,7 +160,7 @@ const TestBuilder = () => {
 
   const [saving, setSaving] = useState(false);
   const [shuffling, setShuffling] = useState(false);
-  const [autoSaveEnabled, setAutoSaveEnabled] = useState(false);
+  const [autoSaveEnabled, setAutoSaveEnabled] = useState(readAutoSaveEnabled);
   const [activeOverlayItem, setActiveOverlayItem] = useState(null);
   const [dragOverPartId, setDragOverPartId] = useState(null);
   const [dragOverPassagePaneId, setDragOverPassagePaneId] = useState(null);
@@ -155,6 +174,14 @@ const TestBuilder = () => {
   const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false);
   const lastAutoSaveSnapshotRef = useRef(JSON.stringify({ test, sessions }));
   const autoSaveTimerRef = useRef(null);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(AUTO_SAVE_STORAGE_KEY, String(autoSaveEnabled));
+    } catch {
+      // Ignore storage errors
+    }
+  }, [autoSaveEnabled]);
 
   // ─── Fetch backend structure + load existing test on mount ───
   useEffect(() => {
@@ -190,6 +217,7 @@ const TestBuilder = () => {
             }
             return merged;
           });
+          setSessionDurations(loadedTest.sessionDurations || DEFAULT_SESSION_DURATIONS);
           setSavedTestId(testId);
           lastAutoSaveSnapshotRef.current = JSON.stringify({ test: nextTest, sessions: nextSessions });
         }
@@ -218,6 +246,10 @@ const TestBuilder = () => {
   );
 
   const parts = sessions[activeSkill] ?? [];
+  const sessionDuration = sessionDurations?.[activeSkill]
+    ?? test.sessionDurations?.[activeSkill]
+    ?? parts.find((part) => Number.isFinite(part?.durationMinutes))?.durationMinutes
+    ?? null;
 
   const findQuestionContext = useCallback((questionId) => {
     for (const part of parts) {
@@ -399,10 +431,12 @@ const TestBuilder = () => {
             toQuestion: startQuestionNumber + 4,
             mainInstruction: '',
             subInstruction: '',
+            imageUrl: '',
+            imageWidth: 100,
             sharedOptions: [
-              { id: `so-${Date.now()}-a`, key: 'A', label: '' },
-              { id: `so-${Date.now()}-b`, key: 'B', label: '' },
-              { id: `so-${Date.now()}-c`, key: 'C', label: '' },
+              { id: `so-${Date.now()}-a`, key: 'A', label: '', imageUrl: '' },
+              { id: `so-${Date.now()}-b`, key: 'B', label: '', imageUrl: '' },
+              { id: `so-${Date.now()}-c`, key: 'C', label: '', imageUrl: '' },
             ],
             questions: [mkDrop(1), mkDrop(2), mkDrop(3), mkDrop(4), mkDrop(5)],
           };
@@ -1059,7 +1093,7 @@ const TestBuilder = () => {
       const user = authApi.getStoredUser();
       const userId = user?.id || 1;
 
-      const payload = buildSavePayload(test, sessions, struct, userId, savedTestId);
+      const payload = buildSavePayload(test, sessions, struct, userId, savedTestId, sessionDurations);
       const result = await testBuilderApi.saveFullTest(payload);
 
       setSavedTestId(result.id);
@@ -1266,6 +1300,7 @@ const TestBuilder = () => {
                   parts={parts}
                   sessions={sessions}
                   activeSessionKey={activeSkill}
+                  sessionDurations={sessionDurations}
                   selection={selection}
                   enabledSkills={enabledSkills}
                   collapsed={leftSidebarCollapsed}
@@ -1274,11 +1309,16 @@ const TestBuilder = () => {
                   onSelectPart={(p) => setSelection({ type: 'part', data: p })}
                   onSelectGroup={(g) => setSelection({ type: 'group', data: { ...g } })}
                   onUpdateSessionTime={(skillKey, minutes) => {
-                    setSessions(prev => ({
+                    setSessionDurations((prev) => ({
                       ...prev,
-                      [skillKey]: (prev[skillKey] || []).map((part, idx) => 
-                        idx === 0 ? { ...part, durationMinutes: minutes } : part
-                      )
+                      [skillKey]: minutes,
+                    }));
+                    setTest(prev => ({
+                      ...prev,
+                      sessionDurations: {
+                        ...prev.sessionDurations,
+                        [skillKey]: minutes
+                      }
                     }));
                   }}
                 />
@@ -1290,6 +1330,7 @@ const TestBuilder = () => {
                   skill={activeSkill}
                   seriesLabel={test.seriesLabel}
                   parts={parts}
+                  sessionDuration={sessionDuration}
                   selection={selection}
                   dragOverPartId={dragOverPartId}
                   dragOverPassagePaneId={dragOverPassagePaneId}
@@ -1327,6 +1368,19 @@ const TestBuilder = () => {
                   onUpdateQuestion={(groupId, questionId, upd) => {
                     const part = parts.find((p) => p.questionGroups?.some((g) => g.id === groupId));
                     if (part) updateQuestion(part.id, groupId, questionId, upd);
+                  }}
+                  onUpdateSessionTime={(skillKey, minutes) => {
+                    setSessionDurations((prev) => ({
+                      ...prev,
+                      [skillKey]: minutes,
+                    }));
+                    setTest((prev) => ({
+                      ...prev,
+                      sessionDurations: {
+                        ...(prev.sessionDurations || {}),
+                        [skillKey]: minutes,
+                      },
+                    }));
                   }}
                   onDeleteGroup={(groupId) => {
                     const part = parts.find((p) => p.questionGroups?.some((g) => g.id === groupId));

@@ -43,6 +43,9 @@ public class MatchingPair {
     @Column(columnDefinition = "TEXT")
     private String rightContent; // Nội dung cột phải (đoạn văn, câu kết...)
 
+    @Column(length = 500)
+    private String imageUrl; // URL ảnh cho dropdown (Google Drive link)
+
     @Column(nullable = false, length = 20)
     private String matchType;
     // HEADING_TO_PARAGRAPH, FEATURE_TO_STATEMENT,

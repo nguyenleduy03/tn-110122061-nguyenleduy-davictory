@@ -6,12 +6,12 @@
 import React from 'react';
 import { X, Plus, Upload, Image as ImageIcon } from 'lucide-react';
 import RichInput from '../common/RichInput';
-import { fileApi } from '../../services/fileApi';
+import { loadImageFile } from './blocks/shared/blockHelpers';
 
 const defaultSharedOptions = () => [
-  { id: `so-${Date.now()}-a`, key: 'A', label: '' },
-  { id: `so-${Date.now()}-b`, key: 'B', label: '' },
-  { id: `so-${Date.now()}-c`, key: 'C', label: '' },
+  { id: `so-${Date.now()}-a`, key: 'A', label: '', imageUrl: '' },
+  { id: `so-${Date.now()}-b`, key: 'B', label: '', imageUrl: '' },
+  { id: `so-${Date.now()}-c`, key: 'C', label: '', imageUrl: '' },
 ];
 
 const SharedOptionsDropdownBlock = ({
@@ -33,16 +33,11 @@ const SharedOptionsDropdownBlock = ({
     onUpdate(group.id, { sharedOptions: next });
   };
 
-  const handleImageUpload = async (e) => {
+  const handleImageUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    try {
-      const result = await fileApi.uploadImage(file);
-      onUpdate(group.id, { imageUrl: result.url });
-    } catch (err) {
-      console.error('Upload failed:', err);
-      alert(`Upload ảnh thất bại: ${err.response?.data?.error || err.message}`);
-    }
+    e.target.value = '';
+    loadImageFile(file, (imageUrl) => onUpdate(group.id, { imageUrl }));
   };
 
   const updateOptionLabel = (idx, label) => {
@@ -87,6 +82,32 @@ const SharedOptionsDropdownBlock = ({
                 placeholder="Mô tả lựa chọn..."
                 onChange={(html) => updateOptionLabel(idx, html)}
               />
+              <label className="exam-mc-img-file-btn" title="Thêm ảnh" style={{ marginRight: 4 }}>
+                <ImageIcon size={12} />
+                <input type="file" accept="image/*" hidden 
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    e.target.value = '';
+                    loadImageFile(file, (imageUrl) => {
+                      const next = sharedOptions.map((o, i) => i === idx ? { ...o, imageUrl } : o);
+                      syncSharedOptions(next);
+                    });
+                  }} />
+              </label>
+              {opt.imageUrl && (
+                <button
+                  type="button"
+                  className="exam-q-del-btn"
+                  title="Xóa ảnh"
+                  onClick={() => {
+                    const next = sharedOptions.map((o, i) => i === idx ? { ...o, imageUrl: '' } : o);
+                    syncSharedOptions(next);
+                  }}
+                >
+                  ×
+                </button>
+              )}
               <button
                 type="button"
                 className="exam-q-del-btn"

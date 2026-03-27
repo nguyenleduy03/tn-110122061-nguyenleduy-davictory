@@ -168,9 +168,10 @@ export const testBuilderApi = {
  * @param {Object} structure - Kết quả từ getStructure(), chứa sessionId/partId thực từ DB
  * @param {number} createdByUserId - ID người tạo
  * @param {number|null} existingTestId - ID đề thi (nếu đang cập nhật)
+ * @param {Object} sessionDurationsOverride - Bản ghi thời gian theo kỹ năng từ UI hiện tại
  * @returns {Object} payload cho POST /api/test-builder/save-full
  */
-export function buildSavePayload(test, sessions, structure, createdByUserId, existingTestId = null) {
+export function buildSavePayload(test, sessions, structure, createdByUserId, existingTestId = null, sessionDurationsOverride = null) {
   const sessionPayloads = [];
 
   // Xác định skills cần gửi: full test = tất cả, single = chỉ 1 skill
@@ -178,6 +179,8 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
   const allowedSkills = isFullTest
     ? null // null = tất cả
     : [test.singleSkill || 'LISTENING'];
+
+  const resolvedSessionDurations = sessionDurationsOverride || test.sessionDurations || {};
 
   for (const [skillKey, parts] of Object.entries(sessions)) {
     // Lọc theo chế độ single skill nếu cần
@@ -226,13 +229,16 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
         name: part.name,
         totalQuestions: part.totalQuestions,
         instructions: part.instructions || '',
-        questionGroups: questionGroups.map((group, gIdx) => ({
+        questionGroups: questionGroups.map((group, gIdx) => {
+          console.log(`📤 Group ${gIdx} imageWidth:`, group.imageWidth, 'imageUrl:', group.imageUrl);
+          return {
           existingGroupId: group.backendGroupId || null,
           title: group.title || `Nhóm ${gIdx + 1}`,
           contentType: mapContentType(group.contentType),
           passageText: serializeGroupContent(group, part),
           audioUrl: group.audioUrl || null,
           imageUrl: group.imageUrl || null,
+          imageWidth: group.imageWidth || null,
           fromQuestion: group.fromQuestion || null,
           toQuestion: group.toQuestion || null,
           orderIndex: gIdx + 1,
@@ -328,6 +334,7 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
               options: (q.options || []).map((opt, oIdx) => ({
                 optionLabel: opt.optionLabel || String.fromCharCode(65 + oIdx),
                 optionText: opt.optionText || '',
+                imageUrl: opt.optionImageUrl || opt.imageUrl || null,
                 isCorrect: opt.isCorrect || false,
                 orderIndex: oIdx,
               })),
@@ -340,14 +347,15 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
             
             return result;
           }),
-        })),
+        };
+        }),
       };
     });
 
     sessionPayloads.push({
       sessionId: structInfo.sessionId,
       orderIndex: sessionPayloads.length + 1,
-      durationMinutes: test.sessionDurations?.[skillKey] || structInfo.durationMinutes,
+      durationMinutes: resolvedSessionDurations?.[skillKey] ?? structInfo.durationMinutes,
       instructions: null,
       parts: partPayloads,
     });
@@ -620,8 +628,8 @@ export function parseLoadedTest(data) {
   for (const sessionResp of (data.sessions || [])) {
     const skillKey = sessionResp.skillType;
     
-    // Nếu backend có durationMinutes cho session, lưu vào sessionDurations
-    if (sessionResp.durationMinutes) {
+    // Luôn cập nhật sessionDurations từ backend response
+    if (sessionResp.durationMinutes != null) {
       test.sessionDurations[skillKey] = sessionResp.durationMinutes;
     }
     
@@ -644,6 +652,7 @@ export function parseLoadedTest(data) {
           contentType: contentType,
           audioUrl: groupResp.audioUrl,
           imageUrl: groupResp.imageUrl,
+          imageWidth: groupResp.imageWidth ?? 100,
           fromQuestion: groupResp.fromQuestion,
           toQuestion: groupResp.toQuestion,
           orderIndex: groupResp.orderIndex,
@@ -663,6 +672,7 @@ export function parseLoadedTest(data) {
               id: nextId++,
               optionLabel: opt.optionLabel,
               optionText: opt.optionText,
+              optionImageUrl: opt.imageUrl || null,
               isCorrect: opt.isCorrect,
               orderIndex: opt.orderIndex,
             }));

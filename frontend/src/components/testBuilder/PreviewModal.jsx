@@ -1203,6 +1203,7 @@ const SharedOptionsDropdownGroup = ({ group, activeQ, onSetActive }) => {
   const sharedOptions = (group.sharedOptions || []).map((o) => ({
     key: o.key,
     label: o.label ?? '',
+    imageUrl: o.imageUrl ?? '',
   }));
   const subQuestions = questions.map((q) => ({
     id: q.id,
@@ -1214,6 +1215,8 @@ const SharedOptionsDropdownGroup = ({ group, activeQ, onSetActive }) => {
   const previewQ = {
     heading: group.title || '',
     instruction: [group.mainInstruction, group.subInstruction].filter(Boolean).join('<br/><br/>'),
+    imageUrl: group.imageUrl,
+    imageWidth: group.imageWidth,
     sharedOptions,
     subQuestions,
   };

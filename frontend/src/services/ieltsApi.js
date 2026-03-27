@@ -197,10 +197,11 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
       }
     }
     const sharedOptions = (meta.sharedOptions || []).map((o, i) => {
-      if (typeof o === 'string') return { key: String.fromCharCode(65 + i), label: o };
+      if (typeof o === 'string') return { key: String.fromCharCode(65 + i), label: o, imageUrl: '' };
       const key = (o.key || o.optionLabel || String.fromCharCode(65 + i)).toString().trim().charAt(0);
       const label = o.label ?? o.optionText ?? '';
-      return { key: key || String.fromCharCode(65 + i), label };
+      const imageUrl = o.imageUrl ?? '';
+      return { key: key || String.fromCharCode(65 + i), label, imageUrl };
     });
 
     const subQuestions = questions.map((q) => {
@@ -226,6 +227,8 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
       mainInstruction: mainInst,
       subInstruction: subInst,
       instruction: [mainInst, subInst].filter(Boolean).join('<br/><br/>'),
+      imageUrl: group.imageUrl || '',
+      imageWidth: group.imageWidth || 100,
       sharedOptions,
       subQuestions,
     }];

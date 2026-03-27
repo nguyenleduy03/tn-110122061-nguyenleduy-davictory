@@ -64,6 +64,7 @@ public class TestFullResponse {
         private String passageText;
         private String audioUrl;
         private String imageUrl;
+        private Integer imageWidth;
         private Integer fromQuestion;
         private Integer toQuestion;
         private Integer orderIndex;

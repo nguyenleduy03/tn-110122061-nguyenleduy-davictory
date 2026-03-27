@@ -169,6 +169,9 @@ const BuilderHeader = ({
             onChange={(e) => onTestChange({ title: e.target.value })}
             maxLength={255}
           />
+          <span className={`tb-status-badge tb-status-${test.status?.toLowerCase()}`}>
+            {STATUS_LABELS[test.status] ?? test.status}
+          </span>
         </div>
 
         <div className="tb-header-center">
@@ -199,22 +202,10 @@ const BuilderHeader = ({
               {SKILL_OPTIONS.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
             </select>
           </div>
-          <span className={`tb-status-badge tb-status-${test.status?.toLowerCase()}`}>
-            {STATUS_LABELS[test.status] ?? test.status}
-          </span>
         </div>
 
         <div className="tb-header-right">
-          <div className="tb-toolbar-group">
-            <button className="tb-tool-btn" onClick={onShuffle} disabled={shuffling} title="Trộn đề ngẫu nhiên">
-              <Shuffle size={15} /><span>{shuffling ? 'Đang trộn...' : 'Trộn đề'}</span>
-            </button>
-            <button className="tb-tool-btn" onClick={onPreview} title="Xem trước">
-              <Eye size={15} /><span>Xem trước</span>
-            </button>
-          </div>
-          <div className="tb-divider" />
-          <div className="tb-toolbar-group">
+          <div className="tb-toolbar-group tb-action-group">
             <button className="tb-tool-btn tb-tool-btn-primary" onClick={onSave} disabled={saving} title="Lưu đề thi">
               <Save size={15} /><span>{saving ? 'Đang lưu...' : 'Lưu'}</span>
             </button>
@@ -233,6 +224,9 @@ const BuilderHeader = ({
                 <span>Tự động</span>
               </button>
             )}
+          </div>
+
+          <div className="tb-toolbar-group tb-action-group">
             {test.status === 'DRAFT' && (
               <button className="tb-tool-btn tb-tool-btn-success" onClick={onSubmitReview} title="Gửi kiểm duyệt">
                 <Send size={15} /><span>Gửi duyệt</span>
@@ -242,6 +236,16 @@ const BuilderHeader = ({
               <Settings size={15} />
             </button>
           </div>
+
+          <div className="tb-toolbar-group tb-action-group">
+            <button className="tb-tool-btn" onClick={onShuffle} disabled={shuffling} title="Trộn đề ngẫu nhiên">
+              <Shuffle size={15} /><span>{shuffling ? 'Đang trộn...' : 'Trộn đề'}</span>
+            </button>
+            <button className="tb-tool-btn" onClick={onPreview} title="Xem trước">
+              <Eye size={15} /><span>Xem trước</span>
+            </button>
+          </div>
+
           {saveMessage && (
             <div className={`tb-save-status ${saveMessage.includes('Lỗi') ? 'tb-save-error' : 'tb-save-success'}`}>
               {saveMessage}

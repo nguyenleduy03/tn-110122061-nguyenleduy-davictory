@@ -296,6 +296,7 @@ public class TestBuilderService {
                     gr.setPassageText(qg.getPassageText());
                     gr.setAudioUrl(qg.getAudioUrl());
                     gr.setImageUrl(qg.getImageUrl());
+                    gr.setImageWidth(qg.getImageWidth());
                     gr.setFromQuestion(tqg.getQuestionFrom());
                     gr.setToQuestion(tqg.getQuestionTo());
                     gr.setOrderIndex(tqg.getOrderIndex());

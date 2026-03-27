@@ -490,7 +490,7 @@ const ExamCanvas = ({
     return parts.find((p) => p.id === activePartId) ?? parts[0];
   }, [parts, activePartId]);
 
-  const currentDuration = sessionDuration || skillDefaultDuration;
+  const currentDuration = Number.isFinite(sessionDuration) ? sessionDuration : skillDefaultDuration;
   const resolvedLogoSrc = SERIES_LOGO_SRC[seriesLabel] || SERIES_LOGO_SRC.IELTS;
   const resolvedLogoAlt = seriesLabel || 'IELTS';
 
@@ -648,6 +648,8 @@ const ExamCanvas = ({
                 className="exam-time-modal-input"
                 value={draftTimeValue}
                 onChange={(e) => setDraftTimeValue(e.target.value)}
+                onFocus={(e) => e.currentTarget.select()}
+                onClick={(e) => e.currentTarget.select()}
                 autoFocus
               />
               <div className="exam-time-modal-hint">

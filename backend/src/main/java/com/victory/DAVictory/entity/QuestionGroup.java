@@ -58,6 +58,9 @@ public class QuestionGroup {
     @Column(columnDefinition = "LONGTEXT")
     private String imageUrl; // URL hình ảnh đính kèm (Map, Diagram)
 
+    @Column
+    private Integer imageWidth; // Kích thước ảnh (%) cho Map, Diagram, Dropdown
+
     @Column(length = 500)
     private String resourceUrl; // URL tài nguyên khác
 
