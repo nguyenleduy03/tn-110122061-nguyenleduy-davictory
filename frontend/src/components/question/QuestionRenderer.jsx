@@ -1,5 +1,4 @@
 import React from 'react';
-import { Bookmark } from 'lucide-react';
 import FillInBlankQuestion from './FillInBlankQuestion';
 import MultipleChoiceQuestion from './MultipleChoiceQuestion';
 import TFNGQuestion from './TFNGQuestion';
@@ -9,6 +8,7 @@ import SummaryCompletionSelectQuestion from './SummaryCompletionSelectQuestion';
 import DropdownGroupQuestion from './DropdownGroupQuestion';
 import MatchingFillQuestion from './MatchingFillQuestion';
 import { formatTextWithWhitespace } from '../../utils/textFormatters';
+import BookmarkToggle from '../common/BookmarkToggle';
 
 const normalizeQuestionType = (rawType) => {
     const normalized = String(rawType || '')
@@ -284,12 +284,12 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
                     key={`tc-${subQ.id}`}
                 >
                     {!isReview && (
-                        <span
+                        <BookmarkToggle
                             className="tc-bookmark"
-                            onClick={(e) => { e.stopPropagation(); toggleBookmark?.(subQ.number); }}
-                        >
-                            <Bookmark size={18} fill={bookmarks?.[subQ.number] ? '#1a73e8' : 'none'} color={bookmarks?.[subQ.number] ? '#1a73e8' : '#ccc'} />
-                        </span>
+                            size={16}
+                            active={Boolean(bookmarks?.[subQ.number])}
+                            onToggle={() => toggleBookmark?.(subQ.number)}
+                        />
                     )}
                     <input
                         ref={(el) => { if (inputRefs?.current) inputRefs.current[subQ.id] = el; }}
@@ -330,12 +330,12 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
                             <div key={subQ.id} className="table-cell-input relative-pos">
                                 <label>Q{subQ.number}</label>
                                 {!isReview && (
-                                    <span
+                                    <BookmarkToggle
                                         className="tc-bookmark"
-                                        onClick={(e) => { e.stopPropagation(); toggleBookmark?.(subQ.number); }}
-                                    >
-                                        <Bookmark size={18} fill={bookmarks?.[subQ.number] ? '#1a73e8' : 'none'} color={bookmarks?.[subQ.number] ? '#1a73e8' : '#ccc'} />
-                                    </span>
+                                        size={16}
+                                        active={Boolean(bookmarks?.[subQ.number])}
+                                        onToggle={() => toggleBookmark?.(subQ.number)}
+                                    />
                                 )}
                                 {(() => {
                                     const rawValue = answerMap[subQ.id] || '';

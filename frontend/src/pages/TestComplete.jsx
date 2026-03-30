@@ -17,6 +17,10 @@ const TestComplete = () => {
     const testId = searchParams.get('testId');
     const normalizedSkill = String(skill || '').toLowerCase();
     const isObjectiveSkill = normalizedSkill === 'listening' || normalizedSkill === 'reading';
+    const libraryReturnUrl = React.useMemo(() => {
+        if (!testId) return '/exam-library';
+        return `/exam-library?seriesId=${encodeURIComponent(String(testId))}`;
+    }, [testId]);
 
     const [resultRows, setResultRows] = React.useState([]);
     const [resultParts, setResultParts] = React.useState([]);
@@ -48,12 +52,12 @@ const TestComplete = () => {
 
     React.useEffect(() => {
         const handlePopState = () => {
-            navigate('/exam-library', { replace: true });
+            navigate(libraryReturnUrl, { replace: true });
         };
 
         window.addEventListener('popstate', handlePopState);
         return () => window.removeEventListener('popstate', handlePopState);
-    }, [navigate]);
+    }, [navigate, libraryReturnUrl]);
 
     const skillLabel = {
         listening: 'Listening',
@@ -178,12 +182,24 @@ const TestComplete = () => {
                         : `${correct}/${total}`;
 
                 const normalizedSkillType = normalizedSkill.toUpperCase();
-                const bandScore = Number.isFinite(savedScore?.bandScore)
+                const calculatedBandScore = calculateExamBand({
+                    skillType: normalizedSkillType,
+                    totalCorrect: correct,
+                });
+                const apiBandScore = Number.isFinite(savedScore?.bandScore)
                     ? savedScore.bandScore
-                    : calculateExamBand({
-                        skillType: normalizedSkillType,
-                        totalCorrect: Number.isFinite(savedScore?.totalCorrect) ? savedScore.totalCorrect : correct,
-                    });
+                    : null;
+                const apiTotalCorrect = Number.isFinite(savedScore?.totalCorrect)
+                    ? savedScore.totalCorrect
+                    : null;
+                const shouldUseCalculatedBand = correct > 0 && (
+                    apiBandScore === null
+                    || apiBandScore === 0
+                    || (apiTotalCorrect !== null && apiTotalCorrect !== correct)
+                );
+                const bandScore = shouldUseCalculatedBand
+                    ? calculatedBandScore
+                    : (apiBandScore ?? calculatedBandScore);
 
                 const timeSpentSeconds = Number.isFinite(savedScore?.timeSpentSeconds)
                     ? savedScore.timeSpentSeconds
@@ -311,7 +327,7 @@ const TestComplete = () => {
                 <div className="test-complete-actions">
                     <button
                         className="test-complete-btn"
-                        onClick={() => navigate('/exam-library', { replace: true })}
+                        onClick={() => navigate(libraryReturnUrl, { replace: true })}
                         style={{ backgroundColor: '#f1f1f1', color: '#333', border: '1px solid #ccc' }}
                     >
                         Return to Exam Library

@@ -153,27 +153,80 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
     feType = 'fill-in-the-blank';
   } else if (contentType === 'SHARED_OPTIONS_DROPDOWN') {
     feType = 'mcq_dropdown_group';
-  } else if (contentType === 'SPEAKING_CUECARD' || contentType === 'SPEAKING_INTERVIEW') {
-    // SPEAKING: keep raw question data for custom rendering
-    // Return questions as-is with additional metadata from group
+  } else if (contentType === 'SPEAKING_CUECARD' || contentType === 'SPEAKING_INTERVIEW' || contentType === 'SPEAKING_DISCUSSION') {
+    // SPEAKING: Parse passageText JSON for group-level data
+    let groupData = {};
+    if (group.passageText) {
+      try {
+        groupData = JSON.parse(group.passageText);
+      } catch {
+        /* ignore parse error */
+      }
+    }
+    
     return questions.map((q) => {
       const num = globalCounterRef.counter++;
+      
+      if (contentType === 'SPEAKING_CUECARD') {
+        // Clean bulletPoints: remove empty strings and extract text from HTML lists
+        const rawBullets = groupData.bulletPoints || [];
+        const cleanedBullets = rawBullets
+          .filter(bp => bp && bp.trim())
+          .map(bp => {
+            // If bullet contains <ul><li>, extract just the <li> content
+            if (bp.includes('<ul>') || bp.includes('<li>')) {
+              const tempDiv = document.createElement('div');
+              tempDiv.innerHTML = bp;
+              const listItems = tempDiv.querySelectorAll('li');
+              return Array.from(listItems).map(li => li.innerHTML);
+            }
+            return bp;
+          })
+          .flat()
+          .filter(bp => bp && bp.trim());
+        
+        return {
+          id: `q${q.id}`,
+          number: num,
+          type: 'speaking',
+          questionTypeCode: contentType,
+          partInstruction: formatTextWithWhitespace(groupData.partInstruction || ''),
+          topic: formatTextWithWhitespace(groupData.topic || q.topic || q.blankContext || ''),
+          shouldSayLabel: formatTextWithWhitespace(groupData.shouldSayLabel || 'You should say:'),
+          bulletPoints: cleanedBullets.map(bp => formatTextWithWhitespace(bp)),
+          closingSentence: formatTextWithWhitespace(groupData.closingSentence || ''),
+          prepSeconds: groupData.prepSeconds ?? 60,
+          speakingSeconds: groupData.speakingSeconds ?? 120,
+          text: formatTextWithWhitespace(q.questionText || ''),
+        };
+      }
+      
+      if (contentType === 'SPEAKING_INTERVIEW' || contentType === 'SPEAKING_DISCUSSION') {
+        // Filter out questions with empty questionText
+        if (!q.questionText || !q.questionText.trim()) {
+          globalCounterRef.counter--; // Don't count empty questions
+          return null;
+        }
+        
+        return {
+          id: `q${q.id}`,
+          number: num,
+          type: 'speaking',
+          questionTypeCode: contentType,
+          partInstruction: formatTextWithWhitespace(groupData.partInstruction || ''),
+          interviewType: groupData.interviewType || 'PART1',
+          text: formatTextWithWhitespace(q.questionText || q.blankContext || ''),
+          topic: formatTextWithWhitespace(q.topic || ''),
+        };
+      }
+      
       return {
         id: `q${q.id}`,
         number: num,
         type: 'speaking',
-        questionTypeCode: contentType,
-        // Keep all SPEAKING-specific fields
-        topic: q.topic || q.blankContext || '',
-        topic: q.topic || q.blankContext || '',
-        instruction: formatTextWithWhitespace(q.instruction || ''),
-        bulletPoints: (q.bulletPoints || []).map(bp => formatTextWithWhitespace(bp)),
-        closingSentence: formatTextWithWhitespace(q.closingSentence || ''),
-        text: formatTextWithWhitespace(q.questionText || q.blankContext || ''),
-        questionText: formatTextWithWhitespace(q.questionText || ''),
-        blankContext: formatTextWithWhitespace(q.blankContext || ''),
+        text: formatTextWithWhitespace(q.questionText || ''),
       };
-    });
+    }).filter(Boolean); // Remove null entries
   } else {
     // Fallback to questionTypeCode
     const firstQ = questions[0];

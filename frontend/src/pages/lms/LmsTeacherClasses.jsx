@@ -95,16 +95,13 @@ export default function LmsTeacherClasses() {
 
   const filteredClasses = useMemo(() => {
     const q = (search || '').toLowerCase().trim();
-    const source = !q
+    return !q
       ? classes
       : classes.filter((c) =>
         String(getClassCode(c) || '').toLowerCase().includes(q) ||
         String(c?.name || '').toLowerCase().includes(q) ||
         String(c?.status || '').toLowerCase().includes(q)
       );
-
-    // Teacher được toàn quyền nhưng chỉ trong lớp chính của mình.
-    return source.slice(0, 1);
   }, [classes, search]);
 
   const selectedClass = useMemo(() => {
@@ -210,68 +207,103 @@ export default function LmsTeacherClasses() {
         <div className="lms-card"><h3>Lớp đang chọn</h3><div className="lms-card-value">{getClassCode(selectedClass) || '-'}</div></div>
       </div>
 
-      <div className="lms-class-workspace">
-        <div className="lms-class-list-panel">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-            <h3 className="lms-panel-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}><School size={16} /> Lớp của tôi</h3>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <div style={{ position: 'relative' }}>
-                <Search size={14} style={{ position: 'absolute', left: 8, top: 9, color: '#94a3b8' }} />
-                <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Tìm lớp..." style={{ padding: '8px 10px 8px 30px', borderRadius: 8, border: '1px solid var(--lms-border)' }} />
-              </div>
-              <button className="lms-cta ghost" onClick={() => setRefreshTick((v) => v + 1)}><RefreshCw size={14} /></button>
+      <div className="lms-panel">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <h3 className="lms-panel-title" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <School size={18} /> Lớp của tôi
+          </h3>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ position: 'relative' }}>
+              <Search size={14} style={{ position: 'absolute', left: 8, top: 9, color: '#94a3b8' }} />
+              <input 
+                value={search} 
+                onChange={(e) => setSearch(e.target.value)} 
+                placeholder="Tìm lớp..." 
+                style={{ padding: '8px 10px 8px 30px', borderRadius: 8, border: '1px solid var(--lms-border)' }} 
+              />
             </div>
+            <button className="lms-cta ghost" onClick={() => setRefreshTick((v) => v + 1)}>
+              <RefreshCw size={14} />
+            </button>
           </div>
-
-          {loading ? (
-            <p className="lms-subtitle">Đang tải dữ liệu lớp...</p>
-          ) : (
-            <div className="lms-class-list">
-              {filteredClasses.map((c) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  className={`lms-class-item${c.id === selectedClass?.id ? ' active' : ''}`}
-                  onClick={() => goToClassDetail(c)}
-                >
-                  <div className="lms-class-item-head">
-                    <strong>{getClassCode(c) || 'N/A'}</strong>
-                    <span>{c.status || 'N/A'}</span>
-                  </div>
-                  <div style={{ fontWeight: 700, marginTop: 3 }}>{c.name || 'Chưa đặt tên'}</div>
-                  <div className="lms-class-item-meta">{getStudentCount(c)} học viên active</div>
-                </button>
-              ))}
-              {filteredClasses.length === 0 && <p className="lms-subtitle">Không có lớp phù hợp</p>}
-            </div>
-          )}
         </div>
 
-        <div className="lms-class-detail-panel">
-          <div className="lms-panel" style={{ marginBottom: 14 }}>
-            <div className="lms-class-overview">
-              <div>
-                <h2 className="lms-class-title">{selectedClass?.name || 'Chọn lớp để quản lý'}</h2>
-                <p className="lms-subtitle" style={{ marginTop: 4 }}>
-                  {selectedClass ? `${getClassCode(selectedClass)} • ${selectedClass.status || 'N/A'}` : 'Danh sách lớp phụ trách của giảng viên'}
-                </p>
+        {loading ? (
+          <p className="lms-subtitle">Đang tải dữ liệu lớp...</p>
+        ) : (
+          <div className="lms-class-grid">
+            {filteredClasses.map((c) => (
+              <div
+                key={c.id}
+                className="lms-class-card"
+                onClick={() => goToClassDetail(c)}
+              >
+                <div className="lms-class-card-header">
+                  <div className="lms-class-card-code">{getClassCode(c) || 'N/A'}</div>
+                  <span className={`lms-class-card-status status-${(c.status || '').toLowerCase()}`}>
+                    {c.status || 'N/A'}
+                  </span>
+                </div>
+                <h3 className="lms-class-card-name">{c.name || 'Chưa đặt tên'}</h3>
+                <div className="lms-class-card-footer">
+                  <div className="lms-class-card-students">
+                    <Users size={16} />
+                    <span>{getStudentCount(c)} học viên</span>
+                  </div>
+                </div>
               </div>
-              {selectedClass && <span className="lms-pill success">{getStudentCount(selectedClass)} học viên</span>}
-            </div>
+            ))}
+            {filteredClasses.length === 0 && (
+              <p className="lms-subtitle" style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px 20px' }}>
+                Không có lớp phù hợp
+              </p>
+            )}
           </div>
+        )}
+      </div>
 
-          <div className="lms-panel" style={{ marginBottom: 14 }}>
-            <h3 className="lms-panel-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}><ClipboardList size={16} /> Thêm học viên vào lớp phụ trách</h3>
-            <div style={{ display: 'grid', gap: 10 }}>
-              <input value={handoverForm.classCode} onChange={(e) => setHandoverForm((p) => ({ ...p, classCode: e.target.value }))} placeholder="Mã lớp" style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid var(--lms-border)' }} />
-              <input ref={csvInputRef} type="file" accept=".csv,text/csv" onChange={handleCsvUpload} />
-              {csvError && <p style={{ margin: 0, color: '#dc2626', fontSize: 12 }}>{csvError}</p>}
-              {csvCodes.length > 0 && <p style={{ margin: 0, color: '#1e3a8a', fontSize: 12 }}>{csvFileName} • {csvCodes.length} mã</p>}
-              <textarea rows={5} value={handoverForm.studentCodesText} onChange={(e) => setHandoverForm((p) => ({ ...p, studentCodesText: e.target.value }))} placeholder="Nhập thủ công mã học viên/username" style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid var(--lms-border)', resize: 'vertical' }} />
-              <button className="lms-cta" onClick={handleAssignStudents} disabled={handoverLoading}>{handoverLoading ? 'Đang xử lý...' : 'Thêm học viên'}</button>
-              {csvCodes.length > 0 && <button className="lms-cta ghost" onClick={clearCsv}>Xóa CSV</button>}
-            </div>
-          </div>
+      <div className="lms-panel" style={{ marginTop: 20 }}>
+        <h3 className="lms-panel-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <ClipboardList size={16} /> Thêm học viên vào lớp phụ trách
+        </h3>
+        <div style={{ display: 'grid', gap: 10, maxWidth: 600 }}>
+          <input 
+            value={handoverForm.classCode} 
+            onChange={(e) => setHandoverForm((p) => ({ ...p, classCode: e.target.value }))} 
+            placeholder="Mã lớp" 
+            style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid var(--lms-border)' }} 
+          />
+          <input 
+            ref={csvInputRef} 
+            type="file" 
+            accept=".csv,text/csv" 
+            onChange={handleCsvUpload} 
+          />
+          {csvError && <p style={{ margin: 0, color: '#dc2626', fontSize: 12 }}>{csvError}</p>}
+          {csvCodes.length > 0 && (
+            <p style={{ margin: 0, color: '#1e3a8a', fontSize: 12 }}>
+              {csvFileName} • {csvCodes.length} mã
+            </p>
+          )}
+          <textarea 
+            rows={5} 
+            value={handoverForm.studentCodesText} 
+            onChange={(e) => setHandoverForm((p) => ({ ...p, studentCodesText: e.target.value }))} 
+            placeholder="Nhập thủ công mã học viên/username" 
+            style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid var(--lms-border)', resize: 'vertical' }} 
+          />
+          <button 
+            className="lms-cta" 
+            onClick={handleAssignStudents} 
+            disabled={handoverLoading}
+          >
+            {handoverLoading ? 'Đang xử lý...' : 'Thêm học viên'}
+          </button>
+          {csvCodes.length > 0 && (
+            <button className="lms-cta ghost" onClick={clearCsv}>
+              Xóa CSV
+            </button>
+          )}
         </div>
       </div>
     </LmsLayout>

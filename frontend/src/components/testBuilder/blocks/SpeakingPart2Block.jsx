@@ -55,6 +55,18 @@ const SpeakingPart2Block = ({ group, onUpdate, onDelete, onSelect, selected, dra
           </label>
         </div>
 
+        {/* Part Instruction */}
+        <div className="exam-wt-section">
+          <label className="exam-wt-label">Part Instruction</label>
+          <RichInput
+            multiline
+            rows={2}
+            value={group.partInstruction ?? ''}
+            placeholder="The examiner will give you a topic card. You will have 1 minute to prepare and make notes. Then you will speak for 1-2 minutes."
+            onChange={(html) => onUpdate(group.id, { partInstruction: html })}
+          />
+        </div>
+
         <div className="exam-wt-section">
           <label className="exam-wt-label">Topic / Main Question</label>
           <RichInput

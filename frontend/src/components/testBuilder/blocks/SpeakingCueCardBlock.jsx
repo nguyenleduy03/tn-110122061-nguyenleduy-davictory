@@ -30,6 +30,18 @@ const SpeakingCueCardBlock = ({ group, onUpdate, onDelete, onSelect, selected, d
       <GroupToolbar group={group} dragHandleProps={dragHandleProps} onDelete={onDelete} />
 
       <div className="exam-spk-cc-card" onClick={(e) => e.stopPropagation()}>
+        {/* Part Instruction */}
+        <div className="exam-wt-section">
+          <label className="exam-wt-label">Hướng dẫn Part (Part Instruction)</label>
+          <RichInput
+            multiline
+            rows={2}
+            value={group.partInstruction ?? ''}
+            placeholder="VD: The examiner will give you a topic card. You will have 1 minute to prepare and make notes. Then you will speak for 1-2 minutes."
+            onChange={(html) => onUpdate(group.id, { partInstruction: html })}
+          />
+        </div>
+
         {/* Topic */}
         <div className="exam-wt-section">
           <label className="exam-wt-label" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>

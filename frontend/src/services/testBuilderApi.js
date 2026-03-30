@@ -510,11 +510,13 @@ function serializeGroupContent(group, part) {
   // Speaking Cue Card
   if (ct === 'SPEAKING_CUECARD') {
     return JSON.stringify({
+      partInstruction: group.partInstruction || '',
       topic: group.topic || '',
       shouldSayLabel: group.shouldSayLabel || 'You should say:',
       bulletPoints: group.bulletPoints || [],
       closingSentence: group.closingSentence || '',
       prepSeconds: group.prepSeconds ?? 60,
+      speakingSeconds: group.speakingSeconds ?? 120,
     });
   }
   // Dropdown chung (Listening/Reading): options + hướng dẫn trong JSON
@@ -866,11 +868,13 @@ function deserializeGroupContent(contentType, passageText) {
     if (contentType === 'SPEAKING_CUECARD') {
       const parsed = JSON.parse(passageText);
       return {
+        partInstruction: parsed.partInstruction || '',
         topic: parsed.topic || '',
         shouldSayLabel: parsed.shouldSayLabel || 'You should say:',
         bulletPoints: parsed.bulletPoints || [],
         closingSentence: parsed.closingSentence || '',
         prepSeconds: parsed.prepSeconds ?? 60,
+        speakingSeconds: parsed.speakingSeconds ?? 120,
       };
     }
     if (contentType === 'SHARED_OPTIONS_DROPDOWN') {

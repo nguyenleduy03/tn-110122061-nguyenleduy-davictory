@@ -1,10 +1,39 @@
 import React from 'react';
-import { Bookmark } from 'lucide-react';
 import { formatTextWithWhitespace } from '../../utils/textFormatters';
+import BookmarkToggle from '../common/BookmarkToggle';
 
 const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answers, handleAnswerChange, inputRefs, bookmarks, toggleBookmark, isReview }) => {
     const opts = q.validationOptions || {};
-    
+
+    const parseEmbeddedQuestionPayload = (rawText) => {
+        if (typeof rawText !== 'string') return null;
+        const candidate = rawText.trim();
+        if (!candidate.startsWith('{') || !candidate.endsWith('}')) return null;
+
+        try {
+            const parsed = JSON.parse(candidate);
+            return parsed && typeof parsed === 'object' ? parsed : null;
+        } catch {
+            return null;
+        }
+    };
+
+    const cleanInstructionText = (value) => {
+        let text = String(value || '').trim();
+        if (!text) return '';
+
+        // Some legacy payloads include wrapper fragments like rubricContent_xxx">...
+        if (/rubricContent_/i.test(text) && text.includes('>')) {
+            text = text.slice(text.indexOf('>') + 1).trim();
+        }
+
+        return text;
+    };
+
+    const payloadFromText = parseEmbeddedQuestionPayload(q?.text);
+    const textToRender = payloadFromText?.noteText || payloadFromText?.text || q?.text || '';
+    const instructionsText = cleanInstructionText(payloadFromText?.title || payloadFromText?.instructions || q?.instructions || '');
+
     const normalizeBlankTokens = (text) => {
         let s = String(text || '');
         // Replace editor blank chips with [blank]
@@ -34,9 +63,9 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
 
     // Parse text to find placeholders like [blank] or [24]
     const renderParagraph = () => {
-        if (!q.text) return null;
+        if (!textToRender) return null;
 
-        const normalizedText = normalizeBlankTokens(q.text);
+        const normalizedText = normalizeBlankTokens(textToRender);
 
         const hasBlank = /\[blank\]/i.test(normalizedText);
         const parts = hasBlank
@@ -71,12 +100,12 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
                             onClick={() => setActiveQuestion?.(qNum)}
                         >
                             {!isReview && (
-                                <span
+                                <BookmarkToggle
                                     className="summary-bookmark"
-                                    onClick={(e) => { e.stopPropagation(); toggleBookmark?.(qNum); }}
-                                >
-                                    <Bookmark size={18} fill={bookmarks?.[qNum] ? "#1a73e8" : "none"} color={bookmarks?.[qNum] ? "#1a73e8" : "#ccc"} />
-                                </span>
+                                    size={16}
+                                    active={Boolean(bookmarks?.[qNum])}
+                                    onToggle={() => toggleBookmark?.(qNum)}
+                                />
                             )}
                             <input
                                 ref={(el) => { if (inputRefs?.current) inputRefs.current[qNum] = el; }}
@@ -115,12 +144,12 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
                         onClick={() => setActiveQuestion?.(qNum)}
                     >
                         {!isReview && (
-                            <span
+                            <BookmarkToggle
                                 className="summary-bookmark"
-                                onClick={(e) => { e.stopPropagation(); toggleBookmark?.(qNum); }}
-                            >
-                                <Bookmark size={18} fill={bookmarks?.[qNum] ? "#1a73e8" : "none"} color={bookmarks?.[qNum] ? "#1a73e8" : "#ccc"} />
-                            </span>
+                                size={16}
+                                active={Boolean(bookmarks?.[qNum])}
+                                onToggle={() => toggleBookmark?.(qNum)}
+                            />
                         )}
                         <input
                             ref={(el) => { if (inputRefs?.current) inputRefs.current[qNum] = el; }}
@@ -143,6 +172,9 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
 
     return (
         <div className="summary-completion-container">
+            {instructionsText && (
+                <p className="summary-instructions" dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(instructionsText) }} />
+            )}
             <div className="summary-text">
                 {renderParagraph()}
             </div>

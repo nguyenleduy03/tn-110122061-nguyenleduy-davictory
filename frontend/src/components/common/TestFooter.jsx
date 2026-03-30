@@ -1,5 +1,5 @@
 import React from "react";
-import { Bookmark } from "lucide-react";
+import BookmarkToggle from "./BookmarkToggle";
 
 const TestFooter = ({
     testData,
@@ -52,7 +52,7 @@ const TestFooter = ({
                                             >
                                                 {bookmarks && bookmarks[num] && (
                                                     <div className="q-bookmark-flag">
-                                                        <Bookmark size={16} fill="#1a73e8" color="#1a73e8" />
+                                                        <BookmarkToggle size={16} active activeColor="#1a73e8" inactiveColor="#1a73e8" />
                                                     </div>
                                                 )}
                                                 {/* Vạch ngang ở trên */}

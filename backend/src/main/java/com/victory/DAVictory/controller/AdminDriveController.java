@@ -3,6 +3,7 @@ package com.victory.DAVictory.controller;
 import com.victory.DAVictory.service.GoogleDriveOAuth2Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.view.RedirectView;
 
@@ -17,6 +18,7 @@ public class AdminDriveController {
     private final GoogleDriveOAuth2Service driveService;
 
     @GetMapping("/status")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> getStatus() {
         try {
             boolean isAuthorized = driveService.isAuthorized();
@@ -36,6 +38,7 @@ public class AdminDriveController {
     }
 
     @GetMapping("/authorize-url")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> getAuthorizeUrl() {
         try {
             String authUrl = driveService.getAuthorizationUrl();
@@ -46,6 +49,7 @@ public class AdminDriveController {
     }
 
     @PostMapping("/revoke")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> revokeAccess() {
         try {
             driveService.revokeAccess();

@@ -13,6 +13,10 @@ const NAV_ITEMS = [
   { label: 'Học trực tiếp', path: '/live' },
 ];
 
+const STUDENT_NAV_ITEMS = [
+  { label: 'Bài tập của tôi', path: '/student/lms' },
+];
+
 const normalizeRoles = (roles) => {
   if (!roles) return [];
   const rolesArray = Array.isArray(roles) ? roles : Array.from(roles);
@@ -39,6 +43,7 @@ const Navbar = () => {
   const userRoles = normalizeRoles(user?.roles);
   const isAdmin = userRoles.includes('ADMIN');
   const isManager = userRoles.includes('MANAGER');
+  const isStudent = userRoles.includes('STUDENT') && !isTeacherOrAbove(user?.roles);
 
   useEffect(() => {
     // Lấy thông tin user từ localStorage
@@ -111,6 +116,15 @@ const Navbar = () => {
                   {item.label}
                 </Link>
               ))}
+              {user && isStudent && (
+                <Link
+                  to="/student/lms"
+                  className={`mobile-nav-link${location.pathname.startsWith('/student') ? ' active' : ''}`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Bài tập của tôi
+                </Link>
+              )}
               {user && isTeacherOrAbove(user.roles) && (
                 <Link
                   to={isAdmin ? '/admin' : (isManager ? '/manager' : '/lms/teacher')}
@@ -140,6 +154,15 @@ const Navbar = () => {
               <ChevronDown size={13} />
             </Link>
           ))}
+          {user && isStudent && (
+            <Link
+              to="/student/lms"
+              className={`nav-link${location.pathname.startsWith('/student') ? ' nav-link-active' : ''}`}
+            >
+              Bài tập của tôi
+              <ChevronDown size={13} />
+            </Link>
+          )}
           {user && isTeacherOrAbove(user.roles) && (
             <Link
               to={isAdmin ? '/admin' : (isManager ? '/manager' : '/lms/teacher')}
@@ -186,6 +209,13 @@ const Navbar = () => {
                       <User size={16} />
                       <span>Thông tin cá nhân</span>
                     </Link>
+
+                    {isStudent && (
+                      <Link to="/student/lms" className="user-dropdown-item">
+                        <FilePlus size={16} />
+                        <span>Bài tập của tôi</span>
+                      </Link>
+                    )}
 
                     {isTeacherOrAbove(user.roles) && (
                       <Link to={isAdmin ? '/admin' : (isManager ? '/manager' : '/lms/teacher')} className="user-dropdown-item">

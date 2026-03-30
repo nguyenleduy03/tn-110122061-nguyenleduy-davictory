@@ -7,7 +7,7 @@ const SERIES_LOGO_SRC = {
     Cambridge: '/Cambridge%20Logo.png',
 };
 
-const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isReview, isFullTest, skill, navigate, duration = 0, noTimeLimit = false, onTimeUp, seriesLabel, logoUrl, timerPersistKey, timerPaused = false, isNotesOpen = false, onToggleNotes }) => {
+const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isReview, isFullTest, skill, navigate, duration = 0, noTimeLimit = false, onTimeUp, seriesLabel, logoUrl, timerPersistKey, timerPaused = false, isNotesOpen = false, onToggleNotes, hideSubmitButton = false, hideTimer = false }) => {
     const [isOptionsOpen, setIsOptionsOpen] = useState(false);
     const [optionsView, setOptionsView] = useState('main');
     const [showSubmitModal, setShowSubmitModal] = useState(false);
@@ -18,6 +18,7 @@ const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isRevie
     const fullscreenWarningTimerRef = useRef(null);
     const isExitingTestRef = useRef(false);
     const hasTriggeredTimeUpRef = useRef(false);
+    const pauseStartedAtRef = useRef(null);
     const timerStorageKey = useMemo(() => {
         if (!timerPersistKey) return null;
         return `ieltsTimerDeadline_${timerPersistKey}`;
@@ -203,7 +204,7 @@ const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isRevie
     useEffect(() => {
         hasTriggeredTimeUpRef.current = false;
 
-        if (timerPaused) return; // Wait until timer is unpaused (e.g. Play pressed in Listening)
+        if (timerPaused || hideTimer) return; // Wait until timer should start (e.g. pre-check completed)
         if (noTimeLimit || isReview) {
             if (timerStorageKey) {
                 localStorage.removeItem(timerStorageKey);
@@ -245,10 +246,50 @@ const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isRevie
         }
 
         setTimeLeft(Math.max(0, Math.ceil((deadlineMs - now) / 1000)));
-    }, [duration, noTimeLimit, timerStorageKey, isReview, timerPaused]);
+    }, [duration, noTimeLimit, timerStorageKey, isReview, timerPaused, hideTimer]);
+
+    // Keep absolute-deadline timer accurate when paused/resumed by shifting deadline.
+    useEffect(() => {
+        if (isReview || noTimeLimit || !timerStorageKey) {
+            pauseStartedAtRef.current = null;
+            return;
+        }
+
+        const isPaused = Boolean(timerPaused || hideTimer);
+        if (isPaused) {
+            if (!pauseStartedAtRef.current) {
+                pauseStartedAtRef.current = Date.now();
+            }
+            return;
+        }
+
+        if (!pauseStartedAtRef.current) return;
+
+        const pausedMs = Math.max(0, Date.now() - pauseStartedAtRef.current);
+        pauseStartedAtRef.current = null;
+        if (pausedMs <= 0) return;
+
+        try {
+            const storedRaw = localStorage.getItem(timerStorageKey);
+            const stored = storedRaw ? JSON.parse(storedRaw) : null;
+            if (!stored || !Number.isFinite(stored.deadlineMs)) return;
+
+            const nextDeadline = stored.deadlineMs + pausedMs;
+            localStorage.setItem(timerStorageKey, JSON.stringify({
+                ...stored,
+                deadlineMs: nextDeadline,
+                savedAt: Date.now(),
+            }));
+
+            const remaining = Math.max(0, Math.ceil((nextDeadline - Date.now()) / 1000));
+            setTimeLeft(remaining);
+        } catch {
+            // Ignore malformed timer cache.
+        }
+    }, [timerPaused, hideTimer, isReview, noTimeLimit, timerStorageKey]);
 
     useEffect(() => {
-        if (timerPaused) return; // Don't tick until timer is started
+        if (timerPaused || hideTimer) return; // Don't tick until timer is started
         if (isReview) return;
         if (noTimeLimit) return;
         const safeDuration = Number.isFinite(duration) ? duration : 0;
@@ -296,7 +337,7 @@ const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isRevie
         const timer = setInterval(tick, 1000);
 
         return () => clearInterval(timer);
-    }, [isReview, noTimeLimit, onTimeUp, duration, timerStorageKey, timerPaused]);
+    }, [isReview, noTimeLimit, onTimeUp, duration, timerStorageKey, timerPaused, hideTimer]);
 
     const formatTime = (seconds) => {
         const h = Math.floor(seconds / 3600);
@@ -399,14 +440,14 @@ const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isRevie
                     </div>
                 </div>
 
-                {!isReview && !noTimeLimit && (
+                {!isReview && !noTimeLimit && !hideTimer && (
                     <div className={`header-timer ${timeLeft < 300 ? 'timer-low' : ''}`}>
                         <span className="timer-label">Time left:</span>
                         <span className="timer-value">{formatTime(timeLeft)}</span>
                     </div>
                 )}
 
-                {!isReview && noTimeLimit && (
+                {!isReview && noTimeLimit && !hideTimer && (
                     <div className="header-timer">
                         <span className="timer-label">Time:</span>
                         <span className="timer-value">No limit</span>
@@ -414,7 +455,7 @@ const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isRevie
                 )}
 
                 <div className="header-right">
-                    {submitTest && !isReview && (
+                    {submitTest && !isReview && !hideSubmitButton && (
                         <button
                             className="header-submit-btn"
                             onClick={handleSubmitClick}
@@ -447,7 +488,19 @@ const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isRevie
                             <NotebookPen size={22} />
                         </button>
                     )}
-                    <button className="icon-btn" title="Options" onClick={() => { setIsOptionsOpen(true); setOptionsView('main'); }}><Menu size={26} /></button>
+                    <button
+                        className="icon-btn"
+                        title="Options"
+                        onClick={() => {
+                            if (isNotesOpen && typeof onToggleNotes === 'function') {
+                                onToggleNotes();
+                            }
+                            setIsOptionsOpen(true);
+                            setOptionsView('main');
+                        }}
+                    >
+                        <Menu size={26} />
+                    </button>
                 </div>
             </header>
 

@@ -1,6 +1,6 @@
 import React from 'react';
-import { Bookmark } from 'lucide-react';
 import { formatTextWithWhitespace } from '../../utils/textFormatters';
+import BookmarkToggle from '../common/BookmarkToggle';
 
 const FillInBlankQuestion = ({ q, activeQuestion, setActiveQuestion, answer, handleAnswerChange, inputRefs, bookmarks, toggleBookmark, isReview }) => {
     const normalizedText = String(q.text || '')
@@ -8,7 +8,7 @@ const FillInBlankQuestion = ({ q, activeQuestion, setActiveQuestion, answer, han
         .replace(/\[\s*blank\s*\]/gi, '_______');
     const parts = normalizedText ? normalizedText.split('_______') : [];
     const opts = q.validationOptions || {};
-    
+
     const normalizeAnswer = (text) => {
         let s = String(text || '').trim();
         if (opts.ignoreCase !== false) s = s.toLowerCase();
@@ -20,7 +20,7 @@ const FillInBlankQuestion = ({ q, activeQuestion, setActiveQuestion, answer, han
         }
         return s;
     };
-    
+
     const checkAnswer = (userAnswer, correctAnswer) => {
         const normalized = normalizeAnswer(userAnswer);
         const acceptedAnswers = String(correctAnswer || '').split('|').map(a => normalizeAnswer(a));
@@ -31,14 +31,17 @@ const FillInBlankQuestion = ({ q, activeQuestion, setActiveQuestion, answer, han
         ? String(q.correctAnswer || '').split('|')[0]
         : String(answer || '');
 
-    if (parts.length < 2) return <li id={`question-${q.number}`} className="fill-in-blank-item">{!isReview && <span onClick={(e) => { e.stopPropagation(); toggleBookmark?.(q.number); }} className="fill-in-blank-bookmark"><Bookmark size={18} fill={bookmarks?.[q.number] ? "#1a73e8" : "none"} color={bookmarks?.[q.number] ? "#1a73e8" : "#ccc"} /></span>}{q.text}</li>;
+    if (parts.length < 2) return <li id={`question-${q.number}`} className="fill-in-blank-item">{!isReview && <BookmarkToggle className="fill-in-blank-bookmark" size={16} active={Boolean(bookmarks?.[q.number])} onToggle={() => toggleBookmark?.(q.number)} />}{q.text}</li>;
 
     return (
         <li id={`question-${q.number}`} className="fill-in-blank-item">
             {!isReview && (
-                <span onClick={(e) => { e.stopPropagation(); toggleBookmark?.(q.number); }} className="fill-in-blank-bookmark">
-                    <Bookmark size={18} fill={bookmarks?.[q.number] ? "#1a73e8" : "none"} color={bookmarks?.[q.number] ? "#1a73e8" : "#ccc"} />
-                </span>
+                <BookmarkToggle
+                    className="fill-in-blank-bookmark"
+                    size={16}
+                    active={Boolean(bookmarks?.[q.number])}
+                    onToggle={() => toggleBookmark?.(q.number)}
+                />
             )}
             {parts[0]}
             <span

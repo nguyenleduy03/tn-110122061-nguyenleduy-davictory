@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, Trash2, NotebookPen } from 'lucide-react';
+
+const CLOSE_ANIMATION_MS = 220;
 
 // Scroll to the first DOM text node containing the note text
 const scrollToNoteText = (noteText) => {
@@ -21,7 +23,37 @@ const scrollToNoteText = (noteText) => {
     return false;
 };
 
-const NotesPanel = ({ notes, onDelete, onClose, onNoteClick }) => {
+const NotesPanel = ({ notes, onDelete, onClose, onNoteClick, isOpen = true }) => {
+    const [isRendered, setIsRendered] = useState(Boolean(isOpen));
+    const [isClosing, setIsClosing] = useState(false);
+
+    useEffect(() => {
+        if (isOpen) {
+            setIsRendered(true);
+            setIsClosing(false);
+            return undefined;
+        }
+
+        if (!isRendered) return undefined;
+
+        setIsClosing(true);
+        const timeoutId = window.setTimeout(() => {
+            setIsRendered(false);
+            setIsClosing(false);
+        }, CLOSE_ANIMATION_MS);
+
+        return () => {
+            window.clearTimeout(timeoutId);
+        };
+    }, [isOpen, isRendered]);
+
+    const handleClose = () => {
+        if (isClosing) return;
+        if (typeof onClose === 'function') onClose();
+    };
+
+    if (!isRendered) return null;
+
     const handleNoteClick = (note) => {
         if (onNoteClick) {
             onNoteClick(note, () => scrollToNoteText(note.text));
@@ -31,10 +63,10 @@ const NotesPanel = ({ notes, onDelete, onClose, onNoteClick }) => {
     };
 
     return (
-        <div className="notes-panel">
+        <div className={`notes-panel ${isClosing ? 'notes-panel--closing' : 'notes-panel--open'}`}>
             <div className="notes-panel-header">
                 <span className="notes-panel-title">Notes</span>
-                <button className="notes-panel-close" onClick={onClose} aria-label="Close notes">
+                <button className="notes-panel-close" onClick={handleClose} aria-label="Close notes">
                     <X size={18} />
                 </button>
             </div>

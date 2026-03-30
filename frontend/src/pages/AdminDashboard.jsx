@@ -43,9 +43,15 @@ export default function AdminDashboard() {
     systemHealth: 98.5,
     todayLogins: 0
   });
+  const [driveStatus, setDriveStatus] = useState({
+    authorized: false,
+    storageUsage: '0 B',
+    storageLimit: '0 B'
+  });
 
   useEffect(() => {
     fetchStats();
+    fetchDriveStatus();
   }, []);
 
   const fetchStats = async () => {
@@ -69,6 +75,15 @@ export default function AdminDashboard() {
       });
     } catch (error) {
       console.error('Error fetching stats:', error);
+    }
+  };
+
+  const fetchDriveStatus = async () => {
+    try {
+      const response = await authApi.get('/admin/drive/status');
+      setDriveStatus(response.data);
+    } catch (error) {
+      console.error('Error fetching drive status:', error);
     }
   };
 
@@ -236,8 +251,8 @@ export default function AdminDashboard() {
               { label: 'Quản lý', href: '/admin/drive', primary: true }
             ]}
             stats={[
-              { label: 'Trạng thái', value: 'Đã kết nối' },
-              { label: 'Dung lượng', value: '15 GB' }
+              { label: 'Trạng thái', value: driveStatus.authorized ? 'Đã kết nối' : 'Chưa kết nối' },
+              { label: 'Dung lượng', value: driveStatus.authorized ? `${driveStatus.storageUsage} / ${driveStatus.storageLimit}` : 'N/A' }
             ]}
           />
 

@@ -590,21 +590,20 @@ const IeltsWritingTest = () => {
                 </div>
             </footer>
 
-            {isNotesOpen && (
-                <NotesPanel
-                    notes={notes}
-                    onDelete={deleteNote}
-                    onClose={() => setIsNotesOpen(false)}
-                    onNoteClick={(note, scrollFn) => {
-                        if (Number.isFinite(note.partIndex) && note.partIndex !== currentPartIndex) {
-                            setCurrentPartIndex(note.partIndex);
-                            setTimeout(scrollFn, 300);
-                        } else {
-                            scrollFn();
-                        }
-                    }}
-                />
-            )}
+            <NotesPanel
+                isOpen={isNotesOpen}
+                notes={notes}
+                onDelete={deleteNote}
+                onClose={() => setIsNotesOpen(false)}
+                onNoteClick={(note, scrollFn) => {
+                    if (Number.isFinite(note.partIndex) && note.partIndex !== currentPartIndex) {
+                        setCurrentPartIndex(note.partIndex);
+                        setTimeout(scrollFn, 300);
+                    } else {
+                        scrollFn();
+                    }
+                }}
+            />
         </div>
     );
 };

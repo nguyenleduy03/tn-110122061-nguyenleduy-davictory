@@ -17,6 +17,7 @@ import ClassManagement from './pages/ClassManagement'
 import LmsTeacherClasses from './pages/lms/LmsTeacherClasses'
 import LmsTeacherTests from './pages/lms/LmsTeacherTests'
 import LmsTeacherAssignments from './pages/lms/LmsTeacherAssignments'
+import LmsAssignmentDetail from './pages/lms/LmsAssignmentDetail'
 import LmsTeacherSubmissions from './pages/lms/LmsTeacherSubmissions'
 import LmsSubmissionDetail from './pages/lms/LmsSubmissionDetail'
 import LmsGradeSubmission from './pages/lms/LmsGradeSubmission'
@@ -36,6 +37,12 @@ import DashboardSettings from './pages/DashboardSettings'
 import ApiDebugPage from './pages/ApiDebugPage'
 import GradeWriting from './pages/teacher/GradeWriting'
 import GradeSpeaking from './pages/teacher/GradeSpeaking'
+import AssignmentTemplates from './pages/teacher/AssignmentTemplates'
+import CreateAssignment from './pages/teacher/CreateAssignment'
+import StudentAssignments from './pages/student/StudentAssignments'
+import StudentLms from './pages/student/StudentLms'
+import SubmitAssignment from './pages/student/SubmitAssignment'
+import AssignmentResult from './pages/student/AssignmentResult'
 import ProtectedRoute from './components/common/ProtectedRoute'
 import RoleBasedRoute from './components/common/RoleBasedRoute'
 import ErrorBoundary from './components/common/ErrorBoundary'
@@ -90,11 +97,22 @@ function App() {
         <Route path="/lms/teacher/classes/:id" element={<RoleBasedRoute requiredRole="TEACHER"><LmsTeacherClassDetail /></RoleBasedRoute>} />
         <Route path="/lms/teacher/tests" element={<RoleBasedRoute requiredRole="TEACHER"><LmsTeacherTests /></RoleBasedRoute>} />
         <Route path="/lms/teacher/assignments" element={<RoleBasedRoute requiredRole="TEACHER"><LmsTeacherAssignments /></RoleBasedRoute>} />
+        <Route path="/lms/teacher/assignments/:id" element={<RoleBasedRoute requiredRole="TEACHER"><LmsAssignmentDetail /></RoleBasedRoute>} />
         <Route path="/lms/teacher/submissions" element={<RoleBasedRoute requiredRole="TEACHER"><LmsTeacherSubmissions /></RoleBasedRoute>} />
         <Route path="/lms/submission/:type/:id" element={<RoleBasedRoute requiredRole="TEACHER"><LmsSubmissionDetail /></RoleBasedRoute>} />
         <Route path="/lms/grade/:type/:id" element={<RoleBasedRoute requiredRole="TEACHER"><LmsGradeSubmission /></RoleBasedRoute>} />
         <Route path="/lms/teacher/analytics" element={<RoleBasedRoute requiredRole="TEACHER"><LmsTeacherAnalytics /></RoleBasedRoute>} />
         <Route path="/lms/teacher/settings" element={<RoleBasedRoute requiredRole="TEACHER"><LmsTeacherSettings /></RoleBasedRoute>} />
+        
+        {/* Teacher assignment templates */}
+        <Route path="/teacher/assignments/templates" element={<RoleBasedRoute requiredRole="TEACHER"><AssignmentTemplates /></RoleBasedRoute>} />
+        <Route path="/teacher/assignments/create" element={<RoleBasedRoute requiredRole="TEACHER"><CreateAssignment /></RoleBasedRoute>} />
+        
+        {/* Student assignment routes */}
+        <Route path="/student/lms" element={<RoleBasedRoute requiredRole="STUDENT"><StudentLms /></RoleBasedRoute>} />
+        <Route path="/student/assignments" element={<RoleBasedRoute requiredRole="STUDENT"><StudentAssignments /></RoleBasedRoute>} />
+        <Route path="/student/assignments/:id" element={<RoleBasedRoute requiredRole="STUDENT"><SubmitAssignment /></RoleBasedRoute>} />
+        <Route path="/student/assignments/:id/result" element={<RoleBasedRoute requiredRole="STUDENT"><AssignmentResult /></RoleBasedRoute>} />
         
         {/* Grading routes */}
         <Route path="/teacher/grade/writing/:id" element={<RoleBasedRoute requiredRole="TEACHER"><GradeWriting /></RoleBasedRoute>} />

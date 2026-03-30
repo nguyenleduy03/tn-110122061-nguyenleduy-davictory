@@ -55,6 +55,7 @@ const BuilderHeader = ({
   saving, onPreview, onShuffle, shuffling, saveMessage, onSkillModeChange,
   showFormatToolbar, onToggleFormatToolbar,
   autoSaveEnabled, onToggleAutoSave,
+  savedTestId,
 }) => {
   const [activeFormats, setActiveFormats] = useState({});
   const lastRangeRef = useRef(null);
@@ -205,10 +206,49 @@ const BuilderHeader = ({
         </div>
 
         <div className="tb-header-right">
+          {savedTestId && (
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 8, 
+              padding: '6px 12px', 
+              background: '#f0fdf4', 
+              borderRadius: 6,
+              border: '1px solid #86efac',
+              fontSize: 13
+            }}>
+              <span style={{ color: '#15803d', fontWeight: 600 }}>ID: {savedTestId}</span>
+              <Link 
+                to="/lms/teacher/assignments/new"
+                state={{ testId: savedTestId, testTitle: test.title }}
+                style={{ 
+                  padding: '4px 10px', 
+                  background: '#16a34a', 
+                  color: 'white', 
+                  borderRadius: 4, 
+                  textDecoration: 'none',
+                  fontSize: 12,
+                  fontWeight: 500
+                }}
+              >
+                📝 Tạo bài tập
+              </Link>
+            </div>
+          )}
+          
           <div className="tb-toolbar-group tb-action-group">
             <button className="tb-tool-btn tb-tool-btn-primary" onClick={onSave} disabled={saving} title="Lưu đề thi">
               <Save size={15} /><span>{saving ? 'Đang lưu...' : 'Lưu'}</span>
             </button>
+            {savedTestId && (
+              <Link 
+                to={`/teacher/assignments/create?testId=${savedTestId}`}
+                className="tb-tool-btn tb-tool-btn-secondary"
+                title="Lưu làm bài tập mẫu"
+              >
+                <List size={15} /><span>Lưu BT</span>
+              </Link>
+            )}
             {onToggleAutoSave && (
               <button 
                 className={`tb-tool-btn ${autoSaveEnabled ? 'tb-tool-btn-active' : ''}`}

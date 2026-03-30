@@ -6,6 +6,7 @@
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/config/SwaggerConfig.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/config/TestStructureInitializer.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/AdminDriveController.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/AssignmentController.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/AuthController.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/ClassManagementController.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/ExamAttemptController.java
@@ -27,6 +28,11 @@
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/WritingController.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/WritingCriteriaController.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/AnswerBackupRequest.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/AssignmentGradeRequest.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/AssignmentRequest.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/AssignmentResponse.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/AssignmentSubmissionRequest.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/AssignmentSubmissionResponse.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/AttemptAnswerSave.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/AuthResponse.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/ChangePasswordRequest.java
@@ -192,6 +198,7 @@
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/security/CustomUserDetailsService.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/security/JwtAuthenticationFilter.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/security/JwtUtil.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/service/AssignmentService.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/service/ExamAttemptService.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/service/FileUploadService.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/service/FullTestProgressService.java

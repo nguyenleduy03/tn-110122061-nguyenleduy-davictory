@@ -5,12 +5,15 @@ import {
   RotateCcw,
   ChevronRight,
   Volume2,
+  Headphones,
+  Pause,
+  Circle,
 } from "lucide-react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import "../styles/ieltsTest.css";
 import TestHeader from "../components/common/TestHeader";
 import { ieltsApi } from "../services/ieltsApi";
-import { normalizeRichHtml, stripInlineStyles, formatTextWithWhitespace } from "../utils/textFormatters";
+import { normalizeRichHtml, stripInlineStyles } from "../utils/textFormatters";
 import { computeFullTestProgressPercent, getFullTestSessionState, parseJsonSafe } from "../utils/fullTestProgress";
 import { buildTimerPersistKey, markTestSubmitted, getSubmittedRedirect } from "../utils/testRuntimeState";
 
@@ -25,11 +28,136 @@ const fmtTime = (sec) => {
   return `${m}:${s}`;
 };
 
+const createToneSampleUrl = (durationSec = 8, frequency = 440, sampleRate = 44100) => {
+  const samples = Math.max(1, Math.floor(durationSec * sampleRate));
+  const buffer = new ArrayBuffer(44 + samples * 2);
+  const view = new DataView(buffer);
+
+  const writeString = (offset, text) => {
+    for (let i = 0; i < text.length; i += 1) {
+      view.setUint8(offset + i, text.charCodeAt(i));
+    }
+  };
+
+  writeString(0, "RIFF");
+  view.setUint32(4, 36 + samples * 2, true);
+  writeString(8, "WAVE");
+  writeString(12, "fmt ");
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+  writeString(36, "data");
+  view.setUint32(40, samples * 2, true);
+
+  const amplitude = 0.3;
+  for (let i = 0; i < samples; i += 1) {
+    const sample = Math.sin((2 * Math.PI * frequency * i) / sampleRate);
+    const value = Math.max(-1, Math.min(1, sample * amplitude));
+    view.setInt16(44 + i * 2, value * 0x7fff, true);
+  }
+
+  return URL.createObjectURL(new Blob([buffer], { type: "audio/wav" }));
+};
+
 const PREP_SECONDS = 60;
 const PART_DURATION_SECONDS = { 1: 5 * 60, 2: 2 * 60, 3: 5 * 60 };
+const THINK_SECONDS = 5;
+
+const audioBufferToWavBlob = (audioBuffer) => {
+  const channels = audioBuffer.numberOfChannels;
+  const sampleRate = audioBuffer.sampleRate;
+  const samples = audioBuffer.length;
+  const bytesPerSample = 2;
+  const blockAlign = channels * bytesPerSample;
+  const dataSize = samples * blockAlign;
+  const buffer = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(buffer);
+
+  const writeString = (offset, text) => {
+    for (let i = 0; i < text.length; i += 1) {
+      view.setUint8(offset + i, text.charCodeAt(i));
+    }
+  };
+
+  writeString(0, "RIFF");
+  view.setUint32(4, 36 + dataSize, true);
+  writeString(8, "WAVE");
+  writeString(12, "fmt ");
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, channels, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * blockAlign, true);
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, 16, true);
+  writeString(36, "data");
+  view.setUint32(40, dataSize, true);
+
+  const channelData = [];
+  for (let c = 0; c < channels; c += 1) {
+    channelData.push(audioBuffer.getChannelData(c));
+  }
+
+  let offset = 44;
+  for (let i = 0; i < samples; i += 1) {
+    for (let c = 0; c < channels; c += 1) {
+      const sample = Math.max(-1, Math.min(1, channelData[c][i]));
+      view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
+      offset += 2;
+    }
+  }
+
+  return new Blob([buffer], { type: "audio/wav" });
+};
+
+const mergeRecordingBlobsToUrl = async (blobs) => {
+  if (!blobs?.length) return '';
+
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) {
+    return URL.createObjectURL(blobs[0]);
+  }
+
+  const context = new AudioContextClass();
+  try {
+    const decoded = [];
+    for (const blob of blobs) {
+      const buf = await blob.arrayBuffer();
+      const audio = await context.decodeAudioData(buf.slice(0));
+      decoded.push(audio);
+    }
+
+    if (!decoded.length) return '';
+
+    const sampleRate = decoded[0].sampleRate;
+    const numberOfChannels = Math.max(...decoded.map((b) => b.numberOfChannels));
+    const totalLength = decoded.reduce((sum, b) => sum + b.length, 0);
+    const merged = context.createBuffer(numberOfChannels, totalLength, sampleRate);
+
+    let writeOffset = 0;
+    decoded.forEach((buffer) => {
+      for (let c = 0; c < numberOfChannels; c += 1) {
+        const target = merged.getChannelData(c);
+        const source = buffer.getChannelData(Math.min(c, buffer.numberOfChannels - 1));
+        target.set(source, writeOffset);
+      }
+      writeOffset += buffer.length;
+    });
+
+    return URL.createObjectURL(audioBufferToWavBlob(merged));
+  } catch {
+    return URL.createObjectURL(blobs[0]);
+  } finally {
+    await context.close().catch(() => { });
+  }
+};
 
 // ── Waveform visualiser (canvas) ──────────────────────────────────────────────
-const Waveform = ({ analyser }) => {
+const Waveform = ({ analyser, width = 280, height = 48, className = "spk-waveform" }) => {
   const canvasRef = useRef(null);
   const rafRef = useRef(null);
 
@@ -60,9 +188,9 @@ const Waveform = ({ analyser }) => {
   return (
     <canvas
       ref={canvasRef}
-      width={280}
-      height={48}
-      className="spk-waveform"
+      width={width}
+      height={height}
+      className={className}
     />
   );
 };
@@ -70,11 +198,11 @@ const Waveform = ({ analyser }) => {
 // ── CueCard (Part 2 only) ─────────────────────────────────────────────────────
 const CueCard = ({ question }) => (
   <div className="spk-cuecard">
-    {question.topic
-      ? <div className="spk-cuecard-topic" dangerouslySetInnerHTML={{ __html: formatSpeakingHtml(question.topic) }} />
-      : <div className="spk-cuecard-topic" />}
-    {question.instruction && (
-      <div className="spk-cuecard-desc" dangerouslySetInnerHTML={{ __html: formatSpeakingHtml(question.instruction) }} />
+    {question.topic && (
+      <div className="spk-cuecard-topic" dangerouslySetInnerHTML={{ __html: formatSpeakingHtml(question.topic) }} />
+    )}
+    {question.shouldSayLabel && (
+      <div className="spk-cuecard-label" dangerouslySetInnerHTML={{ __html: formatSpeakingHtml(question.shouldSayLabel) }} />
     )}
     {question.bulletPoints?.length > 0 && (
       <ul className="spk-cuecard-bullets">
@@ -135,14 +263,35 @@ const IeltsSpeakingTest = () => {
   const [phase, setPhase] = useState("idle");
   const [prepSeconds, setPrepSeconds] = useState(PREP_SECONDS);
   const [recSeconds, setRecSeconds] = useState(0);
+  const [thinkSecondsLeft, setThinkSecondsLeft] = useState(THINK_SECONDS);
   const [partSecondsLeft, setPartSecondsLeft] = useState(0);
+  const [recordingStopSeq, setRecordingStopSeq] = useState(0);
   const [startTime] = useState(() => Date.now());
 
-  // stage: mic-test | part | part-review
+  // stage: mic-test | part-intro | part | part-review
   const [stage, setStage] = useState('mic-test');
   const [micTested, setMicTested] = useState(false);
 
+  const [audioInputDevices, setAudioInputDevices] = useState([]);
+  const [audioOutputDevices, setAudioOutputDevices] = useState([]);
+  const [selectedInputId, setSelectedInputId] = useState('');
+  const [selectedOutputId, setSelectedOutputId] = useState('');
+
+  const [headphoneChecked, setHeadphoneChecked] = useState(false);
+  const [headphoneCurrentTime, setHeadphoneCurrentTime] = useState(0);
+  const [headphoneDuration, setHeadphoneDuration] = useState(8);
+  const [isHeadphonePlaying, setIsHeadphonePlaying] = useState(false);
+  const [headphoneSampleUrl, setHeadphoneSampleUrl] = useState('');
+
+  const [micCheckStatus, setMicCheckStatus] = useState('idle'); // idle | recording | recorded
+  const [micCheckSeconds, setMicCheckSeconds] = useState(0);
+  const [micCheckUrl, setMicCheckUrl] = useState('');
+  const [micCheckCurrentTime, setMicCheckCurrentTime] = useState(0);
+  const [micCheckDuration, setMicCheckDuration] = useState(0);
+  const [isMicCheckPlaying, setIsMicCheckPlaying] = useState(false);
+
   const [audioUrls, setAudioUrls] = useState({}); // { questionId: objectURL }
+  const [partReviewAudioUrls, setPartReviewAudioUrls] = useState({}); // { partIdx: objectURL }
   const [micAllowed, setMicAllowed] = useState(null); // null | true | false
   const [submitted, setSubmitted] = useState(false);
   const autosaveStateRef = useRef({
@@ -160,10 +309,20 @@ const IeltsSpeakingTest = () => {
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
   const streamRef = useRef(null);
+  const activeInputDeviceIdRef = useRef('');
   const timerRef = useRef(null);
   const partTimerRef = useRef(null);
+  const micCheckRecorderRef = useRef(null);
+  const micCheckChunksRef = useRef([]);
+  const micCheckTimerRef = useRef(null);
   const audioCtxRef = useRef(null);
   const analyserRef = useRef(null);
+  const headphoneAudioRef = useRef(null);
+  const micCheckAudioRef = useRef(null);
+  const autoStartTriggeredRef = useRef(false);
+  const pendingTransitionRef = useRef(null);
+  const pendingAudioUrlsRef = useRef({});
+  const pendingAudioBlobsRef = useRef({});
   const [analyser, setAnalyser] = useState(null);
 
   // ── Load test data ─────────────────────────────────────────────────────────
@@ -249,7 +408,7 @@ const IeltsSpeakingTest = () => {
         setPartSecondsLeft(Math.max(0, snapshot.partSecondsLeft));
       }
 
-      if (snapshot.stage === 'part' || snapshot.stage === 'part-review') {
+      if (snapshot.stage === 'part' || snapshot.stage === 'part-review' || snapshot.stage === 'part-intro') {
         setStage(snapshot.stage);
         setMicTested(true);
       }
@@ -265,16 +424,57 @@ const IeltsSpeakingTest = () => {
     };
   }, [isFullTest, testData, testId]);
 
-  // ── Cleanup on unmount ─────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!micCheckUrl) return undefined;
+    return () => {
+      URL.revokeObjectURL(micCheckUrl);
+    };
+  }, [micCheckUrl]);
+
+  useEffect(() => {
+    if (stage !== 'mic-test') return;
+    setMicTested(Boolean(micCheckUrl));
+  }, [micCheckUrl, stage]);
+
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.enumerateDevices) return undefined;
+
+    const refreshMediaDevices = async () => {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const inputs = devices.filter((d) => d.kind === 'audioinput');
+
+        setAudioInputDevices(inputs);
+
+        if (!selectedInputId && inputs.length > 0) {
+          setSelectedInputId(inputs[0].deviceId);
+        }
+      } catch {
+        // Ignore device enumeration errors on restricted browsers.
+      }
+    };
+
+    refreshMediaDevices();
+    navigator.mediaDevices.addEventListener('devicechange', refreshMediaDevices);
+    return () => {
+      navigator.mediaDevices.removeEventListener('devicechange', refreshMediaDevices);
+    };
+  }, [selectedInputId]);
+
   useEffect(() => {
     return () => {
       clearInterval(timerRef.current);
       clearInterval(partTimerRef.current);
-      clearInterval(micTestTimerRef.current);
+      clearInterval(micCheckTimerRef.current);
+      if (micCheckRecorderRef.current?.state === 'recording') {
+        micCheckRecorderRef.current.stop();
+      }
       if (streamRef.current)
         streamRef.current.getTracks().forEach((t) => t.stop());
       if (audioCtxRef.current) audioCtxRef.current.close();
       Object.values(audioUrls).forEach((url) => URL.revokeObjectURL(url));
+      Object.values(pendingAudioUrlsRef.current).forEach((url) => URL.revokeObjectURL(url));
+      Object.values(partReviewAudioUrls).forEach((url) => URL.revokeObjectURL(url));
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -284,6 +484,29 @@ const IeltsSpeakingTest = () => {
   const currentQ = currentPart?.questions?.[currentQIdx];
   const isPartTwo = currentPart?.partNumber === 2;
   const totalParts = testData?.parts?.length ?? 0;
+
+  const partInstructions = useMemo(() => {
+    const list = [];
+
+    if (currentPart?.instruction) {
+      list.push(currentPart.instruction);
+    }
+
+    const firstGroup = currentPart?.questionGroups?.[0];
+    if (firstGroup?.passageText) {
+      try {
+        const parsed = JSON.parse(firstGroup.passageText);
+        if (parsed?.partInstruction) {
+          list.push(parsed.partInstruction);
+        }
+      } catch {
+        // Ignore malformed group instruction payload.
+      }
+    }
+
+    return list;
+  }, [currentPart]);
+
   const initialPartIndex = useMemo(() => {
     if (!Number.isFinite(startPartNumber) || startPartNumber <= 0 || !testData?.parts?.length) {
       return 0;
@@ -295,10 +518,8 @@ const IeltsSpeakingTest = () => {
     });
     return idx >= 0 ? idx : 0;
   }, [startPartNumber, testData]);
-  const initialPartLabel = testData?.parts?.[initialPartIndex]?.partNumber || (initialPartIndex + 1);
   const questionId = currentQ?.id;
-  const hasRecording = !!audioUrls[questionId];
-  const isCueCard = isPartTwo && currentQ?.bulletPoints;
+  const isCueCard = currentQ?.bulletPoints?.length > 0;
   const isLastQ =
     currentPartIdx === totalParts - 1 &&
     currentQIdx === (currentPart?.questions?.length ?? 1) - 1;
@@ -391,12 +612,31 @@ const IeltsSpeakingTest = () => {
   }, [noTimeLimit]);
 
   // ── Mic setup ──────────────────────────────────────────────────────────────
-  const ensureMic = async () => {
-    if (streamRef.current) return streamRef.current;
+  const ensureMic = useCallback(async () => {
+    const needNewStream =
+      !streamRef.current ||
+      (selectedInputId && activeInputDeviceIdRef.current !== selectedInputId);
+
+    if (!needNewStream) return streamRef.current;
+
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+
+    if (audioCtxRef.current) {
+      await audioCtxRef.current.close().catch(() => { });
+      audioCtxRef.current = null;
+    }
+
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const constraints = selectedInputId
+        ? { audio: { deviceId: { exact: selectedInputId } } }
+        : { audio: true };
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
       streamRef.current = stream;
-      // setup analyser for waveform
+      activeInputDeviceIdRef.current = selectedInputId || '';
+
       const ctx = new AudioContext();
       audioCtxRef.current = ctx;
       const src = ctx.createMediaStreamSource(stream);
@@ -410,39 +650,105 @@ const IeltsSpeakingTest = () => {
       setMicAllowed(false);
       return null;
     }
-  };
+  }, [selectedInputId]);
 
-  const [micTestCountdown, setMicTestCountdown] = useState(0);
-  const [isMicTesting, setIsMicTesting] = useState(false);
-  const micTestTimerRef = useRef(null);
+  const toggleHeadphonePlayback = useCallback(async () => {
+    const audio = headphoneAudioRef.current;
+    if (!audio) return;
 
-  const runMicTest = useCallback(async () => {
+    try {
+      if (audio.paused) {
+        if (audio.currentTime >= (audio.duration || headphoneDuration)) {
+          audio.currentTime = 0;
+        }
+        await audio.play();
+      } else {
+        audio.pause();
+      }
+    } catch {
+      // Ignore autoplay or device routing errors.
+    }
+  }, [headphoneDuration]);
+
+  const stopMicCheckRecording = useCallback(() => {
+    clearInterval(micCheckTimerRef.current);
+    const rec = micCheckRecorderRef.current;
+    if (rec && rec.state !== 'inactive') {
+      rec.stop();
+    }
+  }, []);
+
+  const startMicCheckRecording = useCallback(async () => {
     const stream = await ensureMic();
     if (!stream) return;
-    
-    setIsMicTesting(true);
-    setMicTestCountdown(20);
+
+    clearInterval(micCheckTimerRef.current);
+    if (micCheckRecorderRef.current?.state === 'recording') {
+      micCheckRecorderRef.current.stop();
+    }
+
+    if (micCheckUrl) {
+      URL.revokeObjectURL(micCheckUrl);
+      setMicCheckUrl('');
+    }
+
+    const micAudio = micCheckAudioRef.current;
+    if (micAudio) {
+      micAudio.pause();
+      micAudio.currentTime = 0;
+    }
+    setIsMicCheckPlaying(false);
+    setMicCheckCurrentTime(0);
+    setMicCheckDuration(0);
+
+    micCheckChunksRef.current = [];
+    const recorder = new MediaRecorder(stream);
+    recorder.ondataavailable = (event) => {
+      if (event.data.size > 0) micCheckChunksRef.current.push(event.data);
+    };
+    recorder.onstop = () => {
+      const blob = new Blob(micCheckChunksRef.current, { type: 'audio/webm' });
+      const url = URL.createObjectURL(blob);
+      setMicCheckUrl(url);
+      setMicCheckStatus('recorded');
+      setMicCheckCurrentTime(0);
+      setAnalyser(null);
+    };
+
+    recorder.start();
+    micCheckRecorderRef.current = recorder;
+    setMicCheckStatus('recording');
+    setMicCheckSeconds(0);
     setAnalyser(analyserRef.current);
-    
-    micTestTimerRef.current = setInterval(() => {
-      setMicTestCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(micTestTimerRef.current);
-          setIsMicTesting(false);
-          setMicTested(true);
-          return 0;
+
+    micCheckTimerRef.current = setInterval(() => {
+      setMicCheckSeconds((prev) => {
+        if (prev >= 19) {
+          stopMicCheckRecording();
+          return 20;
         }
-        return prev - 1;
+        return prev + 1;
       });
     }, 1000);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [ensureMic, micCheckUrl, stopMicCheckRecording]);
 
-  const skipMicTest = useCallback(() => {
-    clearInterval(micTestTimerRef.current);
-    setIsMicTesting(false);
-    setMicTested(true);
-    setMicTestCountdown(0);
-  }, []);
+  const toggleMicCheckPlayback = useCallback(async () => {
+    const audio = micCheckAudioRef.current;
+    if (!audio || !micCheckUrl) return;
+
+    try {
+      if (audio.paused) {
+        if (audio.currentTime >= (audio.duration || micCheckDuration || 0)) {
+          audio.currentTime = 0;
+        }
+        await audio.play();
+      } else {
+        audio.pause();
+      }
+    } catch {
+      // Ignore playback errors.
+    }
+  }, [micCheckUrl, micCheckDuration]);
 
   // ── Start recording ────────────────────────────────────────────────────────
   const startRecording = useCallback(async () => {
@@ -458,12 +764,14 @@ const IeltsSpeakingTest = () => {
     mr.onstop = () => {
       const blob = new Blob(chunksRef.current, { type: "audio/webm" });
       const url = URL.createObjectURL(blob);
-      setAudioUrls((prev) => {
-        if (prev[qId]) URL.revokeObjectURL(prev[qId]);
-        return { ...prev, [qId]: url };
-      });
+      if (pendingAudioUrlsRef.current[qId]) {
+        URL.revokeObjectURL(pendingAudioUrlsRef.current[qId]);
+      }
+      pendingAudioUrlsRef.current[qId] = url;
+      pendingAudioBlobsRef.current[qId] = blob;
       setPhase("done");
       setAnalyser(null);
+      setRecordingStopSeq((s) => s + 1);
     };
     mr.start();
     mediaRecorderRef.current = mr;
@@ -474,19 +782,23 @@ const IeltsSpeakingTest = () => {
       () => setRecSeconds((s) => s + 1),
       1000
     );
-  }, [questionId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [ensureMic, questionId]);
 
   // ── Stop recording ─────────────────────────────────────────────────────────
   const stopRecording = useCallback(() => {
     clearInterval(timerRef.current);
-    mediaRecorderRef.current?.stop();
+    const recorder = mediaRecorderRef.current;
+    if (recorder && recorder.state !== 'inactive') {
+      recorder.stop();
+    }
   }, []);
 
   // ── Start preparation (Part 2) ─────────────────────────────────────────────
   const startPrep = useCallback(async () => {
     await ensureMic(); // request early so user sees prompt once
     setPhase("preparing");
-    setPrepSeconds(PREP_SECONDS);
+    const prepTime = currentQ?.prepSeconds ?? PREP_SECONDS;
+    setPrepSeconds(prepTime);
     clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
       setPrepSeconds((s) => {
@@ -498,7 +810,7 @@ const IeltsSpeakingTest = () => {
         return s - 1;
       });
     }, 1000);
-  }, [startRecording]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [startRecording, currentQ]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const skipPrep = useCallback(() => {
     clearInterval(timerRef.current);
@@ -507,53 +819,184 @@ const IeltsSpeakingTest = () => {
 
   // ── Mic button handler ─────────────────────────────────────────────────────
   const handleMicBtn = useCallback(() => {
-    if (phase === "idle") {
-      if (isCueCard) startPrep();
-      else startRecording();
-    } else if (phase === "preparing") {
+    if (phase === "preparing") {
       skipPrep();
     } else if (phase === "recording") {
       stopRecording();
     }
-  }, [phase, isCueCard, startPrep, startRecording, skipPrep, stopRecording]);
+  }, [phase, skipPrep, stopRecording]);
 
   // ── Navigation ─────────────────────────────────────────────────────────────
+  const commitCurrentPartRecordings = useCallback(() => {
+    const questions = currentPart?.questions ?? [];
+    if (!questions.length) return [];
+
+    const updates = {};
+    const orderedBlobs = [];
+    questions.forEach((q) => {
+      if (pendingAudioUrlsRef.current[q.id]) {
+        updates[q.id] = pendingAudioUrlsRef.current[q.id];
+        delete pendingAudioUrlsRef.current[q.id];
+      }
+      if (pendingAudioBlobsRef.current[q.id]) {
+        orderedBlobs.push(pendingAudioBlobsRef.current[q.id]);
+        delete pendingAudioBlobsRef.current[q.id];
+      }
+    });
+
+    const ids = Object.keys(updates);
+    if (!ids.length) return orderedBlobs;
+
+    setAudioUrls((prev) => {
+      const next = { ...prev };
+      ids.forEach((id) => {
+        if (next[id] && next[id] !== updates[id]) {
+          URL.revokeObjectURL(next[id]);
+        }
+        next[id] = updates[id];
+      });
+      return next;
+    });
+
+    return orderedBlobs;
+  }, [currentPart]);
+
+  const buildPartReviewAudio = useCallback(async (partIdx, orderedBlobs) => {
+    if (!orderedBlobs?.length) return;
+
+    const mergedUrl = await mergeRecordingBlobsToUrl(orderedBlobs);
+    if (!mergedUrl) return;
+
+    setPartReviewAudioUrls((prev) => {
+      if (prev[partIdx] && prev[partIdx] !== mergedUrl) {
+        URL.revokeObjectURL(prev[partIdx]);
+      }
+      return { ...prev, [partIdx]: mergedUrl };
+    });
+  }, []);
+
   const navigateTo = useCallback(
     (partIdx, qIdx) => {
       clearInterval(timerRef.current);
-      if (phase === "recording") mediaRecorderRef.current?.stop();
       setCurrentPartIdx(partIdx);
       setCurrentQIdx(qIdx);
+      pendingTransitionRef.current = null;
+      autoStartTriggeredRef.current = false;
       setPhase("idle");
+      setThinkSecondsLeft(THINK_SECONDS);
       setRecSeconds(0);
       setPrepSeconds(PREP_SECONDS);
       setAnalyser(null);
     },
-    [phase]
+    []
   );
 
   const goPartReview = useCallback(() => {
+    if (phase === 'recording') {
+      pendingTransitionRef.current = { type: 'review' };
+      stopRecording();
+      return;
+    }
+
     clearInterval(timerRef.current);
     clearInterval(partTimerRef.current);
-    if (phase === 'recording') mediaRecorderRef.current?.stop();
+    pendingTransitionRef.current = null;
+    autoStartTriggeredRef.current = false;
+    const partIdx = currentPartIdx;
+    const orderedBlobs = commitCurrentPartRecordings();
+    void buildPartReviewAudio(partIdx, orderedBlobs);
     setPhase('idle');
     setAnalyser(null);
     setStage('part-review');
-  }, [phase]);
+  }, [phase, stopRecording, currentPartIdx, commitCurrentPartRecordings, buildPartReviewAudio]);
+
+  const resetCurrentPart = useCallback(() => {
+    const questions = currentPart?.questions ?? [];
+
+    setAudioUrls((prev) => {
+      const next = { ...prev };
+      questions.forEach((q) => {
+        const qId = q.id;
+        if (next[qId]) {
+          URL.revokeObjectURL(next[qId]);
+          delete next[qId];
+        }
+        if (pendingAudioUrlsRef.current[qId]) {
+          URL.revokeObjectURL(pendingAudioUrlsRef.current[qId]);
+          delete pendingAudioUrlsRef.current[qId];
+        }
+        if (pendingAudioBlobsRef.current[qId]) {
+          delete pendingAudioBlobsRef.current[qId];
+        }
+      });
+      return next;
+    });
+
+    setPartReviewAudioUrls((prev) => {
+      if (!prev[currentPartIdx]) return prev;
+      URL.revokeObjectURL(prev[currentPartIdx]);
+      const next = { ...prev };
+      delete next[currentPartIdx];
+      return next;
+    });
+
+    pendingTransitionRef.current = null;
+    autoStartTriggeredRef.current = false;
+    clearInterval(partTimerRef.current);
+    const durationSec = getPartDurationSec(testData?.parts?.[currentPartIdx]);
+    setPartSecondsLeft(durationSec);
+    if (durationSec > 0) {
+      partTimerRef.current = setInterval(() => {
+        setPartSecondsLeft((s) => {
+          if (s <= 1) {
+            clearInterval(partTimerRef.current);
+            goPartReview();
+            return 0;
+          }
+          return s - 1;
+        });
+      }, 1000);
+    }
+    setStage('part');
+    setCurrentQIdx(0);
+    setPhase('idle');
+    setRecSeconds(0);
+    setPrepSeconds(PREP_SECONDS);
+    setThinkSecondsLeft(THINK_SECONDS);
+    setAnalyser(null);
+  }, [currentPart, currentPartIdx, getPartDurationSec, testData, goPartReview]);
 
   const startPartWithIndex = useCallback((partIdx) => {
     const part = testData?.parts?.[partIdx];
     if (!part) return;
+
+    // Show part intro first
+    setCurrentPartIdx(partIdx);
+    pendingTransitionRef.current = null;
+    autoStartTriggeredRef.current = false;
+    setStage('part-intro');
+    setPhase('idle');
+    setRecSeconds(0);
+    setPrepSeconds(PREP_SECONDS);
+    setThinkSecondsLeft(THINK_SECONDS);
+    setAnalyser(null);
+  }, [testData]);
+
+  const startPartQuestions = useCallback(() => {
+    const part = testData?.parts?.[currentPartIdx];
+    if (!part) return;
+
     clearInterval(partTimerRef.current);
     const durationSec = getPartDurationSec(part);
     setPartSecondsLeft(durationSec);
     setStage('part');
+    setCurrentQIdx(0);
+    autoStartTriggeredRef.current = false;
+    setThinkSecondsLeft(THINK_SECONDS);
     setPhase('idle');
     setRecSeconds(0);
-    setPrepSeconds(PREP_SECONDS);
     setAnalyser(null);
-    setCurrentPartIdx(partIdx);
-    setCurrentQIdx(0);
+
     if (durationSec <= 0) return;
     partTimerRef.current = setInterval(() => {
       setPartSecondsLeft((s) => {
@@ -569,20 +1012,74 @@ const IeltsSpeakingTest = () => {
 
   const goNext = useCallback(() => {
     if (!currentPart) return;
-    if (currentQIdx < currentPart.questions.length - 1) {
-      navigateTo(currentPartIdx, currentQIdx + 1);
+
+    if (pendingTransitionRef.current) return;
+
+    const nextTransition = currentQIdx < currentPart.questions.length - 1
+      ? { type: 'next', partIdx: currentPartIdx, qIdx: currentQIdx + 1 }
+      : { type: 'review' };
+
+    if (phase === 'recording') {
+      pendingTransitionRef.current = nextTransition;
+      stopRecording();
+      return;
+    }
+
+    if (phase !== 'done') {
+      return;
+    }
+
+    if (nextTransition.type === 'next') {
+      navigateTo(nextTransition.partIdx, nextTransition.qIdx);
     } else {
       goPartReview();
     }
-  }, [currentPart, currentQIdx, currentPartIdx, navigateTo, goPartReview]);
+  }, [currentPart, currentQIdx, currentPartIdx, phase, stopRecording, navigateTo, goPartReview]);
 
+  useEffect(() => {
+    if (!recordingStopSeq) return;
+    const pending = pendingTransitionRef.current;
+    if (!pending) return;
 
+    pendingTransitionRef.current = null;
+    if (pending.type === 'next') {
+      navigateTo(pending.partIdx, pending.qIdx);
+      return;
+    }
 
-  const reRecord = useCallback(() => {
-    setPhase("idle");
-    setRecSeconds(0);
-    setAnalyser(null);
-  }, []);
+    goPartReview();
+  }, [recordingStopSeq, navigateTo, goPartReview]);
+
+  useEffect(() => {
+    if (stage !== 'part' || !currentQ) return;
+    autoStartTriggeredRef.current = false;
+    setThinkSecondsLeft(THINK_SECONDS);
+  }, [stage, currentPartIdx, currentQIdx, currentQ]);
+
+  useEffect(() => {
+    if (stage !== 'part') return;
+    if (phase !== 'idle') return;
+
+    if (thinkSecondsLeft <= 0) {
+      if (autoStartTriggeredRef.current) return;
+      autoStartTriggeredRef.current = true;
+      if (isCueCard) {
+        startPrep();
+      } else {
+        startRecording();
+      }
+      return;
+    }
+
+    const thinkTimer = setInterval(() => {
+      setThinkSecondsLeft((s) => {
+        if (s <= 1) return 0;
+        return s - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(thinkTimer);
+  }, [stage, phase, thinkSecondsLeft, isCueCard, startPrep, startRecording]);
 
   const submitTest = useCallback(() => {
     const timeSpentSeconds = Math.floor((Date.now() - startTime) / 1000);
@@ -708,12 +1205,19 @@ const IeltsSpeakingTest = () => {
     .filter(Boolean)
     .join(" ");
 
+  const canAdvanceQuestion = phase === "recording" || phase === "done";
+  const isThinking = stage === 'part' && phase === 'idle' && thinkSecondsLeft > 0;
+  const micButtonDisabled = stage === 'part';
+
   return (
     <div className="ielts-container">
       <TestHeader
         candidateName={testData.candidateName}
         candidateId={testData.candidateId}
         submitTest={submitTest}
+        hideSubmitButton={stage === 'mic-test'}
+        hideTimer={stage === 'mic-test'}
+        timerPaused={stage !== 'part'}
         duration={testData.totalMinutes}
         noTimeLimit={noTimeLimit}
         onTimeUp={submitTest}
@@ -723,49 +1227,50 @@ const IeltsSpeakingTest = () => {
         timerPersistKey={timerPersistKey}
       />
 
-      <div className="instruction-bar">
-        <h3 dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(currentPart?.title || '') }} />
-        {currentPart?.instruction && <p dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(currentPart.instruction) }} />}
-      </div>
-
       {/* Main card ──────────────────────────────────────────────────────── */}
-      <main className="spk-main">
+      <main className={`spk-main ${stage === 'part-intro' ? 'spk-main-intro' : ''} ${stage === 'part' ? 'spk-main-part' : ''}`}>
         {stage === 'mic-test' && (
-          <div className="spk-card spk-mic-check">
-            <div className="spk-mic-title">TEST YOUR MICROPHONE</div>
-            {isMicTesting && (
-              <div className="spk-mic-countdown">
-                <div className="spk-countdown-timer">{fmtTime(micTestCountdown)}</div>
-                <p className="spk-countdown-text">You have {micTestCountdown} seconds to speak…</p>
+          <div className="spk-card spk-check-stage spk-check-mic-only">
+            <h2 className="spk-check-mic-title">TEST YOUR MICROPHONE</h2>
+
+            <div className="spk-check-mic-center">
+              <div className="spk-check-mic-icon" aria-hidden="true">
+                <Mic size={40} />
               </div>
-            )}
-            <div className="spk-mic-sub">
-              To complete this activity, you must allow access to your system's microphone. Click the button below to Start.
             </div>
-            <div className="spk-mic-actions">
-              {!isMicTesting ? (
-                <button className="spk-mic-test-btn" onClick={runMicTest} disabled={micTested}>
-                  Test Microphone
-                </button>
-              ) : (
-                <button className="spk-skip-btn" onClick={skipMicTest}>
-                  Skip
-                </button>
-              )}
-              {micTested && !isMicTesting && (
-                <button
-                  className="spk-start-btn"
-                  onClick={() => startPartWithIndex(initialPartIndex)}
-                >
-                  Start Part {initialPartLabel}
-                </button>
-              )}
+
+            <p className="spk-check-mic-time">
+              You have {micCheckStatus === 'recording' ? Math.max(0, 20 - micCheckSeconds) : 20} seconds to speak...
+            </p>
+
+            <p className="spk-check-mic-desc">
+              To complete this activity, you must allow access to your system's microphone.
+            </p>
+
+            <div className="spk-check-mic-actions">
+              <button
+                type="button"
+                className="spk-start-btn spk-check-mic-test-btn"
+                onClick={() => {
+                  if (micCheckStatus === 'recording') {
+                    stopMicCheckRecording();
+                  } else {
+                    startMicCheckRecording();
+                  }
+                }}
+              >
+                {micCheckStatus === 'recording' ? 'Stop Test' : 'Test Microphone'} <Circle size={14} />
+              </button>
+
+              <button
+                className="spk-next-btn spk-check-mic-skip-btn"
+                onClick={() => startPartWithIndex(initialPartIndex)}
+                type="button"
+              >
+                Skip <ChevronRight size={18} />
+              </button>
             </div>
-            {(micTested || isMicTesting) && analyser && (
-              <div className="spk-mic-wave">
-                <Waveform analyser={analyser} />
-              </div>
-            )}
+
             {micAllowed === false && (
               <p className="spk-mic-error">
                 ⚠ Microphone access denied. Please allow microphone in your
@@ -775,69 +1280,104 @@ const IeltsSpeakingTest = () => {
           </div>
         )}
 
-        {stage === 'part-review' && (
-          <div className="spk-card spk-review">
-            <div className="spk-review-title">
-              Hoàn thành Part {currentPart.partNumber} · Nghe lại câu trả lời
+        {stage === 'part-intro' && (
+          <div className="spk-card spk-part-intro">
+            <div className="spk-intro-topbar">
+              <div className="spk-intro-topbar-spacer" aria-hidden="true" />
+              <h2 className="spk-intro-title">{currentPart.title || `Part ${currentPart.partNumber}`}</h2>
+              <button className="spk-start-btn spk-intro-start-btn" onClick={startPartQuestions}>
+                Start now
+              </button>
             </div>
-            <div className="spk-review-list">
-              {(currentPart.questions ?? []).map((q, idx) => {
-                const qId = q.id;
-                const text = q.text || q.topic || `Question ${idx + 1}`;
-                return (
-                  <div key={qId ?? idx} className="spk-review-item">
-                    <div className="spk-review-q">
-                      <span className="spk-review-qnum">Q{idx + 1}.</span>
-                      <span dangerouslySetInnerHTML={{ __html: text }} />
-                    </div>
-                    {audioUrls[qId]
-                      ? <audio controls src={audioUrls[qId]} className="spk-audio" />
-                      : <span className="spk-review-missing">Chưa ghi âm</span>}
-                  </div>
-                );
-              })}
-            </div>
-            <div className="spk-review-actions">
-              {currentPartIdx < totalParts - 1 ? (
-                <button className="spk-next-btn" onClick={() => startPartWithIndex(currentPartIdx + 1)}>
-                  Tiếp tục Part {currentPartIdx + 2} <ChevronRight size={18} />
-                </button>
+
+            <div className="spk-intro-content">
+              <h3 className="spk-intro-section-title">Instruction</h3>
+              {partInstructions.length > 0 ? (
+                <div className="spk-intro-instructions">
+                  {partInstructions.map((inst, idx) => (
+                    <div
+                      key={idx}
+                      className="spk-intro-instruction"
+                      dangerouslySetInnerHTML={{ __html: formatSpeakingHtml(inst) }}
+                    />
+                  ))}
+                </div>
               ) : (
-                <button className="spk-next-btn" onClick={submitTest}>
-                  Nộp bài
-                </button>
+                <div className="spk-intro-instruction">No instruction provided.</div>
               )}
             </div>
           </div>
         )}
 
-        {stage === 'part' && (
-          <div className="spk-card">
-            {/* Part label */}
-            <div className="spk-part-label">
-              Part {currentPart.partNumber} · <span dangerouslySetInnerHTML={{ __html: formatSpeakingHtml(currentPart.title || '') }} />
-              <span className="spk-part-meta">
-                ({currentPart.questions.length} questions) · {noTimeLimit ? 'No time limit' : fmtTime(partSecondsLeft)}
-              </span>
-              <span className="spk-q-counter">
-                Q{currentQIdx + 1} / {currentPart.questions.length}
-              </span>
+        {stage === 'part-review' && (
+          <div className="spk-card spk-review">
+            <div className="spk-intro-topbar spk-review-topbar">
+              <button className="spk-next-btn spk-review-reset-btn" onClick={resetCurrentPart}>
+                Reset This Part <RotateCcw size={16} />
+              </button>
+              <h2 className="spk-intro-title" dangerouslySetInnerHTML={{ __html: formatSpeakingHtml(currentPart.title || `Part ${currentPart.partNumber}`) }} />
+              {currentPartIdx < totalParts - 1 ? (
+                <button className="spk-next-btn spk-review-next-btn" onClick={() => startPartWithIndex(currentPartIdx + 1)}>
+                  Phần tiếp theo <ChevronRight size={18} />
+                </button>
+              ) : (
+                <button className="spk-next-btn spk-review-next-btn" onClick={submitTest}>
+                  Nộp bài
+                </button>
+              )}
             </div>
 
-            {/* Cue card or question text */}
-            {isCueCard ? (
-              <CueCard question={currentQ} />
-            ) : (
-              <div className="spk-question-text">
-                <span className="spk-q-number">Q{currentQIdx + 1}.</span>{" "}
-                <div className="spk-question-rich" dangerouslySetInnerHTML={{ __html: formatSpeakingHtml(currentQ.text || '') }} />
+            <div className="spk-review-full-body">
+              <div className="spk-review-full-title">IT'S THE END OF PART {currentPart.partNumber}</div>
+              <div className="spk-review-full-sub">You can review your part recording by clicking the Play button below</div>
+
+              {partReviewAudioUrls[currentPartIdx] ? (
+                <audio controls src={partReviewAudioUrls[currentPartIdx]} className="spk-review-full-audio" />
+              ) : (
+                <div className="spk-review-missing">Chưa có bản ghi cho part này</div>
+              )}
+
+              <div className="spk-review-full-note">
+                YOU CAN CLICK <strong>NEXT PART</strong> TO CONTINUE{currentPartIdx < totalParts - 1 ? ` PART ${currentPartIdx + 2}` : ''}
               </div>
-            )}
+              <div className="spk-review-full-note">OR <strong>RESET THIS PART</strong> TO RECORD AGAIN</div>
+            </div>
+          </div>
+        )}
+
+        {stage === 'part' && (
+          <div className="spk-card spk-part-live">
+            <div className="spk-intro-topbar spk-part-topbar">
+              <div className="spk-intro-topbar-spacer" aria-hidden="true" />
+              <h2 className="spk-intro-title" dangerouslySetInnerHTML={{ __html: formatSpeakingHtml(currentPart.title || `Part ${currentPart.partNumber}`) }} />
+              <button
+                className="spk-next-btn spk-part-next-top"
+                onClick={goNext}
+                disabled={!canAdvanceQuestion}
+              >
+                {isThinking
+                  ? `Time to Think ${fmtTime(thinkSecondsLeft)}`
+                  : (isLastQ ? 'Hoàn thành Part' : 'Next Question')}
+                {canAdvanceQuestion && <ChevronRight size={18} />}
+              </button>
+            </div>
+
+            <div className="spk-part-question-stage">
+              {/* Cue card or question text */}
+              {isCueCard ? (
+                <CueCard question={currentQ} />
+              ) : (
+                <div className="spk-question-text spk-part-question-text-wrap">
+                  <div className="spk-part-question-label">Question {currentQIdx + 1}</div>
+                  <div className="spk-part-question-text" dangerouslySetInnerHTML={{ __html: formatSpeakingHtml(currentQ.text || '') }} />
+                </div>
+              )}
+            </div>
 
             {/* Preparation countdown (Part 2) */}
             {phase === "preparing" && (
               <div className="spk-prep-timer">
-                <span className="spk-prep-label">⏳ Preparation time remaining</span>
+                <span className="spk-prep-label">Preparation time remaining</span>
                 <span className="spk-prep-countdown">{fmtTime(prepSeconds)}</span>
                 <button className="spk-skip-prep-btn" onClick={skipPrep}>
                   Start speaking now →
@@ -867,11 +1407,12 @@ const IeltsSpeakingTest = () => {
               <button
                 className={micBtnClass}
                 onClick={handleMicBtn}
+                disabled={micButtonDisabled}
                 title={
-                  phase === "recording" ? "Stop recording" : "Start recording"
+                  phase === "recording" ? "Stop recording" : "Recording starts automatically"
                 }
                 aria-label={
-                  phase === "recording" ? "Stop recording" : "Start recording"
+                  phase === "recording" ? "Stop recording" : "Recording starts automatically"
                 }
               >
                 {phase === "recording" ? <MicOff size={38} /> : <Mic size={38} />}
@@ -890,26 +1431,6 @@ const IeltsSpeakingTest = () => {
               )}
             </div>
 
-            {/* Playback ─────────────────────────────────────────────────── */}
-            {hasRecording && phase !== "recording" && (
-              <div className="spk-playback-row">
-                <Volume2 size={16} color="#6b7280" />
-                <audio controls src={audioUrls[questionId]} className="spk-audio" />
-                <button className="spk-rerecord-btn" onClick={reRecord}>
-                  <RotateCcw size={13} />
-                  Re-record
-                </button>
-              </div>
-            )}
-
-            {/* Next after recording */}
-            {phase === "done" && (
-              <div className="spk-next-row">
-                <button className="spk-next-btn" onClick={goNext}>
-                  {isLastQ ? 'Hoàn thành Part' : 'Next question'} <ChevronRight size={18} />
-                </button>
-              </div>
-            )}
           </div>
         )}
       </main>

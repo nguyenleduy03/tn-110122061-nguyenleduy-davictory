@@ -1,6 +1,6 @@
 import React from 'react';
-import { Bookmark } from 'lucide-react';
 import { formatTextWithWhitespace, stripInlineStyles } from '../../utils/textFormatters';
+import BookmarkToggle from '../common/BookmarkToggle';
 
 const formatAndClean = (text) => stripInlineStyles(formatTextWithWhitespace(text));
 
@@ -171,9 +171,12 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                     const hasInlineBlank = !!inlineBlankParts;
 
                     const bookmarkNode = !isReview ? (
-                        <span onClick={(e) => { e.stopPropagation(); toggleBookmark?.(subQ.number); }} className="dd-bookmark-btn">
-                            <Bookmark size={18} fill={bookmarks?.[subQ.number] ? "#1a73e8" : "none"} color={bookmarks?.[subQ.number] ? "#1a73e8" : "#ccc"} />
-                        </span>
+                        <BookmarkToggle
+                            className="dd-bookmark-btn"
+                            size={16}
+                            active={Boolean(bookmarks?.[subQ.number])}
+                            onToggle={() => toggleBookmark?.(subQ.number)}
+                        />
                     ) : null;
 
                     const inlineDropStyle = hasInlineBlank && hasDisplayAnswer
@@ -337,12 +340,12 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                                                         onFocus={() => { if (subQ && !isReview) setActiveQuestion(subQ.number); }}
                                                     >
                                                         {hasBookmark && (
-                                                            <span
+                                                            <BookmarkToggle
                                                                 className="fc-blank-bookmark"
-                                                                onClick={(e) => { e.stopPropagation(); toggleBookmark?.(subQ.number); }}
-                                                            >
-                                                                <Bookmark size={18} fill={bookmarks?.[subQ.number] ? '#1a73e8' : 'none'} color={bookmarks?.[subQ.number] ? '#1a73e8' : '#ccc'} />
-                                                            </span>
+                                                                size={16}
+                                                                active={Boolean(bookmarks?.[subQ.number])}
+                                                                onToggle={() => toggleBookmark?.(subQ.number)}
+                                                            />
                                                         )}
                                                         {showQuestionNumber && <strong className="fc-blank-num">{subQ?.number}</strong>}
                                                         {hasDisplayAnswer && <span className="fc-blank-answer">{displayAnswer}</span>}
@@ -410,64 +413,64 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                             )}
 
                             {subQuestions.map((subQ) => {
-                            const answer = answers[subQ.id];
-                            const normalizedAnswer = String(answer || '').trim().toLowerCase();
-                            const normalizedCorrect = String(subQ.correctAnswer || '').trim().toLowerCase();
-                            const isCorrect = normalizedAnswer === normalizedCorrect;
-                            const displayAnswer = (isReview && !isCorrect)
-                                ? String(subQ.correctAnswer || '')
-                                : String(answer || '');
-                            const hasAnswer = displayAnswer.trim() !== '';
-                            const isActive = activeQuestion === subQ.number;
+                                const answer = answers[subQ.id];
+                                const normalizedAnswer = String(answer || '').trim().toLowerCase();
+                                const normalizedCorrect = String(subQ.correctAnswer || '').trim().toLowerCase();
+                                const isCorrect = normalizedAnswer === normalizedCorrect;
+                                const displayAnswer = (isReview && !isCorrect)
+                                    ? String(subQ.correctAnswer || '')
+                                    : String(answer || '');
+                                const hasAnswer = displayAnswer.trim() !== '';
+                                const isActive = activeQuestion === subQ.number;
 
-                            return (
-                                <div
-                                    key={subQ.id}
-                                    className={`drop-zone ml-drop-zone ${isActive ? 'active' : ''} ${isReview ? (isCorrect ? 'review-correct' : 'review-wrong') : ''}`}
-                                    onClick={() => { if (!isReview) setActiveQuestion?.(subQ.number); }}
-                                    onDrop={isReview ? undefined : (e) => handleDrop(e, subQ.id)}
-                                    onDragOver={isReview ? undefined : handleDragOver}
-                                    style={{
-                                        top: subQ.top || '50%',
-                                        left: subQ.left || '50%',
-                                        width: `${pinBoxWidth}px`,
-                                        minWidth: `${pinBoxWidth}px`
-                                    }}
-                                >
-                                    {!isReview && (
-                                        <span
-                                            className="drop-zone-bookmark"
-                                            onClick={(e) => { e.stopPropagation(); toggleBookmark?.(subQ.number); }}
-                                        >
-                                            <Bookmark size={18} fill={bookmarks?.[subQ.number] ? '#1a73e8' : 'none'} color={bookmarks?.[subQ.number] ? '#1a73e8' : '#ccc'} />
-                                        </span>
-                                    )}
+                                return (
+                                    <div
+                                        key={subQ.id}
+                                        className={`drop-zone ml-drop-zone ${isActive ? 'active' : ''} ${isReview ? (isCorrect ? 'review-correct' : 'review-wrong') : ''}`}
+                                        onClick={() => { if (!isReview) setActiveQuestion?.(subQ.number); }}
+                                        onDrop={isReview ? undefined : (e) => handleDrop(e, subQ.id)}
+                                        onDragOver={isReview ? undefined : handleDragOver}
+                                        style={{
+                                            top: subQ.top || '50%',
+                                            left: subQ.left || '50%',
+                                            width: `${pinBoxWidth}px`,
+                                            minWidth: `${pinBoxWidth}px`
+                                        }}
+                                    >
+                                        {!isReview && (
+                                            <BookmarkToggle
+                                                className="drop-zone-bookmark"
+                                                size={16}
+                                                active={Boolean(bookmarks?.[subQ.number])}
+                                                onToggle={() => toggleBookmark?.(subQ.number)}
+                                            />
+                                        )}
 
-                                    <strong className={`drop-zone-number${hasAnswer ? ' with-answer' : ''}`}>{subQ.number}</strong>
+                                        <strong className={`drop-zone-number${hasAnswer ? ' with-answer' : ''}`}>{subQ.number}</strong>
 
-                                    {answer ? (
-                                        <div
-                                            className="dz-answered"
-                                            draggable={!isReview}
-                                            onDragStart={(e) => {
-                                                if (isReview) return;
-                                                handleDragStart(e, answer, subQ.id);
-                                            }}
-                                        >
-                                            {displayAnswer}
-                                            {!isReview && (
-                                                <span
-                                                    className="dz-clear"
-                                                    onClick={(e) => { e.stopPropagation(); handleClear(subQ.id); }}
-                                                >
-                                                    ×
-                                                </span>
-                                            )}
-                                        </div>
-                                    ) : null}
-                                </div>
-                            );
-                        })}
+                                        {answer ? (
+                                            <div
+                                                className="dz-answered"
+                                                draggable={!isReview}
+                                                onDragStart={(e) => {
+                                                    if (isReview) return;
+                                                    handleDragStart(e, answer, subQ.id);
+                                                }}
+                                            >
+                                                {displayAnswer}
+                                                {!isReview && (
+                                                    <span
+                                                        className="dz-clear"
+                                                        onClick={(e) => { e.stopPropagation(); handleClear(subQ.id); }}
+                                                    >
+                                                        ×
+                                                    </span>
+                                                )}
+                                            </div>
+                                        ) : null}
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
 
@@ -595,19 +598,13 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                                         <td className="mf-td-item">
                                             <div className="mf-item-inner">
                                                 {!isReview && (
-                                                    <span
+                                                    <BookmarkToggle
                                                         className="mf-bookmark-btn"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            toggleBookmark?.(subQ.number);
-                                                        }}
-                                                    >
-                                                        <Bookmark
-                                                            size={15}
-                                                            fill={bookmarks?.[subQ.number] ? '#1a73e8' : 'none'}
-                                                            color={bookmarks?.[subQ.number] ? '#1a73e8' : '#bbb'}
-                                                        />
-                                                    </span>
+                                                        size={16}
+                                                        active={Boolean(bookmarks?.[subQ.number])}
+                                                        inactiveColor="#bbb"
+                                                        onToggle={() => toggleBookmark?.(subQ.number)}
+                                                    />
                                                 )}
                                                 <span className="mf-q-num">{subQ.number}</span>
                                                 <span
@@ -623,7 +620,7 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                                             const isSelected = selectedLabel === cat.label;
                                             const isCorrectCell = isReview && cat.label === String(subQ.correctAnswer || '').trim();
                                             const isWrongCell = isReview && isSelected && !isCorrect;
-                                            
+
                                             // Disable option if already used and reuse is not allowed
                                             const isUsed = !allowOptionReuse && usedOptions.has(cat.label) && selectedLabel !== cat.label;
                                             const isDisabled = !isReview && isUsed;

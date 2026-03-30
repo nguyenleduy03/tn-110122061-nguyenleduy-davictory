@@ -42,6 +42,9 @@ public class AssignmentSubmission {
     @Column(length = 500)
     private String attachmentUrl; // File đính kèm của học viên
 
+    @Column(name = "exam_attempt_id")
+    private Long examAttemptId; // Link to ExamAttempt (nếu làm bài thi)
+
     @Column
     private LocalDateTime submittedAt; // Thời điểm nộp
 

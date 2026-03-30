@@ -1,6 +1,6 @@
 import React from 'react';
-import { Bookmark } from 'lucide-react';
 import { formatTextWithWhitespace } from '../../utils/textFormatters';
+import BookmarkToggle from '../common/BookmarkToggle';
 
 const MultipleChoiceQuestion = ({ q, activeQuestion, setActiveQuestion, answer, handleAnswerChange, bookmarks, toggleBookmark, isReview }) => {
     const getOptionText = (opt) => {
@@ -55,9 +55,12 @@ const MultipleChoiceQuestion = ({ q, activeQuestion, setActiveQuestion, answer, 
             <div className="tfng-question relative-pos">
                 <div className="tfng-text">
                     {!isReview && (
-                        <span className="tfng-bookmark" onClick={(e) => { e.stopPropagation(); nums.forEach(n => toggleBookmark?.(n)); }}>
-                            <Bookmark size={18} fill={nums.some(n => bookmarks?.[n]) ? "#1a73e8" : "none"} color={nums.some(n => bookmarks?.[n]) ? "#1a73e8" : "#ccc"} />
-                        </span>
+                        <BookmarkToggle
+                            className="tfng-bookmark"
+                            size={16}
+                            active={nums.some(n => bookmarks?.[n])}
+                            onToggle={() => nums.forEach(n => toggleBookmark?.(n))}
+                        />
                     )}
                     <div className="tfng-question-content">
                         <span className="tfng-number">{q.number}</span>
@@ -120,9 +123,12 @@ const MultipleChoiceQuestion = ({ q, activeQuestion, setActiveQuestion, answer, 
         <div className="tfng-question relative-pos">
             <div className="tfng-text">
                 {!isReview && (
-                    <span className="tfng-bookmark" onClick={(e) => { e.stopPropagation(); nums.forEach(n => toggleBookmark?.(n)); }} >
-                        <Bookmark size={18} fill={nums.some(n => bookmarks?.[n]) ? "#1a73e8" : "none"} color={nums.some(n => bookmarks?.[n]) ? "#1a73e8" : "#ccc"} />
-                    </span>
+                    <BookmarkToggle
+                        className="tfng-bookmark"
+                        size={16}
+                        active={nums.some(n => bookmarks?.[n])}
+                        onToggle={() => nums.forEach(n => toggleBookmark?.(n))}
+                    />
                 )}
                 <div className="tfng-question-content">
                     <span className="tfng-number">{q.number}</span>

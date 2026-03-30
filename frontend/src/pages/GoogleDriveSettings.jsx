@@ -7,16 +7,43 @@ const GoogleDriveSettings = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Kiểm tra quyền admin trước
+    const user = authApi.getStoredUser();
+    if (!user || !authApi.hasRole('ADMIN')) {
+      setStatus({ 
+        authorized: false, 
+        message: 'Bạn cần đăng nhập với tài khoản ADMIN để truy cập tính năng này.' 
+      });
+      setLoading(false);
+      return;
+    }
+    
+    // Kiểm tra nếu vừa ủy quyền thành công
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('authorized') === 'true') {
+      // Xóa query parameter khỏi URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+      // Hiển thị thông báo thành công
+      setStatus({ authorized: true, message: 'Đã ủy quyền thành công! Đang tải thông tin...' });
+    }
+    
     checkStatus();
   }, []);
 
   const checkStatus = async () => {
     try {
-      const response = await authApi.get('/api/admin/drive/status');
+      const response = await authApi.get('/admin/drive/status');
       setStatus(response.data);
     } catch (error) {
       console.error('Error checking status:', error);
-      setStatus({ authorized: false, message: 'Lỗi kết nối' });
+      if (error.response?.status === 403) {
+        setStatus({ 
+          authorized: false, 
+          message: 'Bạn không có quyền truy cập. Cần đăng nhập với tài khoản ADMIN.' 
+        });
+      } else {
+        setStatus({ authorized: false, message: 'Lỗi kết nối: ' + (error.message || 'Unknown error') });
+      }
     } finally {
       setLoading(false);
     }
@@ -24,7 +51,7 @@ const GoogleDriveSettings = () => {
 
   const handleAuthorize = async () => {
     try {
-      const response = await authApi.get('/api/admin/drive/authorize-url');
+      const response = await authApi.get('/admin/drive/authorize-url');
       window.location.href = response.data.url;
     } catch (error) {
       alert('Lỗi: ' + error.message);
@@ -35,7 +62,7 @@ const GoogleDriveSettings = () => {
     if (!confirm('Bạn có chắc muốn thu hồi quyền truy cập Google Drive?')) return;
     
     try {
-      await authApi.post('/api/admin/drive/revoke');
+      await authApi.post('/admin/drive/revoke');
       alert('Đã thu hồi quyền truy cập');
       checkStatus();
     } catch (error) {
@@ -125,6 +152,14 @@ const GoogleDriveSettings = () => {
               </button>
             </div>
           )}
+          
+          <button className="btn-refresh" onClick={checkStatus} disabled={loading}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <polyline points="23 4 23 10 17 10" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            {loading ? 'Đang kiểm tra...' : 'Kiểm tra lại'}
+          </button>
         </div>
 
         <div className="info-section">

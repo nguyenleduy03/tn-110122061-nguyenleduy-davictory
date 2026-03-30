@@ -1,15 +1,19 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { Bookmark, Volume2, ArrowLeftRight, Headphones, Play, ArrowLeft, ArrowRight } from "lucide-react";
+import { Volume2, ArrowLeftRight, Headphones, Play, ArrowLeft, ArrowRight } from "lucide-react";
 import { useSearchParams, useNavigate, useParams } from "react-router-dom";
 import "../styles/ieltsTest.css";
 import TestHeader from "../components/common/TestHeader";
 import QuestionRenderer from "../components/question/QuestionRenderer";
 import { useTestNavigation } from "../hooks/useTestNavigation";
 import { ieltsApi } from "../services/ieltsApi";
+import TextHighlighter from "../components/common/TextHighlighter";
+import NotesPanel from "../components/common/NotesPanel";
 import { formatTextWithWhitespace } from "../utils/textFormatters";
 import { computeFullTestProgressPercent, getFullTestSessionState, parseJsonSafe } from "../utils/fullTestProgress";
 import { buildDraftStorageKey, buildTimerPersistKey, clearDraftByTest, parseJsonSafe as parseRuntimeJsonSafe, markTestSubmitted, getSubmittedRedirect } from "../utils/testRuntimeState";
+import { useNotes } from "../hooks/useNotes";
 import GuestInfoForm from "../components/common/GuestInfoForm";
+import BookmarkToggle from "../components/common/BookmarkToggle";
 
 const IeltsListeningTest = () => {
     const [testData, setTestData] = useState(null);
@@ -48,10 +52,13 @@ const IeltsListeningTest = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [startTime] = useState(() => Date.now());
     const audioRef = useRef(null);
+    const containerRef = useRef(null);
 
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const { id: testId } = useParams();
+    const { notes, addNote, deleteNote } = useNotes('listening', testId);
+    const [isNotesOpen, setIsNotesOpen] = useState(false);
     const isFullTest = searchParams.get('fullTest') === 'true';
     const mode = searchParams.get('mode') || 'practice';
     const isReview = searchParams.get('review') === 'true';
@@ -78,6 +85,10 @@ const IeltsListeningTest = () => {
         isFullTest,
         queryString,
     }), [testId, mode, isFullTest, queryString]);
+    const highlightStorageKey = useMemo(() => {
+        if (!testId) return null;
+        return `ieltsHighlights_listening_${testId}`;
+    }, [testId]);
 
     useEffect(() => {
         const submittedRedirect = getSubmittedRedirect(timerPersistKey);
@@ -88,7 +99,7 @@ const IeltsListeningTest = () => {
     // Check guest mode
     useEffect(() => {
         if (isReview) return;
-        
+
         const savedGuestInfo = sessionStorage.getItem('guestExamInfo');
         if (savedGuestInfo) {
             try {
@@ -168,6 +179,22 @@ const IeltsListeningTest = () => {
                 }
             }
 
+            if (highlightStorageKey && configuredData?.parts?.length) {
+                try {
+                    const savedMap = JSON.parse(sessionStorage.getItem(highlightStorageKey) || '{}');
+                    configuredData = {
+                        ...configuredData,
+                        parts: configuredData.parts.map((p) => {
+                            const savedHtml = savedMap?.[String(p?.id)];
+                            if (!savedHtml || typeof savedHtml !== 'string') return p;
+                            return { ...p, passageContent: savedHtml };
+                        }),
+                    };
+                } catch {
+                    // Ignore malformed highlight cache and continue with server payload.
+                }
+            }
+
             const resolvedStartPartIndex = Number.isFinite(startPartNumber) && startPartNumber > 0
                 ? configuredData.parts.findIndex((p, idx) => {
                     const parsedPartNo = Number.parseInt(String(p?.partNumber ?? ''), 10);
@@ -209,7 +236,7 @@ const IeltsListeningTest = () => {
                 : `Không thể tải bài thi: ${err.message}`);
             setLoading(false);
         });
-    }, [testId, isReview, mode, isFullTest, selectedPracticeParts, startPartNumber, durationOverrideMinutes, noTimeLimit, setCurrentPartIndex, isGuest, guestInfo, attemptId]);
+    }, [testId, isReview, mode, isFullTest, selectedPracticeParts, startPartNumber, durationOverrideMinutes, noTimeLimit, setCurrentPartIndex, isGuest, guestInfo, attemptId, highlightStorageKey]);
 
     useEffect(() => {
         if (!isFullTest || isReview || !testData || !testId) return undefined;
@@ -410,6 +437,44 @@ const IeltsListeningTest = () => {
         setAnswers((prev) => ({ ...prev, [questionId]: value }));
     };
 
+    const handleHighlightChange = () => {
+        const passageElem = containerRef.current?.querySelector('.passage-content');
+        if (!passageElem || !testData) return;
+
+        const clone = passageElem.cloneNode(true);
+        const nextHtml = clone.innerHTML;
+
+        setTestData((prev) => {
+            if (!prev?.parts?.length) return prev;
+
+            const nextParts = prev.parts.map((p, idx) => {
+                if (idx !== currentPartIndex) return p;
+                return {
+                    ...p,
+                    passageContent: nextHtml,
+                };
+            });
+
+            if (highlightStorageKey) {
+                try {
+                    const currentMap = JSON.parse(sessionStorage.getItem(highlightStorageKey) || '{}');
+                    const partId = nextParts[currentPartIndex]?.id;
+                    if (partId !== undefined && partId !== null) {
+                        currentMap[String(partId)] = nextHtml;
+                        sessionStorage.setItem(highlightStorageKey, JSON.stringify(currentMap));
+                    }
+                } catch {
+                    // Ignore storage errors and keep in-memory update.
+                }
+            }
+
+            return {
+                ...prev,
+                parts: nextParts,
+            };
+        });
+    };
+
     const handleFullTestNext = () => {
         try {
             const session = JSON.parse(sessionStorage.getItem('ieltsFullTest') || 'null');
@@ -452,13 +517,13 @@ const IeltsListeningTest = () => {
 
     const submitTest = () => {
         if (isSubmitting) return;
-        
+
         // Validate attemptId for guest
         if (isGuest && !attemptId) {
             setError('Lỗi: Không tìm thấy ID bài thi. Vui lòng làm lại.');
             return;
         }
-        
+
         const timeSpentSeconds = Math.floor((Date.now() - startTime) / 1000);
         sessionStorage.setItem('lastAnswers_listening', JSON.stringify(answers));
         setIsSubmitting(true);
@@ -543,7 +608,7 @@ const IeltsListeningTest = () => {
     if (!part) return <div style={{ padding: '20px' }}>Part not found</div>;
 
     if (showGuestForm) {
-        return <GuestInfoForm 
+        return <GuestInfoForm
             onSubmit={(data) => {
                 setGuestInfo(data);
                 sessionStorage.setItem('guestExamInfo', JSON.stringify(data));
@@ -577,6 +642,8 @@ const IeltsListeningTest = () => {
                 onTimeUp={submitTest}
                 timerPersistKey={timerPersistKey}
                 timerPaused={!audioStarted && !isReview}
+                isNotesOpen={isNotesOpen}
+                onToggleNotes={() => setIsNotesOpen((v) => !v)}
             />
 
             {/* Hidden audio element */}
@@ -617,7 +684,7 @@ const IeltsListeningTest = () => {
                 )}
             </div>
 
-            <main className="ielts-main" style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+            <main className="ielts-main" ref={containerRef} style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
                 <div
                     className="questions-section"
                     id="questions-area"
@@ -677,12 +744,7 @@ const IeltsListeningTest = () => {
                                             const first = Math.min(...allNums);
                                             const last = Math.max(...allNums);
                                             return (
-                                                <div className="question-range-header" style={{
-                                                    fontSize: '15px',
-                                                    fontWeight: 600,
-                                                    color: '#1e293b',
-                                                    marginBottom: '8px'
-                                                }}>
+                                                <div className="question-range-header">
                                                     Questions {first}{last !== first ? `–${last}` : ''}
                                                 </div>
                                             );
@@ -734,6 +796,13 @@ const IeltsListeningTest = () => {
                         </button>
                     </div>}
                 </div>
+
+                <TextHighlighter
+                    containerRef={containerRef}
+                    onHighlightChange={handleHighlightChange}
+                    onAddNote={addNote}
+                    currentPartIndex={currentPartIndex}
+                />
             </main>
 
             <footer className="ielts-footer">
@@ -758,7 +827,7 @@ const IeltsListeningTest = () => {
                                 <div className="part-status-container">
                                     {partHasBookmarked && !isActivePart && (
                                         <span className="part-title-bookmark" aria-hidden="true">
-                                            <Bookmark size={13} fill="currentColor" color="currentColor" strokeWidth={2.25} />
+                                            <BookmarkToggle size={16} active activeColor="currentColor" inactiveColor="currentColor" strokeWidth={2.25} />
                                         </span>
                                     )}
                                     <h4 className="part-title hover-pointer"
@@ -799,7 +868,7 @@ const IeltsListeningTest = () => {
                                                 >
                                                     {hasBookmarked && (
                                                         <div className="q-bookmark-flag">
-                                                            <Bookmark size={16} fill="#1a73e8" color="#1a73e8" />
+                                                            <BookmarkToggle size={16} active activeColor="#1a73e8" inactiveColor="#1a73e8" />
                                                         </div>
                                                     )}
                                                     <div className={`status-dash${isAnswered ? " answered-dash" : ""}${hasBookmarked ? " bookmarked-dash" : ""}`} />
@@ -816,6 +885,21 @@ const IeltsListeningTest = () => {
                     })}
                 </div>
             </footer>
+
+            <NotesPanel
+                isOpen={isNotesOpen}
+                notes={notes}
+                onDelete={deleteNote}
+                onClose={() => setIsNotesOpen(false)}
+                onNoteClick={(note, scrollFn) => {
+                    if (Number.isFinite(note.partIndex) && note.partIndex !== currentPartIndex) {
+                        setCurrentPartIndex(note.partIndex);
+                        setTimeout(scrollFn, 300);
+                    } else {
+                        scrollFn();
+                    }
+                }}
+            />
         </div>
     );
 };

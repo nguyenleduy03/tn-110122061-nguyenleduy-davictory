@@ -19,6 +19,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
@@ -75,20 +77,41 @@ public class GoogleDriveOAuth2Service {
     }
 
     public void storeCredential(String code) throws Exception {
-        getFlow().newTokenRequest(code)
+        var tokenResponse = getFlow().newTokenRequest(code)
                 .setRedirectUri(redirectUri)
                 .execute();
+        getFlow().createAndStoreCredential(tokenResponse, "user");
     }
 
     public boolean isAuthorized() throws Exception {
-        Credential credential = getFlow().loadCredential("user");
-        return credential != null && credential.getAccessToken() != null;
+        try {
+            Credential credential = getFlow().loadCredential("user");
+            boolean hasCredential = credential != null;
+            boolean hasToken = hasCredential && credential.getAccessToken() != null;
+            
+            System.out.println("🔍 Checking authorization:");
+            System.out.println("   - Credential exists: " + hasCredential);
+            System.out.println("   - Access token exists: " + hasToken);
+            
+            return hasToken;
+        } catch (Exception e) {
+            System.out.println("❌ Error checking authorization: " + e.getMessage());
+            return false;
+        }
     }
 
     public void revokeAccess() throws Exception {
         Credential credential = getFlow().loadCredential("user");
         if (credential != null) {
-            credential.getJsonFactory();
+            String token = credential.getAccessToken();
+            if (token != null) {
+                // Revoke token via Google API
+                URL url = new URL("https://oauth2.googleapis.com/revoke?token=" + token);
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.getResponseCode();
+                conn.disconnect();
+            }
             // Delete stored credential
             getFlow().getCredentialDataStore().delete("user");
         }
@@ -189,19 +212,22 @@ public class GoogleDriveOAuth2Service {
         String uuid = UUID.randomUUID().toString().substring(0, 8);
         String sanitized = originalFilename.replaceAll("[^a-zA-Z0-9._-]", "_");
         
+        // Sanitize folder name (remove / and special chars)
+        String folderName = folder != null ? folder.replaceAll("[^a-zA-Z0-9_-]", "_").toUpperCase() : "FILE";
+        
         int lastDot = sanitized.lastIndexOf('.');
         if (lastDot > 0) {
             String name = sanitized.substring(0, lastDot);
             String ext = sanitized.substring(lastDot);
             return String.format("DAVictory_%s_%s_%s_%s%s", 
-                folder != null ? folder.toUpperCase() : "FILE", 
+                folderName, 
                 timestamp, 
                 uuid, 
                 name, 
                 ext);
         }
         return String.format("DAVictory_%s_%s_%s_%s", 
-            folder != null ? folder.toUpperCase() : "FILE", 
+            folderName, 
             timestamp, 
             uuid, 
             sanitized);

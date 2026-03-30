@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useMemo } from "react";
-import { Check, ArrowLeft, ArrowRight, ArrowLeftRight, Bookmark } from "lucide-react";
+import { Check, ArrowLeft, ArrowRight, ArrowLeftRight } from "lucide-react";
 import { useSearchParams, useNavigate, useParams } from "react-router-dom";
 import "../styles/ieltsTest.css";
 import TestHeader from "../components/common/TestHeader";
@@ -9,11 +9,13 @@ import { useTestNavigation } from "../hooks/useTestNavigation";
 import { ieltsApi } from "../services/ieltsApi";
 import TextHighlighter from "../components/common/TextHighlighter";
 import NotesPanel from "../components/common/NotesPanel";
+import BookmarkToggle from "../components/common/BookmarkToggle";
 import { createPortal } from "react-dom";
 import { formatTextWithWhitespace } from "../utils/textFormatters";
 import { computeFullTestProgressPercent, getFullTestSessionState, parseJsonSafe } from "../utils/fullTestProgress";
 import { buildTimerPersistKey, clearDraftByTest, markTestSubmitted, getSubmittedRedirect } from "../utils/testRuntimeState";
 import { useNotes } from "../hooks/useNotes";
+import { assignmentApi } from "../services/assignmentApi";
 
 const HeadingGap = ({ qId, number, answer, correctAnswer, handleAnswerChange, isActive, setActiveQuestion, bookmarks, toggleBookmark, isReview }) => {
     const handleDragOver = (e) => { if (isReview) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
@@ -195,9 +197,12 @@ const PassageRenderer = ({ part, answers, handleAnswerChange, activeQuestion, se
             })}
             {!isReview && bookmarkNodes.map((bNode, i) => (
                 createPortal(
-                    <span onClick={(e) => { e.stopPropagation(); toggleBookmark?.(bNode.num); }} className="bookmark-portal-container">
-                        <Bookmark size={18} fill={bookmarks?.[bNode.num] ? "#1a73e8" : "none"} color={bookmarks?.[bNode.num] ? "#1a73e8" : "#ccc"} />
-                    </span>,
+                    <BookmarkToggle
+                        className="bookmark-portal-container"
+                        size={16}
+                        active={Boolean(bookmarks?.[bNode.num])}
+                        onToggle={() => toggleBookmark?.(bNode.num)}
+                    />,
                     bNode.container
                 )
             ))}
@@ -221,6 +226,8 @@ const IeltsReadingTest = () => {
     const [isNotesOpen, setIsNotesOpen] = useState(false);
     const isFullTest = searchParams.get('fullTest') === 'true';
     const mode = searchParams.get('mode') || 'practice';
+    const assignmentId = searchParams.get('assignmentId');
+    const isAssignmentMode = mode === 'assignment' && assignmentId;
     const isReview = searchParams.get('review') === 'true';
     const selectedPartsParam = searchParams.get('parts') || '';
     const startPartNumber = Number.parseInt(searchParams.get('startPart') || '', 10);
@@ -601,7 +608,7 @@ const IeltsReadingTest = () => {
         } catch { navigate('/exam-library'); }
     };
 
-    const submitTest = () => {
+    const submitTest = async () => {
         const timeSpentSeconds = Math.floor((Date.now() - startTime) / 1000);
         // Lưu lại đáp án để lát review
         sessionStorage.setItem('lastAnswers_reading', JSON.stringify(answers));
@@ -609,25 +616,47 @@ const IeltsReadingTest = () => {
         console.log('🎯 Submitting answers:', answers);
         console.log('📚 Test data:', testData);
 
-        ieltsApi.submitAnswers(testId, 'READING', answers, timeSpentSeconds, testData).then((resp) => {
-            if (resp) {
-                sessionStorage.setItem('lastScore_reading', JSON.stringify(resp));
+        const resp = await ieltsApi.submitAnswers(testId, 'READING', answers, timeSpentSeconds, testData);
+        
+        // Check if this is from an assignment
+        const assignmentId = searchParams.get('assignmentId');
+        if (assignmentId && resp?.attemptId) {
+            try {
+                await assignmentApi.submitAssignment({
+                    assignmentId: parseInt(assignmentId),
+                    examAttemptId: resp.attemptId,
+                    submissionText: `Completed test ${testId} with score: ${resp.bandScore || resp.score || 'N/A'}`
+                });
+                console.log('✅ Assignment submitted automatically');
+            } catch (error) {
+                console.error('Failed to submit assignment:', error);
             }
-            clearDraftByTest('reading', testId);
-            localStorage.removeItem(`ieltsTimerDeadline_${timerPersistKey}`);
-            if (isFullTest) { handleFullTestNext(); return; }
-            const completeParams = new URLSearchParams({
-                mode,
-                skill: 'reading',
-                testId: String(testId),
-            });
-            if (mode === 'exam' && allowReviewInExam) {
-                completeParams.set('allowReview', 'true');
-            }
-            const completeUrl = `/test/complete?${completeParams.toString()}`;
-            markTestSubmitted(timerPersistKey, completeUrl);
-            navigate(completeUrl);
+        }
+        
+        if (resp) {
+            sessionStorage.setItem('lastScore_reading', JSON.stringify(resp));
+        }
+        clearDraftByTest('reading', testId);
+        localStorage.removeItem(`ieltsTimerDeadline_${timerPersistKey}`);
+        if (isFullTest) { handleFullTestNext(); return; }
+        
+        // Redirect khác nhau cho assignment mode
+        if (isAssignmentMode) {
+            navigate(`/student/assignments/${assignmentId}/result`);
+            return;
+        }
+        
+        const completeParams = new URLSearchParams({
+            mode,
+            skill: 'reading',
+            testId: String(testId),
         });
+        if (mode === 'exam' && allowReviewInExam) {
+            completeParams.set('allowReview', 'true');
+        }
+        const completeUrl = `/test/complete?${completeParams.toString()}`;
+        markTestSubmitted(timerPersistKey, completeUrl);
+        navigate(completeUrl);
     };
 
     const getAnsweredCount = (partIndex) => {
@@ -730,6 +759,7 @@ const IeltsReadingTest = () => {
             <TestHeader
                 candidateName={testData?.candidateName}
                 candidateId={testData?.candidateId}
+                extraInfo={isAssignmentMode ? "📝 Bài tập" : undefined}
                 submitTest={submitTest}
                 isReview={isReview}
                 noTimeLimit={noTimeLimit && !isReview}
@@ -809,12 +839,7 @@ const IeltsReadingTest = () => {
                                             const first = Math.min(...allNums);
                                             const last = Math.max(...allNums);
                                             return (
-                                                <div className="question-range-header" style={{
-                                                    fontSize: '15px',
-                                                    fontWeight: 600,
-                                                    color: '#1e293b',
-                                                    marginBottom: '8px'
-                                                }}>
+                                                <div className="question-range-header">
                                                     Questions {first}{last !== first ? `–${last}` : ''}
                                                 </div>
                                             );
@@ -910,7 +935,7 @@ const IeltsReadingTest = () => {
                                 <div className="part-status-container">
                                     {partHasBookmarked && !isActivePart && (
                                         <span className="part-title-bookmark" aria-hidden="true">
-                                            <Bookmark size={13} fill="currentColor" color="currentColor" strokeWidth={2.25} />
+                                            <BookmarkToggle size={16} active activeColor="currentColor" inactiveColor="currentColor" strokeWidth={2.25} />
                                         </span>
                                     )}
                                     <h4 className="part-title hover-pointer"
@@ -954,7 +979,7 @@ const IeltsReadingTest = () => {
                                                 >
                                                     {hasBookmarked && (
                                                         <div className="q-bookmark-flag">
-                                                            <Bookmark size={16} fill="#1a73e8" color="#1a73e8" />
+                                                            <BookmarkToggle size={16} active activeColor="#1a73e8" inactiveColor="#1a73e8" />
                                                         </div>
                                                     )}
                                                     <div className={`status-dash${isAnswered ? " answered-dash" : ""}${hasBookmarked ? " bookmarked-dash" : ""}`} />
@@ -973,22 +998,21 @@ const IeltsReadingTest = () => {
             </footer>
 
             {/* Notes Panel — rendered directly to avoid prop-drilling through TestHeader */}
-            {isNotesOpen && (
-                <NotesPanel
-                    notes={notes}
-                    onDelete={deleteNote}
-                    onClose={() => setIsNotesOpen(false)}
-                    onNoteClick={(note, scrollFn) => {
-                        // Navigate to the part the note was created in, then scroll to text
-                        if (Number.isFinite(note.partIndex) && note.partIndex !== currentPartIndex) {
-                            setCurrentPartIndex(note.partIndex);
-                            setTimeout(scrollFn, 300);
-                        } else {
-                            scrollFn();
-                        }
-                    }}
-                />
-            )}
+            <NotesPanel
+                isOpen={isNotesOpen}
+                notes={notes}
+                onDelete={deleteNote}
+                onClose={() => setIsNotesOpen(false)}
+                onNoteClick={(note, scrollFn) => {
+                    // Navigate to the part the note was created in, then scroll to text
+                    if (Number.isFinite(note.partIndex) && note.partIndex !== currentPartIndex) {
+                        setCurrentPartIndex(note.partIndex);
+                        setTimeout(scrollFn, 300);
+                    } else {
+                        scrollFn();
+                    }
+                }}
+            />
         </div>
     );
 };

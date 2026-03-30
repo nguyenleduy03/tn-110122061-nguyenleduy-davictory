@@ -324,4 +324,25 @@ VIC009998,Trần Thị,Bình,VIC009998@gmail.com,@VIC009998,VIC260312IE45A`;
     });
     return response.data;
   },
+
+  // HTTP methods cơ bản
+  get: async (url, config = {}) => {
+    const response = await apiClient.get(url, config);
+    return response;
+  },
+
+  post: async (url, data = {}, config = {}) => {
+    const response = await apiClient.post(url, data, config);
+    return response;
+  },
+
+  put: async (url, data = {}, config = {}) => {
+    const response = await apiClient.put(url, data, config);
+    return response;
+  },
+
+  delete: async (url, config = {}) => {
+    const response = await apiClient.delete(url, config);
+    return response;
+  },
 };

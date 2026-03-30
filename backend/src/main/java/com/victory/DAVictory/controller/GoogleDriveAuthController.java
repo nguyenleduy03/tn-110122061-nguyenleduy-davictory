@@ -21,8 +21,14 @@ public class GoogleDriveAuthController {
     }
 
     @GetMapping("/oauth2callback")
-    public Map<String, String> oauth2Callback(@RequestParam("code") String code) throws Exception {
+    public RedirectView oauth2Callback(@RequestParam("code") String code) throws Exception {
+        System.out.println("🔄 OAuth callback received with code: " + code.substring(0, 10) + "...");
         driveService.storeCredential(code);
-        return Map.of("message", "Authorization successful! You can now upload files.");
+        System.out.println("✅ Credentials stored successfully");
+        
+        // Redirect về trang Google Drive Settings với thông báo thành công
+        String redirectUrl = "/admin/drive?authorized=true";
+        System.out.println("🔀 Redirecting to: " + redirectUrl);
+        return new RedirectView(redirectUrl);
     }
 }

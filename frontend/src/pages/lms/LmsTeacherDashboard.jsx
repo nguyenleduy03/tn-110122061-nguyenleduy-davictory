@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import LmsLayout from '../../components/lms/LmsLayout';
 import { authApi } from '../../services/authApi';
 import { teacherApi } from '../../services/teacherApi';
+import { assignmentApi } from '../../services/assignmentApi';
 
 export default function LmsTeacherDashboard() {
   const navigate = useNavigate();
@@ -15,14 +16,16 @@ export default function LmsTeacherDashboard() {
     currentUser: null
   });
   const [submissions, setSubmissions] = useState([]);
+  const [assignments, setAssignments] = useState([]);
 
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
-        const [classResponse, submissionResponse] = await Promise.all([
+        const [classResponse, submissionResponse, assignmentResponse] = await Promise.all([
           authApi.getMyClassManagement(),
-          teacherApi.getAllSubmissions().catch(() => ({ writingSubmissions: [], examAttempts: [] }))
+          teacherApi.getAllSubmissions().catch(() => ({ writingSubmissions: [], examAttempts: [] })),
+          assignmentApi.getMyAssignments().catch(() => [])
         ]);
 
         console.log('📊 Submission Response:', submissionResponse);
@@ -41,6 +44,7 @@ export default function LmsTeacherDashboard() {
         console.log('📝 All Submissions:', allSubmissions.length, allSubmissions);
 
         setSubmissions(allSubmissions);
+        setAssignments(assignmentResponse);
       } catch (error) {
         console.error('Error loading dashboard data:', error);
       } finally {
@@ -138,6 +142,11 @@ export default function LmsTeacherDashboard() {
               <h3>Tổng học viên</h3>
               <div className="lms-card-value">{totalStudents}</div>
               <p className="lms-subtitle">Đang active</p>
+            </div>
+            <div className="lms-card">
+              <h3>Bài tập</h3>
+              <div className="lms-card-value">{assignments.length}</div>
+              <p className="lms-subtitle">{assignments.reduce((sum, a) => sum + (a.submittedCount - a.gradedCount), 0)} chờ chấm</p>
             </div>
             <div className="lms-card">
               <h3>Bài nộp chờ chấm</h3>

@@ -1,6 +1,6 @@
 import React from 'react';
-import { Bookmark } from 'lucide-react';
 import { formatTextWithWhitespace } from '../../utils/textFormatters';
+import BookmarkToggle from '../common/BookmarkToggle';
 
 const DropdownGroupQuestion = ({
   q,
@@ -32,7 +32,7 @@ const DropdownGroupQuestion = ({
       imageUrl: resolveText(opt.imageUrl || ''),
     };
   });
-  
+
   console.log('DropdownGroupQuestion imageWidth:', group.imageWidth, 'imageUrl:', group.imageUrl);
 
   const handleChange = (questionId, value) => {
@@ -112,19 +112,12 @@ const DropdownGroupQuestion = ({
               onClick={() => setActiveQuestion?.(number)}
             >
               {!isReview && (
-                <span
+                <BookmarkToggle
                   className="mcq-dropdown-bookmark"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleBookmark?.(number);
-                  }}
-                >
-                  <Bookmark
-                    size={18}
-                    fill={bookmarks?.[number] ? '#1a73e8' : 'none'}
-                    color={bookmarks?.[number] ? '#1a73e8' : '#ccc'}
-                  />
-                </span>
+                  size={16}
+                  active={Boolean(bookmarks?.[number])}
+                  onToggle={() => toggleBookmark?.(number)}
+                />
               )}
               <span className="mcq-dropdown-number">{number}</span>
               <span

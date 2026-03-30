@@ -1,6 +1,6 @@
 import React from 'react';
-import { Bookmark } from 'lucide-react';
 import { formatTextWithWhitespace } from '../../utils/textFormatters';
+import BookmarkToggle from '../common/BookmarkToggle';
 
 const SummaryCompletionSelectQuestion = ({ q, activeQuestion, setActiveQuestion, answers, handleAnswerChange, inputRefs, bookmarks, toggleBookmark, isReview }) => {
     // Parse data if it's a JSON string
@@ -12,7 +12,7 @@ const SummaryCompletionSelectQuestion = ({ q, activeQuestion, setActiveQuestion,
             questionData = q;
         }
     }
-    
+
     const resolveText = (value) => {
         if (typeof value === 'string') return value;
         if (value && typeof value === 'object') {
@@ -21,13 +21,42 @@ const SummaryCompletionSelectQuestion = ({ q, activeQuestion, setActiveQuestion,
         return String(value ?? '');
     };
 
+    const parseEmbeddedQuestionPayload = (rawText) => {
+        if (typeof rawText !== 'string') return null;
+        const candidate = rawText.trim();
+        if (!candidate.startsWith('{') || !candidate.endsWith('}')) return null;
+
+        try {
+            const parsed = JSON.parse(candidate);
+            return parsed && typeof parsed === 'object' ? parsed : null;
+        } catch {
+            return null;
+        }
+    };
+
+    const cleanInstructionText = (value) => {
+        let text = String(value || '').trim();
+        if (!text) return '';
+
+        if (/rubricContent_/i.test(text) && text.includes('>')) {
+            text = text.slice(text.indexOf('>') + 1).trim();
+        }
+
+        return text;
+    };
+
+    const payloadFromText = parseEmbeddedQuestionPayload(questionData?.noteText)
+        || parseEmbeddedQuestionPayload(questionData?.text);
+
     const options = (questionData.optionBank || []).map(resolveText).filter(Boolean);
-    const instructions = questionData.instructions || '';
-    const noteText = questionData.noteText || questionData.text || '';
+    const instructions = cleanInstructionText(
+        payloadFromText?.title || payloadFromText?.instructions || questionData.instructions || ''
+    );
+    const noteText = payloadFromText?.noteText || payloadFromText?.text || questionData.noteText || questionData.text || '';
     const allowOptionReuse = questionData.allowOptionReuse !== false;
-    
+
     const [isDragOverBank, setIsDragOverBank] = React.useState(false);
-    
+
     const normalizeBlankTokens = (text) => {
         let s = String(text || '');
         s = s.replace(/<span[^>]*data-blank=["']true["'][^>]*>[\s\S]*?<\/span>/gi, '[blank]');
@@ -47,11 +76,11 @@ const SummaryCompletionSelectQuestion = ({ q, activeQuestion, setActiveQuestion,
         e.preventDefault();
         const droppedText = e.dataTransfer.getData('text/plain');
         const sourceQId = e.dataTransfer.getData('sourceQId');
-        
+
         if (!isReview && droppedText) {
             handleAnswerChange?.(qId, droppedText);
             setActiveQuestion?.(qNum);
-            
+
             // Clear source if dragging from another blank
             if (sourceQId && sourceQId !== String(qId)) {
                 handleAnswerChange?.(sourceQId, '');
@@ -71,17 +100,17 @@ const SummaryCompletionSelectQuestion = ({ q, activeQuestion, setActiveQuestion,
             handleAnswerChange?.(sourceQId, '');
         }
     };
-    
+
     const handleBankDragOver = (e) => {
         e.preventDefault();
         setIsDragOverBank(true);
     };
-    
+
     const handleBankDragLeave = (e) => {
         e.preventDefault();
         setIsDragOverBank(false);
     };
-    
+
     // Track used options
     const usedOptions = new Set();
     if (!allowOptionReuse) {
@@ -117,12 +146,12 @@ const SummaryCompletionSelectQuestion = ({ q, activeQuestion, setActiveQuestion,
                         onClick={() => setActiveQuestion?.(qNum)}
                     >
                         {!isReview && (
-                            <span
+                            <BookmarkToggle
                                 className="summary-bookmark"
-                                onClick={(e) => { e.stopPropagation(); toggleBookmark?.(qNum); }}
-                            >
-                                <Bookmark size={18} fill={bookmarks?.[qNum] ? "#1a73e8" : "none"} color={bookmarks?.[qNum] ? "#1a73e8" : "#ccc"} />
-                            </span>
+                                size={16}
+                                active={Boolean(bookmarks?.[qNum])}
+                                onToggle={() => toggleBookmark?.(qNum)}
+                            />
                         )}
                         <span
                             ref={(el) => { if (inputRefs?.current) inputRefs.current[qNum] = el; }}
@@ -133,10 +162,10 @@ const SummaryCompletionSelectQuestion = ({ q, activeQuestion, setActiveQuestion,
                             style={{ minWidth: 120, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', cursor: isReview ? 'default' : 'pointer' }}
                         >
                             {displayAnswer ? (
-                                <span 
+                                <span
                                     draggable={!isReview}
                                     onDragStart={(e) => { if (!isReview) handleDragStart(e, displayAnswer, qId); }}
-                                    style={{ 
+                                    style={{
                                         cursor: isReview ? 'default' : 'grab',
                                         padding: '2px 4px'
                                     }}
@@ -161,9 +190,9 @@ const SummaryCompletionSelectQuestion = ({ q, activeQuestion, setActiveQuestion,
             <div className="summary-text">
                 {renderParagraph()}
             </div>
-            <div 
+            <div
                 className={`summary-word-bank ${isDragOverBank ? 'drag-over' : ''}`}
-                onDragOver={handleBankDragOver} 
+                onDragOver={handleBankDragOver}
                 onDragLeave={handleBankDragLeave}
                 onDrop={handleBankDrop}
             >
@@ -171,12 +200,12 @@ const SummaryCompletionSelectQuestion = ({ q, activeQuestion, setActiveQuestion,
                     {options.map((o, i) => {
                         const optionText = resolveText(o);
                         const isUsed = !allowOptionReuse && usedOptions.has(optionText);
-                        
+
                         if (isUsed && !isReview) return null;
-                        
+
                         return (
-                            <div 
-                                key={i} 
+                            <div
+                                key={i}
                                 className={`summary-bank-chip ${isUsed ? 'used' : ''}`}
                                 draggable={!isReview}
                                 onDragStart={(e) => handleDragStart(e, o)}

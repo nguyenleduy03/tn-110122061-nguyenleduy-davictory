@@ -120,30 +120,52 @@ export const fileToCompressedDataUrl = (file, { maxWidth = 1280, quality = 0.82 
     reader.readAsDataURL(file);
   });
 
-export const loadImageFile = (file, setImageUrl) => {
+export const loadImageFile = async (file, setImageUrl) => {
   if (!file || !file.type?.startsWith('image/')) return;
-  const reader = new FileReader();
-  reader.onerror = () => console.error('Image upload failed: Không đọc được file ảnh');
-  reader.onload = () => {
-    const rawDataUrl = String(reader.result || '');
-    if (!rawDataUrl) return;
-    setImageUrl(rawDataUrl);
+  
+  try {
+    // Compress image first
+    const compressedDataUrl = await fileToCompressedDataUrl(file, { maxWidth: 1280, quality: 0.82 });
+    setImageUrl(compressedDataUrl); // Show preview
+    
+    // Convert data URL back to File for upload
+    const blob = await fetch(compressedDataUrl).then(r => r.blob());
+    const compressedFile = new File([blob], file.name, { type: 'image/jpeg' });
 
-    fileToCompressedDataUrl(file)
-      .then((dataUrl) => setImageUrl(dataUrl))
-      .catch((err) => console.error('Image upload failed:', err));
-  };
-  reader.readAsDataURL(file);
+    // Upload to Google Drive
+    const { fileApi } = await import('../../../../services/fileApi');
+    const result = await fileApi.uploadImage(compressedFile, 'READING');
+    
+    // Set the Drive URL
+    setImageUrl(result.url);
+    return result;
+  } catch (err) {
+    console.error('Image upload failed:', err);
+    alert('Lỗi upload ảnh: ' + (err.message || 'Unknown error'));
+  }
 };
 
-export const loadAudioFile = (file, setAudioUrl) => {
+export const loadAudioFile = async (file, setAudioUrl) => {
   if (!file || !file.type?.startsWith('audio/')) return;
-  const reader = new FileReader();
-  reader.onerror = () => console.error('Audio upload failed: Không đọc được file âm thanh');
-  reader.onload = () => {
-    const rawDataUrl = String(reader.result || '');
-    if (!rawDataUrl) return;
-    setAudioUrl(rawDataUrl);
-  };
-  reader.readAsDataURL(file);
+  
+  try {
+    // Show loading state with base64 preview first
+    const reader = new FileReader();
+    reader.onload = () => {
+      const preview = String(reader.result || '');
+      if (preview) setAudioUrl(preview);
+    };
+    reader.readAsDataURL(file);
+
+    // Upload to Google Drive
+    const { fileApi } = await import('../../../../services/fileApi');
+    const result = await fileApi.uploadListeningAudio(file);
+    
+    // Set the Drive URL
+    setAudioUrl(result.url);
+    return result;
+  } catch (err) {
+    console.error('Audio upload failed:', err);
+    alert('Lỗi upload audio: ' + (err.message || 'Unknown error'));
+  }
 };

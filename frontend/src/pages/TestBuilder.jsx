@@ -1253,6 +1253,7 @@ const TestBuilder = () => {
           showFormatToolbar={showFormatToolbar}
           onToggleFormatToolbar={() => setShowFormatToolbar(!showFormatToolbar)}
           seriesLabel={test.seriesLabel}
+          savedTestId={savedTestId}
         />
 
         {leftSidebarCollapsed && (

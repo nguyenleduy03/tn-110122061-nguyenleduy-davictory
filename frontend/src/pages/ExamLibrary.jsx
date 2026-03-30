@@ -263,7 +263,7 @@ function SeriesDetail({ series, index, onBack, fullTestProgress }) {
       if (!testId) return;
 
       // Skip resume detection if test has been submitted (submitted lock exists)
-      // In that case, skillSubmittedMap will handle showing "Xem kết quả"
+      // UI will show "Xem kết quả" based on realtime submitted check.
       if (getSubmittedResultUrl(skill, testId)) return;
 
       const prefix = `ieltsDraft_${skill.toLowerCase()}_`;
@@ -324,19 +324,6 @@ function SeriesDetail({ series, index, onBack, fullTestProgress }) {
       }
     });
 
-    return map;
-  }, [available, skillGroups]);
-
-  // Map skill → { key, redirectUrl } for submitted-but-not-reviewed tests
-  const skillSubmittedMap = useMemo(() => {
-    const map = {};
-    if (typeof window === 'undefined') return map;
-    available.forEach((skill) => {
-      const testId = String(skillGroups[skill]?.[0]?.id || '');
-      if (!testId) return;
-      const result = getSubmittedResultUrl(skill, testId);
-      if (result) map[skill] = result;
-    });
     return map;
   }, [available, skillGroups]);
 
@@ -517,7 +504,8 @@ function SeriesDetail({ series, index, onBack, fullTestProgress }) {
         {available.map(skill => {
           const m = SKILL_META[skill];
           const tests = skillGroups[skill];
-          const submitted = skillSubmittedMap[skill];
+          const testId = tests?.[0]?.id;
+          const submitted = testId ? getSubmittedResultUrl(skill, testId) : null;
           return (
             <div key={skill} className="skill-card">
               <div className="skill-card-top">
@@ -530,10 +518,11 @@ function SeriesDetail({ series, index, onBack, fullTestProgress }) {
                 className="skill-card-btn"
                 style={{ background: submitted ? '#16a34a' : m.btnColor }}
                 onClick={() => {
-                  if (submitted) {
+                  const latestSubmitted = testId ? getSubmittedResultUrl(skill, testId) : null;
+                  if (latestSubmitted) {
                     // Navigate to results and clear the lock
-                    sessionStorage.removeItem(submitted.key);
-                    navigate(submitted.redirectUrl);
+                    sessionStorage.removeItem(latestSubmitted.key);
+                    navigate(latestSubmitted.redirectUrl);
                     return;
                   }
                   const resume = skillResumeMap[skill];
@@ -545,11 +534,11 @@ function SeriesDetail({ series, index, onBack, fullTestProgress }) {
                       normalizedParams.set('allowReview', 'true');
                     }
                     const normalizedQuery = normalizedParams.toString();
-                    clearSubmittedLockForRoute(skill, tests[0].id, normalizedQuery);
-                    navigate(`/test/${skill.toLowerCase()}/${tests[0].id}?${normalizedQuery}`);
+                    clearSubmittedLockForRoute(skill, testId, normalizedQuery);
+                    navigate(`/test/${skill.toLowerCase()}/${testId}?${normalizedQuery}`);
                     return;
                   }
-                  openSkillModeModal(skill, tests[0].id);
+                  openSkillModeModal(skill, testId);
                 }}
               >
                 {submitted
@@ -862,12 +851,28 @@ export default function ExamLibrary() {
     };
   }, []);
 
+  useEffect(() => {
+    if (loadingTests || !testSeries.length) return;
+    const seriesIdParam = searchParams.get('seriesId');
+    if (!seriesIdParam) return;
+
+    const matchedSeries = testSeries.find((series) => String(series.backendId) === String(seriesIdParam));
+    if (!matchedSeries) return;
+
+    if (selectedSeries?.id === matchedSeries.id) return;
+
+    const idx = testSeries.findIndex((series) => series.id === matchedSeries.id);
+    setSelectedSeries(matchedSeries);
+    setSelectedSeriesIndex(idx >= 0 ? idx : 0);
+  }, [loadingTests, testSeries, searchParams, selectedSeries]);
+
   const rawSkill = searchParams.get('skill')?.toUpperCase() || 'ALL';
   const activeSkill = SKILL_PILLS.some(s => s.key === rawSkill) ? rawSkill : 'ALL';
 
   const setActiveSkill = (skill) => {
     setSelectedSeries(null);
     const next = new URLSearchParams(searchParams);
+    next.delete('seriesId');
     if (skill === 'ALL') next.delete('skill');
     else next.set('skill', skill.toLowerCase());
     setSearchParams(next, { replace: true });
@@ -919,6 +924,10 @@ export default function ExamLibrary() {
     const idx = filteredSeries.findIndex(s => s.id === series.id);
     setSelectedSeries(series);
     setSelectedSeriesIndex(idx >= 0 ? idx : 0);
+
+    const next = new URLSearchParams(searchParams);
+    next.set('seriesId', String(series.backendId));
+    setSearchParams(next, { replace: true });
   };
 
   return (
@@ -963,7 +972,13 @@ export default function ExamLibrary() {
                   <button
                     key={key}
                     className={`el-type-tab${activeType === key ? ' active' : ''}`}
-                    onClick={() => { setActiveType(key); setSelectedSeries(null); }}
+                    onClick={() => {
+                      setActiveType(key);
+                      setSelectedSeries(null);
+                      const next = new URLSearchParams(searchParams);
+                      next.delete('seriesId');
+                      setSearchParams(next, { replace: true });
+                    }}
                   >
                     <Icon size={16} /> {label}
                   </button>
@@ -1009,7 +1024,12 @@ export default function ExamLibrary() {
               <SeriesDetail
                 series={selectedSeries}
                 index={selectedSeriesIndex}
-                onBack={() => setSelectedSeries(null)}
+                onBack={() => {
+                  setSelectedSeries(null);
+                  const next = new URLSearchParams(searchParams);
+                  next.delete('seriesId');
+                  setSearchParams(next, { replace: true });
+                }}
                 fullTestProgress={fullTestProgressMap[String(selectedSeries.backendId)] || null}
               />
             ) : activeSkill === 'ALL' ? (

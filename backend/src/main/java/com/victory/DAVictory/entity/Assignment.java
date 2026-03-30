@@ -45,6 +45,9 @@ public class Assignment {
     // LISTENING_PRACTICE, READING_PRACTICE, WRITING_TASK,
     // SPEAKING_PRACTICE, MOCK_TEST, VOCABULARY, GRAMMAR, MIXED
 
+    @Column(name = "test_id")
+    private Long testId; // Link to Test (nếu bài tập là làm đề thi)
+
     @Column(length = 500)
     private String attachmentUrl; // File đính kèm (PDF, audio...)
 

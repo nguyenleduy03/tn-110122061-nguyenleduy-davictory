@@ -1,6 +1,6 @@
 import React from 'react';
-import { Bookmark } from 'lucide-react';
 import { formatTextWithWhitespace, stripInlineStyles } from '../../utils/textFormatters';
+import BookmarkToggle from '../common/BookmarkToggle';
 
 const formatAndClean = (text) => stripInlineStyles(formatTextWithWhitespace(text));
 
@@ -76,16 +76,12 @@ const MatchingFillQuestion = ({ q, activeQuestion, setActiveQuestion, answers, h
           >
             <div className="tfng-text">
               {!isReview && (
-                <span
-                  onClick={(e) => { e.stopPropagation(); toggleBookmark?.(subQ.number); }}
+                <BookmarkToggle
                   className="tfng-bookmark"
-                >
-                  <Bookmark
-                    size={18}
-                    fill={bookmarks?.[subQ.number] ? "#1a73e8" : "none"}
-                    color={bookmarks?.[subQ.number] ? "#1a73e8" : "#ccc"}
-                  />
-                </span>
+                  size={16}
+                  active={Boolean(bookmarks?.[subQ.number])}
+                  onToggle={() => toggleBookmark?.(subQ.number)}
+                />
               )}
               <div className="tfng-question-content">
                 <span className="tfng-number">{subQ.number}</span>
