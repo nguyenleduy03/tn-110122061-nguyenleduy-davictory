@@ -3,7 +3,10 @@ import { Bookmark } from 'lucide-react';
 import { formatTextWithWhitespace } from '../../utils/textFormatters';
 
 const FillInBlankQuestion = ({ q, activeQuestion, setActiveQuestion, answer, handleAnswerChange, inputRefs, bookmarks, toggleBookmark, isReview }) => {
-    const parts = q.text ? q.text.split('_______') : [];
+    const normalizedText = String(q.text || '')
+        .replace(/<span[^>]*data-blank=["']true["'][^>]*>[\s\S]*?<\/span>/gi, '_______')
+        .replace(/\[\s*blank\s*\]/gi, '_______');
+    const parts = normalizedText ? normalizedText.split('_______') : [];
     const opts = q.validationOptions || {};
     
     const normalizeAnswer = (text) => {

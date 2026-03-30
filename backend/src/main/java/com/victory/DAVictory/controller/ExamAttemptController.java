@@ -144,7 +144,7 @@ public class ExamAttemptController {
             List<ExamAttemptGradeHistoryResponse> list = examAttemptService.getAttemptGradeHistory(username, id);
             return ResponseEntity.ok(list);
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.ok(List.of());
         }
     }
 

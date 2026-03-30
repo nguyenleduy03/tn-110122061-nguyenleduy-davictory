@@ -3,6 +3,19 @@ import { Bookmark } from 'lucide-react';
 import { formatTextWithWhitespace } from '../../utils/textFormatters';
 
 const MultipleChoiceQuestion = ({ q, activeQuestion, setActiveQuestion, answer, handleAnswerChange, bookmarks, toggleBookmark, isReview }) => {
+    const getOptionText = (opt) => {
+        if (typeof opt === 'string') return opt;
+        if (opt && typeof opt === 'object') {
+            return opt.optionText
+                || opt.text
+                || opt.value
+                || opt.label
+                || opt.optionLabel
+                || '';
+        }
+        return String(opt ?? '');
+    };
+
     const nums = q.numberRange || [q.number];
     const isActive = nums.includes(activeQuestion);
     const isMultiple = q.allowMultipleAnswers;
@@ -13,10 +26,10 @@ const MultipleChoiceQuestion = ({ q, activeQuestion, setActiveQuestion, answer, 
 
     // Check if options contain images (either URL strings or HTML with <img>)
     const hasImageOptions = q.options && q.options.some(opt =>
-        typeof opt === 'string' && (
-            opt.includes('<img') ||
-            opt.startsWith('http') ||
-            (opt.startsWith('/') && opt.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i))
+        getOptionText(opt) && (
+            getOptionText(opt).includes('<img') ||
+            getOptionText(opt).startsWith('http') ||
+            (getOptionText(opt).startsWith('/') && getOptionText(opt).match(/\.(jpg|jpeg|png|gif|webp|svg)$/i))
         )
     );
 
@@ -53,14 +66,15 @@ const MultipleChoiceQuestion = ({ q, activeQuestion, setActiveQuestion, answer, 
                 </div>
                 <div className="mcq-image-grid">
                     {q.options && q.options.map((opt, idx) => {
+                        const optionText = getOptionText(opt);
                         const optLabel = String.fromCharCode(65 + idx); // A, B, C...
-                        const isChecked = isMultiple ? selectedAnswers.includes(opt) : selectedAnswers === opt;
+                        const isChecked = isMultiple ? selectedAnswers.includes(optionText) : selectedAnswers === optionText;
                         const isDisabled = (isMultiple && isFull && !isChecked) || isReview;
 
                         let reviewClass = '';
                         if (isReview) {
                             const correctArr = Array.isArray(q.correctAnswer) ? q.correctAnswer : [q.correctAnswer];
-                            const normalizedOpt = String(opt).trim().toLowerCase();
+                            const normalizedOpt = String(optionText).trim().toLowerCase();
                             const isCorrectOpt = correctArr.some(ans => String(ans).trim().toLowerCase() === normalizedOpt);
                             if (isCorrectOpt) reviewClass = 'mcq-image-correct';
                             else if (isChecked) reviewClass = 'mcq-image-wrong';
@@ -71,16 +85,16 @@ const MultipleChoiceQuestion = ({ q, activeQuestion, setActiveQuestion, answer, 
                                 key={idx}
                                 className={`mcq-image-option${isChecked ? ' mcq-image-selected' : ''} ${reviewClass}`}
                                 style={{ opacity: (isDisabled && !isReview) ? 0.5 : 1 }}
-                                onClick={() => !isDisabled && handleChange(opt)}
+                                onClick={() => !isDisabled && handleChange(optionText)}
                             >
-                                {opt.includes('<img') || opt.startsWith('http') || opt.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)
+                                {optionText.includes('<img') || optionText.startsWith('http') || optionText.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)
                                     ? (
                                         <div
                                             className="mcq-image-img-wrap"
-                                            dangerouslySetInnerHTML={{ __html: opt.includes('<img') ? opt : `<img src="${opt}" alt="Option ${optLabel}" />` }}
+                                            dangerouslySetInnerHTML={{ __html: optionText.includes('<img') ? optionText : `<img src="${optionText}" alt="Option ${optLabel}" />` }}
                                         />
                                     )
-                                    : <span dangerouslySetInnerHTML={{ __html: opt }} />
+                                    : <span dangerouslySetInnerHTML={{ __html: optionText }} />
                                 }
                                 <div className="mcq-image-radio">
                                     <input
@@ -89,7 +103,7 @@ const MultipleChoiceQuestion = ({ q, activeQuestion, setActiveQuestion, answer, 
                                         value={String(idx)}
                                         checked={isChecked}
                                         disabled={isDisabled}
-                                        onChange={() => handleChange(opt)}
+                                        onChange={() => handleChange(optionText)}
                                         onClick={e => e.stopPropagation()}
                                     />
                                 </div>
@@ -117,13 +131,14 @@ const MultipleChoiceQuestion = ({ q, activeQuestion, setActiveQuestion, answer, 
             </div>
             <div className="tfng-options">
                 {q.options && q.options.map((opt, idx) => {
-                    const isChecked = isMultiple ? selectedAnswers.includes(opt) : selectedAnswers === opt;
+                    const optionText = getOptionText(opt);
+                    const isChecked = isMultiple ? selectedAnswers.includes(optionText) : selectedAnswers === optionText;
                     const isDisabled = (isMultiple && isFull && !isChecked) || isReview;
 
                     let reviewClass = '';
                     if (isReview) {
                         const correctArr = Array.isArray(q.correctAnswer) ? q.correctAnswer : [q.correctAnswer];
-                        const normalizedOpt = String(opt).trim().toLowerCase();
+                        const normalizedOpt = String(optionText).trim().toLowerCase();
                         const isCorrectOpt = correctArr.some(ans => String(ans).trim().toLowerCase() === normalizedOpt);
 
                         if (isCorrectOpt) {
@@ -144,12 +159,12 @@ const MultipleChoiceQuestion = ({ q, activeQuestion, setActiveQuestion, answer, 
                             <input
                                 type={isMultiple ? "checkbox" : "radio"}
                                 name={`q-${q.id}`}
-                                value={opt}
+                                value={optionText}
                                 checked={isChecked}
                                 disabled={isDisabled}
-                                onChange={() => handleChange(opt)}
+                                onChange={() => handleChange(optionText)}
                             />
-                            <span className="opt-text" dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(opt || '') }} />
+                            <span className="opt-text" dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(optionText || '') }} />
                         </label>
                     );
                 })}

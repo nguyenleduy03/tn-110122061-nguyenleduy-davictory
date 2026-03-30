@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Save, User, Clock, FileText, Award, ClipboardList, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Save, User, Clock, FileText, Award, ClipboardList, CheckCircle2, History } from 'lucide-react';
 import { teacherApi } from '../../services/teacherApi';
 import { ieltsApi } from '../../services/ieltsApi';
+import { authApi } from '../../services/authApi';
 import QuestionRenderer from '../../components/question/QuestionRenderer';
 import { formatTextWithWhitespace } from '../../utils/textFormatters';
 import { calculateExamBand, calculateWritingBandFromCriteria, formatBand } from '../../utils/ieltsScoring';
@@ -21,6 +22,10 @@ export default function LmsGradeSubmission() {
   const [error, setError] = useState('');
   const [writingSource, setWritingSource] = useState('writing');
   const [forceWritingMode, setForceWritingMode] = useState(type === 'writing');
+  const [gradeHistory, setGradeHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState('');
+  const feedbackDigitGuardUntilRef = useRef(0);
   const [grading, setGrading] = useState({
     feedback: '',
     taskAchievement: '',
@@ -40,7 +45,7 @@ export default function LmsGradeSubmission() {
     if (!Number.isFinite(numeric) || numeric < 0 || numeric > 9) return '';
     if (Math.abs((numeric * 2) - Math.round(numeric * 2)) > 1e-9) return '';
 
-    return numeric.toFixed(1);
+    return Number.isInteger(numeric) ? String(numeric) : numeric.toFixed(1);
   };
 
   const isValidIeltsBandPartial = (rawValue) => {
@@ -59,8 +64,101 @@ export default function LmsGradeSubmission() {
     return true;
   };
 
-  const handleBandFieldChange = (field) => (event) => {
-    const nextValue = normalizeDecimalInputText(event.target.value);
+  const sanitizeIeltsBandInput = (rawValue) => {
+    const value = normalizeDecimalInputText(rawValue);
+    if (!value) return '';
+
+    let result = '';
+    let hasDot = false;
+
+    for (const ch of value) {
+      if (/\d/.test(ch)) {
+        if (!hasDot) {
+          // Integer part is a single digit only (0-9).
+          if (result.length === 0) {
+            result = ch;
+          }
+          continue;
+        }
+
+        const [intPart, decPart = ''] = result.split('.');
+        // Decimal part is a single digit and must be 0 or 5.
+        if (decPart.length >= 1) continue;
+        if (ch !== '0' && ch !== '5') continue;
+        if (intPart === '9' && ch === '5') continue;
+        result += ch;
+        continue;
+      }
+
+      if (ch === '.') {
+        if (hasDot) continue;
+        if (!result) {
+          // Allow starting with dot by normalizing to 0.
+          result = '0';
+        }
+        hasDot = true;
+        result += '.';
+      }
+    }
+
+    return result;
+  };
+
+  const buildNextInputValue = (input, insertedText) => {
+    const current = String(input?.value || '');
+    const start = input?.selectionStart ?? current.length;
+    const end = input?.selectionEnd ?? current.length;
+    return `${current.slice(0, start)}${insertedText}${current.slice(end)}`;
+  };
+
+  const handleBandFieldKeyDown = (event) => {
+    if (event.isComposing) return;
+
+    const { key, currentTarget } = event;
+    const ctrlOrMeta = event.ctrlKey || event.metaKey;
+
+    if (ctrlOrMeta && ['a', 'c', 'v', 'x', 'z', 'y'].includes(key.toLowerCase())) return;
+    if (['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Home', 'End', 'Enter'].includes(key)) return;
+
+    if (/^[0-9]$/.test(key) || key === '.' || key === ',') {
+      const inserted = key === ',' ? '.' : key;
+      const nextValue = buildNextInputValue(currentTarget, inserted);
+      if (!isValidIeltsBandPartial(nextValue)) {
+        event.preventDefault();
+      }
+      return;
+    }
+
+    if (key.length === 1) {
+      event.preventDefault();
+    }
+  };
+
+  const handleBandFieldBeforeInput = (event) => {
+    if (event.isComposing) return;
+    if (!event.inputType || !event.inputType.startsWith('insert')) return;
+
+    const inserted = normalizeDecimalInputText(event.data ?? '').replace(/\s+/g, '');
+    if (!inserted) return;
+    if (!/^[\d.]+$/.test(inserted)) {
+      event.preventDefault();
+      return;
+    }
+
+    const nextValue = buildNextInputValue(event.currentTarget, inserted);
+    if (!isValidIeltsBandPartial(nextValue)) {
+      event.preventDefault();
+    }
+  };
+
+  const handleBandFieldPaste = (field) => (event) => {
+    event.preventDefault();
+
+    const pasted = normalizeDecimalInputText(event.clipboardData?.getData('text') || '').replace(/\s+/g, '');
+    if (!pasted) return;
+    if (!/^[\d.]+$/.test(pasted)) return;
+
+    const nextValue = buildNextInputValue(event.currentTarget, pasted);
     if (!isValidIeltsBandPartial(nextValue)) return;
 
     setGrading((prev) => ({
@@ -69,12 +167,57 @@ export default function LmsGradeSubmission() {
     }));
   };
 
+  const parseValidBandForRubric = (rawValue) => {
+    const raw = normalizeDecimalInputText(rawValue).trim();
+    if (!raw) return null;
+    if (!/^\d(?:\.\d)?$/.test(raw)) return null;
+
+    const numeric = Number(raw);
+    if (!Number.isFinite(numeric) || numeric < 0 || numeric > 9) return null;
+    if (Math.abs((numeric * 2) - Math.round(numeric * 2)) > 1e-9) return null;
+
+    return numeric;
+  };
+
+  const handleBandFieldChange = (field) => (event) => {
+    const nextValue = sanitizeIeltsBandInput(event.target.value);
+    setGrading((prev) => ({
+      ...prev,
+      [field]: nextValue,
+    }));
+  };
+
   const handleBandFieldBlur = (field) => (event) => {
+    feedbackDigitGuardUntilRef.current = Date.now() + 220;
     const normalizedValue = normalizeIeltsBandValue(event.target.value);
     setGrading((prev) => ({
       ...prev,
       [field]: normalizedValue,
     }));
+  };
+
+  const handleBandFieldFocus = (event) => {
+    // Select all so a single Backspace/Delete clears the current score quickly.
+    requestAnimationFrame(() => {
+      event.target.select();
+    });
+  };
+
+  const shouldGuardFeedbackDigitInput = () => Date.now() < feedbackDigitGuardUntilRef.current;
+
+  const handleFeedbackKeyDown = (event) => {
+    if (!shouldGuardFeedbackDigitInput()) return;
+    if (/^[0-9]$/.test(event.key)) {
+      event.preventDefault();
+    }
+  };
+
+  const handleFeedbackBeforeInput = (event) => {
+    if (!shouldGuardFeedbackDigitInput()) return;
+    const incoming = String(event.data ?? '');
+    if (/^[0-9]+$/.test(incoming)) {
+      event.preventDefault();
+    }
   };
 
   const normalizeAnswerValue = (ans) => {
@@ -112,13 +255,17 @@ export default function LmsGradeSubmission() {
       username: attempt?.username,
       submittedAt: attempt?.submittedAt || attempt?.startedAt,
       startedAt: attempt?.startedAt,
+      gradedAt: attempt?.gradedAt,
       status: attempt?.status,
       groupTitle: attempt?.testTitle || 'Writing Submission',
       submissionText,
       wordCount: attempt?.wordCount ?? derivedWordCount,
+      timeSpentSeconds: attempt?.timeSpentSeconds,
       sourceExamAttemptId: attempt?.id,
       overallBandScore: attempt?.bandScore,
       overallFeedback: attempt?.feedback,
+      gradedByUsername: attempt?.gradedByUsername ?? null,
+      gradedByFullName: attempt?.gradedByFullName ?? null,
     };
   };
 
@@ -344,34 +491,56 @@ export default function LmsGradeSubmission() {
 
   const handleSubmitGrade = async () => {
     try {
-      const finalBand = calculateWritingBandFromCriteria({
+      const computedBand = calculateWritingBandFromCriteria({
         taskAchievement: grading.taskAchievement,
         coherenceCohesion: grading.coherenceCohesion,
         lexicalResource: grading.lexicalResource,
         grammaticalRange: grading.grammaticalRange,
       });
+      const existingBand = submission?.overallBandScore ?? submission?.bandScore ?? null;
+      const finalBand = computedBand ?? existingBand;
 
       if (finalBand === null) {
-        alert('Vui lòng nhập đủ 4 tiêu chí rubric để tính band tự động.');
+        alert('Vui lòng nhập đủ 4 tiêu chí rubric cho lần chấm đầu tiên.');
         return;
       }
 
       if (writingSource === 'writing') {
         await teacherApi.gradeWritingSubmission(id, {
           overallBandScore: finalBand,
-          overallFeedback: grading.feedback
+          overallFeedback: grading.feedback,
         });
       } else {
-        await teacherApi.updateExamAttemptGrade(id, {
-          bandScore: finalBand,
-          feedback: grading.feedback,
-        });
+        try {
+          await teacherApi.updateExamAttemptGrade(id, {
+            bandScore: finalBand,
+            feedback: grading.feedback,
+          });
+        } catch (examGradeError) {
+          const status = examGradeError?.response?.status;
+          const canFallbackToWritingEndpoint = status === 404 || status === 405;
+
+          if (!canFallbackToWritingEndpoint) {
+            throw examGradeError;
+          }
+
+          // Compatibility fallback for environments routing Writing grading via /api/writing/grade/{id}
+          await teacherApi.gradeWritingSubmission(id, {
+            overallBandScore: finalBand,
+            overallFeedback: grading.feedback,
+          });
+        }
       }
       alert('Đã chấm bài thành công!');
       navigate(-1);
     } catch (error) {
       console.error('Error grading:', error);
-      alert('Lỗi khi chấm bài');
+      const backendErrorMessage =
+        error?.response?.data?.error
+        || error?.response?.data?.message
+        || error?.message
+        || 'Lỗi khi chấm bài';
+      alert(backendErrorMessage);
     }
   };
 
@@ -381,7 +550,7 @@ export default function LmsGradeSubmission() {
   };
 
   const formatDuration = (seconds) => {
-    if (!seconds || Number.isNaN(Number(seconds))) return 'N/A';
+    if (seconds === null || seconds === undefined || Number.isNaN(Number(seconds))) return 'N/A';
     const total = Number(seconds);
     const hrs = Math.floor(total / 3600);
     const mins = Math.floor((total % 3600) / 60);
@@ -390,6 +559,153 @@ export default function LmsGradeSubmission() {
     if (mins > 0) return `${mins}m ${secs}s`;
     return `${secs}s`;
   };
+
+  const firstNonBlankText = (...values) => {
+    for (const value of values) {
+      const text = String(value ?? '').trim();
+      if (text) return text;
+    }
+    return '';
+  };
+
+  const resolveTeacherDisplayName = (item = {}, fallback = {}) => {
+    const fullName = firstNonBlankText(
+      item?.editedByFullName,
+      item?.gradedByFullName,
+      fallback?.editedByFullName,
+      fallback?.gradedByFullName,
+    );
+    if (fullName) return fullName;
+    const username = firstNonBlankText(
+      item?.editedByUsername,
+      item?.gradedByUsername,
+      fallback?.editedByUsername,
+      fallback?.gradedByUsername,
+    );
+    if (username) return username;
+    return 'N/A';
+  };
+
+  const normalizeHistoryEntries = (entries = [], fallbackTeacher = {}) => {
+    return entries
+      .map((item, index) => ({
+        id: item?.id ?? `history-${index}`,
+        editedByUsername: firstNonBlankText(
+          item?.editedByUsername,
+          item?.gradedByUsername,
+          fallbackTeacher?.editedByUsername,
+          fallbackTeacher?.gradedByUsername,
+        ) || null,
+        editedByFullName: firstNonBlankText(
+          item?.editedByFullName,
+          item?.gradedByFullName,
+          fallbackTeacher?.editedByFullName,
+          fallbackTeacher?.gradedByFullName,
+        ) || null,
+        editedByDisplayName: resolveTeacherDisplayName(item, fallbackTeacher),
+        editorRole: item?.editorRole || null,
+        oldBandScore: item?.oldBandScore ?? null,
+        newBandScore: item?.newBandScore ?? item?.overallBandScore ?? item?.bandScore ?? null,
+        oldFeedback: item?.oldFeedback ?? null,
+        newFeedback: item?.newFeedback ?? item?.overallFeedback ?? item?.feedback ?? null,
+        editedAt: item?.editedAt || item?.gradedAt || item?.updatedAt || item?.createdAt || null,
+      }))
+      .sort((a, b) => {
+        const timeA = a?.editedAt ? new Date(a.editedAt).getTime() : 0;
+        const timeB = b?.editedAt ? new Date(b.editedAt).getTime() : 0;
+        return timeB - timeA;
+      });
+  };
+
+  useEffect(() => {
+    if (!submission) {
+      setHistoryLoading(false);
+      setHistoryError('');
+      setGradeHistory([]);
+      return;
+    }
+
+    const skill = String(submission?.skillType || submission?.examType || '').toUpperCase();
+    const shouldLoadHistory = forceWritingMode
+      || type === 'writing'
+      || writingSource === 'writing'
+      || writingSource === 'exam'
+      || skill === 'WRITING';
+
+    if (!shouldLoadHistory) {
+      setHistoryLoading(false);
+      setHistoryError('');
+      setGradeHistory([]);
+      return;
+    }
+
+    let cancelled = false;
+    let timeoutId = null;
+
+    const withTimeout = (promise, timeoutMs = 8000) => {
+      return Promise.race([
+        promise,
+        new Promise((_, reject) => {
+          timeoutId = setTimeout(() => {
+            reject(new Error('GRADE_HISTORY_TIMEOUT'));
+          }, timeoutMs);
+        }),
+      ]);
+    };
+
+    const loadGradeHistory = async () => {
+      setHistoryLoading(true);
+      setHistoryError('');
+
+      try {
+        let rawHistory = [];
+        const currentUser = authApi.getStoredUser?.() || null;
+        const fallbackTeacher = {
+          editedByUsername: firstNonBlankText(submission?.gradedByUsername, currentUser?.username) || null,
+          editedByFullName: firstNonBlankText(submission?.gradedByFullName, currentUser?.fullName, currentUser?.username) || null,
+          gradedByUsername: firstNonBlankText(submission?.gradedByUsername, currentUser?.username) || null,
+          gradedByFullName: firstNonBlankText(submission?.gradedByFullName, currentUser?.fullName, currentUser?.username) || null,
+        };
+
+        if (writingSource === 'exam') {
+          const attemptId = submission?.sourceExamAttemptId || id;
+          rawHistory = await withTimeout(teacherApi.getExamAttemptGradeHistory(attemptId));
+        } else {
+          rawHistory = await withTimeout(teacherApi.getWritingGradeHistory(id));
+        }
+
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          timeoutId = null;
+        }
+
+        if (cancelled) return;
+
+        const normalizedHistory = normalizeHistoryEntries(Array.isArray(rawHistory) ? rawHistory : [], fallbackTeacher);
+        setGradeHistory(normalizedHistory);
+      } catch (historyLoadError) {
+        if (cancelled) return;
+        console.warn('Error loading grade history:', historyLoadError);
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          timeoutId = null;
+        }
+        setHistoryError('Không tải được lịch sử chấm điểm. Vui lòng thử tải lại trang.');
+        setGradeHistory([]);
+      } finally {
+        setHistoryLoading(false);
+      }
+    };
+
+    loadGradeHistory();
+
+    return () => {
+      cancelled = true;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [submission, writingSource, forceWritingMode, type, id]);
 
   const renderExamAnswerRows = () => {
     const answers = submission?.answers || [];
@@ -593,13 +909,114 @@ export default function LmsGradeSubmission() {
     lexicalResource: grading.lexicalResource,
     grammaticalRange: grading.grammaticalRange,
   });
-  const finalWritingBand = computedWritingBand;
-  const canSaveWritingGrade = isWriting && finalWritingBand !== null;
+  const rubricFieldStatus = {
+    taskAchievement: parseValidBandForRubric(grading.taskAchievement) !== null,
+    coherenceCohesion: parseValidBandForRubric(grading.coherenceCohesion) !== null,
+    lexicalResource: parseValidBandForRubric(grading.lexicalResource) !== null,
+    grammaticalRange: parseValidBandForRubric(grading.grammaticalRange) !== null,
+  };
+  const hasInvalidRubricField = Object.values(rubricFieldStatus).some((isValid) => !isValid);
+  const finalWritingBand = hasInvalidRubricField ? null : computedWritingBand;
+  const hasExistingWritingBand = submission?.overallBandScore != null || submission?.bandScore != null;
+  const canSaveWritingGrade = isWriting && (finalWritingBand !== null || hasExistingWritingBand);
+  const isSubmissionGraded = isWriting && (
+    String(submission?.status || '').toUpperCase() === 'GRADED'
+    || submission?.overallBandScore != null
+    || submission?.bandScore != null
+  );
+  const writingActionLabel = isSubmissionGraded ? 'Sửa điểm' : 'Chấm bài';
   const calculatedExamBand = calculateExamBand({
     skillType: examType,
     totalCorrect: submission.totalCorrect,
   });
   const displayExamBand = submission?.bandScore ?? calculatedExamBand;
+  const inferredDurationSeconds = submission?.submittedAt && submission?.startedAt
+    ? Math.max(0, Math.floor((new Date(submission.submittedAt).getTime() - new Date(submission.startedAt).getTime()) / 1000))
+    : null;
+  const submissionDurationSeconds = submission?.timeSpentSeconds ?? submission?.timeTakenSeconds ?? inferredDurationSeconds;
+
+  const renderGradeHistorySection = () => {
+    if (!isWriting) return null;
+
+    return (
+      <div style={{
+        background: 'white',
+        borderRadius: 12,
+        padding: 24,
+        border: '1px solid #e5e7eb',
+        marginTop: 20
+      }}>
+        <h3 style={{
+          margin: '0 0 16px 0',
+          fontSize: 18,
+          fontWeight: 600,
+          color: '#1f2937',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8
+        }}>
+          <History size={18} /> Lịch sử chấm điểm
+        </h3>
+
+        {historyLoading && (
+          <div style={{ fontSize: 13, color: '#64748b' }}>
+            Đang tải lịch sử chấm điểm...
+          </div>
+        )}
+
+        {!historyLoading && historyError && (
+          <div style={{ fontSize: 13, color: '#b91c1c' }}>
+            {historyError}
+          </div>
+        )}
+
+        {!historyLoading && !historyError && gradeHistory.length === 0 && (
+          <div style={{ fontSize: 13, color: '#64748b' }}>
+            Chưa có lịch sử chấm điểm.
+          </div>
+        )}
+
+        {!historyLoading && !historyError && gradeHistory.length > 0 && (
+          <div style={{ overflowX: 'auto' }}>
+            <table className="lms-table">
+              <thead>
+                <tr>
+                  <th>Giáo viên chấm</th>
+                  <th>Band</th>
+                  <th>Thời gian chấm bài</th>
+                  <th>Nhận xét</th>
+                </tr>
+              </thead>
+              <tbody>
+                {gradeHistory.map((entry, index) => {
+                  const hasFeedback = entry.newFeedback && String(entry.newFeedback).trim() !== '';
+                  const hasBand = entry.newBandScore !== null && entry.newBandScore !== undefined;
+                  const teacherLabel = entry.editedByDisplayName || resolveTeacherDisplayName(entry);
+
+                  return (
+                    <tr key={`${entry.id}-${index}`}>
+                      <td>
+                        <div style={{ fontWeight: 600, color: '#0f172a' }}>{teacherLabel}</div>
+                      </td>
+                      <td style={{ fontWeight: 700, color: '#0f766e' }}>
+                        {hasBand ? formatBand(entry.newBandScore) : 'N/A'}
+                      </td>
+                      <td style={{ whiteSpace: 'nowrap' }}>
+                        {entry.editedAt ? formatDateTime(entry.editedAt) : 'N/A'}
+                      </td>
+                      <td style={{ minWidth: 280, whiteSpace: 'pre-wrap' }}>
+                        {hasFeedback ? entry.newFeedback : '—'}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div style={{ minHeight: '100vh', background: '#f3f4f6', fontFamily: 'Sora, sans-serif' }}>
@@ -631,7 +1048,7 @@ export default function LmsGradeSubmission() {
               onClick={handleSubmitGrade}
               disabled={!canSaveWritingGrade}
             >
-              <Save size={14} /> Lưu điểm
+              <Save size={14} /> {writingActionLabel}
             </button>
           ) : (
             <span className="lms-pill success">
@@ -652,7 +1069,7 @@ export default function LmsGradeSubmission() {
               marginBottom: 20,
               border: '1px solid #e5e7eb'
             }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 16 }}>
                 <div>
                   <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 4 }}>Học viên</div>
                   <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -672,14 +1089,25 @@ export default function LmsGradeSubmission() {
                   </div>
                 </div>
                 <div>
-                  <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 4 }}>
-                    {isWriting ? 'Số từ' : 'Thời gian làm bài'}
-                  </div>
+                  <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 4 }}>Thời gian làm bài</div>
                   <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <FileText size={16} />
-                    {isWriting ? `${submission.wordCount || 0} từ` : formatDuration(submission.timeSpentSeconds)}
+                    <Clock size={16} />
+                    {formatDuration(submissionDurationSeconds)}
                   </div>
                 </div>
+                <div>
+                  <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 4 }}>Trạng thái</div>
+                  <div style={{ fontWeight: 600, textTransform: 'uppercase' }}>{submission.status || 'N/A'}</div>
+                </div>
+                {isWriting && (
+                  <div>
+                    <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 4 }}>Số từ</div>
+                    <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <FileText size={16} />
+                      {`${submission.wordCount || 0} từ`}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -747,6 +1175,8 @@ export default function LmsGradeSubmission() {
                     {submission.submissionText || 'Không có nội dung bài làm'}
                   </div>
                 </div>
+
+                {renderGradeHistorySection()}
               </>
             ) : (
               <>
@@ -861,49 +1291,79 @@ export default function LmsGradeSubmission() {
                       type="text"
                       inputMode="decimal"
                       maxLength={3}
+                      lang="en"
+                      autoComplete="off"
+                      spellCheck={false}
                       value={grading.taskAchievement}
                       onChange={handleBandFieldChange('taskAchievement')}
+                      onFocus={handleBandFieldFocus}
+                      onKeyDown={handleBandFieldKeyDown}
+                      onBeforeInput={handleBandFieldBeforeInput}
+                      onPaste={handleBandFieldPaste('taskAchievement')}
                       onBlur={handleBandFieldBlur('taskAchievement')}
                       placeholder="Task Achievement"
-                      style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: 8 }}
+                      style={{ width: '100%', padding: '10px 12px', border: rubricFieldStatus.taskAchievement ? '1px solid #e5e7eb' : '1px solid #ef4444', borderRadius: 8, imeMode: 'disabled' }}
                     />
                     <input
                       type="text"
                       inputMode="decimal"
                       maxLength={3}
+                      lang="en"
+                      autoComplete="off"
+                      spellCheck={false}
                       value={grading.coherenceCohesion}
                       onChange={handleBandFieldChange('coherenceCohesion')}
+                      onFocus={handleBandFieldFocus}
+                      onKeyDown={handleBandFieldKeyDown}
+                      onBeforeInput={handleBandFieldBeforeInput}
+                      onPaste={handleBandFieldPaste('coherenceCohesion')}
                       onBlur={handleBandFieldBlur('coherenceCohesion')}
                       placeholder="Coherence & Cohesion"
-                      style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: 8 }}
+                      style={{ width: '100%', padding: '10px 12px', border: rubricFieldStatus.coherenceCohesion ? '1px solid #e5e7eb' : '1px solid #ef4444', borderRadius: 8, imeMode: 'disabled' }}
                     />
                     <input
                       type="text"
                       inputMode="decimal"
                       maxLength={3}
+                      lang="en"
+                      autoComplete="off"
+                      spellCheck={false}
                       value={grading.lexicalResource}
                       onChange={handleBandFieldChange('lexicalResource')}
+                      onFocus={handleBandFieldFocus}
+                      onKeyDown={handleBandFieldKeyDown}
+                      onBeforeInput={handleBandFieldBeforeInput}
+                      onPaste={handleBandFieldPaste('lexicalResource')}
                       onBlur={handleBandFieldBlur('lexicalResource')}
                       placeholder="Lexical Resource"
-                      style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: 8 }}
+                      style={{ width: '100%', padding: '10px 12px', border: rubricFieldStatus.lexicalResource ? '1px solid #e5e7eb' : '1px solid #ef4444', borderRadius: 8, imeMode: 'disabled' }}
                     />
                     <input
                       type="text"
                       inputMode="decimal"
                       maxLength={3}
+                      lang="en"
+                      autoComplete="off"
+                      spellCheck={false}
                       value={grading.grammaticalRange}
                       onChange={handleBandFieldChange('grammaticalRange')}
+                      onFocus={handleBandFieldFocus}
+                      onKeyDown={handleBandFieldKeyDown}
+                      onBeforeInput={handleBandFieldBeforeInput}
+                      onPaste={handleBandFieldPaste('grammaticalRange')}
                       onBlur={handleBandFieldBlur('grammaticalRange')}
                       placeholder="Grammatical Range"
-                      style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e7eb', borderRadius: 8 }}
+                      style={{ width: '100%', padding: '10px 12px', border: rubricFieldStatus.grammaticalRange ? '1px solid #e5e7eb' : '1px solid #ef4444', borderRadius: 8, imeMode: 'disabled' }}
                     />
                   </div>
                   <div style={{ marginTop: 10, fontSize: 13, color: '#0f766e', fontWeight: 600 }}>
-                    Band tự tính: {computedWritingBand !== null ? formatBand(computedWritingBand) : 'Chưa đủ tiêu chí'}
+                    Band dự kiến lưu (tự tính từ 4 tiêu chí): {finalWritingBand !== null ? formatBand(finalWritingBand) : 'Chưa đủ tiêu chí'}
                   </div>
-                  <div style={{ marginTop: 4, fontSize: 12, color: '#64748b' }}>
-                    Band sẽ lưu: {finalWritingBand !== null ? formatBand(finalWritingBand) : 'Chưa hợp lệ'}
-                  </div>
+                  {hasInvalidRubricField && (
+                    <div style={{ marginTop: 4, fontSize: 12, color: '#b91c1c' }}>
+                      Có thể lưu với band hiện tại; nhập đủ 4 tiêu chí hợp lệ (0.0 - 9.0, bước 0.5) nếu muốn tính lại band mới.
+                    </div>
+                  )}
                 </div>
 
                 <div style={{ marginBottom: 20 }}>
@@ -919,6 +1379,8 @@ export default function LmsGradeSubmission() {
                   <textarea
                     value={grading.feedback}
                     onChange={(e) => setGrading({ ...grading, feedback: e.target.value })}
+                    onKeyDown={handleFeedbackKeyDown}
+                    onBeforeInput={handleFeedbackBeforeInput}
                     rows={8}
                     style={{
                       width: '100%',
@@ -974,7 +1436,7 @@ export default function LmsGradeSubmission() {
                   disabled={!canSaveWritingGrade}
                   style={{ width: '100%', justifyContent: 'center', padding: '14px' }}
                 >
-                  <Save size={16} /> Lưu điểm và nhận xét
+                  <Save size={16} /> {writingActionLabel}
                 </button>
               </div>
             </div>

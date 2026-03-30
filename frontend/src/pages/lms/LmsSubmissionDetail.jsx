@@ -31,6 +31,7 @@ export default function LmsSubmissionDetail() {
       username: attempt?.username,
       submittedAt: attempt?.submittedAt || attempt?.startedAt,
       startedAt: attempt?.startedAt,
+      timeSpentSeconds: attempt?.timeSpentSeconds ?? null,
       status: attempt?.status,
       groupTitle: attempt?.testTitle || 'Writing Submission',
       submissionText,
@@ -57,6 +58,24 @@ export default function LmsSubmissionDetail() {
       }, 0);
     }, 0);
   };
+
+  const formatDuration = (seconds) => {
+    const value = Number(seconds);
+    if (!Number.isFinite(value) || value <= 0) return '—';
+
+    const total = Math.floor(value);
+    const hrs = Math.floor(total / 3600);
+    const mins = Math.floor((total % 3600) / 60);
+    const secs = total % 60;
+
+    if (hrs > 0) return `${hrs}h ${mins}m ${secs}s`;
+    if (mins > 0) return `${mins}m ${secs}s`;
+    return `${secs}s`;
+  };
+
+  const getSubmissionDuration = (item) => (
+    item?.timeSpentSeconds ?? item?.timeTakenSeconds ?? null
+  );
 
   useEffect(() => {
     const loadSubmission = async () => {
@@ -230,6 +249,13 @@ export default function LmsSubmissionDetail() {
             <div style={{ fontWeight: 600 }}>
               <Clock size={14} style={{ display: 'inline', marginRight: 4 }} />
               {new Date(submission.submittedAt || submission.startedAt).toLocaleString('vi-VN')}
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 4 }}>Thời gian làm bài</div>
+            <div style={{ fontWeight: 600 }}>
+              <Clock size={14} style={{ display: 'inline', marginRight: 4 }} />
+              {formatDuration(getSubmissionDuration(submission))}
             </div>
           </div>
           <div>

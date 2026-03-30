@@ -20,6 +20,7 @@ com/victory/DAVictory/service/ExamAttemptService.class
 com/victory/DAVictory/dto/QuestionGroupResponse.class
 com/victory/DAVictory/entity/SpeakingFeedback.class
 com/victory/DAVictory/service/FileUploadService.class
+com/victory/DAVictory/dto/WritingGradeHistoryResponse.class
 com/victory/DAVictory/dto/TestFullResponse$PartResp.class
 com/victory/DAVictory/repository/SpeakingAttemptRepository.class
 com/victory/DAVictory/repository/WritingSampleAnswerRepository.class
@@ -35,11 +36,13 @@ com/victory/DAVictory/repository/QuestionExplanationRepository.class
 com/victory/DAVictory/repository/AssignmentSubmissionRepository.class
 com/victory/DAVictory/config/CorsConfig.class
 com/victory/DAVictory/config/DataInitializer.class
+com/victory/DAVictory/controller/SpeakingController.class
 com/victory/DAVictory/entity/GuestExamAttempt.class
 com/victory/DAVictory/dto/QuestionGroupRequest$QuestionRequest.class
 com/victory/DAVictory/dto/ExamAttemptSubmitRequest.class
 com/victory/DAVictory/dto/LoginRequest.class
 com/victory/DAVictory/entity/Assignment.class
+com/victory/DAVictory/service/SpeakingService.class
 com/victory/DAVictory/service/UserService.class
 com/victory/DAVictory/entity/FullTestProgress.class
 com/victory/DAVictory/dto/TestSessionRequest.class
@@ -116,6 +119,7 @@ com/victory/DAVictory/service/GuestExamService.class
 com/victory/DAVictory/repository/StudentProgressRepository.class
 com/victory/DAVictory/entity/User.class
 com/victory/DAVictory/DaVictoryApplication.class
+com/victory/DAVictory/dto/ManualGradeRequest.class
 com/victory/DAVictory/repository/ClassTeacherRepository.class
 com/victory/DAVictory/repository/WritingTaskRepository.class
 com/victory/DAVictory/entity/Answer.class
@@ -123,6 +127,7 @@ com/victory/DAVictory/service/GoogleDriveOAuth2Service.class
 com/victory/DAVictory/controller/FullTestProgressController.class
 com/victory/DAVictory/entity/StudentProfile.class
 com/victory/DAVictory/service/TestManagementService.class
+com/victory/DAVictory/dto/SpeakingGradeRequest.class
 com/victory/DAVictory/dto/TestAttemptRequest.class
 com/victory/DAVictory/controller/ClassManagementController.class
 com/victory/DAVictory/config/TestStructureInitializer.class
@@ -149,6 +154,7 @@ com/victory/DAVictory/dto/TestFullResponse$GroupResp.class
 com/victory/DAVictory/dto/FullTestProgressSaveRequest.class
 com/victory/DAVictory/dto/TestSessionResponse.class
 com/victory/DAVictory/repository/QuestionStatisticRepository.class
+com/victory/DAVictory/controller/WritingCriteriaController.class
 com/victory/DAVictory/controller/AuthController.class
 com/victory/DAVictory/enums/MediaType.class
 com/victory/DAVictory/service/GuestExamService$1.class

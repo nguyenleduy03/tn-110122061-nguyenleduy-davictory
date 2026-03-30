@@ -3,6 +3,7 @@ package com.victory.DAVictory.controller;
 import com.victory.DAVictory.dto.WritingSubmitRequest;
 import com.victory.DAVictory.dto.WritingSubmissionResponse;
 import com.victory.DAVictory.dto.WritingGradeRequest;
+import com.victory.DAVictory.dto.WritingGradeHistoryResponse;
 import com.victory.DAVictory.service.WritingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -137,6 +138,23 @@ public class WritingController {
             String teacherUsername = authentication.getName();
             WritingSubmissionResponse response = writingService.gradeWriting(submissionId, teacherUsername, request);
             return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Lịch sử chấm bài Writing theo từng lần chỉnh sửa.
+     */
+    @GetMapping("/grade/{submissionId}/history")
+    @PreAuthorize("hasAnyRole('TEACHER', 'MANAGER', 'ADMIN')")
+    public ResponseEntity<?> getWritingGradeHistory(
+            @PathVariable Long submissionId,
+            Authentication authentication) {
+        try {
+            String teacherUsername = authentication.getName();
+            List<WritingGradeHistoryResponse> list = writingService.getWritingGradeHistory(submissionId, teacherUsername);
+            return ResponseEntity.ok(list);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }

@@ -76,6 +76,11 @@ export const teacherApi = {
     return res.data;
   },
 
+  getWritingGradeHistory: async (submissionId) => {
+    const res = await apiClient.get(`/writing/grade/${submissionId}/history`);
+    return res.data;
+  },
+
   gradeWritingSubmission: async (submissionId, payload) => {
     const res = await apiClient.post(`/writing/grade/${submissionId}`, payload);
     return res.data;

@@ -243,6 +243,10 @@ const IeltsReadingTest = () => {
         isFullTest,
         queryString,
     }), [testId, mode, isFullTest, queryString]);
+    const highlightStorageKey = useMemo(() => {
+        if (!testId) return null;
+        return `ieltsHighlights_reading_${testId}`;
+    }, [testId]);
     const autosaveStateRef = useRef({
         answers: {},
         bookmarks: {},
@@ -319,6 +323,22 @@ const IeltsReadingTest = () => {
                 })
                 : -1;
 
+            if (highlightStorageKey && configuredData?.parts?.length) {
+                try {
+                    const savedMap = JSON.parse(sessionStorage.getItem(highlightStorageKey) || '{}');
+                    configuredData = {
+                        ...configuredData,
+                        parts: configuredData.parts.map((p) => {
+                            const savedHtml = savedMap?.[String(p?.id)];
+                            if (!savedHtml || typeof savedHtml !== 'string') return p;
+                            return { ...p, passageContent: savedHtml };
+                        }),
+                    };
+                } catch {
+                    // Ignore malformed highlight cache and continue with server payload.
+                }
+            }
+
             if (resolvedStartPartIndex >= 0) {
                 setCurrentPartIndex(resolvedStartPartIndex);
             } else {
@@ -345,7 +365,7 @@ const IeltsReadingTest = () => {
                 : `Không thể tải bài thi: ${err.message}`);
             setLoading(false);
         });
-    }, [testId, isReview, mode, isFullTest, selectedPracticeParts, startPartNumber, durationOverrideMinutes, noTimeLimit, setCurrentPartIndex]);
+    }, [testId, isReview, mode, isFullTest, selectedPracticeParts, startPartNumber, durationOverrideMinutes, noTimeLimit, setCurrentPartIndex, highlightStorageKey]);
 
     useEffect(() => {
         if (!isFullTest || isReview || !testData || !testId) return undefined;
@@ -497,10 +517,36 @@ const IeltsReadingTest = () => {
                 bm.remove(); // Completely remove the dynamically added bookmark wrappers
             });
 
-            setTestData(prev => {
-                const newData = { ...prev };
-                newData.parts[currentPartIndex].passageContent = clone.innerHTML;
-                return newData;
+            const nextHtml = clone.innerHTML;
+
+            setTestData((prev) => {
+                if (!prev?.parts?.length) return prev;
+
+                const nextParts = prev.parts.map((p, idx) => {
+                    if (idx !== currentPartIndex) return p;
+                    return {
+                        ...p,
+                        passageContent: nextHtml,
+                    };
+                });
+
+                if (highlightStorageKey) {
+                    try {
+                        const currentMap = JSON.parse(sessionStorage.getItem(highlightStorageKey) || '{}');
+                        const partId = nextParts[currentPartIndex]?.id;
+                        if (partId !== undefined && partId !== null) {
+                            currentMap[String(partId)] = nextHtml;
+                            sessionStorage.setItem(highlightStorageKey, JSON.stringify(currentMap));
+                        }
+                    } catch {
+                        // Ignore storage errors and keep in-memory update.
+                    }
+                }
+
+                return {
+                    ...prev,
+                    parts: nextParts,
+                };
             });
         }
     };

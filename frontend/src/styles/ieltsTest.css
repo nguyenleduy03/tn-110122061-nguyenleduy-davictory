@@ -2465,11 +2465,35 @@
     gap: 18px;
 }
 
+.spk-mic-countdown {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    margin: 12px 0;
+}
+
+.spk-countdown-timer {
+    font-size: 48px;
+    font-weight: 700;
+    color: #dc2626;
+    font-family: monospace;
+}
+
+.spk-countdown-text {
+    font-size: 16px;
+    font-weight: 600;
+    color: #374151;
+    margin: 0;
+}
+
 .spk-mic-title {
     font-size: 20px;
     font-weight: 700;
     color: #111827;
     text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .spk-mic-sub {
@@ -2487,7 +2511,8 @@
 }
 
 .spk-mic-test-btn,
-.spk-start-btn {
+.spk-start-btn,
+.spk-skip-btn {
     padding: 10px 20px;
     border-radius: 8px;
     border: 1px solid #d1d5db;
@@ -2495,6 +2520,21 @@
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
+    transition: all 0.2s;
+}
+
+.spk-mic-test-btn:hover {
+    background: #f3f4f6;
+}
+
+.spk-skip-btn {
+    background: #6b7280;
+    color: #fff;
+    border-color: #6b7280;
+}
+
+.spk-skip-btn:hover {
+    background: #4b5563;
 }
 
 .spk-start-btn {
@@ -2503,7 +2543,12 @@
     border-color: #111827;
 }
 
-.spk-start-btn:disabled {
+.spk-start-btn:hover {
+    background: #1f2937;
+}
+
+.spk-start-btn:disabled,
+.spk-mic-test-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
 }
@@ -4647,9 +4692,16 @@ body.text-size-xlarge .options-fs-overlay {
 }
 
 .custom-highlight {
-    background-color: rgb(59, 130, 246);
+    background-color: #fde047;
+    color: inherit;
     border-radius: 2px;
-    padding: 1px 0;
+    padding: 0;
+    margin: 0;
+    display: inline;
+    line-height: inherit;
+    vertical-align: baseline;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
     cursor: pointer;
 }
 

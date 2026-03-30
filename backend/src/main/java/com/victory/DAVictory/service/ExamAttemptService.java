@@ -12,6 +12,8 @@ import com.victory.DAVictory.entity.*;
 import com.victory.DAVictory.enums.SkillType;
 import com.victory.DAVictory.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -22,10 +24,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Service
 @RequiredArgsConstructor
 public class ExamAttemptService {
+
+    private static final Logger log = LoggerFactory.getLogger(ExamAttemptService.class);
 
     private final ExamAttemptRepository examAttemptRepository;
     private final AttemptAnswerRepository attemptAnswerRepository;
@@ -39,6 +44,7 @@ public class ExamAttemptService {
     private final ClassTeacherRepository classTeacherRepository;
     private final ClassStudentRepository classStudentRepository;
     private final JdbcTemplate jdbcTemplate;
+    private final AtomicBoolean examHistoryTableChecked = new AtomicBoolean(false);
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -195,7 +201,7 @@ public class ExamAttemptService {
                 .toList();
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public ExamAttemptResponse getAttemptDetailForTeacher(String teacherUsername, Long attemptId) {
         User teacher = userRepository.findByUsername(teacherUsername)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy giáo viên"));
@@ -208,6 +214,7 @@ public class ExamAttemptService {
         
         // Teacher xem bài của chính mình
         if (teacher.getId().equals(studentId)) {
+            logAttemptViewIfWriting(attempt, teacher);
             return toResponseWithAnswers(attempt);
         }
 
@@ -222,6 +229,7 @@ public class ExamAttemptService {
             throw new RuntimeException("Bạn không có quyền xem bài làm của học viên này");
         }
 
+        logAttemptViewIfWriting(attempt, teacher);
         return toResponseWithAnswers(attempt);
     }
 
@@ -291,13 +299,12 @@ public class ExamAttemptService {
                 teacher,
                 oldTotalCorrect,
                 oldBandScore,
-                oldFeedback,
-                request.getEditReason());
+            oldFeedback);
 
         return toResponseWithAnswers(saved);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<ExamAttemptGradeHistoryResponse> getAttemptGradeHistory(String teacherUsername, Long attemptId) {
         User teacher = userRepository.findByUsername(teacherUsername)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy giáo viên"));
@@ -308,32 +315,88 @@ public class ExamAttemptService {
         validateTeacherCanAccessAttempt(teacher, attempt);
 
         try {
+            ensureExamAttemptGradeHistoryTable();
+
+            boolean hasEditedByUserId = hasExamAttemptHistoryColumn("edited_by_user_id");
+            boolean hasEditedByUsername = hasExamAttemptHistoryColumn("edited_by_username");
+            boolean hasEditedByFullName = hasExamAttemptHistoryColumn("edited_by_full_name");
+            boolean hasEditorRole = hasExamAttemptHistoryColumn("editor_role");
+            boolean hasOldTotalCorrect = hasExamAttemptHistoryColumn("old_total_correct");
+            boolean hasNewTotalCorrect = hasExamAttemptHistoryColumn("new_total_correct");
+            boolean hasOldBandScore = hasExamAttemptHistoryColumn("old_band_score");
+            boolean hasNewBandScore = hasExamAttemptHistoryColumn("new_band_score");
+            boolean hasOldFeedback = hasExamAttemptHistoryColumn("old_feedback");
+            boolean hasNewFeedback = hasExamAttemptHistoryColumn("new_feedback");
+            boolean hasEditReason = hasExamAttemptHistoryColumn("edit_reason");
+            boolean hasEditedAt = hasExamAttemptHistoryColumn("edited_at");
+
+            String joinByUserId = hasEditedByUserId
+                    ? "LEFT JOIN users u ON u.id = h.edited_by_user_id"
+                    : "LEFT JOIN users u ON 1 = 0";
+            String joinByUsername = hasEditedByUsername
+                    ? "LEFT JOIN users u_by_username ON u_by_username.username = h.edited_by_username"
+                    : "LEFT JOIN users u_by_username ON 1 = 0";
+            String orderExpr = hasEditedAt ? "h.edited_at" : "h.id";
+
             String sql = """
-                    SELECT id,
-                           edited_by_username,
-                           editor_role,
-                           old_total_correct,
-                           new_total_correct,
-                           old_band_score,
-                           new_band_score,
-                           old_feedback,
-                           new_feedback,
-                           edit_reason,
-                           edited_at
-                    FROM exam_attempt_grade_history
-                    WHERE exam_attempt_id = ?
-                    ORDER BY edited_at DESC
-                    """;
+                      SELECT h.id,
+                          %s AS edited_by_username,
+                          %s AS edited_by_full_name,
+                          %s AS editor_role,
+                          %s AS old_total_correct,
+                          %s AS new_total_correct,
+                          %s AS old_band_score,
+                          %s AS new_band_score,
+                          %s AS old_feedback,
+                          %s AS new_feedback,
+                          %s AS edit_reason,
+                          %s AS edited_at,
+                          u.full_name AS editor_full_name_from_user_id,
+                          u.username AS editor_username_from_user_id,
+                          u_by_username.full_name AS editor_full_name_from_username,
+                          u_by_username.username AS editor_username_from_username
+                      FROM exam_attempt_grade_history h
+                      %s
+                      %s
+                      WHERE h.exam_attempt_id = ?
+                    ORDER BY %s DESC
+                    """.formatted(
+                    hasEditedByUsername ? "h.edited_by_username" : "NULL",
+                    hasEditedByFullName ? "h.edited_by_full_name" : "NULL",
+                    hasEditorRole ? "h.editor_role" : "NULL",
+                    hasOldTotalCorrect ? "h.old_total_correct" : "NULL",
+                    hasNewTotalCorrect ? "h.new_total_correct" : "NULL",
+                    hasOldBandScore ? "h.old_band_score" : "NULL",
+                    hasNewBandScore ? "h.new_band_score" : "NULL",
+                    hasOldFeedback ? "h.old_feedback" : "NULL",
+                    hasNewFeedback ? "h.new_feedback" : "NULL",
+                    hasEditReason ? "h.edit_reason" : "NULL",
+                    hasEditedAt ? "h.edited_at" : "NULL",
+                    joinByUserId,
+                    joinByUsername,
+                    orderExpr
+            );
 
             return jdbcTemplate.query(sql, (rs, rowNum) -> {
                 ExamAttemptGradeHistoryResponse dto = new ExamAttemptGradeHistoryResponse();
                 dto.setId(rs.getLong("id"));
-                dto.setEditedByUsername(rs.getString("edited_by_username"));
+                String editedByUsername = firstNonBlank(
+                        rs.getString("edited_by_username"),
+                        rs.getString("editor_username_from_user_id"),
+                        rs.getString("editor_username_from_username"));
+                dto.setEditedByUsername(editedByUsername);
+
+                String editedByFullName = firstNonBlank(
+                        rs.getString("edited_by_full_name"),
+                        rs.getString("editor_full_name_from_user_id"),
+                        rs.getString("editor_full_name_from_username"),
+                        editedByUsername);
+                dto.setEditedByFullName(editedByFullName);
                 dto.setEditorRole(rs.getString("editor_role"));
                 dto.setOldTotalCorrect((Integer) rs.getObject("old_total_correct"));
                 dto.setNewTotalCorrect((Integer) rs.getObject("new_total_correct"));
-                dto.setOldBandScore((Double) rs.getObject("old_band_score"));
-                dto.setNewBandScore((Double) rs.getObject("new_band_score"));
+                dto.setOldBandScore(toNullableDouble(rs.getObject("old_band_score")));
+                dto.setNewBandScore(toNullableDouble(rs.getObject("new_band_score")));
                 dto.setOldFeedback(rs.getString("old_feedback"));
                 dto.setNewFeedback(rs.getString("new_feedback"));
                 dto.setEditReason(rs.getString("edit_reason"));
@@ -342,8 +405,8 @@ public class ExamAttemptService {
                 return dto;
             }, attemptId);
         } catch (DataAccessException e) {
-            throw new RuntimeException(
-                    "Không thể tải lịch sử sửa điểm. Vui lòng kiểm tra bảng exam_attempt_grade_history.");
+            log.warn("Không thể tải lịch sử sửa điểm cho attempt {}", attemptId, e);
+            return List.of();
         }
     }
 
@@ -511,6 +574,10 @@ public class ExamAttemptService {
 
     private void validateTeacherCanAccessAttempt(User teacher, ExamAttempt attempt) {
         Long studentId = attempt.getUser().getId();
+        if (teacher.getId().equals(studentId)) {
+            return;
+        }
+
         boolean isTeachingStudent = classTeacherRepository.existsByUserIdAndClazzIdInAndIsActiveTrue(
                 teacher.getId(),
                 classStudentRepository.findByUserIdOrderByEnrolledAtDesc(studentId).stream()
@@ -550,18 +617,34 @@ public class ExamAttemptService {
         });
     }
 
+    private void logAttemptViewIfWriting(ExamAttempt attempt, User viewer) {
+        SkillType skillType = attempt.getSession() != null ? attempt.getSession().getSkillType() : null;
+        if (skillType != SkillType.WRITING) {
+            return;
+        }
+
+        saveGradeHistoryRecord(
+                attempt,
+                viewer,
+                attempt.getTotalCorrect(),
+                attempt.getBandScore(),
+                attempt.getFeedback());
+    }
+
     private void saveGradeHistoryRecord(ExamAttempt attempt,
             User teacher,
             Integer oldTotalCorrect,
             Double oldBandScore,
-            String oldFeedback,
-            String editReason) {
+            String oldFeedback) {
         try {
+            ensureExamAttemptGradeHistoryTable();
+
             String sql = """
                     INSERT INTO exam_attempt_grade_history (
                         exam_attempt_id,
                         edited_by_user_id,
                         edited_by_username,
+                        edited_by_full_name,
                         editor_role,
                         old_total_correct,
                         new_total_correct,
@@ -571,7 +654,7 @@ public class ExamAttemptService {
                         new_feedback,
                         edit_reason,
                         edited_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """;
 
             jdbcTemplate.update(
@@ -579,6 +662,7 @@ public class ExamAttemptService {
                     attempt.getId(),
                     teacher.getId(),
                     teacher.getUsername(),
+                    teacher.getFullName(),
                     resolveEditorRole(teacher),
                     oldTotalCorrect,
                     attempt.getTotalCorrect(),
@@ -586,11 +670,130 @@ public class ExamAttemptService {
                     attempt.getBandScore(),
                     oldFeedback,
                     attempt.getFeedback(),
-                    editReason != null ? editReason.trim() : null,
+                    null,
                     java.sql.Timestamp.valueOf(LocalDateTime.now()));
         } catch (DataAccessException e) {
-            throw new RuntimeException(
-                    "Không thể lưu lịch sử sửa điểm. Vui lòng kiểm tra bảng exam_attempt_grade_history.");
+            // Do not block grade saving when history storage is unavailable.
+            log.warn("Không thể lưu lịch sử sửa điểm cho attempt {}", attempt.getId(), e);
+        }
+    }
+
+    private void ensureExamAttemptGradeHistoryTable() {
+        if (examHistoryTableChecked.get()) {
+            return;
+        }
+
+        synchronized (examHistoryTableChecked) {
+            if (examHistoryTableChecked.get()) {
+                return;
+            }
+
+            try {
+                String ddl = """
+                        CREATE TABLE IF NOT EXISTS exam_attempt_grade_history (
+                          id BIGINT NOT NULL AUTO_INCREMENT,
+                          exam_attempt_id BIGINT NOT NULL,
+                          edited_by_user_id BIGINT NOT NULL,
+                          edited_by_username VARCHAR(255) NOT NULL,
+                                                    edited_by_full_name VARCHAR(255) NULL,
+                          editor_role VARCHAR(20) NOT NULL,
+                          old_total_correct INT NULL,
+                          new_total_correct INT NULL,
+                          old_band_score DECIMAL(3,1) NULL,
+                          new_band_score DECIMAL(3,1) NULL,
+                          old_feedback TEXT NULL,
+                          new_feedback TEXT NULL,
+                          edit_reason TEXT NULL,
+                          edited_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                          PRIMARY KEY (id),
+                          KEY idx_eagh_attempt_edited_at (exam_attempt_id, edited_at)
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                        """;
+                jdbcTemplate.execute(ddl);
+                ensureExamAttemptHistoryColumn("edited_by_user_id", "BIGINT NULL");
+                ensureExamAttemptHistoryColumn("edited_by_username", "VARCHAR(255) NOT NULL DEFAULT ''");
+                ensureExamAttemptHistoryColumn("edited_by_full_name", "VARCHAR(255) NULL");
+                ensureExamAttemptHistoryColumn("editor_role", "VARCHAR(20) NOT NULL DEFAULT 'TEACHER'");
+                ensureExamAttemptHistoryColumn("old_total_correct", "INT NULL");
+                ensureExamAttemptHistoryColumn("new_total_correct", "INT NULL");
+                ensureExamAttemptHistoryColumn("old_band_score", "DECIMAL(3,1) NULL");
+                ensureExamAttemptHistoryColumn("new_band_score", "DECIMAL(3,1) NULL");
+                ensureExamAttemptHistoryColumn("old_feedback", "TEXT NULL");
+                ensureExamAttemptHistoryColumn("new_feedback", "TEXT NULL");
+                ensureExamAttemptHistoryColumn("edit_reason", "TEXT NULL");
+                ensureExamAttemptHistoryColumn("edited_at", "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP");
+                backfillExamAttemptHistoryTeacherFields();
+                examHistoryTableChecked.set(true);
+            } catch (DataAccessException e) {
+                log.warn("Không thể đảm bảo bảng exam_attempt_grade_history tồn tại", e);
+            }
+        }
+    }
+
+    private void ensureExamAttemptHistoryColumn(String columnName, String sqlType) {
+        Integer count = jdbcTemplate.queryForObject(
+                """
+                        SELECT COUNT(*)
+                        FROM information_schema.COLUMNS
+                        WHERE TABLE_SCHEMA = DATABASE()
+                          AND TABLE_NAME = 'exam_attempt_grade_history'
+                          AND COLUMN_NAME = ?
+                        """,
+                Integer.class,
+                columnName);
+
+        if (count == null || count == 0) {
+            jdbcTemplate.execute("ALTER TABLE exam_attempt_grade_history ADD COLUMN " + columnName + " " + sqlType);
+        }
+    }
+
+    private boolean hasExamAttemptHistoryColumn(String columnName) {
+        try {
+            Integer count = jdbcTemplate.queryForObject(
+                    """
+                            SELECT COUNT(*)
+                            FROM information_schema.COLUMNS
+                            WHERE TABLE_SCHEMA = DATABASE()
+                              AND TABLE_NAME = 'exam_attempt_grade_history'
+                              AND COLUMN_NAME = ?
+                            """,
+                    Integer.class,
+                    columnName);
+            return count != null && count > 0;
+        } catch (DataAccessException e) {
+            return false;
+        }
+    }
+
+    private void backfillExamAttemptHistoryTeacherFields() {
+        try {
+            jdbcTemplate.update(
+                    """
+                            UPDATE exam_attempt_grade_history h
+                            LEFT JOIN users u ON u.id = h.edited_by_user_id
+                            SET h.edited_by_username = COALESCE(NULLIF(h.edited_by_username, ''), u.username, h.edited_by_username)
+                            WHERE h.edited_by_username IS NULL OR h.edited_by_username = ''
+                            """
+            );
+        } catch (DataAccessException e) {
+            log.warn("Không thể backfill edited_by_username cho exam_attempt_grade_history", e);
+        }
+
+        if (!hasExamAttemptHistoryColumn("edited_by_full_name")) {
+            return;
+        }
+
+        try {
+            jdbcTemplate.update(
+                    """
+                            UPDATE exam_attempt_grade_history h
+                            LEFT JOIN users u ON u.id = h.edited_by_user_id
+                            SET h.edited_by_full_name = COALESCE(NULLIF(h.edited_by_full_name, ''), u.full_name, h.edited_by_full_name)
+                            WHERE h.edited_by_full_name IS NULL OR h.edited_by_full_name = ''
+                            """
+            );
+        } catch (DataAccessException e) {
+            log.warn("Không thể backfill edited_by_full_name cho exam_attempt_grade_history", e);
         }
     }
 
@@ -787,12 +990,29 @@ public class ExamAttemptService {
         return candidates.stream().anyMatch(c -> normalize(c).equals(n));
     }
 
-    private String firstNonBlank(String a, String b) {
-        if (a != null && !a.isBlank())
-            return a;
-        if (b != null && !b.isBlank())
-            return b;
+    private String firstNonBlank(String... values) {
+        if (values == null)
+            return null;
+        for (String value : values) {
+            if (value != null && !value.isBlank()) {
+                return value;
+            }
+        }
         return null;
+    }
+
+    private Double toNullableDouble(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Number number) {
+            return number.doubleValue();
+        }
+        try {
+            return Double.valueOf(String.valueOf(value));
+        } catch (NumberFormatException ex) {
+            return null;
+        }
     }
 
     private ExamAttemptResponse toResponse(ExamAttempt attempt) {

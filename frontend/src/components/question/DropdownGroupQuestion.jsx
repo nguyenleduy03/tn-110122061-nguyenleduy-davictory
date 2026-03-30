@@ -12,9 +12,26 @@ const DropdownGroupQuestion = ({
   toggleBookmark,
   isReview,
 }) => {
+  const resolveText = (value) => {
+    if (typeof value === 'string') return value;
+    if (value && typeof value === 'object') {
+      return value.text || value.label || value.value || value.optionText || value.optionLabel || value.key || '';
+    }
+    return String(value ?? '');
+  };
+
   const group = q || {};
   const questions = group.subQuestions || group.questions || [];
-  const options = group.sharedOptions || [];
+  const options = (group.sharedOptions || []).map((opt, index) => {
+    if (!opt || typeof opt !== 'object') {
+      return { key: String.fromCharCode(65 + index), label: resolveText(opt), imageUrl: '' };
+    }
+    return {
+      key: resolveText(opt.key || opt.optionLabel || String.fromCharCode(65 + index)).trim().charAt(0) || String.fromCharCode(65 + index),
+      label: resolveText(opt.label || opt.optionText || opt.text || opt.value),
+      imageUrl: resolveText(opt.imageUrl || ''),
+    };
+  });
   
   console.log('DropdownGroupQuestion imageWidth:', group.imageWidth, 'imageUrl:', group.imageUrl);
 

@@ -21,6 +21,14 @@ const parseFlowNodeText = (text) => {
 };
 
 const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuestion, answers, handleAnswerChange, bookmarks, toggleBookmark, isReview }) => {
+    const resolveText = (value) => {
+        if (typeof value === 'string') return value;
+        if (value && typeof value === 'object') {
+            return value.text || value.label || value.value || value.optionText || value.optionLabel || value.key || '';
+        }
+        return String(value ?? '');
+    };
+
     const questionType = normalizeGroupType(resolvedType || q?.type);
     const normalizeBlankTokens = (text) => {
         let s = String(text || '');
@@ -93,7 +101,7 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
     const isImageDragDrop = questionType === 'image_drag_drop';
 
     // Calculate max length of bank options for sizing dropzones
-    const bankOptions = q.bankOptions || [];
+    const bankOptions = (q.bankOptions || []).map(resolveText).filter(Boolean);
     const totalDropZones = (q.subQuestions || []).length;
     // Reuse cards by default for "machine" drag/drop styles.
     // You can explicitly override per-question/group via q.allowOptionReuse (boolean).
@@ -151,12 +159,12 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
             <div className="dd-questions-list">
                 {(q.subQuestions || []).map((subQ) => {
                     const isActive = activeQuestion === subQ.number;
-                    const answer = answers[subQ.id];
+                    const answer = resolveText(answers[subQ.id]);
                     const normalizedAnswer = String(answer || '').trim().toLowerCase();
                     const normalizedCorrect = String(subQ.correctAnswer || '').trim().toLowerCase();
                     const isCorrect = normalizedAnswer === normalizedCorrect;
                     const displayAnswer = (isReview && !isCorrect)
-                        ? String(subQ.correctAnswer || '')
+                        ? resolveText(subQ.correctAnswer || '')
                         : String(answer || '');
                     const hasDisplayAnswer = displayAnswer.trim() !== '';
                     const inlineBlankParts = extractInlineBlankParts(subQ.text || '');

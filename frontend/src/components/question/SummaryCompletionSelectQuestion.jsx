@@ -13,7 +13,15 @@ const SummaryCompletionSelectQuestion = ({ q, activeQuestion, setActiveQuestion,
         }
     }
     
-    const options = questionData.optionBank || [];
+    const resolveText = (value) => {
+        if (typeof value === 'string') return value;
+        if (value && typeof value === 'object') {
+            return value.text || value.label || value.value || value.optionText || value.optionLabel || '';
+        }
+        return String(value ?? '');
+    };
+
+    const options = (questionData.optionBank || []).map(resolveText).filter(Boolean);
     const instructions = questionData.instructions || '';
     const noteText = questionData.noteText || questionData.text || '';
     const allowOptionReuse = questionData.allowOptionReuse !== false;
@@ -28,7 +36,7 @@ const SummaryCompletionSelectQuestion = ({ q, activeQuestion, setActiveQuestion,
     };
 
     const handleDragStart = (e, option, sourceQId = null) => {
-        const optionText = typeof option === 'string' ? option : (option.text || '');
+        const optionText = resolveText(option);
         e.dataTransfer.setData('text/plain', optionText.replace(/<[^>]*>/g, ''));
         if (sourceQId) {
             e.dataTransfer.setData('sourceQId', String(sourceQId));
@@ -161,7 +169,7 @@ const SummaryCompletionSelectQuestion = ({ q, activeQuestion, setActiveQuestion,
             >
                 <div className="summary-bank-options">
                     {options.map((o, i) => {
-                        const optionText = typeof o === 'string' ? o : (o.text || '');
+                        const optionText = resolveText(o);
                         const isUsed = !allowOptionReuse && usedOptions.has(optionText);
                         
                         if (isUsed && !isReview) return null;

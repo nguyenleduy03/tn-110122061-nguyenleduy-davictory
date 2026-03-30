@@ -4,6 +4,116 @@ import { MessageSquareQuote, Highlighter, Trash2 } from 'lucide-react';
 const TextHighlighter = ({ containerRef, onHighlightChange, onAddNote, currentPartIndex = 0 }) => {
     const [popup, setPopup] = useState(null);
 
+    const createHighlightNode = () => {
+        const highlight = document.createElement('span');
+        highlight.className = 'custom-highlight';
+        highlight.title = 'Click to remove highlight';
+        highlight.setAttribute('data-highlight-id', `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+        return highlight;
+    };
+
+    const isHighlightElement = (node) => {
+        return node?.nodeType === Node.ELEMENT_NODE && node.classList?.contains('custom-highlight');
+    };
+
+    const mergeAdjacentHighlights = (node) => {
+        if (!isHighlightElement(node)) return node;
+
+        // Merge previous sibling highlight into current node.
+        const prev = node.previousSibling;
+        if (isHighlightElement(prev)) {
+            while (node.firstChild) {
+                prev.appendChild(node.firstChild);
+            }
+            node.remove();
+            node = prev;
+        }
+
+        // Merge next sibling highlight into current node.
+        const next = node.nextSibling;
+        if (isHighlightElement(next)) {
+            while (next.firstChild) {
+                node.appendChild(next.firstChild);
+            }
+            next.remove();
+        }
+
+        return node;
+    };
+
+    const getSelectedTextNodes = (range) => {
+        const nodes = [];
+        const ancestor = range.commonAncestorContainer;
+        const root = ancestor.nodeType === Node.TEXT_NODE ? ancestor.parentNode : ancestor;
+        if (!root) return nodes;
+
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+            acceptNode: (node) => {
+                if (!node?.nodeValue || !node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+                try {
+                    return range.intersectsNode(node) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+                } catch {
+                    return NodeFilter.FILTER_REJECT;
+                }
+            },
+        });
+
+        let current = walker.nextNode();
+        while (current) {
+            nodes.push(current);
+            current = walker.nextNode();
+        }
+
+        return nodes;
+    };
+
+    const normalizeHighlightsInContainer = () => {
+        const root = containerRef.current;
+        if (!root) return;
+
+        root.querySelectorAll('.custom-highlight').forEach((node) => {
+            if (!node.isConnected) return;
+            mergeAdjacentHighlights(node);
+        });
+    };
+
+    const applyHighlightToRange = (range) => {
+        if (!range || range.collapsed) return false;
+
+        const textNodes = getSelectedTextNodes(range);
+        if (!textNodes.length) return false;
+
+        let changed = false;
+
+        // Iterate from the end so earlier wraps do not invalidate later offsets.
+        for (let i = textNodes.length - 1; i >= 0; i -= 1) {
+            const node = textNodes[i];
+            if (!node?.isConnected) continue;
+
+            // Avoid nested highlights when selecting text already highlighted.
+            if (node.parentElement?.closest('.custom-highlight')) continue;
+
+            const startOffset = node === range.startContainer ? range.startOffset : 0;
+            const endOffset = node === range.endContainer ? range.endOffset : node.nodeValue.length;
+            if (endOffset <= startOffset) continue;
+
+            const nodeRange = document.createRange();
+            nodeRange.setStart(node, startOffset);
+            nodeRange.setEnd(node, endOffset);
+
+            const highlight = createHighlightNode();
+            try {
+                nodeRange.surroundContents(highlight);
+                changed = true;
+            } catch {
+                // Skip invalid fragments to keep content intact.
+            }
+        }
+
+        if (changed) normalizeHighlightsInContainer();
+        return changed;
+    };
+
     useEffect(() => {
         const handleMouseUp = (e) => {
             // Ignore mouseup from inside the popup — let the click handler handle it
@@ -67,26 +177,16 @@ const TextHighlighter = ({ containerRef, onHighlightChange, onAddNote, currentPa
 
     const highlightText = () => {
         if (!popup?.range) return;
+
         try {
             const range = popup.range;
-            document.designMode = 'on';
-            const sel = window.getSelection();
-            sel.removeAllRanges();
-            sel.addRange(range);
-            if (!document.execCommand('hiliteColor', false, 'rgb(255, 221, 0)')) {
-                document.execCommand('BackColor', false, 'rgb(255, 221, 0)');
-            }
-            document.designMode = 'off';
-            document.querySelectorAll('span[style*="background-color"], font[style*="background-color"]').forEach((mark) => {
-                if (mark.classList.contains('custom-highlight')) return;
-                if (mark.style.backgroundColor === 'rgb(255, 221, 0)') {
-                    mark.classList.add('custom-highlight');
-                    mark.title = 'Click to remove highlight';
-                }
-            });
+
+            // Prefer explicit range wrapping over execCommand for repeatable behavior.
+            applyHighlightToRange(range);
         } catch (err) {
             console.error(err);
         }
+
         window.getSelection()?.removeAllRanges();
         setPopup(null);
         if (onHighlightChange && containerRef.current) onHighlightChange(containerRef.current.innerHTML);

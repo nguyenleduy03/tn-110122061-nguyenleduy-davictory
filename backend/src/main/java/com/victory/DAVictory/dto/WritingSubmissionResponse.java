@@ -30,10 +30,12 @@ public class WritingSubmissionResponse {
 
     private String status;           // SUBMITTED, UNDER_REVIEW, GRADED
     private LocalDateTime submittedAt;
+    private LocalDateTime gradedAt;
 
     private Double overallBandScore; // null nếu chưa chấm
     private String overallFeedback;  // null nếu chưa chấm
     private String gradedByUsername; // null nếu chưa chấm
+    private String gradedByFullName; // null nếu chưa chấm
 
     private Integer attemptNumber;
     private LocalDateTime createdAt;

@@ -4,10 +4,13 @@ import { useSearchParams, useNavigate, useParams } from "react-router-dom";
 import "../styles/ieltsTest.css";
 import TestHeader from "../components/common/TestHeader";
 import { useDividerResize } from "../hooks/useDividerResize";
+import TextHighlighter from "../components/common/TextHighlighter";
+import NotesPanel from "../components/common/NotesPanel";
 import { ieltsApi } from "../services/ieltsApi";
 import { formatTextWithWhitespace, normalizeRichHtml, stripInlineStyles } from "../utils/textFormatters";
 import { computeFullTestProgressPercent, getFullTestSessionState, parseJsonSafe } from "../utils/fullTestProgress";
 import { buildDraftStorageKey, buildTimerPersistKey, clearDraftByTest, parseJsonSafe as parseRuntimeJsonSafe, markTestSubmitted, getSubmittedRedirect } from "../utils/testRuntimeState";
+import { useNotes } from "../hooks/useNotes";
 
 const countWords = (text) => {
     if (!text || !text.trim()) return 0;
@@ -105,6 +108,8 @@ const IeltsWritingTest = () => {
     const [startTime] = useState(() => Date.now()); // theo dõi thời gian làm bài
     const { leftWidth, containerRef, handleDragStart } = useDividerResize(50);
     const { id: testId } = useParams();
+    const { notes, addNote, deleteNote } = useNotes('writing', testId);
+    const [isNotesOpen, setIsNotesOpen] = useState(false);
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const isFullTest = searchParams.get('fullTest') === 'true';
@@ -505,6 +510,8 @@ const IeltsWritingTest = () => {
                 skill="writing"
                 navigate={navigate}
                 timerPersistKey={timerPersistKey}
+                isNotesOpen={isNotesOpen}
+                onToggleNotes={() => setIsNotesOpen((v) => !v)}
             />
 
             <div className="instruction-bar">
@@ -542,6 +549,11 @@ const IeltsWritingTest = () => {
                         <span className="nav-arrow-fallback" aria-hidden="true">&#8594;</span>
                     </button>
                 </div>
+                <TextHighlighter
+                    containerRef={containerRef}
+                    onAddNote={addNote}
+                    currentPartIndex={currentPartIndex}
+                />
             </main>
 
             <footer className="ielts-footer">
@@ -577,6 +589,22 @@ const IeltsWritingTest = () => {
                     })}
                 </div>
             </footer>
+
+            {isNotesOpen && (
+                <NotesPanel
+                    notes={notes}
+                    onDelete={deleteNote}
+                    onClose={() => setIsNotesOpen(false)}
+                    onNoteClick={(note, scrollFn) => {
+                        if (Number.isFinite(note.partIndex) && note.partIndex !== currentPartIndex) {
+                            setCurrentPartIndex(note.partIndex);
+                            setTimeout(scrollFn, 300);
+                        } else {
+                            scrollFn();
+                        }
+                    }}
+                />
+            )}
         </div>
     );
 };

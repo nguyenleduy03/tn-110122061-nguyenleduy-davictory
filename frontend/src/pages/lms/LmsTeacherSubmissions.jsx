@@ -42,9 +42,9 @@ export default function LmsTeacherSubmissions() {
     setLoading(true);
     try {
       const examAttempts = await ieltsApi.filterAttempts(filters);
-      const formattedAttempts = examAttempts.map(a => ({ 
-        ...a, 
-        type: a.skillType, 
+      const formattedAttempts = examAttempts.map(a => ({
+        ...a,
+        type: a.skillType,
         source: 'exam',
         examType: a.skillType
       }));
@@ -106,6 +106,23 @@ export default function LmsTeacherSubmissions() {
     return '—';
   };
 
+  const formatDuration = (seconds) => {
+    const value = Number(seconds);
+    if (!Number.isFinite(value) || value <= 0) return '—';
+    const total = Math.floor(value);
+    const hrs = Math.floor(total / 3600);
+    const mins = Math.floor((total % 3600) / 60);
+    const secs = total % 60;
+
+    if (hrs > 0) return `${hrs}h ${mins}m ${secs}s`;
+    if (mins > 0) return `${mins}m ${secs}s`;
+    return `${secs}s`;
+  };
+
+  const getSubmissionDuration = (submission) => (
+    submission?.timeSpentSeconds ?? submission?.timeTakenSeconds ?? null
+  );
+
   if (loading) {
     return (
       <LmsLayout title="Bài nộp" subtitle="Chấm bài viết, bài nói và phản hồi cho học viên">
@@ -150,7 +167,7 @@ export default function LmsTeacherSubmissions() {
 
       {/* Advanced Filter */}
       <div style={{ marginBottom: 16 }}>
-        <ExamAttemptFilter 
+        <ExamAttemptFilter
           onFilter={handleAdvancedFilter}
           onClear={handleClearFilter}
         />
@@ -193,6 +210,7 @@ export default function LmsTeacherSubmissions() {
                   <th>Loại bài</th>
                   <th>Bài làm</th>
                   <th>Ngày nộp</th>
+                  <th>Thời gian làm bài</th>
                   <th>Trạng thái</th>
                   <th>Điểm</th>
                   <th>Thao tác</th>
@@ -213,6 +231,9 @@ export default function LmsTeacherSubmissions() {
                     <td>{s.groupTitle || s.examTitle || 'N/A'}</td>
                     <td style={{ fontSize: 12, color: '#6b7280' }}>
                       {(s.submittedAt || s.startedAt) ? new Date(s.submittedAt || s.startedAt).toLocaleDateString('vi-VN') : '—'}
+                    </td>
+                    <td style={{ fontWeight: 600, color: '#1e293b' }}>
+                      {formatDuration(getSubmissionDuration(s))}
                     </td>
                     <td>
                       <span className={`lms-pill ${s.status === 'SUBMITTED' ? 'warn' :

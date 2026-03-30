@@ -10,7 +10,7 @@ import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import "../styles/ieltsTest.css";
 import TestHeader from "../components/common/TestHeader";
 import { ieltsApi } from "../services/ieltsApi";
-import { normalizeRichHtml, stripInlineStyles } from "../utils/textFormatters";
+import { normalizeRichHtml, stripInlineStyles, formatTextWithWhitespace } from "../utils/textFormatters";
 import { computeFullTestProgressPercent, getFullTestSessionState, parseJsonSafe } from "../utils/fullTestProgress";
 import { buildTimerPersistKey, markTestSubmitted, getSubmittedRedirect } from "../utils/testRuntimeState";
 
@@ -270,6 +270,7 @@ const IeltsSpeakingTest = () => {
     return () => {
       clearInterval(timerRef.current);
       clearInterval(partTimerRef.current);
+      clearInterval(micTestTimerRef.current);
       if (streamRef.current)
         streamRef.current.getTracks().forEach((t) => t.stop());
       if (audioCtxRef.current) audioCtxRef.current.close();
@@ -411,12 +412,37 @@ const IeltsSpeakingTest = () => {
     }
   };
 
+  const [micTestCountdown, setMicTestCountdown] = useState(0);
+  const [isMicTesting, setIsMicTesting] = useState(false);
+  const micTestTimerRef = useRef(null);
+
   const runMicTest = useCallback(async () => {
     const stream = await ensureMic();
     if (!stream) return;
-    setMicTested(true);
+    
+    setIsMicTesting(true);
+    setMicTestCountdown(20);
     setAnalyser(analyserRef.current);
+    
+    micTestTimerRef.current = setInterval(() => {
+      setMicTestCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(micTestTimerRef.current);
+          setIsMicTesting(false);
+          setMicTested(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const skipMicTest = useCallback(() => {
+    clearInterval(micTestTimerRef.current);
+    setIsMicTesting(false);
+    setMicTested(true);
+    setMicTestCountdown(0);
+  }, []);
 
   // ── Start recording ────────────────────────────────────────────────────────
   const startRecording = useCallback(async () => {
@@ -706,23 +732,36 @@ const IeltsSpeakingTest = () => {
       <main className="spk-main">
         {stage === 'mic-test' && (
           <div className="spk-card spk-mic-check">
-            <div className="spk-mic-title">Kiểm tra micro trước khi bắt đầu</div>
+            <div className="spk-mic-title">TEST YOUR MICROPHONE</div>
+            {isMicTesting && (
+              <div className="spk-mic-countdown">
+                <div className="spk-countdown-timer">{fmtTime(micTestCountdown)}</div>
+                <p className="spk-countdown-text">You have {micTestCountdown} seconds to speak…</p>
+              </div>
+            )}
             <div className="spk-mic-sub">
-              Cho phép quyền micro để bạn có thể ghi âm câu trả lời trong bài Speaking.
+              To complete this activity, you must allow access to your system's microphone. Click the button below to Start.
             </div>
             <div className="spk-mic-actions">
-              <button className="spk-mic-test-btn" onClick={runMicTest}>
-                Bắt đầu test mic
-              </button>
-              <button
-                className="spk-start-btn"
-                disabled={!micTested}
-                onClick={() => startPartWithIndex(initialPartIndex)}
-              >
-                Bắt đầu Part {initialPartLabel}
-              </button>
+              {!isMicTesting ? (
+                <button className="spk-mic-test-btn" onClick={runMicTest} disabled={micTested}>
+                  Test Microphone
+                </button>
+              ) : (
+                <button className="spk-skip-btn" onClick={skipMicTest}>
+                  Skip
+                </button>
+              )}
+              {micTested && !isMicTesting && (
+                <button
+                  className="spk-start-btn"
+                  onClick={() => startPartWithIndex(initialPartIndex)}
+                >
+                  Start Part {initialPartLabel}
+                </button>
+              )}
             </div>
-            {micTested && analyser && (
+            {(micTested || isMicTesting) && analyser && (
               <div className="spk-mic-wave">
                 <Waveform analyser={analyser} />
               </div>

@@ -71,6 +71,9 @@ export const calculateExamBand = ({ skillType, totalCorrect }) => {
 };
 
 const parseCriterionBand = (value) => {
+    const raw = String(value ?? '').trim();
+    if (raw === '') return null;
+
     const numeric = Number(value);
     if (!Number.isFinite(numeric)) return null;
     if (numeric < 0 || numeric > 9) return null;
