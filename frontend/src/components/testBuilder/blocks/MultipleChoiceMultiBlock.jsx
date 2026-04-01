@@ -9,6 +9,7 @@ import { toRoman, loadImageFile, toPlainText, countBlankTokens, getNextQuestionN
 const MultipleChoiceMultiBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps, testTitle, testId, module = 'READING',
   onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onAddQuestion, selectedQuestionId }) => {
   const questions = group.questions ?? [];
+  const [importStates, setImportStates] = useState({});
   
   // Initialize options on mount if missing
   useEffect(() => {
@@ -25,6 +26,20 @@ const MultipleChoiceMultiBlock = ({ group, onUpdate, onDelete, onSelect, selecte
       }
     });
   }, []);
+
+  const handleImportOptions = (q, text) => {
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    if (lines.length === 0) return;
+    const imported = lines.map((optText, i) => ({
+      id: Date.now() + i,
+      optionLabel: String.fromCharCode(65 + i),
+      optionText: optText,
+      isCorrect: false,
+      orderIndex: i
+    }));
+    onUpdateQuestion(group.id, q.id, { options: imported });
+    setImportStates(prev => ({ ...prev, [q.id]: false }));
+  };
   
   return (
     <div className={`exam-group${selected ? ' selected' : ''}`}
@@ -153,14 +168,42 @@ const MultipleChoiceMultiBlock = ({ group, onUpdate, onDelete, onSelect, selecte
                   </div>
                 );
               })}
-              <button className="exam-add-btn" style={{ padding: '3px 10px', fontSize: 11, marginTop: 4 }}
-                onClick={(e) => { 
-                  e.stopPropagation(); 
-                  const nextLabel = String.fromCharCode(65 + opts.length);
-                  onUpdateQuestion(group.id, q.id, { options: [...opts, { id: Date.now(), optionLabel: nextLabel, optionText: '', isCorrect: false, orderIndex: opts.length }] }); 
-                }}>
-                <Plus size={10} /> Thêm lựa chọn
-              </button>
+              <div style={{ display: 'flex', gap: 4 }}>
+                <button className="exam-add-btn" style={{ padding: '3px 10px', fontSize: 11, marginTop: 4, flex: 1 }}
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    const nextLabel = String.fromCharCode(65 + opts.length);
+                    onUpdateQuestion(group.id, q.id, { options: [...opts, { id: Date.now(), optionLabel: nextLabel, optionText: '', isCorrect: false, orderIndex: opts.length }] }); 
+                  }}>
+                  <Plus size={10} /> Thêm lựa chọn
+                </button>
+                <button className="exam-add-btn" style={{ padding: '3px 8px', fontSize: 11, marginTop: 4 }}
+                  onClick={(e) => { e.stopPropagation(); setImportStates(prev => ({ ...prev, [q.id]: !prev[q.id] })); }}>
+                  📋
+                </button>
+              </div>
+              {importStates[q.id] && (
+                <div style={{ marginTop: 8, padding: 8, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 4 }}>
+                  <div style={{ fontSize: 11, color: '#64748b', marginBottom: 4 }}>Paste lựa chọn (mỗi dòng = 1 option):</div>
+                  <textarea
+                    rows={4}
+                    placeholder="Option A&#10;Option B&#10;Option C&#10;Option D&#10;Option E"
+                    style={{ width: '100%', padding: 6, fontSize: 11, fontFamily: 'monospace', border: '1px solid #cbd5e1', borderRadius: 3 }}
+                    onPaste={(e) => {
+                      e.preventDefault();
+                      const text = e.clipboardData.getData('text');
+                      handleImportOptions(q, text);
+                    }}
+                  />
+                  <button className="exam-add-btn" onClick={(e) => {
+                    e.stopPropagation();
+                    const text = e.target.previousElementSibling.value;
+                    handleImportOptions(q, text);
+                  }} style={{ fontSize: 11, marginTop: 4 }}>
+                    Import
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         );

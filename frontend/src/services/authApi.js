@@ -11,6 +11,12 @@ const apiClient = axios.create({
   },
 });
 
+const normalizeRoles = (roles) => {
+  if (!roles) return [];
+  const roleArray = Array.isArray(roles) ? roles : Array.from(roles);
+  return roleArray.map((r) => (typeof r === 'string' ? r : (r?.name || r?.roleName || r?.authority || String(r))));
+};
+
 // Interceptor để tự động thêm token vào mỗi request
 apiClient.interceptors.request.use(
   (config) => {
@@ -107,15 +113,15 @@ export const authApi = {
   hasRole: (roleName) => {
     const user = authApi.getStoredUser();
     if (!user || !user.roles) return false;
-    // roles là Set<String> từ backend: ["ADMIN", "STUDENT", ...]
-    return user.roles.includes(roleName);
+    return normalizeRoles(user.roles).includes(roleName);
   },
 
   // Kiểm tra có ít nhất 1 trong các roles
   hasAnyRole: (roleNames) => {
     const user = authApi.getStoredUser();
     if (!user || !user.roles) return false;
-    return user.roles.some(role => roleNames.includes(role));
+    const roles = normalizeRoles(user.roles);
+    return roles.some(role => roleNames.includes(role));
   },
 
   // Cập nhật thông tin profile

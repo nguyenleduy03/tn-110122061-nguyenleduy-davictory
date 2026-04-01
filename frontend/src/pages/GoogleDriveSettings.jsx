@@ -25,6 +25,13 @@ const GoogleDriveSettings = () => {
       window.history.replaceState({}, document.title, window.location.pathname);
       // Hiển thị thông báo thành công
       setStatus({ authorized: true, message: 'Đã ủy quyền thành công! Đang tải thông tin...' });
+
+      // Đợi backend lưu credential xong rồi mới refresh status
+      setTimeout(() => {
+        checkStatus();
+      }, 800);
+      setLoading(false);
+      return;
     }
     
     checkStatus();

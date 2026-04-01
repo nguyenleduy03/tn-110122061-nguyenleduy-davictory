@@ -311,15 +311,11 @@ const TestComplete = () => {
                                                                     <div className="result-wrong-item compact" key={row.id}>
                                                                         <div className="result-qno-badge">{row.number}</div>
                                                                         <div className="result-compact-answer">
-                                                                            <span className="result-answer-tag">Correct</span>
                                                                             <span className="result-correct-label">{String(row.correctAns || '')}</span>
-                                                                            {String(row.userAns || '').trim() ? (
-                                                                                <>
-                                                                                    <span className="result-answer-tag muted">Your answer</span>
-                                                                                    <span className="result-wrong-label">{String(row.userAns)}</span>
-                                                                                    <span className="result-cross">✕</span>
-                                                                                </>
-                                                                            ) : null}
+                                                                            <span className="result-answer-separator">:</span>
+                                                                            <span className={`result-wrong-label${String(row.userAns || '').trim() ? '' : ' empty'}`}>
+                                                                                {String(row.userAns || '').trim() || 'No answer'}
+                                                                            </span>
                                                                         </div>
                                                                     </div>
                                                                 ))}
