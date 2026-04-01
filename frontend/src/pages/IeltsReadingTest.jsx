@@ -226,8 +226,7 @@ const IeltsReadingTest = () => {
     const [isNotesOpen, setIsNotesOpen] = useState(false);
     const isFullTest = searchParams.get('fullTest') === 'true';
     const mode = searchParams.get('mode') || 'practice';
-    const assignmentId = searchParams.get('assignmentId');
-    const isAssignmentMode = mode === 'assignment' && assignmentId;
+    const assignmentId = searchParams.get('assignment');
     const isReview = searchParams.get('review') === 'true';
     const selectedPartsParam = searchParams.get('parts') || '';
     const startPartNumber = Number.parseInt(searchParams.get('startPart') || '', 10);
@@ -288,7 +287,11 @@ const IeltsReadingTest = () => {
 
     useEffect(() => {
         if (!testId) { setError('Không tìm thấy ID bài thi.'); setLoading(false); return; }
-        ieltsApi.getTestSession(testId, "READING").then((data) => {
+        
+        const fallbackParam = searchParams.get('fallback');
+        const fallbackSkills = fallbackParam ? fallbackParam.split(',') : [];
+        
+        ieltsApi.getTestSession(testId, "READING", fallbackSkills).then((data) => {
             const shouldApplyPracticeConfig = mode === 'practice' && !isFullTest && !isReview;
             let configuredData = data;
 
@@ -610,41 +613,31 @@ const IeltsReadingTest = () => {
 
     const submitTest = async () => {
         const timeSpentSeconds = Math.floor((Date.now() - startTime) / 1000);
-        // Lưu lại đáp án để lát review
         sessionStorage.setItem('lastAnswers_reading', JSON.stringify(answers));
 
-        console.log('🎯 Submitting answers:', answers);
-        console.log('📚 Test data:', testData);
-
+        // Submit bài thi bình thường
         const resp = await ieltsApi.submitAnswers(testId, 'READING', answers, timeSpentSeconds, testData);
-        
-        // Check if this is from an assignment
-        const assignmentId = searchParams.get('assignmentId');
-        if (assignmentId && resp?.attemptId) {
-            try {
-                await assignmentApi.submitAssignment({
-                    assignmentId: parseInt(assignmentId),
-                    examAttemptId: resp.attemptId,
-                    submissionText: `Completed test ${testId} with score: ${resp.bandScore || resp.score || 'N/A'}`
-                });
-                console.log('✅ Assignment submitted automatically');
-            } catch (error) {
-                console.error('Failed to submit assignment:', error);
-            }
-        }
         
         if (resp) {
             sessionStorage.setItem('lastScore_reading', JSON.stringify(resp));
         }
         clearDraftByTest('reading', testId);
         localStorage.removeItem(`ieltsTimerDeadline_${timerPersistKey}`);
-        if (isFullTest) { handleFullTestNext(); return; }
         
-        // Redirect khác nhau cho assignment mode
-        if (isAssignmentMode) {
-            navigate(`/student/assignments/${assignmentId}/result`);
+        // Nếu là bài tập, submit vào assignment API
+        if (assignmentId && resp?.attemptId) {
+            const { submitTestToAssignment } = await import('../utils/assignmentHelper');
+            submitTestToAssignment(
+                parseInt(assignmentId),
+                resp.attemptId,
+                navigate,
+                null,
+                (err) => alert(`Nộp bài tập thất bại: ${err.message}`)
+            );
             return;
         }
+        
+        if (isFullTest) { handleFullTestNext(); return; }
         
         const completeParams = new URLSearchParams({
             mode,
@@ -759,7 +752,7 @@ const IeltsReadingTest = () => {
             <TestHeader
                 candidateName={testData?.candidateName}
                 candidateId={testData?.candidateId}
-                extraInfo={isAssignmentMode ? "📝 Bài tập" : undefined}
+                extraInfo={assignmentId ? "📝 Bài tập" : undefined}
                 submitTest={submitTest}
                 isReview={isReview}
                 noTimeLimit={noTimeLimit && !isReview}
@@ -771,6 +764,7 @@ const IeltsReadingTest = () => {
                 timerPersistKey={timerPersistKey}
                 isNotesOpen={isNotesOpen}
                 onToggleNotes={() => setIsNotesOpen(v => !v)}
+                mode={assignmentId ? 'practice' : mode}
             />
 
             <div className="instruction-bar">

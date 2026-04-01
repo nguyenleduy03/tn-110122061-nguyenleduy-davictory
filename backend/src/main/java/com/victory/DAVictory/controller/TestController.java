@@ -172,4 +172,25 @@ public class TestController {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
+
+    @GetMapping("/my-tests")
+    @PreAuthorize("hasAnyRole('TEACHER', 'MANAGER', 'ADMIN')")
+    public ResponseEntity<?> getMyTests(Authentication authentication) {
+        try {
+            String username = authentication.getName();
+            
+            String sql = "SELECT t.id, t.title, t.description, t.test_type, t.status, " +
+                        "t.duration_minutes, t.target_band, t.created_at " +
+                        "FROM tests t " +
+                        "JOIN users u ON t.created_by = u.id " +
+                        "WHERE u.username = ? " +
+                        "ORDER BY t.created_at DESC";
+            
+            List<Map<String, Object>> tests = jdbcTemplate.queryForList(sql, username);
+            return ResponseEntity.ok(tests);
+            
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
 }

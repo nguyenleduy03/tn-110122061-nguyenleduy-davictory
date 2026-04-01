@@ -1,34 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
-import { X } from 'lucide-react';
+import { X, HelpCircle } from 'lucide-react';
 
-const ASSIGNMENT_TYPES = [
-  { value: 'LISTENING_PRACTICE', label: 'Luyện Listening' },
-  { value: 'READING_PRACTICE', label: 'Luyện Reading' },
-  { value: 'WRITING_TASK', label: 'Bài Writing' },
-  { value: 'SPEAKING_PRACTICE', label: 'Luyện Speaking' },
-  { value: 'MOCK_TEST', label: 'Thi thử' },
-  { value: 'VOCABULARY', label: 'Từ vựng' },
-  { value: 'GRAMMAR', label: 'Ngữ pháp' },
-  { value: 'MIXED', label: 'Tổng hợp' },
-];
-
-export default function AssignmentForm({ assignment, classes, onSubmit, onClose }) {
-  const location = useLocation();
-  const testFromBuilder = location.state; // { testId, testTitle }
-  
+export default function AssignmentForm({ assignment, classes, tests, onSubmit, onClose }) {
   const [formData, setFormData] = useState({
     classId: '',
-    title: testFromBuilder?.testTitle || '',
+    title: '',
     description: '',
-    assignmentType: 'MIXED',
-    testId: testFromBuilder?.testId || '',
-    attachmentUrl: '',
-    dueDate: '',
-    isRequired: true,
+    type: 'MANUAL',
+    testId: '',
     maxScore: '',
-    status: 'DRAFT',
-    notes: '',
+    dueDate: '',
+    maxAttempts: '',
+    allowLateSubmission: false,
+    status: 'DRAFT'
   });
 
   useEffect(() => {
@@ -37,14 +21,13 @@ export default function AssignmentForm({ assignment, classes, onSubmit, onClose 
         classId: assignment.classId || '',
         title: assignment.title || '',
         description: assignment.description || '',
-        assignmentType: assignment.assignmentType || 'MIXED',
+        type: assignment.type || 'MANUAL',
         testId: assignment.testId || '',
-        attachmentUrl: assignment.attachmentUrl || '',
-        dueDate: assignment.dueDate ? assignment.dueDate.substring(0, 16) : '',
-        isRequired: assignment.isRequired !== false,
         maxScore: assignment.maxScore || '',
-        status: assignment.status || 'DRAFT',
-        notes: assignment.notes || '',
+        dueDate: assignment.dueDate ? assignment.dueDate.substring(0, 16) : '',
+        maxAttempts: assignment.maxAttempts || '',
+        allowLateSubmission: assignment.allowLateSubmission || false,
+        status: assignment.status || 'DRAFT'
       });
     }
   }, [assignment]);
@@ -55,13 +38,16 @@ export default function AssignmentForm({ assignment, classes, onSubmit, onClose 
     const payload = {
       ...formData,
       classId: parseInt(formData.classId),
-      testId: formData.testId ? parseInt(formData.testId) : null,
+      testId: formData.type === 'TEST' && formData.testId ? parseInt(formData.testId) : null,
       maxScore: formData.maxScore ? parseFloat(formData.maxScore) : null,
-      dueDate: formData.dueDate || null,
+      maxAttempts: formData.maxAttempts ? parseInt(formData.maxAttempts) : null,
+      dueDate: formData.dueDate || null
     };
 
     onSubmit(payload);
   };
+
+  const isTestType = formData.type === 'TEST';
 
   return (
     <div style={{
@@ -79,7 +65,7 @@ export default function AssignmentForm({ assignment, classes, onSubmit, onClose 
     }}>
       <div style={{
         background: 'white',
-        borderRadius: 12,
+        borderRadius: 8,
         maxWidth: 600,
         width: '100%',
         maxHeight: '90vh',
@@ -96,15 +82,69 @@ export default function AssignmentForm({ assignment, classes, onSubmit, onClose 
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 16 }}>
+          
+          {/* Type Selection */}
           <div>
-            <label style={{ display: 'block', marginBottom: 6, fontSize: 14, fontWeight: 500 }}>
+            <label style={{ display: 'block', marginBottom: 8, fontSize: 14, fontWeight: 500 }}>
+              Loại bài tập <span style={{ color: '#dc2626' }}>*</span>
+            </label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <label style={{
+                padding: 16,
+                border: `2px solid ${formData.type === 'TEST' ? '#2563eb' : '#e5e7eb'}`,
+                borderRadius: 8,
+                cursor: 'pointer',
+                background: formData.type === 'TEST' ? '#eff6ff' : '#fff',
+                transition: 'all 0.2s'
+              }}>
+                <input
+                  type="radio"
+                  name="type"
+                  value="TEST"
+                  checked={formData.type === 'TEST'}
+                  onChange={(e) => setFormData({ ...formData, type: e.target.value, testId: '' })}
+                  style={{ marginRight: 8 }}
+                />
+                <strong>Bài test</strong>
+                <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>
+                  Học sinh làm test trên hệ thống, điểm tự động
+                </div>
+              </label>
+              
+              <label style={{
+                padding: 16,
+                border: `2px solid ${formData.type === 'MANUAL' ? '#2563eb' : '#e5e7eb'}`,
+                borderRadius: 8,
+                cursor: 'pointer',
+                background: formData.type === 'MANUAL' ? '#eff6ff' : '#fff',
+                transition: 'all 0.2s'
+              }}>
+                <input
+                  type="radio"
+                  name="type"
+                  value="MANUAL"
+                  checked={formData.type === 'MANUAL'}
+                  onChange={(e) => setFormData({ ...formData, type: e.target.value, testId: '' })}
+                  style={{ marginRight: 8 }}
+                />
+                <strong>Bài tự do</strong>
+                <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>
+                  Học sinh nộp text/file, giáo viên chấm thủ công
+                </div>
+              </label>
+            </div>
+          </div>
+
+          {/* Class */}
+          <div>
+            <label style={{ display: 'block', marginBottom: 8, fontSize: 14, fontWeight: 500 }}>
               Lớp học <span style={{ color: '#dc2626' }}>*</span>
             </label>
             <select
               value={formData.classId}
               onChange={(e) => setFormData({ ...formData, classId: e.target.value })}
               required
-              style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #d1d5db' }}
+              style={{ width: '100%', padding: '10px 12px', borderRadius: 6, border: '1px solid #d1d5db' }}
             >
               <option value="">Chọn lớp</option>
               {classes.map(c => (
@@ -113,8 +153,32 @@ export default function AssignmentForm({ assignment, classes, onSubmit, onClose 
             </select>
           </div>
 
+          {/* Test Selection - only for TEST type */}
+          {isTestType && (
+            <div>
+              <label style={{ display: 'block', marginBottom: 8, fontSize: 14, fontWeight: 500 }}>
+                Chọn đề thi <span style={{ color: '#dc2626' }}>*</span>
+              </label>
+              <select
+                value={formData.testId}
+                onChange={(e) => setFormData({ ...formData, testId: e.target.value })}
+                required={isTestType}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 6, border: '1px solid #d1d5db' }}
+              >
+                <option value="">Chọn đề thi</option>
+                {(tests || []).map(t => (
+                  <option key={t.id} value={t.id}>{t.title}</option>
+                ))}
+              </select>
+              <p style={{ margin: '4px 0 0', fontSize: 12, color: '#6b7280' }}>
+                Học sinh sẽ làm test này và điểm được tính tự động
+              </p>
+            </div>
+          )}
+
+          {/* Title */}
           <div>
-            <label style={{ display: 'block', marginBottom: 6, fontSize: 14, fontWeight: 500 }}>
+            <label style={{ display: 'block', marginBottom: 8, fontSize: 14, fontWeight: 500 }}>
               Tiêu đề <span style={{ color: '#dc2626' }}>*</span>
             </label>
             <input
@@ -122,79 +186,31 @@ export default function AssignmentForm({ assignment, classes, onSubmit, onClose 
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               required
-              placeholder="VD: Bài tập Listening Unit 5"
-              style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #d1d5db' }}
+              placeholder={isTestType ? "VD: Bài test Unit 5" : "VD: Viết essay về môi trường"}
+              style={{ width: '100%', padding: '10px 12px', borderRadius: 6, border: '1px solid #d1d5db' }}
             />
           </div>
 
+          {/* Description */}
           <div>
-            <label style={{ display: 'block', marginBottom: 6, fontSize: 14, fontWeight: 500 }}>Mô tả</label>
+            <label style={{ display: 'block', marginBottom: 8, fontSize: 14, fontWeight: 500 }}>
+              Mô tả / Yêu cầu
+            </label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={4}
-              placeholder="Hướng dẫn chi tiết cho học viên..."
-              style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #d1d5db', resize: 'vertical' }}
+              placeholder={isTestType ? "Hướng dẫn làm bài..." : "Yêu cầu chi tiết cho bài tập..."}
+              style={{ width: '100%', padding: '10px 12px', borderRadius: 6, border: '1px solid #d1d5db', resize: 'vertical' }}
             />
           </div>
 
+          {/* Settings Grid */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
-              <label style={{ display: 'block', marginBottom: 6, fontSize: 14, fontWeight: 500 }}>Loại bài tập</label>
-              <select
-                value={formData.assignmentType}
-                onChange={(e) => setFormData({ ...formData, assignmentType: e.target.value })}
-                style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #d1d5db' }}
-              >
-                {ASSIGNMENT_TYPES.map(t => (
-                  <option key={t.value} value={t.value}>{t.label}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', marginBottom: 6, fontSize: 14, fontWeight: 500 }}>Trạng thái</label>
-              <select
-                value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #d1d5db' }}
-              >
-                <option value="DRAFT">Bản nháp</option>
-                <option value="PUBLISHED">Đã phát hành</option>
-                <option value="CLOSED">Đã đóng</option>
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', marginBottom: 6, fontSize: 14, fontWeight: 500 }}>
-              Đề thi (Optional - nếu bài tập là làm đề)
-            </label>
-            <input
-              type="number"
-              value={formData.testId}
-              onChange={(e) => setFormData({ ...formData, testId: e.target.value })}
-              placeholder="Nhập ID đề thi (VD: 1, 2, 3...)"
-              style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #d1d5db' }}
-            />
-            <p style={{ margin: '4px 0 0', fontSize: 12, color: '#6b7280' }}>
-              Nếu để trống, học viên sẽ nộp bài dạng text. Nếu có ID đề thi, học viên sẽ làm bài trên trang thi.
-            </p>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div>
-              <label style={{ display: 'block', marginBottom: 6, fontSize: 14, fontWeight: 500 }}>Hạn nộp</label>
-              <input
-                type="datetime-local"
-                value={formData.dueDate}
-                onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #d1d5db' }}
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', marginBottom: 6, fontSize: 14, fontWeight: 500 }}>Điểm tối đa</label>
+              <label style={{ display: 'block', marginBottom: 8, fontSize: 14, fontWeight: 500 }}>
+                Điểm tối đa
+              </label>
               <input
                 type="number"
                 step="0.5"
@@ -202,38 +218,100 @@ export default function AssignmentForm({ assignment, classes, onSubmit, onClose 
                 value={formData.maxScore}
                 onChange={(e) => setFormData({ ...formData, maxScore: e.target.value })}
                 placeholder="VD: 10"
-                style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #d1d5db' }}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 6, border: '1px solid #d1d5db' }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 8, fontSize: 14, fontWeight: 500 }}>
+                Số lần làm
+                <HelpCircle size={14} color="#6b7280" title="Để trống = không giới hạn" />
+              </label>
+              <input
+                type="number"
+                min="1"
+                value={formData.maxAttempts}
+                onChange={(e) => setFormData({ ...formData, maxAttempts: e.target.value })}
+                placeholder="Không giới hạn"
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 6, border: '1px solid #d1d5db' }}
               />
             </div>
           </div>
 
+          {/* Deadline */}
           <div>
-            <label style={{ display: 'block', marginBottom: 6, fontSize: 14, fontWeight: 500 }}>Link tài liệu</label>
+            <label style={{ display: 'block', marginBottom: 8, fontSize: 14, fontWeight: 500 }}>
+              Hạn nộp
+            </label>
             <input
-              type="url"
-              value={formData.attachmentUrl}
-              onChange={(e) => setFormData({ ...formData, attachmentUrl: e.target.value })}
-              placeholder="https://..."
-              style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #d1d5db' }}
+              type="datetime-local"
+              value={formData.dueDate}
+              onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+              style={{ width: '100%', padding: '10px 12px', borderRadius: 6, border: '1px solid #d1d5db' }}
             />
           </div>
 
-          <div>
+          {/* Options */}
+          <div style={{ display: 'grid', gap: 8 }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
               <input
                 type="checkbox"
-                checked={formData.isRequired}
-                onChange={(e) => setFormData({ ...formData, isRequired: e.target.checked })}
+                checked={formData.allowLateSubmission}
+                onChange={(e) => setFormData({ ...formData, allowLateSubmission: e.target.checked })}
               />
-              <span style={{ fontSize: 14 }}>Bài tập bắt buộc</span>
+              <span style={{ fontSize: 14 }}>Cho phép nộp trễ</span>
             </label>
           </div>
 
+          {/* Status */}
+          <div>
+            <label style={{ display: 'block', marginBottom: 8, fontSize: 14, fontWeight: 500 }}>
+              Trạng thái
+            </label>
+            <select
+              value={formData.status}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+              style={{ width: '100%', padding: '10px 12px', borderRadius: 6, border: '1px solid #d1d5db' }}
+            >
+              <option value="DRAFT">Bản nháp</option>
+              <option value="PUBLISHED">Đã phát hành</option>
+              <option value="CLOSED">Đã đóng</option>
+            </select>
+            <p style={{ margin: '4px 0 0', fontSize: 12, color: '#6b7280' }}>
+              Chỉ bài tập "Đã phát hành" mới hiển thị cho học sinh
+            </p>
+          </div>
+
+          {/* Actions */}
           <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-            <button type="submit" className="lms-cta" style={{ flex: 1 }}>
+            <button 
+              type="submit" 
+              style={{ 
+                flex: 1, 
+                padding: '10px 16px', 
+                borderRadius: 6, 
+                border: 'none', 
+                background: '#2563eb', 
+                color: '#fff', 
+                fontWeight: 500,
+                cursor: 'pointer'
+              }}
+            >
               {assignment ? 'Cập nhật' : 'Tạo bài tập'}
             </button>
-            <button type="button" onClick={onClose} className="lms-cta ghost">
+            <button 
+              type="button" 
+              onClick={onClose}
+              style={{ 
+                padding: '10px 16px', 
+                borderRadius: 6, 
+                border: '1px solid #d1d5db', 
+                background: '#fff', 
+                color: '#374151',
+                fontWeight: 500,
+                cursor: 'pointer'
+              }}
+            >
               Hủy
             </button>
           </div>

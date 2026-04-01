@@ -32,6 +32,12 @@ public class AssignmentService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private TestRepository testRepository;
+
+    @Autowired
+    private TestSessionRepository testSessionRepository;
+
     @Transactional
     public AssignmentResponse createAssignment(AssignmentRequest request, User currentUser) {
         com.victory.DAVictory.entity.Class clazz = classRepository.findById(request.getClassId())
@@ -44,15 +50,13 @@ public class AssignmentService {
         assignment.setCreatedBy(currentUser);
         assignment.setTitle(request.getTitle());
         assignment.setDescription(request.getDescription());
-        assignment.setAssignmentType(request.getAssignmentType());
+        assignment.setType(request.getType() != null ? request.getType() : "MANUAL");
         assignment.setTestId(request.getTestId());
-        assignment.setAttachmentUrl(request.getAttachmentUrl());
-        assignment.setAssignedAt(LocalDateTime.now());
-        assignment.setDueDate(request.getDueDate());
-        assignment.setIsRequired(request.getIsRequired() != null ? request.getIsRequired() : true);
         assignment.setMaxScore(request.getMaxScore());
+        assignment.setDueDate(request.getDueDate());
+        assignment.setMaxAttempts(request.getMaxAttempts());
+        assignment.setAllowLateSubmission(request.getAllowLateSubmission() != null ? request.getAllowLateSubmission() : false);
         assignment.setStatus(request.getStatus() != null ? request.getStatus() : "DRAFT");
-        assignment.setNotes(request.getNotes());
         assignment.setIsActive(true);
 
         assignment = assignmentRepository.save(assignment);
@@ -69,14 +73,13 @@ public class AssignmentService {
 
         assignment.setTitle(request.getTitle());
         assignment.setDescription(request.getDescription());
-        assignment.setAssignmentType(request.getAssignmentType());
+        assignment.setType(request.getType());
         assignment.setTestId(request.getTestId());
-        assignment.setAttachmentUrl(request.getAttachmentUrl());
-        assignment.setDueDate(request.getDueDate());
-        assignment.setIsRequired(request.getIsRequired());
         assignment.setMaxScore(request.getMaxScore());
+        assignment.setDueDate(request.getDueDate());
+        assignment.setMaxAttempts(request.getMaxAttempts());
+        assignment.setAllowLateSubmission(request.getAllowLateSubmission());
         assignment.setStatus(request.getStatus());
-        assignment.setNotes(request.getNotes());
 
         assignment = assignmentRepository.save(assignment);
 
@@ -131,12 +134,10 @@ public class AssignmentService {
         template.setCreatedBy(currentUser);
         template.setTitle(request.getTitle());
         template.setDescription(request.getDescription());
-        template.setAssignmentType(request.getAssignmentType());
+        template.setType("TEST");
         template.setTestId(testId);
-        template.setAttachmentUrl(request.getAttachmentUrl());
         template.setMaxScore(request.getMaxScore());
         template.setStatus("TEMPLATE");
-        template.setNotes(request.getNotes());
         template.setIsActive(true);
 
         template = assignmentRepository.save(template);

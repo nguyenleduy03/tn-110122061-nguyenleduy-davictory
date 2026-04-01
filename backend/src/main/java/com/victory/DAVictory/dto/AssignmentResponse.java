@@ -3,6 +3,7 @@ package com.victory.DAVictory.dto;
 import com.victory.DAVictory.entity.Assignment;
 import lombok.Data;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 public class AssignmentResponse {
@@ -14,16 +15,14 @@ public class AssignmentResponse {
     private String createdByName;
     private String title;
     private String description;
-    private String assignmentType;
+    private String type; // TEST or MANUAL
     private Long testId;
     private String testTitle;
-    private String attachmentUrl;
-    private LocalDateTime assignedAt;
-    private LocalDateTime dueDate;
-    private Boolean isRequired;
     private Double maxScore;
+    private LocalDateTime dueDate;
+    private Integer maxAttempts;
+    private Boolean allowLateSubmission;
     private String status;
-    private String notes;
     private Long totalStudents;
     private Long submittedCount;
     private Long gradedCount;
@@ -43,15 +42,13 @@ public class AssignmentResponse {
         response.setCreatedByName(assignment.getCreatedBy().getFullName());
         response.setTitle(assignment.getTitle());
         response.setDescription(assignment.getDescription());
-        response.setAssignmentType(assignment.getAssignmentType());
+        response.setType(assignment.getType());
         response.setTestId(assignment.getTestId());
-        response.setAttachmentUrl(assignment.getAttachmentUrl());
-        response.setAssignedAt(assignment.getAssignedAt());
-        response.setDueDate(assignment.getDueDate());
-        response.setIsRequired(assignment.getIsRequired());
         response.setMaxScore(assignment.getMaxScore());
+        response.setDueDate(assignment.getDueDate());
+        response.setMaxAttempts(assignment.getMaxAttempts());
+        response.setAllowLateSubmission(assignment.getAllowLateSubmission());
         response.setStatus(assignment.getStatus());
-        response.setNotes(assignment.getNotes());
         response.setTotalStudents(totalStudents);
         response.setSubmittedCount(submittedCount);
         response.setGradedCount(gradedCount);

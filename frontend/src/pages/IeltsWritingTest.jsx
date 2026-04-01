@@ -7,6 +7,7 @@ import { useDividerResize } from "../hooks/useDividerResize";
 import TextHighlighter from "../components/common/TextHighlighter";
 import NotesPanel from "../components/common/NotesPanel";
 import { ieltsApi } from "../services/ieltsApi";
+import { assignmentApi } from "../services/assignmentApi";
 import { formatTextWithWhitespace, normalizeRichHtml, stripInlineStyles } from "../utils/textFormatters";
 import { computeFullTestProgressPercent, getFullTestSessionState, parseJsonSafe } from "../utils/fullTestProgress";
 import { buildDraftStorageKey, buildTimerPersistKey, clearDraftByTest, parseJsonSafe as parseRuntimeJsonSafe, markTestSubmitted, getSubmittedRedirect } from "../utils/testRuntimeState";
@@ -114,6 +115,7 @@ const IeltsWritingTest = () => {
     const navigate = useNavigate();
     const isFullTest = searchParams.get('fullTest') === 'true';
     const mode = searchParams.get('mode') || 'practice';
+    const assignmentId = searchParams.get('assignment');
     const selectedPartsParam = searchParams.get('parts') || '';
     const startPartNumber = Number.parseInt(searchParams.get('startPart') || '', 10);
     const durationOverrideMinutes = Number.parseInt(searchParams.get('duration') || '', 10);
@@ -151,7 +153,11 @@ const IeltsWritingTest = () => {
 
     useEffect(() => {
         if (!testId) { setError('Không tìm thấy ID bài thi.'); setLoading(false); return; }
-        ieltsApi.getTestSession(testId, 'WRITING').then((data) => {
+        
+        const fallbackParam = searchParams.get('fallback');
+        const fallbackSkills = fallbackParam ? fallbackParam.split(',') : [];
+        
+        ieltsApi.getTestSession(testId, 'WRITING', fallbackSkills).then((data) => {
             const shouldApplyPracticeConfig = mode === 'practice' && !isFullTest;
             let configuredData = data;
 
@@ -428,8 +434,7 @@ const IeltsWritingTest = () => {
         const timeTakenSeconds = Math.floor((Date.now() - startTime) / 1000);
         const parts = testData?.parts || [];
 
-        // Submit Writing through the same exam-attempt pipeline as other skills.
-        // Map each part answer to its real question ID (q123 -> 123) so backend stores content.
+        // Submit bài thi bình thường
         const writingPayload = {};
         parts.forEach((partItem) => {
             const partAnswer = String(writingAnswers?.[partItem.id] || '').trim();
@@ -442,9 +447,24 @@ const IeltsWritingTest = () => {
         });
 
         ieltsApi.submitAnswers(testId, 'WRITING', writingPayload, timeTakenSeconds)
-            .then(() => {
+            .then((resp) => {
                 clearDraftByTest('writing', testId);
                 localStorage.removeItem(`ieltsTimerDeadline_${timerPersistKey}`);
+                
+                // Nếu là bài tập, submit vào assignment API
+                if (assignmentId && resp?.attemptId) {
+                    import('../utils/assignmentHelper').then(({ submitTestToAssignment }) => {
+                        submitTestToAssignment(
+                            parseInt(assignmentId),
+                            resp.attemptId,
+                            navigate,
+                            null,
+                            (err) => alert(`Nộp bài tập thất bại: ${err.message}`)
+                        );
+                    });
+                    return;
+                }
+                
                 if (isFullTest) { handleFullTestNext(); return; }
                 const completeParams = new URLSearchParams({
                     mode,
@@ -460,7 +480,6 @@ const IeltsWritingTest = () => {
             })
             .catch((err) => {
                 console.error('[Writing] Lỗi nộp bài:', err);
-                // Nếu chưa đăng nhập vẫn cho qua màn hình complete
                 const completeParams = new URLSearchParams({
                     mode,
                     skill: 'writing',
@@ -512,6 +531,7 @@ const IeltsWritingTest = () => {
                 timerPersistKey={timerPersistKey}
                 isNotesOpen={isNotesOpen}
                 onToggleNotes={() => setIsNotesOpen((v) => !v)}
+                mode={assignmentId ? 'practice' : mode}
             />
 
             <div className="instruction-bar">

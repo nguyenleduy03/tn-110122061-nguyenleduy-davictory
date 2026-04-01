@@ -3,6 +3,11 @@
  * WYSIWYG canvas — renders the exam exactly as students would see it,
  * with inline editing and drag-and-drop capabilities.
  * 
+ * Supports two modes:
+ * - 'edit' (default): WYSIWYG editing canvas with drag-drop, Part tabs, and mock header
+ * - 'preview': Student exam interface (like PreviewModal) — renders real exam look
+ *              data comes directly from parent state (no database)
+ * 
  * NOTE: Block components đã được tách ra thành các file riêng trong thư mục blocks/
  */
 import React, { useState, useMemo, useEffect } from 'react';
@@ -10,9 +15,15 @@ import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-
 import { CSS } from '@dnd-kit/utilities';
 import { useDroppable } from '@dnd-kit/core';
 import { createPortal } from 'react-dom';
-import { Plus, X, Clock, TimerReset, Check } from 'lucide-react';
-import { normalizeRichHtml } from '../../utils/textFormatters';
+import { Plus, X, Clock, TimerReset, Check, Eye, Headphones, BookOpen, PenLine, Mic, Volume2, FileText } from 'lucide-react';
+import { normalizeRichHtml, stripInlineStyles } from '../../utils/textFormatters';
 import SharedOptionsDropdownBlock from './SharedOptionsDropdownBlock';
+
+// Series logo mapping (mirrors TestHeader.jsx)
+const SERIES_LOGO_SRC = {
+  IELTS: '/IELTS%20Logo.png',
+  Cambridge: '/Cambridge%20Logo.png',
+};
 
 // Import tất cả block components
 import {
@@ -49,11 +60,865 @@ import {
   getPartQuestionStartNumber,
   getNextQuestionNumber,
 } from './blocks';
-import MatchingFillBlock from './blocks/MatchingFillBlock';
+// ---- Preview Content — Student-view rendered inside ExamCanvas in preview mode ----
+// This mirrors the PreviewModal layout but lives inside the canvas workspace.
+const PreviewContent = ({ test, sessions, sessionDurations, activeSkill, onSetActiveSkill, onClose, seriesLabel }) => {
+  const skillKeys = Object.keys(PREVIEW_SESSION_META);
+  const [activeQ, setActiveQ] = React.useState(null);
+  const [skillTimes, setSkillTimes] = React.useState(() =>
+    skillKeys.reduce((acc, key) => {
+      acc[key] = sessionDurations?.[key] ?? PREVIEW_SESSION_META[key]?.durationMinutes ?? 60;
+      return acc;
+    }, {})
+  );
 
-const SERIES_LOGO_SRC = {
-  IELTS: '/IELTS%20Logo.png',
-  Cambridge: '/Cambridge%20Logo.png',
+  const skillMeta = PREVIEW_SESSION_META[activeSkill];
+  const currentDuration = Number.isFinite(skillTimes[activeSkill])
+    ? skillTimes[activeSkill]
+    : (skillMeta?.durationMinutes ?? 60);
+  const resolvedLogoSrc = SERIES_LOGO_SRC[seriesLabel] || SERIES_LOGO_SRC.IELTS;
+  const resolvedLogoAlt = seriesLabel || 'IELTS';
+  const parts = sessions[activeSkill] ?? [];
+
+  // Flat list of all questions for footer nav
+  const allQuestions = React.useMemo(() =>
+    parts.flatMap((p) =>
+      (p.questionGroups ?? []).flatMap((g) => g.questions ?? [])
+    ), [parts]);
+
+  const totalQ = allQuestions.length;
+
+  const goToQ = (num) => setActiveQ(num);
+
+  const handleSetSkillTime = () => {
+    const raw = window.prompt(
+      `Đặt thời gian cho ${skillMeta?.label || 'kỹ năng'} (phút, 0 = không giới hạn)`,
+      String(currentDuration)
+    );
+    if (raw === null) return;
+    const next = Number.parseInt(raw, 10);
+    if (!Number.isFinite(next) || next < 0) return;
+    setSkillTimes((prev) => ({ ...prev, [activeSkill]: next }));
+  };
+
+  // Find active part for instruction bar
+  const activePart = parts.find((p) =>
+    (p.questionGroups ?? []).some((g) =>
+      (g.questions ?? []).some((q) => q.questionNumber === activeQ)
+    )
+  ) ?? parts[0];
+
+  // ── Group rendering helpers (preview-only, read-only) ──
+
+  const renderTFNG = (q) => (
+    <div className="pv-q" onClick={() => goToQ(q.questionNumber)}>
+      <div className="pv-q-row">
+        <span className="pv-q-num-badge">{q.questionNumber}</span>
+        <span className="pv-q-text">
+          {q.questionText
+            ? <span dangerouslySetInnerHTML={{ __html: formatPreviewText(q.questionText) }} />
+            : <em className="pv-empty">Chưa có nội dung câu hỏi</em>}
+        </span>
+      </div>
+      <div className="pv-tfng-opts">
+        {['True', 'False', 'Not Given'].map((label) => (
+          <label key={label} className="pv-tfng-radio-label">
+            <input type="radio" name={`pv-q-${q.id}`} disabled />
+            <span>{label}</span>
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+
+  const renderMCQ = (q, multiple = false) => {
+    const opts = q.options ?? [];
+    return (
+      <div className="pv-q">
+        {multiple && (
+          <div className="pv-choose-n-badge">Chọn <strong>{q.chooseCount ?? 2}</strong> đáp án đúng</div>
+        )}
+        <div className="pv-q-row">
+          <span className="pv-q-num-badge">{q.questionNumber}</span>
+          <span className="pv-q-text">
+            {q.questionText
+              ? <span dangerouslySetInnerHTML={{ __html: formatPreviewText(q.questionText) }} />
+              : <em className="pv-empty">Chưa có nội dung câu hỏi</em>}
+          </span>
+        </div>
+        <div className="pv-opts">
+          {opts.length === 0
+            ? <em className="pv-empty">Chưa có lựa chọn</em>
+            : opts.map((o) => (
+              <label key={o.id} className="pv-opt">
+                <input type={multiple ? 'checkbox' : 'radio'} name={`pv-q-${q.id}`} disabled />
+                <span className="pv-opt-key">{o.optionLabel}</span>
+                <span className="pv-opt-text">
+                  {o.optionMode === 'image' && o.optionImageUrl
+                    ? <img src={o.optionImageUrl} alt={o.optionLabel} style={{ maxWidth: 140, maxHeight: 90, borderRadius: 4, display: 'block' }} />
+                    : (o.optionText
+                      ? <span dangerouslySetInnerHTML={{ __html: formatPreviewText(o.optionText) }} />
+                      : <em className="pv-empty">...</em>)
+                  }
+                </span>
+              </label>
+            ))
+          }
+        </div>
+      </div>
+    );
+  };
+
+  const renderFill = (q) => (
+    <div className="pv-q">
+      <div className="pv-q-row">
+        <span className="pv-q-num-badge">{q.questionNumber}</span>
+        <div className="pv-fill-row">
+          <span className="pv-q-text">
+            {q.questionText
+              ? <span dangerouslySetInnerHTML={{ __html: formatPreviewText(q.questionText) }} />
+              : <em className="pv-empty">Chưa có nội dung</em>}
+          </span>
+          <input className="pv-inline-input" disabled placeholder={`Câu ${q.questionNumber}`} />
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderGeneric = (q) => (
+    <div className="pv-q">
+      <div className="pv-q-row">
+        <span className="pv-q-num-badge">{q.questionNumber}</span>
+        <span className="pv-q-text">
+          {q.questionText
+            ? <span dangerouslySetInnerHTML={{ __html: formatPreviewText(q.questionText) }} />
+            : <em className="pv-empty">Chưa có nội dung câu hỏi</em>}
+        </span>
+      </div>
+      <textarea className="pv-textarea" disabled placeholder="Nhập câu trả lời..." rows={3} />
+    </div>
+  );
+
+  const renderQuestion = (q) => {
+    const type = q.questionType?.typeName ?? q.questionType ?? 'MULTIPLE_CHOICE';
+    switch (type) {
+      case 'TRUE_FALSE_NG': return renderTFNG(q);
+      case 'MULTIPLE_CHOICE': return renderMCQ(q, false);
+      case 'MULTIPLE_CHOICE_MULTIPLE': return renderMCQ(q, true);
+      case 'FILL_IN_BLANK':
+      case 'NOTE_COMPLETION':
+      case 'SHORT_ANSWER': return renderFill(q);
+      default: return renderGeneric(q);
+    }
+  };
+
+  // QuestionRange helper
+  const QuestionRange = ({ group }) => {
+    const questions = group.questions ?? [];
+    const allNums = questions.flatMap(q => {
+      if (q?.subQuestions?.length) return q.subQuestions.map(sq => sq.number).filter(n => n != null);
+      return q?.numberRange || (q?.questionNumber ? [q.questionNumber] : []);
+    }).filter(n => n != null);
+    if (allNums.length === 0) return null;
+    const first = Math.min(...allNums);
+    const last = Math.max(...allNums);
+    return (
+      <div className="pv-questions-range">
+        Questions {first}{last !== first ? `–${last}` : ''}
+      </div>
+    );
+  };
+
+  // SharedOptionsDropdown preview
+  const renderSharedOptionsDropdown = (group, activeQ, goToQ) => {
+    const questions = group.questions ?? [];
+    const sharedOptions = (group.sharedOptions || []).map((o) => ({
+      key: o.key,
+      label: o.label ?? '',
+      imageUrl: o.imageUrl ?? '',
+    }));
+    return (
+      <div className="pv-group-block">
+        <QuestionRange group={group} />
+        {group.title && <div className="pv-group-instructions" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.title) }} />}
+        {(group.mainInstruction || group.subInstruction) && (
+          <div className="pv-group-instructions" style={{ marginTop: 4 }}>
+            <span dangerouslySetInnerHTML={{ __html: [group.mainInstruction, group.subInstruction].filter(Boolean).join('<br/><br/>') }} />
+          </div>
+        )}
+        {questions.map((q) => {
+          const num = q.questionNumber;
+          return (
+            <div key={q.id} className="pv-q" onClick={() => goToQ(num)}>
+              <div className="pv-q-row">
+                <span className="pv-q-num-badge">{num}</span>
+                <span className="pv-q-text">
+                  {q.questionText
+                    ? <span dangerouslySetInnerHTML={{ __html: formatPreviewText(q.questionText) }} />
+                    : <em className="pv-empty">...</em>}
+                </span>
+              </div>
+              <div style={{ marginLeft: 32, marginTop: 8 }}>
+                <select disabled style={{ padding: '4px 8px', borderRadius: 4, border: '1px solid #d1d5db', fontSize: 13 }}>
+                  <option value="">-- Chọn đáp án --</option>
+                  {sharedOptions.map((o) => (
+                    <option key={o.key} value={o.key}>{o.label || o.key}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  // Summary completion select preview
+  const renderSummarySelect = (group, activeQ, goToQ) => {
+    const questions = group.questions ?? [];
+    const options = group.optionBank ?? [];
+    const noteText = group.noteText || '';
+    const parts = noteText.split(/\[blank\]/gi);
+    const [answers, setAnswers] = React.useState({});
+
+    const handleDrop = (e, qNum) => {
+      e.preventDefault();
+      const text = e.dataTransfer.getData('text/plain');
+      if (text) setAnswers((prev) => ({ ...prev, [qNum]: text }));
+    };
+
+    return (
+      <div className="pv-group-block">
+        <QuestionRange group={group} />
+        {group.title && <div className="pv-summary-title" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.title) }} />}
+        <div className="pv-summary-text">
+          {parts.map((part, i) => {
+            if (i >= parts.length - 1) return <React.Fragment key={`t${i}`}>{part}</React.Fragment>;
+            const q = questions[i];
+            const num = q?.questionNumber ?? i + 1;
+            const answer = answers[num] || '';
+            return (
+              <React.Fragment key={i}>
+                {part}
+                <span
+                  className={`pv-blank-box pv-drop-blank`}
+                  onDrop={(e) => handleDrop(e, num)}
+                  onDragOver={(e) => e.preventDefault()}
+                  style={{ minWidth: 100 }}
+                >
+                  {answer || num}
+                </span>
+              </React.Fragment>
+            );
+          })}
+        </div>
+        <div style={{ marginTop: 16 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {options.map((o, i) => (
+              <div key={i} draggable
+                onDragStart={(e) => e.dataTransfer.setData('text/plain', o.text || String(o))}
+                style={{ padding: '6px 12px', background: 'white', border: '1px solid #d1d5db', borderRadius: 4, fontSize: 13, cursor: 'grab', userSelect: 'none' }}>
+                {typeof o === 'string' ? o : (o.text || '')}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Passage + heading drop (Reading preview)
+  const [mhAnswers, setMhAnswers] = React.useState({});
+  const mhGroupRef = React.useRef(null);
+
+  const PassageGroupPane = ({ group, allParts }) => {
+    const paragraphs = group.paragraphs && group.paragraphs.length > 0
+      ? group.paragraphs
+      : [{ id: `${group.id}-p0`, heading: '', text: group.passageText || '' }];
+    const mhGroups = (allParts ?? []).flatMap(p => (p.questionGroups ?? [])).filter(g => g.contentType === 'MATCHING_HEADING');
+    const hasMH = mhGroups.length > 0;
+    const [overSlot, setOverSlot] = React.useState(null);
+
+    return (
+      <div style={{ marginBottom: 20 }}>
+        {group.title && !group.title.toLowerCase().startsWith('nhóm') && (
+          <div className="pv-passage-title" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.title) }} />
+        )}
+        {paragraphs.map((para, idx) => {
+          const filled = mhAnswers[para.id];
+          const isOver = overSlot === para.id;
+          return (
+            <div key={para.id ?? idx} style={{ marginBottom: 14 }}>
+              {hasMH && (
+                <div
+                  className={`pv-para-drop-row${isOver ? ' over' : ''}`}
+                  onDragOver={(e) => { e.preventDefault(); setOverSlot(para.id); }}
+                  onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setOverSlot(null); }}
+                  onDrop={(e) => {
+                    e.preventDefault(); setOverSlot(null);
+                    try {
+                      const data = JSON.parse(e.dataTransfer.getData('text/x-mh'));
+                      setMhAnswers(prev => {
+                        const next = { ...prev };
+                        Object.keys(next).forEach(k => { if (next[k]?.text === data.text) next[k] = null; });
+                        next[para.id] = { text: data.text, roman: data.roman ?? '' };
+                        return next;
+                      });
+                    } catch { }
+                  }}
+                >
+                  <span className="pv-para-num">§{idx + 1}</span>
+                  {filled ? (
+                    <div className="pv-para-heading-badge">
+                      {filled.roman && <span className="pv-heading-roman">{filled.roman}</span>}
+                      <span dangerouslySetInnerHTML={{ __html: formatPreviewText(filled.text) }} />
+                    </div>
+                  ) : (
+                    <div className={`pv-para-slot${isOver ? ' over' : ''}`}>
+                      {isOver ? '↓ Thả heading vào đây' : '⬚ Kéo heading vào đây'}
+                    </div>
+                  )}
+                </div>
+              )}
+              <div className="pv-passage-body">
+                {para.text
+                  ? <div dangerouslySetInnerHTML={{ __html: formatPreviewText(para.text) }} />
+                  : <em className="pv-empty">Chưa có nội dung đoạn {idx + 1}.</em>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const MatchingHeadingGroup = ({ group }) => {
+    const headings = group.headingBank ?? [];
+    const [dragging, setDragging] = React.useState(null);
+    const assignedTexts = new Set(Object.values(mhAnswers).filter(Boolean).map(v => v.text));
+    const toRoman = (n) => {
+      const nums = [1, 4, 5, 9, 10, 40, 50];
+      const syms = ['i', 'iv', 'v', 'ix', 'x', 'xl', 'l'];
+      let r = '';
+      for (let i = syms.length - 1; i >= 0; i--) {
+        while (n >= nums[i]) { r += syms[i]; n -= nums[i]; }
+      }
+      return r;
+    };
+
+    return (
+      <div className="pv-group-block">
+        <QuestionRange group={group} />
+        {group.title && <div className="pv-group-instructions" style={{ marginBottom: 10 }} dangerouslySetInnerHTML={{ __html: formatPreviewText(group.title) }} />}
+        <div className="pv-heading-bank">
+          <div className="pv-heading-bank-title">List of Headings</div>
+          <div className="pv-heading-bank-subtitle">Kéo heading vào từng đoạn văn bên trái</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+            {headings.length === 0
+              ? <em className="pv-empty">Chưa có heading.</em>
+              : headings.map((h, i) => {
+                const isAssigned = assignedTexts.has(h.text);
+                return (
+                  <div key={i}
+                    className={`pv-mh-chip${isAssigned ? ' assigned' : ''}${dragging === h.text ? ' dragging' : ''}`}
+                    draggable={!isAssigned}
+                    onDragStart={(e) => {
+                      if (isAssigned) { e.preventDefault(); return; }
+                      e.dataTransfer.setData('text/x-mh', JSON.stringify({ text: h.text, roman: toRoman(i + 1), index: i }));
+                      e.dataTransfer.effectAllowed = 'copy';
+                      setDragging(h.text);
+                    }}
+                    onDragEnd={() => setDragging(null)}
+                    title={isAssigned ? 'Đã gán vào đoạn văn' : 'Kéo vào đoạn văn bên trái'}
+                  >
+                    <span className="pv-heading-roman">{toRoman(i + 1)}</span>
+                    {h.text
+                      ? <span style={{ flex: 1 }} dangerouslySetInnerHTML={{ __html: formatPreviewText(h.text) }} />
+                      : <em className="pv-empty" style={{ flex: 1 }}>...</em>}
+                    {isAssigned && <span style={{ color: '#16a34a', fontWeight: 700 }}>✓</span>}
+                  </div>
+                );
+              })
+            }
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const NoteCompletionGroup = ({ group, activeQ, goToQ }) => {
+    const questions = group.questions ?? [];
+    const [answers, setAnswers] = React.useState({});
+    const handleAnswer = (num, val) => setAnswers(prev => ({ ...prev, [num]: val }));
+    const parseNotePreview = (text, qs, active, onSetActive, ans, onAnswer) => {
+      const parts = (text || '').split(/\[blank\]/gi);
+      return parts.map((part, i) => {
+        if (i >= parts.length - 1) return <React.Fragment key={`t${i}`}>{part}</React.Fragment>;
+        const q = qs[i];
+        const num = q?.questionNumber ?? i + 1;
+        const isActive = active === num;
+        return (
+          <React.Fragment key={i}>
+            {part}
+            <input
+              className={`pv-note-inline-input${isActive ? ' active' : ''}`}
+              value={ans?.[num] ?? ''}
+              onChange={(e) => onAnswer?.(num, e.target.value)}
+              onFocus={() => onSetActive(num)}
+              placeholder={String(num)}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </React.Fragment>
+        );
+      });
+    };
+    return (
+      <div className="pv-group-block">
+        <QuestionRange group={group} />
+        {group.title && <div className="pv-summary-title" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.title) }} />}
+        <div className="pv-note-text">
+          {parseNotePreview(group.noteText, questions, activeQ, goToQ, answers, handleAnswer)}
+        </div>
+      </div>
+    );
+  };
+
+  const WritingTaskGroup = ({ group }) => {
+    const [text, setText] = React.useState('');
+    const wordCount = text.trim() ? text.trim().split(/\s+/).filter(Boolean).length : 0;
+    const minWords = group.minWords ?? 150;
+    const isUnder = wordCount < minWords;
+    return (
+      <div className="pv-wt-container">
+        <div className="pv-wt-left">
+          {group.recommendedMinutes && (
+            <div className="pv-wt-time-hint">⏱ Nên dành khoảng {group.recommendedMinutes} phút · Viết ít nhất {minWords} từ</div>
+          )}
+          <div className="pv-wt-instruction">
+            {group.taskInstruction
+              ? <div dangerouslySetInnerHTML={{ __html: formatPreviewText(group.taskInstruction) }} />
+              : <em className="pv-empty">Chưa có đề bài.</em>}
+          </div>
+          {group.imageUrl && <img src={group.imageUrl} alt="task diagram" className="pv-wt-image" />}
+        </div>
+        <div className="pv-wt-right">
+          <textarea className="pv-wt-textarea" placeholder="Nhập bài viết của bạn tại đây..." value={text} onChange={(e) => setText(e.target.value)} />
+          <div className="pv-wt-wordcount">
+            <span className={isUnder ? 'pv-wt-wc-under' : 'pv-wt-wc-ok'}>Từ: <strong>{wordCount}</strong></span>
+            <span className="pv-wt-wc-min"> (tối thiểu: {minWords})</span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const SpeakingCueCardGroup = ({ group }) => {
+    const bulletPoints = (group.bulletPoints ?? []).filter(Boolean);
+    const prepSec = group.prepSeconds ?? 60;
+    return (
+      <div className="pv-spk-cuecard-wrapper">
+        <div className="pv-spk-prep-chip">Thời gian chuẩn bị: {prepSec}s</div>
+        <div className="pv-spk-cuecard">
+          <div className="pv-spk-cc-topic">
+            {group.topic
+              ? <span dangerouslySetInnerHTML={{ __html: formatPreviewText(group.topic) }} />
+              : <em className="pv-empty">Chưa có chủ đề.</em>}
+          </div>
+          {(bulletPoints.length > 0 || group.closingSentence) && (
+            <>
+              <div className="pv-spk-cc-youshould">
+                <span dangerouslySetInnerHTML={{ __html: formatPreviewText(group.shouldSayLabel || 'You should say:') }} />
+              </div>
+              <ul className="pv-spk-cc-bullets">
+                {bulletPoints.map((bp, i) => <li key={i} dangerouslySetInnerHTML={{ __html: formatPreviewText(bp) }} />)}
+              </ul>
+              {group.closingSentence && (
+                <div className="pv-spk-cc-closing">
+                  <span dangerouslySetInnerHTML={{ __html: formatPreviewText(group.closingSentence) }} />
+                </div>
+              )}
+            </>
+          )}
+        </div>
+        <div className="pv-spk-cc-hint">Nói trong 1–2 phút sau khi chuẩn bị xong</div>
+      </div>
+    );
+  };
+
+  const renderGroup = (group) => {
+    const ct = group.contentType;
+    if (ct === 'READING_PASSAGE') return null;
+    if (ct === 'MATCHING_HEADING') return <MatchingHeadingGroup key={group.id} group={group} />;
+    if (ct === 'SHARED_OPTIONS_DROPDOWN') return renderSharedOptionsDropdown(group, activeQ, goToQ);
+    if (ct === 'SUMMARY_COMPLETION_SELECT') return renderSummarySelect(group, activeQ, goToQ);
+    if (ct === 'NOTE_COMPLETION') return <NoteCompletionGroup key={group.id} group={group} activeQ={activeQ} goToQ={goToQ} />;
+    if (ct === 'WRITING_TASK') return <WritingTaskGroup key={group.id} group={group} />;
+    if (ct === 'SPEAKING_CUECARD') return <SpeakingCueCardGroup key={group.id} group={group} />;
+    return (
+      <div className="pv-group-block" key={group.id}>
+        <QuestionRange group={group} />
+        {group.instructions && (
+          <div className="pv-group-instructions" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.instructions) }} />
+        )}
+        {group.title && !ct.startsWith('MULTIPLE') && !ct.startsWith('SENTENCE') && !ct.startsWith('SHORT') && !ct.startsWith('DRAG') && (
+          <div className="pv-group-instructions" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.title) }} />
+        )}
+        {ct === 'MULTIPLE_CHOICE_GROUP' && (
+          <div className="pv-mc-instructions">Choose the correct letter, <strong>A</strong>, <strong>B</strong>, <strong>C</strong> or <strong>D</strong>.</div>
+        )}
+        {ct === 'MULTIPLE_CHOICE_MULTI' && (
+          <div className="pv-mc-instructions">Choose <strong>TWO</strong> letters, <strong>A–E</strong>.</div>
+        )}
+        {ct === 'SENTENCE_COMPLETION' && (
+          <div className="pv-mc-instructions">Complete the sentences. Write <strong>NO MORE THAN TWO WORDS AND/OR A NUMBER</strong> for each answer.</div>
+        )}
+        {ct === 'SHORT_ANSWER_GROUP' && (
+          <div className="pv-mc-instructions">Answer the questions. Write <strong>NO MORE THAN THREE WORDS</strong> for each answer.</div>
+        )}
+        {(group.questions ?? []).length === 0
+          ? <em className="pv-empty">Chưa có câu hỏi.</em>
+          : (group.questions ?? []).map((q) => renderQuestion(q))
+        }
+      </div>
+    );
+  };
+
+  // Reading split layout
+  const PartReadingLayout = ({ part }) => {
+    const groups = part.questionGroups ?? [];
+    const passages = groups.filter(g => g.contentType === 'READING_PASSAGE');
+    const qGroups = groups.filter(g => g.contentType !== 'READING_PASSAGE');
+
+    return (
+      <div className="pv-reading-split">
+        <div className="pv-passage-pane">
+          {passages.length === 0
+            ? <em className="pv-empty">Chưa có đoạn văn.</em>
+            : passages.map(g => <PassageGroupPane key={g.id} group={g} allParts={parts} />)
+          }
+        </div>
+        <div className="pv-divider" />
+        <div className="pv-questions-pane">
+          {qGroups.length === 0
+            ? <em className="pv-empty">Chưa có câu hỏi.</em>
+            : qGroups.map(g => renderGroup(g))
+          }
+        </div>
+      </div>
+    );
+  };
+
+  // Audio group preview
+  const AudioGroup = ({ group }) => {
+    const questions = group.questions ?? [];
+    return (
+      <div className="pv-group-block">
+        <QuestionRange group={group} />
+        <div className="pv-audio-bar">
+          <Volume2 size={16} style={{ flexShrink: 0 }} />
+          {group.audioUrl
+            ? <audio controls src={group.audioUrl} className="pv-audio-player" />
+            : <span className="pv-audio-placeholder">Audio chưa được tải lên</span>}
+        </div>
+        {group.title && <div className="pv-group-instructions" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.title) }} />}
+        {questions.length === 0
+          ? <em className="pv-empty">Chưa có câu hỏi.</em>
+          : questions.map(q => renderQuestion(q))
+        }
+      </div>
+    );
+  };
+
+  // Map labelling preview
+  const MapLabellingGroup = ({ group }) => {
+    const questions = group.questions ?? [];
+    const allOptions = (group.optionBank ?? []).map((o, i) => ({ id: i, text: o.text || String(o) }));
+    const [answers, setAnswers] = React.useState({});
+    const [dragId, setDragId] = React.useState(null);
+    const placed = new Set(Object.values(answers).filter(Boolean).map(v => v.id));
+    const bankChips = allOptions.filter(o => !placed.has(o.id));
+
+    const placeChip = (qNum, chip) => {
+      setAnswers(prev => {
+        const next = { ...prev };
+        Object.keys(next).forEach(k => { if (next[k]?.id === chip.id) next[k] = null; });
+        next[qNum] = chip;
+        return next;
+      });
+      goToQ(qNum);
+    };
+
+    return (
+      <div className="pv-group-block">
+        <QuestionRange group={group} />
+        {group.instructions && <div className="pv-group-instructions" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.instructions) }} />}
+        <div className="pv-ml-layout">
+          <div className="pv-ml-image-wrapper">
+            {group.imageUrl ? (
+              <div style={{ position: 'relative', width: `${group.imageWidth ?? 100}%`, margin: '0 auto' }}>
+                <img src={group.imageUrl} alt="map" draggable={false} style={{ display: 'block', width: '100%', height: 'auto' }} />
+                {questions.map(q => {
+                  const filled = answers[q.questionNumber] ?? null;
+                  return (
+                    <div key={q.id}
+                      style={{ position: 'absolute', left: `${q.pinX ?? 10}%`, top: `${q.pinY ?? 10}%`, minWidth: `${group.pinBoxWidth ?? 60}px`, background: '#fff', padding: '4px 8px', borderRadius: 4, border: '1px solid #cbd5e1', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', cursor: 'pointer' }}
+                      onDragOver={(e) => { e.preventDefault(); }}
+                      onDrop={(e) => { e.preventDefault(); const id = Number(e.dataTransfer.getData('text/x-dm')); const chip = allOptions.find(o => o.id === id); if (chip) placeChip(q.questionNumber, chip); }}
+                      onClick={() => { if (filled) setAnswers(prev => ({ ...prev, [q.questionNumber]: null })); else goToQ(q.questionNumber); }}
+                      title={filled ? 'Click để trả lại' : `Kéo đáp án vào ô ${q.questionNumber}`}
+                    >
+                      {filled ? <span>{filled.text}</span> : <span style={{ color: '#64748b', fontSize: 12 }}>{q.questionNumber}</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="pv-diagram-placeholder">Bản đồ chưa được tải lên</div>
+            )}
+          </div>
+          <div className="pv-ml-bank">
+            <div className="pv-dm-bank">
+              {bankChips.length === 0 && <em style={{ fontSize: 12, color: '#9ca3af' }}>Tất cả đã được đặt</em>}
+              {bankChips.map(chip => (
+                <div key={chip.id} className={`pv-dm-chip${dragId === chip.id ? ' dragging' : ''}`} draggable
+                  onDragStart={(e) => { e.dataTransfer.setData('text/x-dm', String(chip.id)); e.dataTransfer.effectAllowed = 'move'; setDragId(chip.id); }}
+                  onDragEnd={() => setDragId(null)}>
+                  <span dangerouslySetInnerHTML={{ __html: formatPreviewText(chip.text) }} />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Table completion preview
+  const TableCompletionGroup = ({ group }) => {
+    const columns = group.columns ?? [];
+    const tableRows = group.tableRows ?? [];
+    const questions = group.questions ?? [];
+    const [answers, setAnswers] = React.useState({});
+    const blankMap = React.useMemo(() => {
+      const map = [];
+      for (const row of tableRows) {
+        for (const col of columns) {
+          const n = ((row.cells?.[col.id] ?? '').match(/\[blank\]/g) ?? []).length;
+          for (let i = 0; i < n; i++) {
+            const q = questions[map.length];
+            map.push({ rowId: row.id, colId: col.id, qNum: q?.questionNumber ?? null });
+          }
+        }
+      }
+      return map;
+    }, [tableRows, columns, questions]);
+    const parseBold = (text) => text.split(/\*\*(.*?)\*\*/).map((chunk, i) => i % 2 === 1 ? <strong key={i}>{chunk}</strong> : chunk);
+    const renderCell = (cellText, rowId, colId) => {
+      const parts = (cellText ?? '').split('[blank]');
+      let localIdx = blankMap.filter(b => {
+        const colOrder = columns.map(c => c.id);
+        const rowOrder = tableRows.map(r => r.id);
+        const bColIdx = colOrder.indexOf(b.colId);
+        const bRowIdx = rowOrder.indexOf(b.rowId);
+        const curColIdx = colOrder.indexOf(colId);
+        const curRowIdx = rowOrder.indexOf(rowId);
+        return bRowIdx < curRowIdx || (bRowIdx === curRowIdx && bColIdx < curColIdx);
+      }).length;
+      return parts.map((part, i) => {
+        const entry = blankMap[localIdx + i - 1] ?? null;
+        return (
+          <React.Fragment key={i}>
+            {parseBold(part)}
+            {i < parts.length - 1 && (() => {
+              const info = blankMap[localIdx + i];
+              if (!info) return null;
+              const qNum = info.qNum;
+              return (
+                <input key={`tc-blank-${qNum}`} className="pv-tc-blank" value={answers[qNum] ?? ''}
+                  onChange={(e) => { setAnswers(p => ({ ...p, [qNum]: e.target.value })); goToQ(qNum); }}
+                  placeholder={String(qNum)} disabled />
+              );
+            })()}
+          </React.Fragment>
+        );
+      });
+    };
+    return (
+      <div className="pv-group-block">
+        <QuestionRange group={group} />
+        {group.title && <div className="pv-summary-title" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.title) }} />}
+        <div className="pv-tc-scroll">
+          <table className="pv-tc-table">
+            {group.tableTitle && (
+              <thead>
+                <tr><th className="pv-tc-title-cell" colSpan={columns.length}>{group.tableTitle}</th></tr>
+                <tr>{columns.map(col => <th key={col.id} className="pv-tc-header-cell">{col.header}</th>)}</tr>
+              </thead>
+            )}
+            {!group.tableTitle && columns.some(c => c.header) && (
+              <thead><tr>{columns.map(col => <th key={col.id} className="pv-tc-header-cell">{col.header}</th>)}</tr></thead>
+            )}
+            <tbody>
+              {tableRows.map(row => (
+                <tr key={row.id}>
+                  {columns.map((col, ci) => (
+                    <td key={col.id} className={`pv-tc-cell${ci === 0 ? ' pv-tc-row-label' : ''}`}>
+                      {renderCell(row.cells?.[col.id] ?? '', row.id, col.id)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
+
+  const renderPartGroup = (group) => {
+    const ct = group.contentType;
+    if (ct === 'READING_PASSAGE') return null;
+    if (ct === 'AUDIO_TRANSCRIPT') return <AudioGroup key={group.id} group={group} />;
+    if (ct === 'MAP_LABELLING') return <MapLabellingGroup key={group.id} group={group} />;
+    if (ct === 'TABLE_COMPLETION') return <TableCompletionGroup key={group.id} group={group} />;
+    return renderGroup(group);
+  };
+
+  return (
+    <div className="pv-overlay" style={{ position: 'absolute', inset: 0, zIndex: 100, display: 'flex', flexDirection: 'column' }}>
+      <div className="pv-shell" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+
+        {/* ── IELTS Exam Header ── */}
+        <header className="pv-ielts-header" style={{ flexShrink: 0 }}>
+          <div className="pv-ielts-header-left">
+            <img src={resolvedLogoSrc} alt={resolvedLogoAlt} className="pv-ielts-logo-image" />
+            <div className="pv-ielts-test-info">
+              <span className="pv-ielts-test-name">{test.title || 'Đề thi chưa đặt tên'}</span>
+              <span className="pv-ielts-test-type">{test.testType ?? 'ACADEMIC'}</span>
+            </div>
+          </div>
+
+          <div className="pv-ielts-skill-tabs">
+            {skillKeys.map((key) => {
+              const meta = PREVIEW_SESSION_META[key];
+              const Icon = meta.Icon;
+              const count = (sessions[key] ?? []).reduce(
+                (acc, p) => acc + (p.questionGroups ?? []).reduce((a, g) => a + (g.questions?.length ?? 0), 0), 0
+              );
+              return (
+                <button
+                  key={key}
+                  className={`pv-ielts-tab${activeSkill === key ? ' active' : ''}`}
+                  onClick={() => { onSetActiveSkill(key); setActiveQ(null); }}
+                >
+                  <Icon size={13} />
+                  <span>{meta.label}</span>
+                  {count > 0 && <span className="pv-tab-count">{count}</span>}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="pv-ielts-header-right">
+            <div className="pv-timer">
+              <Clock size={14} />
+              <span>{currentDuration === 0 ? 'Không giới hạn' : `${currentDuration}:00`}</span>
+            </div>
+            <span className="pv-preview-badge">XEM TRƯỚC</span>
+            <button className="pv-close-btn" onClick={onClose} title="Đóng xem trước">
+              ✕ Đóng
+            </button>
+          </div>
+        </header>
+
+        {/* ── Part instruction bar ── */}
+        {activePart && (
+          <div className="pv-instruction-bar" style={{ flexShrink: 0 }}>
+            <strong>{activePart.name}</strong>
+            {activePart.instructions && (
+              <span className="pv-instruction-text"> — {toPlainText(activePart.instructions)}</span>
+            )}
+            <span className="pv-instruction-meta">
+              {totalQ} câu hỏi · {currentDuration === 0 ? 'Không giới hạn' : `${currentDuration} phút`}
+            </span>
+          </div>
+        )}
+
+        {/* ── Main content ── */}
+        <div className="pv-main" style={{ flex: 1, overflow: 'auto' }}>
+          {parts.length === 0 ? (
+            <div className="pv-empty-state">
+              <div className="pv-empty-icon"><FileText size={28} /></div>
+              <div>Chưa có nội dung cho phần này.<br /><small>Thêm nhóm câu hỏi trong trình tạo đề.</small></div>
+            </div>
+          ) : (
+            parts.map((part) => (
+              <div key={part.id} className="pv-part-section">
+                <div className="pv-part-banner">
+                  <span className="pv-part-banner-name">{part.name}</span>
+                  {part.instructions && <span className="pv-part-banner-inst">{toPlainText(part.instructions)}</span>}
+                </div>
+                {activeSkill === 'READING'
+                  ? <PartReadingLayout part={part} />
+                  : (part.questionGroups ?? []).map(g => renderPartGroup(g))
+                }
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* ── Footer navigation ── */}
+        <footer className="pv-footer" style={{ flexShrink: 0 }}>
+          <div className="pv-footer-left">
+            <button className="pv-set-time-btn" onClick={handleSetSkillTime}>
+              <Clock size={16} />
+              <span>
+                Đặt thời gian
+                <small>{skillMeta?.label || 'Kỹ năng'} · {currentDuration === 0 ? 'Không giới hạn' : `${currentDuration} phút`}</small>
+              </span>
+            </button>
+            {activePart && (
+              <span className="pv-footer-part-label">{activePart.name}</span>
+            )}
+          </div>
+
+          <div className="pv-q-num-track">
+            {allQuestions.map((q) => {
+              const isActive = activeQ === q.questionNumber;
+              return (
+                <div key={q.id} className="pv-q-cell" onClick={() => goToQ(q.questionNumber)}>
+                  <div className={`pv-q-dash${isActive ? ' active' : ''}`} />
+                  <span className={`pv-q-num${isActive ? ' active' : ''}`}>{q.questionNumber}</span>
+                </div>
+              );
+            })}
+            {allQuestions.length === 0 && (
+              <span style={{ fontSize: 12, color: '#9ca3af' }}>Chưa có câu hỏi</span>
+            )}
+          </div>
+
+          <div className="pv-footer-right">
+            <span className="pv-footer-count">{totalQ > 0 ? `${totalQ} câu` : '0 câu'}</span>
+          </div>
+        </footer>
+
+      </div>
+    </div>
+  );
+};
+
+// ---- Preview mode helpers (mirrors PreviewModal.jsx) ----
+const PREVIEW_SESSION_META = {
+  LISTENING: { label: 'Listening', Icon: Headphones, color: '#1d4ed8', bg: '#dbeafe', durationMinutes: 30 },
+  READING: { label: 'Reading', Icon: BookOpen, color: '#15803d', bg: '#dcfce7', durationMinutes: 60 },
+  WRITING: { label: 'Writing', Icon: PenLine, color: '#a16207', bg: '#fef9c3', durationMinutes: 60 },
+  SPEAKING: { label: 'Speaking', Icon: Mic, color: '#be185d', bg: '#fce7f3', durationMinutes: 12 },
+};
+
+const formatPreviewText = (text) => {
+  if (!text) return '';
+  const normalized = normalizeRichHtml(text);
+  return stripInlineStyles(normalized);
 };
 
 // ---- Sortable wrapper ----
@@ -389,7 +1254,7 @@ const PartView = ({ skill, part, selection, onSelectGroup, onSelectQuestion, onU
 
   if (skill === 'READING') {
     const passages = groups.filter((g) => g.contentType === 'READING_PASSAGE');
-    const qGroups  = groups.filter((g) => g.contentType !== 'READING_PASSAGE');
+    const qGroups = groups.filter((g) => g.contentType !== 'READING_PASSAGE');
     return (
       <div className="exam-split">
         {/* LEFT: passage texts only */}
@@ -462,6 +1327,13 @@ const ExamCanvas = ({
   draggingContentType,
   sessionDuration,
   onUpdateSessionTime,
+  // Preview mode props
+  mode = 'edit', // 'edit' | 'preview'
+  test,
+  sessions,
+  sessionDurations,
+  onPreviewClose,
+  onSetActiveSkill,
 }) => {
   const [activePartId, setActivePartId] = useState(null);
   const [showTimeModal, setShowTimeModal] = useState(false);
@@ -484,6 +1356,23 @@ const ExamCanvas = ({
 
   // Reset active part when skill changes
   useEffect(() => { setActivePartId(null); }, [skill]);
+
+  // ── PREVIEW MODE: render student exam view ──
+  if (mode === 'preview') {
+    return (
+      <div className="tb-canvas" style={{ position: 'relative', height: '100%', overflow: 'hidden' }}>
+        <PreviewContent
+          test={test}
+          sessions={sessions}
+          sessionDurations={sessionDurations}
+          activeSkill={skill}
+          onSetActiveSkill={onSetActiveSkill || (() => { })}
+          onClose={onPreviewClose || (() => { })}
+          seriesLabel={seriesLabel}
+        />
+      </div>
+    );
+  }
 
   const activePart = useMemo(() => {
     if (parts.length === 0) return null;
@@ -551,7 +1440,7 @@ const ExamCanvas = ({
   );
 
   return (
-    <div className="tb-canvas" onClick={() => {}}>
+    <div className="tb-canvas" onClick={() => { }}>
       {/* Part tabs */}
       <div className="tb-part-tabs">
         {parts.map((p) => (

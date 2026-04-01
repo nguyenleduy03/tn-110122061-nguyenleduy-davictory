@@ -33,4 +33,17 @@ public interface AssignmentSubmissionRepository extends JpaRepository<Assignment
     @Query("SELECT AVG(s.score) FROM AssignmentSubmission s " +
            "WHERE s.assignment.id = :assignmentId AND s.score IS NOT NULL")
     Optional<Double> findAvgScoreByAssignment(@Param("assignmentId") Long assignmentId);
+
+    // NEW METHODS
+    List<AssignmentSubmission> findByAssignmentAndUserOrderByAttemptNumberDesc(
+        com.victory.DAVictory.entity.Assignment assignment, 
+        com.victory.DAVictory.entity.User user
+    );
+
+    int countByAssignmentAndUser(
+        com.victory.DAVictory.entity.Assignment assignment, 
+        com.victory.DAVictory.entity.User user
+    );
+
+    boolean existsByExamAttemptId(Long examAttemptId);
 }

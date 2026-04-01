@@ -37,10 +37,11 @@ import DashboardSettings from './pages/DashboardSettings'
 import ApiDebugPage from './pages/ApiDebugPage'
 import GradeWriting from './pages/teacher/GradeWriting'
 import GradeSpeaking from './pages/teacher/GradeSpeaking'
+import GradeAssignment from './pages/teacher/GradeAssignment'
 import AssignmentTemplates from './pages/teacher/AssignmentTemplates'
 import CreateAssignment from './pages/teacher/CreateAssignment'
-import StudentAssignments from './pages/student/StudentAssignments'
 import StudentLms from './pages/student/StudentLms'
+import AssignmentDetail from './pages/student/AssignmentDetail'
 import SubmitAssignment from './pages/student/SubmitAssignment'
 import AssignmentResult from './pages/student/AssignmentResult'
 import ProtectedRoute from './components/common/ProtectedRoute'
@@ -110,13 +111,14 @@ function App() {
         
         {/* Student assignment routes */}
         <Route path="/student/lms" element={<RoleBasedRoute requiredRole="STUDENT"><StudentLms /></RoleBasedRoute>} />
-        <Route path="/student/assignments" element={<RoleBasedRoute requiredRole="STUDENT"><StudentAssignments /></RoleBasedRoute>} />
-        <Route path="/student/assignments/:id" element={<RoleBasedRoute requiredRole="STUDENT"><SubmitAssignment /></RoleBasedRoute>} />
+        <Route path="/student/assignments/:id" element={<RoleBasedRoute requiredRole="STUDENT"><AssignmentDetail /></RoleBasedRoute>} />
+        <Route path="/student/assignments/:id/submit" element={<RoleBasedRoute requiredRole="STUDENT"><SubmitAssignment /></RoleBasedRoute>} />
         <Route path="/student/assignments/:id/result" element={<RoleBasedRoute requiredRole="STUDENT"><AssignmentResult /></RoleBasedRoute>} />
         
         {/* Grading routes */}
         <Route path="/teacher/grade/writing/:id" element={<RoleBasedRoute requiredRole="TEACHER"><GradeWriting /></RoleBasedRoute>} />
         <Route path="/teacher/grade/speaking/:id" element={<RoleBasedRoute requiredRole="TEACHER"><GradeSpeaking /></RoleBasedRoute>} />
+        <Route path="/teacher/grade/assignment/:submissionId" element={<RoleBasedRoute requiredRole="TEACHER"><GradeAssignment /></RoleBasedRoute>} />
       </Routes>
     </Router>
   )

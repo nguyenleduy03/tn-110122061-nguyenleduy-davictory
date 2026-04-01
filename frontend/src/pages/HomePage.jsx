@@ -412,11 +412,11 @@ const HomePage = () => {
           <h2 className="footer-cta-title">Sẵn sàng bắt đầu luyện thi IELTS?</h2>
           <p className="footer-cta-sub">Truy cập thư viện đề thi và bắt đầu lộ trình học phù hợp với bạn.</p>
           <div className="footer-cta-actions">
-            <Link to="/exam-library" className="footer-btn-primary">
-              Vào thư viện đề thi <ArrowUpRight size={18} />
+            <Link to="/student/lms" className="footer-btn-primary">
+              Vào LMS <ArrowUpRight size={18} />
             </Link>
-            <Link to="/register" className="footer-btn-secondary">
-              Tạo tài khoản miễn phí
+            <Link to="/exam-library" className="footer-btn-secondary">
+              Vào thư viện đề thi
             </Link>
           </div>
         </div>
@@ -435,6 +435,7 @@ const HomePage = () => {
               <div className="site-footer-links">
                 <Link to="/">Trang chủ</Link>
                 <Link to="/exam-library">Thư viện đề thi</Link>
+                <Link to="/student/lms">LMS</Link>
                 <Link to="/my-dashboard">Bảng điều khiển</Link>
               </div>
             </div>

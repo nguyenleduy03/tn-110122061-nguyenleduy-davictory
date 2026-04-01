@@ -47,23 +47,45 @@ export const assignmentApi = {
     return res.data;
   },
 
-  submitAssignment: async (data) => {
-    const res = await apiClient.post('/assignments/submit', data);
+  // Student submissions
+  getMySubmissions: async (assignmentId) => {
+    const res = await apiClient.get(`/assignments/${assignmentId}/my-submissions`);
     return res.data;
   },
 
+  getMyLatestSubmission: async (assignmentId) => {
+    const res = await apiClient.get(`/assignments/${assignmentId}/my-submission`);
+    return res.data;
+  },
+
+  submitManual: async (assignmentId, data) => {
+    const res = await apiClient.post(`/assignments/${assignmentId}/submit-manual`, data);
+    return res.data;
+  },
+
+  submitTest: async (assignmentId, examAttemptId) => {
+    const res = await apiClient.post(`/assignments/${assignmentId}/submit-test`, { examAttemptId });
+    return res.data;
+  },
+
+  getResult: async (assignmentId) => {
+    const res = await apiClient.get(`/assignments/${assignmentId}/result`);
+    return res.data;
+  },
+
+  // Teacher grading
   getSubmissions: async (assignmentId) => {
     const res = await apiClient.get(`/assignments/${assignmentId}/submissions`);
     return res.data;
   },
 
-  getMySubmission: async (assignmentId) => {
-    const res = await apiClient.get(`/assignments/${assignmentId}/my-submission`);
+  getSubmissionById: async (submissionId) => {
+    const res = await apiClient.get(`/assignments/submissions/${submissionId}`);
     return res.data;
   },
 
-  gradeSubmission: async (data) => {
-    const res = await apiClient.post('/assignments/grade', data);
+  gradeSubmission: async (submissionId, data) => {
+    const res = await apiClient.post(`/assignments/submissions/${submissionId}/grade`, data);
     return res.data;
   },
 
@@ -72,13 +94,13 @@ export const assignmentApi = {
     return res.data;
   },
 
-  getMyTemplates: async () => {
-    const res = await apiClient.get('/assignments/templates');
+  // Legacy - keep for backward compatibility
+  submitAssignment: async (data) => {
+    const res = await apiClient.post('/assignments/submit', data);
     return res.data;
   },
 
-  createTemplateFromTest: async (testId, data) => {
-    const res = await apiClient.post(`/assignments/from-test/${testId}`, data);
-    return res.data;
+  getMySubmission: async (assignmentId) => {
+    return assignmentApi.getMyLatestSubmission(assignmentId);
   },
 };

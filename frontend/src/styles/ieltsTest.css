@@ -600,6 +600,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    position: relative;
     padding: 0 20px;
     background-color: #ffffff;
     color: #000000;
@@ -686,11 +687,19 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
     background: #f8f9fa;
     padding: 6px 16px;
     border-radius: 50px;
     border: 1px solid #e0e0e0;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.timer-icon {
+    color: #244c74;
+    flex-shrink: 0;
 }
 
 .timer-label {
@@ -708,6 +717,11 @@
     font-variant-numeric: tabular-nums;
     min-width: 80px;
     text-align: center;
+}
+
+.header-timer .timer-icon+.timer-value {
+    color: #c56682;
+    min-width: 64px;
 }
 
 .timer-low {
@@ -2694,7 +2708,7 @@
 /* ─── Cue Card (Part 2) ───────────────────────────────────────────────────── */
 .spk-cuecard {
     background: #ffffff;
-    border: 1px solid #dbe2ea;
+    border: none;
     border-radius: 8px;
     padding: 28px 32px;
     width: 100%;
@@ -3350,7 +3364,7 @@
 }
 
 .spk-cuecard {
-    border: 1.5px solid #b7c0cc;
+    border: none;
     border-radius: 4px;
     padding: 16px 18px;
 }
@@ -3699,21 +3713,23 @@
 }
 
 .spk-check-mic-only {
-    max-width: 1160px;
-    min-height: calc(100dvh - 112px);
-    padding: clamp(22px, 3.2vw, 46px) clamp(16px, 2.5vw, 36px);
+    --spk-mic-title-size: clamp(44px, 3.3vw, 70px);
+    max-width: 1040px;
+    min-height: calc(100dvh - 136px);
+    padding: clamp(18px, 2.6vw, 36px) clamp(14px, 2vw, 28px);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 14px;
+    gap: 12px;
     text-align: center;
 }
 
 .spk-check-mic-title {
-    margin: 0;
+    margin: 0 0 6px;
+    transform: translateY(-60px);
     color: #244c74;
-    font-size: clamp(44px, 3.3vw, 70px);
+    font-size: var(--spk-mic-title-size);
     line-height: 1.05;
     font-weight: 800;
     text-transform: uppercase;
@@ -3738,19 +3754,98 @@
     justify-content: center;
 }
 
-.spk-check-mic-time {
+.spk-check-mic-icon.is-recording {
+    background: #fff5f5;
+    border-color: #dc2626;
+    color: #dc2626;
+    animation: spk-pulse 1.5s infinite;
+}
+
+.spk-check-mic-wave {
+    width: min(620px, 90%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 36px;
+}
+
+.spk-check-mic-waveform {
+    width: 100%;
+    height: 36px;
+    border-radius: 10px;
+    background: #fff;
+    border: 1px solid #f1d3dc;
+}
+
+.spk-check-mic-timer {
     margin: 2px 0 4px;
-    color: #1f2937;
-    font-size: clamp(26px, 2vw, 38px);
-    font-weight: 500;
+    color: #c56682;
+    font-size: clamp(36px, 3vw, 52px);
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
 }
 
 .spk-check-mic-desc {
     margin: 0;
     max-width: 860px;
+    text-align: center;
     color: #374151;
     font-size: clamp(20px, 1.45vw, 28px);
     line-height: 1.45;
+}
+
+.spk-check-mic-review-player {
+    width: min(900px, 88%);
+    margin-top: 2px;
+}
+
+.spk-check-mic-review-audio {
+    width: 100%;
+    height: 46px;
+}
+
+.spk-check-mic-review-text {
+    margin: 0;
+    text-align: center;
+    color: #374151;
+    font-size: clamp(20px, 1.45vw, 30px);
+    line-height: 1.35;
+}
+
+.spk-check-mic-review-actions {
+    margin-top: 22px;
+}
+
+.spk-check-mic-again-btn,
+.spk-check-mic-start-btn {
+    min-width: 0;
+    width: auto;
+    padding: 0 24px;
+    height: 48px;
+    border-radius: 6px;
+    gap: 8px;
+}
+
+.spk-check-mic-again-btn {
+    background: #264d74;
+    border: 1px solid #264d74;
+}
+
+.spk-check-mic-again-btn:hover {
+    background: #1f4061;
+    border-color: #1f4061;
+}
+
+.spk-check-mic-start-btn {
+    background: #c56682;
+    border: 1px solid #c56682;
+}
+
+.spk-check-mic-start-btn:hover {
+    background: #aa4f69;
+    border-color: #aa4f69;
 }
 
 .spk-check-mic-actions {
@@ -3764,7 +3859,9 @@
 
 .spk-check-mic-test-btn,
 .spk-check-mic-skip-btn {
-    min-width: 230px;
+    min-width: 0;
+    width: auto;
+    padding: 0 24px;
     height: 44px;
     border-radius: 6px;
     box-shadow: none;
@@ -3799,6 +3896,12 @@
 
 /* ── Speaking Part In Intro Layout ─────────────────────────────────────── */
 .spk-main.spk-main-part {
+    align-items: center;
+    padding-top: 22px;
+    padding-bottom: 22px;
+}
+
+.spk-main.spk-main-review {
     align-items: center;
     padding-top: 22px;
     padding-bottom: 22px;
@@ -3906,6 +4009,27 @@
     text-align: center;
 }
 
+.spk-part-question-text p {
+    margin: 0;
+}
+
+.spk-part-question-text p+p {
+    margin-top: 0.38em;
+}
+
+.spk-part-question-text ul,
+.spk-part-question-text ol {
+    display: inline-block;
+    margin: 0.4em auto 0;
+    padding-left: 1.25em;
+    text-align: left;
+    max-width: 100%;
+}
+
+.spk-part-question-text li {
+    margin: 0.16em 0;
+}
+
 .spk-part-live .spk-mic-area {
     position: relative;
     width: min(860px, 100%);
@@ -3984,8 +4108,8 @@
 
 .spk-review-reset-btn,
 .spk-review-next-btn {
-    min-width: 170px;
-    height: 44px;
+    min-width: 152px;
+    height: 42px;
     border-radius: 6px;
     box-shadow: none;
     display: inline-flex;
@@ -4006,18 +4130,19 @@
 
 .spk-review-full-body {
     min-height: min(60vh, 560px);
-    padding: clamp(30px, 4vw, 54px) clamp(18px, 3vw, 44px);
+    padding: clamp(24px, 3.4vw, 42px) clamp(16px, 2.5vw, 34px);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 16px;
+    gap: 12px;
     text-align: center;
 }
 
 .spk-review-full-title {
+    transform: translateY(-60px);
     margin: 0;
-    font-size: clamp(36px, 3vw, 56px);
+    font-size: clamp(30px, 2.4vw, 44px);
     font-weight: 800;
     color: #244c74;
     line-height: 1.15;
@@ -4026,7 +4151,7 @@
 
 .spk-review-full-sub {
     margin: 0;
-    font-size: clamp(18px, 1.35vw, 26px);
+    font-size: clamp(16px, 1.05vw, 20px);
     font-weight: 600;
     color: #c56682;
 }
@@ -4040,7 +4165,7 @@
 .spk-review-full-note {
     margin: 0;
     color: #3f5f83;
-    font-size: clamp(20px, 1.5vw, 28px);
+    font-size: clamp(16px, 1.1vw, 21px);
     line-height: 1.35;
     font-weight: 500;
     text-transform: uppercase;
@@ -4056,6 +4181,12 @@
     }
 
     .spk-main.spk-main-part {
+        align-items: flex-start;
+        padding-top: 8px;
+        padding-bottom: 12px;
+    }
+
+    .spk-main.spk-main-review {
         align-items: flex-start;
         padding-top: 8px;
         padding-bottom: 12px;
@@ -4077,15 +4208,15 @@
     }
 
     .spk-review-full-title {
-        font-size: 30px;
+        font-size: 24px;
     }
 
     .spk-review-full-sub {
-        font-size: 18px;
+        font-size: 15px;
     }
 
     .spk-review-full-note {
-        font-size: 16px;
+        font-size: 14px;
     }
 
     .spk-card {
@@ -4190,13 +4321,14 @@
     }
 
     .spk-check-mic-only {
-        padding: 18px 12px;
-        min-height: calc(100dvh - 96px);
+        --spk-mic-title-size: 20px;
+        padding: 14px 12px;
+        min-height: calc(100dvh - 110px);
         gap: 12px;
     }
 
     .spk-check-mic-title {
-        font-size: 34px;
+        transform: translateY(-16px);
     }
 
     .spk-check-mic-icon {
@@ -4204,18 +4336,41 @@
         height: 76px;
     }
 
-    .spk-check-mic-time {
-        font-size: 24px;
+    .spk-check-mic-wave {
+        width: min(420px, 94%);
+        min-height: 28px;
+    }
+
+    .spk-check-mic-waveform {
+        height: 28px;
+    }
+
+    .spk-check-mic-timer {
+        font-size: 30px;
     }
 
     .spk-check-mic-desc {
         font-size: 16px;
     }
 
+    .spk-check-mic-review-text {
+        font-size: 16px;
+    }
+
+    .spk-check-mic-again-btn,
+    .spk-check-mic-start-btn {
+        width: auto;
+        max-width: none;
+        padding: 0 18px;
+        min-width: 0;
+        height: 40px;
+    }
+
     .spk-check-mic-test-btn,
     .spk-check-mic-skip-btn {
-        width: 100%;
-        max-width: 260px;
+        width: auto;
+        max-width: none;
+        padding: 0 18px;
         min-width: 0;
         height: 40px;
     }

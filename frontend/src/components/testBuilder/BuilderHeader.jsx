@@ -56,6 +56,8 @@ const BuilderHeader = ({
   showFormatToolbar, onToggleFormatToolbar,
   autoSaveEnabled, onToggleAutoSave,
   savedTestId,
+  previewMode,
+  onPreviewToggle,
 }) => {
   const [activeFormats, setActiveFormats] = useState({});
   const lastRangeRef = useRef(null);
@@ -281,8 +283,9 @@ const BuilderHeader = ({
             <button className="tb-tool-btn" onClick={onShuffle} disabled={shuffling} title="Trộn đề ngẫu nhiên">
               <Shuffle size={15} /><span>{shuffling ? 'Đang trộn...' : 'Trộn đề'}</span>
             </button>
-            <button className="tb-tool-btn" onClick={onPreview} title="Xem trước">
-              <Eye size={15} /><span>Xem trước</span>
+          <button className="tb-tool-btn" onClick={onPreviewToggle || onPreview} title={previewMode ? ' Quay lại chỉnh sửa' : 'Xem trước đề thi'}
+            style={previewMode ? { background: '#dbeafe', color: '#1d4ed8', border: '1px solid #93c5fd' } : {}}>
+              <Eye size={15} /><span>{previewMode ? 'Quay lại' : 'Xem trước'}</span>
             </button>
           </div>
 

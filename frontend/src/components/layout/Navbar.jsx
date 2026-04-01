@@ -122,7 +122,7 @@ const Navbar = () => {
                   className={`mobile-nav-link${location.pathname.startsWith('/student') ? ' active' : ''}`}
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  Bài tập của tôi
+                  LMS
                 </Link>
               )}
               {user && isTeacherOrAbove(user.roles) && (
@@ -159,7 +159,7 @@ const Navbar = () => {
               to="/student/lms"
               className={`nav-link${location.pathname.startsWith('/student') ? ' nav-link-active' : ''}`}
             >
-              Bài tập của tôi
+              LMS
               <ChevronDown size={13} />
             </Link>
           )}
@@ -213,7 +213,7 @@ const Navbar = () => {
                     {isStudent && (
                       <Link to="/student/lms" className="user-dropdown-item">
                         <FilePlus size={16} />
-                        <span>Bài tập của tôi</span>
+                        <span>LMS</span>
                       </Link>
                     )}
 

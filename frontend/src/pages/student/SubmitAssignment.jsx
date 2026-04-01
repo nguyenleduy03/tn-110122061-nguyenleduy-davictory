@@ -19,21 +19,28 @@ export default function SubmitAssignment() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [assignmentData, submissionData] = await Promise.allSettled([
-          assignmentApi.getAssignment(id),
-          assignmentApi.getMySubmission(id)
-        ]);
+        const assignmentData = await assignmentApi.getAssignment(id);
+        setAssignment(assignmentData);
 
-        if (assignmentData.status === 'fulfilled') {
-          setAssignment(assignmentData.value);
+        // Check if MANUAL type
+        if (assignmentData.type !== 'MANUAL') {
+          alert('Bài tập này không hỗ trợ nộp bài thủ công');
+          navigate(`/student/assignments/${id}`);
+          return;
         }
 
-        if (submissionData.status === 'fulfilled') {
-          setMySubmission(submissionData.value);
-          setFormData({
-            submissionText: submissionData.value.submissionText || '',
-            attachmentUrl: submissionData.value.attachmentUrl || ''
-          });
+        // Get previous submissions
+        try {
+          const submissionsData = await assignmentApi.getMySubmissions(id);
+          setMySubmission(submissionsData[0] || null);
+          if (submissionsData[0]) {
+            setFormData({
+              submissionText: submissionsData[0].submissionText || '',
+              attachmentUrl: submissionsData[0].attachmentUrl || ''
+            });
+          }
+        } catch (err) {
+          // No previous submission
         }
       } catch (error) {
         console.error('Failed to fetch data:', error);
@@ -42,7 +49,7 @@ export default function SubmitAssignment() {
       }
     };
     fetchData();
-  }, [id]);
+  }, [id, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -54,12 +61,9 @@ export default function SubmitAssignment() {
 
     setSubmitting(true);
     try {
-      await assignmentApi.submitAssignment({
-        assignmentId: parseInt(id),
-        ...formData
-      });
+      await assignmentApi.submitManual(parseInt(id), formData);
       alert('Nộp bài thành công!');
-      navigate('/student/assignments');
+      navigate(`/student/assignments/${id}/result`);
     } catch (error) {
       alert('Nộp bài thất bại: ' + (error.response?.data?.message || error.message));
     } finally {
@@ -81,7 +85,7 @@ export default function SubmitAssignment() {
   return (
     <div style={{ maxWidth: 900, margin: '0 auto', padding: 20 }}>
       <button
-        onClick={() => navigate('/student/assignments')}
+        onClick={() => navigate(`/student/assignments/${id}`)}
         style={{ marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8, border: 'none', background: 'none', cursor: 'pointer', color: '#1b7f79', fontSize: 14 }}
       >
         <ArrowLeft size={16} /> Quay lại

@@ -8,12 +8,11 @@ public class AssignmentRequest {
     private Long classId;
     private String title;
     private String description;
-    private String assignmentType;
+    private String type; // TEST or MANUAL
     private Long testId;
-    private String attachmentUrl;
-    private LocalDateTime dueDate;
-    private Boolean isRequired;
     private Double maxScore;
+    private LocalDateTime dueDate;
+    private Integer maxAttempts;
+    private Boolean allowLateSubmission;
     private String status;
-    private String notes;
 }

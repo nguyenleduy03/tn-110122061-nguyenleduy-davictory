@@ -19,8 +19,8 @@ import { Headphones, BookOpen, PenLine, Mic, GripVertical } from 'lucide-react';
 import BuilderHeader from '../components/testBuilder/BuilderHeader';
 import BuilderSidebar from '../components/testBuilder/BuilderSidebar';
 import ExamCanvas from '../components/testBuilder/ExamCanvas';
-import PropertiesPanel from '../components/testBuilder/PropertiesPanel';
 import PreviewModal from '../components/testBuilder/PreviewModal';
+import PropertiesPanel from '../components/testBuilder/PropertiesPanel';
 import ErrorBoundary from '../components/common/ErrorBoundary';
 import { testBuilderApi, buildSavePayload, parseLoadedTest } from '../services/testBuilderApi';
 import { authApi } from '../services/authApi';
@@ -164,7 +164,7 @@ const TestBuilder = () => {
   const [activeOverlayItem, setActiveOverlayItem] = useState(null);
   const [dragOverPartId, setDragOverPartId] = useState(null);
   const [dragOverPassagePaneId, setDragOverPassagePaneId] = useState(null);
-  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewMode, setPreviewMode] = useState(false);
   const [savedTestId, setSavedTestId] = useState(editTestId ? Number(editTestId) : null);
   const [structure, setStructure] = useState(null); // Backend session/part IDs
   const [saveMessage, setSaveMessage] = useState('');
@@ -1228,20 +1228,11 @@ const TestBuilder = () => {
   return (
     <ErrorBoundary>
       <div className="tb-page">
-        {previewOpen && (
-          <PreviewModal
-            test={test}
-            sessions={sessions}
-            onClose={() => setPreviewOpen(false)}
-            seriesLabel={test.seriesLabel}
-          />
-        )}
-
         <BuilderHeader
           test={test}
           onTestChange={updateTest}
           onSave={handleSave}
-          onPreview={() => setPreviewOpen(true)}
+          onPreview={() => setPreviewMode(true)}
           onSubmitReview={handleSubmitReview}
           saving={saving}
           onShuffle={handleShuffle}
@@ -1254,6 +1245,8 @@ const TestBuilder = () => {
           onToggleFormatToolbar={() => setShowFormatToolbar(!showFormatToolbar)}
           seriesLabel={test.seriesLabel}
           savedTestId={savedTestId}
+          previewMode={previewMode}
+          onPreviewToggle={() => setPreviewMode((prev) => !prev)}
         />
 
         {leftSidebarCollapsed && (
@@ -1275,6 +1268,15 @@ const TestBuilder = () => {
         )}
 
         <div className="tb-workspace">
+        {previewMode ? (
+          <ErrorBoundary>
+            <PreviewModal
+              test={test}
+              sessions={sessions}
+              onClose={() => setPreviewMode(false)}
+            />
+          </ErrorBoundary>
+        ) : (
           <ErrorBoundary>
             <DndContext
               sensors={sensors}
@@ -1415,16 +1417,20 @@ const TestBuilder = () => {
               </DragOverlay>
             </DndContext>
           </ErrorBoundary>
+        )}
 
-          <ErrorBoundary>
-            <PropertiesPanel
-              selection={selection}
-              onChange={handlePanelChange}
-              onDelete={handlePanelDelete}
-              collapsed={rightPanelCollapsed}
-              onToggleCollapsed={() => setRightPanelCollapsed((prev) => !prev)}
-            />
-          </ErrorBoundary>
+          {/* PropertiesPanel only shown in edit mode */}
+          {!previewMode && (
+            <ErrorBoundary>
+              <PropertiesPanel
+                selection={selection}
+                onChange={handlePanelChange}
+                onDelete={handlePanelDelete}
+                collapsed={rightPanelCollapsed}
+                onToggleCollapsed={() => setRightPanelCollapsed((prev) => !prev)}
+              />
+            </ErrorBoundary>
+          )}
         </div>
       </div>
     </ErrorBoundary>

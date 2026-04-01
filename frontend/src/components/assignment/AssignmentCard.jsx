@@ -21,7 +21,21 @@ export default function AssignmentCard({ assignment, onEdit, onDelete }) {
     <div className="lms-panel" style={{ cursor: 'pointer' }}>
       <div style={{ marginBottom: 12 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: 8 }}>
-          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>{assignment.title}</h3>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>{assignment.title}</h3>
+              <span style={{ 
+                padding: '2px 8px', 
+                borderRadius: 4, 
+                fontSize: 11, 
+                fontWeight: 600,
+                background: assignment.type === 'TEST' ? '#dbeafe' : '#fef3c7',
+                color: assignment.type === 'TEST' ? '#1e40af' : '#92400e'
+              }}>
+                {assignment.type === 'TEST' ? 'Test' : 'Tự do'}
+              </span>
+            </div>
+          </div>
           <span className={`lms-pill ${statusColor[assignment.status] || 'neutral'}`}>
             {assignment.status}
           </span>

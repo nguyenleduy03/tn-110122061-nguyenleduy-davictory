@@ -3,6 +3,7 @@ package com.victory.DAVictory.controller;
 import com.victory.DAVictory.dto.*;
 import com.victory.DAVictory.entity.User;
 import com.victory.DAVictory.service.AssignmentService;
+import com.victory.DAVictory.service.AssignmentServiceExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -21,6 +22,9 @@ public class AssignmentController {
     private AssignmentService assignmentService;
 
     @Autowired
+    private AssignmentServiceExtension assignmentServiceExtension;
+
+    @Autowired
     private com.victory.DAVictory.repository.UserRepository userRepository;
 
     @PostMapping
@@ -28,6 +32,9 @@ public class AssignmentController {
     public ResponseEntity<AssignmentResponse> createAssignment(
             @RequestBody AssignmentRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
+        System.out.println("=== CREATE ASSIGNMENT ===");
+        System.out.println("User: " + userDetails.getUsername());
+        System.out.println("Authorities: " + userDetails.getAuthorities());
         User currentUser = userRepository.findByUsername(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
         AssignmentResponse response = assignmentService.createAssignment(request, currentUser);
@@ -157,5 +164,61 @@ public class AssignmentController {
     public ResponseEntity<List<AssignmentSubmissionResponse>> getPendingSubmissions(@PathVariable Long classId) {
         List<AssignmentSubmissionResponse> responses = assignmentService.getPendingSubmissions(classId);
         return ResponseEntity.ok(responses);
+    }
+
+    // NEW ENDPOINTS
+
+    @GetMapping("/{assignmentId}/my-submissions")
+    @PreAuthorize("hasRole('STUDENT')")
+    public ResponseEntity<List<AssignmentSubmissionResponse>> getMySubmissions(
+            @PathVariable Long assignmentId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        User currentUser = userRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        List<AssignmentSubmissionResponse> responses = assignmentServiceExtension.getMySubmissions(assignmentId, currentUser);
+        return ResponseEntity.ok(responses);
+    }
+
+    @PostMapping("/{assignmentId}/submit-manual")
+    @PreAuthorize("hasRole('STUDENT')")
+    public ResponseEntity<AssignmentSubmissionResponse> submitManual(
+            @PathVariable Long assignmentId,
+            @RequestBody ManualSubmissionRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        User currentUser = userRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        AssignmentSubmissionResponse response = assignmentServiceExtension.submitManual(assignmentId, request, currentUser);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{assignmentId}/submit-test")
+    @PreAuthorize("hasRole('STUDENT')")
+    public ResponseEntity<AssignmentSubmissionResponse> submitTest(
+            @PathVariable Long assignmentId,
+            @RequestBody TestSubmissionRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        User currentUser = userRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        AssignmentSubmissionResponse response = assignmentServiceExtension.submitTest(assignmentId, request, currentUser);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/submissions/{submissionId}/grade")
+    @PreAuthorize("hasAnyRole('TEACHER', 'MANAGER', 'ADMIN')")
+    public ResponseEntity<AssignmentSubmissionResponse> gradeSubmissionById(
+            @PathVariable Long submissionId,
+            @RequestBody GradeRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        User currentUser = userRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        AssignmentSubmissionResponse response = assignmentServiceExtension.gradeSubmissionById(submissionId, request, currentUser);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/submissions/{submissionId}")
+    @PreAuthorize("hasAnyRole('TEACHER', 'MANAGER', 'ADMIN', 'STUDENT')")
+    public ResponseEntity<AssignmentSubmissionResponse> getSubmissionById(@PathVariable Long submissionId) {
+        AssignmentSubmissionResponse response = assignmentServiceExtension.getSubmissionById(submissionId);
+        return ResponseEntity.ok(response);
     }
 }

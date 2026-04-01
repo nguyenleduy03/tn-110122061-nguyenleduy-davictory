@@ -1,13 +1,57 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Wifi, Bell, Menu, Send, ChevronRight, ChevronLeft, X, Contrast, ZoomIn, Check, LogOut, ArrowLeftRight, NotebookPen } from 'lucide-react';
+import { authApi } from '../../services/authApi';
 
 const SERIES_LOGO_SRC = {
     IELTS: '/IELTS%20Logo.png',
     Cambridge: '/Cambridge%20Logo.png',
 };
 
-const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isReview, isFullTest, skill, navigate, duration = 0, noTimeLimit = false, onTimeUp, seriesLabel, logoUrl, timerPersistKey, timerPaused = false, isNotesOpen = false, onToggleNotes, hideSubmitButton = false, hideTimer = false }) => {
+const toDisplayValue = (value) => (value == null ? '' : String(value).trim());
+
+const isPlaceholderCandidateId = (value) => {
+    const normalized = toDisplayValue(value).toUpperCase().replace(/[_\s]+/g, '-');
+    return !normalized || [
+        'DEFAULT-ID',
+        'DEFAULT',
+        'N/A',
+        'NA',
+        'UNKNOWN',
+        'NULL',
+        'UNDEFINED',
+    ].includes(normalized);
+};
+
+const getTokenIdentity = () => {
+    if (typeof window === 'undefined') return '';
+    const token = window.localStorage.getItem('authToken');
+    if (!token) return '';
+
+    try {
+        const payloadPart = token.split('.')[1];
+        if (!payloadPart || !window.atob) return '';
+        const base64 = payloadPart.replace(/-/g, '+').replace(/_/g, '/');
+        const padded = `${base64}${'='.repeat((4 - (base64.length % 4)) % 4)}`;
+        const payload = JSON.parse(window.atob(padded));
+
+        return [
+            payload?.candidateId,
+            payload?.studentId,
+            payload?.userId,
+            payload?.id,
+            payload?.username,
+            payload?.email,
+            payload?.sub,
+        ]
+            .map(toDisplayValue)
+            .find((value) => !isPlaceholderCandidateId(value)) || '';
+    } catch {
+        return '';
+    }
+};
+
+const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isReview, isFullTest, skill, navigate, duration = 0, noTimeLimit = false, onTimeUp, seriesLabel, logoUrl, timerPersistKey, timerPaused = false, isNotesOpen = false, onToggleNotes, hideSubmitButton = false, hideTimer = false, timerOverrideSeconds = null, timerOverrideLabel = 'Time left:', mode = 'practice' }) => {
     const [isOptionsOpen, setIsOptionsOpen] = useState(false);
     const [optionsView, setOptionsView] = useState('main');
     const [showSubmitModal, setShowSubmitModal] = useState(false);
@@ -27,13 +71,32 @@ const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isRevie
         const safeDuration = Number.isFinite(duration) ? duration : 0;
         return Math.max(0, safeDuration * 60);
     });
+    const storedUser = useMemo(() => authApi.getStoredUser(), []);
+    const tokenIdentity = useMemo(() => getTokenIdentity(), []);
+    const resolvedCandidateId = useMemo(() => {
+        return [
+            candidateId,
+            storedUser?.candidateId,
+            storedUser?.userId,
+            storedUser?.studentId,
+            storedUser?.studentCode,
+            storedUser?.candidateCode,
+            storedUser?.code,
+            storedUser?.id,
+            storedUser?.username,
+            storedUser?.email,
+            tokenIdentity,
+        ]
+            .map(toDisplayValue)
+            .find((value) => !isPlaceholderCandidateId(value)) || 'N/A';
+    }, [candidateId, storedUser, tokenIdentity]);
 
     // State to track current theme/size for radio buttons
     const [currentTheme, setCurrentTheme] = useState('standard');
     const [currentTextSize, setCurrentTextSize] = useState('regular');
 
     useEffect(() => {
-        if (isReview) {
+        if (isReview || mode !== 'exam') {
             setIsFullscreenLocked(false);
             return undefined;
         }
@@ -98,7 +161,9 @@ const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isRevie
             }
         };
 
-        requestFullscreen();
+        if (mode === 'exam') {
+            requestFullscreen();
+        }
         document.addEventListener('fullscreenchange', handleFullscreenChange);
 
         return () => {
@@ -112,7 +177,7 @@ const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isRevie
             }
             document.removeEventListener('fullscreenchange', handleFullscreenChange);
         };
-    }, [isReview]);
+    }, [isReview, mode]);
 
     const handleReturnFullscreen = async () => {
         if (typeof document === 'undefined') return;
@@ -422,6 +487,10 @@ const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isRevie
     const checkColor = currentTheme === 'yellow-black' ? '#e5ff00' : currentTheme === 'white-black' ? '#fff' : 'black';
     const resolvedLogoSrc = useMemo(() => logoUrl || SERIES_LOGO_SRC[seriesLabel] || SERIES_LOGO_SRC.IELTS, [logoUrl, seriesLabel]);
     const resolvedLogoAlt = seriesLabel || 'IELTS';
+    const hasTimerOverride = Number.isFinite(timerOverrideSeconds);
+    const resolvedTimerSeconds = hasTimerOverride
+        ? Math.max(0, Math.floor(timerOverrideSeconds))
+        : timeLeft;
 
     return (
         <>
@@ -431,7 +500,7 @@ const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isRevie
                         <img src={resolvedLogoSrc} alt={resolvedLogoAlt} className="ielts-logo-image" />
                     </div>
                     <div className="candidate-info">
-                        <span>{candidateId}</span>
+                        <span>{resolvedCandidateId}</span>
                         {extraInfo && (
                             <div className="extra-header-info" style={{ color: '#333', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '5px' }}>
                                 {extraInfo}
@@ -440,14 +509,14 @@ const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isRevie
                     </div>
                 </div>
 
-                {!isReview && !noTimeLimit && !hideTimer && (
-                    <div className={`header-timer ${timeLeft < 300 ? 'timer-low' : ''}`}>
-                        <span className="timer-label">Time left:</span>
-                        <span className="timer-value">{formatTime(timeLeft)}</span>
+                {!isReview && !hideTimer && (hasTimerOverride || !noTimeLimit) && (
+                    <div className={`header-timer ${resolvedTimerSeconds < 300 ? 'timer-low' : ''}`}>
+                        <span className="timer-label">{timerOverrideLabel}</span>
+                        <span className="timer-value">{formatTime(resolvedTimerSeconds)}</span>
                     </div>
                 )}
 
-                {!isReview && noTimeLimit && !hideTimer && (
+                {!isReview && noTimeLimit && !hideTimer && !hasTimerOverride && (
                     <div className="header-timer">
                         <span className="timer-label">Time:</span>
                         <span className="timer-value">No limit</span>

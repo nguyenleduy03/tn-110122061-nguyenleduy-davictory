@@ -782,7 +782,7 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
 //  Tải đề thi từ backend theo testId và skill (READING / LISTENING / …)
 // ═══════════════════════════════════════════════════════════════════
 export const ieltsApi = {
-  getTestSession: async (testId, mode = 'READING') => {
+  getTestSession: async (testId, mode = 'READING', fallbackSkills = []) => {
     const baseUrl = API_CONFIG.BASE_URL;
     const targetMode = mode.toUpperCase();
 
@@ -790,9 +790,19 @@ export const ieltsApi = {
     const testData = await apiFetch(`${baseUrl}/test-builder/${testId}/full`);
 
     // 2. Tìm session theo skillType
-    const targetSession = testData.sessions.find(s =>
-      s.skillType === targetMode
-    );
+    let targetSession = testData.sessions.find(s => s.skillType === targetMode);
+    
+    // 3. Nếu không có, thử fallback sang kỹ năng khác
+    if (!targetSession && fallbackSkills.length > 0) {
+      for (const fallbackSkill of fallbackSkills) {
+        targetSession = testData.sessions.find(s => s.skillType === fallbackSkill.toUpperCase());
+        if (targetSession) {
+          console.log(`[ieltsApi] Fallback từ ${targetMode} sang ${fallbackSkill.toUpperCase()}`);
+          break;
+        }
+      }
+    }
+    
     if (!targetSession) throw new Error(`Bài thi chưa có nội dung cho kỹ năng ${targetMode}. Vui lòng tạo câu hỏi trước.`);
 
     // counter dùng chung toàn bộ transform (pass by ref)

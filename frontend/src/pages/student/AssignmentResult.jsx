@@ -14,12 +14,13 @@ export default function AssignmentResult() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [assignmentData, submissionData] = await Promise.all([
-          assignmentApi.getAssignment(id),
-          assignmentApi.getMySubmission(id)
-        ]);
+        const assignmentData = await assignmentApi.getAssignment(id);
         setAssignment(assignmentData);
-        setSubmission(submissionData);
+
+        const submissionsData = await assignmentApi.getMySubmissions(id);
+        if (submissionsData && submissionsData.length > 0) {
+          setSubmission(submissionsData[0]); // Latest submission
+        }
       } catch (error) {
         console.error('Failed to fetch result:', error);
       } finally {
@@ -41,7 +42,7 @@ export default function AssignmentResult() {
     return (
       <div style={{ padding: 40, textAlign: 'center' }}>
         <p>Không tìm thấy kết quả</p>
-        <button className="lms-cta" onClick={() => navigate('/student/assignments')}>
+        <button className="lms-cta" onClick={() => navigate('/student/lms')}>
           Quay lại
         </button>
       </div>
@@ -53,10 +54,10 @@ export default function AssignmentResult() {
   return (
     <div style={{ maxWidth: 800, margin: '0 auto', padding: 20 }}>
       <button
-        onClick={() => navigate('/student/assignments')}
+        onClick={() => navigate(`/student/assignments/${id}`)}
         style={{ marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8, border: 'none', background: 'none', cursor: 'pointer', color: '#1b7f79', fontSize: 14 }}
       >
-        <ArrowLeft size={16} /> Quay lại danh sách bài tập
+        <ArrowLeft size={16} /> Quay lại bài tập
       </button>
 
       {/* Success message */}
@@ -107,6 +108,29 @@ export default function AssignmentResult() {
         </div>
       </div>
 
+      {/* Submission Content - for MANUAL type */}
+      {!isGraded && submission && assignment.type === 'MANUAL' && (
+        <div style={{ padding: 24, background: '#fff', borderRadius: 12, border: '1px solid #e5e7eb', marginBottom: 20 }}>
+          <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 600 }}>Bài làm của bạn</h3>
+          {submission.submissionText && (
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 4 }}>Nội dung:</div>
+              <p style={{ margin: 0, whiteSpace: 'pre-wrap', lineHeight: 1.6, color: '#374151', padding: 12, background: '#f9fafb', borderRadius: 6 }}>
+                {submission.submissionText}
+              </p>
+            </div>
+          )}
+          {submission.attachmentUrl && (
+            <div>
+              <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 4 }}>File đính kèm:</div>
+              <a href={submission.attachmentUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb' }}>
+                {submission.attachmentUrl}
+              </a>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Feedback */}
       {isGraded && submission.feedback && (
         <div style={{ padding: 24, background: '#fff', borderRadius: 12, border: '1px solid #e5e7eb', marginBottom: 20 }}>
@@ -123,18 +147,21 @@ export default function AssignmentResult() {
       <div style={{ display: 'flex', gap: 12 }}>
         <button 
           className="lms-cta" 
-          onClick={() => navigate('/student/assignments')}
+          onClick={() => navigate('/student/lms')}
           style={{ flex: 1 }}
         >
-          Xem bài tập khác
+          Danh sách bài tập
         </button>
-        {submission.examAttemptId && (
+        {assignment.type === 'TEST' && submission.examAttemptId && (
           <button 
             className="lms-cta ghost" 
-            onClick={() => navigate(`/test/reading/${assignment.testId}?review=true&attemptId=${submission.examAttemptId}`)}
+            onClick={() => {
+              // Navigate to test review - need to determine skill from examAttempt
+              alert('Chức năng xem lại bài làm đang được phát triển');
+            }}
             style={{ flex: 1 }}
           >
-            Xem lại bài làm
+            Xem chi tiết bài làm
           </button>
         )}
       </div>

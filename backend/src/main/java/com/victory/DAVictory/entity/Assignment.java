@@ -38,37 +38,28 @@ public class Assignment {
     private String title; // Tiêu đề bài tập
 
     @Column(columnDefinition = "TEXT")
-    private String description; // Mô tả / hướng dẫn chi tiết
+    private String description; // Mô tả / yêu cầu chi tiết
 
-    @Column(length = 30)
-    private String assignmentType;
-    // LISTENING_PRACTICE, READING_PRACTICE, WRITING_TASK,
-    // SPEAKING_PRACTICE, MOCK_TEST, VOCABULARY, GRAMMAR, MIXED
+    @Column(name = "assignment_type", length = 30)
+    private String type = "MANUAL"; // TEST hoặc MANUAL
 
     @Column(name = "test_id")
-    private Long testId; // Link to Test (nếu bài tập là làm đề thi)
-
-    @Column(length = 500)
-    private String attachmentUrl; // File đính kèm (PDF, audio...)
+    private Long testId; // Link to Test (nếu type = TEST)
 
     @Column
-    private LocalDateTime assignedAt; // Thời điểm giao bài
+    private Double maxScore; // Điểm tối đa
 
     @Column
     private LocalDateTime dueDate; // Hạn nộp bài
 
-    @Column(nullable = false)
-    private Boolean isRequired = true; // Bắt buộc hay tự nguyện
-
     @Column
-    private Double maxScore; // Điểm tối đa (null = không chấm điểm)
+    private Integer maxAttempts; // Số lần làm tối đa (null = không giới hạn)
 
     @Column(nullable = false)
-    private String status;
-    // DRAFT, PUBLISHED, CLOSED
+    private Boolean allowLateSubmission = false; // Cho phép nộp trễ
 
-    @Column(columnDefinition = "TEXT")
-    private String notes;
+    @Column(nullable = false)
+    private String status = "DRAFT"; // DRAFT, PUBLISHED, CLOSED
 
     @Column(nullable = false)
     private Boolean isActive = true;

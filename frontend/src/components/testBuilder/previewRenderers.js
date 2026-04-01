@@ -1,25 +1,37 @@
 /**
- * PreviewModal.jsx
- * Student-view preview — styled like the real IELTS exam interface.
+ * previewRenderers.js
+ * Shared rendering logic for exam preview (used by both PreviewModal and ExamCanvas PreviewContent)
+ * 
+ * Exports all group/question renderers and helper functions.
  */
 import React, { useState, useMemo } from 'react';
-import { X, Volume2, BookOpen, Headphones, PenLine, Mic, Clock, FileText } from 'lucide-react';
+import { Volume2, Headphones, BookOpen, PenLine, Mic, Clock, FileText, X } from 'lucide-react';
 import { normalizeRichHtml, stripInlineStyles } from '../../utils/textFormatters';
 import DropdownGroupQuestion from '../question/DropdownGroupQuestion';
 
-const SERIES_LOGO_SRC = {
+// ─── Constants ───────────────────────────────────────────────────────────
+
+export const SERIES_LOGO_SRC = {
   IELTS: '/IELTS%20Logo.png',
   Cambridge: '/Cambridge%20Logo.png',
 };
 
-// ---- Helpers (mirrors ExamCanvas) ----
+export const SESSION_META = {
+  LISTENING: { label: 'Listening', Icon: Headphones, color: '#1d4ed8', bg: '#dbeafe', durationMinutes: 30 },
+  READING: { label: 'Reading', Icon: BookOpen, color: '#15803d', bg: '#dcfce7', durationMinutes: 60 },
+  WRITING: { label: 'Writing', Icon: PenLine, color: '#a16207', bg: '#fef9c3', durationMinutes: 60 },
+  SPEAKING: { label: 'Speaking', Icon: Mic, color: '#be185d', bg: '#fce7f3', durationMinutes: 12 },
+};
 
-const formatPreviewText = (text) => {
+// ─── Helper Functions ───────────────────────────────────────────────────
+
+export const formatPreviewText = (text) => {
+  if (!text) return '';
   const normalized = normalizeRichHtml(text);
   return stripInlineStyles(normalized);
 };
 
-const toRoman = (n) => {
+export const toRoman = (n) => {
   const nums = [1, 4, 5, 9, 10, 40, 50];
   const syms = ['i', 'iv', 'v', 'ix', 'x', 'xl', 'l'];
   let r = '';
@@ -29,12 +41,11 @@ const toRoman = (n) => {
   return r;
 };
 
-const toPlainText = (value) => {
+export const toPlainText = (value) => {
   if (!value) return '';
   if (typeof value !== 'string') return String(value);
   const normalized = normalizeRichHtml(value);
   if (!normalized.includes('<')) return normalized.trim();
-
   try {
     const el = document.createElement('div');
     el.innerHTML = normalized;
@@ -44,10 +55,10 @@ const toPlainText = (value) => {
   }
 };
 
-// Helper: Hiển thị "Questions X-Y" từ group
-const QuestionRange = ({ group }) => {
-  const questions = group.questions ?? [];
+// ─── QuestionRange Helper ──────────────────────────────────────────────
 
+export const QuestionRange = ({ group }) => {
+  const questions = group.questions ?? [];
   const allNums = questions.flatMap(q => {
     if (q?.subQuestions?.length) {
       return q.subQuestions.map(sq => sq.number).filter(n => n != null);
@@ -67,7 +78,9 @@ const QuestionRange = ({ group }) => {
   );
 };
 
-const parseSummaryPreview = (text, questions, activeQ, onSetActive) => {
+// ─── Parse Helpers ────────────────────────────────────────────────────
+
+export const parseSummaryPreview = (text, questions, activeQ, onSetActive) => {
   const parts = (text || '').split(/\[blank\]/gi);
   return parts.map((part, i) => {
     if (i >= parts.length - 1) return <React.Fragment key={`t${i}`}>{part}</React.Fragment>;
@@ -86,8 +99,7 @@ const parseSummaryPreview = (text, questions, activeQ, onSetActive) => {
   });
 };
 
-// Inline input version — for Note/Form Completion: input boxes embedded directly in the text
-const parseNotePreview = (text, questions, activeQ, onSetActive, answers, onAnswer) => {
+export const parseNotePreview = (text, questions, activeQ, onSetActive, answers, onAnswer) => {
   const parts = (text || '').split(/\[blank\]/gi);
   return parts.map((part, i) => {
     if (i >= parts.length - 1) return <React.Fragment key={`t${i}`}>{part}</React.Fragment>;
@@ -110,14 +122,7 @@ const parseNotePreview = (text, questions, activeQ, onSetActive, answers, onAnsw
   });
 };
 
-const SESSION_META = {
-  LISTENING: { label: 'Listening', Icon: Headphones, color: '#1d4ed8', bg: '#dbeafe', durationMinutes: 30 },
-  READING: { label: 'Reading', Icon: BookOpen, color: '#15803d', bg: '#dcfce7', durationMinutes: 60 },
-  WRITING: { label: 'Writing', Icon: PenLine, color: '#a16207', bg: '#fef9c3', durationMinutes: 60 },
-  SPEAKING: { label: 'Speaking', Icon: Mic, color: '#be185d', bg: '#fce7f3', durationMinutes: 12 },
-};
-
-// ---- Question renderers ----
+// ─── Question Renderers ────────────────────────────────────────────────
 
 const TFNGQuestion = ({ q, active, onSetActive }) => (
   <div className={`pv-q${active ? ' pv-q-active' : ''}`} onClick={() => onSetActive(q.questionNumber)}>
@@ -210,7 +215,7 @@ const GenericQuestion = ({ q, active, onSetActive }) => (
   </div>
 );
 
-const renderQuestion = (q, activeQ, onSetActive) => {
+export const renderQuestion = (q, activeQ, onSetActive) => {
   const type = q.questionType?.typeName ?? q.questionType ?? 'MULTIPLE_CHOICE';
   const active = activeQ === q.questionNumber;
   const props = { key: q.id, q, active, onSetActive };
@@ -225,13 +230,10 @@ const renderQuestion = (q, activeQ, onSetActive) => {
   }
 };
 
-// ---- Group renderers ----
+// ─── Group Renderers ───────────────────────────────────────────────────
 
-// Render a single passage group in the LEFT pane.
-// mhAnswers: { [paraId]: { text, roman } | null } — heading assigned to each para
-// onDropHeading(paraId, headingData) — called when user drops a heading chip
-// onClearHeading(paraId) — called when user clicks × on filled slot
-const PassageGroupPane = ({ group, mhAnswers = {}, onDropHeading, onClearHeading, hasMH = false }) => {
+// Passage Group Pane (Reading)
+export const PassageGroupPane = ({ group, mhAnswers = {}, onDropHeading, onClearHeading, hasMH = false }) => {
   const paragraphs = group.paragraphs && group.paragraphs.length > 0
     ? group.paragraphs
     : [{ id: `${group.id}-p0`, heading: '', text: group.passageText || '' }];
@@ -247,7 +249,6 @@ const PassageGroupPane = ({ group, mhAnswers = {}, onDropHeading, onClearHeading
         const isOver = overSlot === para.id;
         return (
           <div key={para.id ?? idx} style={{ marginBottom: 14 }}>
-            {/* Heading slot — only show when there is a MatchingHeading group */}
             {hasMH && (
               <div
                 className={`pv-para-drop-row${isOver ? ' over' : ''}`}
@@ -290,7 +291,8 @@ const PassageGroupPane = ({ group, mhAnswers = {}, onDropHeading, onClearHeading
   );
 };
 
-const AudioGroup = ({ group, activeQ, onSetActive }) => {
+// Audio Group (Listening)
+export const AudioGroup = ({ group, activeQ, onSetActive }) => {
   const questions = group.questions ?? [];
   return (
     <div className="pv-group-block">
@@ -309,10 +311,8 @@ const AudioGroup = ({ group, activeQ, onSetActive }) => {
   );
 };
 
-// In preview: only shows the heading bank (draggable chips).
-// Answers are tracked in PartReadingLayout and displayed on passage paragraphs.
-// assignedTexts: Set of heading texts already placed on a paragraph
-const MatchingHeadingGroup = ({ group, assignedTexts = new Set() }) => {
+// Matching Heading Group
+export const MatchingHeadingGroup = ({ group, assignedTexts = new Set() }) => {
   const headings = group.headingBank ?? [];
   const [dragging, setDragging] = useState(null);
 
@@ -321,7 +321,6 @@ const MatchingHeadingGroup = ({ group, assignedTexts = new Set() }) => {
       <QuestionRange group={group} />
       {group.title && <div className="pv-group-instructions" style={{ marginBottom: 10 }} dangerouslySetInnerHTML={{ __html: formatPreviewText(group.title) }} />}
 
-      {/* Heading bank */}
       <div className="pv-heading-bank">
         <div className="pv-heading-bank-title">List of Headings</div>
         <div className="pv-heading-bank-subtitle">Kéo heading vào từng đoạn văn bên trái</div>
@@ -358,7 +357,8 @@ const MatchingHeadingGroup = ({ group, assignedTexts = new Set() }) => {
   );
 };
 
-const SummaryGroup = ({ group, activeQ, onSetActive }) => {
+// Summary Group
+export const SummaryGroup = ({ group, activeQ, onSetActive }) => {
   const questions = group.questions ?? [];
   return (
     <div className="pv-group-block">
@@ -386,7 +386,8 @@ const SummaryGroup = ({ group, activeQ, onSetActive }) => {
   );
 };
 
-const NoteCompletionGroup = ({ group, activeQ, onSetActive }) => {
+// Note Completion Group
+export const NoteCompletionGroup = ({ group, activeQ, onSetActive }) => {
   const questions = group.questions ?? [];
   const [answers, setAnswers] = useState({});
   const handleAnswer = (num, val) => setAnswers((prev) => ({ ...prev, [num]: val }));
@@ -404,7 +405,8 @@ const NoteCompletionGroup = ({ group, activeQ, onSetActive }) => {
   );
 };
 
-const SummaryCompletionSelectGroup = ({ group, activeQ, onSetActive }) => {
+// Summary Completion Select Group
+export const SummaryCompletionSelectGroup = ({ group, activeQ, onSetActive }) => {
   const questions = group.questions ?? [];
   const options = group.optionBank ?? [];
   const allowReuse = group.allowOptionReuse !== false;
@@ -418,8 +420,6 @@ const SummaryCompletionSelectGroup = ({ group, activeQ, onSetActive }) => {
 
     if (text) {
       setAnswers(prev => ({ ...prev, [qNum]: text }));
-
-      // Clear source if dragging from another blank
       if (sourceQNum && sourceQNum !== String(qNum)) {
         setAnswers(prev => ({ ...prev, [sourceQNum]: '' }));
       }
@@ -512,7 +512,8 @@ const SummaryCompletionSelectGroup = ({ group, activeQ, onSetActive }) => {
   );
 };
 
-const ImageNoteFormGroup = ({ group, activeQ, onSetActive }) => {
+// Image Note Form Group
+export const ImageNoteFormGroup = ({ group, activeQ, onSetActive }) => {
   const questions = group.questions ?? [];
   const [answers, setAnswers] = useState({});
   const handleAnswer = (num, val) => setAnswers((prev) => ({ ...prev, [num]: val }));
@@ -525,8 +526,7 @@ const ImageNoteFormGroup = ({ group, activeQ, onSetActive }) => {
   const imageSection = group.imageUrl && (
     <div style={{ marginBottom: 20 }}>
       <div style={{ position: 'relative', width: `${imageWidth}%`, margin: '0 auto' }}>
-        <img src={group.imageUrl} alt="Question"
-          style={{ width: '100%', height: 'auto', display: 'block' }} />
+        <img src={group.imageUrl} alt="Question" style={{ width: '100%', height: 'auto', display: 'block' }} />
         {questions.filter(q => q.pinX !== undefined).map((q) => {
           const active = activeQ === q.questionNumber;
           const userAnswer = answers[q.questionNumber] || '';
@@ -626,23 +626,21 @@ const ImageNoteFormGroup = ({ group, activeQ, onSetActive }) => {
   );
 };
 
-const DragMatchingGroup = ({ group, activeQ, onSetActive }) => {
+// Drag Matching Group
+export const DragMatchingGroup = ({ group, activeQ, onSetActive }) => {
   const questions = group.questions ?? [];
   const allOptions = (group.optionBank ?? []).map((o, i) => ({ id: i, text: o.text }));
   const allowReuse = (typeof group.allowOptionReuse === 'boolean') ? group.allowOptionReuse : true;
 
-  // answers: { questionNumber -> { id, text } | null }
   const [answers, setAnswers] = useState({});
-  const [dragId, setDragId] = useState(null); // id of chip being dragged
-  const [dragOver, setDragOver] = useState(null); // questionNumber of gap being hovered
+  const [dragId, setDragId] = useState(null);
+  const [dragOver, setDragOver] = useState(null);
 
-  // chips still in the bank = options not placed anywhere (if allowReuse=false)
   const placed = new Set(Object.values(answers).filter(Boolean).map((v) => v.id));
   const bankChips = allowReuse ? allOptions : allOptions.filter((o) => !placed.has(o.id));
 
   const placeChip = (qNum, chip) => {
     setAnswers((prev) => {
-      // if this chip was in another slot, remove it first
       const next = { ...prev };
       Object.keys(next).forEach((k) => { if (next[k]?.id === chip.id) next[k] = null; });
       next[qNum] = chip;
@@ -660,7 +658,6 @@ const DragMatchingGroup = ({ group, activeQ, onSetActive }) => {
       <QuestionRange group={group} />
       {group.instructions && <div className="pv-group-instructions" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.instructions) }} />}
       <div className="pv-dm-layout">
-        {/* Left: items + drop zones */}
         <div className="pv-dm-left">
           {group.leftTitle && <div className="pv-dm-col-header" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.leftTitle) }} />}
           {questions.map((q) => {
@@ -675,7 +672,6 @@ const DragMatchingGroup = ({ group, activeQ, onSetActive }) => {
                     ? <span dangerouslySetInnerHTML={{ __html: formatPreviewText(q.questionText) }} />
                     : <em className="pv-empty">...</em>}
                 </span>
-                {/* Drop zone */}
                 <div
                   className={`pv-dm-gap${isOver ? ' drag-over' : ''}${filled ? ' filled' : ''}`}
                   onDragOver={(e) => { e.preventDefault(); setDragOver(q.questionNumber); }}
@@ -700,7 +696,6 @@ const DragMatchingGroup = ({ group, activeQ, onSetActive }) => {
           })}
         </div>
 
-        {/* Right: word bank */}
         <div className="pv-dm-right">
           {group.rightTitle && <div className="pv-dm-col-header" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.rightTitle) }} />}
           <div className="pv-dm-bank">
@@ -726,7 +721,8 @@ const DragMatchingGroup = ({ group, activeQ, onSetActive }) => {
   );
 };
 
-const MapLabellingGroup = ({ group, activeQ, onSetActive }) => {
+// Map Labelling Group
+export const MapLabellingGroup = ({ group, activeQ, onSetActive }) => {
   const questions = group.questions ?? [];
   const showTitle = group.title && !/^Map\s*Labelling/i.test(group.title.trim());
   const allOptions = (group.optionBank ?? []).map((o, i) => ({ id: i, text: o.text }));
@@ -740,7 +736,6 @@ const MapLabellingGroup = ({ group, activeQ, onSetActive }) => {
   const placeChip = (qNum, chip) => {
     setAnswers((prev) => {
       const next = { ...prev };
-      // remove chip from any other slot first
       Object.keys(next).forEach((k) => { if (next[k]?.id === chip.id) next[k] = null; });
       next[qNum] = chip;
       return next;
@@ -754,7 +749,6 @@ const MapLabellingGroup = ({ group, activeQ, onSetActive }) => {
       {group.instructions && <div className="pv-group-instructions" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.instructions) }} />}
       {showTitle && <div className="pv-summary-title" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.title) }} />}
       <div className="pv-ml-layout">
-        {/* Image area with positioned drop pins */}
         <div className="pv-ml-image-wrapper">
           {group.imageUrl ? (
             <div style={{ position: 'relative', width: `${group.imageWidth ?? 100}%`, margin: '0 auto' }}>
@@ -799,7 +793,6 @@ const MapLabellingGroup = ({ group, activeQ, onSetActive }) => {
           )}
         </div>
 
-        {/* Word bank */}
         <div className="pv-ml-bank">
           {group.rightTitle && <div className="pv-dm-col-header">{group.rightTitle}</div>}
           <div className="pv-dm-bank">
@@ -824,15 +817,15 @@ const MapLabellingGroup = ({ group, activeQ, onSetActive }) => {
   );
 };
 
-const TableCompletionGroup = ({ group, activeQ, onSetActive }) => {
+// Table Completion Group
+export const TableCompletionGroup = ({ group, activeQ, onSetActive }) => {
   const columns = group.columns ?? [];
   const tableRows = group.tableRows ?? [];
   const questions = group.questions ?? [];
-  const [answers, setAnswers] = React.useState({});
+  const [answers, setAnswers] = useState({});
 
-  // Pre-compute blank→question mapping in reading order
-  const blankMap = React.useMemo(() => {
-    const map = []; // [{ rowId, colId, qNum }]
+  const blankMap = useMemo(() => {
+    const map = [];
     for (const row of tableRows) {
       for (const col of columns) {
         const n = ((row.cells?.[col.id] ?? '').match(/\[blank\]/g) ?? []).length;
@@ -853,7 +846,6 @@ const TableCompletionGroup = ({ group, activeQ, onSetActive }) => {
   const renderCell = (cellText, rowId, colId) => {
     const parts = (cellText ?? '').split('[blank]');
     let localIdx = blankMap.filter((b) => {
-      // count blanks that come before this cell in reading order
       const colOrder = columns.map((c) => c.id);
       const rowOrder = tableRows.map((r) => r.id);
       const bColIdx = colOrder.indexOf(b.colId);
@@ -932,9 +924,8 @@ const TableCompletionGroup = ({ group, activeQ, onSetActive }) => {
   );
 };
 
-
-// Flow-chart Completion — boxes connected by arrows, blanks are drag-and-drop targets
-const FlowChartGroup = ({ group, activeQ, onSetActive }) => {
+// Flow Chart Group
+export const FlowChartGroup = ({ group, activeQ, onSetActive }) => {
   const flowNodes = group.flowNodes ?? [];
   const questions = group.questions ?? [];
   const allOptions = (group.optionBank ?? []).map((o, i) => ({ id: i, text: o.text }));
@@ -956,7 +947,6 @@ const FlowChartGroup = ({ group, activeQ, onSetActive }) => {
     onSetActive(qNum);
   };
 
-  // Build a flat list of {blankIndex, subQ} in reading order across all nodes
   const blanks = [];
   for (const node of flowNodes) {
     const n = (node.text ?? '').split(/\[blank\]/gi).length - 1;
@@ -965,7 +955,6 @@ const FlowChartGroup = ({ group, activeQ, onSetActive }) => {
     }
   }
 
-  // Render node text with blanks replaced by interactive drop-zones
   const renderNodeText = (nodeText, blankOffset) => {
     const parts = (nodeText ?? '').split(/\[blank\]/gi);
     return parts.map((part, i) => {
@@ -1009,7 +998,6 @@ const FlowChartGroup = ({ group, activeQ, onSetActive }) => {
     });
   };
 
-  // Calculate blank offsets per node
   let blankCursor = 0;
   const nodesWithOffset = flowNodes.map((node) => {
     const offset = blankCursor;
@@ -1022,7 +1010,6 @@ const FlowChartGroup = ({ group, activeQ, onSetActive }) => {
       <QuestionRange group={group} />
       {group.instructions && <div className="pv-group-instructions" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.instructions) }} />}
       <div className="pv-fc-layout">
-        {/* Left: flow chart */}
         <div className="pv-fc-chart">
           {group.title && <div className="pv-fc-chart-title" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.title) }} />}
           {nodesWithOffset.map(({ node, offset }, idx) => (
@@ -1039,7 +1026,6 @@ const FlowChartGroup = ({ group, activeQ, onSetActive }) => {
           ))}
         </div>
 
-        {/* Right: word bank */}
         <div className="pv-fc-bank">
           {group.bankTitle && <div className="pv-dm-col-header" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.bankTitle) }} />}
           <div className="pv-dm-bank">
@@ -1068,11 +1054,9 @@ const FlowChartGroup = ({ group, activeQ, onSetActive }) => {
   );
 };
 
-const StandaloneGroup = ({ group, activeQ, onSetActive }) => {
+// Standalone Group
+export const StandaloneGroup = ({ group, activeQ, onSetActive }) => {
   const questions = group.questions ?? [];
-  const [answers, setAnswers] = useState({});
-  const handleAnswer = (qNum, value) => setAnswers(prev => ({ ...prev, [qNum]: value }));
-
   return (
     <div className="pv-group-block">
       <QuestionRange group={group} />
@@ -1084,8 +1068,8 @@ const StandaloneGroup = ({ group, activeQ, onSetActive }) => {
   );
 };
 
-// ── Speaking: Interview Group (Part 1 & 3)
-const SpeakingInterviewGroup = ({ group }) => {
+// Speaking Interview Group
+export const SpeakingInterviewGroup = ({ group }) => {
   const questions = group.questions ?? [];
   const isP3 = group.interviewType === 'PART3';
   return (
@@ -1117,8 +1101,8 @@ const SpeakingInterviewGroup = ({ group }) => {
   );
 };
 
-// ── Speaking: Cue Card Group (Part 2)
-const SpeakingCueCardGroup = ({ group }) => {
+// Speaking Cue Card Group
+export const SpeakingCueCardGroup = ({ group }) => {
   const bulletPoints = (group.bulletPoints ?? []).filter(Boolean);
   const prepSec = group.prepSeconds ?? 60;
   return (
@@ -1151,8 +1135,8 @@ const SpeakingCueCardGroup = ({ group }) => {
   );
 };
 
-// Writing Task Group — split layout: left=prompt+image, right=textarea+word count
-const WritingTaskGroup = ({ group }) => {
+// Writing Task Group
+export const WritingTaskGroup = ({ group }) => {
   const [text, setText] = React.useState('');
   const wordCount = text.trim() ? text.trim().split(/\s+/).filter(Boolean).length : 0;
   const minWords = group.minWords ?? 150;
@@ -1160,7 +1144,6 @@ const WritingTaskGroup = ({ group }) => {
 
   return (
     <div className="pv-wt-container">
-      {/* Left: task prompt + image */}
       <div className="pv-wt-left">
         {group.recommendedMinutes && (
           <div className="pv-wt-time-hint">
@@ -1177,7 +1160,6 @@ const WritingTaskGroup = ({ group }) => {
         )}
       </div>
 
-      {/* Right: textarea + word count */}
       <div className="pv-wt-right">
         <textarea
           className="pv-wt-textarea"
@@ -1196,8 +1178,8 @@ const WritingTaskGroup = ({ group }) => {
   );
 };
 
-// Multiple Choice group — instructions banner + list of MCQ questions
-const SharedOptionsDropdownGroup = ({ group, activeQ, onSetActive }) => {
+// Shared Options Dropdown Group
+export const SharedOptionsDropdownGroup = ({ group, activeQ, onSetActive }) => {
   const questions = group.questions ?? [];
   const [answers, setAnswers] = useState({});
   const sharedOptions = (group.sharedOptions || []).map((o) => ({
@@ -1239,11 +1221,9 @@ const SharedOptionsDropdownGroup = ({ group, activeQ, onSetActive }) => {
   );
 };
 
-const MCQGroup = ({ group, activeQ, onSetActive, multi = false }) => {
+// MCQ Group
+export const MCQGroup = ({ group, activeQ, onSetActive, multi = false }) => {
   const questions = group.questions ?? [];
-  const [answers, setAnswers] = useState({});
-  const handleAnswer = (qNum, value) => setAnswers(prev => ({ ...prev, [qNum]: value }));
-
   return (
     <div className="pv-group-block">
       <QuestionRange group={group} />
@@ -1261,12 +1241,9 @@ const MCQGroup = ({ group, activeQ, onSetActive, multi = false }) => {
   );
 };
 
-// Sentence Completion group
-const SentenceCompletionGroup = ({ group, activeQ, onSetActive }) => {
+// Sentence Completion Group
+export const SentenceCompletionGroup = ({ group, activeQ, onSetActive }) => {
   const questions = group.questions ?? [];
-  const [answers, setAnswers] = useState({});
-  const handleAnswer = (qNum, value) => setAnswers(prev => ({ ...prev, [qNum]: value }));
-
   return (
     <div className="pv-group-block">
       <QuestionRange group={group} />
@@ -1281,12 +1258,9 @@ const SentenceCompletionGroup = ({ group, activeQ, onSetActive }) => {
   );
 };
 
-// Short Answer group
-const ShortAnswerGroup = ({ group, activeQ, onSetActive }) => {
+// Short Answer Group
+export const ShortAnswerGroup = ({ group, activeQ, onSetActive }) => {
   const questions = group.questions ?? [];
-  const [answers, setAnswers] = useState({});
-  const handleAnswer = (qNum, value) => setAnswers(prev => ({ ...prev, [qNum]: value }));
-
   return (
     <div className="pv-group-block">
       <QuestionRange group={group} />
@@ -1301,9 +1275,9 @@ const ShortAnswerGroup = ({ group, activeQ, onSetActive }) => {
   );
 };
 
-const ImageGroup = ({ group, activeQ, onSetActive }) => {
+// Image/Diagram Group
+export const ImageGroup = ({ group, activeQ, onSetActive }) => {
   const questions = group.questions ?? [];
-
   return (
     <div className="pv-group-block">
       {group.title && <div className="pv-group-instructions" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.title) }} />}
@@ -1315,8 +1289,8 @@ const ImageGroup = ({ group, activeQ, onSetActive }) => {
   );
 };
 
-// Matching Features group — bảng lưới chọn ký tự A/B/C...
-const MatchingFeaturesGroup = ({ group, activeQ, onSetActive }) => {
+// Matching Features Group
+export const MatchingFeaturesGroup = ({ group, activeQ, onSetActive }) => {
   const questions = group.questions ?? [];
   const [answers, setAnswers] = useState({});
 
@@ -1346,7 +1320,6 @@ const MatchingFeaturesGroup = ({ group, activeQ, onSetActive }) => {
         <div className="pv-group-instructions" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.instructions) }} />
       )}
 
-      {/* Categories reference */}
       {categories.length > 0 && (
         <div className="pv-mf-categories-box">
           {categoryTitle && <div className="pv-mf-category-title">{categoryTitle}</div>}
@@ -1361,7 +1334,6 @@ const MatchingFeaturesGroup = ({ group, activeQ, onSetActive }) => {
         </div>
       )}
 
-      {/* Questions table */}
       <div className="pv-mf-table-wrap">
         <table className="pv-mf-table">
           <thead>
@@ -1409,9 +1381,19 @@ const MatchingFeaturesGroup = ({ group, activeQ, onSetActive }) => {
   );
 };
 
-const renderGroup = (group, activeQ, onSetActive) => {
+// ─── Main Group Dispatcher ──────────────────────────────────────────────
+
+/**
+ * Main dispatcher that routes group contentType to the appropriate renderer.
+ * @param {Object} group - The question group object
+ * @param {number|null} activeQ - Currently active question number
+ * @param {Function} onSetActive - Callback to set active question
+ * @param {Object} extraProps - Additional props to pass to specific renderers
+ */
+export const renderGroup = (group, activeQ, onSetActive, extraProps = {}) => {
   const ct = group.contentType;
   const props = { key: group.id, group, activeQ, onSetActive };
+
   // READING_PASSAGE is rendered via PartReadingLayout, not inline here
   if (ct === 'READING_PASSAGE') return null;
   if (ct === 'AUDIO_TRANSCRIPT') return <AudioGroup {...props} />;
@@ -1437,17 +1419,19 @@ const renderGroup = (group, activeQ, onSetActive) => {
   return <StandaloneGroup {...props} />;
 };
 
-// Reading: split layout — passages LEFT (with heading drop slots), question groups RIGHT
-// PartReadingLayout owns the mhAnswers state so both panes can share it.
-// mhAnswers: { [paraId]: { text, roman } }
-const PartReadingLayout = ({ part, activeQ, onSetActive }) => {
+// ─── Part Reading Layout ────────────────────────────────────────────────
+
+/**
+ * Reading split layout: passages on the left, question groups on the right.
+ * Manages Matching Heading answers state for interaction between panes.
+ */
+export const PartReadingLayout = ({ part, activeQ, onSetActive }) => {
   const groups = part.questionGroups ?? [];
   const passages = groups.filter((g) => g.contentType === 'READING_PASSAGE');
   const qGroups = groups.filter((g) => g.contentType !== 'READING_PASSAGE');
   const mhGroups = qGroups.filter((g) => g.contentType === 'MATCHING_HEADING');
   const hasMH = mhGroups.length > 0;
 
-  // mhAnswers[paraId] = { text, roman } | undefined
   const [mhAnswers, setMhAnswers] = useState({});
 
   const assignedTexts = new Set(
@@ -1457,7 +1441,6 @@ const PartReadingLayout = ({ part, activeQ, onSetActive }) => {
   const handleDrop = (paraId, data) => {
     setMhAnswers((prev) => {
       const next = { ...prev };
-      // Remove this heading from any other para first
       Object.keys(next).forEach((k) => {
         if (next[k]?.text === data.text) next[k] = null;
       });
@@ -1473,6 +1456,7 @@ const PartReadingLayout = ({ part, activeQ, onSetActive }) => {
   if (passages.length === 0 && qGroups.length === 0) {
     return <div className="pv-empty-state" style={{ padding: 32 }}><em>Chưa có nội dung.</em></div>;
   }
+
   return (
     <div className="pv-reading-split">
       <div className="pv-passage-pane">
@@ -1501,184 +1485,3 @@ const PartReadingLayout = ({ part, activeQ, onSetActive }) => {
     </div>
   );
 };
-
-// ---- Main modal ----
-
-const PreviewModal = ({ test, sessions, onClose }) => {
-  const skillKeys = Object.keys(SESSION_META);
-  const [activeSkill, setActiveSkill] = useState(skillKeys[0] ?? 'LISTENING');
-  const [activeQ, setActiveQ] = useState(null);
-  const [skillDurations, setSkillDurations] = useState(() => (
-    skillKeys.reduce((acc, key) => {
-      acc[key] = SESSION_META[key]?.durationMinutes ?? 60;
-      return acc;
-    }, {})
-  ));
-
-  const parts = sessions[activeSkill] ?? [];
-  const skillMeta = SESSION_META[activeSkill];
-  const currentDuration = Number.isFinite(skillDurations[activeSkill])
-    ? skillDurations[activeSkill]
-    : (skillMeta?.durationMinutes ?? 60);
-  const resolvedLogoSrc = SERIES_LOGO_SRC[test?.seriesLabel] || SERIES_LOGO_SRC.IELTS;
-  const resolvedLogoAlt = test?.seriesLabel || 'IELTS';
-
-  // Flat list of all questions for current skill (for footer nav)
-  const allQuestions = useMemo(() =>
-    parts.flatMap((p) =>
-      (p.questionGroups ?? []).flatMap((g) => g.questions ?? [])
-    ), [parts]);
-
-  const totalQ = allQuestions.length;
-
-  const goToQ = (num) => setActiveQ(num);
-
-  const handleSetSkillTime = () => {
-    const raw = window.prompt(`Đặt thời gian cho ${skillMeta?.label || 'kỹ năng'} (nhập số phút, 0 = không giới hạn)`, String(currentDuration));
-    if (raw === null) return;
-
-    const nextValue = Number.parseInt(raw, 10);
-    if (!Number.isFinite(nextValue) || nextValue < 0) return;
-
-    setSkillDurations((prev) => ({ ...prev, [activeSkill]: nextValue }));
-  };
-
-  // Part info for footer
-  const activePart = parts.find((p) =>
-    (p.questionGroups ?? []).some((g) =>
-      (g.questions ?? []).some((q) => q.questionNumber === activeQ)
-    )
-  ) ?? parts[0];
-
-  return (
-    <div className="pv-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="pv-shell">
-
-        {/* ── IELTS Exam Header ── */}
-        <header className="pv-ielts-header">
-          <div className="pv-ielts-header-left">
-            <img
-              src={resolvedLogoSrc}
-              alt={resolvedLogoAlt}
-              className="pv-ielts-logo-image"
-            />
-            <div className="pv-ielts-test-info">
-              <span className="pv-ielts-test-name">{test.title || 'Đề thi chưa đặt tên'}</span>
-              <span className="pv-ielts-test-type">{test.testType ?? 'ACADEMIC'}</span>
-            </div>
-          </div>
-
-          <div className="pv-ielts-skill-tabs">
-            {skillKeys.map((key) => {
-              const meta = SESSION_META[key];
-              const Icon = meta.Icon;
-              const count = (sessions[key] ?? []).reduce(
-                (acc, p) => acc + (p.questionGroups ?? []).reduce((a, g) => a + (g.questions?.length ?? 0), 0), 0
-              );
-              return (
-                <button
-                  key={key}
-                  className={`pv-ielts-tab${activeSkill === key ? ' active' : ''}`}
-                  onClick={() => { setActiveSkill(key); setActiveQ(null); }}
-                >
-                  <Icon size={13} />
-                  <span>{meta.label}</span>
-                  {count > 0 && <span className="pv-tab-count">{count}</span>}
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="pv-ielts-header-right">
-            <div className="pv-timer">
-              <Clock size={14} />
-              <span>{currentDuration === 0 ? 'Không giới hạn' : `${currentDuration}:00`}</span>
-            </div>
-            <span className="pv-preview-badge">XEM TRƯỚC</span>
-            <button className="pv-close-btn" onClick={onClose} title="Đóng xem trước">
-              <X size={18} /> Đóng
-            </button>
-          </div>
-        </header>
-
-        {/* ── Part instruction bar ── */}
-        {activePart && (
-          <div className="pv-instruction-bar">
-            <strong>{activePart.name}</strong>
-            {activePart.instructions && (
-              <span className="pv-instruction-text"> — {toPlainText(activePart.instructions)}</span>
-            )}
-            <span className="pv-instruction-meta">
-              {totalQ} câu hỏi · {currentDuration === 0 ? 'Không giới hạn' : `${currentDuration} phút`}
-            </span>
-          </div>
-        )}
-
-        {/* ── Main content ── */}
-        <div className="pv-main">
-          {parts.length === 0 ? (
-            <div className="pv-empty-state">
-              <div className="pv-empty-icon"><FileText size={28} /></div>
-              <div>Chưa có nội dung cho phần này.<br /><small>Thêm nhóm câu hỏi trong trình tạo đề.</small></div>
-            </div>
-          ) : (
-            parts.map((part) => (
-              <div key={part.id} className="pv-part-section">
-                <div className="pv-part-banner">
-                  <span className="pv-part-banner-name">{part.name}</span>
-                  {part.instructions && <span className="pv-part-banner-inst">{toPlainText(part.instructions)}</span>}
-                </div>
-                {activeSkill === 'READING'
-                  ? <PartReadingLayout part={part} activeQ={activeQ} onSetActive={goToQ} />
-                  : activeSkill === 'SPEAKING'
-                    ? <div className="pv-spk-layout">{(part.questionGroups ?? []).map((g) => renderGroup(g, activeQ, goToQ))}</div>
-                    : (part.questionGroups ?? []).map((g) => renderGroup(g, activeQ, goToQ))
-                }
-              </div>
-            ))
-          )}
-        </div>
-
-        {/* ── Footer navigation ── */}
-        <footer className="pv-footer">
-          <div className="pv-footer-left">
-            <button className="pv-set-time-btn" onClick={handleSetSkillTime}>
-              <Clock size={16} />
-              <span>
-                Đặt thời gian
-                <small>{skillMeta?.label || 'Kỹ năng'} · {currentDuration === 0 ? 'Không giới hạn' : `${currentDuration} phút`}</small>
-              </span>
-            </button>
-            {activePart && (
-              <span className="pv-footer-part-label">{activePart.name}</span>
-            )}
-          </div>
-
-          <div className="pv-q-num-track">
-            {allQuestions.map((q) => {
-              const isActive = activeQ === q.questionNumber;
-              return (
-                <div key={q.id} className="pv-q-cell" onClick={() => goToQ(q.questionNumber)}>
-                  <div className={`pv-q-dash${isActive ? ' active' : ''}`} />
-                  <span className={`pv-q-num${isActive ? ' active' : ''}`}>{q.questionNumber}</span>
-                </div>
-              );
-            })}
-            {allQuestions.length === 0 && (
-              <span style={{ fontSize: 12, color: '#9ca3af' }}>Chưa có câu hỏi</span>
-            )}
-          </div>
-
-          <div className="pv-footer-right">
-            <span className="pv-footer-count">
-              {totalQ > 0 ? `${totalQ} câu` : '0 câu'}
-            </span>
-          </div>
-        </footer>
-
-      </div>
-    </div>
-  );
-};
-
-export default PreviewModal;

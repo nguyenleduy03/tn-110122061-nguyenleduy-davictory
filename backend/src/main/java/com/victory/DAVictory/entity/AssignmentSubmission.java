@@ -15,10 +15,7 @@ import java.time.LocalDateTime;
  * (bảng bổ sung hỗ trợ Assignment — không nằm trong yêu cầu ban đầu nhưng cần thiết)
  */
 @Entity
-@Table(name = "assignment_submissions",
-        uniqueConstraints = @UniqueConstraint(
-                name = "uk_assignment_user",
-                columnNames = {"assignment_id", "user_id"}))
+@Table(name = "assignment_submissions")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -36,24 +33,28 @@ public class AssignmentSubmission {
     @JoinColumn(name = "user_id", nullable = false)
     private User user; // Học viên nộp bài
 
+    @Column(nullable = false)
+    private Integer attemptNumber = 1; // Lần nộp thứ mấy
+
+    // For MANUAL type
     @Column(columnDefinition = "TEXT")
-    private String submissionText; // Nội dung bài nộp (text)
+    private String submissionText; // Nội dung bài nộp
 
     @Column(length = 500)
-    private String attachmentUrl; // File đính kèm của học viên
+    private String attachmentUrl; // File đính kèm
 
+    // For TEST type
     @Column(name = "exam_attempt_id")
-    private Long examAttemptId; // Link to ExamAttempt (nếu làm bài thi)
+    private Long examAttemptId; // Link to ExamAttempt
 
     @Column
     private LocalDateTime submittedAt; // Thời điểm nộp
 
     @Column(nullable = false, length = 20)
-    private String status;
-    // NOT_SUBMITTED, SUBMITTED, LATE, GRADED, RETURNED
+    private String status = "SUBMITTED"; // SUBMITTED, GRADED
 
     @Column
-    private Double score; // Điểm giáo viên chấm
+    private Double score; // Điểm
 
     @Column(columnDefinition = "TEXT")
     private String feedback; // Nhận xét của giáo viên

@@ -19,8 +19,17 @@ export default function StudentLms() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const classData = await authApi.getMyClassManagement();
-        const myClasses = classData.classes || [];
+        // Kiểm tra đăng nhập
+        if (!authApi.isAuthenticated()) {
+          console.warn('User not authenticated');
+          setLoading(false);
+          return;
+        }
+
+        const classData = await authApi.getMyClasses();
+        console.log('📚 Raw classData:', classData);
+        const myClasses = Array.isArray(classData) ? classData : (classData?.classes || []);
+        console.log('📚 Parsed myClasses:', myClasses);
         setClasses(myClasses);
 
         if (myClasses.length > 0) {
@@ -34,7 +43,12 @@ export default function StudentLms() {
             try {
               const submission = await assignmentApi.getMySubmission(assignment.id);
               return { [assignment.id]: submission };
-            } catch {
+            } catch (err) {
+              // 403/404 = chưa nộp hoặc không có quyền xem
+              if (err.response?.status === 403 || err.response?.status === 404) {
+                return { [assignment.id]: null };
+              }
+              console.error(`Failed to get submission for assignment ${assignment.id}:`, err);
               return { [assignment.id]: null };
             }
           });
@@ -45,6 +59,9 @@ export default function StudentLms() {
         }
       } catch (error) {
         console.error('Failed to fetch assignments:', error);
+        if (error.response?.status === 403) {
+          console.error('403 Forbidden - User may not have permission to access classes');
+        }
       } finally {
         setLoading(false);
       }
@@ -106,153 +123,112 @@ export default function StudentLms() {
   return (
     <>
       <Navbar />
-      <div style={{ 
-        minHeight: '100vh',
-        background: 'radial-gradient(circle at 14% 82%, rgba(59, 130, 246, 0.08) 0%, transparent 52%), radial-gradient(circle at 90% 8%, rgba(14, 165, 233, 0.06) 0%, transparent 50%), linear-gradient(130deg, #f8fbff 0%, #eef4ff 52%, #ffffff 100%)',
-        paddingTop: 40
-      }}>
-        <div style={{ maxWidth: 1400, margin: '0 auto', padding: '0 24px 80px' }}>
-          <div style={{ marginBottom: 40, textAlign: 'center' }}>
-            <div style={{ 
-              display: 'inline-flex', 
-              alignItems: 'center', 
-              gap: 8, 
-              padding: '8px 16px', 
-              background: 'rgba(59, 130, 246, 0.1)', 
-              borderRadius: 20, 
-              marginBottom: 16,
-              fontSize: 13,
-              fontWeight: 600,
-              color: '#0056D2'
-            }}>
-              <Sparkles size={16} />
-              HỌC TẬP THÔNG MINH
-            </div>
-            <h1 style={{ margin: '0 0 12px', fontSize: 48, fontWeight: 800, background: 'linear-gradient(135deg, #0056D2 0%, #0ea5e9 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-              Học tập của tôi
+      <div style={{ minHeight: '100vh', background: '#f8f9fa' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '32px 24px' }}>
+          
+          {/* Header */}
+          <div style={{ marginBottom: 32 }}>
+            <h1 style={{ margin: '0 0 8px', fontSize: 28, fontWeight: 600, color: '#1a1a1a' }}>
+              Bài tập của tôi
             </h1>
-            <p style={{ margin: 0, color: '#6b7280', fontSize: 18 }}>Quản lý bài tập và theo dõi tiến độ học tập</p>
+            <p style={{ margin: 0, color: '#6b7280', fontSize: 15 }}>
+              Quản lý và theo dõi tiến độ học tập
+            </p>
           </div>
 
-          {/* Stats Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 24, marginBottom: 40 }}>
-            <div style={{ 
-              padding: 32, 
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
-              borderRadius: 20, 
-              color: '#fff', 
-              boxShadow: '0 10px 40px rgba(102, 126, 234, 0.3)',
-              transition: 'transform 0.3s',
-              cursor: 'pointer'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
-            onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-                <BookOpen size={28} strokeWidth={2.5} />
-                <span style={{ fontSize: 15, opacity: 0.95, fontWeight: 600 }}>Tổng bài tập</span>
+          {/* Stats */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16, marginBottom: 24 }}>
+            <div style={{ padding: 20, background: '#fff', borderRadius: 8, border: '1px solid #e5e7eb' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 8, background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <BookOpen size={20} color="#6b7280" />
+                </div>
+                <div>
+                  <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 4 }}>Tổng bài tập</div>
+                  <div style={{ fontSize: 24, fontWeight: 600, color: '#1a1a1a' }}>{stats.total}</div>
+                </div>
               </div>
-              <div style={{ fontSize: 48, fontWeight: 800, letterSpacing: '-0.02em' }}>{stats.total}</div>
             </div>
             
-            <div style={{ 
-              padding: 32, 
-              background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', 
-              borderRadius: 20, 
-              color: '#fff', 
-              boxShadow: '0 10px 40px rgba(240, 147, 251, 0.3)',
-              transition: 'transform 0.3s',
-              cursor: 'pointer'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
-            onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-                <Clock size={28} strokeWidth={2.5} />
-                <span style={{ fontSize: 15, opacity: 0.95, fontWeight: 600 }}>Chưa nộp</span>
+            <div style={{ padding: 20, background: '#fff', borderRadius: 8, border: '1px solid #e5e7eb' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 8, background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Clock size={20} color="#f59e0b" />
+                </div>
+                <div>
+                  <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 4 }}>Chưa nộp</div>
+                  <div style={{ fontSize: 24, fontWeight: 600, color: '#1a1a1a' }}>{stats.pending}</div>
+                </div>
               </div>
-              <div style={{ fontSize: 48, fontWeight: 800, letterSpacing: '-0.02em' }}>{stats.pending}</div>
             </div>
             
-            <div style={{ 
-              padding: 32, 
-              background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', 
-              borderRadius: 20, 
-              color: '#fff', 
-              boxShadow: '0 10px 40px rgba(79, 172, 254, 0.3)',
-              transition: 'transform 0.3s',
-              cursor: 'pointer'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
-            onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-                <CheckCircle size={28} strokeWidth={2.5} />
-                <span style={{ fontSize: 15, opacity: 0.95, fontWeight: 600 }}>Đã nộp</span>
+            <div style={{ padding: 20, background: '#fff', borderRadius: 8, border: '1px solid #e5e7eb' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 8, background: '#d1fae5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <CheckCircle size={20} color="#10b981" />
+                </div>
+                <div>
+                  <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 4 }}>Đã nộp</div>
+                  <div style={{ fontSize: 24, fontWeight: 600, color: '#1a1a1a' }}>{stats.submitted}</div>
+                </div>
               </div>
-              <div style={{ fontSize: 48, fontWeight: 800, letterSpacing: '-0.02em' }}>{stats.submitted}</div>
             </div>
             
-            <div style={{ 
-              padding: 32, 
-              background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)', 
-              borderRadius: 20, 
-              color: '#fff', 
-              boxShadow: '0 10px 40px rgba(250, 112, 154, 0.3)',
-              transition: 'transform 0.3s',
-              cursor: 'pointer'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
-            onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-                <AlertCircle size={28} strokeWidth={2.5} />
-                <span style={{ fontSize: 15, opacity: 0.95, fontWeight: 600 }}>Quá hạn</span>
+            <div style={{ padding: 20, background: '#fff', borderRadius: 8, border: '1px solid #e5e7eb' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 8, background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <AlertCircle size={20} color="#ef4444" />
+                </div>
+                <div>
+                  <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 4 }}>Quá hạn</div>
+                  <div style={{ fontSize: 24, fontWeight: 600, color: '#1a1a1a' }}>{stats.overdue}</div>
+                </div>
               </div>
-              <div style={{ fontSize: 48, fontWeight: 800, letterSpacing: '-0.02em' }}>{stats.overdue}</div>
             </div>
           </div>
 
           {/* Filters */}
-          <div style={{ marginBottom: 32, padding: 28, background: 'rgba(255, 255, 255, 0.9)', backdropFilter: 'blur(10px)', borderRadius: 20, border: '1px solid rgba(0, 86, 210, 0.1)', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.05)' }}>
-            <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', alignItems: 'center' }}>
-              <div style={{ flex: '1 1 240px' }}>
-                <label style={{ display: 'block', marginBottom: 10, fontWeight: 600, fontSize: 14, color: '#374151' }}>Lớp học</label>
+          <div style={{ marginBottom: 24, padding: 20, background: '#fff', borderRadius: 8, border: '1px solid #e5e7eb' }}>
+            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+              <div style={{ flex: '1 1 200px', minWidth: 200 }}>
+                <label style={{ display: 'block', marginBottom: 8, fontSize: 13, fontWeight: 500, color: '#374151' }}>
+                  Lớp học
+                </label>
                 <select
                   value={selectedClass}
                   onChange={(e) => setSelectedClass(e.target.value)}
                   style={{ 
                     width: '100%', 
-                    padding: '12px 16px', 
-                    borderRadius: 12, 
+                    padding: '10px 12px', 
+                    borderRadius: 6, 
                     border: '1px solid #d1d5db', 
                     fontSize: 14,
-                    background: 'white',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
+                    background: '#fff',
+                    cursor: 'pointer'
                   }}
                 >
                   <option value="">Tất cả lớp</option>
-                  {classes.map(c => (
+                  {(classes || []).map(c => (
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
                 </select>
               </div>
               
-              <div style={{ flex: '1 1 240px' }}>
-                <label style={{ display: 'block', marginBottom: 10, fontWeight: 600, fontSize: 14, color: '#374151' }}>Trạng thái</label>
+              <div style={{ flex: '1 1 200px', minWidth: 200 }}>
+                <label style={{ display: 'block', marginBottom: 8, fontSize: 13, fontWeight: 500, color: '#374151' }}>
+                  Trạng thái
+                </label>
                 <select
                   value={filter}
                   onChange={(e) => setFilter(e.target.value)}
                   style={{ 
                     width: '100%', 
-                    padding: '12px 16px', 
-                    borderRadius: 12, 
+                    padding: '10px 12px', 
+                    borderRadius: 6, 
                     border: '1px solid #d1d5db', 
                     fontSize: 14,
-                    background: 'white',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
+                    background: '#fff',
+                    cursor: 'pointer'
                   }}
                 >
                   <option value="all">Tất cả</option>
@@ -266,12 +242,12 @@ export default function StudentLms() {
 
           {/* Assignment List */}
           {filteredAssignments.length === 0 ? (
-            <div style={{ padding: 100, textAlign: 'center', background: 'rgba(255, 255, 255, 0.9)', backdropFilter: 'blur(10px)', borderRadius: 20, border: '1px solid rgba(0, 86, 210, 0.1)' }}>
-              <FileText size={80} style={{ margin: '0 auto 20px', opacity: 0.15, color: '#0056D2' }} />
-              <p style={{ margin: 0, color: '#6b7280', fontSize: 18, fontWeight: 500 }}>Không có bài tập nào</p>
+            <div style={{ padding: 80, textAlign: 'center', background: '#fff', borderRadius: 8, border: '1px solid #e5e7eb' }}>
+              <FileText size={48} style={{ margin: '0 auto 16px', opacity: 0.2, color: '#6b7280' }} />
+              <p style={{ margin: 0, color: '#6b7280', fontSize: 15 }}>Không có bài tập nào</p>
             </div>
           ) : (
-            <div style={{ display: 'grid', gap: 24 }}>
+            <div style={{ display: 'grid', gap: 12 }}>
               {filteredAssignments.map(assignment => {
                 const status = getAssignmentStatus(assignment);
                 const submission = submissions[assignment.id];
@@ -280,94 +256,130 @@ export default function StudentLms() {
                   <div
                     key={assignment.id}
                     style={{
-                      padding: 28,
-                      background: 'rgba(255, 255, 255, 0.95)',
-                      backdropFilter: 'blur(10px)',
-                      borderRadius: 20,
-                      border: '1px solid rgba(0, 86, 210, 0.1)',
+                      padding: 20,
+                      background: '#fff',
+                      borderRadius: 8,
+                      border: '1px solid #e5e7eb',
                       cursor: 'pointer',
-                      transition: 'all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)',
-                      position: 'relative',
-                      overflow: 'hidden'
+                      transition: 'all 0.2s'
                     }}
                     onClick={() => navigate(`/student/assignments/${assignment.id}`)}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.boxShadow = '0 12px 40px rgba(0, 86, 210, 0.15)';
-                      e.currentTarget.style.transform = 'translateY(-4px)';
-                      e.currentTarget.style.borderColor = 'rgba(0, 86, 210, 0.2)';
+                      e.currentTarget.style.borderColor = '#d1d5db';
+                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
                     }}
                     onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = '#e5e7eb';
                       e.currentTarget.style.boxShadow = 'none';
-                      e.currentTarget.style.transform = 'translateY(0)';
-                      e.currentTarget.style.borderColor = 'rgba(0, 86, 210, 0.1)';
                     }}
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', gap: 24 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', gap: 20 }}>
                       <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-                          <h3 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#111827' }}>{assignment.title}</h3>
-                          <span className={`lms-pill ${status.color}`} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, padding: '6px 12px', borderRadius: 8 }}>
-                            {status.icon && <status.icon size={14} />}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+                          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: '#1a1a1a' }}>
+                            {assignment.title}
+                          </h3>
+                          <span style={{ 
+                            display: 'inline-flex', 
+                            alignItems: 'center', 
+                            gap: 4, 
+                            fontSize: 11, 
+                            padding: '3px 8px', 
+                            borderRadius: 4,
+                            background: assignment.type === 'TEST' ? '#dbeafe' : '#fef3c7',
+                            color: assignment.type === 'TEST' ? '#1e40af' : '#92400e',
+                            fontWeight: 600
+                          }}>
+                            {assignment.type === 'TEST' ? '📝 Test' : '📄 Tự do'}
+                          </span>
+                          <span style={{ 
+                            display: 'inline-flex', 
+                            alignItems: 'center', 
+                            gap: 4, 
+                            fontSize: 12, 
+                            padding: '4px 10px', 
+                            borderRadius: 4,
+                            background: status.color === 'success' ? '#d1fae5' : status.color === 'warn' ? '#fee2e2' : '#f3f4f6',
+                            color: status.color === 'success' ? '#059669' : status.color === 'warn' ? '#dc2626' : '#6b7280',
+                            fontWeight: 500
+                          }}>
+                            {status.icon && <status.icon size={12} />}
                             {status.label}
                           </span>
                         </div>
                         
-                        <p style={{ margin: '0 0 20px', color: '#6b7280', fontSize: 15, lineHeight: 1.7 }}>
-                          {assignment.description?.substring(0, 200)}{assignment.description?.length > 200 ? '...' : ''}
-                        </p>
+                        {assignment.description && (
+                          <p style={{ margin: '0 0 12px', color: '#6b7280', fontSize: 14, lineHeight: 1.5 }}>
+                            {assignment.description.substring(0, 150)}{assignment.description.length > 150 ? '...' : ''}
+                          </p>
+                        )}
                         
-                        <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', fontSize: 14, color: '#6b7280' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <BookOpen size={18} />
-                            <span style={{ fontWeight: 500 }}>{assignment.className}</span>
+                        <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', fontSize: 13, color: '#6b7280' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <BookOpen size={16} />
+                            <span>{assignment.className}</span>
                           </div>
                           {assignment.dueDate && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <Clock size={18} />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <Clock size={16} />
                               <span>Hạn: {new Date(assignment.dueDate).toLocaleString('vi-VN')}</span>
                             </div>
                           )}
                           {assignment.maxScore && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <Award size={18} />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <Award size={16} />
                               <span>Điểm tối đa: {assignment.maxScore}</span>
                             </div>
                           )}
                           {submission?.score !== null && submission?.score !== undefined && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#10b981', fontWeight: 700 }}>
-                              <TrendingUp size={18} />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#059669', fontWeight: 600 }}>
+                              <TrendingUp size={16} />
                               <span>Điểm: {submission.score}/{assignment.maxScore}</span>
                             </div>
                           )}
                         </div>
                       </div>
                       
-                      <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                        {assignment.testId && assignment.status === 'PUBLISHED' && !submission && (
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        {submission ? (
                           <button
-                            className="hero-btn-solid"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(`/test/reading/${assignment.testId}?mode=assignment&assignmentId=${assignment.id}`);
-                            }}
-                            style={{ fontSize: 14, padding: '12px 24px', borderRadius: 12, display: 'flex', alignItems: 'center', gap: 8 }}
-                          >
-                            <Sparkles size={16} />
-                            Làm bài
-                          </button>
-                        )}
-                        {submission && (
-                          <button
-                            className="hero-btn-outline"
                             onClick={(e) => {
                               e.stopPropagation();
                               navigate(`/student/assignments/${assignment.id}/result`);
                             }}
-                            style={{ fontSize: 14, padding: '12px 24px', borderRadius: 12 }}
+                            style={{ 
+                              fontSize: 13, 
+                              padding: '8px 16px', 
+                              borderRadius: 6,
+                              background: '#fff',
+                              color: '#374151',
+                              border: '1px solid #d1d5db',
+                              cursor: 'pointer',
+                              fontWeight: 500
+                            }}
                           >
                             Xem kết quả
                           </button>
-                        )}
+                        ) : assignment.status === 'PUBLISHED' ? (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/student/assignments/${assignment.id}`);
+                            }}
+                            style={{ 
+                              fontSize: 13, 
+                              padding: '8px 16px', 
+                              borderRadius: 6,
+                              background: '#2563eb',
+                              color: '#fff',
+                              border: 'none',
+                              cursor: 'pointer',
+                              fontWeight: 500
+                            }}
+                          >
+                            Làm bài
+                          </button>
+                        ) : null}
                       </div>
                     </div>
                   </div>

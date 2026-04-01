@@ -6,6 +6,7 @@ import TestHeader from "../components/common/TestHeader";
 import QuestionRenderer from "../components/question/QuestionRenderer";
 import { useTestNavigation } from "../hooks/useTestNavigation";
 import { ieltsApi } from "../services/ieltsApi";
+import { assignmentApi } from "../services/assignmentApi";
 import TextHighlighter from "../components/common/TextHighlighter";
 import NotesPanel from "../components/common/NotesPanel";
 import { formatTextWithWhitespace } from "../utils/textFormatters";
@@ -62,6 +63,7 @@ const IeltsListeningTest = () => {
     const isFullTest = searchParams.get('fullTest') === 'true';
     const mode = searchParams.get('mode') || 'practice';
     const isReview = searchParams.get('review') === 'true';
+    const assignmentId = searchParams.get('assignment');
     const selectedPartsParam = searchParams.get('parts') || '';
     const startPartNumber = Number.parseInt(searchParams.get('startPart') || '', 10);
     const durationOverrideMinutes = Number.parseInt(searchParams.get('duration') || '', 10);
@@ -145,7 +147,20 @@ const IeltsListeningTest = () => {
 
     useEffect(() => {
         if (!testId) { setError('Không tìm thấy ID bài thi.'); setLoading(false); return; }
-        ieltsApi.getTestSession(testId, "LISTENING").then((data) => {
+        
+        // Lấy fallback skills từ URL
+        const fallbackParam = searchParams.get('fallback');
+        const fallbackSkills = fallbackParam ? fallbackParam.split(',') : [];
+        
+        ieltsApi.getTestSession(testId, "LISTENING", fallbackSkills).then((data) => {
+            // Nếu data.skillType khác LISTENING, redirect sang skill đúng
+            if (data.skillType && data.skillType !== 'LISTENING') {
+                const skill = data.skillType.toLowerCase();
+                console.log(`[Listening] Redirecting to ${skill}`);
+                navigate(`/test/${skill}/${testId}?${searchParams.toString()}`, { replace: true });
+                return;
+            }
+            
             const shouldApplyPracticeConfig = mode === 'practice' && !isFullTest && !isReview;
             let configuredData = { ...data, testType: "Academic Listening" };
 
@@ -528,6 +543,7 @@ const IeltsListeningTest = () => {
         sessionStorage.setItem('lastAnswers_listening', JSON.stringify(answers));
         setIsSubmitting(true);
 
+        // Submit bài thi bình thường
         const submitPromise = isGuest
             ? ieltsApi.submitGuestAttempt(attemptId, timeSpentSeconds, Object.entries(answers).map(([qId, ans]) => ({
                 questionId: parseInt(qId),
@@ -545,6 +561,20 @@ const IeltsListeningTest = () => {
                 }
                 clearDraftByTest('listening', testId);
                 localStorage.removeItem(`ieltsTimerDeadline_${timerPersistKey}`);
+                
+                // Nếu là bài tập, submit vào assignment API
+                if (assignmentId && resp?.attemptId) {
+                    return import('../utils/assignmentHelper').then(({ submitTestToAssignment }) => {
+                        submitTestToAssignment(
+                            parseInt(assignmentId),
+                            resp.attemptId,
+                            navigate,
+                            null,
+                            (err) => setError(`Nộp bài tập thất bại: ${err.message}`)
+                        );
+                    });
+                }
+                
                 if (isFullTest) { handleFullTestNext(); return; }
                 const completeParams = new URLSearchParams({
                     mode,
@@ -644,6 +674,7 @@ const IeltsListeningTest = () => {
                 timerPaused={!audioStarted && !isReview}
                 isNotesOpen={isNotesOpen}
                 onToggleNotes={() => setIsNotesOpen((v) => !v)}
+                mode={assignmentId ? 'practice' : mode}
             />
 
             {/* Hidden audio element */}

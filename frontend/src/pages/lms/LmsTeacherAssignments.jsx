@@ -10,6 +10,7 @@ export default function LmsTeacherAssignments() {
   const [loading, setLoading] = useState(true);
   const [assignments, setAssignments] = useState([]);
   const [classes, setClasses] = useState([]);
+  const [tests, setTests] = useState([]);
   const [selectedClass, setSelectedClass] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState(null);
@@ -17,12 +18,16 @@ export default function LmsTeacherAssignments() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [assignmentsData, classData] = await Promise.all([
+      const [assignmentsData, classData, testsData] = await Promise.all([
         assignmentApi.getMyAssignments(),
-        authApi.getMyClassManagement()
+        authApi.getMyClassManagement(),
+        fetch('/api/tests/my-tests', {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
+        }).then(r => r.json()).catch(() => [])
       ]);
       setAssignments(assignmentsData);
       setClasses(classData.classes || []);
+      setTests(testsData || []);
     } catch (error) {
       console.error('Failed to fetch assignments:', error);
       alert('Không thể tải dữ liệu bài tập');
@@ -150,6 +155,7 @@ export default function LmsTeacherAssignments() {
         <AssignmentForm
           assignment={editingAssignment}
           classes={classes}
+          tests={tests}
           onSubmit={handleFormSubmit}
           onClose={() => setShowForm(false)}
         />

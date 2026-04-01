@@ -1,22 +1,33 @@
 import React, { useState } from 'react';
-import { X } from 'lucide-react';
+import { X, Award } from 'lucide-react';
 
-export default function GradeModal({ submission, onSubmit, onClose }) {
+export default function GradeModal({ submission, assignment, onSubmit, onClose }) {
   const [formData, setFormData] = useState({
-    submissionId: submission.id,
     score: submission.score || '',
-    feedback: submission.feedback || '',
+    feedback: submission.feedback || ''
   });
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSubmit({
-      ...formData,
-      score: formData.score ? parseFloat(formData.score) : null,
+    
+    if (!formData.score && formData.score !== 0) {
+      alert('Vui lòng nhập điểm');
+      return;
+    }
+
+    const score = parseFloat(formData.score);
+    if (score < 0 || (assignment.maxScore && score > assignment.maxScore)) {
+      alert(`Điểm phải từ 0 đến ${assignment.maxScore}`);
+      return;
+    }
+
+    onSubmit(submission.id, {
+      score,
+      feedback: formData.feedback
     });
   };
 
-  const maxScore = submission.assignmentTitle ? null : 10; // Placeholder, should come from assignment
+  const isTestType = assignment.type === 'TEST';
 
   return (
     <div style={{
@@ -34,96 +45,150 @@ export default function GradeModal({ submission, onSubmit, onClose }) {
     }}>
       <div style={{
         background: 'white',
-        borderRadius: 12,
-        maxWidth: 700,
+        borderRadius: 8,
+        maxWidth: 600,
         width: '100%',
         maxHeight: '90vh',
         overflow: 'auto',
         padding: 24
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>Chấm bài</h2>
+          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>
+            Chấm điểm
+          </h2>
           <button onClick={onClose} style={{ border: 'none', background: 'none', cursor: 'pointer' }}>
             <X size={20} />
           </button>
         </div>
 
-        {/* Submission info */}
-        <div style={{ marginBottom: 20, padding: 16, background: '#f9fafb', borderRadius: 8 }}>
-          <div style={{ marginBottom: 8 }}>
-            <strong>Học viên:</strong> {submission.fullName} ({submission.username})
-          </div>
-          <div style={{ marginBottom: 8 }}>
-            <strong>Bài tập:</strong> {submission.assignmentTitle}
-          </div>
-          <div>
-            <strong>Nộp lúc:</strong> {submission.submittedAt ? new Date(submission.submittedAt).toLocaleString('vi-VN') : 'N/A'}
+        {/* Student Info */}
+        <div style={{ padding: 16, background: '#f9fafb', borderRadius: 8, marginBottom: 20 }}>
+          <div style={{ fontSize: 14, color: '#6b7280', marginBottom: 4 }}>Học sinh</div>
+          <div style={{ fontSize: 16, fontWeight: 600 }}>{submission.studentName}</div>
+          <div style={{ fontSize: 13, color: '#6b7280', marginTop: 8 }}>
+            Nộp lúc: {new Date(submission.submittedAt).toLocaleString('vi-VN')}
           </div>
         </div>
 
-        {/* Submission content */}
-        <div style={{ marginBottom: 20 }}>
-          <label style={{ display: 'block', marginBottom: 8, fontSize: 14, fontWeight: 600 }}>Nội dung bài làm:</label>
-          <div style={{ 
-            padding: 16, 
-            background: '#fff', 
-            border: '1px solid #e5e7eb', 
-            borderRadius: 8,
-            minHeight: 100,
-            maxHeight: 200,
-            overflow: 'auto',
-            whiteSpace: 'pre-wrap',
-            fontSize: 14,
-            lineHeight: 1.6
-          }}>
-            {submission.submissionText || <em style={{ color: '#9ca3af' }}>Không có nội dung text</em>}
-          </div>
-          {submission.attachmentUrl && (
-            <a 
-              href={submission.attachmentUrl} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              style={{ display: 'inline-block', marginTop: 8, color: '#1b7f79', fontSize: 13 }}
-            >
-              📎 Xem file đính kèm
-            </a>
-          )}
-        </div>
+        {/* Submission Content - MANUAL type */}
+        {!isTestType && (
+          <div style={{ marginBottom: 20 }}>
+            <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 600 }}>Bài làm</h3>
+            
+            {submission.submissionText && (
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 6 }}>Nội dung:</div>
+                <div style={{ 
+                  padding: 12, 
+                  background: '#f9fafb', 
+                  borderRadius: 6, 
+                  whiteSpace: 'pre-wrap',
+                  lineHeight: 1.6,
+                  fontSize: 14,
+                  maxHeight: 300,
+                  overflow: 'auto'
+                }}>
+                  {submission.submissionText}
+                </div>
+              </div>
+            )}
 
-        {/* Grading form */}
+            {submission.attachmentUrl && (
+              <div>
+                <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 6 }}>File đính kèm:</div>
+                <a 
+                  href={submission.attachmentUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  style={{ color: '#2563eb', fontSize: 14 }}
+                >
+                  {submission.attachmentUrl}
+                </a>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TEST type info */}
+        {isTestType && submission.examAttemptId && (
+          <div style={{ padding: 16, background: '#eff6ff', borderRadius: 8, marginBottom: 20 }}>
+            <div style={{ fontSize: 14, color: '#1e40af' }}>
+              ℹ️ Bài test - Điểm được tính tự động từ kết quả thi
+            </div>
+            <div style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>
+              Exam Attempt ID: {submission.examAttemptId}
+            </div>
+          </div>
+        )}
+
+        {/* Grading Form */}
         <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 16 }}>
           <div>
-            <label style={{ display: 'block', marginBottom: 6, fontSize: 14, fontWeight: 500 }}>
-              Điểm {maxScore && `(tối đa ${maxScore})`}
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, fontSize: 14, fontWeight: 500 }}>
+              <Award size={16} />
+              Điểm <span style={{ color: '#dc2626' }}>*</span>
+              {assignment.maxScore && (
+                <span style={{ fontSize: 13, color: '#6b7280', fontWeight: 400 }}>
+                  (Tối đa: {assignment.maxScore})
+                </span>
+              )}
             </label>
             <input
               type="number"
               step="0.5"
               min="0"
-              max={maxScore || undefined}
+              max={assignment.maxScore || undefined}
               value={formData.score}
               onChange={(e) => setFormData({ ...formData, score: e.target.value })}
-              placeholder="VD: 8.5"
-              style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #d1d5db' }}
+              required
+              placeholder="Nhập điểm"
+              style={{ width: '100%', padding: '10px 12px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: 16 }}
+              disabled={isTestType && submission.score !== null}
             />
           </div>
 
           <div>
-            <label style={{ display: 'block', marginBottom: 6, fontSize: 14, fontWeight: 500 }}>Nhận xét</label>
+            <label style={{ display: 'block', marginBottom: 8, fontSize: 14, fontWeight: 500 }}>
+              Nhận xét
+            </label>
             <textarea
               value={formData.feedback}
               onChange={(e) => setFormData({ ...formData, feedback: e.target.value })}
               rows={6}
-              placeholder="Nhận xét chi tiết về bài làm của học viên..."
-              style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #d1d5db', resize: 'vertical' }}
+              placeholder="Nhận xét chi tiết cho học sinh..."
+              style={{ width: '100%', padding: '10px 12px', borderRadius: 6, border: '1px solid #d1d5db', resize: 'vertical' }}
             />
           </div>
 
           <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-            <button type="submit" className="lms-cta" style={{ flex: 1 }}>
+            <button 
+              type="submit"
+              style={{ 
+                flex: 1, 
+                padding: '10px 16px', 
+                borderRadius: 6, 
+                border: 'none', 
+                background: '#2563eb', 
+                color: '#fff', 
+                fontWeight: 500,
+                cursor: 'pointer'
+              }}
+            >
               Lưu điểm
             </button>
-            <button type="button" onClick={onClose} className="lms-cta ghost">
+            <button 
+              type="button"
+              onClick={onClose}
+              style={{ 
+                padding: '10px 16px', 
+                borderRadius: 6, 
+                border: '1px solid #d1d5db', 
+                background: '#fff', 
+                color: '#374151',
+                fontWeight: 500,
+                cursor: 'pointer'
+              }}
+            >
               Hủy
             </button>
           </div>

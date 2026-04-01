@@ -213,6 +213,12 @@ public class SecurityConfig {
                         .requestMatchers("/api/admin/drive/**").hasAnyRole("ADMIN", "MANAGER")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
+                        // ===== ASSIGNMENTS =====
+                        .requestMatchers(HttpMethod.POST, "/api/assignments").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/assignments/**").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/assignments/**").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/assignments/**").authenticated()
+
                         // Tất cả các request còn lại: cần đăng nhập
                         .anyRequest().authenticated())
                 .authenticationProvider(authenticationProvider())

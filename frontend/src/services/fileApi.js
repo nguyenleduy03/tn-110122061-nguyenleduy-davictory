@@ -23,7 +23,9 @@ export const fileApi = {
         'Content-Type': 'multipart/form-data',
         ...(token && { Authorization: `Bearer ${token}` }),
       },
-      timeout: 60000, // 60 seconds for large files
+      timeout: 300000, // 5 minutes for large audio files
+      maxContentLength: 100 * 1024 * 1024, // 100MB
+      maxBodyLength: 100 * 1024 * 1024, // 100MB
     });
 
     return response.data;

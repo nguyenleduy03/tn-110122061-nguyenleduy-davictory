@@ -16,13 +16,13 @@ spring:
         format_sql: true
   servlet:
     multipart:
-      max-file-size: 20MB
-      max-request-size: 20MB
+      max-file-size: 100MB
+      max-request-size: 100MB
 
 server:
   tomcat:
-    max-http-form-post-size: 20MB
-    max-swallow-size: 20MB
+    max-http-form-post-size: 100MB
+    max-swallow-size: 100MB
 
 springdoc:
   api-docs:
