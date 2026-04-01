@@ -151,7 +151,9 @@ const MCQQuestion = ({ q, multiple, active, onSetActive }) => {
         </div>
       )}
       <div className="pv-q-row">
-        <span className={`pv-q-num-badge${active ? ' active' : ''}`}>{q.questionNumber}</span>
+        {!multiple && (
+          <span className={`pv-q-num-badge${active ? ' active' : ''}`}>{q.questionNumber}</span>
+        )}
         <span className="pv-q-text">
           {q.questionText
             ? <span dangerouslySetInnerHTML={{ __html: formatPreviewText(q.questionText) }} />
@@ -213,11 +215,12 @@ const GenericQuestion = ({ q, active, onSetActive }) => (
 
 const renderQuestion = (q, activeQ, onSetActive) => {
   const type = q.questionType?.typeName ?? q.questionType ?? 'MULTIPLE_CHOICE';
+  const isMultipleChoice = type === 'MULTIPLE_CHOICE_MULTIPLE' || Number(q.chooseCount || 0) > 1;
   const active = activeQ === q.questionNumber;
   const props = { key: q.id, q, active, onSetActive };
   switch (type) {
     case 'TRUE_FALSE_NG': return <TFNGQuestion {...props} />;
-    case 'MULTIPLE_CHOICE': return <MCQQuestion {...props} multiple={false} />;
+    case 'MULTIPLE_CHOICE': return <MCQQuestion {...props} multiple={isMultipleChoice} />;
     case 'MULTIPLE_CHOICE_MULTIPLE': return <MCQQuestion {...props} multiple />;
     case 'FILL_IN_BLANK':
     case 'NOTE_COMPLETION':
@@ -1218,6 +1221,7 @@ const SharedOptionsDropdownGroup = ({ group, activeQ, onSetActive }) => {
     instruction: [group.mainInstruction, group.subInstruction].filter(Boolean).join('<br/><br/>'),
     imageUrl: group.imageUrl,
     imageWidth: group.imageWidth,
+    hideOptionsTable: group.hideOptionsTable,
     sharedOptions,
     subQuestions,
   };

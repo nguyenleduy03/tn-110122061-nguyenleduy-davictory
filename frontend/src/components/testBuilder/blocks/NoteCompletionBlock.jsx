@@ -3,9 +3,12 @@ import { X, Plus, Volume2, Image, ChevronUp, ChevronDown } from 'lucide-react';
 import GroupToolbar from './shared/GroupToolbar';
 import RichInput from '../../common/RichInput';
 import RichBlankEditor from './shared/RichBlankEditor';
-import { toRoman, loadImageFile, toPlainText, countBlankTokens, getNextQuestionNumber, isImagePinQuestion, isNoteBlankQuestion, getQuestionWeight } from './shared/blockHelpers';
+import { toRoman, loadImageFile, toPlainText, countBlankTokens, getNextQuestionNumber, isImagePinQuestion, isNoteBlankQuestion, getQuestionWeight, getPartQuestionStartNumber } from './shared/blockHelpers';
 
-const NoteCompletionBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps, onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onAddQuestion, selectedQuestionId }) => (
+const NoteCompletionBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelect, selected, dragHandleProps, onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onAddQuestion, selectedQuestionId }) => {
+  const baseNumber = getPartQuestionStartNumber(group, allGroups);
+  
+  return (
   <div className={`exam-group${selected ? ' selected' : ''}`} onClick={(e) => { e.stopPropagation(); onSelect(group); }}>
     <GroupToolbar group={group} dragHandleProps={dragHandleProps} onDelete={onDelete} />
 
@@ -39,6 +42,7 @@ const NoteCompletionBlock = ({ group, onUpdate, onDelete, onSelect, selected, dr
       placeholder={'VD:\nItems:\nDining table:\n  - (ô trống) shape\n  - medium size\n  - (ô trống) old'}
       preWrap
       blankClass="rbe-blank-amber"
+      startNumber={baseNumber}
     />
 
     {/* Answer validation options */}
@@ -95,6 +99,7 @@ const NoteCompletionBlock = ({ group, onUpdate, onDelete, onSelect, selected, dr
       <Plus size={12} /> Thêm ô trống
     </button>
   </div>
-);
+  );
+};
 
 export default NoteCompletionBlock;

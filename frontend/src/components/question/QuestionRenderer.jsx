@@ -283,14 +283,6 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
                     className={`table-inline-wrap inline-question ${isActive ? 'active-question-input' : ''} relative-pos`}
                     key={`tc-${subQ.id}`}
                 >
-                    {!isReview && (
-                        <BookmarkToggle
-                            className="tc-bookmark"
-                            size={16}
-                            active={Boolean(bookmarks?.[subQ.number])}
-                            onToggle={() => toggleBookmark?.(subQ.number)}
-                        />
-                    )}
                     <input
                         ref={(el) => { if (inputRefs?.current) inputRefs.current[subQ.id] = el; }}
                         type="text"
@@ -302,6 +294,14 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
                         onChange={(e) => { if (!isReview) handleAnswerChange?.(subQ.id, e.target.value); }}
                         readOnly={isReview}
                     />
+                    {!isReview && (
+                        <BookmarkToggle
+                            className="tc-bookmark"
+                            size={16}
+                            active={Boolean(bookmarks?.[subQ.number])}
+                            onToggle={() => toggleBookmark?.(subQ.number)}
+                        />
+                    )}
                 </span>
             );
         };
@@ -329,14 +329,6 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
                         {subQuestions.map((subQ) => (
                             <div key={subQ.id} className="table-cell-input relative-pos">
                                 <label>Q{subQ.number}</label>
-                                {!isReview && (
-                                    <BookmarkToggle
-                                        className="tc-bookmark"
-                                        size={16}
-                                        active={Boolean(bookmarks?.[subQ.number])}
-                                        onToggle={() => toggleBookmark?.(subQ.number)}
-                                    />
-                                )}
                                 {(() => {
                                     const rawValue = answerMap[subQ.id] || '';
                                     const isCorrect = checkAnswer(rawValue, subQ.correctAnswer);
@@ -356,6 +348,14 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
                                         />
                                     );
                                 })()}
+                                {!isReview && (
+                                    <BookmarkToggle
+                                        className="tc-bookmark"
+                                        size={16}
+                                        active={Boolean(bookmarks?.[subQ.number])}
+                                        onToggle={() => toggleBookmark?.(subQ.number)}
+                                    />
+                                )}
                             </div>
                         ))}
                     </div>

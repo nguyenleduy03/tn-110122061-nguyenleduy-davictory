@@ -36,6 +36,7 @@ import {
   DragMatchingBlock,
   MatchingFeaturesBlock,
   MatchingHeadingBlock,
+  MatchingFillBlock,
   MultipleChoiceBlock,
   MultipleChoiceMultiBlock,
   TFNGBlock,
@@ -140,7 +141,7 @@ const PreviewContent = ({ test, sessions, sessionDurations, activeSkill, onSetAc
           <div className="pv-choose-n-badge">Chọn <strong>{q.chooseCount ?? 2}</strong> đáp án đúng</div>
         )}
         <div className="pv-q-row">
-          <span className="pv-q-num-badge">{q.questionNumber}</span>
+          {!multiple && <span className="pv-q-num-badge">{q.questionNumber}</span>}
           <span className="pv-q-text">
             {q.questionText
               ? <span dangerouslySetInnerHTML={{ __html: formatPreviewText(q.questionText) }} />
@@ -202,9 +203,10 @@ const PreviewContent = ({ test, sessions, sessionDurations, activeSkill, onSetAc
 
   const renderQuestion = (q) => {
     const type = q.questionType?.typeName ?? q.questionType ?? 'MULTIPLE_CHOICE';
+    const isMultipleChoice = type === 'MULTIPLE_CHOICE_MULTIPLE' || Number(q.chooseCount || 0) > 1;
     switch (type) {
       case 'TRUE_FALSE_NG': return renderTFNG(q);
-      case 'MULTIPLE_CHOICE': return renderMCQ(q, false);
+      case 'MULTIPLE_CHOICE': return renderMCQ(q, isMultipleChoice);
       case 'MULTIPLE_CHOICE_MULTIPLE': return renderMCQ(q, true);
       case 'FILL_IN_BLANK':
       case 'NOTE_COMPLETION':
@@ -837,7 +839,10 @@ const PreviewContent = ({ test, sessions, sessionDurations, activeSkill, onSetAc
           <div className="pv-instruction-bar" style={{ flexShrink: 0 }}>
             <strong>{activePart.name}</strong>
             {activePart.instructions && (
-              <span className="pv-instruction-text"> — {toPlainText(activePart.instructions)}</span>
+              <span
+                className="pv-instruction-text"
+                dangerouslySetInnerHTML={{ __html: ` — ${formatPreviewText(activePart.instructions)}` }}
+              />
             )}
             <span className="pv-instruction-meta">
               {totalQ} câu hỏi · {currentDuration === 0 ? 'Không giới hạn' : `${currentDuration} phút`}
@@ -857,7 +862,12 @@ const PreviewContent = ({ test, sessions, sessionDurations, activeSkill, onSetAc
               <div key={part.id} className="pv-part-section">
                 <div className="pv-part-banner">
                   <span className="pv-part-banner-name">{part.name}</span>
-                  {part.instructions && <span className="pv-part-banner-inst">{toPlainText(part.instructions)}</span>}
+                  {part.instructions && (
+                    <span
+                      className="pv-part-banner-inst"
+                      dangerouslySetInnerHTML={{ __html: formatPreviewText(part.instructions) }}
+                    />
+                  )}
                 </div>
                 {activeSkill === 'READING'
                   ? <PartReadingLayout part={part} />
@@ -1022,7 +1032,7 @@ const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUp
   const ct = group.contentType;
 
   if (ct === 'NOTE_COMPLETION') {
-    return <NoteCompletionBlock group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
+    return <NoteCompletionBlock group={group} allGroups={allGroups} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
       onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps}
       onSelectQuestion={(q) => onSelectQuestion(q, group.id)}
       onUpdateQuestion={onUpdateQuestion} onDeleteQuestion={onDeleteQuestion} onAddQuestion={onAddQuestion}
@@ -1531,6 +1541,7 @@ const ExamCanvas = ({
       <div className="exam-canvas-footer">
         {parts.map((part) => {
           const questionCount = (part.questionGroups ?? []).reduce((sum, g) => {
+            if (g.contentType === 'AUDIO_TRANSCRIPT') return sum;
             return sum + (g.questions ?? []).reduce((qSum, q) => qSum + (q.questionCount || 1), 0);
           }, 0);
           return (

@@ -13,6 +13,7 @@ const ImageUploadZone = ({
   placeholder = 'Nhập URL ảnh hoặc kéo thả/paste ảnh vào đây',
   module = 'READING',
   testTitle = '',
+  testId = null,
   assetLabel = '',
   showPreview = true,
   compact = false,
@@ -34,7 +35,7 @@ const ImageUploadZone = ({
     try {
       // Import động để tránh circular dependency
       const { loadImageFile: uploadFn } = await import('./blockHelpers');
-      await uploadFn(file, onImageChange, module, testTitle, null, assetLabel);
+      await uploadFn(file, onImageChange, module, testTitle, testId, assetLabel);
     } catch (error) {
       console.error('Image upload error:', error);
       alert('Lỗi tải ảnh: ' + error.message);
@@ -125,7 +126,7 @@ const ImageUploadZone = ({
 
     dropZone.addEventListener('paste', handlePaste);
     return () => dropZone.removeEventListener('paste', handlePaste);
-  }, [disabled, module, testTitle, assetLabel]);
+  }, [disabled, module, testTitle, testId, assetLabel]);
 
   const isDataUrl = imageUrl?.startsWith('data:');
 

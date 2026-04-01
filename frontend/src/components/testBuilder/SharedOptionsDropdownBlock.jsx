@@ -64,6 +64,37 @@ const SharedOptionsDropdownBlock = ({
     syncSharedOptions(next);
   };
 
+  const [showImportOptions, setShowImportOptions] = React.useState(false);
+  const [showImportQuestions, setShowImportQuestions] = React.useState(false);
+
+  const handleImportOptions = (text) => {
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    if (lines.length === 0) return;
+    const imported = lines.map((label, i) => ({
+      id: `so-${Date.now()}-${i}`,
+      key: String.fromCharCode(65 + i),
+      label,
+      imageUrl: ''
+    }));
+    syncSharedOptions(imported);
+    setShowImportOptions(false);
+  };
+
+  const handleImportQuestions = (text) => {
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    if (lines.length === 0) return;
+    const fromQ = group.fromQuestion || 1;
+    const imported = lines.map((qText, i) => ({
+      id: `q-${Date.now()}-${i}`,
+      questionNumber: fromQ + i,
+      questionText: qText,
+      answerText: '',
+      answers: [{ blankIndex: 1, isCaseSensitive: false, answerText: '' }]
+    }));
+    onUpdate(group.id, { questions: imported });
+    setShowImportQuestions(false);
+  };
+
   return (
     <div
       className={`exam-group exam-shared-options-dropdown${selected ? ' selected' : ''}`}
@@ -76,7 +107,17 @@ const SharedOptionsDropdownBlock = ({
 
       <div className="tb-sod-layout">
         <aside className="tb-sod-rail" onClick={(e) => e.stopPropagation()}>
-          <div className="tb-sod-rail-title">Bảng lựa chọn</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="tb-sod-rail-title">Bảng lựa chọn</div>
+            <label style={{ fontSize: 11, color: '#64748b', display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={group.hideOptionsTable ?? false}
+                onChange={(e) => onUpdate(group.id, { hideOptionsTable: e.target.checked })}
+              />
+              Ẩn bảng
+            </label>
+          </div>
           <p className="tb-sod-rail-hint">Áp dụng cho mọi câu trong nhóm</p>
           {sharedOptions.map((opt, idx) => (
             <div key={opt.id || idx} className="tb-sod-opt-row">
@@ -122,9 +163,35 @@ const SharedOptionsDropdownBlock = ({
               </button>
             </div>
           ))}
-          <button type="button" className="exam-add-btn tb-sod-add-opt" onClick={addSharedOption}>
-            <Plus size={12} /> Thêm lựa chọn
-          </button>
+          <div style={{ display: 'flex', gap: 4 }}>
+            <button type="button" className="exam-add-btn tb-sod-add-opt" onClick={addSharedOption} style={{ flex: 1 }}>
+              <Plus size={12} /> Thêm lựa chọn
+            </button>
+            <button type="button" className="exam-add-btn" onClick={() => setShowImportOptions(!showImportOptions)} style={{ fontSize: 11, padding: '4px 8px' }}>
+              📋
+            </button>
+          </div>
+          {showImportOptions && (
+            <div style={{ marginTop: 8, padding: 8, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 4 }}>
+              <div style={{ fontSize: 11, color: '#64748b', marginBottom: 4 }}>Paste danh sách (mỗi dòng = 1 lựa chọn):</div>
+              <textarea
+                rows={4}
+                placeholder="A. Option 1&#10;B. Option 2&#10;C. Option 3"
+                style={{ width: '100%', padding: 6, fontSize: 11, fontFamily: 'monospace', border: '1px solid #cbd5e1', borderRadius: 3 }}
+                onPaste={(e) => {
+                  e.preventDefault();
+                  const text = e.clipboardData.getData('text');
+                  handleImportOptions(text);
+                }}
+              />
+              <button type="button" className="exam-add-btn" onClick={(e) => {
+                const text = e.target.previousElementSibling.value;
+                handleImportOptions(text);
+              }} style={{ fontSize: 11, marginTop: 4 }}>
+                Import
+              </button>
+            </div>
+          )}
         </aside>
 
         <div className="tb-sod-main">
@@ -278,16 +345,43 @@ const SharedOptionsDropdownBlock = ({
             })}
           </div>
 
-          <button
-            type="button"
-            className="exam-add-btn"
-            onClick={(e) => {
-              e.stopPropagation();
-              onAddQuestion(group);
-            }}
-          >
-            <Plus size={12} /> Thêm câu
-          </button>
+          <div style={{ display: 'flex', gap: 4 }}>
+            <button
+              type="button"
+              className="exam-add-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                onAddQuestion(group);
+              }}
+              style={{ flex: 1 }}
+            >
+              <Plus size={12} /> Thêm câu
+            </button>
+            <button type="button" className="exam-add-btn" onClick={() => setShowImportQuestions(!showImportQuestions)} style={{ fontSize: 11, padding: '4px 8px' }}>
+              📋
+            </button>
+          </div>
+          {showImportQuestions && (
+            <div style={{ marginTop: 8, padding: 8, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 4 }}>
+              <div style={{ fontSize: 11, color: '#64748b', marginBottom: 4 }}>Paste danh sách câu hỏi (mỗi dòng = 1 câu):</div>
+              <textarea
+                rows={6}
+                placeholder="El Niño&#10;La Niña&#10;Climate change"
+                style={{ width: '100%', padding: 6, fontSize: 11, fontFamily: 'monospace', border: '1px solid #cbd5e1', borderRadius: 3 }}
+                onPaste={(e) => {
+                  e.preventDefault();
+                  const text = e.clipboardData.getData('text');
+                  handleImportQuestions(text);
+                }}
+              />
+              <button type="button" className="exam-add-btn" onClick={(e) => {
+                const text = e.target.previousElementSibling.value;
+                handleImportQuestions(text);
+              }} style={{ fontSize: 11, marginTop: 4 }}>
+                Import
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

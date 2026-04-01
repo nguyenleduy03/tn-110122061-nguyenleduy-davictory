@@ -46,6 +46,7 @@ const WritingTaskBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragH
           placeholder="Nhập URL ảnh hoặc kéo thả/paste ảnh biểu đồ..."
           module="WRITING"
           testTitle={testTitle}
+          testId={testId}
           assetLabel="WRITING_TASK"
           showPreview={true}
           compact={false}

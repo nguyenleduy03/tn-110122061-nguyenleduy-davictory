@@ -5,6 +5,7 @@ export { default as ImageBlock, MapLabellingBlock, TableCompletionBlock } from '
 export { default as DragMatchingBlock } from './DragMatchingBlock';
 export { default as MatchingFeaturesBlock } from './MatchingFeaturesBlock';
 export { default as MatchingHeadingBlock } from './MatchingHeadingBlock';
+export { default as MatchingFillBlock } from './MatchingFillBlock';
 export { default as MultipleChoiceBlock } from './MultipleChoiceBlock';
 export { default as MultipleChoiceMultiBlock } from './MultipleChoiceMultiBlock';
 export { default as TFNGBlock } from './TFNGBlock';

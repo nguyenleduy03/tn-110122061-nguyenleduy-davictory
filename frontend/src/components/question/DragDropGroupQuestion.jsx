@@ -235,7 +235,6 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                         >
                             {isMatchingInfo && subQ.text ? (
                                 <div className={`dd-info-text ${hasInlineBlank ? 'dd-info-inline' : ''}`}>
-                                    {bookmarkNode}
                                     {hasInlineBlank ? (
                                         <span className="dd-inline-content">
                                             <span dangerouslySetInnerHTML={{ __html: formatAndClean(inlineBlankParts.before) }} />
@@ -245,12 +244,12 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                                     ) : (
                                         <span dangerouslySetInnerHTML={{ __html: formatAndClean(subQ.text || '') }} />
                                     )}
+                                    {bookmarkNode}
                                 </div>
                             ) : null}
 
                             <div className="dd-default-meta">
                                 {!isMatchingInfo && <div className="dd-default-label">
-                                    {bookmarkNode}
                                     <span className="dd-question-num">{subQ.number}</span>
                                 </div>}
                                 {!isMatchingInfo && (
@@ -271,6 +270,7 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                                 )}
 
                                 {isMatchingInfo && !hasInlineBlank && dropZoneNode}
+                                {!isMatchingInfo && bookmarkNode}
                             </div>
                         </div>
                     );

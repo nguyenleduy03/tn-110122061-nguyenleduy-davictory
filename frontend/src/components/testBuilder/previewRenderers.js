@@ -1199,6 +1199,7 @@ export const SharedOptionsDropdownGroup = ({ group, activeQ, onSetActive }) => {
     instruction: [group.mainInstruction, group.subInstruction].filter(Boolean).join('<br/><br/>'),
     imageUrl: group.imageUrl,
     imageWidth: group.imageWidth,
+    hideOptionsTable: group.hideOptionsTable,
     sharedOptions,
     subQuestions,
   };

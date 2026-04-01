@@ -297,6 +297,7 @@ function MapLabellingBlock({ group, onUpdate, onDelete, onSelect, selected, drag
           placeholder="Nhập URL hoặc kéo thả/paste ảnh bản đồ/biểu đồ..."
           module={module}
           testTitle={testTitle}
+          testId={testId}
           assetLabel={group.contentType || 'DIAGRAM'}
           showPreview={true}
           compact={false}
@@ -633,6 +634,11 @@ function TableCompletionBlock({ group, onUpdate, onDelete, onSelect, selected, d
   const tableRows = group.tableRows ?? [];
   const questions = group.questions ?? [];
   const fromQ     = group.fromQuestion ?? 1;
+  const [showPasteArea, setShowPasteArea] = React.useState(false);
+  const pasteAreaRef = React.useRef(null);
+  const [selectedCells, setSelectedCells] = React.useState(new Set());
+  const [isSelecting, setIsSelecting] = React.useState(false);
+  const [selectionStart, setSelectionStart] = React.useState(null);
 
   const syncAndSave = (cols, rows, qOverride) => {
     const newQs = qOverride ?? syncTcQuestions(cols, rows, questions, fromQ);
@@ -674,6 +680,222 @@ function TableCompletionBlock({ group, onUpdate, onDelete, onSelect, selected, d
     onUpdate(group.id, { columns: columns.map((c) => c.id === colId ? { ...c, header: val } : c) });
   };
 
+  const handleCellMouseDown = (rowId, colId, e) => {
+    if (e.shiftKey || e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      const cellKey = `${rowId}-${colId}`;
+      setIsSelecting(true);
+      setSelectionStart({ rowId, colId });
+      setSelectedCells(new Set([cellKey]));
+    }
+  };
+
+  const handleCellMouseEnter = (rowId, colId) => {
+    if (isSelecting && selectionStart) {
+      const startRowIdx = tableRows.findIndex(r => r.id === selectionStart.rowId);
+      const endRowIdx = tableRows.findIndex(r => r.id === rowId);
+      const startColIdx = columns.findIndex(c => c.id === selectionStart.colId);
+      const endColIdx = columns.findIndex(c => c.id === colId);
+
+      const minRow = Math.min(startRowIdx, endRowIdx);
+      const maxRow = Math.max(startRowIdx, endRowIdx);
+      const minCol = Math.min(startColIdx, endColIdx);
+      const maxCol = Math.max(startColIdx, endColIdx);
+
+      const newSelection = new Set();
+      for (let ri = minRow; ri <= maxRow; ri++) {
+        for (let ci = minCol; ci <= maxCol; ci++) {
+          newSelection.add(`${tableRows[ri].id}-${columns[ci].id}`);
+        }
+      }
+      setSelectedCells(newSelection);
+    }
+  };
+
+  const handleCellMouseUp = () => {
+    setIsSelecting(false);
+  };
+
+  const handleCopy = (e) => {
+    if (selectedCells.size === 0) return;
+    e.preventDefault();
+    
+    const cellsArray = Array.from(selectedCells).map(key => {
+      const [rowId, colId] = key.split('-');
+      const row = tableRows.find(r => r.id === rowId);
+      return { rowId, colId, value: row?.cells?.[colId] ?? '' };
+    });
+
+    const rowIds = [...new Set(cellsArray.map(c => c.rowId))];
+    const colIds = [...new Set(cellsArray.map(c => c.colId))];
+    
+    const data = rowIds.map(rowId => 
+      colIds.map(colId => {
+        const cell = cellsArray.find(c => c.rowId === rowId && c.colId === colId);
+        return cell?.value ?? '';
+      }).join('\t')
+    ).join('\n');
+
+    e.clipboardData.setData('text/plain', data);
+  };
+
+  const handlePaste = (e) => {
+    // Ignore paste if target is textarea or input
+    if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
+    if (selectedCells.size === 0) return;
+    e.preventDefault();
+    
+    const text = e.clipboardData.getData('text/plain');
+    const rows = text.split('\n').map(row => row.split('\t'));
+    
+    const firstCell = Array.from(selectedCells)[0];
+    const [startRowId, startColId] = firstCell.split('-');
+    const startRowIdx = tableRows.findIndex(r => r.id === startRowId);
+    const startColIdx = columns.findIndex(c => c.id === startColId);
+
+    const newRows = [...tableRows];
+    rows.forEach((row, ri) => {
+      const targetRowIdx = startRowIdx + ri;
+      if (targetRowIdx >= newRows.length) return;
+      
+      row.forEach((value, ci) => {
+        const targetColIdx = startColIdx + ci;
+        if (targetColIdx >= columns.length) return;
+        
+        const rowId = newRows[targetRowIdx].id;
+        const colId = columns[targetColIdx].id;
+        newRows[targetRowIdx] = {
+          ...newRows[targetRowIdx],
+          cells: { ...newRows[targetRowIdx].cells, [colId]: value }
+        };
+      });
+    });
+
+    syncAndSave(columns, newRows);
+    setSelectedCells(new Set());
+  };
+
+  React.useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Ignore if target is textarea or input
+      if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
+      if ((e.ctrlKey || e.metaKey) && e.key === 'c') handleCopy(e);
+      if ((e.ctrlKey || e.metaKey) && e.key === 'v') handlePaste(e);
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('mouseup', handleCellMouseUp);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('mouseup', handleCellMouseUp);
+    };
+  }, [selectedCells, isSelecting, selectionStart, tableRows, columns]);
+
+  const handlePasteData = (e) => {
+    // Handle paste event to get both plain text and HTML
+    let text = '';
+    
+    if (e && e.clipboardData) {
+      // From paste event
+      const htmlData = e.clipboardData.getData('text/html');
+      const plainData = e.clipboardData.getData('text/plain');
+      
+      // Try to parse HTML table from Word/Excel
+      if (htmlData && htmlData.includes('<table')) {
+        const parsed = parseHtmlTable(htmlData);
+        if (parsed) {
+          importTableData(parsed);
+          e.preventDefault();
+          setShowPasteArea(false);
+          return;
+        }
+      }
+      
+      text = plainData;
+    } else {
+      // From button click
+      text = pasteAreaRef.current?.value?.trim();
+    }
+    
+    if (!text) {
+      alert('Vui lòng paste dữ liệu từ Excel/Sheets/Word vào ô bên dưới');
+      return;
+    }
+
+    // Parse TSV/CSV data (tab or comma separated)
+    const lines = text.split('\n').filter(l => l.trim());
+    if (lines.length === 0) return;
+
+    // Detect separator (tab or comma)
+    const firstLine = lines[0];
+    const separator = firstLine.includes('\t') ? '\t' : ',';
+    
+    const rows = lines.map(line => 
+      line.split(separator).map(cell => cell.trim())
+    );
+
+    importTableData(rows);
+  };
+
+  const parseHtmlTable = (html) => {
+    try {
+      const div = document.createElement('div');
+      div.innerHTML = html;
+      const table = div.querySelector('table');
+      if (!table) return null;
+
+      const rows = [];
+      const trs = table.querySelectorAll('tr');
+      
+      trs.forEach(tr => {
+        const cells = [];
+        tr.querySelectorAll('td, th').forEach(cell => {
+          let text = cell.textContent.trim();
+          cells.push(text);
+        });
+        if (cells.length > 0) rows.push(cells);
+      });
+
+      return rows.length > 0 ? rows : null;
+    } catch (err) {
+      console.error('Failed to parse HTML table:', err);
+      return null;
+    }
+  };
+
+  const importTableData = (rows) => {
+    if (rows.length === 0) return;
+
+    const numCols = Math.max(...rows.map(r => r.length));
+    const hasHeader = rows.length > 1;
+
+    // Create columns
+    const newCols = [];
+    for (let i = 0; i < numCols; i++) {
+      newCols.push({
+        id: `c${i}`,
+        header: hasHeader ? rows[0][i] || '' : ''
+      });
+    }
+
+    // Create rows (skip first row if it's header)
+    const dataRows = hasHeader ? rows.slice(1) : rows;
+    const newRows = dataRows.map((rowData, ri) => {
+      const cells = {};
+      newCols.forEach((col, ci) => {
+        cells[col.id] = rowData[ci] || '';
+      });
+      return {
+        id: `r${Date.now()}_${ri}`,
+        cells
+      };
+    });
+
+    syncAndSave(newCols, newRows);
+    setShowPasteArea(false);
+    if (pasteAreaRef.current) pasteAreaRef.current.value = '';
+    alert(`Đã import ${newRows.length} hàng × ${newCols.length} cột`);
+  };
+
   // Compute startQNum for each cell (reading order: row by row, col by col)
   const cellStartMap = {};
   let qCursor = fromQ;
@@ -694,12 +916,12 @@ function TableCompletionBlock({ group, onUpdate, onDelete, onSelect, selected, d
         <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4, color: '#555' }}>
           Hướng dẫn:
         </label>
-        <input
-          type="text"
-          style={{ width: '100%', padding: '6px 10px', border: '1px solid #ddd', borderRadius: 4, fontSize: 13 }}
+        <RichInput
+          multiline
+          rows={2}
           value={group.instructions || ''}
           placeholder="Complete the table. Write ONE WORD ONLY for each answer."
-          onChange={(e) => onUpdate(group.id, { instructions: e.target.value })}
+          onChange={(html) => onUpdate(group.id, { instructions: html })}
         />
       </div>
 
@@ -714,6 +936,57 @@ function TableCompletionBlock({ group, onUpdate, onDelete, onSelect, selected, d
         />
       </div>
 
+      {/* Paste from Excel/Sheets/Word */}
+      <div style={{ marginTop: 8, marginBottom: 8 }} onClick={(e) => e.stopPropagation()}>
+        <button 
+          className="exam-add-btn" 
+          onClick={() => setShowPasteArea(!showPasteArea)}
+          style={{ fontSize: 12 }}
+        >
+          {showPasteArea ? '✕ Đóng' : '📋 Paste từ Excel/Sheets/Word'}
+        </button>
+        {showPasteArea && (
+          <div style={{ marginTop: 8, padding: 10, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 4 }}>
+            <div style={{ fontSize: 12, color: '#64748b', marginBottom: 6 }}>
+              Copy bảng từ Excel/Google Sheets/Word (bao gồm tiêu đề) và paste vào đây:
+            </div>
+            <textarea
+              ref={pasteAreaRef}
+              rows={6}
+              placeholder="Paste dữ liệu ở đây (Ctrl+V)..."
+              onPaste={handlePasteData}
+              style={{ 
+                width: '100%', 
+                padding: 8, 
+                border: '1px solid #cbd5e1', 
+                borderRadius: 3, 
+                fontSize: 12,
+                fontFamily: 'monospace'
+              }}
+            />
+            <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+              <button 
+                className="exam-add-btn" 
+                onClick={() => handlePasteData()}
+                style={{ fontSize: 12 }}
+              >
+                ✓ Import dữ liệu
+              </button>
+              <button 
+                className="exam-add-btn" 
+                onClick={() => { setShowPasteArea(false); if(pasteAreaRef.current) pasteAreaRef.current.value = ''; }}
+                style={{ fontSize: 12, background: '#94a3b8' }}
+              >
+                Hủy
+              </button>
+            </div>
+            <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 6 }}>
+              💡 Hỗ trợ: bảng Word, Excel, Google Sheets. Tự động nhận dạng khi paste (Ctrl+V)
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Table */}
       <div className="exam-tc-scroll" onClick={(e) => e.stopPropagation()}>
         <table className="exam-tc-table">
@@ -721,11 +994,10 @@ function TableCompletionBlock({ group, onUpdate, onDelete, onSelect, selected, d
             <tr>
               {columns.map((col, ci) => (
                 <th key={col.id} className="exam-tc-header-cell">
-                  <input
-                    className="exam-tc-header-input"
+                  <TcCellEditor
                     value={col.header}
-                    placeholder={ci === 0 ? '(nhãn hàng)' : `Tiêu đề cột ${ci}`}
-                    onChange={(e) => setColHeader(col.id, e.target.value)}
+                    onChange={(val) => setColHeader(col.id, val)}
+                    startQNum={fromQ}
                   />
                   {columns.length > 2 && (
                     <button className="exam-tc-del-col" onClick={() => removeColumn(col.id)} title="Xóa cột">×</button>
@@ -741,15 +1013,24 @@ function TableCompletionBlock({ group, onUpdate, onDelete, onSelect, selected, d
           <tbody>
             {tableRows.map((row) => (
               <tr key={row.id}>
-                {columns.map((col, ci) => (
-                  <td key={col.id} className={`exam-tc-cell${ci === 0 ? ' exam-tc-row-label-cell' : ''}`}>
-                    <TcCellEditor
-                      value={row.cells?.[col.id] ?? ''}
-                      onChange={(val) => setCell(row.id, col.id, val)}
-                      startQNum={cellStartMap[`${row.id}-${col.id}`] ?? fromQ}
-                    />
-                  </td>
-                ))}
+                {columns.map((col, ci) => {
+                  const cellKey = `${row.id}-${col.id}`;
+                  const isSelected = selectedCells.has(cellKey);
+                  return (
+                    <td 
+                      key={col.id} 
+                      className={`exam-tc-cell${ci === 0 ? ' exam-tc-row-label-cell' : ''}${isSelected ? ' exam-tc-cell-selected' : ''}`}
+                      onMouseDown={(e) => handleCellMouseDown(row.id, col.id, e)}
+                      onMouseEnter={() => handleCellMouseEnter(row.id, col.id)}
+                    >
+                      <TcCellEditor
+                        value={row.cells?.[col.id] ?? ''}
+                        onChange={(val) => setCell(row.id, col.id, val)}
+                        startQNum={cellStartMap[`${row.id}-${col.id}`] ?? fromQ}
+                      />
+                    </td>
+                  );
+                })}
                 <td className="exam-tc-del-row-td">
                   <button className="exam-q-del-btn" onClick={() => removeRow(row.id)}>×</button>
                 </td>

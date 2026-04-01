@@ -38,9 +38,9 @@ const hasTeacherRole = () => {
 // ---- Session definitions (mirror backend Session entity) ----
 const SESSION_META = {
   LISTENING: { label: 'Listening', icon: Headphones, iconBg: '#dbeafe', iconColor: '#1d4ed8', durationMinutes: 30, totalQuestions: 40 },
-  READING:   { label: 'Reading',   icon: BookOpen,   iconBg: '#dcfce7', iconColor: '#15803d', durationMinutes: 60, totalQuestions: 40 },
-  WRITING:   { label: 'Writing',   icon: PenLine,    iconBg: '#fef9c3', iconColor: '#a16207', durationMinutes: 60, totalQuestions: 2  },
-  SPEAKING:  { label: 'Speaking',  icon: Mic,        iconBg: '#fce7f3', iconColor: '#be185d', durationMinutes: 12, totalQuestions: 18 },
+  READING: { label: 'Reading', icon: BookOpen, iconBg: '#dcfce7', iconColor: '#15803d', durationMinutes: 60, totalQuestions: 40 },
+  WRITING: { label: 'Writing', icon: PenLine, iconBg: '#fef9c3', iconColor: '#a16207', durationMinutes: 60, totalQuestions: 2 },
+  SPEAKING: { label: 'Speaking', icon: Mic, iconBg: '#fce7f3', iconColor: '#be185d', durationMinutes: 12, totalQuestions: 18 },
 };
 
 // ---- Helpers ----
@@ -48,16 +48,21 @@ let _nextId = 1000;
 const nextId = () => ++_nextId;
 
 // Tính lại fromQuestion và toQuestion cho tất cả groups trong một part
+const getGroupQuestionCount = (group) => {
+  if (group?.contentType === 'AUDIO_TRANSCRIPT') return 0;
+  return (group?.questions ?? []).reduce((sum, q) => sum + (q.questionCount || 1), 0);
+};
+
 const recalculateQuestionNumbers = (groups) => {
   let runningTotal = 0;
   return groups.map((g) => {
-    const questionCount = (g.questions ?? []).reduce((sum, q) => sum + (q.questionCount || 1), 0);
-    
+    const questionCount = getGroupQuestionCount(g);
+
     const fromQuestion = questionCount > 0 ? runningTotal + 1 : null;
     const toQuestion = questionCount > 0 ? runningTotal + questionCount : null;
-    
+
     runningTotal += questionCount;
-    
+
     return {
       ...g,
       fromQuestion,
@@ -83,25 +88,35 @@ const makeDefaultParts = (skillKey) => {
   }
   if (skillKey === 'WRITING') {
     return [
-      { id: nextId(), name: 'Task 1 – Report/Description', orderIndex: 1,
+      {
+        id: nextId(), name: 'Task 1 – Report/Description', orderIndex: 1,
         durationMinutes: 20, totalQuestions: 1,
-        instructions: 'Mô tả biểu đồ, bảng số liệu, sơ đồ hoặc bản đồ (tối thiểu 150 từ)', questionGroups: [] },
-      { id: nextId(), name: 'Task 2 – Essay', orderIndex: 2,
+        instructions: 'Mô tả biểu đồ, bảng số liệu, sơ đồ hoặc bản đồ (tối thiểu 150 từ)', questionGroups: []
+      },
+      {
+        id: nextId(), name: 'Task 2 – Essay', orderIndex: 2,
         durationMinutes: 40, totalQuestions: 1,
-        instructions: 'Viết bài luận (tối thiểu 250 từ)', questionGroups: [] },
+        instructions: 'Viết bài luận (tối thiểu 250 từ)', questionGroups: []
+      },
     ];
   }
   if (skillKey === 'SPEAKING') {
     return [
-      { id: nextId(), name: 'Part 1 – Introduction & Interview', orderIndex: 1,
+      {
+        id: nextId(), name: 'Part 1 – Introduction & Interview', orderIndex: 1,
         durationMinutes: 5, totalQuestions: 13,
-        instructions: 'Giám khảo hỏi về bản thân, gia đình, sở thích (4-5 phút)', questionGroups: [] },
-      { id: nextId(), name: 'Part 2 – Long Turn (Cue Card)', orderIndex: 2,
+        instructions: 'Giám khảo hỏi về bản thân, gia đình, sở thích (4-5 phút)', questionGroups: []
+      },
+      {
+        id: nextId(), name: 'Part 2 – Long Turn (Cue Card)', orderIndex: 2,
         durationMinutes: 2, totalQuestions: 1,
-        instructions: 'Nói về chủ đề cho sẵn trong 1-2 phút sau 1 phút chuẩn bị', questionGroups: [] },
-      { id: nextId(), name: 'Part 3 – Two-way Discussion', orderIndex: 3,
+        instructions: 'Nói về chủ đề cho sẵn trong 1-2 phút sau 1 phút chuẩn bị', questionGroups: []
+      },
+      {
+        id: nextId(), name: 'Part 3 – Two-way Discussion', orderIndex: 3,
         durationMinutes: 5, totalQuestions: 4,
-        instructions: 'Thảo luận sâu hơn về chủ đề trong Part 2 (4-5 phút)', questionGroups: [] },
+        instructions: 'Thảo luận sâu hơn về chủ đề trong Part 2 (4-5 phút)', questionGroups: []
+      },
     ];
   }
   return [{
@@ -237,7 +252,7 @@ const TestBuilder = () => {
   }, [test.isFullTest, test.singleSkill, activeSkill]);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { 
+    useSensor(PointerSensor, {
       activationConstraint: { distance: 6 },
       // Add error handling
       onActivation: (event) => {
@@ -363,7 +378,7 @@ const TestBuilder = () => {
 
     // Tính startQuestionNumber theo toàn bộ câu hỏi đã có trong cùng part
     const startQuestionNumber = (part.questionGroups ?? []).reduce((sum, g) => {
-      return sum + (g.questions ?? []).reduce((qSum, q) => qSum + (q.questionCount || 1), 0);
+      return sum + getGroupQuestionCount(g);
     }, 0) + 1;
 
     // ── Helpers ──
@@ -376,11 +391,11 @@ const TestBuilder = () => {
       ...extra,
     });
     const makeMCQ = (num) => makeQ(num, 'MULTIPLE_CHOICE', {
-      options: ['A','B','C','D'].map((l, i) => ({ id: nextId(), optionLabel: l, optionText: '', isCorrect: false, orderIndex: i })),
+      options: ['A', 'B', 'C', 'D'].map((l, i) => ({ id: nextId(), optionLabel: l, optionText: '', isCorrect: false, orderIndex: i })),
     });
     const makeMMCQ = (num) => makeQ(num, 'MULTIPLE_CHOICE_MULTIPLE', {
       chooseCount: 2,
-      options: ['A','B','C','D','E'].map((l, i) => ({ id: nextId(), optionLabel: l, optionText: '', isCorrect: false, orderIndex: i })),
+      options: ['A', 'B', 'C', 'D', 'E'].map((l, i) => ({ id: nextId(), optionLabel: l, optionText: '', isCorrect: false, orderIndex: i })),
     });
 
     // ── Default seed data theo contentType ──
@@ -486,7 +501,7 @@ const TestBuilder = () => {
 
         case 'NOTE_COMPLETION':
           return {
-            title: `Note Completion ${groupIdx}`,
+            title: '',
             noteText: '',
             fromQuestion: null, toQuestion: null,
             questions: [],
@@ -544,7 +559,7 @@ const TestBuilder = () => {
             title: `Part ${groupIdx}`,
             audioUrl: '',
             fromQuestion: null, toQuestion: null,
-            questions: [makeQ(1, 'FILL_IN_BLANK')],
+            questions: [],
           };
 
         case 'MAP':
@@ -707,7 +722,7 @@ const TestBuilder = () => {
     setParts((prev) =>
       prev.map((p) => {
         if (p.id !== partId) return p;
-        
+
         const filteredGroups = p.questionGroups.filter((g) => g.id !== groupId);
         return { ...p, questionGroups: recalculateQuestionNumbers(filteredGroups) };
       })
@@ -726,7 +741,7 @@ const TestBuilder = () => {
 
       return prev.map((p) => {
         if (p.id !== partId) return p;
-        
+
         const reorderedGroups = arrayMove(groups, idx, targetIdx);
         return { ...p, questionGroups: recalculateQuestionNumbers(reorderedGroups) };
       });
@@ -736,7 +751,7 @@ const TestBuilder = () => {
   const addQuestion = (group) => {
     const ct = group.contentType;
     // Determine default questionType and options based on group contentType
-    const isMCQ  = ct === 'MULTIPLE_CHOICE_GROUP';
+    const isMCQ = ct === 'MULTIPLE_CHOICE_GROUP';
     const isMMCQ = ct === 'MULTIPLE_CHOICE_MULTI';
     const isSharedDrop = ct === 'SHARED_OPTIONS_DROPDOWN';
     const isTFNG = ct === 'TRUE_FALSE_NG';
@@ -744,17 +759,17 @@ const TestBuilder = () => {
 
     const defaultOptions = (isMCQ || isMMCQ)
       ? [
-          { id: nextId(), optionLabel: 'A', optionText: '', isCorrect: false, orderIndex: 0 },
-          { id: nextId(), optionLabel: 'B', optionText: '', isCorrect: false, orderIndex: 1 },
-          { id: nextId(), optionLabel: 'C', optionText: '', isCorrect: false, orderIndex: 2 },
-          { id: nextId(), optionLabel: 'D', optionText: '', isCorrect: false, orderIndex: 3 },
-        ]
+        { id: nextId(), optionLabel: 'A', optionText: '', isCorrect: false, orderIndex: 0 },
+        { id: nextId(), optionLabel: 'B', optionText: '', isCorrect: false, orderIndex: 1 },
+        { id: nextId(), optionLabel: 'C', optionText: '', isCorrect: false, orderIndex: 2 },
+        { id: nextId(), optionLabel: 'D', optionText: '', isCorrect: false, orderIndex: 3 },
+      ]
       : [
-          { id: nextId(), optionLabel: 'A', optionText: '', isCorrect: false, orderIndex: 0 },
-          { id: nextId(), optionLabel: 'B', optionText: '', isCorrect: false, orderIndex: 1 },
-          { id: nextId(), optionLabel: 'C', optionText: '', isCorrect: false, orderIndex: 2 },
-          { id: nextId(), optionLabel: 'D', optionText: '', isCorrect: false, orderIndex: 3 },
-        ];
+        { id: nextId(), optionLabel: 'A', optionText: '', isCorrect: false, orderIndex: 0 },
+        { id: nextId(), optionLabel: 'B', optionText: '', isCorrect: false, orderIndex: 1 },
+        { id: nextId(), optionLabel: 'C', optionText: '', isCorrect: false, orderIndex: 2 },
+        { id: nextId(), optionLabel: 'D', optionText: '', isCorrect: false, orderIndex: 3 },
+      ];
 
     let questionTypeName = 'MULTIPLE_CHOICE';
     if (isMMCQ) questionTypeName = 'MULTIPLE_CHOICE_MULTIPLE';
@@ -769,7 +784,7 @@ const TestBuilder = () => {
       const partGroups = parts.find((p) => p.id === group.partId)?.questionGroups ?? [];
       const startNum = partGroups.reduce((sum, g) => {
         if (g.id === group.id) return sum;
-        return sum + (g.questions ?? []).reduce((qSum, q) => qSum + (q.questionCount || 1), 0);
+        return sum + getGroupQuestionCount(g);
       }, 0) + 1;
       const maxNum = group.questions && group.questions.length > 0
         ? Math.max(...group.questions.map(q => q.questionNumber || 0))
@@ -791,20 +806,20 @@ const TestBuilder = () => {
       orderIndex: (group.questions?.length ?? 0) + 1,
       ...(isMMCQ && { questionCount: group.chooseCount || 2 }),
     };
-    
+
     const updatedQuestions = [...(group.questions ?? []), newQ];
-    
+
     // Tự động cập nhật fromQuestion và toQuestion cho TẤT CẢ groups trong part
     setParts((prev) => prev.map((p) => {
       if (p.id !== group.partId) return p;
-      
-      const updatedGroups = p.questionGroups.map((g) => 
+
+      const updatedGroups = p.questionGroups.map((g) =>
         g.id === group.id ? { ...g, questions: updatedQuestions } : g
       );
-      
+
       return { ...p, questionGroups: recalculateQuestionNumbers(updatedGroups) };
     }));
-    
+
     setSelection({ type: 'question', data: newQ });
   };
 
@@ -822,7 +837,7 @@ const TestBuilder = () => {
           };
         });
         // Tính lại question numbers nếu questionCount thay đổi
-        return 'questionCount' in updates 
+        return 'questionCount' in updates
           ? { ...p, questionGroups: recalculateQuestionNumbers(updatedGroups) }
           : { ...p, questionGroups: updatedGroups };
       })
@@ -836,13 +851,13 @@ const TestBuilder = () => {
     setParts((prev) =>
       prev.map((p) => {
         if (p.id !== partId) return p;
-        
-        const updatedGroups = p.questionGroups.map((g) => 
-          g.id === groupId 
+
+        const updatedGroups = p.questionGroups.map((g) =>
+          g.id === groupId
             ? { ...g, questions: g.questions.filter((q) => q.id !== questionId) }
             : g
         );
-        
+
         return { ...p, questionGroups: recalculateQuestionNumbers(updatedGroups) };
       })
     );
@@ -883,7 +898,7 @@ const TestBuilder = () => {
       const overData = over?.data?.current;
       const activeData = active?.data?.current;
       const isPassageItem = activeData?.contentType === 'READING_PASSAGE';
-      
+
       console.log('Drag over:', {
         activeId: active.id,
         overId: over?.id,
@@ -891,7 +906,7 @@ const TestBuilder = () => {
         overData,
         isPassageItem
       });
-      
+
       if (overData?.type === 'passage-pane' && isPassageItem) {
         setDragOverPassagePaneId(over.id);
         setDragOverPartId(null);
@@ -915,7 +930,7 @@ const TestBuilder = () => {
         activeData: active.data.current,
         overData: over?.data?.current
       });
-      
+
       setActiveOverlayItem(null);
       setDragOverPartId(null);
       setDragOverPassagePaneId(null);
@@ -1074,12 +1089,12 @@ const TestBuilder = () => {
     }
   };
 
-  const handleDragCancel = () => { 
+  const handleDragCancel = () => {
     try {
       console.log('Drag cancelled');
-      setActiveOverlayItem(null); 
-      setDragOverPartId(null); 
-      setDragOverPassagePaneId(null); 
+      setActiveOverlayItem(null);
+      setDragOverPartId(null);
+      setDragOverPassagePaneId(null);
     } catch (error) {
       console.error('Error in handleDragCancel:', error);
     }
@@ -1107,10 +1122,10 @@ const TestBuilder = () => {
       setSavedTestId(result.id);
       lastAutoSaveSnapshotRef.current = JSON.stringify({ test, sessions });
       setSaveMessage('Đã lưu đề thi thành công!');
-      
+
       // Chuyển đến trang chỉnh sửa đề vừa lưu
       navigate(`/teacher/tests/${result.id}/edit`, { replace: true });
-      
+
       setTimeout(() => setSaveMessage(''), 3000);
     } catch (err) {
       console.error('Lỗi lưu đề thi:', err);
@@ -1277,157 +1292,157 @@ const TestBuilder = () => {
         )}
 
         <div className="tb-workspace">
-        {previewMode ? (
-          <ErrorBoundary>
-            <PreviewModal
-              test={test}
-              sessions={sessions}
-              onClose={() => setPreviewMode(false)}
-            />
-          </ErrorBoundary>
-        ) : (
-          <ErrorBoundary>
-            <DndContext
-              sensors={sensors}
-              collisionDetection={({ active, droppableContainers, ...rest }) => {
-                try {
-                  // For palette items use rectIntersection so empty panes are detectable
-                  if (active?.data?.current?.source === 'palette') {
-                    return rectIntersection({ active, droppableContainers, ...rest });
-                  }
-                  return closestCenter({ active, droppableContainers, ...rest });
-                } catch (error) {
-                  console.error('Error in collision detection:', error);
-                  // Fallback to closestCenter
-                  return closestCenter({ active, droppableContainers, ...rest });
-                }
-              }}
-              onDragStart={handleDragStart}
-              onDragOver={handleDragOver}
-              onDragEnd={handleDragEnd}
-              onDragCancel={handleDragCancel}
-            >
-              <ErrorBoundary>
-                <BuilderSidebar
-                  parts={parts}
-                  sessions={sessions}
-                  activeSessionKey={activeSkill}
-                  sessionDurations={sessionDurations}
-                  selection={selection}
-                  enabledSkills={enabledSkills}
-                  collapsed={leftSidebarCollapsed}
-                  onToggleCollapsed={() => setLeftSidebarCollapsed((prev) => !prev)}
-                  onSelectSession={(key) => { setActiveSkill(key); setSelection(null); }}
-                  onSelectPart={(p) => setSelection({ type: 'part', data: p })}
-                  onSelectGroup={(g) => setSelection({ type: 'group', data: { ...g } })}
-                  onUpdateSessionTime={(skillKey, minutes) => {
-                    setSessionDurations((prev) => ({
-                      ...prev,
-                      [skillKey]: minutes,
-                    }));
-                    setTest(prev => ({
-                      ...prev,
-                      sessionDurations: {
-                        ...prev.sessionDurations,
-                        [skillKey]: minutes
-                      }
-                    }));
-                  }}
-                />
-              </ErrorBoundary>
-
-              <ErrorBoundary>
-                <ExamCanvas
-                  test={test}
-                  testId={savedTestId || test?.id}
-                  skill={activeSkill}
-                  seriesLabel={test.seriesLabel}
-                  parts={parts}
-                  sessionDuration={sessionDuration}
-                  selection={selection}
-                  dragOverPartId={dragOverPartId}
-                  dragOverPassagePaneId={dragOverPassagePaneId}
-                  draggingContentType={activeOverlayItem?.contentType ?? null}
-                  onUpdatePart={updatePart}
-                  onMoveGroupUp={(groupId) => {
-                    const part = parts.find((p) => p.questionGroups?.some((g) => g.id === groupId));
-                    if (part) moveGroupByStep(part.id, groupId, -1);
-                  }}
-                  onMoveGroupDown={(groupId) => {
-                    const part = parts.find((p) => p.questionGroups?.some((g) => g.id === groupId));
-                    if (part) moveGroupByStep(part.id, groupId, 1);
-                  }}
-                  onSelectGroup={(g, partId) => setSelection({ type: 'group', data: { ...g, partId } })}
-                  onSelectQuestion={(q) => {
-                    const ctx = findQuestionContext(q.id);
-                    if (ctx) {
-                      setSelection({
-                        type: 'question',
-                        data: {
-                          ...q,
-                          partId: ctx.part.id,
-                          groupId: ctx.group.id,
-                          groupContentType: ctx.group.contentType,
-                        },
-                      });
-                    } else {
-                      setSelection({ type: 'question', data: q });
+          {previewMode ? (
+            <ErrorBoundary>
+              <PreviewModal
+                test={test}
+                sessions={sessions}
+                onClose={() => setPreviewMode(false)}
+              />
+            </ErrorBoundary>
+          ) : (
+            <ErrorBoundary>
+              <DndContext
+                sensors={sensors}
+                collisionDetection={({ active, droppableContainers, ...rest }) => {
+                  try {
+                    // For palette items use rectIntersection so empty panes are detectable
+                    if (active?.data?.current?.source === 'palette') {
+                      return rectIntersection({ active, droppableContainers, ...rest });
                     }
-                  }}
-                  onUpdateGroup={(groupId, upd) => {
-                    const part = parts.find((p) => p.questionGroups?.some((g) => g.id === groupId));
-                    if (part) updateGroup(part.id, groupId, upd);
-                  }}
-                  onUpdateQuestion={(groupId, questionId, upd) => {
-                    const part = parts.find((p) => p.questionGroups?.some((g) => g.id === groupId));
-                    if (part) updateQuestion(part.id, groupId, questionId, upd);
-                  }}
-                  onUpdateSessionTime={(skillKey, minutes) => {
-                    setSessionDurations((prev) => ({
-                      ...prev,
-                      [skillKey]: minutes,
-                    }));
-                    setTest((prev) => ({
-                      ...prev,
-                      sessionDurations: {
-                        ...(prev.sessionDurations || {}),
+                    return closestCenter({ active, droppableContainers, ...rest });
+                  } catch (error) {
+                    console.error('Error in collision detection:', error);
+                    // Fallback to closestCenter
+                    return closestCenter({ active, droppableContainers, ...rest });
+                  }
+                }}
+                onDragStart={handleDragStart}
+                onDragOver={handleDragOver}
+                onDragEnd={handleDragEnd}
+                onDragCancel={handleDragCancel}
+              >
+                <ErrorBoundary>
+                  <BuilderSidebar
+                    parts={parts}
+                    sessions={sessions}
+                    activeSessionKey={activeSkill}
+                    sessionDurations={sessionDurations}
+                    selection={selection}
+                    enabledSkills={enabledSkills}
+                    collapsed={leftSidebarCollapsed}
+                    onToggleCollapsed={() => setLeftSidebarCollapsed((prev) => !prev)}
+                    onSelectSession={(key) => { setActiveSkill(key); setSelection(null); }}
+                    onSelectPart={(p) => setSelection({ type: 'part', data: p })}
+                    onSelectGroup={(g) => setSelection({ type: 'group', data: { ...g } })}
+                    onUpdateSessionTime={(skillKey, minutes) => {
+                      setSessionDurations((prev) => ({
+                        ...prev,
                         [skillKey]: minutes,
-                      },
-                    }));
-                  }}
-                  onDeleteGroup={(groupId) => {
-                    const part = parts.find((p) => p.questionGroups?.some((g) => g.id === groupId));
-                    if (part) deleteGroup(part.id, groupId);
-                  }}
-                  onDeleteQuestion={(groupId, questionId) => {
-                    const part = parts.find((p) => p.questionGroups?.some((g) => g.id === groupId));
-                    if (part) deleteQuestion(part.id, groupId, questionId);
-                  }}
-                  onAddQuestion={(group) => addQuestion(group)}
-                  onAddGroup={(part, contentType) => addGroup(part, contentType)}
-                  onAddPart={addPart}
-                />
-              </ErrorBoundary>
+                      }));
+                      setTest(prev => ({
+                        ...prev,
+                        sessionDurations: {
+                          ...prev.sessionDurations,
+                          [skillKey]: minutes
+                        }
+                      }));
+                    }}
+                  />
+                </ErrorBoundary>
 
-              {/* Drag overlay */}
-              <DragOverlay>
-                {activeOverlayItem?.source === 'palette' && (
-                  <div className="tb-drag-preview">
-                    <span style={{ fontSize: 16 }}>
-                      {activeOverlayItem.icon ? React.createElement(activeOverlayItem.icon, { size: 16 }) : '📄'}
-                    </span>
-                    <span>{activeOverlayItem.label || 'Unknown Item'}</span>
-                  </div>
-                )}
-                {activeOverlayItem?.type === 'group' && (
-                  <div className="tb-drag-preview">
-                    <GripVertical size={14} /> Nhóm câu hỏi
-                  </div>
-                )}
-              </DragOverlay>
-            </DndContext>
-          </ErrorBoundary>
-        )}
+                <ErrorBoundary>
+                  <ExamCanvas
+                    test={test}
+                    testId={savedTestId || test?.id}
+                    skill={activeSkill}
+                    seriesLabel={test.seriesLabel}
+                    parts={parts}
+                    sessionDuration={sessionDuration}
+                    selection={selection}
+                    dragOverPartId={dragOverPartId}
+                    dragOverPassagePaneId={dragOverPassagePaneId}
+                    draggingContentType={activeOverlayItem?.contentType ?? null}
+                    onUpdatePart={updatePart}
+                    onMoveGroupUp={(groupId) => {
+                      const part = parts.find((p) => p.questionGroups?.some((g) => g.id === groupId));
+                      if (part) moveGroupByStep(part.id, groupId, -1);
+                    }}
+                    onMoveGroupDown={(groupId) => {
+                      const part = parts.find((p) => p.questionGroups?.some((g) => g.id === groupId));
+                      if (part) moveGroupByStep(part.id, groupId, 1);
+                    }}
+                    onSelectGroup={(g, partId) => setSelection({ type: 'group', data: { ...g, partId } })}
+                    onSelectQuestion={(q) => {
+                      const ctx = findQuestionContext(q.id);
+                      if (ctx) {
+                        setSelection({
+                          type: 'question',
+                          data: {
+                            ...q,
+                            partId: ctx.part.id,
+                            groupId: ctx.group.id,
+                            groupContentType: ctx.group.contentType,
+                          },
+                        });
+                      } else {
+                        setSelection({ type: 'question', data: q });
+                      }
+                    }}
+                    onUpdateGroup={(groupId, upd) => {
+                      const part = parts.find((p) => p.questionGroups?.some((g) => g.id === groupId));
+                      if (part) updateGroup(part.id, groupId, upd);
+                    }}
+                    onUpdateQuestion={(groupId, questionId, upd) => {
+                      const part = parts.find((p) => p.questionGroups?.some((g) => g.id === groupId));
+                      if (part) updateQuestion(part.id, groupId, questionId, upd);
+                    }}
+                    onUpdateSessionTime={(skillKey, minutes) => {
+                      setSessionDurations((prev) => ({
+                        ...prev,
+                        [skillKey]: minutes,
+                      }));
+                      setTest((prev) => ({
+                        ...prev,
+                        sessionDurations: {
+                          ...(prev.sessionDurations || {}),
+                          [skillKey]: minutes,
+                        },
+                      }));
+                    }}
+                    onDeleteGroup={(groupId) => {
+                      const part = parts.find((p) => p.questionGroups?.some((g) => g.id === groupId));
+                      if (part) deleteGroup(part.id, groupId);
+                    }}
+                    onDeleteQuestion={(groupId, questionId) => {
+                      const part = parts.find((p) => p.questionGroups?.some((g) => g.id === groupId));
+                      if (part) deleteQuestion(part.id, groupId, questionId);
+                    }}
+                    onAddQuestion={(group) => addQuestion(group)}
+                    onAddGroup={(part, contentType) => addGroup(part, contentType)}
+                    onAddPart={addPart}
+                  />
+                </ErrorBoundary>
+
+                {/* Drag overlay */}
+                <DragOverlay>
+                  {activeOverlayItem?.source === 'palette' && (
+                    <div className="tb-drag-preview">
+                      <span style={{ fontSize: 16 }}>
+                        {activeOverlayItem.icon ? React.createElement(activeOverlayItem.icon, { size: 16 }) : '📄'}
+                      </span>
+                      <span>{activeOverlayItem.label || 'Unknown Item'}</span>
+                    </div>
+                  )}
+                  {activeOverlayItem?.type === 'group' && (
+                    <div className="tb-drag-preview">
+                      <GripVertical size={14} /> Nhóm câu hỏi
+                    </div>
+                  )}
+                </DragOverlay>
+              </DndContext>
+            </ErrorBoundary>
+          )}
 
           {/* PropertiesPanel only shown in edit mode */}
           {!previewMode && (

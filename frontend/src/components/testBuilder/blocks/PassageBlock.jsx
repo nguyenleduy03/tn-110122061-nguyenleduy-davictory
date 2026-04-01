@@ -102,6 +102,7 @@ const PassageBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandl
             placeholder="URL ảnh đoạn văn..."
             module={module}
             testTitle={testTitle}
+            testId={testId}
             assetLabel="READING_PASSAGE"
             showPreview={true}
             compact={true}

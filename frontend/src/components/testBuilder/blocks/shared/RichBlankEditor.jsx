@@ -6,13 +6,13 @@ import { List, ListOrdered, Indent } from 'lucide-react';
  * contentEditable editor for Summary / Note Completion.
  * Drag the toolbar chip into the text to insert a numbered blank at that position.
  */
-const RichBlankEditor = ({ 
-  value, 
-  onChange, 
-  placeholder, 
-  preWrap = false, 
-  blankClass = 'rbe-blank-blue', 
-  startNumber = 1 
+const RichBlankEditor = ({
+  value,
+  onChange,
+  placeholder,
+  preWrap = false,
+  blankClass = 'rbe-blank-blue',
+  startNumber = 1
 }) => {
   const editorRef = useRef(null);
   const [dragOver, setDragOver] = useState(false);
@@ -21,7 +21,7 @@ const RichBlankEditor = ({
 
   const toHTML = (htmlOrText) => {
     if (!htmlOrText) return '';
-    
+
     // Nếu đã là HTML (có thẻ), giữ nguyên và chỉ xử lý [blank]
     if (htmlOrText.includes('<')) {
       let n = startNumber - 1;
@@ -30,7 +30,7 @@ const RichBlankEditor = ({
         return `<span class="rbe-blank ${blankClass}" contenteditable="false" data-blank="true"><span class="rbe-blank-num">${n}</span><button class="rbe-blank-del" data-del="true" type="button">×</button></span>`;
       });
     }
-    
+
     // Nếu là text thuần, chuyển thành HTML
     let n = startNumber - 1;
     return esc(htmlOrText)
@@ -42,13 +42,20 @@ const RichBlankEditor = ({
   };
 
   const toText = (el) => {
-    // Giữ lại HTML để bảo toàn formatting, nhưng xử lý đặc biệt cho [blank]
-    let html = el.innerHTML;
-    
-    // Chuyển các blank span thành [blank] token
-    html = html.replace(/<span[^>]*data-blank="true"[^>]*>.*?<\/span>/g, '[blank]');
-    
-    return html;
+    if (!el) return '';
+
+    // Preserve rich HTML but convert blank chips to plain [blank] token safely.
+    const clone = el.cloneNode(true);
+    clone.querySelectorAll('[data-blank="true"]').forEach((node) => {
+      node.replaceWith(document.createTextNode('[blank]'));
+    });
+
+    // Clean any leftover chip controls from legacy markup.
+    clone.querySelectorAll('[data-del="true"], .rbe-blank-del, .rbe-blank-num').forEach((node) => {
+      node.remove();
+    });
+
+    return clone.innerHTML;
   };
 
   // Set initial HTML on mount only (avoids cursor-jumping on re-renders)
@@ -96,17 +103,17 @@ const RichBlankEditor = ({
       const li = document.createElement('li');
       li.innerHTML = '&nbsp;';
       list.appendChild(li);
-      
+
       range.deleteContents();
       range.insertNode(list);
-      
+
       // Đặt cursor vào li
       const newRange = document.createRange();
       newRange.selectNodeContents(li);
       newRange.collapse(true);
       sel.removeAllRanges();
       sel.addRange(newRange);
-      
+
       onChange(toText(editorRef.current));
     }
   };
@@ -180,11 +187,11 @@ const RichBlankEditor = ({
         data-placeholder={placeholder}
         onInput={() => { renumber(); onChange(toText(editorRef.current)); }}
         onKeyUp={() => { renumber(); onChange(toText(editorRef.current)); }}
-        onPaste={() => { 
-          setTimeout(() => { renumber(); onChange(toText(editorRef.current)); }, 0); 
+        onPaste={() => {
+          setTimeout(() => { renumber(); onChange(toText(editorRef.current)); }, 0);
         }}
-        onCut={() => { 
-          setTimeout(() => { renumber(); onChange(toText(editorRef.current)); }, 0); 
+        onCut={() => {
+          setTimeout(() => { renumber(); onChange(toText(editorRef.current)); }, 0);
         }}
         onKeyDown={(e) => {
           if (e.key === 'Enter') {
@@ -242,11 +249,11 @@ const RichBlankEditor = ({
         onClick={(e) => {
           if (e.target.dataset.del === 'true' || e.target.closest?.('[data-del]')) {
             const chip = e.target.closest('[data-blank="true"]');
-            if (chip) { 
-              chip.remove(); 
-              renumber(); 
-              onChange(toText(editorRef.current)); 
-              e.preventDefault(); 
+            if (chip) {
+              chip.remove();
+              renumber();
+              onChange(toText(editorRef.current));
+              e.preventDefault();
             }
           }
         }}

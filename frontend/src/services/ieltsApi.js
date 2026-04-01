@@ -28,7 +28,7 @@ async function apiFetch(url, options = {}) {
   }
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body.message || `HTTP ${res.status}: ${url}`);
+    throw new Error(body.message || body.error || `HTTP ${res.status}: ${url}`);
   }
   return res.json();
 }
@@ -42,7 +42,7 @@ async function guestFetch(url, options = {}) {
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body.message || `HTTP ${res.status}: ${url}`);
+    throw new Error(body.message || body.error || `HTTP ${res.status}: ${url}`);
   }
   return res.json();
 }
@@ -163,10 +163,10 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
         /* ignore parse error */
       }
     }
-    
+
     return questions.map((q) => {
       const num = globalCounterRef.counter++;
-      
+
       if (contentType === 'SPEAKING_CUECARD') {
         // Clean bulletPoints: remove empty strings and extract text from HTML lists
         const rawBullets = groupData.bulletPoints || [];
@@ -184,7 +184,7 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
           })
           .flat()
           .filter(bp => bp && bp.trim());
-        
+
         return {
           id: `q${q.id}`,
           number: num,
@@ -200,14 +200,14 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
           text: formatTextWithWhitespace(q.questionText || ''),
         };
       }
-      
+
       if (contentType === 'SPEAKING_INTERVIEW' || contentType === 'SPEAKING_DISCUSSION') {
         // Filter out questions with empty questionText
         if (!q.questionText || !q.questionText.trim()) {
           globalCounterRef.counter--; // Don't count empty questions
           return null;
         }
-        
+
         return {
           id: `q${q.id}`,
           number: num,
@@ -219,7 +219,7 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
           topic: formatTextWithWhitespace(q.topic || ''),
         };
       }
-      
+
       return {
         id: `q${q.id}`,
         number: num,
@@ -282,6 +282,7 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
       instruction: [mainInst, subInst].filter(Boolean).join('<br/><br/>'),
       imageUrl: group.imageUrl || '',
       imageWidth: group.imageWidth || 100,
+      hideOptionsTable: meta.hideOptionsTable || false,
       sharedOptions,
       subQuestions,
     }];
@@ -428,7 +429,7 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
     let optionBank = group.optionBank || [];
     let instructions = '';
     let allowOptionReuse = group.allowOptionReuse !== false;
-    
+
     // Parse passageText if it's JSON
     if (summaryText && typeof summaryText === 'string' && summaryText.trim().startsWith('{')) {
       try {
@@ -746,7 +747,7 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
       try {
         const parsed = JSON.parse(group.passageText);
         leftHeader = parsed.leftTitle || '';
-      } catch {}
+      } catch { }
     }
 
     return [{
@@ -791,7 +792,7 @@ export const ieltsApi = {
 
     // 2. Tìm session theo skillType
     let targetSession = testData.sessions.find(s => s.skillType === targetMode);
-    
+
     // 3. Nếu không có, thử fallback sang kỹ năng khác
     if (!targetSession && fallbackSkills.length > 0) {
       for (const fallbackSkill of fallbackSkills) {
@@ -802,7 +803,7 @@ export const ieltsApi = {
         }
       }
     }
-    
+
     if (!targetSession) throw new Error(`Bài thi chưa có nội dung cho kỹ năng ${targetMode}. Vui lòng tạo câu hỏi trước.`);
 
     // counter dùng chung toàn bộ transform (pass by ref)
@@ -817,224 +818,224 @@ export const ieltsApi = {
         let mergedImageUrl = null;
         let mergedInstructions = '';
 
-      // Special handling for WRITING skill
-      let taskLabel = part.name || `Task ${part.orderIndex || index + 1}`;
-      let minWords = 150;
-      let recommendedMinutes = 20;
-      let taskImageSvg = null;
-      let taskInstruction = '';
+        // Special handling for WRITING skill
+        let taskLabel = part.name || `Task ${part.orderIndex || index + 1}`;
+        let minWords = 150;
+        let recommendedMinutes = 20;
+        let taskImageSvg = null;
+        let taskInstruction = '';
 
-      // Transform questionGroups — preserve group structure nhưng transform các questions bên trong
-      const transformedGroups = [];
-      for (const group of (part.questionGroups || [])) {
-        const groupType = (group.contentType || '').toUpperCase();
-        // Lấy metadata từ group
-        if (groupType === 'READING_PASSAGE' && group.passageText && !mergedPassageContent) {
-          try {
-            const parsed = JSON.parse(group.passageText);
-            if (parsed.paragraphs) {
-              mergedPassageContent = parsed.paragraphs.map(p => {
-                return `<p>${formatTextWithWhitespace(p.text.trim())}</p>`;
-              }).join('');
-            } else {
+        // Transform questionGroups — preserve group structure nhưng transform các questions bên trong
+        const transformedGroups = [];
+        for (const group of (part.questionGroups || [])) {
+          const groupType = (group.contentType || '').toUpperCase();
+          // Lấy metadata từ group
+          if (groupType === 'READING_PASSAGE' && group.passageText && !mergedPassageContent) {
+            try {
+              const parsed = JSON.parse(group.passageText);
+              if (parsed.paragraphs) {
+                mergedPassageContent = parsed.paragraphs.map(p => {
+                  return `<p>${formatTextWithWhitespace(p.text.trim())}</p>`;
+                }).join('');
+              } else {
+                mergedPassageContent = formatTextWithWhitespace(group.passageText);
+              }
+            } catch {
               mergedPassageContent = formatTextWithWhitespace(group.passageText);
             }
-          } catch {
-            mergedPassageContent = formatTextWithWhitespace(group.passageText);
           }
-        }
-        if (groupType === 'READING_PASSAGE' && group.title && !mergedPassageTitle) {
-          mergedPassageTitle = group.title;
-        }
-        if (group.instructions && !mergedInstructions) {
-          mergedInstructions = formatTextWithWhitespace(group.instructions);
-        }
-        if (group.audioUrl && !mergedAudioUrl) {
-          mergedAudioUrl = group.audioUrl;
-        }
-        if (group.imageUrl && !mergedImageUrl) {
-          mergedImageUrl = group.imageUrl;
+          if (groupType === 'READING_PASSAGE' && group.title && !mergedPassageTitle) {
+            mergedPassageTitle = group.title;
+          }
+          if (group.instructions && !mergedInstructions) {
+            mergedInstructions = formatTextWithWhitespace(group.instructions);
+          }
+          if (group.audioUrl && !mergedAudioUrl) {
+            mergedAudioUrl = group.audioUrl;
+          }
+          if (group.imageUrl && !mergedImageUrl) {
+            mergedImageUrl = group.imageUrl;
+          }
+
+          // Extract Writing metadata từ group.passageText JSON
+          if (targetMode === 'WRITING' && group.passageText) {
+            try {
+              const parsed = JSON.parse(group.passageText);
+              if (parsed.taskLabel) taskLabel = parsed.taskLabel;
+              if (parsed.minWords) minWords = parsed.minWords;
+              if (parsed.recommendedMinutes) recommendedMinutes = parsed.recommendedMinutes;
+              if (parsed.taskImageSvg) taskImageSvg = parsed.taskImageSvg;
+              if (!taskInstruction) {
+                taskInstruction = parsed.taskInstruction
+                  || parsed.prompt
+                  || parsed.description
+                  || parsed.content
+                  || parsed.instruction
+                  || '';
+              }
+            } catch { /* plain text fallback */ }
+
+            if (!taskInstruction && typeof group.passageText === 'string') {
+              taskInstruction = group.passageText;
+            }
+          }
+
+          if (targetMode === 'WRITING' && !taskInstruction && group.instructions) {
+            taskInstruction = group.instructions;
+          }
+
+          // Transform group's questions using transformGroup()
+          const transformedQuestions = await transformGroup(baseUrl, group, globalCounterRef);
+
+          transformedGroups.push({
+            ...group,
+            // Keep raw group data
+            id: group.id,
+            title: group.title,
+            contentType: group.contentType,
+            passageText: group.passageText,
+            audioUrl: group.audioUrl,
+            imageUrl: group.imageUrl,
+            instructions: group.instructions,
+            // Provide transformed questions
+            questions: transformedQuestions,
+          });
         }
 
-        // Extract Writing metadata từ group.passageText JSON
-        if (targetMode === 'WRITING' && group.passageText) {
+        // Flatten transformed questions for backward compatibility
+        const flattenedQuestions = transformedGroups.flatMap(g =>
+          (g.questions || []).map(q => ({
+            ...q,
+            groupInstruction: q.groupInstruction || g.instructions || null
+          }))
+        );
+
+        if (targetMode === 'WRITING' && !taskInstruction) {
+          const firstQuestion = flattenedQuestions.find(q => q && (q.text || q.questionText || q.blankContext));
+          if (firstQuestion) {
+            taskInstruction = firstQuestion.text || firstQuestion.questionText || firstQuestion.blankContext || '';
+          }
+        }
+
+        // --- NEW: Inject Heading Gaps for Matching Heading questions ---
+        // Find the group containing matching_heading questions
+        const mhGroupFound = transformedGroups.find(g =>
+          g.questions && g.questions.some(q => q.type === 'matching_heading')
+        );
+
+        // Find the group containing the passage - specifically look for READING_PASSAGE or paragraphs JSON
+        let sourceParagraphs = [];
+        const passageGroup = transformedGroups.find(g => {
+          if (!g.passageText) return false;
           try {
-            const parsed = JSON.parse(group.passageText);
-            if (parsed.taskLabel) taskLabel = parsed.taskLabel;
-            if (parsed.minWords) minWords = parsed.minWords;
-            if (parsed.recommendedMinutes) recommendedMinutes = parsed.recommendedMinutes;
-            if (parsed.taskImageSvg) taskImageSvg = parsed.taskImageSvg;
-            if (!taskInstruction) {
-              taskInstruction = parsed.taskInstruction
-                || parsed.prompt
-                || parsed.description
-                || parsed.content
-                || parsed.instruction
-                || '';
+            const parsed = JSON.parse(g.passageText);
+            if (parsed.paragraphs && Array.isArray(parsed.paragraphs)) {
+              sourceParagraphs = parsed.paragraphs;
+              return true;
             }
-          } catch { /* plain text fallback */ }
-
-          if (!taskInstruction && typeof group.passageText === 'string') {
-            taskInstruction = group.passageText;
+          } catch (e) {
+            // If it's not JSON, it might be a plain string passage
+            if (typeof g.passageText === 'string' && g.passageText.length > 100) {
+              return true;
+            }
           }
-        }
-
-        if (targetMode === 'WRITING' && !taskInstruction && group.instructions) {
-          taskInstruction = group.instructions;
-        }
-
-        // Transform group's questions using transformGroup()
-        const transformedQuestions = await transformGroup(baseUrl, group, globalCounterRef);
-
-        transformedGroups.push({
-          ...group,
-          // Keep raw group data
-          id: group.id,
-          title: group.title,
-          contentType: group.contentType,
-          passageText: group.passageText,
-          audioUrl: group.audioUrl,
-          imageUrl: group.imageUrl,
-          instructions: group.instructions,
-          // Provide transformed questions
-          questions: transformedQuestions,
+          return (g.contentType || '').toUpperCase() === 'READING_PASSAGE';
         });
-      }
 
-      // Flatten transformed questions for backward compatibility
-      const flattenedQuestions = transformedGroups.flatMap(g => 
-        (g.questions || []).map(q => ({
-          ...q,
-          groupInstruction: q.groupInstruction || g.instructions || null
-        }))
-      );
-
-      if (targetMode === 'WRITING' && !taskInstruction) {
-        const firstQuestion = flattenedQuestions.find(q => q && (q.text || q.questionText || q.blankContext));
-        if (firstQuestion) {
-          taskInstruction = firstQuestion.text || firstQuestion.questionText || firstQuestion.blankContext || '';
-        }
-      }
-
-      // --- NEW: Inject Heading Gaps for Matching Heading questions ---
-      // Find the group containing matching_heading questions
-      const mhGroupFound = transformedGroups.find(g =>
-        g.questions && g.questions.some(q => q.type === 'matching_heading')
-      );
-
-      // Find the group containing the passage - specifically look for READING_PASSAGE or paragraphs JSON
-      let sourceParagraphs = [];
-      const passageGroup = transformedGroups.find(g => {
-        if (!g.passageText) return false;
-        try {
-          const parsed = JSON.parse(g.passageText);
-          if (parsed.paragraphs && Array.isArray(parsed.paragraphs)) {
-            sourceParagraphs = parsed.paragraphs;
-            return true;
-          }
-        } catch (e) {
-          // If it's not JSON, it might be a plain string passage
-          if (typeof g.passageText === 'string' && g.passageText.length > 100) {
-            return true;
-          }
-        }
-        return (g.contentType || '').toUpperCase() === 'READING_PASSAGE';
-      });
-
-      if (mhGroupFound && (sourceParagraphs.length > 0 || (passageGroup && passageGroup.passageText))) {
-        console.log('[ieltsApi] Matching Heading injection candidate found.');
-        try {
-          let paragraphs = sourceParagraphs;
-          if (paragraphs.length === 0 && passageGroup?.passageText) {
-            const text = passageGroup.passageText.trim();
-            // Split by double newlines or single newlines if they look like paragraph breaks
-            paragraphs = text.split(/\r?\n\s*\r?\n/).map(t => ({ text: t.trim() }));
-          }
-
-          if (paragraphs.length > 0) {
-            const mhGroup = (mhGroupFound.questions || []).find(q => q.type === 'matching_heading');
-            const mhSubQs = mhGroup?.subQuestions || [];
-
-            // More robust extraction of starting question number
-            let startPartNum = 1;
-            if (flattenedQuestions && flattenedQuestions.length > 0) {
-              const firstQ = flattenedQuestions[0];
-              startPartNum = firstQ.number ||
-                (firstQ.subQuestions && firstQ.subQuestions[0]?.number) ||
-                1;
+        if (mhGroupFound && (sourceParagraphs.length > 0 || (passageGroup && passageGroup.passageText))) {
+          console.log('[ieltsApi] Matching Heading injection candidate found.');
+          try {
+            let paragraphs = sourceParagraphs;
+            if (paragraphs.length === 0 && passageGroup?.passageText) {
+              const text = passageGroup.passageText.trim();
+              // Split by double newlines or single newlines if they look like paragraph breaks
+              paragraphs = text.split(/\r?\n\s*\r?\n/).map(t => ({ text: t.trim() }));
             }
 
-            console.log(`[ieltsApi] Injecting into ${paragraphs.length} paragraphs. Matching against ${mhSubQs.length} sub-questions.`);
+            if (paragraphs.length > 0) {
+              const mhGroup = (mhGroupFound.questions || []).find(q => q.type === 'matching_heading');
+              const mhSubQs = mhGroup?.subQuestions || [];
 
-            const stripHtml = (html) => (html || '').replace(/<[^>]*>?/gm, '').trim().toLowerCase();
-            const getCoreLabel = (l) => {
-              let s = stripHtml(l).replace(/^(paragraph|section|đoạn|phần|đoạn văn|section nº)\s+/i, '');
-              return s.replace(/[:.]$/, '').trim();
-            };
+              // More robust extraction of starting question number
+              let startPartNum = 1;
+              if (flattenedQuestions && flattenedQuestions.length > 0) {
+                const firstQ = flattenedQuestions[0];
+                startPartNum = firstQ.number ||
+                  (firstQ.subQuestions && firstQ.subQuestions[0]?.number) ||
+                  1;
+              }
 
-            mergedPassageContent = paragraphs.map((p, pIdx) => {
-              const rawLabel = p.label || String.fromCharCode(65 + pIdx);
-              const coreLabel = getCoreLabel(rawLabel);
-              const posNum = startPartNum + pIdx;
+              console.log(`[ieltsApi] Injecting into ${paragraphs.length} paragraphs. Matching against ${mhSubQs.length} sub-questions.`);
 
-              // Tiered matching
-              const matchedQ = mhSubQs.find(sq => {
-                const qText = stripHtml(sq.text);
-                const qCore = getCoreLabel(qText);
-                return qCore === coreLabel ||
-                  sq.number === posNum ||
-                  (qCore && coreLabel && (qCore.includes(coreLabel) || coreLabel.includes(qCore)));
-              });
+              const stripHtml = (html) => (html || '').replace(/<[^>]*>?/gm, '').trim().toLowerCase();
+              const getCoreLabel = (l) => {
+                let s = stripHtml(l).replace(/^(paragraph|section|đoạn|phần|đoạn văn|section nº)\s+/i, '');
+                return s.replace(/[:.]$/, '').trim();
+              };
 
-              // Add unique ID and &nbsp; to ensure span is not collapsed or ignored
-              const gapHtml = matchedQ ? `<div class="heading-gap" id="gap-${matchedQ.number}" data-id="${matchedQ.id}" data-number="${matchedQ.number}">&nbsp;</div>` : '';
-              return `${gapHtml}<p>${formatTextWithWhitespace(p.text || p.content || p)}</p>`;
-            }).join('');
+              mergedPassageContent = paragraphs.map((p, pIdx) => {
+                const rawLabel = p.label || String.fromCharCode(65 + pIdx);
+                const coreLabel = getCoreLabel(rawLabel);
+                const posNum = startPartNum + pIdx;
 
-            const gapCount = (mergedPassageContent.match(/class="heading-gap"/g) || []).length;
-            console.log(`[ieltsApi] Injection result: ${gapCount} gaps injected into passage.`);
+                // Tiered matching
+                const matchedQ = mhSubQs.find(sq => {
+                  const qText = stripHtml(sq.text);
+                  const qCore = getCoreLabel(qText);
+                  return qCore === coreLabel ||
+                    sq.number === posNum ||
+                    (qCore && coreLabel && (qCore.includes(coreLabel) || coreLabel.includes(qCore)));
+                });
+
+                // Add unique ID and &nbsp; to ensure span is not collapsed or ignored
+                const gapHtml = matchedQ ? `<div class="heading-gap" id="gap-${matchedQ.number}" data-id="${matchedQ.id}" data-number="${matchedQ.number}">&nbsp;</div>` : '';
+                return `${gapHtml}<p>${formatTextWithWhitespace(p.text || p.content || p)}</p>`;
+              }).join('');
+
+              const gapCount = (mergedPassageContent.match(/class="heading-gap"/g) || []).length;
+              console.log(`[ieltsApi] Injection result: ${gapCount} gaps injected into passage.`);
+            }
+          } catch (e) {
+            console.error('[ieltsApi] Heading gap injection failed:', e);
           }
-        } catch (e) {
-          console.error('[ieltsApi] Heading gap injection failed:', e);
         }
-      }
 
-      const partObj = {
-        id: `part-${part.testPartId || part.id}`,
-        partNumber: part.orderIndex || index + 1,
-        name: part.name || `Part ${part.orderIndex || index + 1}`,
-        orderIndex: part.orderIndex || index + 1,
-        title: part.name || `Part ${part.orderIndex || index + 1}`,
+        const partObj = {
+          id: `part-${part.testPartId || part.id}`,
+          partNumber: part.orderIndex || index + 1,
+          name: part.name || `Part ${part.orderIndex || index + 1}`,
+          orderIndex: part.orderIndex || index + 1,
+          title: part.name || `Part ${part.orderIndex || index + 1}`,
 
-        // Extracted metadata
-        instruction: part.instructions || mergedInstructions || (targetMode === 'WRITING' ? 'No task specified.' : 'Listen and answer questions.'),
-        instructions: part.instructions || mergedInstructions,
-        passageTitle: mergedPassageTitle,
-        passageContent: mergedPassageContent,
-        questionsLabel: mergedPassageTitle || 'Questions',
-        audioUrl: mergedAudioUrl,
-        imageUrl: mergedImageUrl,
+          // Extracted metadata
+          instruction: part.instructions || mergedInstructions || (targetMode === 'WRITING' ? 'No task specified.' : 'Listen and answer questions.'),
+          instructions: part.instructions || mergedInstructions,
+          passageTitle: mergedPassageTitle,
+          passageContent: mergedPassageContent,
+          questionsLabel: mergedPassageTitle || 'Questions',
+          audioUrl: mergedAudioUrl,
+          imageUrl: mergedImageUrl,
 
-        // Writing-specific fields
-        taskLabel: targetMode === 'WRITING' ? taskLabel : undefined,
-        minWords: targetMode === 'WRITING' ? minWords : undefined,
-        recommendedMinutes: targetMode === 'WRITING' ? recommendedMinutes : undefined,
-        taskImageSvg: targetMode === 'WRITING' ? taskImageSvg : undefined,
-        taskInstruction: targetMode === 'WRITING' ? taskInstruction : undefined,
+          // Writing-specific fields
+          taskLabel: targetMode === 'WRITING' ? taskLabel : undefined,
+          minWords: targetMode === 'WRITING' ? minWords : undefined,
+          recommendedMinutes: targetMode === 'WRITING' ? recommendedMinutes : undefined,
+          taskImageSvg: targetMode === 'WRITING' ? taskImageSvg : undefined,
+          taskInstruction: targetMode === 'WRITING' ? taskInstruction : undefined,
 
-        // Preserve group structure with transformed questions
-        questionGroups: transformedGroups,
-        groups: transformedGroups,
+          // Preserve group structure with transformed questions
+          questionGroups: transformedGroups,
+          groups: transformedGroups,
 
-        // Provide flattened transformed questions for compatibility
-        questions: flattenedQuestions,
+          // Provide flattened transformed questions for compatibility
+          questions: flattenedQuestions,
 
-        // Source fields from backend
-        durationMinutes: part.durationMinutes || null,
-        totalQuestions: part.totalQuestions || 0,
-      };
+          // Source fields from backend
+          durationMinutes: part.durationMinutes || null,
+          totalQuestions: part.totalQuestions || 0,
+        };
 
-      return partObj;
+        return partObj;
       })
     );
 
@@ -1098,11 +1099,48 @@ export const ieltsApi = {
 
     console.log('📝 Raw Answers:', answers);
 
+    const toQuestionId = (rawId) => {
+      if (rawId == null) return null;
+      const normalized = String(rawId).trim();
+      if (!normalized) return null;
+
+      const exactMatch = normalized.match(/^q?(\d+)$/i);
+      if (exactMatch) {
+        const parsed = Number(exactMatch[1]);
+        return Number.isFinite(parsed) ? parsed : null;
+      }
+
+      return null;
+    };
+
+    const validQuestionIds = (() => {
+      if (!testData?.parts?.length) return null;
+
+      const ids = new Set();
+      for (const part of testData.parts) {
+        for (const question of (part?.questions || [])) {
+          const questionId = toQuestionId(question?.id);
+          if (questionId != null) ids.add(questionId);
+
+          for (const subQuestion of (question?.subQuestions || [])) {
+            const subId = toQuestionId(subQuestion?.id);
+            if (subId != null) ids.add(subId);
+          }
+        }
+      }
+
+      return ids.size ? ids : null;
+    })();
+
     const answerPayloads = Object.entries(answers || {}).map(([qid, value]) => {
-      const normalizedQid = String(qid).trim().replace(/^q/i, '');
-      const questionId = Number(normalizedQid);
-      if (!Number.isFinite(questionId)) {
+      const questionId = toQuestionId(qid);
+      if (questionId == null) {
         console.warn(`Invalid questionId: ${qid}`);
+        return null;
+      }
+
+      if (validQuestionIds && !validQuestionIds.has(questionId)) {
+        console.warn(`Skipping answer with unknown questionId in current test: ${qid} -> ${questionId}`);
         return null;
       }
 

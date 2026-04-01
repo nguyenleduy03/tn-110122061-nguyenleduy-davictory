@@ -56,9 +56,6 @@ const applyInlineMarkers = (text) => {
       return `<span style="font-size:${px}px;">${content}</span>`;
     })
 
-    // Fallback emphasis for common IELTS directive phrases when payload is plain text.
-    .replace(/\b(ONE WORD ONLY|ONE WORD AND\/OR A NUMBER|NO MORE THAN ONE WORD|NO MORE THAN TWO WORDS|NO MORE THAN THREE WORDS|NO MORE THAN ONE WORD AND\/OR A NUMBER|NO MORE THAN TWO WORDS AND\/OR A NUMBER|NO MORE THAN THREE WORDS AND\/OR A NUMBER)\b/gi, '<strong>$1</strong>')
-
     // Common line-break markers in plain text payloads
     .replace(/\[(br|linebreak)\]|\{(br|linebreak)\}|<br\s*\/?>/gi, '<br/>');
 };
@@ -103,11 +100,11 @@ export const normalizeRichHtml = (text) => {
  */
 export const stripInlineStyles = (html) => {
   if (typeof html !== 'string') return html || '';
-  
+
   try {
     const temp = document.createElement('div');
     temp.innerHTML = html;
-    
+
     // Remove style, class, id from all elements
     const allElements = temp.querySelectorAll('*');
     allElements.forEach(el => {
@@ -115,7 +112,7 @@ export const stripInlineStyles = (html) => {
       el.removeAttribute('class');
       el.removeAttribute('id');
     });
-    
+
     // Unwrap only span and div tags (keep strong, em, u, b, i, etc.)
     let changed = true;
     while (changed) {
@@ -131,11 +128,11 @@ export const stripInlineStyles = (html) => {
         }
       });
     }
-    
+
     // Remove HTML comments
     let result = temp.innerHTML.trim();
     result = result.replace(/<!--[\s\S]*?-->/g, '');
-    
+
     return result;
   } catch (e) {
     // Fallback to regex if DOM parsing fails

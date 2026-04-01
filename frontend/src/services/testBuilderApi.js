@@ -60,7 +60,7 @@ export const testBuilderApi = {
   // ─── Lưu toàn bộ đề thi ──────────────────────────────────────
   saveFullTest: async (payload) => {
     console.log('🔍 DEBUG: Payload gửi lên backend:', JSON.stringify(payload, null, 2));
-    
+
     // Kiểm tra drag matching questions
     payload.sessions?.forEach((session, sIdx) => {
       session.parts?.forEach((part, pIdx) => {
@@ -77,12 +77,12 @@ export const testBuilderApi = {
                 answersDetail: q.answers
               }))
             });
-            
+
             // Kiểm tra tổng số questions vs answers
             const totalQuestions = group.questions?.length || 0;
             const questionsWithAnswers = group.questions?.filter(q => q.answers && q.answers.length > 0).length || 0;
             const questionsWithAnswerText = group.questions?.filter(q => q.answerText && q.answerText.trim() !== '').length || 0;
-            
+
             console.log(`🔍 SUMMARY: Total=${totalQuestions}, WithAnswers=${questionsWithAnswers}, WithAnswerText=${questionsWithAnswerText}`);
           }
         });
@@ -174,6 +174,11 @@ export const testBuilderApi = {
 export function buildSavePayload(test, sessions, structure, createdByUserId, existingTestId = null, sessionDurationsOverride = null) {
   const sessionPayloads = [];
 
+  const getGroupQuestionCount = (group) => {
+    if (group?.contentType === 'AUDIO_TRANSCRIPT') return 0;
+    return (group?.questions ?? []).reduce((sum, q) => sum + (q.questionCount || 1), 0);
+  };
+
   // Xác định skills cần gửi: full test = tất cả, single = chỉ 1 skill
   const isFullTest = test.isFullTest ?? true;
   const allowedSkills = isFullTest
@@ -198,9 +203,7 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
     const partsWithQuestionNumbers = parts.map(part => {
       const partStartNumber = sessionQuestionNumber;
       const calculatedQuestionsInPart = (part.questionGroups || []).reduce((sum, group) => {
-        return sum + (group.questions || []).reduce((qSum, q) => {
-          return qSum + (q.questionCount || 1); // Tính theo questionCount
-        }, 0);
+        return sum + getGroupQuestionCount(group);
       }, 0);
       const configuredQuestionsInPart = Number(part.totalQuestions || 0);
       const totalQuestionsInPart = Math.max(
@@ -208,14 +211,14 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
         Number.isFinite(configuredQuestionsInPart) ? configuredQuestionsInPart : 0
       );
       sessionQuestionNumber += totalQuestionsInPart;
-      
+
       return { ...part, startQuestionNumber: partStartNumber };
     });
 
     const partPayloads = partsWithQuestionNumbers.map((part, partIdx) => {
       // Tìm Part ID từ structure dựa trên orderIndex
       const structPart = structInfo.parts.find(sp => sp.orderIndex === part.orderIndex)
-                      || structInfo.parts[partIdx];
+        || structInfo.parts[partIdx];
 
       // Lưu tất cả groups kể cả READING_PASSAGE
       const questionGroups = part.questionGroups || [];
@@ -232,122 +235,122 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
         questionGroups: questionGroups.map((group, gIdx) => {
           console.log(`📤 Group ${gIdx} imageWidth:`, group.imageWidth, 'imageUrl:', group.imageUrl);
           return {
-          existingGroupId: group.backendGroupId || null,
-          title: group.title || `Nhóm ${gIdx + 1}`,
-          contentType: mapContentType(group.contentType),
-          passageText: serializeGroupContent(group, part),
-          audioUrl: group.audioUrl || null,
-          imageUrl: group.imageUrl || null,
-          imageWidth: group.imageWidth || null,
-          fromQuestion: group.fromQuestion || null,
-          toQuestion: group.toQuestion || null,
-          orderIndex: gIdx + 1,
-          allowOptionReuse: group.allowOptionReuse !== false, // Default true
-          instructions: group.instructions || null,  // Add group-level instructions
-          validationOptions: group.ignoreCase !== undefined || group.ignoreSpaces || group.ignorePunctuation || group.ignoreChars ? {
-            ignoreCase: group.ignoreCase !== false,
-            ignoreSpaces: group.ignoreSpaces || false,
-            ignorePunctuation: group.ignorePunctuation || false,
-            ignoreChars: group.ignoreChars || ''
-          } : null,
-          questions: (group.questions || []).map((q, qIdx) => {
-            console.log(`🔄 Processing question ${qIdx}/${group.questions.length} for group ${group.contentType}`);
-            console.log(`   - questionText: "${q.questionText}"`);
-            console.log(`   - answerText: "${q.answerText}"`);
-            console.log(`   - existing answers: ${q.answers?.length || 0}`);
-            
-            // Tính questionCount cho MCQ multiple
-            const questionCount = q.questionCount || 1;
-            const currentQuestionNumber = partQuestionNumber + 1;
-            partQuestionNumber += questionCount; // Tăng theo questionCount
-            
-            // Debug drag matching
-            if (group.contentType === 'DRAG_MATCHING') {
-              console.log(`🎯 DRAG Question ${qIdx}:`, {
-                questionText: q.questionText,
-                answerText: q.answerText,
-                existingAnswers: q.answers?.length || 0
-              });
-            }
-            
-            // Ưu tiên contentType của group cho các loại writing/speaking đặc biệt
-            const contentTypeOverride = ['WRITING_TASK', 'SPEAKING_INTERVIEW', 'SPEAKING_CUECARD', 'SHARED_OPTIONS_DROPDOWN'].includes(group.contentType)
-              ? group.contentType
-              : null;
-            const typeCode = mapQuestionTypeCode(contentTypeOverride || q.questionType?.typeName || group.contentType || 'FILL_IN_BLANK');
-            const isTextAnswer = isTextAnswerType(typeCode);
-            
-            // Debug type mapping
-            if (group.contentType === 'DRAG_MATCHING') {
-              console.log(`   🔍 Type mapping: ${q.questionType?.typeName} -> ${typeCode} -> isTextAnswer: ${isTextAnswer}`);
-            }
+            existingGroupId: group.backendGroupId || null,
+            title: group.title || `Nhóm ${gIdx + 1}`,
+            contentType: mapContentType(group.contentType),
+            passageText: serializeGroupContent(group, part),
+            audioUrl: group.audioUrl || null,
+            imageUrl: group.imageUrl || null,
+            imageWidth: group.imageWidth || null,
+            fromQuestion: group.fromQuestion || null,
+            toQuestion: group.toQuestion || null,
+            orderIndex: gIdx + 1,
+            allowOptionReuse: group.allowOptionReuse !== false, // Default true
+            instructions: group.instructions || null,  // Add group-level instructions
+            validationOptions: group.ignoreCase !== undefined || group.ignoreSpaces || group.ignorePunctuation || group.ignoreChars ? {
+              ignoreCase: group.ignoreCase !== false,
+              ignoreSpaces: group.ignoreSpaces || false,
+              ignorePunctuation: group.ignorePunctuation || false,
+              ignoreChars: group.ignoreChars || ''
+            } : null,
+            questions: (group.questions || []).map((q, qIdx) => {
+              console.log(`🔄 Processing question ${qIdx}/${group.questions.length} for group ${group.contentType}`);
+              console.log(`   - questionText: "${q.questionText}"`);
+              console.log(`   - answerText: "${q.answerText}"`);
+              console.log(`   - existing answers: ${q.answers?.length || 0}`);
 
-            // Xây dựng answers[] để gửi lên backend
-            let answers;
-            
-            // Đặc biệt xử lý DRAG_MATCHING, MATCHING_FEATURES, SUMMARY_COMPLETION_SELECT - luôn tạo answer cho mọi câu hỏi
-            if (group.contentType === 'DRAG_MATCHING' || group.contentType === 'MATCHING_FEATURES' || group.contentType === 'SUMMARY_COMPLETION_SELECT') {
-              const existingAnswer = q.answers?.[0];
-              answers = [{
-                answerText: q.answerText || '', // Có thể rỗng
-                alternativeAnswers: existingAnswer?.alternativeAnswers || null,
-                isCaseSensitive: existingAnswer?.isCaseSensitive || false,
-                blankIndex: existingAnswer?.blankIndex || 1,
-                wordLimit: existingAnswer?.wordLimit || null,
-              }];
-              console.log(`   ✅ ${group.contentType} answer created: "${answers[0].answerText}"`);
-            } else if (isTextAnswer) {
-              // Logic cũ cho các loại khác (gồm MCQ_DROPDOWN: một chữ A/B/C…)
-              const existingAnswer = q.answers?.[0];
-              const textAns = (q.answerText != null && q.answerText !== '')
-                ? q.answerText
-                : (existingAnswer?.answerText ?? '');
-              answers = [{
-                answerText: textAns,
-                alternativeAnswers: existingAnswer?.alternativeAnswers || null,
-                isCaseSensitive: existingAnswer?.isCaseSensitive || false,
-                blankIndex: existingAnswer?.blankIndex || 1,
-                wordLimit: existingAnswer?.wordLimit || null,
-              }];
-            } else {
-              answers = [];
-            }
+              // Tính questionCount cho MCQ multiple
+              const questionCount = q.questionCount || 1;
+              const currentQuestionNumber = partQuestionNumber + 1;
+              partQuestionNumber += questionCount; // Tăng theo questionCount
 
-            // Debug final answers cho drag matching
-            if (group.contentType === 'DRAG_MATCHING') {
-              console.log(`✅ Question ${qIdx}: "${q.questionText}" -> Answer: "${q.answerText}" -> Final answers:`, answers);
-            }
+              // Debug drag matching
+              if (group.contentType === 'DRAG_MATCHING') {
+                console.log(`🎯 DRAG Question ${qIdx}:`, {
+                  questionText: q.questionText,
+                  answerText: q.answerText,
+                  existingAnswers: q.answers?.length || 0
+                });
+              }
 
-            const result = {
-              questionTypeCode: typeCode,
-              questionNumber: currentQuestionNumber,
-              questionText: q.questionText || '',
-              blankContext: q.blankContext || null,
-              pinX: q.pinX ?? null,
-              pinY: q.pinY ?? null,
-              imageUrl: q.imageUrl || null,
-              points: q.points || 1.0,
-              orderIndex: qIdx + 1,
-              // Lưu questionCount và groupInstruction để backend biết
-              questionCount: questionCount,
-              groupInstruction: q.groupInstruction || null,
-              options: (q.options || []).map((opt, oIdx) => ({
-                optionLabel: opt.optionLabel || String.fromCharCode(65 + oIdx),
-                optionText: opt.optionText || '',
-                imageUrl: opt.optionImageUrl || opt.imageUrl || null,
-                isCorrect: opt.isCorrect || false,
-                orderIndex: oIdx,
-              })),
-              answers,
-            };
-            
-            if (group.contentType === 'DRAG_MATCHING') {
-              console.log(`📤 Sending question ${qIdx}:`, result);
-            }
-            
-            return result;
-          }),
-        };
+              // Ưu tiên contentType của group cho các loại writing/speaking đặc biệt
+              const contentTypeOverride = ['WRITING_TASK', 'SPEAKING_INTERVIEW', 'SPEAKING_CUECARD', 'SHARED_OPTIONS_DROPDOWN'].includes(group.contentType)
+                ? group.contentType
+                : null;
+              const typeCode = mapQuestionTypeCode(contentTypeOverride || q.questionType?.typeName || group.contentType || 'FILL_IN_BLANK');
+              const isTextAnswer = isTextAnswerType(typeCode);
+
+              // Debug type mapping
+              if (group.contentType === 'DRAG_MATCHING') {
+                console.log(`   🔍 Type mapping: ${q.questionType?.typeName} -> ${typeCode} -> isTextAnswer: ${isTextAnswer}`);
+              }
+
+              // Xây dựng answers[] để gửi lên backend
+              let answers;
+
+              // Đặc biệt xử lý DRAG_MATCHING, MATCHING_FEATURES, SUMMARY_COMPLETION_SELECT - luôn tạo answer cho mọi câu hỏi
+              if (group.contentType === 'DRAG_MATCHING' || group.contentType === 'MATCHING_FEATURES' || group.contentType === 'SUMMARY_COMPLETION_SELECT') {
+                const existingAnswer = q.answers?.[0];
+                answers = [{
+                  answerText: q.answerText || '', // Có thể rỗng
+                  alternativeAnswers: existingAnswer?.alternativeAnswers || null,
+                  isCaseSensitive: existingAnswer?.isCaseSensitive || false,
+                  blankIndex: existingAnswer?.blankIndex || 1,
+                  wordLimit: existingAnswer?.wordLimit || null,
+                }];
+                console.log(`   ✅ ${group.contentType} answer created: "${answers[0].answerText}"`);
+              } else if (isTextAnswer) {
+                // Logic cũ cho các loại khác (gồm MCQ_DROPDOWN: một chữ A/B/C…)
+                const existingAnswer = q.answers?.[0];
+                const textAns = (q.answerText != null && q.answerText !== '')
+                  ? q.answerText
+                  : (existingAnswer?.answerText ?? '');
+                answers = [{
+                  answerText: textAns,
+                  alternativeAnswers: existingAnswer?.alternativeAnswers || null,
+                  isCaseSensitive: existingAnswer?.isCaseSensitive || false,
+                  blankIndex: existingAnswer?.blankIndex || 1,
+                  wordLimit: existingAnswer?.wordLimit || null,
+                }];
+              } else {
+                answers = [];
+              }
+
+              // Debug final answers cho drag matching
+              if (group.contentType === 'DRAG_MATCHING') {
+                console.log(`✅ Question ${qIdx}: "${q.questionText}" -> Answer: "${q.answerText}" -> Final answers:`, answers);
+              }
+
+              const result = {
+                questionTypeCode: typeCode,
+                questionNumber: currentQuestionNumber,
+                questionText: q.questionText || '',
+                blankContext: q.blankContext || null,
+                pinX: q.pinX ?? null,
+                pinY: q.pinY ?? null,
+                imageUrl: q.imageUrl || null,
+                points: q.points || 1.0,
+                orderIndex: qIdx + 1,
+                // Lưu questionCount và groupInstruction để backend biết
+                questionCount: questionCount,
+                groupInstruction: q.groupInstruction || null,
+                options: (q.options || []).map((opt, oIdx) => ({
+                  optionLabel: opt.optionLabel || String.fromCharCode(65 + oIdx),
+                  optionText: opt.optionText || '',
+                  imageUrl: opt.optionImageUrl || opt.imageUrl || null,
+                  isCorrect: opt.isCorrect || false,
+                  orderIndex: oIdx,
+                })),
+                answers,
+              };
+
+              if (group.contentType === 'DRAG_MATCHING') {
+                console.log(`📤 Sending question ${qIdx}:`, result);
+              }
+
+              return result;
+            }),
+          };
         }),
       };
     });
@@ -396,6 +399,24 @@ function mapContentType(ct) {
   return map[ct] || ct || 'STANDALONE';
 }
 
+function sanitizeCompletionTitle(value, contentType) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+
+  const plain = raw.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!plain) return '';
+
+  if (contentType === 'NOTE_COMPLETION' && /^note\s*completion\s*\d*$/i.test(plain)) {
+    return '';
+  }
+
+  if (contentType === 'SUMMARY_COMPLETION' && /^summary\s*completion\s*\d*$/i.test(plain)) {
+    return '';
+  }
+
+  return value || '';
+}
+
 // ─── Serialize nội dung group thành passageText (JSON) ───────────
 
 function serializeGroupContent(group, part) {
@@ -421,14 +442,14 @@ function serializeGroupContent(group, part) {
   if (ct === 'NOTE_COMPLETION') {
     return JSON.stringify({
       noteText: group.noteText || '',
-      title: group.title || ''
+      title: sanitizeCompletionTitle(group.title, 'NOTE_COMPLETION')
     });
   }
   if (ct === 'SUMMARY_COMPLETION') return group.summaryText || '';
   if (ct === 'SUMMARY_COMPLETION_SELECT') {
     return JSON.stringify({
       noteText: group.noteText || '',
-      title: group.title || '',
+      title: sanitizeCompletionTitle(group.title, 'SUMMARY_COMPLETION'),
       instructions: group.instructions || '',
       optionBank: group.optionBank || [],
       allowOptionReuse: group.allowOptionReuse !== false,
@@ -525,6 +546,7 @@ function serializeGroupContent(group, part) {
       sharedOptions: group.sharedOptions || [],
       mainInstruction: group.mainInstruction || '',
       subInstruction: group.subInstruction || '',
+      hideOptionsTable: group.hideOptionsTable || false,
     });
   }
   // Custom schema-driven group
@@ -634,12 +656,12 @@ export function parseLoadedTest(data) {
 
   for (const sessionResp of (data.sessions || [])) {
     const skillKey = sessionResp.skillType;
-    
+
     // Luôn cập nhật sessionDurations từ backend response
     if (sessionResp.durationMinutes != null) {
       test.sessionDurations[skillKey] = sessionResp.durationMinutes;
     }
-    
+
     const parts = (sessionResp.parts || []).map(partResp => {
       const mappedGroups = (partResp.questionGroups || []).map(groupResp => {
         // Normalize contentType for MCQ groups
@@ -649,7 +671,7 @@ export function parseLoadedTest(data) {
         } else if (contentType === 'MULTIPLE_CHOICE_MULTI') {
           // Keep as is
         }
-        
+
         const base = {
           id: nextId++,
           backendGroupId: groupResp.questionGroupId,
@@ -667,13 +689,13 @@ export function parseLoadedTest(data) {
           questions: (groupResp.questions || []).map(qResp => {
             const questionCount = qResp.questionCount || 1;
             const startNum = qResp.questionNumber;
-            const numberRange = questionCount > 1 
-              ? Array.from({length: questionCount}, (_, i) => startNum + i)
+            const numberRange = questionCount > 1
+              ? Array.from({ length: questionCount }, (_, i) => startNum + i)
               : [startNum];
-            
+
             const mappedType = mapBackendTypeToFrontend(qResp.questionTypeCode);
             const isMCQ = mappedType === 'MULTIPLE_CHOICE' || mappedType === 'MULTIPLE_CHOICE_MULTIPLE';
-            
+
             // Ensure MCQ questions always have options
             let options = (qResp.options || []).map(opt => ({
               id: nextId++,
@@ -683,11 +705,11 @@ export function parseLoadedTest(data) {
               isCorrect: opt.isCorrect,
               orderIndex: opt.orderIndex,
             }));
-            
+
             // If MCQ but no options from backend, create defaults
             if (isMCQ && options.length === 0) {
-              const labels = mappedType === 'MULTIPLE_CHOICE_MULTIPLE' 
-                ? ['A', 'B', 'C', 'D', 'E'] 
+              const labels = mappedType === 'MULTIPLE_CHOICE_MULTIPLE'
+                ? ['A', 'B', 'C', 'D', 'E']
                 : ['A', 'B', 'C', 'D'];
               options = labels.map((label, i) => ({
                 id: nextId++,
@@ -697,7 +719,7 @@ export function parseLoadedTest(data) {
                 orderIndex: i,
               }));
             }
-            
+
             return {
               id: nextId++,
               backendQuestionId: qResp.id,
@@ -729,6 +751,9 @@ export function parseLoadedTest(data) {
             };
           }),
         };
+        if (contentType === 'AUDIO_TRANSCRIPT') {
+          base.questions = [];
+        }
         return { ...base, ...deserializeGroupContent(groupResp.contentType, groupResp.passageText) };
       });
 
@@ -782,9 +807,9 @@ function deserializeGroupContent(contentType, passageText) {
     if (contentType === 'NOTE_COMPLETION') {
       try {
         const parsed = JSON.parse(passageText);
-        return { 
+        return {
           noteText: parsed.noteText || passageText,
-          title: parsed.title || ''
+          title: sanitizeCompletionTitle(parsed.title || '', 'NOTE_COMPLETION')
         };
       } catch {
         // Fallback cho dữ liệu cũ (string thuần)
@@ -796,7 +821,7 @@ function deserializeGroupContent(contentType, passageText) {
       const parsed = JSON.parse(passageText);
       return {
         noteText: parsed.noteText || '',
-        title: parsed.title || '',
+        title: sanitizeCompletionTitle(parsed.title || '', 'SUMMARY_COMPLETION'),
         instructions: parsed.instructions || '',
         optionBank: parsed.optionBank || [],
       };
@@ -891,13 +916,13 @@ function deserializeGroupContent(contentType, passageText) {
       // Backward compat: v1 answerKind -> v2 mode
       const v2 = schema?.answerKind
         ? {
-            version: 2,
-            mode: schema.answerKind === 'TEXT' ? 'BLANKS' : (schema.answerKind === 'MCQ_MULTI' ? 'MCQ_MULTI' : 'MCQ_SINGLE'),
-            promptHtml: schema.promptHtml || '',
-            optionBank: schema.optionBank || [],
-            leftItems: [],
-            chooseCount: 2,
-          }
+          version: 2,
+          mode: schema.answerKind === 'TEXT' ? 'BLANKS' : (schema.answerKind === 'MCQ_MULTI' ? 'MCQ_MULTI' : 'MCQ_SINGLE'),
+          promptHtml: schema.promptHtml || '',
+          optionBank: schema.optionBank || [],
+          leftItems: [],
+          chooseCount: 2,
+        }
         : schema;
       return {
         customSchema: {

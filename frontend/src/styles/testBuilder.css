@@ -3168,12 +3168,12 @@
 .exam-tc-scroll { overflow-x: auto; width: 100%; margin-top: 4px; }
 .exam-tc-table { border-collapse: collapse; min-width: 100%; font-size: 12px; }
 .exam-tc-header-cell {
-  border: 1px solid #d1d5db; padding: 4px 6px; background: #f3f4f6;
+  border: 1px solid #d1d5db; padding: 4px 6px; background: #fff;
   vertical-align: top; min-width: 80px; position: relative;
 }
 .exam-tc-header-input {
   width: calc(100% - 18px); border: none; background: transparent;
-  font-size: 11px; font-weight: 600; outline: none; padding: 2px 0; min-width: 50px;
+  font-size: 11px; font-weight: 400; outline: none; padding: 2px 0; min-width: 50px;
 }
 .exam-tc-del-col {
   position: absolute; top: 2px; right: 2px; background: none; border: none;
@@ -3327,7 +3327,8 @@
   content: attr(data-placeholder);
   color: #c0c0c0; pointer-events: none; font-style: italic;
 }
-.exam-tc-row-label-cell .tc-cell-editor { font-weight: 600; }
+.exam-tc-row-label-cell .tc-cell-editor { font-weight: 400; }
+.exam-tc-cell-selected { background: #dbeafe !important; }
 
 /* ================================================================
    FLOW-CHART COMPLETION — builder canvas

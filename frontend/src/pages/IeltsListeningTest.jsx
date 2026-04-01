@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { Volume2, ArrowLeftRight, Headphones, Play, ArrowLeft, ArrowRight } from "lucide-react";
 import { useSearchParams, useNavigate, useParams } from "react-router-dom";
 import "../styles/ieltsTest.css";
@@ -6,7 +6,6 @@ import TestHeader from "../components/common/TestHeader";
 import QuestionRenderer from "../components/question/QuestionRenderer";
 import { useTestNavigation } from "../hooks/useTestNavigation";
 import { ieltsApi } from "../services/ieltsApi";
-import { assignmentApi } from "../services/assignmentApi";
 import TextHighlighter from "../components/common/TextHighlighter";
 import NotesPanel from "../components/common/NotesPanel";
 import { formatTextWithWhitespace } from "../utils/textFormatters";
@@ -40,34 +39,15 @@ const IeltsListeningTest = () => {
     const [error, setError] = useState(null);
     const [bookmarks, setBookmarks] = useState({});
     const [scoreInfo, setScoreInfo] = useState(null);
-    const [audioStarted, setAudioStarted] = useState(() => {
-        // Immediately check if resuming a started session to avoid overlay flash
-        if (typeof window === 'undefined') return false;
-        try {
-            const params = new URLSearchParams(window.location.search);
-            const reviewParam = params.get('review');
-            if (reviewParam === 'true') return true; // review mode: skip overlay
-            const modeParam = params.get('mode') || 'practice';
-            const draftModeKey = modeParam === 'exam' ? 'exam' : 'practice';
-            // Extract testId from URL path /test/listening/:id
-            const pathMatch = window.location.pathname.match(/\/test\/listening\/([^/?]+)/);
-            const testIdFromPath = pathMatch ? pathMatch[1] : '';
-            if (!testIdFromPath) return false;
-            const safeId = testIdFromPath.trim().replace(/[^a-zA-Z0-9_-]+/g, '_').replace(/^_+|_+$/g, '');
-            const key = `ieltsDraft_listening_${draftModeKey}_${safeId}`;
-            const raw = localStorage.getItem(key);
-            if (!raw) return false;
-            const saved = JSON.parse(raw);
-            return Boolean(saved?.audioStarted);
-        } catch {
-            return false;
-        }
-    });
+    const [audioStarted, setAudioStarted] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [startTime] = useState(() => Date.now());
     const audioRef = useRef(null);
     const containerRef = useRef(null);
     const [audioObjectUrl, setAudioObjectUrl] = useState(null);
+    const audioResumeRef = useRef({ partIndex: 0, seconds: 0 });
+    const currentPartIndexRef = useRef(0);
+    const skipExitSnapshotRef = useRef(false);
 
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
@@ -94,6 +74,10 @@ const IeltsListeningTest = () => {
     const queryString = searchParams.toString();
     const draftMode = mode === 'exam' ? 'exam' : 'practice';
     const draftStorageKey = useMemo(() => buildDraftStorageKey('listening', draftMode, testId), [draftMode, testId]);
+    const fullTestSnapshotKey = useMemo(() => {
+        if (!testId) return null;
+        return `ieltsFullTestSnapshot_listening_${testId}`;
+    }, [testId]);
     const timerPersistKey = useMemo(() => buildTimerPersistKey({
         skill: 'listening',
         testId,
@@ -105,6 +89,44 @@ const IeltsListeningTest = () => {
         if (!testId) return null;
         return `ieltsHighlights_listening_${testId}`;
     }, [testId]);
+
+    const restoreRuntimeSnapshot = useCallback(() => {
+        if (isReview || !testId) {
+            audioResumeRef.current = { partIndex: 0, seconds: 0 };
+            setAudioStarted(Boolean(isReview));
+            return;
+        }
+
+        let snapshot = null;
+        try {
+            if (isFullTest && fullTestSnapshotKey) {
+                snapshot = parseJsonSafe(sessionStorage.getItem(fullTestSnapshotKey), null);
+            } else {
+                snapshot = parseRuntimeJsonSafe(localStorage.getItem(draftStorageKey), null);
+            }
+        } catch {
+            snapshot = null;
+        }
+
+        const resumePartIndex = Number.isFinite(snapshot?.audioResumePartIndex)
+            ? Math.max(0, Number(snapshot.audioResumePartIndex))
+            : 0;
+        const resumeSeconds = Number.isFinite(snapshot?.audioCurrentTime)
+            ? Math.max(0, Number(snapshot.audioCurrentTime))
+            : 0;
+
+        audioResumeRef.current = {
+            partIndex: resumePartIndex,
+            seconds: resumeSeconds,
+        };
+
+        // Always require explicit Play after returning to test.
+        setAudioStarted(false);
+    }, [isReview, testId, isFullTest, fullTestSnapshotKey, draftStorageKey]);
+
+    useEffect(() => {
+        restoreRuntimeSnapshot();
+    }, [restoreRuntimeSnapshot]);
 
     useEffect(() => {
         const submittedRedirect = getSubmittedRedirect(timerPersistKey);
@@ -197,29 +219,92 @@ const IeltsListeningTest = () => {
     }, [playableAudioUrl]);
 
     useEffect(() => {
-        if (!audioStarted || isReview) return;
-        if (!audioRef.current) return;
-        audioRef.current.load?.();
-        audioRef.current.play().catch(() => { });
-    }, [audioStarted, isReview, audioObjectUrl]);
-
-    const handlePlay = () => {
-        setAudioStarted(true);
-        if (audioRef.current) {
-            audioRef.current.load?.();
-            audioRef.current.play().catch(() => { });
-        }
-    };
+        currentPartIndexRef.current = currentPartIndex;
+    }, [currentPartIndex]);
 
     const effectiveAudioUrl = audioObjectUrl || playableAudioUrl;
 
     useEffect(() => {
+        const audioEl = audioRef.current;
+        if (!audioEl) return undefined;
+
+        const syncCurrentTime = () => {
+            audioResumeRef.current = {
+                partIndex: currentPartIndexRef.current,
+                seconds: Number.isFinite(audioEl.currentTime) ? audioEl.currentTime : 0,
+            };
+        };
+
+        const restoreCurrentTime = () => {
+            const resume = audioResumeRef.current;
+            if (resume.partIndex !== currentPartIndexRef.current) return;
+            if (!Number.isFinite(resume.seconds) || resume.seconds <= 0) return;
+
+            const duration = Number.isFinite(audioEl.duration) ? audioEl.duration : null;
+            const safeTime = duration != null
+                ? Math.max(0, Math.min(resume.seconds, Math.max(0, duration - 0.25)))
+                : Math.max(0, resume.seconds);
+
+            try {
+                audioEl.currentTime = safeTime;
+            } catch {
+                // Ignore seeking failures on browsers that block early seek.
+            }
+        };
+
+        audioEl.addEventListener('timeupdate', syncCurrentTime);
+        audioEl.addEventListener('loadedmetadata', restoreCurrentTime);
+
+        return () => {
+            audioEl.removeEventListener('timeupdate', syncCurrentTime);
+            audioEl.removeEventListener('loadedmetadata', restoreCurrentTime);
+        };
+    }, [effectiveAudioUrl]);
+
+    useEffect(() => {
+        if (!audioStarted || isReview) return;
+        const audioEl = audioRef.current;
+        if (!audioEl) return;
+
+        const resume = audioResumeRef.current;
+        if (resume.partIndex === currentPartIndexRef.current && Number.isFinite(resume.seconds) && resume.seconds > 0) {
+            const duration = Number.isFinite(audioEl.duration) ? audioEl.duration : null;
+            const safeTime = duration != null
+                ? Math.max(0, Math.min(resume.seconds, Math.max(0, duration - 0.25)))
+                : Math.max(0, resume.seconds);
+            try {
+                audioEl.currentTime = safeTime;
+            } catch {
+                // Keep browser default currentTime if seek fails.
+            }
+        }
+
+        audioEl.play().catch(() => { });
+    }, [audioStarted, isReview, effectiveAudioUrl]);
+
+    const handlePlay = () => {
+        setAudioStarted(true);
+        const audioEl = audioRef.current;
+        if (audioEl) {
+            const resume = audioResumeRef.current;
+            if (resume.partIndex === currentPartIndexRef.current && Number.isFinite(resume.seconds) && resume.seconds > 0) {
+                try {
+                    audioEl.currentTime = Math.max(0, resume.seconds);
+                } catch {
+                    // Ignore seek errors, playback still proceeds.
+                }
+            }
+            audioEl.play().catch(() => { });
+        }
+    };
+
+    useEffect(() => {
         if (!testId) { setError('Không tìm thấy ID bài thi.'); setLoading(false); return; }
-        
+
         // Lấy fallback skills từ URL
         const fallbackParam = searchParams.get('fallback');
         const fallbackSkills = fallbackParam ? fallbackParam.split(',') : [];
-        
+
         ieltsApi.getTestSession(testId, "LISTENING", fallbackSkills).then((data) => {
             // Nếu data.skillType khác LISTENING, redirect sang skill đúng
             if (data.skillType && data.skillType !== 'LISTENING') {
@@ -228,7 +313,7 @@ const IeltsListeningTest = () => {
                 navigate(`/test/${skill}/${testId}?${searchParams.toString()}`, { replace: true });
                 return;
             }
-            
+
             const shouldApplyPracticeConfig = mode === 'practice' && !isFullTest && !isReview;
             let configuredData = { ...data, testType: "Academic Listening" };
 
@@ -358,9 +443,17 @@ const IeltsListeningTest = () => {
             if (Number.isFinite(snapshot.activeQuestion)) {
                 setActiveQuestion(snapshot.activeQuestion);
             }
-            if (snapshot.audioStarted) {
-                setAudioStarted(true);
-            }
+
+            audioResumeRef.current = {
+                partIndex: Number.isFinite(snapshot.audioResumePartIndex)
+                    ? Math.max(0, Number(snapshot.audioResumePartIndex))
+                    : (Number.isFinite(snapshot.currentPartIndex) ? Math.max(0, Number(snapshot.currentPartIndex)) : 0),
+                seconds: Number.isFinite(snapshot.audioCurrentTime)
+                    ? Math.max(0, Number(snapshot.audioCurrentTime))
+                    : 0,
+            };
+
+            setAudioStarted(Boolean(isReview));
         };
 
         restoreSnapshot();
@@ -387,9 +480,17 @@ const IeltsListeningTest = () => {
         if (Number.isFinite(savedDraft.activeQuestion)) {
             setActiveQuestion(savedDraft.activeQuestion);
         }
-        if (savedDraft.audioStarted) {
-            setAudioStarted(true);
-        }
+
+        audioResumeRef.current = {
+            partIndex: Number.isFinite(savedDraft.audioResumePartIndex)
+                ? Math.max(0, Number(savedDraft.audioResumePartIndex))
+                : (Number.isFinite(savedDraft.currentPartIndex) ? Math.max(0, Number(savedDraft.currentPartIndex)) : 0),
+            seconds: Number.isFinite(savedDraft.audioCurrentTime)
+                ? Math.max(0, Number(savedDraft.audioCurrentTime))
+                : 0,
+        };
+
+        setAudioStarted(Boolean(isReview));
     }, [isFullTest, isReview, testData, testId, draftStorageKey, setCurrentPartIndex, setActiveQuestion]);
 
     useEffect(() => {
@@ -436,12 +537,25 @@ const IeltsListeningTest = () => {
                 sectionProgress,
             });
 
+            const currentAudioTime = (() => {
+                const audioEl = audioRef.current;
+                if (audioEl && Number.isFinite(audioEl.currentTime)) {
+                    return Math.max(0, audioEl.currentTime);
+                }
+                if (Number.isFinite(audioResumeRef.current.seconds)) {
+                    return Math.max(0, audioResumeRef.current.seconds);
+                }
+                return 0;
+            })();
+
             const snapshot = {
                 answers: state.answers || {},
                 bookmarks: state.bookmarks || {},
                 currentPartIndex: state.currentPartIndex || 0,
                 activeQuestion: state.activeQuestion || 1,
-                audioStarted: Boolean(state.audioStarted),
+                audioStarted: false,
+                audioCurrentTime: currentAudioTime,
+                audioResumePartIndex: currentPartIndexRef.current,
                 savedAt: Date.now(),
             };
 
@@ -483,6 +597,17 @@ const IeltsListeningTest = () => {
     useEffect(() => {
         if (isFullTest || isReview || !testData || !testId) return;
 
+        const currentAudioTime = (() => {
+            const audioEl = audioRef.current;
+            if (audioEl && Number.isFinite(audioEl.currentTime)) {
+                return Math.max(0, audioEl.currentTime);
+            }
+            if (Number.isFinite(audioResumeRef.current.seconds)) {
+                return Math.max(0, audioResumeRef.current.seconds);
+            }
+            return 0;
+        })();
+
         const snapshot = {
             mode: draftMode,
             queryString,
@@ -490,7 +615,9 @@ const IeltsListeningTest = () => {
             bookmarks,
             currentPartIndex,
             activeQuestion,
-            audioStarted,
+            audioStarted: false,
+            audioCurrentTime: currentAudioTime,
+            audioResumePartIndex: currentPartIndexRef.current,
             savedAt: Date.now(),
         };
 
@@ -509,6 +636,57 @@ const IeltsListeningTest = () => {
         activeQuestion,
         audioStarted,
     ]);
+
+    const persistExitSnapshot = useCallback(() => {
+        if (skipExitSnapshotRef.current) return;
+        if (isReview || !testData || !testId) return;
+
+        const audioEl = audioRef.current;
+        const currentAudioTime = audioEl && Number.isFinite(audioEl.currentTime)
+            ? Math.max(0, audioEl.currentTime)
+            : (Number.isFinite(audioResumeRef.current.seconds) ? Math.max(0, audioResumeRef.current.seconds) : 0);
+
+        const snapshot = {
+            mode: draftMode,
+            queryString,
+            answers,
+            bookmarks,
+            currentPartIndex,
+            activeQuestion,
+            audioStarted: false,
+            audioCurrentTime: currentAudioTime,
+            audioResumePartIndex: currentPartIndexRef.current,
+            savedAt: Date.now(),
+        };
+
+        if (isFullTest && fullTestSnapshotKey) {
+            sessionStorage.setItem(fullTestSnapshotKey, JSON.stringify(snapshot));
+            return;
+        }
+
+        localStorage.setItem(draftStorageKey, JSON.stringify(snapshot));
+    }, [
+        isReview,
+        testData,
+        testId,
+        draftMode,
+        queryString,
+        answers,
+        bookmarks,
+        currentPartIndex,
+        activeQuestion,
+        isFullTest,
+        fullTestSnapshotKey,
+        draftStorageKey,
+    ]);
+
+    useEffect(() => {
+        window.addEventListener('beforeunload', persistExitSnapshot);
+        return () => {
+            window.removeEventListener('beforeunload', persistExitSnapshot);
+            persistExitSnapshot();
+        };
+    }, [persistExitSnapshot]);
 
     useEffect(() => {
         if (inputRefs.current && inputRefs.current[activeQuestion] && typeof inputRefs.current[activeQuestion].focus === 'function') {
@@ -610,6 +788,7 @@ const IeltsListeningTest = () => {
         const timeSpentSeconds = Math.floor((Date.now() - startTime) / 1000);
         sessionStorage.setItem('lastAnswers_listening', JSON.stringify(answers));
         setIsSubmitting(true);
+        skipExitSnapshotRef.current = true;
 
         // Submit bài thi bình thường
         const submitPromise = isGuest
@@ -629,7 +808,7 @@ const IeltsListeningTest = () => {
                 }
                 clearDraftByTest('listening', testId);
                 localStorage.removeItem(`ieltsTimerDeadline_${timerPersistKey}`);
-                
+
                 // Nếu là bài tập, submit vào assignment API
                 if (assignmentId && resp?.attemptId) {
                     return import('../utils/assignmentHelper').then(({ submitTestToAssignment }) => {
@@ -642,7 +821,7 @@ const IeltsListeningTest = () => {
                         );
                     });
                 }
-                
+
                 if (isFullTest) { handleFullTestNext(); return; }
                 const completeParams = new URLSearchParams({
                     mode,
@@ -657,6 +836,7 @@ const IeltsListeningTest = () => {
                 navigate(completeUrl);
             })
             .catch((err) => {
+                skipExitSnapshotRef.current = false;
                 console.error('[Listening] Submit failed:', err);
                 setError(err.message === 'AUTH_REQUIRED'
                     ? 'Bạn cần đăng nhập để nộp bài. Vui lòng đăng nhập lại.'

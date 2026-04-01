@@ -50,7 +50,7 @@ const DropdownGroupQuestion = ({
         />
       )}
 
-      {(group.imageUrl || options.length > 0) && (
+      {(group.imageUrl || (options.length > 0 && !group.hideOptionsTable)) && (
         <div style={{ display: 'flex', gap: '20px', margin: '16px 0', alignItems: 'flex-end' }}>
           {group.imageUrl && (
             <div style={{ width: `${group.imageWidth || 100}%` }}>
@@ -66,7 +66,7 @@ const DropdownGroupQuestion = ({
             </div>
           )}
 
-          {options.length > 0 && (
+          {options.length > 0 && !group.hideOptionsTable && (
             <ul className="mcq-dropdown-legend" style={{ flex: group.imageUrl ? 1 : 'none', margin: 0, width: group.imageUrl ? 'auto' : '100%' }}>
               {options.map((opt) => (
                 <li key={opt.key} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -112,14 +112,6 @@ const DropdownGroupQuestion = ({
               className={`mcq-dropdown-row ${isActive ? 'active-question' : ''}`}
               onClick={() => setActiveQuestion?.(number)}
             >
-              {!isReview && (
-                <BookmarkToggle
-                  className="mcq-dropdown-bookmark"
-                  size={16}
-                  active={Boolean(bookmarks?.[number])}
-                  onToggle={() => toggleBookmark?.(number)}
-                />
-              )}
               <span className="mcq-dropdown-number">{number}</span>
               <span
                 className="mcq-dropdown-text"
@@ -133,6 +125,7 @@ const DropdownGroupQuestion = ({
                 className={`mcq-dropdown-select ${reviewClass}`}
                 value={displayValue || ''}
                 disabled={isReview}
+                onClick={(e) => e.stopPropagation()}
                 onChange={(e) => handleChange(question.id, e.target.value)}
               >
                 <option value="">…</option>
@@ -142,6 +135,14 @@ const DropdownGroupQuestion = ({
                   </option>
                 ))}
               </select>
+              {!isReview && (
+                <BookmarkToggle
+                  className="mcq-dropdown-bookmark"
+                  size={16}
+                  active={Boolean(bookmarks?.[number])}
+                  onToggle={() => toggleBookmark?.(number)}
+                />
+              )}
             </div>
           );
         })}

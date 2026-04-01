@@ -1,8 +1,16 @@
 import React from 'react';
-import { formatTextWithWhitespace } from '../../utils/textFormatters';
+import { applyDbFormattingMarkers } from '../../utils/textFormatters';
 import BookmarkToggle from '../common/BookmarkToggle';
 
 const SummaryCompletionSelectQuestion = ({ q, activeQuestion, setActiveQuestion, answers, handleAnswerChange, inputRefs, bookmarks, toggleBookmark, isReview }) => {
+    const isAutoCompletionTitle = (value) => {
+        const plain = String(value || '')
+            .replace(/<[^>]*>/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+        return /^(note|summary)\s*completion\s*\d*$/i.test(plain);
+    };
+
     // Parse data if it's a JSON string
     let questionData = q;
     if (typeof q === 'string') {
@@ -49,19 +57,181 @@ const SummaryCompletionSelectQuestion = ({ q, activeQuestion, setActiveQuestion,
         || parseEmbeddedQuestionPayload(questionData?.text);
 
     const options = (questionData.optionBank || []).map(resolveText).filter(Boolean);
-    const instructions = cleanInstructionText(
-        payloadFromText?.title || payloadFromText?.instructions || questionData.instructions || ''
-    );
+    const explicitInstructions = cleanInstructionText(payloadFromText?.instructions || questionData.instructions || '');
+    const titleFallback = cleanInstructionText(payloadFromText?.title || '');
+    const instructions = explicitInstructions || (isAutoCompletionTitle(titleFallback) ? '' : titleFallback);
     const noteText = payloadFromText?.noteText || payloadFromText?.text || questionData.noteText || questionData.text || '';
     const allowOptionReuse = questionData.allowOptionReuse !== false;
 
     const [isDragOverBank, setIsDragOverBank] = React.useState(false);
 
+    const formatInlineHtml = (value) => {
+        if (typeof value !== 'string') return value || '';
+
+        const withMarkers = applyDbFormattingMarkers(value)
+            .replace(/\u00A0/g, ' ')
+            .replace(/\\t|\/t|\t/g, '    ');
+
+        if (/<[a-z][\s\S]*>/i.test(withMarkers)) {
+            return withMarkers.replace(/\\n/g, '<br/>');
+        }
+
+        return withMarkers.replace(/\\n|\n/g, '<br/>');
+    };
+
     const normalizeBlankTokens = (text) => {
-        let s = String(text || '');
+        let s = applyDbFormattingMarkers(String(text || ''));
         s = s.replace(/<span[^>]*data-blank=["']true["'][^>]*>[\s\S]*?<\/span>/gi, '[blank]');
+        s = s.replace(/<button[^>]*data-del=["']true["'][^>]*>[\s\S]*?<\/button>/gi, '');
+        s = s.replace(/<span[^>]*class=["'][^"']*rbe-blank-(?:num|del)[^"']*["'][^>]*>[\s\S]*?<\/span>/gi, '');
+        // Keep blanks inline even when editor inserts hard line breaks around them.
+        s = s.replace(/<br\b[^>]*\/?>(?:\s|&nbsp;)*(\[(?:blank|\d+)\])/gi, ' $1');
+        s = s.replace(/(\[(?:blank|\d+)\])(?:\s|&nbsp;)*<br\b[^>]*\/?>/gi, '$1 ');
+        s = s.replace(/\\n\s*(\[(?:blank|\d+)\])/gi, ' $1');
+        s = s.replace(/(\[(?:blank|\d+)\])\s*\\n/gi, '$1 ');
+        s = s.replace(/\r?\n\s*(\[(?:blank|\d+)\])/gi, ' $1');
+        s = s.replace(/(\[(?:blank|\d+)\])\s*\r?\n/gi, '$1 ');
+        s = s.replace(/(\[(?:blank|\d+)\])\s*[x×]\s+/gi, '$1 ');
+        s = s.replace(/<(p|div)\b[^>]*>\s*(\[(?:blank|\d+)\][\s\S]*?)\s*<\/\1>/gi, ' $2 ');
+        s = s.replace(/<\/li>\s*([\s\S]*?\[(?:blank|\d+)\][\s\S]*?)(?=\s*(?:<li\b|<\/(?:ul|ol)\b))/gi, (_match, fragment) => {
+            const merged = String(fragment || '')
+                .trim()
+                .replace(/^<(p|div)\b[^>]*>\s*/i, '')
+                .replace(/\s*<\/(p|div)>$/i, '')
+                .replace(/<\/li>\s*$/i, '')
+                .trim();
+            return merged ? ` ${merged} </li>` : '</li>';
+        });
         s = s.replace(/\[\s*blank\s*\]/gi, '[blank]');
         return s;
+    };
+
+    const mapDomAttributesToProps = (node, key) => {
+        const props = { key };
+        Array.from(node.attributes || []).forEach((attr) => {
+            const attrName = String(attr.name || '').toLowerCase();
+            if (!attrName || attrName === 'style' || attrName === 'contenteditable') return;
+            if (attrName === 'class') {
+                props.className = attr.value;
+                return;
+            }
+            props[attr.name] = attr.value;
+        });
+        return props;
+    };
+
+    const resolveTokenTarget = (tokenValue, blankState) => {
+        const token = String(tokenValue || '').toLowerCase();
+        const numeric = Number(tokenValue);
+
+        if (token === 'blank' || Number.isNaN(numeric)) {
+            const seqIndex = blankState.cursor;
+            const subQ = questionData.subQuestions?.[seqIndex] || null;
+            blankState.cursor += 1;
+            const fallbackNum = seqIndex + 1;
+            const qNum = subQ?.number ?? fallbackNum;
+            const qId = subQ ? subQ.id : `q${qNum}`;
+            return { subQ, qNum, qId };
+        }
+
+        const subQ = questionData.subQuestions?.find((sq) => Number(sq.number) === numeric) || null;
+        const qNum = subQ?.number ?? numeric;
+        const qId = subQ ? subQ.id : `q${qNum}`;
+        return { subQ, qNum, qId };
+    };
+
+    const renderDropToken = (tokenValue, key, blankState) => {
+        const { subQ, qNum, qId } = resolveTokenTarget(tokenValue, blankState);
+        const isActive = activeQuestion === qNum;
+        const answer = answers?.[qId] || '';
+        const isCorrect = answer === subQ?.correctAnswer;
+        const displayAnswer = (isReview && !isCorrect) ? subQ?.correctAnswer : answer;
+
+        return (
+            <span
+                key={key}
+                id={`question-${qNum}`}
+                className={`inline-question summary-inline-item ${isActive ? 'active-question-input' : ''} relative-pos`}
+                onClick={() => setActiveQuestion?.(qNum)}
+            >
+                {!isReview && (
+                    <BookmarkToggle
+                        className="summary-bookmark"
+                        size={16}
+                        active={Boolean(bookmarks?.[qNum])}
+                        onToggle={() => toggleBookmark?.(qNum)}
+                    />
+                )}
+                <span
+                    ref={(el) => { if (inputRefs?.current) inputRefs.current[qNum] = el; }}
+                    className={`inline-input summary-input drag-drop-blank ${isReview ? (isCorrect ? 'review-correct' : 'review-wrong') : ''}`}
+                    onDrop={(e) => handleDrop(e, qId, qNum)}
+                    onDragOver={handleDragOver}
+                    onClick={() => { if (!isReview) setActiveQuestion?.(qNum); }}
+                    style={{ minWidth: 120, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', cursor: isReview ? 'default' : 'pointer' }}
+                >
+                    {displayAnswer ? (
+                        <span
+                            draggable={!isReview}
+                            onDragStart={(e) => { if (!isReview) handleDragStart(e, displayAnswer, qId); }}
+                            style={{
+                                cursor: isReview ? 'default' : 'grab',
+                                padding: '2px 4px'
+                            }}
+                        >
+                            {displayAnswer}
+                        </span>
+                    ) : (
+                        <span style={{ color: '#9ca3af' }}>{qNum}</span>
+                    )}
+                </span>
+            </span>
+        );
+    };
+
+    const renderTextNodeWithTokens = (text, keyPrefix, blankState) => {
+        const tokenRegex = /\[(blank|\d+)\]/gi;
+        const rawText = String(text || '');
+        const rendered = [];
+        let cursor = 0;
+        let match;
+
+        while ((match = tokenRegex.exec(rawText)) !== null) {
+            const before = rawText.slice(cursor, match.index);
+            if (before) rendered.push(before);
+            rendered.push(renderDropToken(match[1], `${keyPrefix}-token-${cursor}`, blankState));
+            cursor = tokenRegex.lastIndex;
+        }
+
+        const after = rawText.slice(cursor);
+        if (after) rendered.push(after);
+
+        if (!rendered.length) return rawText;
+        return rendered;
+    };
+
+    const renderDomNodeWithTokens = (node, keyPrefix, blankState) => {
+        if (!node) return null;
+
+        if (node.nodeType === 3) {
+            return renderTextNodeWithTokens(node.textContent || '', keyPrefix, blankState);
+        }
+
+        if (node.nodeType !== 1) return null;
+
+        const tagName = String(node.tagName || '').toLowerCase();
+        if (!tagName || tagName === 'script' || tagName === 'style') return null;
+
+        const children = Array.from(node.childNodes || []).flatMap((child, idx) => {
+            const childNode = renderDomNodeWithTokens(child, `${keyPrefix}-${idx}`, blankState);
+            if (Array.isArray(childNode)) {
+                return childNode.filter((entry) => entry !== null && entry !== undefined);
+            }
+            return childNode === null || childNode === undefined ? [] : [childNode];
+        });
+
+        const props = mapDomAttributesToProps(node, keyPrefix);
+        return React.createElement(tagName, props, children.length ? children : undefined);
     };
 
     const handleDragStart = (e, option, sourceQId = null) => {
@@ -120,72 +290,31 @@ const SummaryCompletionSelectQuestion = ({ q, activeQuestion, setActiveQuestion,
     const renderParagraph = () => {
         if (!noteText) return null;
         const normalizedText = normalizeBlankTokens(noteText);
-        const parts = normalizedText.split(/\[blank\]/gi);
-        let blankIndex = 0;
+        const htmlText = formatInlineHtml(normalizedText);
 
-        return parts.map((part, index) => {
-            if (index >= parts.length - 1) {
-                return <span key={index} dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(part) }} />;
+        if (typeof DOMParser === 'undefined') {
+            return <span dangerouslySetInnerHTML={{ __html: htmlText }} />;
+        }
+
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(`<div>${htmlText}</div>`, 'text/html');
+        const root = doc.body.firstElementChild;
+        if (!root) return null;
+
+        const blankState = { cursor: 0 };
+        return Array.from(root.childNodes || []).flatMap((node, idx) => {
+            const renderedNode = renderDomNodeWithTokens(node, `summary-select-node-${idx}`, blankState);
+            if (Array.isArray(renderedNode)) {
+                return renderedNode.filter((entry) => entry !== null && entry !== undefined);
             }
-
-            const subQ = questionData.subQuestions?.[blankIndex];
-            const qNum = subQ?.number ?? blankIndex + 1;
-            const qId = subQ ? subQ.id : `q${qNum}`;
-            const isActive = activeQuestion === qNum;
-            const answer = answers?.[qId] || '';
-            const isCorrect = answer === subQ?.correctAnswer;
-            const displayAnswer = (isReview && !isCorrect) ? subQ?.correctAnswer : answer;
-
-            blankIndex++;
-            return (
-                <span key={index}>
-                    <span dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(part) }} />
-                    <span
-                        id={`question-${qNum}`}
-                        className={`inline-question summary-inline-item ${isActive ? 'active-question-input' : ''} relative-pos`}
-                        onClick={() => setActiveQuestion?.(qNum)}
-                    >
-                        {!isReview && (
-                            <BookmarkToggle
-                                className="summary-bookmark"
-                                size={16}
-                                active={Boolean(bookmarks?.[qNum])}
-                                onToggle={() => toggleBookmark?.(qNum)}
-                            />
-                        )}
-                        <span
-                            ref={(el) => { if (inputRefs?.current) inputRefs.current[qNum] = el; }}
-                            className={`inline-input summary-input drag-drop-blank ${isReview ? (isCorrect ? 'review-correct' : 'review-wrong') : ''}`}
-                            onDrop={(e) => handleDrop(e, qId, qNum)}
-                            onDragOver={handleDragOver}
-                            onClick={() => { if (!isReview) setActiveQuestion?.(qNum); }}
-                            style={{ minWidth: 120, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', cursor: isReview ? 'default' : 'pointer' }}
-                        >
-                            {displayAnswer ? (
-                                <span
-                                    draggable={!isReview}
-                                    onDragStart={(e) => { if (!isReview) handleDragStart(e, displayAnswer, qId); }}
-                                    style={{
-                                        cursor: isReview ? 'default' : 'grab',
-                                        padding: '2px 4px'
-                                    }}
-                                >
-                                    {displayAnswer}
-                                </span>
-                            ) : (
-                                <span style={{ color: '#9ca3af' }}>{qNum}</span>
-                            )}
-                        </span>
-                    </span>
-                </span>
-            );
+            return renderedNode === null || renderedNode === undefined ? [] : [renderedNode];
         });
     };
 
     return (
         <div className="summary-completion-container">
             {instructions && (
-                <p className="summary-instructions" dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(instructions) }} />
+                <p className="summary-instructions" dangerouslySetInnerHTML={{ __html: formatInlineHtml(instructions) }} />
             )}
             <div className="summary-text">
                 {renderParagraph()}

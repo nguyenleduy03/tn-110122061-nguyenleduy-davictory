@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { CheckCircle, ArrowRight } from 'lucide-react';
+import { CheckCircle, ArrowRight, Target, Clock3, Medal, AlertTriangle } from 'lucide-react';
 import { ieltsApi } from '../services/ieltsApi';
 import { calculateExamBand, formatBand } from '../utils/ieltsScoring';
 import { clearSubmittedLockByTest } from '../utils/testRuntimeState';
@@ -78,6 +78,10 @@ const TestComplete = () => {
         const secs = Math.floor(numeric % 60);
         return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
     }, []);
+
+    const accuracyPercent = summary.total > 0
+        ? Math.round((summary.correct / summary.total) * 100)
+        : 0;
 
     React.useEffect(() => {
         if (!testId || !isObjectiveSkill) return;
@@ -250,54 +254,81 @@ const TestComplete = () => {
                                 <p className="test-complete-sub">Loading score and answers...</p>
                             ) : (
                                 <>
+                                    <div className="result-review-heading">
+                                        <h2>Exam Result Overview</h2>
+                                        <p>{skillLabel} section • {isExam ? 'Exam mode' : 'Practice mode'}</p>
+                                    </div>
+
                                     <div className="result-summary-grid">
-                                        <div className="result-summary-card circle">
-                                            <div className="result-summary-label">Đáp án đúng</div>
+                                        <div className="result-summary-card">
+                                            <div className="result-summary-label"><Target size={14} /> Accuracy</div>
                                             <div className="result-summary-value correct">{summary.correct}/{summary.total}</div>
+                                            <div className="result-summary-sub">{accuracyPercent}% correct</div>
                                         </div>
-                                        <div className="result-summary-card circle highlight">
-                                            <div className="result-summary-label">Band</div>
+                                        <div className="result-summary-card highlight">
+                                            <div className="result-summary-label"><Medal size={14} /> Band</div>
                                             <div className="result-summary-value">{formatBand(summary.bandScore)}</div>
+                                            <div className="result-summary-sub">Estimated from objective answers</div>
                                         </div>
-                                        <div className="result-summary-card circle">
-                                            <div className="result-summary-label">Thời gian làm bài</div>
+                                        <div className="result-summary-card">
+                                            <div className="result-summary-label"><Clock3 size={14} /> Time Spent</div>
                                             <div className="result-summary-value">{formatDuration(summary.timeSpentSeconds)}</div>
-                                            <div className="result-summary-sub">({formatDuration(summary.totalTimeSeconds)})</div>
+                                            <div className="result-summary-sub">Allocated: {formatDuration(summary.totalTimeSeconds)}</div>
+                                        </div>
+                                        <div className="result-summary-card">
+                                            <div className="result-summary-label"><AlertTriangle size={14} /> Need Review</div>
+                                            <div className={`result-summary-value ${summary.wrong > 0 ? 'wrong' : 'correct'}`}>{summary.wrong}</div>
+                                            <div className="result-summary-sub">
+                                                {summary.wrong > 0 ? 'Incorrect answers found' : 'Perfect section'}
+                                            </div>
                                         </div>
                                     </div>
 
                                     {resultRows.length === 0 ? (
                                         <p className="test-complete-sub">No answer data found for this attempt.</p>
                                     ) : (
-                                        resultParts.map(([partLabel, items]) => {
-                                            const wrongItems = items.filter((it) => !it.isCorrect);
-                                            return (
-                                                <div className="result-part-block" key={partLabel}>
-                                                    <h3>{partLabel}</h3>
-                                                    {wrongItems.length === 0 ? (
-                                                        <p className="result-all-correct">All answers in this part are correct.</p>
-                                                    ) : (
-                                                        <div className="result-wrong-grid">
-                                                            {wrongItems.map((row) => (
-                                                                <div className="result-wrong-item compact" key={row.id}>
-                                                                    <div className="result-qno-badge">{row.number}</div>
-                                                                    <div className="result-compact-answer">
-                                                                        <span className="result-correct-label">{String(row.correctAns || '')}</span>
-                                                                        {String(row.userAns || '').trim() ? (
-                                                                            <>
-                                                                                <span className="result-colon">:</span>
-                                                                                <span className="result-wrong-label">{String(row.userAns)}</span>
-                                                                                <span className="result-cross">✕</span>
-                                                                            </>
-                                                                        ) : null}
-                                                                    </div>
-                                                                </div>
-                                                            ))}
+                                        <div className="result-detail-panel">
+                                            <div className="result-detail-head">
+                                                <h3>Incorrect Answers by Part</h3>
+                                                <span className={`result-detail-pill ${summary.wrong > 0 ? 'warn' : 'ok'}`}>
+                                                    {summary.wrong > 0 ? `${summary.wrong} items to review` : 'No incorrect answers'}
+                                                </span>
+                                            </div>
+
+                                            {resultParts.map(([partLabel, items]) => {
+                                                const wrongItems = items.filter((it) => !it.isCorrect);
+                                                return (
+                                                    <div className="result-part-block" key={partLabel}>
+                                                        <div className="result-part-head">
+                                                            <h4>{partLabel}</h4>
+                                                            <span className="result-part-count">{wrongItems.length} incorrect</span>
                                                         </div>
-                                                    )}
-                                                </div>
-                                            );
-                                        })
+                                                        {wrongItems.length === 0 ? (
+                                                            <p className="result-all-correct">All answers in this part are correct.</p>
+                                                        ) : (
+                                                            <div className="result-wrong-grid">
+                                                                {wrongItems.map((row) => (
+                                                                    <div className="result-wrong-item compact" key={row.id}>
+                                                                        <div className="result-qno-badge">{row.number}</div>
+                                                                        <div className="result-compact-answer">
+                                                                            <span className="result-answer-tag">Correct</span>
+                                                                            <span className="result-correct-label">{String(row.correctAns || '')}</span>
+                                                                            {String(row.userAns || '').trim() ? (
+                                                                                <>
+                                                                                    <span className="result-answer-tag muted">Your answer</span>
+                                                                                    <span className="result-wrong-label">{String(row.userAns)}</span>
+                                                                                    <span className="result-cross">✕</span>
+                                                                                </>
+                                                                            ) : null}
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
                                     )}
                                 </>
                             )}

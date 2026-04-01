@@ -62,7 +62,7 @@ const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isRevie
     const fullscreenWarningTimerRef = useRef(null);
     const isExitingTestRef = useRef(false);
     const hasTriggeredTimeUpRef = useRef(false);
-    const pauseStartedAtRef = useRef(null);
+    const timeLeftRef = useRef(0);
     const timerStorageKey = useMemo(() => {
         if (!timerPersistKey) return null;
         return `ieltsTimerDeadline_${timerPersistKey}`;
@@ -71,6 +71,10 @@ const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isRevie
         const safeDuration = Number.isFinite(duration) ? duration : 0;
         return Math.max(0, safeDuration * 60);
     });
+    const resolvedDurationSeconds = useMemo(() => {
+        const safeDuration = Number.isFinite(duration) ? duration : 0;
+        return Math.max(0, Math.floor(safeDuration * 60));
+    }, [duration]);
     const storedUser = useMemo(() => authApi.getStoredUser(), []);
     const tokenIdentity = useMemo(() => getTokenIdentity(), []);
     const resolvedCandidateId = useMemo(() => {
@@ -265,11 +269,27 @@ const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isRevie
         }
     }, [isOptionsOpen, optionsView]);
 
-    // Timer logic based on absolute deadline to survive reload/network interruptions.
+    const persistRemainingTime = (remainingSeconds, durationSeconds) => {
+        if (!timerStorageKey) return;
+        try {
+            localStorage.setItem(timerStorageKey, JSON.stringify({
+                remainingSeconds: Math.max(0, Math.floor(remainingSeconds)),
+                durationSeconds,
+                savedAt: Date.now(),
+            }));
+        } catch {
+            // Ignore storage errors.
+        }
+    };
+
+    useEffect(() => {
+        timeLeftRef.current = timeLeft;
+    }, [timeLeft]);
+
+    // Timer is stored as remaining seconds so leaving the test page pauses time.
     useEffect(() => {
         hasTriggeredTimeUpRef.current = false;
 
-        if (timerPaused || hideTimer) return; // Wait until timer should start (e.g. pre-check completed)
         if (noTimeLimit || isReview) {
             if (timerStorageKey) {
                 localStorage.removeItem(timerStorageKey);
@@ -277,15 +297,13 @@ const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isRevie
             return;
         }
 
-        const safeDuration = Number.isFinite(duration) ? duration : 0;
-        const durationSeconds = Math.max(0, Math.floor(safeDuration * 60));
+        const durationSeconds = resolvedDurationSeconds;
         if (durationSeconds <= 0) {
             setTimeLeft(0);
             return;
         }
 
-        const now = Date.now();
-        let deadlineMs = now + (durationSeconds * 1000);
+        let remainingSeconds = durationSeconds;
 
         if (timerStorageKey) {
             try {
@@ -293,116 +311,63 @@ const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isRevie
                 const stored = storedRaw ? JSON.parse(storedRaw) : null;
                 if (
                     stored
-                    && Number.isFinite(stored.deadlineMs)
                     && Number.isFinite(stored.durationSeconds)
                     && stored.durationSeconds === durationSeconds
                 ) {
-                    deadlineMs = stored.deadlineMs;
+                    if (Number.isFinite(stored.remainingSeconds)) {
+                        remainingSeconds = Math.max(0, Math.floor(stored.remainingSeconds));
+                    } else if (Number.isFinite(stored.deadlineMs)) {
+                        // Backward compatibility with older deadline-based timer state.
+                        remainingSeconds = Math.max(0, Math.ceil((stored.deadlineMs - Date.now()) / 1000));
+                    }
                 } else {
-                    localStorage.setItem(timerStorageKey, JSON.stringify({
-                        deadlineMs,
-                        durationSeconds,
-                        savedAt: now,
-                    }));
+                    persistRemainingTime(remainingSeconds, durationSeconds);
                 }
             } catch {
-                // Ignore malformed timer cache and continue with a fresh deadline.
+                // Ignore malformed timer cache and continue with initial remaining time.
             }
         }
 
-        setTimeLeft(Math.max(0, Math.ceil((deadlineMs - now) / 1000)));
-    }, [duration, noTimeLimit, timerStorageKey, isReview, timerPaused, hideTimer]);
-
-    // Keep absolute-deadline timer accurate when paused/resumed by shifting deadline.
-    useEffect(() => {
-        if (isReview || noTimeLimit || !timerStorageKey) {
-            pauseStartedAtRef.current = null;
-            return;
-        }
-
-        const isPaused = Boolean(timerPaused || hideTimer);
-        if (isPaused) {
-            if (!pauseStartedAtRef.current) {
-                pauseStartedAtRef.current = Date.now();
-            }
-            return;
-        }
-
-        if (!pauseStartedAtRef.current) return;
-
-        const pausedMs = Math.max(0, Date.now() - pauseStartedAtRef.current);
-        pauseStartedAtRef.current = null;
-        if (pausedMs <= 0) return;
-
-        try {
-            const storedRaw = localStorage.getItem(timerStorageKey);
-            const stored = storedRaw ? JSON.parse(storedRaw) : null;
-            if (!stored || !Number.isFinite(stored.deadlineMs)) return;
-
-            const nextDeadline = stored.deadlineMs + pausedMs;
-            localStorage.setItem(timerStorageKey, JSON.stringify({
-                ...stored,
-                deadlineMs: nextDeadline,
-                savedAt: Date.now(),
-            }));
-
-            const remaining = Math.max(0, Math.ceil((nextDeadline - Date.now()) / 1000));
-            setTimeLeft(remaining);
-        } catch {
-            // Ignore malformed timer cache.
-        }
-    }, [timerPaused, hideTimer, isReview, noTimeLimit, timerStorageKey]);
+        setTimeLeft(remainingSeconds);
+        persistRemainingTime(remainingSeconds, durationSeconds);
+    }, [noTimeLimit, timerStorageKey, isReview, resolvedDurationSeconds]);
 
     useEffect(() => {
         if (timerPaused || hideTimer) return; // Don't tick until timer is started
         if (isReview) return;
         if (noTimeLimit) return;
-        const safeDuration = Number.isFinite(duration) ? duration : 0;
-        const durationSeconds = Math.max(0, Math.floor(safeDuration * 60));
+        const durationSeconds = resolvedDurationSeconds;
         if (durationSeconds <= 0) return;
 
-        let deadlineMs = Date.now() + (durationSeconds * 1000);
-        if (timerStorageKey) {
-            try {
-                const storedRaw = localStorage.getItem(timerStorageKey);
-                const stored = storedRaw ? JSON.parse(storedRaw) : null;
-                if (
-                    stored
-                    && Number.isFinite(stored.deadlineMs)
-                    && Number.isFinite(stored.durationSeconds)
-                    && stored.durationSeconds === durationSeconds
-                ) {
-                    deadlineMs = stored.deadlineMs;
-                } else {
-                    localStorage.setItem(timerStorageKey, JSON.stringify({
-                        deadlineMs,
-                        durationSeconds,
-                        savedAt: Date.now(),
-                    }));
-                }
-            } catch {
-                // Ignore malformed timer cache and continue with local deadline.
-            }
-        }
-
         const tick = () => {
-            const remaining = Math.max(0, Math.ceil((deadlineMs - Date.now()) / 1000));
-            setTimeLeft(remaining);
+            setTimeLeft((prev) => {
+                const remaining = Math.max(0, prev - 1);
 
-            if (remaining <= 0 && !hasTriggeredTimeUpRef.current) {
-                hasTriggeredTimeUpRef.current = true;
-                if (timerStorageKey) {
-                    localStorage.removeItem(timerStorageKey);
+                if (remaining <= 0) {
+                    if (!hasTriggeredTimeUpRef.current) {
+                        hasTriggeredTimeUpRef.current = true;
+                        if (timerStorageKey) {
+                            localStorage.removeItem(timerStorageKey);
+                        }
+                        if (onTimeUp) onTimeUp();
+                    }
+                    return 0;
                 }
-                if (onTimeUp) onTimeUp();
-            }
+
+                persistRemainingTime(remaining, durationSeconds);
+                return remaining;
+            });
         };
 
-        tick();
         const timer = setInterval(tick, 1000);
 
-        return () => clearInterval(timer);
-    }, [isReview, noTimeLimit, onTimeUp, duration, timerStorageKey, timerPaused, hideTimer]);
+        return () => {
+            clearInterval(timer);
+            if (!isReview && !noTimeLimit) {
+                persistRemainingTime(timeLeftRef.current, durationSeconds);
+            }
+        };
+    }, [isReview, noTimeLimit, onTimeUp, timerStorageKey, timerPaused, hideTimer, resolvedDurationSeconds]);
 
     const formatTime = (seconds) => {
         const h = Math.floor(seconds / 3600);

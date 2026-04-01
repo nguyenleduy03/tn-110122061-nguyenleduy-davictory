@@ -145,8 +145,14 @@ const BuilderHeader = ({
       };
       editableEl.style.textAlign = alignMap[cmd] || 'left';
     } else {
-      // Use execCommand for other formatting
+      // Restore the highlighted range before applying formatting so the
+      // command affects the selected instruction text, not the caret only.
       try {
+        if (lastRangeRef.current) {
+          const sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(lastRangeRef.current);
+        }
         document.execCommand(cmd, false, val);
       } catch (error) {
         console.error(`execCommand '${cmd}' error:`, error);

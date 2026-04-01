@@ -153,6 +153,7 @@ const MultipleChoiceBlock = ({ group, onUpdate, onDelete, onSelect, selected, dr
                           module={module}
                           assetLabel="MCQ_OPTION"
                           testTitle={testTitle}
+                          testId={testId}
                           showPreview={true}
                           compact={false}
                         />

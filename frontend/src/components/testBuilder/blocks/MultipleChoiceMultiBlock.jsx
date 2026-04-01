@@ -86,7 +86,6 @@ const MultipleChoiceMultiBlock = ({ group, onUpdate, onDelete, onSelect, selecte
             className={`exam-mc-question${selectedQuestionId === q.id ? ' selected' : ''}`}
             onClick={(e) => { e.stopPropagation(); onSelectQuestion(q); }}>
             <div className="exam-mc-q-header">
-              <div className="exam-q-num" style={{ background: '#9d174d' }}>{q.questionNumber ?? '?'}</div>
               <RichInput
                 style={{ flex: 1 }}
                 value={q.questionText || ''}
@@ -121,6 +120,7 @@ const MultipleChoiceMultiBlock = ({ group, onUpdate, onDelete, onSelect, selecte
                           module={module}
                           assetLabel="MCQ_OPTION"
                           testTitle={testTitle}
+                          testId={testId}
                           showPreview={true}
                           compact={false}
                         />

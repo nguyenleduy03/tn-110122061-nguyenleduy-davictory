@@ -172,6 +172,9 @@
 
 .mf-bookmark-btn {
     padding: 2px;
+    margin-left: auto;
+    order: 3;
+    flex-shrink: 0;
 }
 
 .mf-q-num {
@@ -1671,7 +1674,8 @@
 }
 
 .fc-blank.fc-blank-has-bookmark {
-    margin-left: 22px;
+    margin-left: 3px;
+    margin-right: 22px;
 }
 
 .fc-blank-filled {
@@ -1695,7 +1699,8 @@
 
 .fc-blank-bookmark {
     position: absolute;
-    left: -22px;
+    right: -22px;
+    left: auto;
     top: 50%;
     transform: translateY(-50%);
     z-index: 2;
@@ -2002,7 +2007,7 @@
     display: flex;
     align-items: flex-start;
     gap: 8px;
-    flex: 0 1 auto;
+    flex: 1 1 auto;
     margin-right: 10px;
     font-size: 15px;
     line-height: 1.5;
@@ -2020,20 +2025,30 @@
 }
 
 .dd-info-text .dd-bookmark-btn {
-    position: relative;
-    top: 3px;
+    position: static;
+    margin-left: auto;
+    align-self: center;
+    flex-shrink: 0;
 }
 
 .dd-default-meta {
     display: flex;
     align-items: center;
     gap: 10px;
+    flex: 1 1 auto;
+    min-width: 0;
 }
 
 .dd-default-label {
     display: flex;
     align-items: center;
     gap: 5px;
+    flex-shrink: 0;
+}
+
+.dd-default-meta .dd-bookmark-btn {
+    margin-left: auto;
+    flex-shrink: 0;
 }
 
 .dd-question-num {
@@ -2145,14 +2160,8 @@
 }
 
 .dd-drop-zone.dd-drop-info .dd-drop-clear {
-    display: none;
-}
-
-.dd-drop-number {
-    color: #000;
-    font-weight: bold;
-    width: 100%;
-    text-align: center;
+    display: inline !important;
+    margin: 0 !important;
 }
 
 .dd-drop-answer {
@@ -4207,7 +4216,10 @@
 }
 
 .tfng-bookmark {
-    margin-top: 5px;
+    margin-top: 0;
+    margin-left: auto;
+    align-self: flex-start;
+    order: 2;
     flex-shrink: 0;
 }
 
@@ -4215,6 +4227,7 @@
     display: flex;
     align-items: baseline;
     gap: 6px;
+    flex: 1 1 auto;
     min-width: 0;
     line-height: 1.5;
 }
@@ -4256,8 +4269,20 @@
 .summary-text {
     font-size: 15px;
     line-height: 1.65;
-    white-space: pre-wrap;
+    white-space: normal;
     font-family: Arial, Helvetica, sans-serif;
+}
+
+.summary-text li>p,
+.summary-text li>div {
+    display: inline;
+    margin: 0;
+}
+
+.summary-text li>p,
+.summary-text li>div {
+    display: inline;
+    margin: 0;
 }
 
 .summary-inline-item {
@@ -4268,7 +4293,9 @@
 }
 
 .summary-bookmark {
-    margin-right: 2px;
+    margin-right: 0;
+    margin-left: 4px;
+    order: 2;
     flex-shrink: 0;
 }
 
@@ -5502,7 +5529,9 @@ body.text-size-xlarge .options-fs-overlay {
 
 .tc-bookmark {
     flex-shrink: 0;
-    margin-right: 4px;
+    margin-right: 0;
+    margin-left: 4px;
+    order: 2;
     position: static;
 }
 
@@ -5547,10 +5576,13 @@ body.text-size-xlarge .options-fs-overlay {
 
 .bookmark-portal-target {
     display: inline-flex;
-    align-items: baseline;
-    margin-right: 8px;
-    vertical-align: baseline;
-    line-height: inherit;
+    align-items: center;
+    justify-content: center;
+    float: right;
+    margin-right: 0;
+    margin-left: 8px;
+    vertical-align: middle;
+    line-height: 1;
 }
 
 .bookmark-portal-container {
@@ -5632,7 +5664,7 @@ body.text-size-xlarge .options-fs-overlay {
 
 .mcq-dropdown-list {
     display: grid;
-    grid-template-columns: auto auto 1fr auto;
+    grid-template-columns: auto 1fr auto auto;
     gap: 12px 10px;
     align-items: center;
     max-width: fit-content;
@@ -5648,7 +5680,11 @@ body.text-size-xlarge .options-fs-overlay {
     white-space: pre-wrap;
     word-break: break-word;
     cursor: pointer;
-    max-width: max-content;
+    max-width: 100%;
+}
+
+.mcq-dropdown-bookmark {
+    justify-self: end;
 }
 
 
