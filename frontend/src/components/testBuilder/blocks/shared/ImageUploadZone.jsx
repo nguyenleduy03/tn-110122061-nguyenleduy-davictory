@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Upload, Link as LinkIcon, Trash2, Image as ImageIcon } from 'lucide-react';
+import { resolveDrivePreviewUrl } from '../../../../utils/mediaUrl';
 
 /**
  * ImageUploadZone - Component tổng hợp cho upload ảnh
@@ -12,6 +13,7 @@ const ImageUploadZone = ({
   placeholder = 'Nhập URL ảnh hoặc kéo thả/paste ảnh vào đây',
   module = 'READING',
   testTitle = '',
+  assetLabel = '',
   showPreview = true,
   compact = false,
   disabled = false
@@ -32,7 +34,7 @@ const ImageUploadZone = ({
     try {
       // Import động để tránh circular dependency
       const { loadImageFile: uploadFn } = await import('./blockHelpers');
-      await uploadFn(file, onImageChange, module, testTitle);
+      await uploadFn(file, onImageChange, module, testTitle, null, assetLabel);
     } catch (error) {
       console.error('Image upload error:', error);
       alert('Lỗi tải ảnh: ' + error.message);
@@ -123,7 +125,7 @@ const ImageUploadZone = ({
 
     dropZone.addEventListener('paste', handlePaste);
     return () => dropZone.removeEventListener('paste', handlePaste);
-  }, [disabled, module, testTitle]);
+  }, [disabled, module, testTitle, assetLabel]);
 
   const isDataUrl = imageUrl?.startsWith('data:');
 
@@ -142,7 +144,7 @@ const ImageUploadZone = ({
         
         {imageUrl && showPreview && (
           <div className="image-preview-compact">
-            <img src={imageUrl} alt="Preview" />
+            <img src={resolveDrivePreviewUrl(imageUrl)} alt="Preview" />
             {onImageDelete && (
               <button
                 type="button"
@@ -210,7 +212,7 @@ const ImageUploadZone = ({
           </div>
         ) : (
           <div className="image-preview-full">
-            <img src={imageUrl} alt="Preview" />
+            <img src={resolveDrivePreviewUrl(imageUrl)} alt="Preview" />
             <div className="image-preview-actions">
               <button
                 type="button"

@@ -42,13 +42,16 @@ const TestComplete = () => {
         }
     }, []);
 
-    // Clear submitted lock so "Xem kết quả" won't appear in ExamLibrary
+    // Clear submitted lock and mark as viewed so "Xem kết quả" won't appear in ExamLibrary
     // after user has already viewed the results page
     React.useEffect(() => {
-        if (testId) {
+        if (testId && isObjectiveSkill) {
             clearSubmittedLockByTest(testId, skill);
+            // Mark as viewed for Reading/Listening only
+            const viewedKey = `ieltsResultViewed_${normalizedSkill}_${testId}`;
+            localStorage.setItem(viewedKey, Date.now().toString());
         }
-    }, [testId, skill]);
+    }, [testId, skill, isObjectiveSkill, normalizedSkill]);
 
     React.useEffect(() => {
         const handlePopState = () => {

@@ -3,15 +3,16 @@ import { X, Plus, Volume2, Image, ChevronUp, ChevronDown, ClipboardList, FileTex
 import GroupToolbar from './shared/GroupToolbar';
 import RichInput from '../../common/RichInput';
 import RichBlankEditor from './shared/RichBlankEditor';
+import ImageUploadZone from './shared/ImageUploadZone';
 import { toRoman, loadImageFile, toPlainText, countBlankTokens, getNextQuestionNumber, isImagePinQuestion, isNoteBlankQuestion, getQuestionWeight } from './shared/blockHelpers';
 
-const WritingTaskBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps, testTitle }) => {
+const WritingTaskBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps, testTitle, testId, module = 'WRITING' }) => {
   const handleFileUpload = (e) => {
     const input = e.currentTarget;
     const file = input.files?.[0];
     if (!file) return;
     input.value = '';
-    loadImageFile(file, (imageUrl) => onUpdate(group.id, { imageUrl }), 'WRITING', testTitle);
+    loadImageFile(file, (imageUrl) => onUpdate(group.id, { imageUrl }), module, testTitle, testId, 'WRITING_TASK');
   };
 
   return (
@@ -38,30 +39,17 @@ const WritingTaskBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragH
         <label className="exam-wt-label" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
           <Image size={14} /> Ảnh / Biểu đồ (tuỳ chọn)
         </label>
-        <div className="exam-ml-upload-bar">
-          <input
-            className="exam-img-url-field"
-            style={{ flex: 1, minWidth: 0 }}
-            value={group.imageUrl?.startsWith('data:') ? '(ảnh đã tải lên)' : (group.imageUrl ?? '')}
-            placeholder="Dán URL ảnh hoặc tải lên từ máy..."
-            readOnly={group.imageUrl?.startsWith('data:')}
-            onChange={(e) => onUpdate(group.id, { imageUrl: e.target.value })}
-          />
-          <label className="exam-ml-upload-btn">
-            Tải lên
-            <input type="file" accept="image/*" style={{ display: 'none' }} onClick={(e) => e.stopPropagation()} onChange={handleFileUpload} />
-          </label>
-          {group.imageUrl && (
-            <button className="exam-group-tool-btn danger" title="Xóa ảnh"
-              onClick={(e) => { e.stopPropagation(); onUpdate(group.id, { imageUrl: '' }); }}>
-              <X size={12} />
-            </button>
-          )}
-        </div>
-        {group.imageUrl && (
-          <img src={group.imageUrl} alt="writing task diagram"
-            style={{ maxWidth: '100%', marginTop: 8, border: '1px solid #e5e7eb', borderRadius: 4, display: 'block' }} />
-        )}
+        <ImageUploadZone
+          imageUrl={group.imageUrl}
+          onImageChange={(url) => onUpdate(group.id, { imageUrl: url })}
+          onImageDelete={() => onUpdate(group.id, { imageUrl: '' })}
+          placeholder="Nhập URL ảnh hoặc kéo thả/paste ảnh biểu đồ..."
+          module="WRITING"
+          testTitle={testTitle}
+          assetLabel="WRITING_TASK"
+          showPreview={true}
+          compact={false}
+        />
       </div>
 
       {/* Min words + recommended time */}

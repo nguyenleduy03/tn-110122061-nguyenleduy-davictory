@@ -8,10 +8,10 @@ const getAuthHeaders = () => {
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
-const getDriveUploadConfig = async (mediaType, module, testTitle) => {
+const getDriveUploadConfig = async (mediaType, module, testTitle, testId) => {
   try {
     const response = await axios.get(`${API_BASE_URL}/files/drive-config`, {
-      params: { mediaType, module, testTitle },
+      params: { mediaType, module, testTitle, testId },
       headers: getAuthHeaders(),
     });
     return response.data;
@@ -21,8 +21,8 @@ const getDriveUploadConfig = async (mediaType, module, testTitle) => {
   }
 };
 
-const uploadDirectToGoogleDrive = async (file, mediaType, module, testTitle) => {
-  const { accessToken, rootFolderId, folderPath } = await getDriveUploadConfig(mediaType, module, testTitle);
+const uploadDirectToGoogleDrive = async (file, mediaType, module, testTitle, testId) => {
+  const { accessToken, rootFolderId, folderPath } = await getDriveUploadConfig(mediaType, module, testTitle, testId);
   const fileName = file.name || `upload-${Date.now()}`;
 
   const sanitizeSegment = (value) => String(value || '')
@@ -118,7 +118,7 @@ const uploadDirectToGoogleDrive = async (file, mediaType, module, testTitle) => 
 
   return {
     id: fileId,
-    url: `https://drive.google.com/uc?export=view&id=${fileId}`,
+    url: `/api/files/preview/${fileId}`,
     fileName,
     mediaType,
     folderPath,
@@ -134,29 +134,29 @@ export const fileApi = {
    * @param {string} testTitle - Tên đề thi để tạo cấu trúc thư mục Drive
    * @returns {Promise<{id, url, fileName, mediaType}>}
    */
-  uploadFile: async (file, mediaType, module, testTitle) => {
-    return uploadDirectToGoogleDrive(file, mediaType, module, testTitle);
+  uploadFile: async (file, mediaType, module, testTitle, testId) => {
+    return uploadDirectToGoogleDrive(file, mediaType, module, testTitle, testId);
   },
 
   /**
    * Upload audio cho Listening
    */
-  uploadListeningAudio: async (file, testTitle) => {
-    return fileApi.uploadFile(file, 'AUDIO', 'LISTENING', testTitle);
+  uploadListeningAudio: async (file, testTitle, testId) => {
+    return fileApi.uploadFile(file, 'AUDIO', 'LISTENING', testTitle, testId);
   },
 
   /**
    * Upload image cho Reading/Writing
    */
-  uploadImage: async (file, module = 'READING', testTitle) => {
-    return fileApi.uploadFile(file, 'IMAGE', module, testTitle);
+  uploadImage: async (file, module = 'READING', testTitle, testId) => {
+    return fileApi.uploadFile(file, 'IMAGE', module, testTitle, testId);
   },
 
   /**
    * Upload audio cho Speaking
    */
-  uploadSpeakingAudio: async (file, testTitle) => {
-    return fileApi.uploadFile(file, 'AUDIO', 'SPEAKING', testTitle);
+  uploadSpeakingAudio: async (file, testTitle, testId) => {
+    return fileApi.uploadFile(file, 'AUDIO', 'SPEAKING', testTitle, testId);
   },
 
   /**

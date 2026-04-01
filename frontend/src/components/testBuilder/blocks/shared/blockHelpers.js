@@ -120,7 +120,26 @@ export const fileToCompressedDataUrl = (file, { maxWidth = 1280, quality = 0.82 
     reader.readAsDataURL(file);
   });
 
-export const loadImageFile = async (file, setImageUrl, module = 'READING', testTitle = '') => {
+const buildUploadFileName = (originalName, module, testTitle, assetLabel, extFallback = '') => {
+  const safeSegment = (value) => String(value || '')
+    .trim()
+    .replace(/[\\/:*?"<>|]/g, '_')
+    .replace(/\s+/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '');
+
+  const safeModule = safeSegment(module).toUpperCase() || 'GENERAL';
+  const safeTitle = safeSegment(testTitle).toUpperCase();
+  const safeLabel = safeSegment(assetLabel).toUpperCase();
+  const ext = String(originalName || extFallback || '').includes('.')
+    ? `.${String(originalName || extFallback).split('.').pop()}`
+    : extFallback;
+
+  const parts = ['DAVictory', safeTitle, safeModule, safeLabel].filter(Boolean);
+  return `${parts.join('_')}${ext || ''}`;
+};
+
+export const loadImageFile = async (file, setImageUrl, module = 'READING', testTitle = '', testId = null, assetLabel = '') => {
   if (!file || !file.type?.startsWith('image/')) return;
   
   try {
@@ -130,11 +149,12 @@ export const loadImageFile = async (file, setImageUrl, module = 'READING', testT
     
     // Convert data URL back to File for upload
     const blob = await fetch(compressedDataUrl).then(r => r.blob());
-    const compressedFile = new File([blob], file.name, { type: 'image/jpeg' });
+    const compressedFileName = buildUploadFileName(file.name, module, testTitle, assetLabel, '.jpg');
+    const compressedFile = new File([blob], compressedFileName, { type: 'image/jpeg' });
 
     // Upload to Google Drive
     const { fileApi } = await import('../../../../services/fileApi');
-    const result = await fileApi.uploadImage(compressedFile, module, testTitle);
+    const result = await fileApi.uploadImage(compressedFile, module, testTitle, testId);
     
     // Set the Drive URL
     setImageUrl(result.url);
@@ -145,7 +165,7 @@ export const loadImageFile = async (file, setImageUrl, module = 'READING', testT
   }
 };
 
-export const loadAudioFile = async (file, setAudioUrl, module = 'LISTENING', testTitle = '') => {
+export const loadAudioFile = async (file, setAudioUrl, module = 'LISTENING', testTitle = '', testId = null, assetLabel = '') => {
   if (!file || !file.type?.startsWith('audio/')) return;
   
   try {
@@ -159,9 +179,11 @@ export const loadAudioFile = async (file, setAudioUrl, module = 'LISTENING', tes
 
     // Upload to Google Drive
     const { fileApi } = await import('../../../../services/fileApi');
+    const uploadName = buildUploadFileName(file.name, module, testTitle, assetLabel, file.name.includes('.') ? `.${String(file.name).split('.').pop()}` : '');
+    const uploadFile = new File([file], uploadName, { type: file.type || 'audio/*' });
     const result = module === 'SPEAKING'
-      ? await fileApi.uploadSpeakingAudio(file, testTitle)
-      : await fileApi.uploadListeningAudio(file, testTitle);
+      ? await fileApi.uploadSpeakingAudio(uploadFile, testTitle, testId)
+      : await fileApi.uploadListeningAudio(uploadFile, testTitle, testId);
     
     // Set the Drive URL
     setAudioUrl(result.url);

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { resolveDrivePreviewUrl } from "../utils/mediaUrl";
 import { ArrowLeftRight, ArrowLeft, ArrowRight } from "lucide-react";
 import { useSearchParams, useNavigate, useParams } from "react-router-dom";
 import "../styles/ieltsTest.css";
@@ -66,7 +67,7 @@ const WritingTaskPane = ({ part, style }) => {
                 )}
                 {!part.taskImageSvg && part.imageUrl && (
                     <div className="writing-task-image">
-                        <img src={part.imageUrl} alt="task diagram"
+                        <img src={resolveDrivePreviewUrl(part.imageUrl)} alt="task diagram"
                             style={{ maxWidth: '100%', height: 'auto', borderRadius: 4 }} />
                     </div>
                 )}

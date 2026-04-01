@@ -7,6 +7,7 @@ import React from 'react';
 import { X, Plus, Upload, Image as ImageIcon } from 'lucide-react';
 import RichInput from '../common/RichInput';
 import { loadImageFile } from './blocks/shared/blockHelpers';
+import { resolveDrivePreviewUrl } from '../../utils/mediaUrl';
 
 const defaultSharedOptions = () => [
   { id: `so-${Date.now()}-a`, key: 'A', label: '', imageUrl: '' },
@@ -26,6 +27,8 @@ const SharedOptionsDropdownBlock = ({
   onAddQuestion,
   selectedQuestionId,
   testTitle,
+  testId,
+  module = 'READING',
 }) => {
   const questions = group.questions ?? [];
   const sharedOptions = group.sharedOptions?.length ? group.sharedOptions : defaultSharedOptions();
@@ -38,7 +41,7 @@ const SharedOptionsDropdownBlock = ({
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = '';
-    loadImageFile(file, (imageUrl) => onUpdate(group.id, { imageUrl }), 'READING', testTitle);
+    loadImageFile(file, (imageUrl) => onUpdate(group.id, { imageUrl }), module, testTitle, testId, 'SHARED_OPTIONS_DROPDOWN');
   };
 
   const updateOptionLabel = (idx, label) => {
@@ -93,7 +96,7 @@ const SharedOptionsDropdownBlock = ({
                     loadImageFile(file, (imageUrl) => {
                       const next = sharedOptions.map((o, i) => i === idx ? { ...o, imageUrl } : o);
                       syncSharedOptions(next);
-                    }, 'READING', testTitle);
+                    }, module, testTitle, testId, 'SHARED_OPTION');
                   }} />
               </label>
               {opt.imageUrl && (
@@ -197,7 +200,7 @@ const SharedOptionsDropdownBlock = ({
             {group.imageUrl && (
               <div style={{ marginTop: 12 }}>
                 <img
-                  src={group.imageUrl}
+                  src={resolveDrivePreviewUrl(group.imageUrl)}
                   alt="Preview"
                   style={{
                     maxWidth: `${group.imageWidth || 100}%`,

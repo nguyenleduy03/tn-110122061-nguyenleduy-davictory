@@ -3,9 +3,10 @@ import { X, Plus, Volume2, Image, ChevronUp, ChevronDown } from 'lucide-react';
 import GroupToolbar from './shared/GroupToolbar';
 import RichInput from '../../common/RichInput';
 import RichBlankEditor from './shared/RichBlankEditor';
+import { resolveDrivePreviewUrl } from '../../../utils/mediaUrl';
 import { toRoman, loadImageFile, toPlainText, countBlankTokens, getNextQuestionNumber, getPartQuestionStartNumber, isImagePinQuestion, isNoteBlankQuestion, getQuestionWeight } from './shared/blockHelpers';
 
-const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelect, selected, dragHandleProps, testTitle, onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onAddQuestion, selectedQuestionId }) => {
+const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelect, selected, dragHandleProps, testTitle, testId, module = 'READING', onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onAddQuestion, selectedQuestionId }) => {
   const containerRef = useRef(null);
   const imageWrapRef = useRef(null);
   const dragRef = useRef(null);
@@ -149,7 +150,7 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
     const file = input.files?.[0];
     if (!file) return;
     input.value = '';
-    loadImageFile(file, (imageUrl) => onUpdate(group.id, { imageUrl }), 'READING', testTitle);
+    loadImageFile(file, (imageUrl) => onUpdate(group.id, { imageUrl }), module, testTitle, testId, 'IMAGE_NOTE_FORM');
   };
 
   const imageSection = (
@@ -207,7 +208,7 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
           <div ref={imageWrapRef}
             style={{ position: 'relative', width: `${imageWidth}%`, margin: '0 auto', cursor: 'crosshair' }}
             onClick={addPin}>
-            <img src={group.imageUrl} alt="Question" draggable={false}
+            <img src={resolveDrivePreviewUrl(group.imageUrl)} alt="Question" draggable={false}
               style={{ display: 'block', width: '100%', height: 'auto', pointerEvents: 'none' }} />
             {questions.filter(isImagePinQuestion).map((q) => {
               const x = livePin?.qId === q.id ? livePin.x : (q.pinX ?? 10);

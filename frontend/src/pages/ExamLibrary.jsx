@@ -152,6 +152,16 @@ const getSubmittedResultUrl = (skill, testId) => {
   const safeTestId = String(testId || '').trim();
   if (!safeSkill || !safeTestId) return null;
 
+  // Only show "Xem kết quả" for Reading/Listening (auto-grading skills)
+  const isObjectiveSkill = safeSkill === 'listening' || safeSkill === 'reading';
+  if (!isObjectiveSkill) return null;
+
+  // Check if user has already viewed the result
+  const viewedKey = `ieltsResultViewed_${safeSkill}_${safeTestId}`;
+  if (localStorage.getItem(viewedKey)) {
+    return null; // Already viewed, don't show "Xem kết quả"
+  }
+
   // Pattern: ieltsSubmittedLock_{skill}_{testId}_*
   const prefix = `ieltsSubmittedLock_${safeSkill}_${safeTestId}_`;
   for (let i = 0; i < sessionStorage.length; i++) {
@@ -163,6 +173,27 @@ const getSubmittedResultUrl = (skill, testId) => {
     } catch { /* ignore */ }
   }
   return null;
+};
+
+// Check if test has been completed (submitted or viewed result)
+const isTestCompleted = (skill, testId) => {
+  if (typeof window === 'undefined') return false;
+  const safeSkill = String(skill || '').toLowerCase();
+  const safeTestId = String(testId || '').trim();
+  if (!safeSkill || !safeTestId) return false;
+
+  // Check if viewed result (for all skills)
+  const viewedKey = `ieltsResultViewed_${safeSkill}_${safeTestId}`;
+  if (localStorage.getItem(viewedKey)) return true;
+
+  // Check if submitted lock exists (means submitted but not viewed yet)
+  const prefix = `ieltsSubmittedLock_${safeSkill}_${safeTestId}_`;
+  for (let i = 0; i < sessionStorage.length; i++) {
+    const key = sessionStorage.key(i);
+    if (key && key.startsWith(prefix)) return true;
+  }
+
+  return false;
 };
 
 function BookCover({ series, index, small }) {
@@ -506,6 +537,21 @@ function SeriesDetail({ series, index, onBack, fullTestProgress }) {
           const tests = skillGroups[skill];
           const testId = tests?.[0]?.id;
           const submitted = testId ? getSubmittedResultUrl(skill, testId) : null;
+          const isCompleted = testId ? isTestCompleted(skill, testId) : false;
+          const hasResume = skillResumeMap[skill];
+          
+          // Determine button text
+          let buttonText;
+          if (submitted) {
+            buttonText = <><Eye size={15} color="white" /> Xem kết quả</>;
+          } else if (isCompleted) {
+            buttonText = <><Zap size={15} fill="white" color="white" /> Làm lại</>;
+          } else if (hasResume) {
+            buttonText = <><Zap size={15} fill="white" color="white" /> Tiếp tục</>;
+          } else {
+            buttonText = <><Zap size={15} fill="white" color="white" /> Làm bài</>;
+          }
+
           return (
             <div key={skill} className="skill-card">
               <div className="skill-card-top">
@@ -541,9 +587,7 @@ function SeriesDetail({ series, index, onBack, fullTestProgress }) {
                   openSkillModeModal(skill, testId);
                 }}
               >
-                {submitted
-                  ? <><Eye size={15} color="white" /> Xem kết quả</>
-                  : <><Zap size={15} fill="white" color="white" /> {skillResumeMap[skill] ? 'Tiếp tục' : 'Làm bài'}</>}
+                {buttonText}
               </button>
             </div>
           );
@@ -564,7 +608,18 @@ function SeriesDetail({ series, index, onBack, fullTestProgress }) {
           </div>
         </div>
         <button className="full-test-start-btn" onClick={() => setShowFullTestModal(true)}>
-          <Zap size={15} fill="white" color="white" /> {hasSavedFullTestProgress ? 'Tiếp tục' : 'Bắt đầu'}
+          <Zap size={15} fill="white" color="white" /> 
+          {(() => {
+            // Check if all skills completed
+            const allSkillsCompleted = available.every(skill => {
+              const testId = skillGroups[skill]?.[0]?.id;
+              return testId && isTestCompleted(skill, testId);
+            });
+            
+            if (allSkillsCompleted) return 'Làm lại';
+            if (hasSavedFullTestProgress) return 'Tiếp tục';
+            return 'Bắt đầu';
+          })()}
         </button>
       </div>
 

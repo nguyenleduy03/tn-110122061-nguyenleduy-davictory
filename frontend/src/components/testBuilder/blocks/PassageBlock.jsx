@@ -3,9 +3,10 @@ import { X, Plus, Volume2, Image, ChevronUp, ChevronDown } from 'lucide-react';
 import GroupToolbar from './shared/GroupToolbar';
 import RichInput from '../../common/RichInput';
 import RichBlankEditor from './shared/RichBlankEditor';
+import ImageUploadZone from './shared/ImageUploadZone';
 import { toRoman, loadImageFile, toPlainText, countBlankTokens, getNextQuestionNumber, isImagePinQuestion, isNoteBlankQuestion, getQuestionWeight } from './shared/blockHelpers';
 
-const PassageBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps, mhHeadings = [], mhAnswersByLabel = {}, testTitle }) => {
+const PassageBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps, mhHeadings = [], mhAnswersByLabel = {}, testTitle, testId, module = 'READING' }) => {
   const [draggingOverPara, setDraggingOverPara] = useState(null);
   const [pendingImagePara, setPendingImagePara] = useState(null);
   const fileInputRefs = useRef({});
@@ -45,7 +46,7 @@ const PassageBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandl
 
   const applyImageFile = (pid, file) => {
     if (!file || !file.type.startsWith('image/')) return;
-    loadImageFile(file, (imageUrl) => updateParaImage(pid, imageUrl), 'READING', testTitle);
+    loadImageFile(file, (imageUrl) => updateParaImage(pid, imageUrl), module, testTitle, testId, 'READING_PASSAGE');
   };
 
   // Accept both: sidebar palette drag AND direct image file drag from OS
@@ -94,11 +95,17 @@ const PassageBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandl
     <>
       {para.imageUrl && (
         <div className="passage-para-img-wrap">
-          <img src={para.imageUrl} alt={`Para ${para.label}`} className="passage-para-img" />
-          <button className="passage-para-img-remove" title="Xóa ảnh"
-            onClick={(e) => { e.stopPropagation(); updateParaImage(para.id, null); }}>
-            <X size={11} />
-          </button>
+          <ImageUploadZone
+            imageUrl={para.imageUrl}
+            onImageChange={(url) => updateParaImage(para.id, url)}
+            onImageDelete={() => updateParaImage(para.id, null)}
+            placeholder="URL ảnh đoạn văn..."
+            module={module}
+            testTitle={testTitle}
+            assetLabel="READING_PASSAGE"
+            showPreview={true}
+            compact={true}
+          />
         </div>
       )}
       {draggingOverPara === para.id && (

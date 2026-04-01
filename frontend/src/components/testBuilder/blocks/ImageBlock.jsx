@@ -3,16 +3,18 @@ import { X, Plus, Volume2, Image, ChevronUp, ChevronDown } from 'lucide-react';
 import GroupToolbar from './shared/GroupToolbar';
 import RichInput from '../../common/RichInput';
 import RichBlankEditor from './shared/RichBlankEditor';
+import ImageUploadZone from './shared/ImageUploadZone';
+import { resolveDrivePreviewUrl } from '../../../utils/mediaUrl';
 import { toRoman, loadImageFile, toPlainText, countBlankTokens, getNextQuestionNumber, isImagePinQuestion, isNoteBlankQuestion, getQuestionWeight } from './shared/blockHelpers';
 
-const ImageBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps, children, testTitle }) => (
+const ImageBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps, children, testTitle, testId, module = 'READING' }) => (
   <div className={`exam-group${selected ? ' selected' : ''}`}
     onClick={(e) => { e.stopPropagation(); onSelect(group); }}>
     <GroupToolbar group={group} dragHandleProps={dragHandleProps} onDelete={onDelete} />
     <div className="exam-image-area">
       {group.imageUrl ? (
         <>
-          <img src={group.imageUrl} alt="diagram" />
+          <img src={resolveDrivePreviewUrl(group.imageUrl)} alt="diagram" />
           <div className="exam-image-url-bar">
             <input className="exam-image-url-input" value={group.imageUrl}
               onChange={(e) => onUpdate(group.id, { imageUrl: e.target.value })}
@@ -203,7 +205,7 @@ const QuestionItem = ({ question, selected, onClick, onUpdate, onDelete }) => {
 // ---- Map Labelling Block ----
 // Teacher uploads image, clicks to place numbered pins, student drags bank chips onto pins.
 function MapLabellingBlock({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps,
-  onUpdateQuestion, onDeleteQuestion, selectedQuestionId, testTitle }) {
+  onUpdateQuestion, onDeleteQuestion, selectedQuestionId, testTitle, testId, module = 'READING' }) {
   const containerRef = useRef(null);
   const imageWrapRef = useRef(null);
   const dragRef = useRef(null); // { qId, origX, origY, startCX, startCY }
@@ -267,7 +269,7 @@ function MapLabellingBlock({ group, onUpdate, onDelete, onSelect, selected, drag
     const file = input.files?.[0];
     if (!file) return;
     input.value = '';
-    loadImageFile(file, (imageUrl) => onUpdate(group.id, { imageUrl }), 'READING', testTitle);
+    loadImageFile(file, (imageUrl) => onUpdate(group.id, { imageUrl }), module, testTitle, testId, group.contentType || 'DIAGRAM');
   };
 
   return (
@@ -287,22 +289,18 @@ function MapLabellingBlock({ group, onUpdate, onDelete, onSelect, selected, drag
       </div>
 
       {/* Upload controls */}
-      <div className="exam-ml-upload-bar" onClick={(e) => e.stopPropagation()}>
-        <input className="exam-img-url-field" style={{ flex: 1, minWidth: 0 }}
-          value={group.imageUrl?.startsWith('data:') ? '(ảnh đã tải lên)' : (group.imageUrl ?? '')}
-          placeholder="URL ảnh bản đồ..."
-          readOnly={group.imageUrl?.startsWith('data:')}
-          onChange={(e) => onUpdate(group.id, { imageUrl: e.target.value })} />
-        <label className="exam-ml-upload-btn">
-          Tải lên
-          <input type="file" accept="image/*" style={{ display: 'none' }} onClick={(e) => e.stopPropagation()} onChange={handleFileUpload} />
-        </label>
-        {group.imageUrl && (
-          <button className="exam-group-tool-btn danger" title="Xóa ảnh"
-            onClick={(e) => { e.stopPropagation(); onUpdate(group.id, { imageUrl: '' }); }}>
-            <X size={12} />
-          </button>
-        )}
+      <div className="exam-image-upload-section" onClick={(e) => e.stopPropagation()}>
+        <ImageUploadZone
+          imageUrl={group.imageUrl}
+          onImageChange={(url) => onUpdate(group.id, { imageUrl: url })}
+          onImageDelete={() => onUpdate(group.id, { imageUrl: '' })}
+          placeholder="Nhập URL hoặc kéo thả/paste ảnh bản đồ/biểu đồ..."
+          module={module}
+          testTitle={testTitle}
+          assetLabel={group.contentType || 'DIAGRAM'}
+          showPreview={true}
+          compact={false}
+        />
       </div>
 
       {/* Size controls */}
@@ -341,7 +339,7 @@ function MapLabellingBlock({ group, onUpdate, onDelete, onSelect, selected, drag
         onClick={addPin}>
         {group.imageUrl ? (
           <div ref={imageWrapRef} style={{ position: 'relative', width: `${group.imageWidth ?? 100}%`, margin: '0 auto' }}>
-            <img src={group.imageUrl} alt="map" draggable={false}
+            <img src={resolveDrivePreviewUrl(group.imageUrl)} alt="map" draggable={false}
               style={{ display: 'block', width: '100%', height: 'auto', pointerEvents: 'none' }} />
             {questions.map((q) => {
               const x = livePin?.qId === q.id ? livePin.x : (q.pinX ?? 10);

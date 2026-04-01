@@ -17,6 +17,7 @@ import { useDroppable } from '@dnd-kit/core';
 import { createPortal } from 'react-dom';
 import { Plus, X, Clock, TimerReset, Check, Eye, Headphones, BookOpen, PenLine, Mic, Volume2, FileText } from 'lucide-react';
 import { normalizeRichHtml, stripInlineStyles } from '../../utils/textFormatters';
+import { resolveDrivePreviewUrl } from '../../utils/mediaUrl';
 import SharedOptionsDropdownBlock from './SharedOptionsDropdownBlock';
 
 // Series logo mapping (mirrors TestHeader.jsx)
@@ -155,7 +156,7 @@ const PreviewContent = ({ test, sessions, sessionDurations, activeSkill, onSetAc
                 <span className="pv-opt-key">{o.optionLabel}</span>
                 <span className="pv-opt-text">
                   {o.optionMode === 'image' && o.optionImageUrl
-                    ? <img src={o.optionImageUrl} alt={o.optionLabel} style={{ maxWidth: 140, maxHeight: 90, borderRadius: 4, display: 'block' }} />
+                    ? <img src={resolveDrivePreviewUrl(o.optionImageUrl)} alt={o.optionLabel} style={{ maxWidth: 140, maxHeight: 90, borderRadius: 4, display: 'block' }} />
                     : (o.optionText
                       ? <span dangerouslySetInnerHTML={{ __html: formatPreviewText(o.optionText) }} />
                       : <em className="pv-empty">...</em>)
@@ -499,7 +500,7 @@ const PreviewContent = ({ test, sessions, sessionDurations, activeSkill, onSetAc
               ? <div dangerouslySetInnerHTML={{ __html: formatPreviewText(group.taskInstruction) }} />
               : <em className="pv-empty">Chưa có đề bài.</em>}
           </div>
-          {group.imageUrl && <img src={group.imageUrl} alt="task diagram" className="pv-wt-image" />}
+          {group.imageUrl && <img src={resolveDrivePreviewUrl(group.imageUrl)} alt="task diagram" className="pv-wt-image" />}
         </div>
         <div className="pv-wt-right">
           <textarea className="pv-wt-textarea" placeholder="Nhập bài viết của bạn tại đây..." value={text} onChange={(e) => setText(e.target.value)} />
@@ -656,7 +657,7 @@ const PreviewContent = ({ test, sessions, sessionDurations, activeSkill, onSetAc
           <div className="pv-ml-image-wrapper">
             {group.imageUrl ? (
               <div style={{ position: 'relative', width: `${group.imageWidth ?? 100}%`, margin: '0 auto' }}>
-                <img src={group.imageUrl} alt="map" draggable={false} style={{ display: 'block', width: '100%', height: 'auto' }} />
+                <img src={resolveDrivePreviewUrl(group.imageUrl)} alt="map" draggable={false} style={{ display: 'block', width: '100%', height: 'auto' }} />
                 {questions.map(q => {
                   const filled = answers[q.questionNumber] ?? null;
                   return (
@@ -1003,7 +1004,7 @@ const QuestionList = ({ group, onUpdateGroup, onUpdateQuestion, onDeleteQuestion
   </>
 );
 
-const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUpdateGroup, onUpdateQuestion, onDeleteGroup, onDeleteQuestion, onAddQuestion, onMoveGroupUp, onMoveGroupDown, dragHandleProps, allGroups, testTitle }) => {
+const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUpdateGroup, onUpdateQuestion, onDeleteGroup, onDeleteQuestion, onAddQuestion, onMoveGroupUp, onMoveGroupDown, dragHandleProps, allGroups, testTitle, testId, skill }) => {
   const selectedGroupId = selection?.type === 'group' ? selection.data.id : null;
   const selectedQuestionId = selection?.type === 'question' ? selection.data.id : null;
   const isSelected = selectedGroupId === group.id;
@@ -1025,28 +1026,28 @@ const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUp
       onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps}
       onSelectQuestion={(q) => onSelectQuestion(q, group.id)}
       onUpdateQuestion={onUpdateQuestion} onDeleteQuestion={onDeleteQuestion} onAddQuestion={onAddQuestion}
-      selectedQuestionId={selectedQuestionId} />;
+      selectedQuestionId={selectedQuestionId} testId={testId} />;
   }
   if (ct === 'IMAGE_NOTE_FORM') {
     return <ImageNoteFormBlock group={group} allGroups={allGroups} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
       onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps}
       onSelectQuestion={(q) => onSelectQuestion(q, group.id)}
       onUpdateQuestion={onUpdateQuestion} onDeleteQuestion={onDeleteQuestion} onAddQuestion={onAddQuestion}
-      selectedQuestionId={selectedQuestionId} />;
+      selectedQuestionId={selectedQuestionId} testId={testId} module={skill} />;
   }
   if (ct === 'MULTIPLE_CHOICE_GROUP') {
     return <MultipleChoiceBlock group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
       onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps}
       onSelectQuestion={(q) => onSelectQuestion(q, group.id)}
       onUpdateQuestion={onUpdateQuestion} onDeleteQuestion={onDeleteQuestion} onAddQuestion={onAddQuestion}
-      selectedQuestionId={selectedQuestionId} testTitle={testTitle} />;
+      selectedQuestionId={selectedQuestionId} testTitle={testTitle} testId={testId} module={skill} />;
   }
   if (ct === 'MULTIPLE_CHOICE_MULTI') {
     return <MultipleChoiceMultiBlock group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
       onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps}
       onSelectQuestion={(q) => onSelectQuestion(q, group.id)}
       onUpdateQuestion={onUpdateQuestion} onDeleteQuestion={onDeleteQuestion} onAddQuestion={onAddQuestion}
-      selectedQuestionId={selectedQuestionId} testTitle={testTitle} />;
+      selectedQuestionId={selectedQuestionId} testTitle={testTitle} testId={testId} module={skill} />;
   }
   if (ct === 'SHARED_OPTIONS_DROPDOWN') {
     return (
@@ -1070,6 +1071,8 @@ const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUp
         onAddQuestion={onAddQuestion}
         selectedQuestionId={selectedQuestionId}
         testTitle={testTitle}
+        testId={testId}
+        module={skill}
       />
     );
   }
@@ -1126,6 +1129,7 @@ const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUp
       onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps}
       onUpdateQuestion={onUpdateQuestion} onDeleteQuestion={onDeleteQuestion}
       testTitle={testTitle}
+      testId={testId}
       selectedQuestionId={selectedQuestionId} />;
   }
   if (ct === 'MATCHING_HEADING') {
@@ -1163,7 +1167,7 @@ const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUp
   if (ct === 'WRITING_TASK') {
     return <WritingTaskBlock group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
       onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps}
-      testTitle={testTitle} />;
+      testTitle={testTitle} module={skill} />;
   }
   if (ct === 'SPEAKING_INTERVIEW') {
     return <SpeakingInterviewBlock group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
@@ -1201,17 +1205,17 @@ const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUp
     });
     return <PassageBlock group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
       onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps}
-      mhHeadings={mhHeadings} mhAnswersByLabel={mhAnswersByLabel} testTitle={testTitle} />;
+      mhHeadings={mhHeadings} mhAnswersByLabel={mhAnswersByLabel} testTitle={testTitle} testId={testId} module={skill} />;
   }
   if (ct === 'AUDIO_TRANSCRIPT') {
     return <AudioBlock group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
       onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps}
-      testTitle={testTitle} />;
+      testTitle={testTitle} testId={testId} module={skill} />;
   }
   if (ct === 'DIAGRAM' || ct === 'MAP') {
     return <ImageBlock group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
       onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps}
-      testTitle={testTitle}>
+      testTitle={testTitle} testId={testId} module={skill}>
       {questionList}
     </ImageBlock>;
   }
@@ -1231,7 +1235,7 @@ const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUp
   );
 };
 
-const PartView = ({ skill, part, selection, onSelectGroup, onSelectQuestion, onUpdateGroup, onUpdateQuestion, onDeleteGroup, onDeleteQuestion, onAddQuestion, onAddGroup, onMoveGroupUp, onMoveGroupDown, isDropOver, isPassagePaneOver, isPassagePaneLocked, isMHLocked, test }) => {
+const PartView = ({ skill, part, selection, onSelectGroup, onSelectQuestion, onUpdateGroup, onUpdateQuestion, onDeleteGroup, onDeleteQuestion, onAddQuestion, onAddGroup, onMoveGroupUp, onMoveGroupDown, isDropOver, isPassagePaneOver, isPassagePaneLocked, isMHLocked, test, testId }) => {
   const groups = part.questionGroups ?? [];
 
   const renderGroup = (group) => (
@@ -1251,7 +1255,7 @@ const PartView = ({ skill, part, selection, onSelectGroup, onSelectQuestion, onU
           onMoveGroupUp={onMoveGroupUp}
           onMoveGroupDown={onMoveGroupDown}
           dragHandleProps={dragHandleProps}
-          testTitle={test?.title} />
+          testTitle={test?.title} testId={testId} skill={skill} />
       )}
     </SortableGroupWrapper>
   );
@@ -1338,6 +1342,7 @@ const ExamCanvas = ({
   sessionDurations,
   onPreviewClose,
   onSetActiveSkill,
+  testId,
 }) => {
   const [activePartId, setActivePartId] = useState(null);
   const [showTimeModal, setShowTimeModal] = useState(false);
@@ -1516,7 +1521,8 @@ const ExamCanvas = ({
               isPassagePaneOver={isPassagePaneOver}
               isPassagePaneLocked={isPassagePaneLocked}
               isMHLocked={isMHLocked}
-              test={test} />
+              test={test}
+              testId={testId} />
           </div>
         </div>
       )}

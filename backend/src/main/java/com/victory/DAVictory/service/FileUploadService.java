@@ -85,15 +85,16 @@ public class FileUploadService {
     }
 
     public String buildFolderPath(String testTitle, String module, MediaType mediaType) {
+        String root = "exam";
         String sanitizedTestTitle = sanitizePathSegment(testTitle);
         String sanitizedModule = sanitizePathSegment(module);
         String sanitizedMediaType = sanitizePathSegment(mediaType.name().toLowerCase());
 
         if (sanitizedTestTitle == null) {
-            return String.join("/", sanitizedModule, sanitizedMediaType);
+            return String.join("/", root, sanitizedModule, sanitizedMediaType);
         }
 
-        return String.join("/", sanitizedTestTitle, sanitizedModule, sanitizedMediaType);
+        return String.join("/", root, sanitizedTestTitle, sanitizedModule, sanitizedMediaType);
     }
 
     private String sanitizePathSegment(String value) {

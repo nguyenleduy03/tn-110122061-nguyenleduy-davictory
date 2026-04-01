@@ -1339,6 +1339,7 @@ const TestBuilder = () => {
               <ErrorBoundary>
                 <ExamCanvas
                   test={test}
+                  testId={savedTestId || test?.id}
                   skill={activeSkill}
                   seriesLabel={test.seriesLabel}
                   parts={parts}

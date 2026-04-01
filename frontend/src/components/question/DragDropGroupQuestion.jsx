@@ -1,5 +1,6 @@
 import React from 'react';
 import { formatTextWithWhitespace, stripInlineStyles } from '../../utils/textFormatters';
+import { resolveDrivePreviewUrl } from '../../utils/mediaUrl';
 import BookmarkToggle from '../common/BookmarkToggle';
 
 const formatAndClean = (text) => stripInlineStyles(formatTextWithWhitespace(text));
@@ -405,7 +406,7 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                     <div className={`image-area${constrainHalfPage ? ' half-page' : ''}`}>
                         <div style={{ position: 'relative', width: `${imageWidth}%`, margin: '0 auto' }}>
                             {q.imageUrl ? (
-                                <img src={q.imageUrl} alt="Map" className="idd-map-image" style={{ width: '100%', display: 'block' }} />
+                                <img src={resolveDrivePreviewUrl(q.imageUrl)} alt="Map" className="idd-map-image" style={{ width: '100%', display: 'block' }} />
                             ) : (
                                 <div className="image-placeholder">
                                     Image Placeholder (Add imageUrl to data)

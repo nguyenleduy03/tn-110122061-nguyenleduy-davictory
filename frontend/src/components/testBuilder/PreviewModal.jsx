@@ -5,6 +5,7 @@
 import React, { useState, useMemo } from 'react';
 import { X, Volume2, BookOpen, Headphones, PenLine, Mic, Clock, FileText } from 'lucide-react';
 import { normalizeRichHtml, stripInlineStyles } from '../../utils/textFormatters';
+import { resolveDrivePreviewUrl } from '../../utils/mediaUrl';
 import DropdownGroupQuestion from '../question/DropdownGroupQuestion';
 
 const SERIES_LOGO_SRC = {
@@ -166,7 +167,7 @@ const MCQQuestion = ({ q, multiple, active, onSetActive }) => {
               <span className="pv-opt-key">{o.optionLabel}</span>
               <span className="pv-opt-text">
                 {o.optionMode === 'image' && o.optionImageUrl
-                  ? <img src={o.optionImageUrl} alt={o.optionLabel} style={{ maxWidth: 140, maxHeight: 90, borderRadius: 4, display: 'block' }} />
+                  ? <img src={resolveDrivePreviewUrl(o.optionImageUrl)} alt={o.optionLabel} style={{ maxWidth: 140, maxHeight: 90, borderRadius: 4, display: 'block' }} />
                   : (o.optionText
                       ? <span dangerouslySetInnerHTML={{ __html: formatPreviewText(o.optionText) }} />
                       : <em className="pv-empty">...</em>)
@@ -525,7 +526,7 @@ const ImageNoteFormGroup = ({ group, activeQ, onSetActive }) => {
   const imageSection = group.imageUrl && (
     <div style={{ marginBottom: 20 }}>
       <div style={{ position: 'relative', width: `${imageWidth}%`, margin: '0 auto' }}>
-        <img src={group.imageUrl} alt="Question"
+        <img src={resolveDrivePreviewUrl(group.imageUrl)} alt="Question"
           style={{ width: '100%', height: 'auto', display: 'block' }} />
         {questions.filter(q => q.pinX !== undefined).map((q) => {
           const active = activeQ === q.questionNumber;
@@ -758,7 +759,7 @@ const MapLabellingGroup = ({ group, activeQ, onSetActive }) => {
         <div className="pv-ml-image-wrapper">
           {group.imageUrl ? (
             <div style={{ position: 'relative', width: `${group.imageWidth ?? 100}%`, margin: '0 auto' }}>
-              <img src={group.imageUrl} alt="map" draggable={false} style={{ display: 'block', width: '100%', height: 'auto' }} />
+              <img src={resolveDrivePreviewUrl(group.imageUrl)} alt="map" draggable={false} style={{ display: 'block', width: '100%', height: 'auto' }} />
               {questions.map((q) => {
                 const filled = answers[q.questionNumber] ?? null;
                 const isOver = dragOver === q.questionNumber;
@@ -1173,7 +1174,7 @@ const WritingTaskGroup = ({ group }) => {
             : <em className="pv-empty">Chưa có đề bài.</em>}
         </div>
         {group.imageUrl && (
-          <img src={group.imageUrl} alt="task diagram" className="pv-wt-image" />
+          <img src={resolveDrivePreviewUrl(group.imageUrl)} alt="task diagram" className="pv-wt-image" />
         )}
       </div>
 
@@ -1308,7 +1309,7 @@ const ImageGroup = ({ group, activeQ, onSetActive }) => {
     <div className="pv-group-block">
       {group.title && <div className="pv-group-instructions" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.title) }} />}
       {group.imageUrl
-        ? <img src={group.imageUrl} alt="diagram" className="pv-diagram-img" />
+        ? <img src={resolveDrivePreviewUrl(group.imageUrl)} alt="diagram" className="pv-diagram-img" />
         : <div className="pv-diagram-placeholder">{group.contentType === 'MAP' ? 'Bản đồ chưa được tải lên' : 'Sơ đồ chưa được tải lên'}</div>}
       {questions.map((q) => renderQuestion(q, activeQ, onSetActive))}
     </div>

@@ -1270,9 +1270,10 @@ const IeltsSpeakingTest = () => {
       />
 
       {/* Main card ──────────────────────────────────────────────────────── */}
-      <main className={`spk-main ${stage === 'part-intro' ? 'spk-main-intro' : ''} ${stage === 'part' ? 'spk-main-part' : ''} ${stage === 'part-review' ? 'spk-main-review' : ''}`}>
+      <main className="spk-main">
+        <div className="spk-card spk-unified-card">
         {stage === 'mic-test' && (
-          <div className="spk-card spk-check-stage spk-check-mic-only">
+          <div className="spk-stage-screen spk-check-stage spk-check-mic-only">
             <h2 className="spk-check-mic-title">TEST YOUR MICROPHONE</h2>
 
             {micCheckStatus === 'recorded' && micCheckUrl ? (
@@ -1356,7 +1357,7 @@ const IeltsSpeakingTest = () => {
         )}
 
         {stage === 'part-intro' && (
-          <div className="spk-card spk-part-intro">
+          <div className="spk-stage-screen spk-part-intro">
             <div className="spk-intro-topbar">
               <div className="spk-intro-topbar-spacer" aria-hidden="true" />
               <div
@@ -1370,7 +1371,7 @@ const IeltsSpeakingTest = () => {
               </button>
             </div>
 
-            <div className="spk-intro-content">
+            <div className="spk-intro-content spk-stage-body">
               <h3 className="spk-intro-section-title">{STAGE_UI_TEXT.intro.instructionTitle}</h3>
               {partInstructions.length > 0 ? (
                 <div className="spk-intro-instructions">
@@ -1390,7 +1391,7 @@ const IeltsSpeakingTest = () => {
         )}
 
         {stage === 'part-review' && (
-          <div className="spk-card spk-review">
+          <div className="spk-stage-screen spk-review">
             <div className="spk-intro-topbar spk-review-topbar">
               <button className="spk-next-btn spk-review-reset-btn" onClick={resetCurrentPart}>
                 {STAGE_UI_TEXT.review.resetPart} <RotateCcw size={16} />
@@ -1412,7 +1413,7 @@ const IeltsSpeakingTest = () => {
               )}
             </div>
 
-            <div className="spk-review-full-body">
+            <div className="spk-review-full-body spk-stage-body">
               <div className="spk-review-full-title">{STAGE_UI_TEXT.review.endTitlePrefix} {currentPartDisplayNumber}</div>
               <div className="spk-review-full-sub">{STAGE_UI_TEXT.review.subtitle}</div>
 
@@ -1431,7 +1432,7 @@ const IeltsSpeakingTest = () => {
         )}
 
         {stage === 'part' && (
-          <div className="spk-card spk-part-live">
+          <div className="spk-stage-screen spk-part-live">
             <div className="spk-intro-topbar spk-part-topbar">
               <div className="spk-intro-topbar-spacer" aria-hidden="true" />
               <div
@@ -1496,6 +1497,7 @@ const IeltsSpeakingTest = () => {
 
           </div>
         )}
+        </div>
       </main>
     </div>
   );

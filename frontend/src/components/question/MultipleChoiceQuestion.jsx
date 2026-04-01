@@ -1,6 +1,7 @@
 import React from 'react';
 import { formatTextWithWhitespace } from '../../utils/textFormatters';
 import BookmarkToggle from '../common/BookmarkToggle';
+import { resolveDrivePreviewUrl } from '../../utils/mediaUrl';
 
 const MultipleChoiceQuestion = ({ q, activeQuestion, setActiveQuestion, answer, handleAnswerChange, bookmarks, toggleBookmark, isReview }) => {
     const getOptionText = (opt) => {
@@ -94,7 +95,7 @@ const MultipleChoiceQuestion = ({ q, activeQuestion, setActiveQuestion, answer, 
                                     ? (
                                         <div
                                             className="mcq-image-img-wrap"
-                                            dangerouslySetInnerHTML={{ __html: optionText.includes('<img') ? optionText : `<img src="${optionText}" alt="Option ${optLabel}" />` }}
+                                            dangerouslySetInnerHTML={{ __html: optionText.includes('<img') ? optionText : `<img src="${resolveDrivePreviewUrl(optionText)}" alt="Option ${optLabel}" />` }}
                                         />
                                     )
                                     : <span dangerouslySetInnerHTML={{ __html: optionText }} />

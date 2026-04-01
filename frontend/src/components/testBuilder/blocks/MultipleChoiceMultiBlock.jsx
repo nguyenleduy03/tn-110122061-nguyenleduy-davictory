@@ -3,9 +3,10 @@ import { X, Plus, Volume2, Image, ChevronUp, ChevronDown } from 'lucide-react';
 import GroupToolbar from './shared/GroupToolbar';
 import RichInput from '../../common/RichInput';
 import RichBlankEditor from './shared/RichBlankEditor';
+import ImageUploadZone from './shared/ImageUploadZone';
 import { toRoman, loadImageFile, toPlainText, countBlankTokens, getNextQuestionNumber, isImagePinQuestion, isNoteBlankQuestion, getQuestionWeight } from './shared/blockHelpers';
 
-const MultipleChoiceMultiBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps, testTitle,
+const MultipleChoiceMultiBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps, testTitle, testId, module = 'READING',
   onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onAddQuestion, selectedQuestionId }) => {
   const questions = group.questions ?? [];
   
@@ -104,30 +105,25 @@ const MultipleChoiceMultiBlock = ({ group, onUpdate, onDelete, onSelect, selecte
                     <span className="exam-mc-opt-label">{String.fromCharCode(65 + i)}</span>
                     {isImg ? (
                       <div className="exam-mc-opt-image-cell">
-                        {opt.optionImageUrl
-                          ? <img src={opt.optionImageUrl} alt={`Opt ${String.fromCharCode(65 + i)}`} className="exam-mc-opt-img-preview" />
-                          : <div className="exam-mc-opt-img-empty">Chưa có ảnh</div>}
-                        <div className="exam-mc-opt-img-controls">
-                          <input
-                            type="text"
-                            className="exam-mc-opt-url-input"
-                            placeholder="Dán URL ảnh..."
-                            value={opt.optionImageUrl || ''}
-                            onChange={(e) => { const next = [...opts]; next[i] = { ...next[i], optionImageUrl: e.target.value }; onUpdateQuestion(group.id, q.id, { options: next }); }}
-                            onClick={(e) => e.stopPropagation()} />
-                          <label className="exam-mc-img-file-btn" title="Tải ảnh từ máy" onClick={(e) => e.stopPropagation()}>
-                            <Image size={12} />
-                            <input type="file" accept="image/*" hidden onClick={(e) => e.stopPropagation()} onChange={(e) => {
-                              const input = e.currentTarget;
-                              const file = input.files?.[0]; if (!file) return;
-                              input.value = '';
-                              loadImageFile(file, (imageUrl) => {
-                                const next = [...opts]; next[i] = { ...next[i], optionImageUrl: imageUrl };
-                                onUpdateQuestion(group.id, q.id, { options: next });
-                              }, 'READING', testTitle);
-                            }} />
-                          </label>
-                        </div>
+                        <ImageUploadZone
+                          imageUrl={opt.optionImageUrl}
+                          onImageChange={(url) => { 
+                            const next = [...opts]; 
+                            next[i] = { ...next[i], optionImageUrl: url }; 
+                            onUpdateQuestion(group.id, q.id, { options: next }); 
+                          }}
+                          onImageDelete={() => { 
+                            const next = [...opts]; 
+                            next[i] = { ...next[i], optionImageUrl: '' }; 
+                            onUpdateQuestion(group.id, q.id, { options: next }); 
+                          }}
+                          placeholder={`URL ảnh cho ${String.fromCharCode(65 + i)}...`}
+                          module={module}
+                          assetLabel="MCQ_OPTION"
+                          testTitle={testTitle}
+                          showPreview={true}
+                          compact={false}
+                        />
                       </div>
                     ) : (
                       <RichInput

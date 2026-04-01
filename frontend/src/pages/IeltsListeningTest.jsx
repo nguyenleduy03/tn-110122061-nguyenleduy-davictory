@@ -67,6 +67,7 @@ const IeltsListeningTest = () => {
     const [startTime] = useState(() => Date.now());
     const audioRef = useRef(null);
     const containerRef = useRef(null);
+    const [audioObjectUrl, setAudioObjectUrl] = useState(null);
 
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
@@ -157,6 +158,60 @@ const IeltsListeningTest = () => {
         isFirstQuestion,
         isLastQuestion,
     } = useTestNavigation(testData);
+
+    const playableAudioUrl = resolvePlayableMediaUrl(part?.audioUrl);
+
+    useEffect(() => {
+        let active = true;
+
+        if (!playableAudioUrl) {
+            setAudioObjectUrl((prev) => {
+                if (prev) URL.revokeObjectURL(prev);
+                return null;
+            });
+            return undefined;
+        }
+
+        const loadAudioBlob = async () => {
+            try {
+                const res = await fetch(playableAudioUrl);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const blob = await res.blob();
+                if (!active) return;
+                const nextUrl = URL.createObjectURL(blob);
+                setAudioObjectUrl((prev) => {
+                    if (prev) URL.revokeObjectURL(prev);
+                    return nextUrl;
+                });
+            } catch {
+                if (!active) return;
+                setAudioObjectUrl(null);
+            }
+        };
+
+        loadAudioBlob();
+
+        return () => {
+            active = false;
+        };
+    }, [playableAudioUrl]);
+
+    useEffect(() => {
+        if (!audioStarted || isReview) return;
+        if (!audioRef.current) return;
+        audioRef.current.load?.();
+        audioRef.current.play().catch(() => { });
+    }, [audioStarted, isReview, audioObjectUrl]);
+
+    const handlePlay = () => {
+        setAudioStarted(true);
+        if (audioRef.current) {
+            audioRef.current.load?.();
+            audioRef.current.play().catch(() => { });
+        }
+    };
+
+    const effectiveAudioUrl = audioObjectUrl || playableAudioUrl;
 
     useEffect(() => {
         if (!testId) { setError('Không tìm thấy ID bài thi.'); setLoading(false); return; }
@@ -662,15 +717,6 @@ const IeltsListeningTest = () => {
         />;
     }
 
-    const handlePlay = () => {
-        setAudioStarted(true);
-        if (audioRef.current) {
-            audioRef.current.play().catch(() => { });
-        }
-    };
-
-    const playableAudioUrl = resolvePlayableMediaUrl(part?.audioUrl);
-
     return (
         <div className="ielts-container">
             <TestHeader
@@ -693,8 +739,8 @@ const IeltsListeningTest = () => {
             />
 
             {/* Hidden audio element */}
-            {playableAudioUrl && (
-                <audio ref={audioRef} src={playableAudioUrl} preload="auto" />
+            {effectiveAudioUrl && (
+                <audio ref={audioRef} src={effectiveAudioUrl} preload="auto" />
             )}
 
             {/* Audio start overlay */}

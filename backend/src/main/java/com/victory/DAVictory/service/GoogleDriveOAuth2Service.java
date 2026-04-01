@@ -311,7 +311,7 @@ public class GoogleDriveOAuth2Service {
 
             makeFilePublic(uploadedFile.getId());
 
-            return String.format("https://drive.google.com/uc?export=view&id=%s", uploadedFile.getId());
+            return String.format("/api/files/preview/%s", uploadedFile.getId());
         } finally {
             Files.deleteIfExists(tempFile);
         }

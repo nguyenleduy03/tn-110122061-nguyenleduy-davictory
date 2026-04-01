@@ -1,6 +1,7 @@
 import React from 'react';
 import { formatTextWithWhitespace } from '../../utils/textFormatters';
 import BookmarkToggle from '../common/BookmarkToggle';
+import { resolveDrivePreviewUrl } from '../../utils/mediaUrl';
 
 const DropdownGroupQuestion = ({
   q,
@@ -54,7 +55,7 @@ const DropdownGroupQuestion = ({
           {group.imageUrl && (
             <div style={{ width: `${group.imageWidth || 100}%` }}>
               <img
-                src={group.imageUrl}
+                src={resolveDrivePreviewUrl(group.imageUrl)}
                 alt="Question illustration"
                 style={{
                   width: '100%',
@@ -77,7 +78,7 @@ const DropdownGroupQuestion = ({
                   </div>
                   {opt.imageUrl && (
                     <img
-                      src={opt.imageUrl}
+                      src={resolveDrivePreviewUrl(opt.imageUrl)}
                       alt={`Option ${opt.key}`}
                       style={{ maxWidth: '150px', maxHeight: '100px', objectFit: 'contain' }}
                     />

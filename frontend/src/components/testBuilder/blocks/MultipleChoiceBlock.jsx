@@ -2,9 +2,10 @@ import React, { useEffect } from 'react';
 import { X, Plus, Image } from 'lucide-react';
 import GroupToolbar from './shared/GroupToolbar';
 import RichInput from '../../common/RichInput';
+import ImageUploadZone from './shared/ImageUploadZone';
 import { loadImageFile } from './shared/blockHelpers';
 
-const MultipleChoiceBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps, testTitle,
+const MultipleChoiceBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps, testTitle, testId, module = 'READING',
   onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onAddQuestion, selectedQuestionId }) => {
   
   const questions = group.questions ?? [];
@@ -144,31 +145,17 @@ const MultipleChoiceBlock = ({ group, onUpdate, onDelete, onSelect, selected, dr
                     
                     {isImg ? (
                       <div className="exam-mc-opt-image-cell">
-                        {opt.optionImageUrl ? (
-                          <img src={opt.optionImageUrl} alt={`Option ${label}`} className="exam-mc-opt-img-preview" />
-                        ) : (
-                          <div className="exam-mc-opt-img-empty">Chưa có ảnh</div>
-                        )}
-                        <div className="exam-mc-opt-img-controls">
-                          <input
-                            type="text"
-                            className="exam-mc-opt-url-input"
-                            placeholder="URL ảnh..."
-                            value={opt.optionImageUrl || ''}
-                            onChange={(e) => handleUpdateOption(q, i, { optionImageUrl: e.target.value })}
-                            onClick={(e) => e.stopPropagation()} />
-                          <label className="exam-mc-img-file-btn" title="Tải ảnh" onClick={(e) => e.stopPropagation()}>
-                            <Image size={12} />
-                            <input type="file" accept="image/*" hidden 
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) {
-                                  loadImageFile(file, (url) => handleUpdateOption(q, i, { optionImageUrl: url }), 'READING', testTitle);
-                                  e.target.value = '';
-                                }
-                              }} />
-                          </label>
-                        </div>
+                        <ImageUploadZone
+                          imageUrl={opt.optionImageUrl}
+                          onImageChange={(url) => handleUpdateOption(q, i, { optionImageUrl: url })}
+                          onImageDelete={() => handleUpdateOption(q, i, { optionImageUrl: '' })}
+                          placeholder={`URL ảnh cho ${label}...`}
+                          module={module}
+                          assetLabel="MCQ_OPTION"
+                          testTitle={testTitle}
+                          showPreview={true}
+                          compact={false}
+                        />
                       </div>
                     ) : (
                       <RichInput

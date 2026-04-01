@@ -72,7 +72,7 @@ public class DriveAssetRenameService {
 
     private void renameRootFolderIfExists(String oldTestTitle, String newTestTitle, Set<String> renamedFolderIds) {
         try {
-            String folderId = driveService.findFolderIdForPath(oldTestTitle);
+            String folderId = driveService.findFolderIdForPath(buildFolderPath(oldTestTitle, null, null));
             if (folderId == null || !renamedFolderIds.add(folderId)) {
                 return;
             }
@@ -119,6 +119,7 @@ public class DriveAssetRenameService {
     }
 
     private String buildFolderPath(String testTitle, SkillType skillType, MediaType mediaType) {
+        String root = "exam";
         String normalizedTestTitle = normalizeSegment(testTitle);
         String module = skillType != null ? skillType.name() : null;
         String normalizedModule = normalizeSegment(module);
@@ -126,20 +127,23 @@ public class DriveAssetRenameService {
 
         if (normalizedTestTitle == null) {
             if (normalizedModule == null) {
-                return normalizedMediaType;
+                return normalizedMediaType == null ? root : String.join("/", root, normalizedMediaType);
             }
-            return normalizedMediaType == null ? normalizedModule : String.join("/", normalizedModule, normalizedMediaType);
+            if (normalizedMediaType == null) {
+                return String.join("/", root, normalizedModule);
+            }
+            return String.join("/", root, normalizedModule, normalizedMediaType);
         }
 
         if (normalizedModule == null) {
-            return normalizedMediaType == null ? normalizedTestTitle : String.join("/", normalizedTestTitle, normalizedMediaType);
+            return normalizedMediaType == null ? String.join("/", root, normalizedTestTitle) : String.join("/", root, normalizedTestTitle, normalizedMediaType);
         }
 
         if (normalizedMediaType == null) {
-            return String.join("/", normalizedTestTitle, normalizedModule);
+            return String.join("/", root, normalizedTestTitle, normalizedModule);
         }
 
-        return String.join("/", normalizedTestTitle, normalizedModule, normalizedMediaType);
+        return String.join("/", root, normalizedTestTitle, normalizedModule, normalizedMediaType);
     }
 
     private String driveToken(String folderPath) {
