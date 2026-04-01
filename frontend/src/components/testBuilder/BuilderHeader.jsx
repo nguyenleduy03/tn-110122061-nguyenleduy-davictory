@@ -287,31 +287,14 @@ const BuilderHeader = ({
             <button 
               className="tb-tool-btn" 
               onClick={(e) => {
-                console.log('🔘 PREVIEW CLICKED!');
                 e.preventDefault();
                 e.stopPropagation();
-                
-                const testId = savedTestId || test?.id;
-                const skillType = test?.singleSkill || activeSkill || 'READING';
-                console.log('testId:', testId);
-                console.log('skillType:', skillType);
-                console.log('test.singleSkill:', test?.singleSkill);
-                console.log('activeSkill:', activeSkill);
-                
-                if (testId && skillType) {
-                  const url = `/test/${skillType.toLowerCase()}/${testId}?mode=practice`;
-                  console.log('Opening:', url);
-                  window.open(url, '_blank');
-                } else {
-                  alert('Vui lòng lưu đề trước khi xem trước');
-                }
-                
-                return false;
+                onPreviewToggle();
               }}
               title="Xem trước đề thi"
               type="button"
             >
-              <Eye size={15} /><span>Xem trước</span>
+              <Eye size={15} /><span>{previewMode ? 'Đóng xem trước' : 'Xem trước'}</span>
             </button>
           </div>
 

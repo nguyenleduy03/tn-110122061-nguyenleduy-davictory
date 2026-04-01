@@ -203,6 +203,7 @@
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/security/JwtUtil.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/service/AssignmentService.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/service/AssignmentServiceExtension.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/service/DriveAssetRenameService.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/service/ExamAttemptService.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/service/FileUploadService.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/service/FullTestProgressService.java

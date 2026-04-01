@@ -5,6 +5,7 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeFlow;
 import com.google.api.client.googleapis.auth.oauth2.GoogleClientSecrets;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.http.FileContent;
+import com.google.api.client.http.InputStreamContent;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.gson.GsonFactory;
@@ -19,6 +20,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.ByteArrayOutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.file.Files;
@@ -170,6 +173,13 @@ public class GoogleDriveOAuth2Service {
             throw new RuntimeException("No credentials found. Please authorize first.");
         }
 
+        if (credential.getAccessToken() == null || (credential.getExpiresInSeconds() != null && credential.getExpiresInSeconds() < 60)) {
+            boolean refreshed = credential.refreshToken();
+            if (!refreshed) {
+                throw new RuntimeException("Unable to refresh Google Drive access token.");
+            }
+        }
+
         return new Drive.Builder(httpTransport, JSON_FACTORY, credential)
                 .setApplicationName("DAVictory IELTS")
                 .build();
@@ -195,8 +205,88 @@ public class GoogleDriveOAuth2Service {
         return resolveFolderPath(folderPath);
     }
 
+    public String findFolderIdForPath(String folderPath) throws Exception {
+        if (folderPath == null || folderPath.isBlank()) {
+            return folderId;
+        }
+
+        String currentParentId = folderId;
+        for (String rawSegment : folderPath.split("/")) {
+            String segment = rawSegment.trim();
+            if (segment.isEmpty()) {
+                continue;
+            }
+
+            String childId = findChildFolderId(currentParentId, segment);
+            if (childId == null) {
+                return null;
+            }
+            currentParentId = childId;
+        }
+        return currentParentId;
+    }
+
     public String getRootFolderId() {
         return folderId;
+    }
+
+    public String getFileMimeType(String fileId) throws Exception {
+        File metadata = getDriveService().files().get(fileId)
+                .setFields("mimeType")
+                .execute();
+        return metadata.getMimeType();
+    }
+
+    public String getFileName(String fileId) throws Exception {
+        File metadata = getDriveService().files().get(fileId)
+                .setFields("name")
+                .execute();
+        return metadata.getName();
+    }
+
+    public void renameFile(String fileId, String newName) throws Exception {
+        File metadata = new File();
+        metadata.setName(newName);
+        getDriveService().files().update(fileId, metadata)
+                .setFields("id,name")
+                .execute();
+    }
+
+    public void renameFolder(String folderId, String newName) throws Exception {
+        File metadata = new File();
+        metadata.setName(newName);
+        getDriveService().files().update(folderId, metadata)
+                .setFields("id,name")
+                .execute();
+    }
+
+    public String extractFileId(String url) {
+        if (url == null || url.isBlank()) {
+            return null;
+        }
+
+        if (url.contains("/preview/")) {
+            return url.substring(url.lastIndexOf('/') + 1);
+        }
+
+        if (url.contains("id=")) {
+            return url.split("id=")[1].split("&")[0];
+        }
+
+        if (url.contains("/file/d/")) {
+            String tail = url.substring(url.indexOf("/file/d/") + "/file/d/".length());
+            return tail.contains("/") ? tail.substring(0, tail.indexOf('/')) : tail;
+        }
+
+        return null;
+    }
+
+    public byte[] downloadFile(String fileId) throws Exception {
+        try (InputStream inputStream = getDriveService().files().get(fileId).executeMediaAsInputStream();
+             ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+            inputStream.transferTo(outputStream);
+            return outputStream.toByteArray();
+        }
     }
 
     public String uploadFile(MultipartFile multipartFile, String folderPath) throws Exception {
@@ -301,6 +391,23 @@ public class GoogleDriveOAuth2Service {
 
         folderCache.put(cacheKey, resolvedId);
         return resolvedId;
+    }
+
+    private String findChildFolderId(String parentId, String folderName) throws Exception {
+        String escapedFolderName = folderName.replace("'", "\\'");
+        String query = String.format(
+                "name='%s' and mimeType='application/vnd.google-apps.folder' and '%s' in parents and trashed=false",
+                escapedFolderName, parentId);
+        var result = getDriveService().files().list()
+                .setQ(query)
+                .setSpaces("drive")
+                .setFields("files(id, name)")
+                .execute();
+
+        if (result.getFiles().isEmpty()) {
+            return null;
+        }
+        return result.getFiles().get(0).getId();
     }
 
     private String createFolder(String folderName, String parentId) throws Exception {

@@ -20,6 +20,7 @@ import BuilderHeader from '../components/testBuilder/BuilderHeader';
 import BuilderSidebar from '../components/testBuilder/BuilderSidebar';
 import ExamCanvas from '../components/testBuilder/ExamCanvas';
 import PreviewModal from '../components/testBuilder/PreviewModal';
+import IframePreviewModal from '../components/testBuilder/IframePreviewModal';
 import PropertiesPanel from '../components/testBuilder/PropertiesPanel';
 import ErrorBoundary from '../components/common/ErrorBoundary';
 import { testBuilderApi, buildSavePayload, parseLoadedTest } from '../services/testBuilderApi';
@@ -1440,6 +1441,15 @@ const TestBuilder = () => {
             </ErrorBoundary>
           )}
         </div>
+
+        {/* Iframe Preview Modal - Overlay fullscreen */}
+        {previewMode && (
+          <IframePreviewModal
+            testId={savedTestId || test?.id}
+            skillType={test?.singleSkill || activeSkill || 'READING'}
+            onClose={() => setPreviewMode(false)}
+          />
+        )}
       </div>
     </ErrorBoundary>
   );

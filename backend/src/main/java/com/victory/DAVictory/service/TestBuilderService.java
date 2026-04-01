@@ -50,6 +50,7 @@ public class TestBuilderService {
     private final AnswerRepository answerRepository;
     private final AttemptAnswerRepository attemptAnswerRepository;
     private final QuestionTypeRepository questionTypeRepository;
+    private final DriveAssetRenameService driveAssetRenameService;
 
     // ═══════════════════════════════════════════════════════════════
     //  1. LƯU TOÀN BỘ ĐỀ THI (Save Full Test)
@@ -64,11 +65,13 @@ public class TestBuilderService {
     @Transactional
     public TestFullResponse saveFullTest(TestSaveRequest req) {
         Test test;
+        String previousTitle = null;
 
         if (req.getId() != null) {
             // ─── Cập nhật đề thi đã có ───
             test = testRepository.findById(req.getId())
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy đề thi ID=" + req.getId()));
+            previousTitle = test.getTitle();
             test.setTitle(req.getTitle());
             test.setDescription(req.getDescription());
             test.setTestType(req.getTestType());
@@ -213,6 +216,13 @@ public class TestBuilderService {
                     }
                 }
             }
+        }
+
+        if (req.getId() != null
+                && previousTitle != null
+                && req.getTitle() != null
+                && !previousTitle.equals(req.getTitle())) {
+            driveAssetRenameService.renameAssetsForTestTitleChange(req, previousTitle, req.getTitle());
         }
 
         return loadFullTest(test.getId());

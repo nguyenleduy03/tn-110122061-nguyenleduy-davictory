@@ -11,6 +11,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -60,6 +61,24 @@ public class FileUploadController {
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/preview/{fileId}")
+    public ResponseEntity<byte[]> previewFile(@PathVariable String fileId) {
+        try {
+            byte[] data = driveService.downloadFile(fileId);
+            String mimeType = driveService.getFileMimeType(fileId);
+
+            return ResponseEntity.ok()
+                    .header("Content-Type", mimeType != null ? mimeType : "application/octet-stream")
+                    .header("Content-Disposition", "inline; filename=media")
+                    .body(data);
+        } catch (Exception e) {
+            byte[] message = ("Preview error: " + e.getMessage()).getBytes(StandardCharsets.UTF_8);
+            return ResponseEntity.badRequest()
+                    .header("Content-Type", "text/plain; charset=utf-8")
+                    .body(message);
         }
     }
 
