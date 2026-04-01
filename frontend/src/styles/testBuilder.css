@@ -987,8 +987,9 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 20px 20px 60px;
+  padding: 20px 20px 0;
   position: relative;
+  min-height: 0;
 }
 .tb-canvas::-webkit-scrollbar { width: 6px; }
 .tb-canvas::-webkit-scrollbar-thumb { background: #bfd4f6; border-radius: 3px; }
@@ -1289,6 +1290,42 @@
   flex-direction: column;
   overflow: hidden;
   min-height: 0;
+}
+
+/* =============================================
+   CANVAS FOOTER - Part Question Counts
+   ============================================= */
+.exam-canvas-footer {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 4px 16px;
+  background: #ffffff;
+  font-size: 13px;
+  flex-shrink: 0;
+  width: 100%;
+  max-width: 1060px;
+  margin: 0 auto;
+}
+
+.exam-footer-part {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 8px;
+  background: #f9fafb;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+}
+
+.exam-footer-part-name {
+  font-weight: 500;
+  color: #374151;
+}
+
+.exam-footer-part-count {
+  color: #6b7280;
+  font-size: 12px;
 }
 
 /* =============================================

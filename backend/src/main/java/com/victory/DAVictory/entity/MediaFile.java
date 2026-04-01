@@ -21,12 +21,6 @@ public class MediaFile {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 255)
-    private String fileName; // Tên file gốc khi upload
-
-    @Column(nullable = false, unique = true, length = 255)
-    private String storedFileName; // Tên file sau khi lưu (UUID + extension)
-
     @Column(nullable = false, length = 500)
     private String filePath; // Đường dẫn lưu trữ trên server hoặc cloud
 

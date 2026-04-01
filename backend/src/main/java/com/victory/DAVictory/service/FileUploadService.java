@@ -11,7 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.security.MessageDigest;
-import java.util.UUID;
+import java.io.InputStream;
 
 @Slf4j
 @Service
@@ -22,7 +22,7 @@ public class FileUploadService {
     private final MediaFileRepository mediaFileRepository;
 
     @Transactional
-    public MediaFile uploadFile(MultipartFile file, MediaType mediaType, String module, User uploadedBy) throws Exception {
+    public MediaFile uploadFile(MultipartFile file, MediaType mediaType, String module, String testTitle, User uploadedBy) throws Exception {
         String checksum = calculateChecksum(file);
         
         var existing = mediaFileRepository.findByChecksum(checksum);
@@ -31,13 +31,10 @@ public class FileUploadService {
             return existing.get();
         }
 
-        String folder = String.format("%s/%s", module, mediaType.name().toLowerCase());
+        String folder = buildFolderPath(testTitle, module, mediaType);
         String driveUrl = googleDriveService.uploadFile(file, folder);
-        String fileId = extractFileIdFromUrl(driveUrl);
 
         MediaFile mediaFile = new MediaFile();
-        mediaFile.setFileName(file.getOriginalFilename());
-        mediaFile.setStoredFileName(UUID.randomUUID() + "_" + file.getOriginalFilename());
         mediaFile.setFilePath(folder);
         mediaFile.setFileUrl(driveUrl);
         mediaFile.setMediaType(mediaType);
@@ -57,13 +54,22 @@ public class FileUploadService {
                 .orElseThrow(() -> new RuntimeException("File not found"));
 
         String fileId = extractFileIdFromUrl(mediaFile.getFileUrl());
-        googleDriveService.deleteFile(fileId);
+        if (fileId != null) {
+            googleDriveService.deleteFile(fileId);
+        }
         mediaFileRepository.deleteById(mediaFileId);
     }
 
     private String calculateChecksum(MultipartFile file) throws Exception {
         MessageDigest md = MessageDigest.getInstance("MD5");
-        byte[] digest = md.digest(file.getBytes());
+        try (InputStream inputStream = file.getInputStream()) {
+            byte[] buffer = new byte[8192];
+            int read;
+            while ((read = inputStream.read(buffer)) != -1) {
+                md.update(buffer, 0, read);
+            }
+        }
+        byte[] digest = md.digest();
         StringBuilder sb = new StringBuilder();
         for (byte b : digest) {
             sb.append(String.format("%02x", b));
@@ -76,5 +82,26 @@ public class FileUploadService {
             return url.split("id=")[1].split("&")[0];
         }
         return null;
+    }
+
+    public String buildFolderPath(String testTitle, String module, MediaType mediaType) {
+        String sanitizedTestTitle = sanitizePathSegment(testTitle);
+        String sanitizedModule = sanitizePathSegment(module);
+        String sanitizedMediaType = sanitizePathSegment(mediaType.name().toLowerCase());
+
+        if (sanitizedTestTitle == null) {
+            return String.join("/", sanitizedModule, sanitizedMediaType);
+        }
+
+        return String.join("/", sanitizedTestTitle, sanitizedModule, sanitizedMediaType);
+    }
+
+    private String sanitizePathSegment(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim()
+                .replaceAll("[\\\\/:*?\"<>|]", "_")
+                .replaceAll("\\s+", "_");
     }
 }

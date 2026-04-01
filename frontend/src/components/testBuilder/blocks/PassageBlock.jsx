@@ -5,7 +5,7 @@ import RichInput from '../../common/RichInput';
 import RichBlankEditor from './shared/RichBlankEditor';
 import { toRoman, loadImageFile, toPlainText, countBlankTokens, getNextQuestionNumber, isImagePinQuestion, isNoteBlankQuestion, getQuestionWeight } from './shared/blockHelpers';
 
-const PassageBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps, mhHeadings = [], mhAnswersByLabel = {} }) => {
+const PassageBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps, mhHeadings = [], mhAnswersByLabel = {}, testTitle }) => {
   const [draggingOverPara, setDraggingOverPara] = useState(null);
   const [pendingImagePara, setPendingImagePara] = useState(null);
   const fileInputRefs = useRef({});
@@ -45,7 +45,7 @@ const PassageBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandl
 
   const applyImageFile = (pid, file) => {
     if (!file || !file.type.startsWith('image/')) return;
-    loadImageFile(file, (imageUrl) => updateParaImage(pid, imageUrl));
+    loadImageFile(file, (imageUrl) => updateParaImage(pid, imageUrl), 'READING', testTitle);
   };
 
   // Accept both: sidebar palette drag AND direct image file drag from OS

@@ -5,7 +5,7 @@ import RichInput from '../../common/RichInput';
 import RichBlankEditor from './shared/RichBlankEditor';
 import { toRoman, loadImageFile, toPlainText, countBlankTokens, getNextQuestionNumber, isImagePinQuestion, isNoteBlankQuestion, getQuestionWeight } from './shared/blockHelpers';
 
-const ImageBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps, children }) => (
+const ImageBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps, children, testTitle }) => (
   <div className={`exam-group${selected ? ' selected' : ''}`}
     onClick={(e) => { e.stopPropagation(); onSelect(group); }}>
     <GroupToolbar group={group} dragHandleProps={dragHandleProps} onDelete={onDelete} />
@@ -203,7 +203,7 @@ const QuestionItem = ({ question, selected, onClick, onUpdate, onDelete }) => {
 // ---- Map Labelling Block ----
 // Teacher uploads image, clicks to place numbered pins, student drags bank chips onto pins.
 function MapLabellingBlock({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps,
-  onUpdateQuestion, onDeleteQuestion, selectedQuestionId }) {
+  onUpdateQuestion, onDeleteQuestion, selectedQuestionId, testTitle }) {
   const containerRef = useRef(null);
   const imageWrapRef = useRef(null);
   const dragRef = useRef(null); // { qId, origX, origY, startCX, startCY }
@@ -267,7 +267,7 @@ function MapLabellingBlock({ group, onUpdate, onDelete, onSelect, selected, drag
     const file = input.files?.[0];
     if (!file) return;
     input.value = '';
-    loadImageFile(file, (imageUrl) => onUpdate(group.id, { imageUrl }));
+    loadImageFile(file, (imageUrl) => onUpdate(group.id, { imageUrl }), 'READING', testTitle);
   };
 
   return (

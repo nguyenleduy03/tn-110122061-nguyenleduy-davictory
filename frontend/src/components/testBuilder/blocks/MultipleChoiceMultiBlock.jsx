@@ -5,7 +5,7 @@ import RichInput from '../../common/RichInput';
 import RichBlankEditor from './shared/RichBlankEditor';
 import { toRoman, loadImageFile, toPlainText, countBlankTokens, getNextQuestionNumber, isImagePinQuestion, isNoteBlankQuestion, getQuestionWeight } from './shared/blockHelpers';
 
-const MultipleChoiceMultiBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps,
+const MultipleChoiceMultiBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps, testTitle,
   onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onAddQuestion, selectedQuestionId }) => {
   const questions = group.questions ?? [];
   
@@ -124,7 +124,7 @@ const MultipleChoiceMultiBlock = ({ group, onUpdate, onDelete, onSelect, selecte
                               loadImageFile(file, (imageUrl) => {
                                 const next = [...opts]; next[i] = { ...next[i], optionImageUrl: imageUrl };
                                 onUpdateQuestion(group.id, q.id, { options: next });
-                              });
+                              }, 'READING', testTitle);
                             }} />
                           </label>
                         </div>

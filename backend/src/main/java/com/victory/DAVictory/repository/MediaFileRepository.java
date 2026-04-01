@@ -11,8 +11,6 @@ import java.util.Optional;
 @Repository
 public interface MediaFileRepository extends JpaRepository<MediaFile, Long> {
 
-    Optional<MediaFile> findByStoredFileName(String storedFileName);
-
     List<MediaFile> findByMediaType(MediaType mediaType);
 
     List<MediaFile> findByModule(String module);

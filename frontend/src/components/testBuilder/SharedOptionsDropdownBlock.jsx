@@ -25,6 +25,7 @@ const SharedOptionsDropdownBlock = ({
   onDeleteQuestion,
   onAddQuestion,
   selectedQuestionId,
+  testTitle,
 }) => {
   const questions = group.questions ?? [];
   const sharedOptions = group.sharedOptions?.length ? group.sharedOptions : defaultSharedOptions();
@@ -37,7 +38,7 @@ const SharedOptionsDropdownBlock = ({
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = '';
-    loadImageFile(file, (imageUrl) => onUpdate(group.id, { imageUrl }));
+    loadImageFile(file, (imageUrl) => onUpdate(group.id, { imageUrl }), 'READING', testTitle);
   };
 
   const updateOptionLabel = (idx, label) => {
@@ -92,7 +93,7 @@ const SharedOptionsDropdownBlock = ({
                     loadImageFile(file, (imageUrl) => {
                       const next = sharedOptions.map((o, i) => i === idx ? { ...o, imageUrl } : o);
                       syncSharedOptions(next);
-                    });
+                    }, 'READING', testTitle);
                   }} />
               </label>
               {opt.imageUrl && (

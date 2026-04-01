@@ -58,6 +58,7 @@ const BuilderHeader = ({
   savedTestId,
   previewMode,
   onPreviewToggle,
+  activeSkill,
 }) => {
   const [activeFormats, setActiveFormats] = useState({});
   const lastRangeRef = useRef(null);
@@ -283,9 +284,34 @@ const BuilderHeader = ({
             <button className="tb-tool-btn" onClick={onShuffle} disabled={shuffling} title="Trộn đề ngẫu nhiên">
               <Shuffle size={15} /><span>{shuffling ? 'Đang trộn...' : 'Trộn đề'}</span>
             </button>
-          <button className="tb-tool-btn" onClick={onPreviewToggle || onPreview} title={previewMode ? ' Quay lại chỉnh sửa' : 'Xem trước đề thi'}
-            style={previewMode ? { background: '#dbeafe', color: '#1d4ed8', border: '1px solid #93c5fd' } : {}}>
-              <Eye size={15} /><span>{previewMode ? 'Quay lại' : 'Xem trước'}</span>
+            <button 
+              className="tb-tool-btn" 
+              onClick={(e) => {
+                console.log('🔘 PREVIEW CLICKED!');
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const testId = savedTestId || test?.id;
+                const skillType = test?.singleSkill || activeSkill || 'READING';
+                console.log('testId:', testId);
+                console.log('skillType:', skillType);
+                console.log('test.singleSkill:', test?.singleSkill);
+                console.log('activeSkill:', activeSkill);
+                
+                if (testId && skillType) {
+                  const url = `/test/${skillType.toLowerCase()}/${testId}?mode=practice`;
+                  console.log('Opening:', url);
+                  window.open(url, '_blank');
+                } else {
+                  alert('Vui lòng lưu đề trước khi xem trước');
+                }
+                
+                return false;
+              }}
+              title="Xem trước đề thi"
+              type="button"
+            >
+              <Eye size={15} /><span>Xem trước</span>
             </button>
           </div>
 

@@ -206,6 +206,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/media/**").authenticated()
 
                         // ===== FILE UPLOAD =====
+                        .requestMatchers(HttpMethod.GET, "/api/files/preview/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/files/upload").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/files/**").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
 

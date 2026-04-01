@@ -331,7 +331,15 @@ const TestBuilder = () => {
 
   const updatePart = (partId, updates) => {
     setParts((prev) =>
-      prev.map((p) => (p.id === partId ? { ...p, ...updates } : p))
+      prev.map((p) => {
+        if (p.id !== partId) return p;
+        const updated = { ...p, ...updates };
+        // Nếu questionGroups thay đổi, tính lại question numbers
+        if ('questionGroups' in updates) {
+          updated.questionGroups = recalculateQuestionNumbers(updated.questionGroups);
+        }
+        return updated;
+      })
     );
     if (selection?.type === 'part' && selection.data.id === partId) {
       setSelection((s) => ({ ...s, data: { ...s.data, ...updates } }));
@@ -674,21 +682,19 @@ const TestBuilder = () => {
     setParts((prev) =>
       prev.map((p) => {
         if (p.id !== partId) return p;
-        return {
-          ...p,
-          questionGroups: p.questionGroups.map((g) => {
-            if (g.id !== groupId) return g;
-            const updated = { ...g, ...updates };
-            // Nếu là Multiple Choice (nhiều) và chooseCount thay đổi, cập nhật questionCount cho tất cả câu hỏi
-            if (updated.contentType === 'MULTIPLE_CHOICE_MULTI' && 'chooseCount' in updates) {
-              updated.questions = (updated.questions || []).map(q => ({
-                ...q,
-                questionCount: updates.chooseCount
-              }));
-            }
-            return updated;
-          }),
-        };
+        const updatedGroups = p.questionGroups.map((g) => {
+          if (g.id !== groupId) return g;
+          const updated = { ...g, ...updates };
+          // Nếu là Multiple Choice (nhiều) và chooseCount thay đổi, cập nhật questionCount cho tất cả câu hỏi
+          if (updated.contentType === 'MULTIPLE_CHOICE_MULTI' && 'chooseCount' in updates) {
+            updated.questions = (updated.questions || []).map(q => ({
+              ...q,
+              questionCount: updates.chooseCount
+            }));
+          }
+          return updated;
+        });
+        return { ...p, questionGroups: recalculateQuestionNumbers(updatedGroups) };
       })
     );
     if (selection?.type === 'group' && selection.data.id === groupId) {
@@ -805,18 +811,19 @@ const TestBuilder = () => {
     setParts((prev) =>
       prev.map((p) => {
         if (p.id !== partId) return p;
-        return {
-          ...p,
-          questionGroups: p.questionGroups.map((g) => {
-            if (g.id !== groupId) return g;
-            return {
-              ...g,
-              questions: g.questions.map((q) =>
-                q.id === questionId ? { ...q, ...updates } : q
-              ),
-            };
-          }),
-        };
+        const updatedGroups = p.questionGroups.map((g) => {
+          if (g.id !== groupId) return g;
+          return {
+            ...g,
+            questions: g.questions.map((q) =>
+              q.id === questionId ? { ...q, ...updates } : q
+            ),
+          };
+        });
+        // Tính lại question numbers nếu questionCount thay đổi
+        return 'questionCount' in updates 
+          ? { ...p, questionGroups: recalculateQuestionNumbers(updatedGroups) }
+          : { ...p, questionGroups: updatedGroups };
       })
     );
     if (selection?.type === 'question' && selection.data.id === questionId) {
@@ -1247,6 +1254,7 @@ const TestBuilder = () => {
           savedTestId={savedTestId}
           previewMode={previewMode}
           onPreviewToggle={() => setPreviewMode((prev) => !prev)}
+          activeSkill={activeSkill}
         />
 
         {leftSidebarCollapsed && (

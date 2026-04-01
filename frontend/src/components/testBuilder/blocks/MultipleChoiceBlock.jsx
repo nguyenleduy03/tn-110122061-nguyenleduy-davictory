@@ -4,7 +4,7 @@ import GroupToolbar from './shared/GroupToolbar';
 import RichInput from '../../common/RichInput';
 import { loadImageFile } from './shared/blockHelpers';
 
-const MultipleChoiceBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps,
+const MultipleChoiceBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps, testTitle,
   onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onAddQuestion, selectedQuestionId }) => {
   
   const questions = group.questions ?? [];
@@ -163,7 +163,7 @@ const MultipleChoiceBlock = ({ group, onUpdate, onDelete, onSelect, selected, dr
                               onChange={(e) => {
                                 const file = e.target.files?.[0];
                                 if (file) {
-                                  loadImageFile(file, (url) => handleUpdateOption(q, i, { optionImageUrl: url }));
+                                  loadImageFile(file, (url) => handleUpdateOption(q, i, { optionImageUrl: url }), 'READING', testTitle);
                                   e.target.value = '';
                                 }
                               }} />

@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @Service
@@ -48,6 +49,8 @@ public class GoogleDriveOAuth2Service {
 
     private static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
     private static final String TOKENS_DIRECTORY_PATH = "tokens";
+
+    private final Map<String, String> folderCache = new ConcurrentHashMap<>();
 
     private GoogleAuthorizationCodeFlow flow;
 
@@ -140,22 +143,9 @@ public class GoogleDriveOAuth2Service {
                 info.put("storagePercent", limit > 0 ? (usage * 100 / limit) : 0);
             }
             
-            // Count files in folder
-            String query = String.format("'%s' in parents and trashed=false", folderId);
-            var files = service.files().list()
-                    .setQ(query)
-                    .setFields("files(id,name,size,mimeType)")
-                    .execute();
-            
-            info.put("totalFiles", files.getFiles().size());
-            
-            long totalSize = 0;
-            for (var file : files.getFiles()) {
-                if (file.getSize() != null) {
-                    totalSize += file.getSize();
-                }
-            }
-            info.put("folderSize", formatBytes(totalSize));
+            DriveFolderStats stats = collectFolderStats(service, folderId);
+            info.put("totalFiles", stats.totalFiles);
+            info.put("folderSize", formatBytes(stats.totalSize));
             
         } catch (Exception e) {
             log.error("Error getting drive info", e);
@@ -185,26 +175,56 @@ public class GoogleDriveOAuth2Service {
                 .build();
     }
 
-    public String uploadFile(MultipartFile multipartFile, String folder) throws Exception {
-        Path tempFile = Files.createTempFile("upload-", multipartFile.getOriginalFilename());
-        multipartFile.transferTo(tempFile.toFile());
+    public String getAccessToken() throws Exception {
+        Credential credential = getFlow().loadCredential("user");
+        if (credential == null) {
+            throw new RuntimeException("No credentials found. Please authorize first.");
+        }
 
-        String uniqueFileName = generateUniqueFileName(multipartFile.getOriginalFilename(), folder);
-        
-        File fileMetadata = new File();
-        fileMetadata.setName(uniqueFileName);
-        fileMetadata.setParents(Collections.singletonList(getFolderIdByName(folder)));
+        if (credential.getAccessToken() == null || (credential.getExpiresInSeconds() != null && credential.getExpiresInSeconds() < 60)) {
+            boolean refreshed = credential.refreshToken();
+            if (!refreshed) {
+                throw new RuntimeException("Unable to refresh Google Drive access token.");
+            }
+        }
 
-        FileContent mediaContent = new FileContent(multipartFile.getContentType(), tempFile.toFile());
-        File uploadedFile = getDriveService().files()
-                .create(fileMetadata, mediaContent)
-                .setFields("id")
-                .execute();
+        return credential.getAccessToken();
+    }
 
-        makeFilePublic(uploadedFile.getId());
-        Files.delete(tempFile);
+    public String getFolderIdForPath(String folderPath) throws Exception {
+        return resolveFolderPath(folderPath);
+    }
 
-        return String.format("https://drive.google.com/uc?export=view&id=%s", uploadedFile.getId());
+    public String getRootFolderId() {
+        return folderId;
+    }
+
+    public String uploadFile(MultipartFile multipartFile, String folderPath) throws Exception {
+        String originalFilename = multipartFile.getOriginalFilename() != null ? multipartFile.getOriginalFilename() : "file";
+        String tempSuffix = originalFilename.replaceAll("[^a-zA-Z0-9._-]", "_");
+        Path tempFile = Files.createTempFile("upload-", tempSuffix);
+
+        try {
+            multipartFile.transferTo(tempFile.toFile());
+
+            String uniqueFileName = generateUniqueFileName(originalFilename, folderPath);
+
+            File fileMetadata = new File();
+            fileMetadata.setName(uniqueFileName);
+            fileMetadata.setParents(Collections.singletonList(resolveFolderPath(folderPath)));
+
+            FileContent mediaContent = new FileContent(multipartFile.getContentType(), tempFile.toFile());
+            File uploadedFile = getDriveService().files()
+                    .create(fileMetadata, mediaContent)
+                    .setFields("id")
+                    .execute();
+
+            makeFilePublic(uploadedFile.getId());
+
+            return String.format("https://drive.google.com/uc?export=view&id=%s", uploadedFile.getId());
+        } finally {
+            Files.deleteIfExists(tempFile);
+        }
     }
 
     private String generateUniqueFileName(String originalFilename, String folder) {
@@ -240,36 +260,96 @@ public class GoogleDriveOAuth2Service {
         getDriveService().permissions().create(fileId, permission).execute();
     }
 
-    private String getFolderIdByName(String folderName) throws Exception {
-        if (folderName == null || folderName.isEmpty()) {
+    private String resolveFolderPath(String folderPath) throws Exception {
+        if (folderPath == null || folderPath.isBlank()) {
             return folderId;
         }
 
-        String query = String.format("name='%s' and mimeType='application/vnd.google-apps.folder' and '%s' in parents", 
-                folderName, folderId);
+        String currentParentId = folderId;
+        for (String rawSegment : folderPath.split("/")) {
+            String segment = rawSegment.trim();
+            if (segment.isEmpty()) {
+                continue;
+            }
+            currentParentId = getOrCreateChildFolder(currentParentId, segment);
+        }
+        return currentParentId;
+    }
+
+    private String getOrCreateChildFolder(String parentId, String folderName) throws Exception {
+        String cacheKey = parentId + ":" + folderName;
+        if (folderCache.containsKey(cacheKey)) {
+            return folderCache.get(cacheKey);
+        }
+
+        String escapedFolderName = folderName.replace("'", "\\'");
+        String query = String.format(
+                "name='%s' and mimeType='application/vnd.google-apps.folder' and '%s' in parents and trashed=false",
+                escapedFolderName, parentId);
         var result = getDriveService().files().list()
                 .setQ(query)
                 .setSpaces("drive")
                 .setFields("files(id, name)")
                 .execute();
 
+        String resolvedId;
         if (result.getFiles().isEmpty()) {
-            return createFolder(folderName);
+            resolvedId = createFolder(folderName, parentId);
+        } else {
+            resolvedId = result.getFiles().get(0).getId();
         }
-        return result.getFiles().get(0).getId();
+
+        folderCache.put(cacheKey, resolvedId);
+        return resolvedId;
     }
 
-    private String createFolder(String folderName) throws Exception {
+    private String createFolder(String folderName, String parentId) throws Exception {
         File fileMetadata = new File();
         fileMetadata.setName(folderName);
         fileMetadata.setMimeType("application/vnd.google-apps.folder");
-        fileMetadata.setParents(Collections.singletonList(folderId));
+        fileMetadata.setParents(Collections.singletonList(parentId));
 
         File folder = getDriveService().files()
                 .create(fileMetadata)
                 .setFields("id")
                 .execute();
         return folder.getId();
+    }
+
+    private DriveFolderStats collectFolderStats(Drive service, String parentId) throws Exception {
+        DriveFolderStats stats = new DriveFolderStats();
+        String pageToken = null;
+
+        do {
+            var result = service.files().list()
+                    .setQ(String.format("'%s' in parents and trashed=false", parentId))
+                    .setSpaces("drive")
+                    .setFields("nextPageToken, files(id, name, size, mimeType)")
+                    .setPageToken(pageToken)
+                    .execute();
+
+            for (var file : result.getFiles()) {
+                if ("application/vnd.google-apps.folder".equals(file.getMimeType())) {
+                    DriveFolderStats childStats = collectFolderStats(service, file.getId());
+                    stats.totalFiles += childStats.totalFiles;
+                    stats.totalSize += childStats.totalSize;
+                } else {
+                    stats.totalFiles++;
+                    if (file.getSize() != null) {
+                        stats.totalSize += file.getSize();
+                    }
+                }
+            }
+
+            pageToken = result.getNextPageToken();
+        } while (pageToken != null && !pageToken.isBlank());
+
+        return stats;
+    }
+
+    private static class DriveFolderStats {
+        private long totalFiles = 0;
+        private long totalSize = 0;
     }
 
     public void deleteFile(String fileId) throws Exception {

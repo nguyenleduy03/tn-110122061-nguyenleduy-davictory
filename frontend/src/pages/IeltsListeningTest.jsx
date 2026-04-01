@@ -16,6 +16,19 @@ import { useNotes } from "../hooks/useNotes";
 import GuestInfoForm from "../components/common/GuestInfoForm";
 import BookmarkToggle from "../components/common/BookmarkToggle";
 
+const resolvePlayableMediaUrl = (url) => {
+    if (!url || typeof url !== 'string') return url;
+    if (url.startsWith('/api/files/preview/')) return url;
+    if (url.startsWith('data:')) return url;
+
+    const driveIdMatch = url.match(/[?&]id=([^&]+)/) || url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+    if (driveIdMatch?.[1]) {
+        return `/api/files/preview/${driveIdMatch[1]}`;
+    }
+
+    return url;
+};
+
 const IeltsListeningTest = () => {
     const [testData, setTestData] = useState(null);
     const [answers, setAnswers] = useState({});
@@ -656,6 +669,8 @@ const IeltsListeningTest = () => {
         }
     };
 
+    const playableAudioUrl = resolvePlayableMediaUrl(part?.audioUrl);
+
     return (
         <div className="ielts-container">
             <TestHeader
@@ -678,8 +693,8 @@ const IeltsListeningTest = () => {
             />
 
             {/* Hidden audio element */}
-            {part.audioUrl && (
-                <audio ref={audioRef} src={part.audioUrl} />
+            {playableAudioUrl && (
+                <audio ref={audioRef} src={playableAudioUrl} preload="auto" />
             )}
 
             {/* Audio start overlay */}

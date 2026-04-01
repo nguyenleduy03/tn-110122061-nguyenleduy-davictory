@@ -5,7 +5,7 @@ import RichInput from '../../common/RichInput';
 import RichBlankEditor from './shared/RichBlankEditor';
 import { toRoman, loadImageFile, toPlainText, countBlankTokens, getNextQuestionNumber, getPartQuestionStartNumber, isImagePinQuestion, isNoteBlankQuestion, getQuestionWeight } from './shared/blockHelpers';
 
-const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelect, selected, dragHandleProps, onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onAddQuestion, selectedQuestionId }) => {
+const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelect, selected, dragHandleProps, testTitle, onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onAddQuestion, selectedQuestionId }) => {
   const containerRef = useRef(null);
   const imageWrapRef = useRef(null);
   const dragRef = useRef(null);
@@ -149,7 +149,7 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
     const file = input.files?.[0];
     if (!file) return;
     input.value = '';
-    loadImageFile(file, (imageUrl) => onUpdate(group.id, { imageUrl }));
+    loadImageFile(file, (imageUrl) => onUpdate(group.id, { imageUrl }), 'READING', testTitle);
   };
 
   const imageSection = (

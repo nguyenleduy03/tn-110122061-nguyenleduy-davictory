@@ -59,18 +59,6 @@ const sanitizeSpeakingHtml = (html) => {
 };
 
 const formatSpeakingHtml = (value) => sanitizeSpeakingHtml(normalizeRichHtml(value || ''));
-const toPlainSpeakingText = (value) => {
-  const html = formatSpeakingHtml(value);
-  if (!html) return '';
-
-  if (typeof window === 'undefined' || !window.document) {
-    return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-  }
-
-  const container = window.document.createElement('div');
-  container.innerHTML = html;
-  return (container.textContent || container.innerText || '').replace(/\s+/g, ' ').trim();
-};
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const fmtTime = (sec) => {
@@ -564,7 +552,7 @@ const IeltsSpeakingTest = () => {
   const totalParts = testData?.parts?.length ?? 0;
   const currentPartDisplayNumber = currentPart?.partNumber ?? (currentPartIdx + 1);
   const currentPartTitle = currentPart?.title || `Part ${currentPartDisplayNumber}`;
-  const currentPartHeading = toPlainSpeakingText(currentPartTitle) || `Part ${currentPartDisplayNumber}`;
+  const currentPartTitleHtml = formatSpeakingHtml(currentPartTitle) || `Part ${currentPartDisplayNumber}`;
 
   const partInstructions = useMemo(() => {
     const list = [];
@@ -1371,7 +1359,12 @@ const IeltsSpeakingTest = () => {
           <div className="spk-card spk-part-intro">
             <div className="spk-intro-topbar">
               <div className="spk-intro-topbar-spacer" aria-hidden="true" />
-              <h2 className="spk-intro-title">{currentPartHeading}</h2>
+              <div
+                className="spk-intro-title spk-intro-title-rich"
+                role="heading"
+                aria-level={2}
+                dangerouslySetInnerHTML={{ __html: currentPartTitleHtml }}
+              />
               <button className="spk-start-btn spk-intro-start-btn" onClick={startPartQuestions}>
                 {STAGE_UI_TEXT.intro.startButton}
               </button>
@@ -1402,7 +1395,12 @@ const IeltsSpeakingTest = () => {
               <button className="spk-next-btn spk-review-reset-btn" onClick={resetCurrentPart}>
                 {STAGE_UI_TEXT.review.resetPart} <RotateCcw size={16} />
               </button>
-              <h2 className="spk-intro-title">{currentPartHeading}</h2>
+              <div
+                className="spk-intro-title spk-intro-title-rich"
+                role="heading"
+                aria-level={2}
+                dangerouslySetInnerHTML={{ __html: currentPartTitleHtml }}
+              />
               {currentPartIdx < totalParts - 1 ? (
                 <button className="spk-next-btn spk-review-next-btn" onClick={() => startPartWithIndex(currentPartIdx + 1)}>
                   {STAGE_UI_TEXT.review.nextPart} <ChevronRight size={18} />
@@ -1436,7 +1434,12 @@ const IeltsSpeakingTest = () => {
           <div className="spk-card spk-part-live">
             <div className="spk-intro-topbar spk-part-topbar">
               <div className="spk-intro-topbar-spacer" aria-hidden="true" />
-              <h2 className="spk-intro-title">{currentPartHeading}</h2>
+              <div
+                className="spk-intro-title spk-intro-title-rich"
+                role="heading"
+                aria-level={2}
+                dangerouslySetInnerHTML={{ __html: currentPartTitleHtml }}
+              />
               <button
                 className="spk-next-btn spk-part-next-top"
                 onClick={goNext}

@@ -1003,7 +1003,7 @@ const QuestionList = ({ group, onUpdateGroup, onUpdateQuestion, onDeleteQuestion
   </>
 );
 
-const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUpdateGroup, onUpdateQuestion, onDeleteGroup, onDeleteQuestion, onAddQuestion, onMoveGroupUp, onMoveGroupDown, dragHandleProps, allGroups }) => {
+const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUpdateGroup, onUpdateQuestion, onDeleteGroup, onDeleteQuestion, onAddQuestion, onMoveGroupUp, onMoveGroupDown, dragHandleProps, allGroups, testTitle }) => {
   const selectedGroupId = selection?.type === 'group' ? selection.data.id : null;
   const selectedQuestionId = selection?.type === 'question' ? selection.data.id : null;
   const isSelected = selectedGroupId === group.id;
@@ -1039,14 +1039,14 @@ const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUp
       onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps}
       onSelectQuestion={(q) => onSelectQuestion(q, group.id)}
       onUpdateQuestion={onUpdateQuestion} onDeleteQuestion={onDeleteQuestion} onAddQuestion={onAddQuestion}
-      selectedQuestionId={selectedQuestionId} />;
+      selectedQuestionId={selectedQuestionId} testTitle={testTitle} />;
   }
   if (ct === 'MULTIPLE_CHOICE_MULTI') {
     return <MultipleChoiceMultiBlock group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
       onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps}
       onSelectQuestion={(q) => onSelectQuestion(q, group.id)}
       onUpdateQuestion={onUpdateQuestion} onDeleteQuestion={onDeleteQuestion} onAddQuestion={onAddQuestion}
-      selectedQuestionId={selectedQuestionId} />;
+      selectedQuestionId={selectedQuestionId} testTitle={testTitle} />;
   }
   if (ct === 'SHARED_OPTIONS_DROPDOWN') {
     return (
@@ -1069,6 +1069,7 @@ const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUp
         onDeleteQuestion={onDeleteQuestion}
         onAddQuestion={onAddQuestion}
         selectedQuestionId={selectedQuestionId}
+        testTitle={testTitle}
       />
     );
   }
@@ -1124,6 +1125,7 @@ const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUp
     return <MapLabellingBlock group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
       onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps}
       onUpdateQuestion={onUpdateQuestion} onDeleteQuestion={onDeleteQuestion}
+      testTitle={testTitle}
       selectedQuestionId={selectedQuestionId} />;
   }
   if (ct === 'MATCHING_HEADING') {
@@ -1160,7 +1162,8 @@ const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUp
   }
   if (ct === 'WRITING_TASK') {
     return <WritingTaskBlock group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
-      onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps} />;
+      onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps}
+      testTitle={testTitle} />;
   }
   if (ct === 'SPEAKING_INTERVIEW') {
     return <SpeakingInterviewBlock group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
@@ -1198,17 +1201,17 @@ const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUp
     });
     return <PassageBlock group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
       onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps}
-      mhHeadings={mhHeadings} mhAnswersByLabel={mhAnswersByLabel} />;
+      mhHeadings={mhHeadings} mhAnswersByLabel={mhAnswersByLabel} testTitle={testTitle} />;
   }
   if (ct === 'AUDIO_TRANSCRIPT') {
     return <AudioBlock group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
-      onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps}>
-      {questionList}
-    </AudioBlock>;
+      onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps}
+      testTitle={testTitle} />;
   }
   if (ct === 'DIAGRAM' || ct === 'MAP') {
     return <ImageBlock group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
-      onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps}>
+      onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps}
+      testTitle={testTitle}>
       {questionList}
     </ImageBlock>;
   }
@@ -1228,7 +1231,7 @@ const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUp
   );
 };
 
-const PartView = ({ skill, part, selection, onSelectGroup, onSelectQuestion, onUpdateGroup, onUpdateQuestion, onDeleteGroup, onDeleteQuestion, onAddQuestion, onAddGroup, onMoveGroupUp, onMoveGroupDown, isDropOver, isPassagePaneOver, isPassagePaneLocked, isMHLocked }) => {
+const PartView = ({ skill, part, selection, onSelectGroup, onSelectQuestion, onUpdateGroup, onUpdateQuestion, onDeleteGroup, onDeleteQuestion, onAddQuestion, onAddGroup, onMoveGroupUp, onMoveGroupDown, isDropOver, isPassagePaneOver, isPassagePaneLocked, isMHLocked, test }) => {
   const groups = part.questionGroups ?? [];
 
   const renderGroup = (group) => (
@@ -1247,7 +1250,8 @@ const PartView = ({ skill, part, selection, onSelectGroup, onSelectQuestion, onU
           onAddQuestion={onAddQuestion}
           onMoveGroupUp={onMoveGroupUp}
           onMoveGroupDown={onMoveGroupDown}
-          dragHandleProps={dragHandleProps} />
+          dragHandleProps={dragHandleProps}
+          testTitle={test?.title} />
       )}
     </SortableGroupWrapper>
   );
@@ -1511,10 +1515,26 @@ const ExamCanvas = ({
               isDropOver={isDropOver}
               isPassagePaneOver={isPassagePaneOver}
               isPassagePaneLocked={isPassagePaneLocked}
-              isMHLocked={isMHLocked} />
+              isMHLocked={isMHLocked}
+              test={test} />
           </div>
         </div>
       )}
+
+      {/* Footer: Part question counts */}
+      <div className="exam-canvas-footer">
+        {parts.map((part) => {
+          const questionCount = (part.questionGroups ?? []).reduce((sum, g) => {
+            return sum + (g.questions ?? []).reduce((qSum, q) => qSum + (q.questionCount || 1), 0);
+          }, 0);
+          return (
+            <div key={part.id} className="exam-footer-part">
+              <span className="exam-footer-part-name">{part.name}</span>
+              <span className="exam-footer-part-count">{questionCount} câu</span>
+            </div>
+          );
+        })}
+      </div>
 
       {showTimeModal && createPortal(
         <div className="exam-time-modal-overlay" onClick={closeTimeModal}>

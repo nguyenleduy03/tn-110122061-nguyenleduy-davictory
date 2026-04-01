@@ -120,7 +120,7 @@ export const fileToCompressedDataUrl = (file, { maxWidth = 1280, quality = 0.82 
     reader.readAsDataURL(file);
   });
 
-export const loadImageFile = async (file, setImageUrl) => {
+export const loadImageFile = async (file, setImageUrl, module = 'READING', testTitle = '') => {
   if (!file || !file.type?.startsWith('image/')) return;
   
   try {
@@ -134,18 +134,18 @@ export const loadImageFile = async (file, setImageUrl) => {
 
     // Upload to Google Drive
     const { fileApi } = await import('../../../../services/fileApi');
-    const result = await fileApi.uploadImage(compressedFile, 'READING');
+    const result = await fileApi.uploadImage(compressedFile, module, testTitle);
     
     // Set the Drive URL
     setImageUrl(result.url);
     return result;
   } catch (err) {
     console.error('Image upload failed:', err);
-    alert('Lỗi upload ảnh: ' + (err.message || 'Unknown error'));
+    alert('Lỗi upload ảnh: ' + (err.response?.data?.error || err.message || 'Unknown error'));
   }
 };
 
-export const loadAudioFile = async (file, setAudioUrl) => {
+export const loadAudioFile = async (file, setAudioUrl, module = 'LISTENING', testTitle = '') => {
   if (!file || !file.type?.startsWith('audio/')) return;
   
   try {
@@ -159,13 +159,15 @@ export const loadAudioFile = async (file, setAudioUrl) => {
 
     // Upload to Google Drive
     const { fileApi } = await import('../../../../services/fileApi');
-    const result = await fileApi.uploadListeningAudio(file);
+    const result = module === 'SPEAKING'
+      ? await fileApi.uploadSpeakingAudio(file, testTitle)
+      : await fileApi.uploadListeningAudio(file, testTitle);
     
     // Set the Drive URL
     setAudioUrl(result.url);
     return result;
   } catch (err) {
     console.error('Audio upload failed:', err);
-    alert('Lỗi upload audio: ' + (err.message || 'Unknown error'));
+    alert('Lỗi upload audio: ' + (err.response?.data?.error || err.message || 'Unknown error'));
   }
 };

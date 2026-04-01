@@ -5,13 +5,13 @@ import RichInput from '../../common/RichInput';
 import RichBlankEditor from './shared/RichBlankEditor';
 import { toRoman, loadImageFile, toPlainText, countBlankTokens, getNextQuestionNumber, isImagePinQuestion, isNoteBlankQuestion, getQuestionWeight } from './shared/blockHelpers';
 
-const WritingTaskBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps }) => {
+const WritingTaskBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps, testTitle }) => {
   const handleFileUpload = (e) => {
     const input = e.currentTarget;
     const file = input.files?.[0];
     if (!file) return;
     input.value = '';
-    loadImageFile(file, (imageUrl) => onUpdate(group.id, { imageUrl }));
+    loadImageFile(file, (imageUrl) => onUpdate(group.id, { imageUrl }), 'WRITING', testTitle);
   };
 
   return (

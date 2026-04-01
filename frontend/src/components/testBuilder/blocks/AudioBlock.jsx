@@ -5,12 +5,12 @@ import RichInput from '../../common/RichInput';
 import RichBlankEditor from './shared/RichBlankEditor';
 import { toRoman, loadImageFile, loadAudioFile, toPlainText, countBlankTokens, getNextQuestionNumber, isImagePinQuestion, isNoteBlankQuestion, getQuestionWeight } from './shared/blockHelpers';
 
-const AudioBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps, children }) => {
+const AudioBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps, testTitle }) => {
   const handleAudioUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = '';
-    loadAudioFile(file, (audioUrl) => onUpdate(group.id, { audioUrl }));
+    loadAudioFile(file, (audioUrl) => onUpdate(group.id, { audioUrl }), 'LISTENING', testTitle);
   };
 
   return (
@@ -49,7 +49,6 @@ const AudioBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleP
           </label>
         </div>
       </div>
-      {children}
     </div>
   );
 };
