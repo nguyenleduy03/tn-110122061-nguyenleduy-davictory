@@ -297,7 +297,6 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
                     {!isReview && (
                         <BookmarkToggle
                             className="tc-bookmark"
-                            size={16}
                             active={Boolean(bookmarks?.[subQ.number])}
                             onToggle={() => toggleBookmark?.(subQ.number)}
                         />
@@ -351,7 +350,6 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
                                 {!isReview && (
                                     <BookmarkToggle
                                         className="tc-bookmark"
-                                        size={16}
                                         active={Boolean(bookmarks?.[subQ.number])}
                                         onToggle={() => toggleBookmark?.(subQ.number)}
                                     />

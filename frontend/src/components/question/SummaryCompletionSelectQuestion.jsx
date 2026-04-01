@@ -53,14 +53,18 @@ const SummaryCompletionSelectQuestion = ({ q, activeQuestion, setActiveQuestion,
         return text;
     };
 
-    const payloadFromText = parseEmbeddedQuestionPayload(questionData?.noteText)
-        || parseEmbeddedQuestionPayload(questionData?.text);
+    const payloadFromNoteText = parseEmbeddedQuestionPayload(questionData?.noteText);
+    const payloadFromText = payloadFromNoteText || parseEmbeddedQuestionPayload(questionData?.text);
 
     const options = (questionData.optionBank || []).map(resolveText).filter(Boolean);
     const explicitInstructions = cleanInstructionText(payloadFromText?.instructions || questionData.instructions || '');
     const titleFallback = cleanInstructionText(payloadFromText?.title || '');
     const instructions = explicitInstructions || (isAutoCompletionTitle(titleFallback) ? '' : titleFallback);
-    const noteText = payloadFromText?.noteText || payloadFromText?.text || questionData.noteText || questionData.text || '';
+    const noteText = payloadFromNoteText
+        ? (payloadFromNoteText.noteText || payloadFromNoteText.text || '')
+        : payloadFromText
+            ? (payloadFromText.noteText || payloadFromText.text || questionData.noteText || '')
+            : (questionData.noteText || questionData.text || '');
     const allowOptionReuse = questionData.allowOptionReuse !== false;
 
     const [isDragOverBank, setIsDragOverBank] = React.useState(false);
@@ -81,6 +85,8 @@ const SummaryCompletionSelectQuestion = ({ q, activeQuestion, setActiveQuestion,
 
     const normalizeBlankTokens = (text) => {
         let s = applyDbFormattingMarkers(String(text || ''));
+        s = s.replace(/\s*(?:<p>\s*)?\{\s*"noteText"\s*:\s*""\s*,\s*"title"\s*:\s*""\s*\}(?:\s*<\/p>)?\s*$/gi, '');
+        s = s.replace(/\s*(?:<p>\s*)?\{\s*"noteText"\s*:\s*""\s*,\s*"title"\s*:\s*""\s*,\s*"instructions"\s*:\s*""\s*\}(?:\s*<\/p>)?\s*$/gi, '');
         s = s.replace(/<span[^>]*data-blank=["']true["'][^>]*>[\s\S]*?<\/span>/gi, '[blank]');
         s = s.replace(/<button[^>]*data-del=["']true["'][^>]*>[\s\S]*?<\/button>/gi, '');
         s = s.replace(/<span[^>]*class=["'][^"']*rbe-blank-(?:num|del)[^"']*["'][^>]*>[\s\S]*?<\/span>/gi, '');
@@ -157,7 +163,6 @@ const SummaryCompletionSelectQuestion = ({ q, activeQuestion, setActiveQuestion,
                 {!isReview && (
                     <BookmarkToggle
                         className="summary-bookmark"
-                        size={16}
                         active={Boolean(bookmarks?.[qNum])}
                         onToggle={() => toggleBookmark?.(qNum)}
                     />

@@ -58,7 +58,6 @@ const MultipleChoiceQuestion = ({ q, activeQuestion, setActiveQuestion, answer, 
                     {!isReview && (
                         <BookmarkToggle
                             className="tfng-bookmark"
-                            size={16}
                             active={nums.some(n => bookmarks?.[n])}
                             onToggle={() => nums.forEach(n => toggleBookmark?.(n))}
                         />
@@ -126,7 +125,6 @@ const MultipleChoiceQuestion = ({ q, activeQuestion, setActiveQuestion, answer, 
                 {!isReview && (
                     <BookmarkToggle
                         className="tfng-bookmark"
-                        size={16}
                         active={nums.some(n => bookmarks?.[n])}
                         onToggle={() => nums.forEach(n => toggleBookmark?.(n))}
                     />

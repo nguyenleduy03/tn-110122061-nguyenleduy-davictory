@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { sanitizeRichPasteHtml } from '../../utils/textFormatters';
+import { sanitizeRichPasteHtml, serializeContentEditableHtml } from '../../utils/textFormatters';
 
 /**
  * RichInput — contentEditable text field used by the shared top toolbar.
@@ -42,8 +42,8 @@ const RichInput = ({ value, onChange, placeholder, style, multiline, className, 
         onMouseDown={(e) => e.stopPropagation()}
         onMouseUp={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
-        onBlur={(e) => { onChange(e.currentTarget.innerHTML); }}
-        onInput={(e) => { onChange(e.currentTarget.innerHTML); }}
+        onBlur={(e) => { onChange(serializeContentEditableHtml(e.currentTarget)); }}
+        onInput={(e) => { onChange(serializeContentEditableHtml(e.currentTarget)); }}
         onKeyDown={(e) => {
           if (!multiline || e.key !== 'Enter') return;
           e.preventDefault();
@@ -70,7 +70,7 @@ const RichInput = ({ value, onChange, placeholder, style, multiline, className, 
           const text = e.clipboardData.getData('text/html') || e.clipboardData.getData('text/plain');
           const cleaned = sanitizeRichPasteHtml(text);
           document.execCommand('insertHTML', false, cleaned);
-          onChange(ref.current.innerHTML);
+          onChange(serializeContentEditableHtml(ref.current));
         }}
       />
     </div>

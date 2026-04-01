@@ -180,6 +180,7 @@ const IeltsListeningTest = () => {
         isFirstQuestion,
         isLastQuestion,
     } = useTestNavigation(testData);
+    const partCount = testData?.parts?.length || 0;
 
     const playableAudioUrl = resolvePlayableMediaUrl(part?.audioUrl);
 
@@ -407,7 +408,7 @@ const IeltsListeningTest = () => {
     }, [testId, isReview, mode, isFullTest, selectedPracticeParts, startPartNumber, durationOverrideMinutes, noTimeLimit, setCurrentPartIndex, isGuest, guestInfo, attemptId, highlightStorageKey]);
 
     useEffect(() => {
-        if (!isFullTest || isReview || !testData || !testId) return undefined;
+        if (!isFullTest || isReview || !partCount || !testId) return undefined;
         let canceled = false;
 
         const restoreSnapshot = async () => {
@@ -437,7 +438,7 @@ const IeltsListeningTest = () => {
                 setBookmarks(snapshot.bookmarks);
             }
             if (Number.isFinite(snapshot.currentPartIndex)) {
-                const maxIndex = Math.max(0, (testData.parts?.length || 1) - 1);
+                const maxIndex = Math.max(0, partCount - 1);
                 setCurrentPartIndex(Math.max(0, Math.min(maxIndex, snapshot.currentPartIndex)));
             }
             if (Number.isFinite(snapshot.activeQuestion)) {
@@ -460,10 +461,10 @@ const IeltsListeningTest = () => {
         return () => {
             canceled = true;
         };
-    }, [isFullTest, isReview, testData, testId, setCurrentPartIndex, setActiveQuestion]);
+    }, [isFullTest, isReview, partCount, testId, setCurrentPartIndex, setActiveQuestion]);
 
     useEffect(() => {
-        if (isFullTest || isReview || !testData || !testId) return;
+        if (isFullTest || isReview || !partCount || !testId) return;
         const savedDraft = parseRuntimeJsonSafe(localStorage.getItem(draftStorageKey), null);
         if (!savedDraft || typeof savedDraft !== 'object') return;
 
@@ -474,7 +475,7 @@ const IeltsListeningTest = () => {
             setBookmarks(savedDraft.bookmarks);
         }
         if (Number.isFinite(savedDraft.currentPartIndex)) {
-            const maxIndex = Math.max(0, (testData.parts?.length || 1) - 1);
+            const maxIndex = Math.max(0, partCount - 1);
             setCurrentPartIndex(Math.max(0, Math.min(maxIndex, savedDraft.currentPartIndex)));
         }
         if (Number.isFinite(savedDraft.activeQuestion)) {
@@ -491,7 +492,7 @@ const IeltsListeningTest = () => {
         };
 
         setAudioStarted(Boolean(isReview));
-    }, [isFullTest, isReview, testData, testId, draftStorageKey, setCurrentPartIndex, setActiveQuestion]);
+    }, [isFullTest, isReview, partCount, testId, draftStorageKey, setCurrentPartIndex, setActiveQuestion]);
 
     useEffect(() => {
         autosaveStateRef.current = {
@@ -1099,15 +1100,17 @@ const IeltsListeningTest = () => {
                                 <div className={`part-status-container ${partHasBookmarked && !isActivePart ? 'has-part-bookmark' : ''}`}>
                                     {partHasBookmarked && !isActivePart && (
                                         <span className="part-title-bookmark" aria-hidden="true">
-                                            <BookmarkToggle size={16} active />
+                                            <BookmarkToggle size={13} active />
                                         </span>
                                     )}
                                     <h4 className="part-title hover-pointer"
                                         dangerouslySetInnerHTML={{ __html: p.title }}
                                     />
-                                    <span className={`part-status ${isActivePart ? 'part-status-hidden' : ''}`} aria-hidden={isActivePart}>
-                                        {answeredCount} of {totalCount}
-                                    </span>
+                                    {!isActivePart && (
+                                        <span className="part-status">
+                                            {answeredCount} of {totalCount}
+                                        </span>
+                                    )}
                                 </div>
 
                                 {isActivePart && (
@@ -1140,7 +1143,7 @@ const IeltsListeningTest = () => {
                                                 >
                                                     {hasBookmarked && (
                                                         <div className="q-bookmark-flag">
-                                                            <BookmarkToggle size={16} active />
+                                                            <BookmarkToggle size={13} active />
                                                         </div>
                                                     )}
                                                     <div className={`status-dash${isAnswered ? " answered-dash" : ""}${hasBookmarked ? " bookmarked-dash" : ""}`} />

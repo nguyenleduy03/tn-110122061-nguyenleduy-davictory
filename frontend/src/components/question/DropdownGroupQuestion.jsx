@@ -138,7 +138,6 @@ const DropdownGroupQuestion = ({
               {!isReview && (
                 <BookmarkToggle
                   className="mcq-dropdown-bookmark"
-                  size={16}
                   active={Boolean(bookmarks?.[number])}
                   onToggle={() => toggleBookmark?.(number)}
                 />

@@ -174,7 +174,6 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                     const bookmarkNode = !isReview ? (
                         <BookmarkToggle
                             className="dd-bookmark-btn"
-                            size={16}
                             active={Boolean(bookmarks?.[subQ.number])}
                             onToggle={() => toggleBookmark?.(subQ.number)}
                         />
@@ -343,7 +342,6 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                                                         {hasBookmark && (
                                                             <BookmarkToggle
                                                                 className="fc-blank-bookmark"
-                                                                size={16}
                                                                 active={Boolean(bookmarks?.[subQ.number])}
                                                                 onToggle={() => toggleBookmark?.(subQ.number)}
                                                             />
@@ -441,7 +439,6 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                                         {!isReview && (
                                             <BookmarkToggle
                                                 className="drop-zone-bookmark"
-                                                size={16}
                                                 active={Boolean(bookmarks?.[subQ.number])}
                                                 onToggle={() => toggleBookmark?.(subQ.number)}
                                             />
@@ -601,7 +598,6 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                                                 {!isReview && (
                                                     <BookmarkToggle
                                                         className="mf-bookmark-btn"
-                                                        size={16}
                                                         active={Boolean(bookmarks?.[subQ.number])}
                                                         onToggle={() => toggleBookmark?.(subQ.number)}
                                                     />

@@ -287,10 +287,10 @@ const IeltsReadingTest = () => {
 
     useEffect(() => {
         if (!testId) { setError('Không tìm thấy ID bài thi.'); setLoading(false); return; }
-        
+
         const fallbackParam = searchParams.get('fallback');
         const fallbackSkills = fallbackParam ? fallbackParam.split(',') : [];
-        
+
         ieltsApi.getTestSession(testId, "READING", fallbackSkills).then((data) => {
             const shouldApplyPracticeConfig = mode === 'practice' && !isFullTest && !isReview;
             let configuredData = data;
@@ -617,13 +617,13 @@ const IeltsReadingTest = () => {
 
         // Submit bài thi bình thường
         const resp = await ieltsApi.submitAnswers(testId, 'READING', answers, timeSpentSeconds, testData);
-        
+
         if (resp) {
             sessionStorage.setItem('lastScore_reading', JSON.stringify(resp));
         }
         clearDraftByTest('reading', testId);
         localStorage.removeItem(`ieltsTimerDeadline_${timerPersistKey}`);
-        
+
         // Nếu là bài tập, submit vào assignment API
         if (assignmentId && resp?.attemptId) {
             const { submitTestToAssignment } = await import('../utils/assignmentHelper');
@@ -636,9 +636,9 @@ const IeltsReadingTest = () => {
             );
             return;
         }
-        
+
         if (isFullTest) { handleFullTestNext(); return; }
-        
+
         const completeParams = new URLSearchParams({
             mode,
             skill: 'reading',
@@ -929,7 +929,7 @@ const IeltsReadingTest = () => {
                                 <div className={`part-status-container ${partHasBookmarked && !isActivePart ? 'has-part-bookmark' : ''}`}>
                                     {partHasBookmarked && !isActivePart && (
                                         <span className="part-title-bookmark" aria-hidden="true">
-                                            <BookmarkToggle size={16} active />
+                                            <BookmarkToggle size={13} active />
                                         </span>
                                     )}
                                     <h4 className="part-title hover-pointer"
@@ -973,7 +973,7 @@ const IeltsReadingTest = () => {
                                                 >
                                                     {hasBookmarked && (
                                                         <div className="q-bookmark-flag">
-                                                            <BookmarkToggle size={16} active />
+                                                            <BookmarkToggle size={13} active />
                                                         </div>
                                                     )}
                                                     <div className={`status-dash${isAnswered ? " answered-dash" : ""}${hasBookmarked ? " bookmarked-dash" : ""}`} />

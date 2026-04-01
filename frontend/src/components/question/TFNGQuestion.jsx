@@ -26,7 +26,6 @@ const TFNGQuestion = ({ q, activeQuestion, setActiveQuestion, answer, handleAnsw
                 {!isReview && (
                     <BookmarkToggle
                         className="tfng-bookmark"
-                        size={16}
                         active={nums.some(n => bookmarks?.[n])}
                         onToggle={() => nums.forEach(n => toggleBookmark?.(n))}
                     />

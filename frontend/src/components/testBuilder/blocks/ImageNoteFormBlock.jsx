@@ -3,6 +3,7 @@ import { X, Plus, Volume2, Image, ChevronUp, ChevronDown } from 'lucide-react';
 import GroupToolbar from './shared/GroupToolbar';
 import RichInput from '../../common/RichInput';
 import RichBlankEditor from './shared/RichBlankEditor';
+import { serializeContentEditableHtml } from '../../../utils/textFormatters';
 import { resolveDrivePreviewUrl } from '../../../utils/mediaUrl';
 import { toRoman, loadImageFile, toPlainText, countBlankTokens, getNextQuestionNumber, getPartQuestionStartNumber, isImagePinQuestion, isNoteBlankQuestion, getQuestionWeight } from './shared/blockHelpers';
 
@@ -364,7 +365,8 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
         onMouseDown={(e) => e.stopPropagation()}
         onMouseUp={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
-        onBlur={(e) => onUpdate(group.id, { title: e.currentTarget.innerHTML })}
+          onInput={(e) => onUpdate(group.id, { title: serializeContentEditableHtml(e.currentTarget) })}
+          onBlur={(e) => onUpdate(group.id, { title: serializeContentEditableHtml(e.currentTarget) })}
         data-placeholder="Tiêu đề (VD: House Plan)"
         dangerouslySetInnerHTML={{ __html: group.title || '' }}
       />

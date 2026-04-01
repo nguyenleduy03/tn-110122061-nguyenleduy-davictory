@@ -644,15 +644,6 @@ function TcCellEditor({ value, onChange, startQNum }) {
 
   return (
     <div className="tc-cell-rbe" onClick={(e) => e.stopPropagation()}>
-      <div className="tc-cell-toolbar">
-        <div className="rbe-drag-chip" draggable
-          title="Kéo vào ô"
-          onDragStart={(e) => {
-            e.dataTransfer.setData('text/x-rbe','1');
-            e.dataTransfer.effectAllowed = 'copy';
-          }}>▣</div>
-        <button type="button" className="exam-tc-blank-btn" onClick={insertAtCaret} title="Chèn ô tại con trỏ">+□</button>
-      </div>
       <div
         ref={editorRef}
         className={`tc-cell-editor${dragOver ? ' drag-over' : ''}`}
@@ -1066,6 +1057,9 @@ function TableCompletionBlock({ group, onUpdate, onDelete, onSelect, selected, d
       </div>
 
       {/* Table */}
+      <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6, fontStyle: 'italic' }}>
+        💡 Nhập nội dung vào ô. Dùng <code>___</code>, <code>...</code> hoặc <code>----</code> để tạo ô trống (hoặc gõ <code>[blank]</code>)
+      </div>
       <div className="exam-tc-scroll" onClick={(e) => e.stopPropagation()}>
         <table className="exam-tc-table">
           <thead>

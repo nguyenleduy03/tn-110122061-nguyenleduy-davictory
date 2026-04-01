@@ -78,7 +78,6 @@ const MatchingFillQuestion = ({ q, activeQuestion, setActiveQuestion, answers, h
               {!isReview && (
                 <BookmarkToggle
                   className="tfng-bookmark"
-                  size={16}
                   active={Boolean(bookmarks?.[subQ.number])}
                   onToggle={() => toggleBookmark?.(subQ.number)}
                 />

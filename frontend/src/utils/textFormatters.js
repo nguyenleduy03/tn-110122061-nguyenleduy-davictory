@@ -94,6 +94,49 @@ export const normalizeRichHtml = (text) => {
     .replace(/\\n|\n/g, '<br/>');
 };
 
+const shouldPreserveAlignment = (node) => {
+  if (!node || !node.querySelector) return false;
+
+  const text = String(node.textContent || '').replace(/\s+/g, ' ').trim();
+  if (!text) return false;
+
+  const wordCount = text.split(/\s+/).filter(Boolean).length;
+  const directBlockTags = new Set(['p', 'div', 'section', 'article', 'header', 'footer', 'blockquote', 'figure', 'figcaption', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']);
+  const directBlockChildren = Array.from(node.children || []).filter((child) => directBlockTags.has(String(child.tagName || '').toLowerCase()));
+  const brCount = (node.innerHTML.match(/<br\s*\/?\s*>/gi) || []).length;
+
+  // A single centered title/heading should stay centered.
+  if (directBlockChildren.length === 0 && brCount <= 1) return true;
+
+  // Multi-line / multi-block content should not inherit one alignment for the whole paragraph.
+  return wordCount <= 10 && directBlockChildren.length <= 1 && brCount <= 1;
+};
+
+/**
+ * Serialize a contentEditable element so root text alignment survives save/load.
+ * This preserves innerHTML and wraps it when the editable itself is centered/right-aligned.
+ */
+export const serializeContentEditableHtml = (el) => {
+  if (!el) return '';
+
+  const html = el.innerHTML || '';
+  const align = String(el.style?.textAlign || '').toLowerCase();
+  const computedAlign = typeof window !== 'undefined' && el.ownerDocument?.defaultView
+    ? String(el.ownerDocument.defaultView.getComputedStyle(el).textAlign || '').toLowerCase()
+    : '';
+
+  const resolvedAlign = align || computedAlign;
+  if (!resolvedAlign || ['left', 'start', 'initial', 'unset', 'inherit', ''].includes(resolvedAlign)) {
+    return html;
+  }
+
+  if (!shouldPreserveAlignment(el)) {
+    return html;
+  }
+
+  return `<div style="text-align:${resolvedAlign};">${html}</div>`;
+};
+
 const escapeHtml = (text) => String(text)
   .replace(/&/g, '&amp;')
   .replace(/</g, '&lt;')
@@ -309,6 +352,9 @@ export const stripInlineStyles = (html) => {
     // Remove style, class, id from all elements
     const allElements = temp.querySelectorAll('*');
     allElements.forEach(el => {
+      const style = String(el.getAttribute('style') || '');
+      const align = style.match(/(?:^|;)\s*text-align\s*:\s*(left|center|right|justify)\s*(?:;|$)/i)?.[1];
+      if (align && shouldPreserveAlignment(el)) el.setAttribute('data-rte-align', align.toLowerCase());
       el.removeAttribute('style');
       el.removeAttribute('class');
       el.removeAttribute('id');
@@ -320,6 +366,16 @@ export const stripInlineStyles = (html) => {
       changed = false;
       const wrappers = temp.querySelectorAll('span, div');
       wrappers.forEach(el => {
+        if (el.getAttribute('data-rte-align')) {
+          const align = el.getAttribute('data-rte-align');
+          el.removeAttribute('data-rte-align');
+          el.style.textAlign = align;
+          if (el.tagName.toLowerCase() === 'div') {
+            // Keep the wrapper so alignment is preserved.
+            return;
+          }
+        }
+
         if (el.parentNode) {
           while (el.firstChild) {
             el.parentNode.insertBefore(el.firstChild, el);

@@ -39,7 +39,9 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
     };
 
     const payloadFromText = parseEmbeddedQuestionPayload(q?.text);
-    const textToRender = payloadFromText?.noteText || payloadFromText?.text || q?.text || '';
+    const textToRender = payloadFromText
+        ? (payloadFromText.noteText || payloadFromText.text || q?.noteText || '')
+        : (q?.noteText || q?.text || '');
     const explicitInstructions = cleanInstructionText(payloadFromText?.instructions || q?.instructions || '');
     const titleFallback = cleanInstructionText(payloadFromText?.title || '');
     const instructionsText = explicitInstructions || (isAutoCompletionTitle(titleFallback) ? '' : titleFallback);
@@ -61,6 +63,9 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
 
     const normalizeBlankTokens = (text) => {
         let s = applyDbFormattingMarkers(String(text || ''));
+        // Some legacy payloads accidentally append serialized empty JSON at the end.
+        s = s.replace(/\s*(?:<p>\s*)?\{\s*"noteText"\s*:\s*""\s*,\s*"title"\s*:\s*""\s*\}(?:\s*<\/p>)?\s*$/gi, '');
+        s = s.replace(/\s*(?:<p>\s*)?\{\s*"noteText"\s*:\s*""\s*,\s*"title"\s*:\s*""\s*,\s*"instructions"\s*:\s*""\s*\}(?:\s*<\/p>)?\s*$/gi, '');
         // Replace editor blank chips with [blank]
         s = s.replace(/<span[^>]*data-blank=["']true["'][^>]*>[\s\S]*?<\/span>/gi, '[blank]');
         // Remove legacy blank-chip controls that leaked into stored HTML.
@@ -145,7 +150,6 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
                 {!isReview && (
                     <BookmarkToggle
                         className="summary-bookmark"
-                        size={16}
                         active={Boolean(bookmarks?.[qNum])}
                         onToggle={() => toggleBookmark?.(qNum)}
                     />

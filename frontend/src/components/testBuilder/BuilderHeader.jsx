@@ -135,28 +135,28 @@ const BuilderHeader = ({
     
     editableEl.focus();
     
-    // Use CSS for alignment commands
-    if (cmd.startsWith('justify')) {
-      const alignMap = {
-        'justifyLeft': 'left',
-        'justifyCenter': 'center', 
-        'justifyRight': 'right',
-        'justifyFull': 'justify'
-      };
-      editableEl.style.textAlign = alignMap[cmd] || 'left';
-    } else {
-      // Restore the highlighted range before applying formatting so the
-      // command affects the selected instruction text, not the caret only.
-      try {
-        if (lastRangeRef.current) {
-          const sel = window.getSelection();
-          sel.removeAllRanges();
-          sel.addRange(lastRangeRef.current);
-        }
-        document.execCommand(cmd, false, val);
-      } catch (error) {
-        console.error(`execCommand '${cmd}' error:`, error);
+    // Restore the highlighted range before applying formatting so the
+    // command affects the selected instruction text, not the caret only.
+    try {
+      if (lastRangeRef.current) {
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(lastRangeRef.current);
       }
+
+      if (cmd.startsWith('justify')) {
+        document.execCommand(cmd, false, null);
+      } else {
+        document.execCommand(cmd, false, val);
+      }
+    } catch (error) {
+      console.error(`execCommand '${cmd}' error:`, error);
+    }
+
+    try {
+      editableEl.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'formatChange', data: null }));
+    } catch {
+      editableEl.dispatchEvent(new Event('input', { bubbles: true }));
     }
   };
 

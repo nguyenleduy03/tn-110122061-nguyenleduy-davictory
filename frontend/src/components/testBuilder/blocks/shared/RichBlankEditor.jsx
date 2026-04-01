@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { List, ListOrdered, Indent } from 'lucide-react';
-import { sanitizeRichPasteHtml } from '../../../../utils/textFormatters';
+import { sanitizeRichPasteHtml, serializeContentEditableHtml } from '../../../../utils/textFormatters';
 
 /**
  * RichBlankEditor
@@ -59,6 +59,8 @@ const RichBlankEditor = ({
 
     return clone.innerHTML;
   };
+
+  const saveValue = () => serializeContentEditableHtml(editorRef.current).replace(/\[blank\]/gi, '[blank]');
 
   // Set initial HTML on mount only (avoids cursor-jumping on re-renders)
   useEffect(() => {
@@ -131,7 +133,7 @@ const RichBlankEditor = ({
     } catch (err) {
       console.error(`RichBlankEditor execCommand('${cmd}') failed:`, err);
     }
-    onChange(toText(editorRef.current));
+    onChange(saveValue());
   };
 
   const insertList = (ordered = false) => {
@@ -240,7 +242,7 @@ const RichBlankEditor = ({
     sel.removeAllRanges();
     sel.addRange(nr);
     renumber();
-    onChange(toText(editorRef.current));
+    onChange(saveValue());
   };
 
   return (
@@ -294,10 +296,10 @@ const RichBlankEditor = ({
             return `<span class="rbe-blank ${blankClass}" contenteditable="false" data-blank="true"><span class="rbe-blank-num">?</span><button class="rbe-blank-del" data-del="true" type="button">×</button></span>`;
           });
           document.execCommand('insertHTML', false, withChips);
-          setTimeout(() => { renumber(); onChange(toText(editorRef.current)); }, 0);
+          setTimeout(() => { renumber(); onChange(saveValue()); }, 0);
         }}
         onCut={() => {
-          setTimeout(() => { renumber(); onChange(toText(editorRef.current)); }, 0);
+          setTimeout(() => { renumber(); onChange(saveValue()); }, 0);
         }}
         onKeyDown={(e) => {
           if (insertBlankShortcut(e)) return;
@@ -329,7 +331,7 @@ const RichBlankEditor = ({
                 sel.addRange(range);
               }
             }
-            onChange(toText(editorRef.current));
+            onChange(saveValue());
           }
         }}
         onDragOver={(e) => {
@@ -362,7 +364,7 @@ const RichBlankEditor = ({
             range.deleteContents();
             range.insertNode(createChip());
             renumber();
-            if (editorRef.current) onChange(toText(editorRef.current));
+            if (editorRef.current) onChange(saveValue());
           } catch (err) {
             console.error('RBE drop failed', err);
           }
@@ -373,7 +375,7 @@ const RichBlankEditor = ({
             if (chip) {
               chip.remove();
               renumber();
-              onChange(toText(editorRef.current));
+              onChange(saveValue());
               e.preventDefault();
             }
           }
