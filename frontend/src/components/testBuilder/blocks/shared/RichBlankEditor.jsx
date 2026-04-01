@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { List, ListOrdered, Indent } from 'lucide-react';
+import { sanitizeRichPasteHtml } from '../../../../utils/textFormatters';
 
 /**
  * RichBlankEditor
@@ -16,6 +17,7 @@ const RichBlankEditor = ({
 }) => {
   const editorRef = useRef(null);
   const [dragOver, setDragOver] = useState(false);
+  const lastRangeRef = useRef(null);
 
   const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
@@ -63,6 +65,34 @@ const RichBlankEditor = ({
     if (editorRef.current) editorRef.current.innerHTML = toHTML(value || '');
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    const updateSelection = () => {
+      const sel = window.getSelection?.();
+      if (!sel || !sel.rangeCount) return;
+      const range = sel.getRangeAt(0);
+      const anchor = range.commonAncestorContainer;
+      const anchorEl = anchor?.nodeType === 1 ? anchor : anchor?.parentElement;
+      if (editorRef.current && anchorEl && editorRef.current.contains(anchorEl)) {
+        lastRangeRef.current = range.cloneRange();
+      }
+    };
+
+    document.addEventListener('selectionchange', updateSelection);
+    return () => document.removeEventListener('selectionchange', updateSelection);
+  }, []);
+
+  const restoreSelection = () => {
+    const sel = window.getSelection?.();
+    if (!sel || !lastRangeRef.current) return false;
+    try {
+      sel.removeAllRanges();
+      sel.addRange(lastRangeRef.current);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   const renumber = () => {
     let n = startNumber - 1;
     editorRef.current?.querySelectorAll('[data-blank="true"] .rbe-blank-num').forEach((el) => {
@@ -93,37 +123,101 @@ const RichBlankEditor = ({
     return span;
   };
 
-  const insertList = (ordered = false) => {
+  const execFormatting = (cmd) => {
     editorRef.current?.focus();
-    const sel = window.getSelection();
-    if (sel.rangeCount) {
-      const range = sel.getRangeAt(0);
-      const listTag = ordered ? 'ol' : 'ul';
-      const list = document.createElement(listTag);
-      const li = document.createElement('li');
-      li.innerHTML = '&nbsp;';
-      list.appendChild(li);
-
-      range.deleteContents();
-      range.insertNode(list);
-
-      // Đặt cursor vào li
-      const newRange = document.createRange();
-      newRange.selectNodeContents(li);
-      newRange.collapse(true);
-      sel.removeAllRanges();
-      sel.addRange(newRange);
-
-      onChange(toText(editorRef.current));
+    restoreSelection();
+    try {
+      document.execCommand(cmd, false, null);
+    } catch (err) {
+      console.error(`RichBlankEditor execCommand('${cmd}') failed:`, err);
     }
+    onChange(toText(editorRef.current));
+  };
+
+  const insertList = (ordered = false) => {
+    execFormatting(ordered ? 'insertOrderedList' : 'insertUnorderedList');
   };
 
   const indentList = () => {
-    editorRef.current?.focus();
-    document.execCommand('indent');
-    setTimeout(() => {
-      onChange(toText(editorRef.current));
-    }, 0);
+    execFormatting('indent');
+  };
+
+  const insertBlankShortcut = (e) => {
+    const key = String(e.key || '').toLowerCase();
+    const isInsertBlank = (e.ctrlKey || e.metaKey) && e.altKey && key === 'o';
+    if (!isInsertBlank) return false;
+
+    e.preventDefault();
+    insertChipAtCaret();
+    return true;
+  };
+
+  const promoteHeadingLikeFirstLine = (html) => {
+    if (typeof html !== 'string' || !html.includes('<')) return html || '';
+
+    try {
+      const temp = document.createElement('div');
+      temp.innerHTML = html;
+
+      const meaningfulNodes = Array.from(temp.childNodes).filter((node) => {
+        if (node.nodeType === Node.TEXT_NODE) return Boolean((node.textContent || '').trim());
+        if (node.nodeType !== Node.ELEMENT_NODE) return false;
+        return Boolean((node.textContent || '').trim());
+      });
+
+      if (meaningfulNodes.length < 2) return html;
+
+      const firstNode = meaningfulNodes[0];
+      const firstText = (firstNode.textContent || '').replace(/\s+/g, ' ').trim();
+      const wordCount = firstText ? firstText.split(/\s+/).length : 0;
+      const looksLikeHeading =
+        wordCount >= 2 &&
+        wordCount <= 10 &&
+        !/[.:!?]$/.test(firstText) &&
+        !/\[blank\]/i.test(firstText) &&
+        !/^(?:\d+[.)]|[•\-*–—])/u.test(firstText);
+
+      if (!looksLikeHeading) return html;
+
+      if (firstNode.nodeType === Node.ELEMENT_NODE) {
+        const element = firstNode;
+        if (!element.querySelector('strong')) {
+          const strong = document.createElement('strong');
+          strong.innerHTML = element.innerHTML;
+          element.innerHTML = '';
+          element.appendChild(strong);
+        }
+      } else if (firstNode.nodeType === Node.TEXT_NODE) {
+        const strong = document.createElement('strong');
+        strong.textContent = firstText;
+        firstNode.replaceWith(strong);
+      }
+
+      return temp.innerHTML;
+    } catch {
+      return html;
+    }
+  };
+
+  const preserveBlockAlignment = (html) => {
+    if (typeof html !== 'string' || !html.includes('<')) return html || '';
+
+    try {
+      const temp = document.createElement('div');
+      temp.innerHTML = html;
+
+      temp.querySelectorAll('div, p').forEach((node) => {
+        const align = String(node.getAttribute('style') || '').match(/text-align\s*:\s*(left|center|right|justify)/i)?.[1];
+        if (align) {
+          node.style.textAlign = align.toLowerCase();
+          node.style.margin = '0';
+        }
+      });
+
+      return temp.innerHTML;
+    } catch {
+      return html;
+    }
   };
 
   const insertChipAtCaret = () => {
@@ -164,20 +258,20 @@ const RichBlankEditor = ({
           ▣ Kéo ô trống
         </div>
         <div className="rbe-sep" />
-        <button type="button" className="rbe-insert-btn" onClick={insertChipAtCaret}>
+        <button type="button" className="rbe-insert-btn" onMouseDown={(e) => e.preventDefault()} onClick={insertChipAtCaret}>
           + Chèn tại con trỏ
         </button>
         <div className="rbe-sep" />
-        <button type="button" className="rbe-insert-btn" onClick={() => insertList(false)} title="Gạch đầu dòng">
+        <button type="button" className="rbe-insert-btn" onMouseDown={(e) => e.preventDefault()} onClick={() => insertList(false)} title="Gạch đầu dòng">
           <List size={14} />
         </button>
-        <button type="button" className="rbe-insert-btn" onClick={() => insertList(true)} title="Đánh số">
+        <button type="button" className="rbe-insert-btn" onMouseDown={(e) => e.preventDefault()} onClick={() => insertList(true)} title="Đánh số">
           <ListOrdered size={14} />
         </button>
-        <button type="button" className="rbe-insert-btn" onClick={indentList} title="Tăng cấp độ">
+        <button type="button" className="rbe-insert-btn" onMouseDown={(e) => e.preventDefault()} onClick={indentList} title="Tăng cấp độ">
           <Indent size={14} />
         </button>
-        <span className="rbe-hint">× để xóa ô trống</span>
+        <span className="rbe-hint">Windows/Linux: Ctrl+Alt+O · Mac: ⌘+⌥+O · × để xóa ô trống</span>
       </div>
       <div
         ref={editorRef}
@@ -187,26 +281,53 @@ const RichBlankEditor = ({
         data-placeholder={placeholder}
         onInput={() => { renumber(); onChange(toText(editorRef.current)); }}
         onKeyUp={() => { renumber(); onChange(toText(editorRef.current)); }}
-        onPaste={() => {
+        onPaste={(e) => {
+          e.preventDefault();
+          let html = e.clipboardData.getData('text/html') || e.clipboardData.getData('text/plain');
+          // Tự động chuyển ký hiệu thành [blank]
+          html = html.replace(/_{3,}|\.{3,}|-{3,}/g, '[blank]');
+          const cleaned = sanitizeRichPasteHtml(html);
+          const aligned = preserveBlockAlignment(cleaned);
+          const enhanced = promoteHeadingLikeFirstLine(aligned);
+          // Convert [blank] thành chip HTML
+          const withChips = enhanced.replace(/\[blank\]/gi, () => {
+            return `<span class="rbe-blank ${blankClass}" contenteditable="false" data-blank="true"><span class="rbe-blank-num">?</span><button class="rbe-blank-del" data-del="true" type="button">×</button></span>`;
+          });
+          document.execCommand('insertHTML', false, withChips);
           setTimeout(() => { renumber(); onChange(toText(editorRef.current)); }, 0);
         }}
         onCut={() => {
           setTimeout(() => { renumber(); onChange(toText(editorRef.current)); }, 0);
         }}
         onKeyDown={(e) => {
+          if (insertBlankShortcut(e)) return;
+
           if (e.key === 'Enter') {
+            const sel = window.getSelection?.();
+            const anchor = sel?.rangeCount ? sel.getRangeAt(0).commonAncestorContainer : null;
+            const anchorEl = anchor?.nodeType === 1 ? anchor : anchor?.parentElement;
+            const inList = Boolean(anchorEl?.closest?.('li,ul,ol'));
+
+            if (inList) {
+              // Let the browser continue list items correctly.
+              return;
+            }
+
             e.preventDefault();
-            // Thay vì dùng execCommand deprecated, chèn <br> trực tiếp
-            const sel = window.getSelection();
-            if (sel.rangeCount) {
-              const range = sel.getRangeAt(0);
-              range.deleteContents();
-              const br = document.createElement('br');
-              range.insertNode(br);
-              range.setStartAfter(br);
-              range.collapse(true);
-              sel.removeAllRanges();
-              sel.addRange(range);
+            // Insert a line break immediately so one Enter creates one new line.
+            if (sel?.rangeCount) {
+              try {
+                document.execCommand('insertLineBreak');
+              } catch {
+                const range = sel.getRangeAt(0);
+                range.deleteContents();
+                const br = document.createElement('br');
+                range.insertNode(br);
+                range.setStartAfter(br);
+                range.collapse(true);
+                sel.removeAllRanges();
+                sel.addRange(range);
+              }
             }
             onChange(toText(editorRef.current));
           }

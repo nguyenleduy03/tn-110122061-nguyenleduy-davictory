@@ -256,7 +256,6 @@ const TestComplete = () => {
                                 <>
                                     <div className="result-review-heading">
                                         <h2>Exam Result Overview</h2>
-                                        <p>{skillLabel} section • {isExam ? 'Exam mode' : 'Practice mode'}</p>
                                     </div>
 
                                     <div className="result-summary-grid">
@@ -290,9 +289,6 @@ const TestComplete = () => {
                                         <div className="result-detail-panel">
                                             <div className="result-detail-head">
                                                 <h3>Incorrect Answers by Part</h3>
-                                                <span className={`result-detail-pill ${summary.wrong > 0 ? 'warn' : 'ok'}`}>
-                                                    {summary.wrong > 0 ? `${summary.wrong} items to review` : 'No incorrect answers'}
-                                                </span>
                                             </div>
 
                                             {resultParts.map(([partLabel, items]) => {
@@ -301,7 +297,6 @@ const TestComplete = () => {
                                                     <div className="result-part-block" key={partLabel}>
                                                         <div className="result-part-head">
                                                             <h4>{partLabel}</h4>
-                                                            <span className="result-part-count">{wrongItems.length} incorrect</span>
                                                         </div>
                                                         {wrongItems.length === 0 ? (
                                                             <p className="result-all-correct">All answers in this part are correct.</p>
@@ -316,6 +311,7 @@ const TestComplete = () => {
                                                                             <span className={`result-wrong-label${String(row.userAns || '').trim() ? '' : ' empty'}`}>
                                                                                 {String(row.userAns || '').trim() || 'No answer'}
                                                                             </span>
+                                                                            <span className="result-wrong-mark" aria-hidden="true">✕</span>
                                                                         </div>
                                                                     </div>
                                                                 ))}

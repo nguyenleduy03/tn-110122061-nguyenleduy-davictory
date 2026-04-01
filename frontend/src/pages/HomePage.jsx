@@ -30,7 +30,7 @@ const SLIDES = [
     titleAccent: 'IELTS 8.0+',
     titleLine2: 'CÙNG AI THÔNG MINH',
     subtitle: 'Hệ thống AI phân tích lỗi sai và đưa ra lộ trình học cá nhân hóa cho từng học viên',
-    image: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=900&h=700&fit=crop&q=80',
+    image: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=720&h=560&fit=crop&q=75',
     accentColor: '#0056D2'
   },
   {
@@ -39,7 +39,7 @@ const SLIDES = [
     titleAccent: 'TỰ ĐỘNG',
     titleLine2: 'BẰNG AI',
     subtitle: 'Trí tuệ nhân tạo chấm Speaking & Writing với độ chính xác 95%, phản hồi tức thì',
-    image: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=900&h=700&fit=crop&q=80',
+    image: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=720&h=560&fit=crop&q=75',
     accentColor: '#0F766E'
   },
   {
@@ -48,7 +48,7 @@ const SLIDES = [
     titleAccent: 'CÁ NHÂN HÓA',
     titleLine2: 'CHO BẠN',
     subtitle: 'AI phân tích điểm yếu và tạo kế hoạch học tập riêng, tối ưu thời gian đạt mục tiêu',
-    image: 'https://images.unsplash.com/photo-1571260899304-425eee4c7efc?w=900&h=700&fit=crop&q=80',
+    image: 'https://images.unsplash.com/photo-1571260899304-425eee4c7efc?w=720&h=560&fit=crop&q=75',
     accentColor: '#C2410C'
   },
 ];
@@ -64,7 +64,7 @@ const SKILLS = [
     iconColor: '#1d4ed8',
     linkColor: '#1d4ed8',
     path: '/exam-library?skill=listening',
-    image: 'https://images.unsplash.com/photo-1513258496099-48168024aec0?w=420&h=160&fit=crop&q=80',
+    image: 'https://images.unsplash.com/photo-1513258496099-48168024aec0?w=360&h=144&fit=crop&q=75',
   },
   {
     key: 'READING',
@@ -75,7 +75,7 @@ const SKILLS = [
     iconColor: '#15803d',
     linkColor: '#15803d',
     path: '/exam-library?skill=reading',
-    image: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=420&h=160&fit=crop&q=80',
+    image: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=360&h=144&fit=crop&q=75',
   },
   {
     key: 'WRITING',
@@ -86,7 +86,7 @@ const SKILLS = [
     iconColor: '#a16207',
     linkColor: '#a16207',
     path: '/exam-library?skill=writing',
-    image: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?w=420&h=160&fit=crop&q=80',
+    image: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?w=360&h=144&fit=crop&q=75',
   },
   {
     key: 'SPEAKING',
@@ -97,7 +97,7 @@ const SKILLS = [
     iconColor: '#be185d',
     linkColor: '#be185d',
     path: '/exam-library?skill=speaking',
-    image: 'https://images.unsplash.com/photo-1556761175-b413da4baf72?w=420&h=160&fit=crop&q=80',
+    image: 'https://images.unsplash.com/photo-1556761175-b413da4baf72?w=360&h=144&fit=crop&q=75',
   },
 ];
 
@@ -229,6 +229,8 @@ const HomePage = () => {
               src={slide.image}
               alt="IELTS student studying"
               loading="eager"
+              decoding="async"
+              fetchPriority="high"
             />
           </div>
         </div>
@@ -245,7 +247,7 @@ const HomePage = () => {
               return (
                 <Link key={skill.key} to={skill.path} className="skill-card">
                   <div className="skill-card-img-wrap">
-                    <img src={skill.image} alt={skill.name} loading="lazy" />
+                    <img src={skill.image} alt={skill.name} loading="lazy" decoding="async" />
                   </div>
                   <div className="skill-card-body">
                     <div
@@ -340,7 +342,7 @@ const HomePage = () => {
                   <p className="testimonial-text">{testimonial.text}</p>
                 </div>
                 <div className="testimonial-author">
-                  <img src={testimonial.avatar} alt={testimonial.name} className="testimonial-avatar" />
+                  <img src={testimonial.avatar} alt={testimonial.name} className="testimonial-avatar" loading="lazy" decoding="async" />
                   <div>
                     <div className="testimonial-name">{testimonial.name}</div>
                     <div className={`testimonial-score bg-gradient-to-r ${testimonial.gradient} bg-clip-text text-transparent`}>
@@ -362,6 +364,7 @@ const HomePage = () => {
               src="https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=700&h=480&fit=crop&q=80"
               alt="Students studying together"
               loading="lazy"
+              decoding="async"
             />
           </div>
           <div className="showcase-text-side">

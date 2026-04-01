@@ -94,6 +94,207 @@ export const normalizeRichHtml = (text) => {
     .replace(/\\n|\n/g, '<br/>');
 };
 
+const escapeHtml = (text) => String(text)
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#39;');
+
+const isBoldStyle = (style = '') => /(^|;)\s*font-weight\s*:\s*(bold|[6-9]00|[1-9]\d{2,})/i.test(style);
+const isItalicStyle = (style = '') => /(^|;)\s*font-style\s*:\s*italic/i.test(style);
+const isUnderlineStyle = (style = '') => /(^|;)\s*text-decoration[^:]*:\s*[^;]*underline/i.test(style) || /(^|;)\s*text-decoration\s*:\s*underline/i.test(style);
+const isStrikeStyle = (style = '') => /(^|;)\s*text-decoration[^:]*:\s*[^;]*line-through/i.test(style) || /(^|;)\s*text-decoration\s*:\s*line-through/i.test(style);
+const getTextAlign = (node) => {
+  const raw = String(node?.getAttribute?.('style') || '');
+  const alignStyle = raw.match(/(?:^|;)\s*text-align\s*:\s*(left|center|right|justify)\s*(?:;|$)/i)?.[1];
+  const alignAttr = node?.getAttribute?.('align');
+  return String(alignStyle || alignAttr || '').toLowerCase();
+};
+
+const collapseRepeatedBreaks = (html) => {
+  if (typeof html !== 'string') return html || '';
+  return html
+    .replace(/(?:<br\s*\/?>\s*){2,}/gi, '<br/>')
+    .replace(/^(?:<br\s*\/?>\s*)+/i, '')
+    .replace(/(?:<br\s*\/?>\s*)+$/i, '');
+};
+
+const normalizePlainPasteText = (text) => {
+  const lines = String(text || '')
+    .replace(/\r\n?/g, '\n')
+    .replace(/\u00A0/g, ' ')
+    .replace(/\u200B/g, '')
+    .split('\n')
+    .map((line) => line.replace(/\s+$/g, ''));
+
+  const blocks = [];
+  let paragraph = [];
+  let listType = null;
+  let listItems = [];
+
+  const flushParagraph = () => {
+    const content = paragraph.join(' ').replace(/\s+/g, ' ').trim();
+    if (content) blocks.push(`<p>${escapeHtml(content)}</p>`);
+    paragraph = [];
+  };
+
+  const flushList = () => {
+    if (!listItems.length) return;
+    const tag = listType === 'ol' ? 'ol' : 'ul';
+    blocks.push(`<${tag}>${listItems.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</${tag}>`);
+    listItems = [];
+    listType = null;
+  };
+
+  const pushParagraphLine = (line) => {
+    const cleaned = line.trim();
+    if (!cleaned) return;
+    paragraph.push(cleaned);
+  };
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) {
+      flushParagraph();
+      flushList();
+      continue;
+    }
+
+    const bulletMatch = line.match(/^(?:[•\-*–—]|\u2022)\s+(.+)$/);
+    const orderedMatch = line.match(/^(\d{1,3})[.)]\s+(.+)$/);
+
+    if (bulletMatch) {
+      if (paragraph.length) flushParagraph();
+      if (listType && listType !== 'ul') flushList();
+      listType = 'ul';
+      listItems.push(bulletMatch[1].trim());
+      continue;
+    }
+
+    if (orderedMatch) {
+      if (paragraph.length) flushParagraph();
+      if (listType && listType !== 'ol') flushList();
+      listType = 'ol';
+      listItems.push(orderedMatch[2].trim());
+      continue;
+    }
+
+    if (listItems.length) flushList();
+    pushParagraphLine(line);
+  }
+
+  flushParagraph();
+  flushList();
+
+  return collapseRepeatedBreaks(blocks.join('<br/>'));
+};
+
+/**
+ * Sanitize pasted HTML while preserving common semantic formatting.
+ * Keeps strong/em/u/del and turns block boundaries into simple line breaks.
+ */
+export const sanitizeRichPasteHtml = (html) => {
+  if (typeof html !== 'string') return '';
+  const raw = decodeHtmlEntities(html);
+
+  if (!raw.includes('<')) {
+    return normalizePlainPasteText(raw);
+  }
+
+  try {
+    const temp = document.createElement('div');
+    temp.innerHTML = raw;
+
+    const serialize = (node) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        return escapeHtml(node.textContent || '').replace(/\r?\n/g, '<br/>');
+      }
+
+      if (node.nodeType !== Node.ELEMENT_NODE) {
+        return '';
+      }
+
+      const tag = node.tagName.toLowerCase();
+      if (tag === 'br') return '<br/>';
+
+      const children = Array.from(node.childNodes).map(serialize).join('');
+      const style = node.getAttribute?.('style') || '';
+      const align = getTextAlign(node);
+      const isEmptyBlock = !children || !children.replace(/<br\s*\/?>/gi, '').trim();
+
+      // Drop empty wrappers from ChatGPT-style copied content.
+      if (isEmptyBlock && ['p', 'div', 'section', 'article', 'header', 'footer', 'blockquote', 'figure', 'figcaption', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li'].includes(tag)) {
+        return '';
+      }
+
+      let content = children;
+      if (isStrikeStyle(style)) content = `<del>${content}</del>`;
+      if (isUnderlineStyle(style)) content = `<u>${content}</u>`;
+      if (isItalicStyle(style)) content = `<em>${content}</em>`;
+      if (isBoldStyle(style)) content = `<strong>${content}</strong>`;
+
+      switch (tag) {
+        case 'strong':
+        case 'b':
+          return `<strong>${content}</strong>`;
+        case 'em':
+        case 'i':
+          return `<em>${content}</em>`;
+        case 'u':
+          return `<u>${content}</u>`;
+        case 'del':
+        case 's':
+          return `<del>${content}</del>`;
+        case 'mark':
+          return `<mark>${content}</mark>`;
+        case 'sup':
+          return `<sup>${content}</sup>`;
+        case 'sub':
+          return `<sub>${content}</sub>`;
+        case 'a': {
+          const href = node.getAttribute('href') || '#';
+          return `<a href="${escapeHtml(href)}">${content}</a>`;
+        }
+        case 'li':
+          return `${content}<br/>`;
+        case 'p':
+        case 'div':
+        case 'section':
+        case 'article':
+        case 'header':
+        case 'footer':
+        case 'blockquote':
+        case 'figure':
+        case 'figcaption':
+        case 'h1':
+        case 'h2':
+        case 'h3':
+        case 'h4':
+        case 'h5':
+        case 'h6':
+          if (align) {
+            return isEmptyBlock
+              ? '<br/>'
+              : `<div style="text-align:${align}; margin:0;">${content}</div><br/>`;
+          }
+          return `${isEmptyBlock ? '<br/>' : `${content}<br/>`}`;
+        case 'span':
+          return content;
+        case 'ul':
+        case 'ol':
+          return content;
+        default:
+          return content;
+      }
+    };
+
+    return collapseRepeatedBreaks(Array.from(temp.childNodes).map(serialize).join('').trim());
+  } catch {
+    return normalizePlainPasteText(raw);
+  }
+};
+
 /**
  * Strip inline styles and unwanted attributes from HTML
  * Keep semantic tags like <strong>, <em>, <u>, <b>, <i>

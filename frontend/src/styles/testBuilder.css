@@ -1575,6 +1575,12 @@
   cursor: pointer; flex-shrink: 0;
   transition: all 0.2s ease;
 }
+.exam-audio-play-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
 .exam-audio-play-btn:hover {
   background: #0f1f4d;
   transform: scale(1.05);
@@ -1589,13 +1595,70 @@
   margin-left: 2px;
   display: block;
 }
-.exam-audio-bar { flex: 1; height: 6px; background: #e2e8f0; border-radius: 3px; }
+.exam-audio-play-glyph.is-paused {
+  width: 12px;
+  height: 12px;
+  border: 0;
+  background: linear-gradient(90deg, #fff 0 42%, transparent 42% 58%, #fff 58% 100%);
+  clip-path: none;
+  margin-left: 0;
+}
+.exam-audio-progress-wrap {
+  display: flex;
+  flex: 1 1 220px;
+  min-width: 180px;
+  align-items: center;
+  gap: 10px;
+}
+.exam-audio-seek {
+  flex: 1;
+  min-width: 120px;
+  height: 6px;
+  border-radius: 999px;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  outline: none;
+  background: #e2e8f0;
+}
+.exam-audio-seek::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #1d2f5e;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.35);
+}
+.exam-audio-seek::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #1d2f5e;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.35);
+}
+.exam-audio-seek:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.exam-audio-time-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
 .exam-audio-time { font-size: 12px; color: #64748b; font-weight: 600; white-space: nowrap; }
 .exam-audio-source-wrap {
   display: flex;
   align-items: center;
   gap: 8px;
   width: 100%;
+}
+
+.exam-audio-player audio {
+  display: none;
 }
 
 .exam-audio-url-wrap {
@@ -2411,12 +2474,14 @@
 /* Blank chips inside the editor */
 .rbe-blank {
   display: inline-flex; align-items: center; gap: 1px;
-  padding: 1px 5px; border-radius: 10px; border: 1.5px solid;
+  padding: 2px 8px; border-radius: 2px; border: 1px solid #000;
   font-size: 12px; font-weight: 700; vertical-align: middle;
   margin: 0 2px; user-select: none; cursor: default; line-height: 1.6;
+  background: #e8f5e9; color: #000;
 }
-.rbe-blank-blue  { background: #dbeafe; color: #1d4ed8; border-color: #93c5fd; }
-.rbe-blank-amber { background: #fef9c3; color: #854d0e; border-color: #fde68a; }
+.rbe-blank-blue  { background: #e8f5e9; color: #000; border-color: #000; }
+.rbe-blank-amber { background: #e8f5e9; color: #000; border-color: #000; }
+.rbe-blank-indigo { background: #e8f5e9; color: #000; border-color: #000; }
 .rbe-blank-num   { font-size: 12px; font-weight: 700; }
 .rbe-blank-del {
   background: none; border: none; padding: 0 0 0 3px; margin: 0;

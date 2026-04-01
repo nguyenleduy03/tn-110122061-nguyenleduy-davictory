@@ -361,6 +361,8 @@
   background: white;
   padding: 120px 24px;
   position: relative;
+  content-visibility: auto;
+  contain-intrinsic-size: 900px;
 }
 .testimonials-inner {
   max-width: 1200px;
@@ -447,6 +449,8 @@
 .skills-section {
   background: #FFFFFF;
   padding: 100px 24px;
+  content-visibility: auto;
+  contain-intrinsic-size: 900px;
 }
 .skills-section-inner {
   max-width: 1200px;
@@ -551,6 +555,8 @@
 .showcase-section {
   background: var(--background-body);
   padding: 100px 24px;
+  content-visibility: auto;
+  contain-intrinsic-size: 900px;
 }
 .showcase-inner {
   max-width: 1200px;
@@ -623,6 +629,8 @@
   background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
   padding: 120px 24px;
   position: relative;
+  content-visibility: auto;
+  contain-intrinsic-size: 1000px;
 }
 .features-section::before {
   content: '';

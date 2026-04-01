@@ -1096,10 +1096,10 @@ const IeltsListeningTest = () => {
                                 className={`part-group ${isActivePart ? "active-part" : ""}`}
                                 onClick={() => setCurrentPartIndex(index)}
                             >
-                                <div className="part-status-container">
+                                <div className={`part-status-container ${partHasBookmarked && !isActivePart ? 'has-part-bookmark' : ''}`}>
                                     {partHasBookmarked && !isActivePart && (
                                         <span className="part-title-bookmark" aria-hidden="true">
-                                            <BookmarkToggle size={16} active activeColor="currentColor" inactiveColor="currentColor" strokeWidth={2.25} />
+                                            <BookmarkToggle size={16} active />
                                         </span>
                                     )}
                                     <h4 className="part-title hover-pointer"
@@ -1140,7 +1140,7 @@ const IeltsListeningTest = () => {
                                                 >
                                                     {hasBookmarked && (
                                                         <div className="q-bookmark-flag">
-                                                            <BookmarkToggle size={16} active activeColor="#1a73e8" inactiveColor="#1a73e8" />
+                                                            <BookmarkToggle size={16} active />
                                                         </div>
                                                     )}
                                                     <div className={`status-dash${isAnswered ? " answered-dash" : ""}${hasBookmarked ? " bookmarked-dash" : ""}`} />

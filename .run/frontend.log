@@ -2,18 +2,779 @@
 > frontend@0.0.0 dev
 > vite --host 0.0.0.0
 
-[vite] ⚠️  Không lấy được IP public, fallback về localhost
-[vite] 🌐 Public IP: localhost
-[vite] 🔗 API Base URL: http://localhost:8080/api
+[vite] 🌐 Public IP: 123.22.61.173
+[vite] 🔗 API Base URL: http://123.22.61.173:8080/api
 
-  VITE v8.0.0-beta.16  ready in 4880 ms
+  VITE v8.0.0-beta.16  ready in 1901 ms
 
   ➜  Local:   http://localhost:5173/
   ➜  Network: http://192.168.1.20:5173/
-17:11:03 [vite] (client) hmr update /src/pages/TestComplete.jsx
-17:11:19 [vite] (client) hmr update /src/styles/ieltsTest.css
-17:13:41 [vite] (client) hmr update /src/styles/ieltsTest.css
-17:13:57 [vite] (client) hmr update /src/components/testBuilder/ExamCanvas.jsx
-17:13:57 [vite] (client) hmr update /src/components/testBuilder/PreviewModal.jsx
-17:13:57 [vite] (client) hmr update /src/pages/IeltsSpeakingTest.jsx, /src/pages/Login.jsx, /src/pages/Register.jsx, /src/pages/TeacherManage.jsx, /src/pages/TestBuilder.jsx, /src/pages/AdminUsers.jsx, /src/pages/AdminDashboard.jsx, /src/pages/GoogleDriveSettings.jsx, /src/pages/lms/LmsTeacherDashboard.jsx, /src/pages/lms/LmsTeacherClasses.jsx, /src/pages/ClassManagement.jsx, /src/pages/lms/LmsTeacherAssignments.jsx, /src/pages/lms/LmsGradeSubmission.jsx, /src/pages/lms/LmsTeacherAnalytics.jsx, /src/pages/lms/LmsTeacherClassDetail.jsx, /src/pages/ManagerDashboard.jsx, /src/pages/ManagerClasses.jsx, /src/pages/ManagerClassDetail.jsx, /src/pages/ManagerReports.jsx, /src/pages/MyDashboard.jsx, /src/pages/DashboardProfile.jsx, /src/pages/ApiDebugPage.jsx, /src/pages/student/StudentLms.jsx, /src/components/common/RoleBasedRoute.jsx, /src/components/layout/Navbar.jsx, /src/components/common/TestHeader.jsx, /src/components/admin/AdminHeader.jsx, /src/components/admin/AddUserModal.jsx, /src/components/lms/LmsLayout.jsx
-17:13:57 [vite] (client) hmr update /src/pages/GoogleDriveSettings.jsx
+18:16:32 [vite] (client) hmr update /src/styles/ieltsTest.css
+18:18:39 [vite] (client) hmr update /src/pages/TestComplete.jsx
+18:18:56 [vite] (client) hmr update /src/styles/ieltsTest.css
+18:19:14 [vite] (client) hmr update /src/pages/TestComplete.jsx
+18:19:15 [vite] (client) hmr update /src/styles/ieltsTest.css
+18:19:47 [vite] (client) hmr update /src/pages/TestComplete.jsx
+18:21:19 [vite] (client) hmr update /src/components/testBuilder/blocks/ImageBlock.jsx
+18:21:38 [vite] (client) hmr update /src/components/testBuilder/blocks/ImageBlock.jsx
+18:22:01 [vite] (client) hmr update /src/App.jsx
+18:24:08 [vite] (client) hmr update /src/App.jsx
+18:24:37 [vite] (client) hmr update /src/styles/ieltsTest.css
+18:24:49 [vite] (client) hmr update /src/components/testBuilder/blocks/ImageNoteFormBlock.jsx
+18:24:49 [vite] (client) hmr update /src/styles/ieltsTest.css
+18:25:03 [vite] (client) hmr update /src/styles/ieltsTest.css
+18:25:12 [vite] (client) hmr update /src/components/testBuilder/blocks/ImageNoteFormBlock.jsx
+18:25:28 [vite] (client) hmr update /src/styles/ieltsTest.css
+18:27:21 [vite] (client) hmr update /src/pages/HomePage.jsx
+18:27:34 [vite] (client) page reload index.html
+18:27:45 [vite] (client) hmr update /src/components/testBuilder/blocks/NoteCompletionBlock.jsx
+18:27:53 [vite] (client) hmr update /src/styles/ieltsTest.css
+18:28:01 [vite] (client) hmr update /src/components/testBuilder/blocks/NoteCompletionBlock.jsx
+18:28:12 [vite] (client) hmr update /src/styles/ieltsTest.css
+18:28:18 [vite] (client) hmr update /src/styles/homePage.css
+18:28:47 [vite] (client) hmr update /src/styles/ieltsTest.css
+18:31:58 [vite] (client) hmr update /src/pages/HomePage.jsx
+18:31:58 [vite] (client) page reload index.html
+18:31:58 [vite] (client) hmr update /src/styles/homePage.css
+18:34:10 [vite] (client) hmr update /src/styles/ieltsTest.css
+18:34:36 [vite] (client) hmr update /src/styles/ieltsTest.css
+18:34:50 [vite] (client) hmr update /src/components/testBuilder/blocks/ImageNoteFormBlock.jsx
+18:34:55 [vite] (client) hmr update /src/styles/ieltsTest.css
+18:35:22 [vite] (client) hmr update /src/styles/ieltsTest.css
+18:36:37 [vite] (client) hmr update /src/components/testBuilder/SharedOptionsDropdownBlock.jsx
+18:37:14 [vite] (client) hmr update /src/styles/ieltsTest.css
+18:37:58 [vite] (client) hmr update /src/components/testBuilder/blocks/AudioBlock.jsx
+18:38:14 [vite] (client) hmr update /src/styles/testBuilder.css
+18:38:46 [vite] (client) hmr update /src/styles/ieltsTest.css
+18:39:08 [vite] (client) hmr update /src/styles/ieltsTest.css
+18:39:29 [vite] (client) hmr update /src/styles/ieltsTest.css
+18:39:52 [vite] (client) hmr update /src/styles/ieltsTest.css
+18:40:07 [vite] (client) hmr update /src/styles/ieltsTest.css
+18:43:40 [vite] (client) hmr update /src/components/testBuilder/SharedOptionsDropdownBlock.jsx
+18:43:53 [vite] (client) hmr update /src/components/testBuilder/SharedOptionsDropdownBlock.jsx
+18:43:59 [vite] (client) hmr update /src/components/testBuilder/SharedOptionsDropdownBlock.jsx
+18:46:18 [vite] (client) hmr update /src/styles/ieltsTest.css
+18:46:29 [vite] (client) hmr update /src/components/testBuilder/ExamCanvas.jsx
+18:46:43 [vite] (client) hmr update /src/components/testBuilder/ExamCanvas.jsx
+18:47:09 [vite] (client) hmr update /src/components/testBuilder/blocks/AudioBlock.jsx
+18:47:09 [vite] (client) hmr update /src/styles/testBuilder.css
+18:47:56 [vite] (client) hmr update /src/styles/ieltsTest.css
+18:47:56 [vite] (client) hmr update /src/styles/ieltsTest.css
+18:48:13 [vite] (client) hmr update /src/styles/ieltsTest.css
+18:48:19 [vite] (client) hmr update /src/components/testBuilder/ExamCanvas.jsx
+18:48:19 [vite] Internal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] Error:[0m Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+      [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/components/testBuilder/ExamCanvas.jsx:1612:8 [38;5;246m][0m
+      [38;5;246m│[0m
+ [38;5;246m1612 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m)[0m[38;5;249m}[0m
+ [38;5;240m     │[0m        │ 
+ [38;5;240m     │[0m        ╰─ 
+[38;5;246m──────╯[0m
+
+  Plugin: vite:oxc
+  File: /home/hv/DuAn/DAVictory/frontend/src/components/testBuilder/ExamCanvas.jsx
+      at transformWithOxc (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:3970:19)
+      at TransformPluginContext.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:4046:26)
+      at EnvironmentPluginContainer.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:29893:51)
+      at async loadAndTransform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:24542:26)
+      at async viteTransformMiddleware (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:25356:20)
+18:48:19 [vite] Internal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] Error:[0m Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+      [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/components/testBuilder/ExamCanvas.jsx:1612:8 [38;5;246m][0m
+      [38;5;246m│[0m
+ [38;5;246m1612 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m)[0m[38;5;249m}[0m
+ [38;5;240m     │[0m        │ 
+ [38;5;240m     │[0m        ╰─ 
+[38;5;246m──────╯[0m
+
+  Plugin: vite:oxc
+  File: /home/hv/DuAn/DAVictory/frontend/src/components/testBuilder/ExamCanvas.jsx
+      at transformWithOxc (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:3970:19)
+      at TransformPluginContext.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:4046:26)
+      at EnvironmentPluginContainer.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:29893:51)
+      at async loadAndTransform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:24542:26)
+      at async viteTransformMiddleware (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:25356:20)
+18:48:19 [vite] Internal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] Error:[0m Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+      [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/components/testBuilder/ExamCanvas.jsx:1612:8 [38;5;246m][0m
+      [38;5;246m│[0m
+ [38;5;246m1612 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m)[0m[38;5;249m}[0m
+ [38;5;240m     │[0m        │ 
+ [38;5;240m     │[0m        ╰─ 
+[38;5;246m──────╯[0m
+
+  Plugin: vite:oxc
+  File: /home/hv/DuAn/DAVictory/frontend/src/components/testBuilder/ExamCanvas.jsx
+      at transformWithOxc (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:3970:19)
+      at TransformPluginContext.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:4046:26)
+      at EnvironmentPluginContainer.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:29893:51)
+      at async loadAndTransform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:24542:26)
+      at async viteTransformMiddleware (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:25356:20)
+18:48:19 [vite] Internal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] Error:[0m Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+      [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/components/testBuilder/ExamCanvas.jsx:1612:8 [38;5;246m][0m
+      [38;5;246m│[0m
+ [38;5;246m1612 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m)[0m[38;5;249m}[0m
+ [38;5;240m     │[0m        │ 
+ [38;5;240m     │[0m        ╰─ 
+[38;5;246m──────╯[0m
+
+  Plugin: vite:oxc
+  File: /home/hv/DuAn/DAVictory/frontend/src/components/testBuilder/ExamCanvas.jsx
+      at transformWithOxc (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:3970:19)
+      at TransformPluginContext.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:4046:26)
+      at EnvironmentPluginContainer.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:29893:51)
+      at async loadAndTransform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:24542:26)
+      at async viteTransformMiddleware (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:25356:20)
+18:48:19 [vite] Internal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] Error:[0m Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+      [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/components/testBuilder/ExamCanvas.jsx:1612:8 [38;5;246m][0m
+      [38;5;246m│[0m
+ [38;5;246m1612 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m)[0m[38;5;249m}[0m
+ [38;5;240m     │[0m        │ 
+ [38;5;240m     │[0m        ╰─ 
+[38;5;246m──────╯[0m
+
+  Plugin: vite:oxc
+  File: /home/hv/DuAn/DAVictory/frontend/src/components/testBuilder/ExamCanvas.jsx
+      at transformWithOxc (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:3970:19)
+      at TransformPluginContext.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:4046:26)
+      at EnvironmentPluginContainer.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:29893:51)
+      at async loadAndTransform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:24542:26)
+      at async viteTransformMiddleware (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:25356:20)
+18:48:46 [vite] (client) hmr update /src/components/testBuilder/ExamCanvas.jsx
+18:48:47 [vite] (client) hmr update /src/components/testBuilder/blocks/shared/RichBlankEditor.jsx
+18:50:14 [vite] (client) hmr update /src/styles/ieltsTest.css
+18:50:19 [vite] (client) hmr update /src/styles/ieltsTest.css
+18:51:03 [vite] (client) hmr update /src/components/testBuilder/ExamCanvas.jsx
+18:51:17 [vite] (client) hmr update /src/components/testBuilder/ExamCanvas.jsx
+18:51:17 [vite] Internal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] Error:[0m Expected `,` or `)` but found `{`
+      [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/components/testBuilder/ExamCanvas.jsx:1652:7 [38;5;246m][0m
+      [38;5;246m│[0m
+ [38;5;246m1463 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249mr[0m[38;5;249me[0m[38;5;249mt[0m[38;5;249mu[0m[38;5;249mr[0m[38;5;249mn[0m[38;5;249m [0m(
+ [38;5;240m     │[0m          ┬  
+ [38;5;240m     │[0m          ╰── Opened here
+ [38;5;240m     │[0m 
+ [38;5;246m1652 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m{[38;5;249ms[0m[38;5;249mh[0m[38;5;249mo[0m[38;5;249mw[0m[38;5;249mT[0m[38;5;249mi[0m[38;5;249mm[0m[38;5;249me[0m[38;5;249mM[0m[38;5;249mo[0m[38;5;249md[0m[38;5;249ma[0m[38;5;249ml[0m[38;5;249m [0m[38;5;249m&[0m[38;5;249m&[0m[38;5;249m [0m[38;5;249mc[0m[38;5;249mr[0m[38;5;249me[0m[38;5;249ma[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mP[0m[38;5;249mo[0m[38;5;249mr[0m[38;5;249mt[0m[38;5;249ma[0m[38;5;249ml[0m[38;5;249m([0m
+ [38;5;240m     │[0m       ┬  
+ [38;5;240m     │[0m       ╰── `,` or `)` expected
+[38;5;246m──────╯[0m
+
+  Plugin: vite:oxc
+  File: /home/hv/DuAn/DAVictory/frontend/src/components/testBuilder/ExamCanvas.jsx
+      at transformWithOxc (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:3970:19)
+      at TransformPluginContext.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:4046:26)
+      at EnvironmentPluginContainer.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:29893:51)
+      at async loadAndTransform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:24542:26)
+      at async viteTransformMiddleware (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:25356:20)
+18:51:17 [vite] Internal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] Error:[0m Expected `,` or `)` but found `{`
+      [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/components/testBuilder/ExamCanvas.jsx:1652:7 [38;5;246m][0m
+      [38;5;246m│[0m
+ [38;5;246m1463 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249mr[0m[38;5;249me[0m[38;5;249mt[0m[38;5;249mu[0m[38;5;249mr[0m[38;5;249mn[0m[38;5;249m [0m(
+ [38;5;240m     │[0m          ┬  
+ [38;5;240m     │[0m          ╰── Opened here
+ [38;5;240m     │[0m 
+ [38;5;246m1652 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m{[38;5;249ms[0m[38;5;249mh[0m[38;5;249mo[0m[38;5;249mw[0m[38;5;249mT[0m[38;5;249mi[0m[38;5;249mm[0m[38;5;249me[0m[38;5;249mM[0m[38;5;249mo[0m[38;5;249md[0m[38;5;249ma[0m[38;5;249ml[0m[38;5;249m [0m[38;5;249m&[0m[38;5;249m&[0m[38;5;249m [0m[38;5;249mc[0m[38;5;249mr[0m[38;5;249me[0m[38;5;249ma[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mP[0m[38;5;249mo[0m[38;5;249mr[0m[38;5;249mt[0m[38;5;249ma[0m[38;5;249ml[0m[38;5;249m([0m
+ [38;5;240m     │[0m       ┬  
+ [38;5;240m     │[0m       ╰── `,` or `)` expected
+[38;5;246m──────╯[0m
+
+  Plugin: vite:oxc
+  File: /home/hv/DuAn/DAVictory/frontend/src/components/testBuilder/ExamCanvas.jsx
+      at transformWithOxc (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:3970:19)
+      at TransformPluginContext.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:4046:26)
+      at EnvironmentPluginContainer.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:29893:51)
+      at async loadAndTransform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:24542:26)
+18:51:17 [vite] Internal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] Error:[0m Expected `,` or `)` but found `{`
+      [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/components/testBuilder/ExamCanvas.jsx:1652:7 [38;5;246m][0m
+      [38;5;246m│[0m
+ [38;5;246m1463 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249mr[0m[38;5;249me[0m[38;5;249mt[0m[38;5;249mu[0m[38;5;249mr[0m[38;5;249mn[0m[38;5;249m [0m(
+ [38;5;240m     │[0m          ┬  
+ [38;5;240m     │[0m          ╰── Opened here
+ [38;5;240m     │[0m 
+ [38;5;246m1652 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m{[38;5;249ms[0m[38;5;249mh[0m[38;5;249mo[0m[38;5;249mw[0m[38;5;249mT[0m[38;5;249mi[0m[38;5;249mm[0m[38;5;249me[0m[38;5;249mM[0m[38;5;249mo[0m[38;5;249md[0m[38;5;249ma[0m[38;5;249ml[0m[38;5;249m [0m[38;5;249m&[0m[38;5;249m&[0m[38;5;249m [0m[38;5;249mc[0m[38;5;249mr[0m[38;5;249me[0m[38;5;249ma[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mP[0m[38;5;249mo[0m[38;5;249mr[0m[38;5;249mt[0m[38;5;249ma[0m[38;5;249ml[0m[38;5;249m([0m
+ [38;5;240m     │[0m       ┬  
+ [38;5;240m     │[0m       ╰── `,` or `)` expected
+[38;5;246m──────╯[0m
+
+  Plugin: vite:oxc
+  File: /home/hv/DuAn/DAVictory/frontend/src/components/testBuilder/ExamCanvas.jsx
+      at transformWithOxc (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:3970:19)
+      at TransformPluginContext.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:4046:26)
+      at EnvironmentPluginContainer.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:29893:51)
+      at async loadAndTransform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:24542:26)
+18:51:17 [vite] Internal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] Error:[0m Expected `,` or `)` but found `{`
+      [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/components/testBuilder/ExamCanvas.jsx:1652:7 [38;5;246m][0m
+      [38;5;246m│[0m
+ [38;5;246m1463 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249mr[0m[38;5;249me[0m[38;5;249mt[0m[38;5;249mu[0m[38;5;249mr[0m[38;5;249mn[0m[38;5;249m [0m(
+ [38;5;240m     │[0m          ┬  
+ [38;5;240m     │[0m          ╰── Opened here
+ [38;5;240m     │[0m 
+ [38;5;246m1652 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m{[38;5;249ms[0m[38;5;249mh[0m[38;5;249mo[0m[38;5;249mw[0m[38;5;249mT[0m[38;5;249mi[0m[38;5;249mm[0m[38;5;249me[0m[38;5;249mM[0m[38;5;249mo[0m[38;5;249md[0m[38;5;249ma[0m[38;5;249ml[0m[38;5;249m [0m[38;5;249m&[0m[38;5;249m&[0m[38;5;249m [0m[38;5;249mc[0m[38;5;249mr[0m[38;5;249me[0m[38;5;249ma[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mP[0m[38;5;249mo[0m[38;5;249mr[0m[38;5;249mt[0m[38;5;249ma[0m[38;5;249ml[0m[38;5;249m([0m
+ [38;5;240m     │[0m       ┬  
+ [38;5;240m     │[0m       ╰── `,` or `)` expected
+[38;5;246m──────╯[0m
+
+  Plugin: vite:oxc
+  File: /home/hv/DuAn/DAVictory/frontend/src/components/testBuilder/ExamCanvas.jsx
+      at transformWithOxc (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:3970:19)
+      at TransformPluginContext.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:4046:26)
+      at EnvironmentPluginContainer.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:29893:51)
+      at async loadAndTransform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:24542:26)
+      at async viteTransformMiddleware (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:25356:20)
+18:51:17 [vite] Internal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] Error:[0m Expected `,` or `)` but found `{`
+      [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/components/testBuilder/ExamCanvas.jsx:1652:7 [38;5;246m][0m
+      [38;5;246m│[0m
+ [38;5;246m1463 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249mr[0m[38;5;249me[0m[38;5;249mt[0m[38;5;249mu[0m[38;5;249mr[0m[38;5;249mn[0m[38;5;249m [0m(
+ [38;5;240m     │[0m          ┬  
+ [38;5;240m     │[0m          ╰── Opened here
+ [38;5;240m     │[0m 
+ [38;5;246m1652 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m{[38;5;249ms[0m[38;5;249mh[0m[38;5;249mo[0m[38;5;249mw[0m[38;5;249mT[0m[38;5;249mi[0m[38;5;249mm[0m[38;5;249me[0m[38;5;249mM[0m[38;5;249mo[0m[38;5;249md[0m[38;5;249ma[0m[38;5;249ml[0m[38;5;249m [0m[38;5;249m&[0m[38;5;249m&[0m[38;5;249m [0m[38;5;249mc[0m[38;5;249mr[0m[38;5;249me[0m[38;5;249ma[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mP[0m[38;5;249mo[0m[38;5;249mr[0m[38;5;249mt[0m[38;5;249ma[0m[38;5;249ml[0m[38;5;249m([0m
+ [38;5;240m     │[0m       ┬  
+ [38;5;240m     │[0m       ╰── `,` or `)` expected
+[38;5;246m──────╯[0m
+
+  Plugin: vite:oxc
+  File: /home/hv/DuAn/DAVictory/frontend/src/components/testBuilder/ExamCanvas.jsx
+      at transformWithOxc (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:3970:19)
+      at TransformPluginContext.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:4046:26)
+      at EnvironmentPluginContainer.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:29893:51)
+      at async loadAndTransform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:24542:26)
+      at async viteTransformMiddleware (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:25356:20)
+18:51:36 [vite] (client) hmr update /src/components/testBuilder/ExamCanvas.jsx
+18:52:35 [vite] (client) hmr update /src/components/common/RichInput.jsx
+18:52:55 [vite] (client) hmr update /src/components/testBuilder/blocks/shared/RichBlankEditor.jsx
+18:52:56 [vite] (client) hmr update /src/components/testBuilder/ExamCanvas.jsx
+18:53:45 [vite] (client) hmr update /src/components/testBuilder/ExamCanvas.jsx
+18:53:51 [vite] (client) hmr update /src/components/testBuilder/ExamCanvas.jsx
+18:55:16 [vite] (client) hmr update /src/components/testBuilder/ExamCanvas.jsx
+18:55:22 [vite] (client) hmr update /src/styles/ieltsTest.css
+18:56:27 [vite] (client) hmr update /src/components/testBuilder/ExamCanvas.jsx
+18:57:31 [vite] (client) hmr update /src/components/testBuilder/ExamCanvas.jsx
+18:57:39 [vite] (client) hmr update /src/styles/ieltsTest.css
+18:58:29 [vite] (client) hmr update /src/pages/IeltsReadingTest.jsx, /src/pages/IeltsListeningTest.jsx, /src/pages/IeltsWritingTest.jsx, /src/pages/IeltsSpeakingTest.jsx, /src/pages/lms/LmsGradeSubmission.jsx, /src/pages/ExamLibrary.jsx, /src/pages/lms/LmsSubmissionDetail.jsx, /src/pages/lms/LmsTeacherSubmissions.jsx, /src/pages/TestComplete.jsx, /src/pages/ApiDebugPage.jsx, /src/pages/teacher/GradeAssignment.jsx, /src/components/question/QuestionRenderer.jsx, /src/components/testBuilder/ExamCanvas.jsx, /src/components/testBuilder/PreviewModal.jsx, /src/components/question/FillInBlankQuestion.jsx, /src/components/question/MultipleChoiceQuestion.jsx, /src/components/question/TFNGQuestion.jsx, /src/components/question/DragDropGroupQuestion.jsx, /src/components/question/SummaryCompletionQuestion.jsx, /src/components/question/SummaryCompletionSelectQuestion.jsx, /src/components/question/DropdownGroupQuestion.jsx, /src/components/question/MatchingFillQuestion.jsx, /src/components/common/RichInput.jsx, /src/components/testBuilder/PropertiesPanel.jsx, /src/components/testBuilder/SharedOptionsDropdownBlock.jsx, /src/components/testBuilder/blocks/PassageBlock.jsx, /src/components/testBuilder/blocks/AudioBlock.jsx, /src/components/testBuilder/blocks/ImageBlock.jsx, /src/components/testBuilder/blocks/MatchingFeaturesBlock.jsx, /src/components/testBuilder/blocks/DragMatchingBlock.jsx, /src/components/testBuilder/blocks/MatchingHeadingBlock.jsx, /src/components/testBuilder/blocks/MultipleChoiceMultiBlock.jsx, /src/components/testBuilder/blocks/MultipleChoiceBlock.jsx, /src/components/testBuilder/blocks/SentenceCompletionBlock.jsx, /src/components/testBuilder/blocks/TFNGBlock.jsx, /src/components/testBuilder/blocks/ShortAnswerBlock.jsx, /src/components/testBuilder/blocks/NoteCompletionBlock.jsx, /src/components/testBuilder/blocks/ImageNoteFormBlock.jsx, /src/components/testBuilder/blocks/SummaryCompletionBlock.jsx, /src/components/testBuilder/blocks/SpeakingInterviewBlock.jsx, /src/components/testBuilder/blocks/SpeakingCueCardBlock.jsx, /src/components/testBuilder/blocks/WritingTaskBlock.jsx, /src/components/testBuilder/blocks/shared/ImageUploadZone.jsx, /src/components/testBuilder/blocks/SummaryCompletionSelectBlock.jsx, /src/components/testBuilder/blocks/shared/RichBlankEditor.jsx
+18:58:49 [vite] (client) hmr update /src/components/common/RichInput.jsx
+18:59:01 [vite] (client) hmr update /src/components/testBuilder/blocks/shared/RichBlankEditor.jsx
+18:59:42 [vite] (client) hmr update /src/components/testBuilder/ExamCanvas.jsx
+19:00:44 [vite] (client) hmr update /src/components/testBuilder/ExamCanvas.jsx
+19:00:57 [vite] (client) hmr update /src/components/testBuilder/ExamCanvas.jsx
+19:01:35 [vite] (client) hmr update /src/styles/ieltsTest.css
+19:01:48 [vite] (client) hmr update /src/styles/ieltsTest.css
+19:02:48 [vite] (client) hmr update /src/components/testBuilder/ExamCanvas.jsx
+19:06:09 [vite] (client) hmr update /src/components/testBuilder/ExamCanvas.jsx
+19:06:16 [vite] (client) hmr update /src/components/testBuilder/ExamCanvas.jsx
+19:06:16 [vite] Internal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] Error:[0m Expected `,` or `)` but found `{`
+      [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/components/testBuilder/ExamCanvas.jsx:1582:7 [38;5;246m][0m
+      [38;5;246m│[0m
+ [38;5;246m1556 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m{[0m[38;5;249ms[0m[38;5;249mh[0m[38;5;249mo[0m[38;5;249mw[0m[38;5;249mF[0m[38;5;249mo[0m[38;5;249mo[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249m [0m[38;5;249m&[0m[38;5;249m&[0m[38;5;249m [0m(
+ [38;5;240m     │[0m                      ┬  
+ [38;5;240m     │[0m                      ╰── Opened here
+ [38;5;240m     │[0m 
+ [38;5;246m1582 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m{[38;5;249m/[0m[38;5;249m*[0m[38;5;249m [0m[38;5;249mP[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249mt[0m[38;5;249m [0m[38;5;249mt[0m[38;5;249ma[0m[38;5;249mb[0m[38;5;249ms[0m[38;5;249m [0m[38;5;249m*[0m[38;5;249m/[0m[38;5;249m}[0m
+ [38;5;240m     │[0m       ┬  
+ [38;5;240m     │[0m       ╰── `,` or `)` expected
+[38;5;246m──────╯[0m
+
+  Plugin: vite:oxc
+  File: /home/hv/DuAn/DAVictory/frontend/src/components/testBuilder/ExamCanvas.jsx
+      at transformWithOxc (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:3970:19)
+      at TransformPluginContext.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:4046:26)
+      at EnvironmentPluginContainer.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:29893:51)
+      at async loadAndTransform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:24542:26)
+      at async viteTransformMiddleware (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:25356:20)
+19:06:16 [vite] Internal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] Error:[0m Expected `,` or `)` but found `{`
+      [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/components/testBuilder/ExamCanvas.jsx:1582:7 [38;5;246m][0m
+      [38;5;246m│[0m
+ [38;5;246m1556 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m{[0m[38;5;249ms[0m[38;5;249mh[0m[38;5;249mo[0m[38;5;249mw[0m[38;5;249mF[0m[38;5;249mo[0m[38;5;249mo[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249m [0m[38;5;249m&[0m[38;5;249m&[0m[38;5;249m [0m(
+ [38;5;240m     │[0m                      ┬  
+ [38;5;240m     │[0m                      ╰── Opened here
+ [38;5;240m     │[0m 
+ [38;5;246m1582 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m{[38;5;249m/[0m[38;5;249m*[0m[38;5;249m [0m[38;5;249mP[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249mt[0m[38;5;249m [0m[38;5;249mt[0m[38;5;249ma[0m[38;5;249mb[0m[38;5;249ms[0m[38;5;249m [0m[38;5;249m*[0m[38;5;249m/[0m[38;5;249m}[0m
+ [38;5;240m     │[0m       ┬  
+ [38;5;240m     │[0m       ╰── `,` or `)` expected
+[38;5;246m──────╯[0m
+
+  Plugin: vite:oxc
+  File: /home/hv/DuAn/DAVictory/frontend/src/components/testBuilder/ExamCanvas.jsx
+      at transformWithOxc (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:3970:19)
+      at TransformPluginContext.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:4046:26)
+      at EnvironmentPluginContainer.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:29893:51)
+      at async loadAndTransform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:24542:26)
+      at async viteTransformMiddleware (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:25356:20)
+19:06:16 [vite] Internal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] Error:[0m Expected `,` or `)` but found `{`
+      [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/components/testBuilder/ExamCanvas.jsx:1582:7 [38;5;246m][0m
+      [38;5;246m│[0m
+ [38;5;246m1556 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m{[0m[38;5;249ms[0m[38;5;249mh[0m[38;5;249mo[0m[38;5;249mw[0m[38;5;249mF[0m[38;5;249mo[0m[38;5;249mo[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249m [0m[38;5;249m&[0m[38;5;249m&[0m[38;5;249m [0m(
+ [38;5;240m     │[0m                      ┬  
+ [38;5;240m     │[0m                      ╰── Opened here
+ [38;5;240m     │[0m 
+ [38;5;246m1582 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m{[38;5;249m/[0m[38;5;249m*[0m[38;5;249m [0m[38;5;249mP[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249mt[0m[38;5;249m [0m[38;5;249mt[0m[38;5;249ma[0m[38;5;249mb[0m[38;5;249ms[0m[38;5;249m [0m[38;5;249m*[0m[38;5;249m/[0m[38;5;249m}[0m
+ [38;5;240m     │[0m       ┬  
+ [38;5;240m     │[0m       ╰── `,` or `)` expected
+[38;5;246m──────╯[0m
+
+  Plugin: vite:oxc
+  File: /home/hv/DuAn/DAVictory/frontend/src/components/testBuilder/ExamCanvas.jsx
+      at transformWithOxc (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:3970:19)
+      at TransformPluginContext.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:4046:26)
+      at EnvironmentPluginContainer.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:29893:51)
+      at async loadAndTransform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:24542:26)
+      at async viteTransformMiddleware (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:25356:20)
+19:06:16 [vite] Internal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] Error:[0m Expected `,` or `)` but found `{`
+      [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/components/testBuilder/ExamCanvas.jsx:1582:7 [38;5;246m][0m
+      [38;5;246m│[0m
+ [38;5;246m1556 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m{[0m[38;5;249ms[0m[38;5;249mh[0m[38;5;249mo[0m[38;5;249mw[0m[38;5;249mF[0m[38;5;249mo[0m[38;5;249mo[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249m [0m[38;5;249m&[0m[38;5;249m&[0m[38;5;249m [0m(
+ [38;5;240m     │[0m                      ┬  
+ [38;5;240m     │[0m                      ╰── Opened here
+ [38;5;240m     │[0m 
+ [38;5;246m1582 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m{[38;5;249m/[0m[38;5;249m*[0m[38;5;249m [0m[38;5;249mP[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249mt[0m[38;5;249m [0m[38;5;249mt[0m[38;5;249ma[0m[38;5;249mb[0m[38;5;249ms[0m[38;5;249m [0m[38;5;249m*[0m[38;5;249m/[0m[38;5;249m}[0m
+ [38;5;240m     │[0m       ┬  
+ [38;5;240m     │[0m       ╰── `,` or `)` expected
+[38;5;246m──────╯[0m
+
+  Plugin: vite:oxc
+  File: /home/hv/DuAn/DAVictory/frontend/src/components/testBuilder/ExamCanvas.jsx
+      at transformWithOxc (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:3970:19)
+      at TransformPluginContext.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:4046:26)
+      at EnvironmentPluginContainer.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:29893:51)
+      at async loadAndTransform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:24542:26)
+      at async viteTransformMiddleware (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:25356:20)
+19:06:16 [vite] Internal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] Error:[0m Expected `,` or `)` but found `{`
+      [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/components/testBuilder/ExamCanvas.jsx:1582:7 [38;5;246m][0m
+      [38;5;246m│[0m
+ [38;5;246m1556 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m{[0m[38;5;249ms[0m[38;5;249mh[0m[38;5;249mo[0m[38;5;249mw[0m[38;5;249mF[0m[38;5;249mo[0m[38;5;249mo[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249m [0m[38;5;249m&[0m[38;5;249m&[0m[38;5;249m [0m(
+ [38;5;240m     │[0m                      ┬  
+ [38;5;240m     │[0m                      ╰── Opened here
+ [38;5;240m     │[0m 
+ [38;5;246m1582 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m{[38;5;249m/[0m[38;5;249m*[0m[38;5;249m [0m[38;5;249mP[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249mt[0m[38;5;249m [0m[38;5;249mt[0m[38;5;249ma[0m[38;5;249mb[0m[38;5;249ms[0m[38;5;249m [0m[38;5;249m*[0m[38;5;249m/[0m[38;5;249m}[0m
+ [38;5;240m     │[0m       ┬  
+ [38;5;240m     │[0m       ╰── `,` or `)` expected
+[38;5;246m──────╯[0m
+
+  Plugin: vite:oxc
+  File: /home/hv/DuAn/DAVictory/frontend/src/components/testBuilder/ExamCanvas.jsx
+      at transformWithOxc (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:3970:19)
+      at TransformPluginContext.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:4046:26)
+      at EnvironmentPluginContainer.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:29893:51)
+      at async loadAndTransform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:24542:26)
+      at async viteTransformMiddleware (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:25356:20)
+19:06:16 [vite] Internal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] Error:[0m Expected `,` or `)` but found `{`
+      [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/components/testBuilder/ExamCanvas.jsx:1582:7 [38;5;246m][0m
+      [38;5;246m│[0m
+ [38;5;246m1556 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m{[0m[38;5;249ms[0m[38;5;249mh[0m[38;5;249mo[0m[38;5;249mw[0m[38;5;249mF[0m[38;5;249mo[0m[38;5;249mo[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249m [0m[38;5;249m&[0m[38;5;249m&[0m[38;5;249m [0m(
+ [38;5;240m     │[0m                      ┬  
+ [38;5;240m     │[0m                      ╰── Opened here
+ [38;5;240m     │[0m 
+ [38;5;246m1582 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m{[38;5;249m/[0m[38;5;249m*[0m[38;5;249m [0m[38;5;249mP[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249mt[0m[38;5;249m [0m[38;5;249mt[0m[38;5;249ma[0m[38;5;249mb[0m[38;5;249ms[0m[38;5;249m [0m[38;5;249m*[0m[38;5;249m/[0m[38;5;249m}[0m
+ [38;5;240m     │[0m       ┬  
+ [38;5;240m     │[0m       ╰── `,` or `)` expected
+[38;5;246m──────╯[0m
+
+  Plugin: vite:oxc
+  File: /home/hv/DuAn/DAVictory/frontend/src/components/testBuilder/ExamCanvas.jsx
+      at transformWithOxc (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:3970:19)
+      at TransformPluginContext.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:4046:26)
+      at EnvironmentPluginContainer.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:29893:51)
+      at async loadAndTransform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:24542:26)
+      at async viteTransformMiddleware (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:25356:20)
+19:06:16 [vite] Internal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] Error:[0m Expected `,` or `)` but found `{`
+      [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/components/testBuilder/ExamCanvas.jsx:1582:7 [38;5;246m][0m
+      [38;5;246m│[0m
+ [38;5;246m1556 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m{[0m[38;5;249ms[0m[38;5;249mh[0m[38;5;249mo[0m[38;5;249mw[0m[38;5;249mF[0m[38;5;249mo[0m[38;5;249mo[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249m [0m[38;5;249m&[0m[38;5;249m&[0m[38;5;249m [0m(
+ [38;5;240m     │[0m                      ┬  
+ [38;5;240m     │[0m                      ╰── Opened here
+ [38;5;240m     │[0m 
+ [38;5;246m1582 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m{[38;5;249m/[0m[38;5;249m*[0m[38;5;249m [0m[38;5;249mP[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249mt[0m[38;5;249m [0m[38;5;249mt[0m[38;5;249ma[0m[38;5;249mb[0m[38;5;249ms[0m[38;5;249m [0m[38;5;249m*[0m[38;5;249m/[0m[38;5;249m}[0m
+ [38;5;240m     │[0m       ┬  
+ [38;5;240m     │[0m       ╰── `,` or `)` expected
+[38;5;246m──────╯[0m
+
+  Plugin: vite:oxc
+  File: /home/hv/DuAn/DAVictory/frontend/src/components/testBuilder/ExamCanvas.jsx
+      at transformWithOxc (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:3970:19)
+      at TransformPluginContext.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:4046:26)
+      at EnvironmentPluginContainer.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:29893:51)
+      at async loadAndTransform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:24542:26)
+      at async viteTransformMiddleware (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:25356:20)
+19:06:32 [vite] (client) hmr update /src/styles/ieltsTest.css
+19:06:36 [vite] (client) hmr update /src/components/testBuilder/ExamCanvas.jsx
+19:06:36 [vite] Internal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] Error:[0m Expected `,` or `)` but found `{`
+      [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/components/testBuilder/ExamCanvas.jsx:1582:7 [38;5;246m][0m
+      [38;5;246m│[0m
+ [38;5;246m1556 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m{[0m[38;5;249ms[0m[38;5;249mh[0m[38;5;249mo[0m[38;5;249mw[0m[38;5;249mF[0m[38;5;249mo[0m[38;5;249mo[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249m [0m[38;5;249m&[0m[38;5;249m&[0m[38;5;249m [0m(
+ [38;5;240m     │[0m                      ┬  
+ [38;5;240m     │[0m                      ╰── Opened here
+ [38;5;240m     │[0m 
+ [38;5;246m1582 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m{[38;5;249m/[0m[38;5;249m*[0m[38;5;249m [0m[38;5;249mP[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249mt[0m[38;5;249m [0m[38;5;249mt[0m[38;5;249ma[0m[38;5;249mb[0m[38;5;249ms[0m[38;5;249m [0m[38;5;249m*[0m[38;5;249m/[0m[38;5;249m}[0m
+ [38;5;240m     │[0m       ┬  
+ [38;5;240m     │[0m       ╰── `,` or `)` expected
+[38;5;246m──────╯[0m
+
+  Plugin: vite:oxc
+  File: /home/hv/DuAn/DAVictory/frontend/src/components/testBuilder/ExamCanvas.jsx
+      at transformWithOxc (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:3970:19)
+      at TransformPluginContext.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:4046:26)
+      at EnvironmentPluginContainer.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:29893:51)
+      at async loadAndTransform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:24542:26)
+      at async viteTransformMiddleware (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:25356:20)
+19:06:36 [vite] Internal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] Error:[0m Expected `,` or `)` but found `{`
+      [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/components/testBuilder/ExamCanvas.jsx:1582:7 [38;5;246m][0m
+      [38;5;246m│[0m
+ [38;5;246m1556 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m{[0m[38;5;249ms[0m[38;5;249mh[0m[38;5;249mo[0m[38;5;249mw[0m[38;5;249mF[0m[38;5;249mo[0m[38;5;249mo[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249m [0m[38;5;249m&[0m[38;5;249m&[0m[38;5;249m [0m(
+ [38;5;240m     │[0m                      ┬  
+ [38;5;240m     │[0m                      ╰── Opened here
+ [38;5;240m     │[0m 
+ [38;5;246m1582 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m{[38;5;249m/[0m[38;5;249m*[0m[38;5;249m [0m[38;5;249mP[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249mt[0m[38;5;249m [0m[38;5;249mt[0m[38;5;249ma[0m[38;5;249mb[0m[38;5;249ms[0m[38;5;249m [0m[38;5;249m*[0m[38;5;249m/[0m[38;5;249m}[0m
+ [38;5;240m     │[0m       ┬  
+ [38;5;240m     │[0m       ╰── `,` or `)` expected
+[38;5;246m──────╯[0m
+
+  Plugin: vite:oxc
+  File: /home/hv/DuAn/DAVictory/frontend/src/components/testBuilder/ExamCanvas.jsx
+      at transformWithOxc (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:3970:19)
+      at TransformPluginContext.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:4046:26)
+      at EnvironmentPluginContainer.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:29893:51)
+      at async loadAndTransform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:24542:26)
+      at async viteTransformMiddleware (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:25356:20)
+19:06:36 [vite] Internal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] Error:[0m Expected `,` or `)` but found `{`
+      [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/components/testBuilder/ExamCanvas.jsx:1582:7 [38;5;246m][0m
+      [38;5;246m│[0m
+ [38;5;246m1556 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m{[0m[38;5;249ms[0m[38;5;249mh[0m[38;5;249mo[0m[38;5;249mw[0m[38;5;249mF[0m[38;5;249mo[0m[38;5;249mo[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249m [0m[38;5;249m&[0m[38;5;249m&[0m[38;5;249m [0m(
+ [38;5;240m     │[0m                      ┬  
+ [38;5;240m     │[0m                      ╰── Opened here
+ [38;5;240m     │[0m 
+ [38;5;246m1582 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m{[38;5;249m/[0m[38;5;249m*[0m[38;5;249m [0m[38;5;249mP[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249mt[0m[38;5;249m [0m[38;5;249mt[0m[38;5;249ma[0m[38;5;249mb[0m[38;5;249ms[0m[38;5;249m [0m[38;5;249m*[0m[38;5;249m/[0m[38;5;249m}[0m
+ [38;5;240m     │[0m       ┬  
+ [38;5;240m     │[0m       ╰── `,` or `)` expected
+[38;5;246m──────╯[0m
+
+  Plugin: vite:oxc
+  File: /home/hv/DuAn/DAVictory/frontend/src/components/testBuilder/ExamCanvas.jsx
+      at transformWithOxc (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:3970:19)
+      at TransformPluginContext.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:4046:26)
+      at EnvironmentPluginContainer.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:29893:51)
+      at async loadAndTransform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:24542:26)
+19:06:36 [vite] Internal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] Error:[0m Expected `,` or `)` but found `{`
+      [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/components/testBuilder/ExamCanvas.jsx:1582:7 [38;5;246m][0m
+      [38;5;246m│[0m
+ [38;5;246m1556 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m{[0m[38;5;249ms[0m[38;5;249mh[0m[38;5;249mo[0m[38;5;249mw[0m[38;5;249mF[0m[38;5;249mo[0m[38;5;249mo[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249m [0m[38;5;249m&[0m[38;5;249m&[0m[38;5;249m [0m(
+ [38;5;240m     │[0m                      ┬  
+ [38;5;240m     │[0m                      ╰── Opened here
+ [38;5;240m     │[0m 
+ [38;5;246m1582 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m{[38;5;249m/[0m[38;5;249m*[0m[38;5;249m [0m[38;5;249mP[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249mt[0m[38;5;249m [0m[38;5;249mt[0m[38;5;249ma[0m[38;5;249mb[0m[38;5;249ms[0m[38;5;249m [0m[38;5;249m*[0m[38;5;249m/[0m[38;5;249m}[0m
+ [38;5;240m     │[0m       ┬  
+ [38;5;240m     │[0m       ╰── `,` or `)` expected
+[38;5;246m──────╯[0m
+
+  Plugin: vite:oxc
+  File: /home/hv/DuAn/DAVictory/frontend/src/components/testBuilder/ExamCanvas.jsx
+      at transformWithOxc (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:3970:19)
+      at TransformPluginContext.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:4046:26)
+      at EnvironmentPluginContainer.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:29893:51)
+      at async loadAndTransform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:24542:26)
+19:06:36 [vite] Internal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] Error:[0m Expected `,` or `)` but found `{`
+      [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/components/testBuilder/ExamCanvas.jsx:1582:7 [38;5;246m][0m
+      [38;5;246m│[0m
+ [38;5;246m1556 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m{[0m[38;5;249ms[0m[38;5;249mh[0m[38;5;249mo[0m[38;5;249mw[0m[38;5;249mF[0m[38;5;249mo[0m[38;5;249mo[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249m [0m[38;5;249m&[0m[38;5;249m&[0m[38;5;249m [0m(
+ [38;5;240m     │[0m                      ┬  
+ [38;5;240m     │[0m                      ╰── Opened here
+ [38;5;240m     │[0m 
+ [38;5;246m1582 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m{[38;5;249m/[0m[38;5;249m*[0m[38;5;249m [0m[38;5;249mP[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249mt[0m[38;5;249m [0m[38;5;249mt[0m[38;5;249ma[0m[38;5;249mb[0m[38;5;249ms[0m[38;5;249m [0m[38;5;249m*[0m[38;5;249m/[0m[38;5;249m}[0m
+ [38;5;240m     │[0m       ┬  
+ [38;5;240m     │[0m       ╰── `,` or `)` expected
+[38;5;246m──────╯[0m
+
+  Plugin: vite:oxc
+  File: /home/hv/DuAn/DAVictory/frontend/src/components/testBuilder/ExamCanvas.jsx
+      at transformWithOxc (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:3970:19)
+      at TransformPluginContext.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:4046:26)
+      at EnvironmentPluginContainer.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:29893:51)
+      at async loadAndTransform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:24542:26)
+19:06:36 [vite] Internal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] Error:[0m Expected `,` or `)` but found `{`
+      [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/components/testBuilder/ExamCanvas.jsx:1582:7 [38;5;246m][0m
+      [38;5;246m│[0m
+ [38;5;246m1556 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m{[0m[38;5;249ms[0m[38;5;249mh[0m[38;5;249mo[0m[38;5;249mw[0m[38;5;249mF[0m[38;5;249mo[0m[38;5;249mo[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249m [0m[38;5;249m&[0m[38;5;249m&[0m[38;5;249m [0m(
+ [38;5;240m     │[0m                      ┬  
+ [38;5;240m     │[0m                      ╰── Opened here
+ [38;5;240m     │[0m 
+ [38;5;246m1582 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m{[38;5;249m/[0m[38;5;249m*[0m[38;5;249m [0m[38;5;249mP[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249mt[0m[38;5;249m [0m[38;5;249mt[0m[38;5;249ma[0m[38;5;249mb[0m[38;5;249ms[0m[38;5;249m [0m[38;5;249m*[0m[38;5;249m/[0m[38;5;249m}[0m
+ [38;5;240m     │[0m       ┬  
+ [38;5;240m     │[0m       ╰── `,` or `)` expected
+[38;5;246m──────╯[0m
+
+  Plugin: vite:oxc
+  File: /home/hv/DuAn/DAVictory/frontend/src/components/testBuilder/ExamCanvas.jsx
+      at transformWithOxc (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:3970:19)
+      at TransformPluginContext.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:4046:26)
+      at EnvironmentPluginContainer.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:29893:51)
+      at async loadAndTransform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:24542:26)
+19:06:36 [vite] Internal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] Error:[0m Expected `,` or `)` but found `{`
+      [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/components/testBuilder/ExamCanvas.jsx:1582:7 [38;5;246m][0m
+      [38;5;246m│[0m
+ [38;5;246m1556 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m{[0m[38;5;249ms[0m[38;5;249mh[0m[38;5;249mo[0m[38;5;249mw[0m[38;5;249mF[0m[38;5;249mo[0m[38;5;249mo[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249m [0m[38;5;249m&[0m[38;5;249m&[0m[38;5;249m [0m(
+ [38;5;240m     │[0m                      ┬  
+ [38;5;240m     │[0m                      ╰── Opened here
+ [38;5;240m     │[0m 
+ [38;5;246m1582 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m{[38;5;249m/[0m[38;5;249m*[0m[38;5;249m [0m[38;5;249mP[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249mt[0m[38;5;249m [0m[38;5;249mt[0m[38;5;249ma[0m[38;5;249mb[0m[38;5;249ms[0m[38;5;249m [0m[38;5;249m*[0m[38;5;249m/[0m[38;5;249m}[0m
+ [38;5;240m     │[0m       ┬  
+ [38;5;240m     │[0m       ╰── `,` or `)` expected
+[38;5;246m──────╯[0m
+
+  Plugin: vite:oxc
+  File: /home/hv/DuAn/DAVictory/frontend/src/components/testBuilder/ExamCanvas.jsx
+      at transformWithOxc (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:3970:19)
+      at TransformPluginContext.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:4046:26)
+      at EnvironmentPluginContainer.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:29893:51)
+      at async loadAndTransform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:24542:26)
+      at async viteTransformMiddleware (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:25356:20)
+19:06:55 [vite] (client) hmr update /src/components/testBuilder/ExamCanvas.jsx
+19:07:34 [vite] (client) hmr update /src/styles/ieltsTest.css
+19:07:49 [vite] (client) hmr update /src/components/testBuilder/ExamCanvas.jsx
+19:08:26 [vite] (client) hmr update /src/components/testBuilder/ExamCanvas.jsx
+19:08:42 [vite] (client) hmr update /src/components/question/DropdownGroupQuestion.jsx
+19:08:53 [vite] (client) hmr update /src/components/testBuilder/ExamCanvas.jsx
+19:08:57 [vite] (client) hmr update /src/styles/ieltsTest.css
+19:08:59 [vite] (client) hmr update /src/pages/IeltsReadingTest.jsx, /src/pages/IeltsListeningTest.jsx, /src/pages/IeltsWritingTest.jsx, /src/pages/IeltsSpeakingTest.jsx, /src/pages/lms/LmsGradeSubmission.jsx, /src/pages/ExamLibrary.jsx, /src/pages/lms/LmsSubmissionDetail.jsx, /src/pages/lms/LmsTeacherSubmissions.jsx, /src/pages/TestComplete.jsx, /src/pages/ApiDebugPage.jsx, /src/pages/teacher/GradeAssignment.jsx, /src/components/question/QuestionRenderer.jsx, /src/components/testBuilder/ExamCanvas.jsx, /src/components/testBuilder/PreviewModal.jsx, /src/components/question/FillInBlankQuestion.jsx, /src/components/question/MultipleChoiceQuestion.jsx, /src/components/question/TFNGQuestion.jsx, /src/components/question/DragDropGroupQuestion.jsx, /src/components/question/SummaryCompletionQuestion.jsx, /src/components/question/SummaryCompletionSelectQuestion.jsx, /src/components/question/DropdownGroupQuestion.jsx, /src/components/question/MatchingFillQuestion.jsx, /src/components/common/RichInput.jsx, /src/components/testBuilder/PropertiesPanel.jsx, /src/components/testBuilder/SharedOptionsDropdownBlock.jsx, /src/components/testBuilder/blocks/PassageBlock.jsx, /src/components/testBuilder/blocks/AudioBlock.jsx, /src/components/testBuilder/blocks/ImageBlock.jsx, /src/components/testBuilder/blocks/MatchingFeaturesBlock.jsx, /src/components/testBuilder/blocks/DragMatchingBlock.jsx, /src/components/testBuilder/blocks/MatchingHeadingBlock.jsx, /src/components/testBuilder/blocks/MultipleChoiceMultiBlock.jsx, /src/components/testBuilder/blocks/MultipleChoiceBlock.jsx, /src/components/testBuilder/blocks/SentenceCompletionBlock.jsx, /src/components/testBuilder/blocks/TFNGBlock.jsx, /src/components/testBuilder/blocks/ShortAnswerBlock.jsx, /src/components/testBuilder/blocks/NoteCompletionBlock.jsx, /src/components/testBuilder/blocks/ImageNoteFormBlock.jsx, /src/components/testBuilder/blocks/SummaryCompletionBlock.jsx, /src/components/testBuilder/blocks/SpeakingInterviewBlock.jsx, /src/components/testBuilder/blocks/SpeakingCueCardBlock.jsx, /src/components/testBuilder/blocks/WritingTaskBlock.jsx, /src/components/testBuilder/blocks/shared/ImageUploadZone.jsx, /src/components/testBuilder/blocks/SummaryCompletionSelectBlock.jsx, /src/components/testBuilder/blocks/shared/RichBlankEditor.jsx
+19:09:31 [vite] (client) hmr update /src/components/testBuilder/ExamCanvas.jsx
+19:10:28 [vite] (client) hmr update /src/components/testBuilder/blocks/shared/RichBlankEditor.jsx
+19:10:28 [vite] (client) hmr update /src/pages/IeltsReadingTest.jsx, /src/pages/IeltsListeningTest.jsx, /src/pages/IeltsWritingTest.jsx, /src/pages/IeltsSpeakingTest.jsx, /src/pages/lms/LmsGradeSubmission.jsx, /src/pages/ExamLibrary.jsx, /src/pages/lms/LmsSubmissionDetail.jsx, /src/pages/lms/LmsTeacherSubmissions.jsx, /src/pages/TestComplete.jsx, /src/pages/ApiDebugPage.jsx, /src/pages/teacher/GradeAssignment.jsx, /src/components/question/QuestionRenderer.jsx, /src/components/testBuilder/ExamCanvas.jsx, /src/components/testBuilder/PreviewModal.jsx, /src/components/question/FillInBlankQuestion.jsx, /src/components/question/MultipleChoiceQuestion.jsx, /src/components/question/TFNGQuestion.jsx, /src/components/question/DragDropGroupQuestion.jsx, /src/components/question/SummaryCompletionQuestion.jsx, /src/components/question/SummaryCompletionSelectQuestion.jsx, /src/components/question/DropdownGroupQuestion.jsx, /src/components/question/MatchingFillQuestion.jsx, /src/components/common/RichInput.jsx, /src/components/testBuilder/PropertiesPanel.jsx, /src/components/testBuilder/SharedOptionsDropdownBlock.jsx, /src/components/testBuilder/blocks/PassageBlock.jsx, /src/components/testBuilder/blocks/AudioBlock.jsx, /src/components/testBuilder/blocks/ImageBlock.jsx, /src/components/testBuilder/blocks/MatchingFeaturesBlock.jsx, /src/components/testBuilder/blocks/DragMatchingBlock.jsx, /src/components/testBuilder/blocks/MatchingHeadingBlock.jsx, /src/components/testBuilder/blocks/MultipleChoiceMultiBlock.jsx, /src/components/testBuilder/blocks/MultipleChoiceBlock.jsx, /src/components/testBuilder/blocks/SentenceCompletionBlock.jsx, /src/components/testBuilder/blocks/TFNGBlock.jsx, /src/components/testBuilder/blocks/ShortAnswerBlock.jsx, /src/components/testBuilder/blocks/NoteCompletionBlock.jsx, /src/components/testBuilder/blocks/ImageNoteFormBlock.jsx, /src/components/testBuilder/blocks/SummaryCompletionBlock.jsx, /src/components/testBuilder/blocks/SpeakingInterviewBlock.jsx, /src/components/testBuilder/blocks/SpeakingCueCardBlock.jsx, /src/components/testBuilder/blocks/WritingTaskBlock.jsx, /src/components/testBuilder/blocks/shared/ImageUploadZone.jsx, /src/components/testBuilder/blocks/SummaryCompletionSelectBlock.jsx, /src/components/testBuilder/blocks/shared/RichBlankEditor.jsx
+19:10:28 [vite] (client) hmr update /src/components/common/RichInput.jsx
+19:11:16 [vite] (client) hmr update /src/styles/ieltsTest.css
+19:11:41 [vite] (client) hmr update /src/styles/ieltsTest.css
+19:11:49 [vite] (client) hmr update /src/components/testBuilder/ExamCanvas.jsx
+19:12:20 [vite] (client) hmr update /src/components/question/DropdownGroupQuestion.jsx
+19:12:21 [vite] (client) hmr update /src/styles/ieltsTest.css
+19:12:32 [vite] (client) hmr update /src/components/testBuilder/ExamCanvas.jsx
+19:13:55 [vite] (client) hmr update /src/styles/ieltsTest.css
+19:14:45 [vite] (client) hmr update /src/styles/ieltsTest.css
+19:14:55 [vite] (client) hmr update /src/styles/ieltsTest.css
+19:15:01 [vite] (client) hmr update /src/components/testBuilder/ExamCanvas.jsx
+19:15:12 [vite] (client) hmr update /src/components/testBuilder/ExamCanvas.jsx
+19:15:20 [vite] (client) hmr update /src/components/testBuilder/ExamCanvas.jsx
+19:15:20 [vite] Internal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] Error:[0m Expected `,` or `)` but found `{`
+      [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/components/testBuilder/ExamCanvas.jsx:1591:7 [38;5;246m][0m
+      [38;5;246m│[0m
+ [38;5;246m1525 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m{[0m[38;5;249ms[0m[38;5;249mh[0m[38;5;249mo[0m[38;5;249mw[0m[38;5;249mZ[0m[38;5;249mo[0m[38;5;249mo[0m[38;5;249mm[0m[38;5;249mC[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249mt[0m[38;5;249mr[0m[38;5;249mo[0m[38;5;249ml[0m[38;5;249ms[0m[38;5;249m [0m[38;5;249m&[0m[38;5;249m&[0m[38;5;249m [0m(
+ [38;5;240m     │[0m                            ┬  
+ [38;5;240m     │[0m                            ╰── Opened here
+ [38;5;240m     │[0m 
+ [38;5;246m1591 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m{[38;5;249m/[0m[38;5;249m*[0m[38;5;249m [0m[38;5;249mF[0m[38;5;249mo[0m[38;5;249mo[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249mP[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249mt[0m[38;5;249m [0m[38;5;249mq[0m[38;5;249mu[0m[38;5;249me[0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m [0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249mu[0m[38;5;249mn[0m[38;5;249mt[0m[38;5;249ms[0m[38;5;249m [0m[38;5;249m*[0m[38;5;249m/[0m[38;5;249m}[0m
+ [38;5;240m     │[0m       ┬  
+ [38;5;240m     │[0m       ╰── `,` or `)` expected
+[38;5;246m──────╯[0m
+
+  Plugin: vite:oxc
+  File: /home/hv/DuAn/DAVictory/frontend/src/components/testBuilder/ExamCanvas.jsx
+      at transformWithOxc (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:3970:19)
+      at TransformPluginContext.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:4046:26)
+      at EnvironmentPluginContainer.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:29893:51)
+      at async loadAndTransform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:24542:26)
+19:15:20 [vite] Internal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] Error:[0m Expected `,` or `)` but found `{`
+      [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/components/testBuilder/ExamCanvas.jsx:1591:7 [38;5;246m][0m
+      [38;5;246m│[0m
+ [38;5;246m1525 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m{[0m[38;5;249ms[0m[38;5;249mh[0m[38;5;249mo[0m[38;5;249mw[0m[38;5;249mZ[0m[38;5;249mo[0m[38;5;249mo[0m[38;5;249mm[0m[38;5;249mC[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249mt[0m[38;5;249mr[0m[38;5;249mo[0m[38;5;249ml[0m[38;5;249ms[0m[38;5;249m [0m[38;5;249m&[0m[38;5;249m&[0m[38;5;249m [0m(
+ [38;5;240m     │[0m                            ┬  
+ [38;5;240m     │[0m                            ╰── Opened here
+ [38;5;240m     │[0m 
+ [38;5;246m1591 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m{[38;5;249m/[0m[38;5;249m*[0m[38;5;249m [0m[38;5;249mF[0m[38;5;249mo[0m[38;5;249mo[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249mP[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249mt[0m[38;5;249m [0m[38;5;249mq[0m[38;5;249mu[0m[38;5;249me[0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m [0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249mu[0m[38;5;249mn[0m[38;5;249mt[0m[38;5;249ms[0m[38;5;249m [0m[38;5;249m*[0m[38;5;249m/[0m[38;5;249m}[0m
+ [38;5;240m     │[0m       ┬  
+ [38;5;240m     │[0m       ╰── `,` or `)` expected
+[38;5;246m──────╯[0m
+
+  Plugin: vite:oxc
+  File: /home/hv/DuAn/DAVictory/frontend/src/components/testBuilder/ExamCanvas.jsx
+      at transformWithOxc (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:3970:19)
+      at TransformPluginContext.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:4046:26)
+      at EnvironmentPluginContainer.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:29893:51)
+      at async loadAndTransform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:24542:26)
+19:15:20 [vite] Internal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] Error:[0m Expected `,` or `)` but found `{`
+      [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/components/testBuilder/ExamCanvas.jsx:1591:7 [38;5;246m][0m
+      [38;5;246m│[0m
+ [38;5;246m1525 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m{[0m[38;5;249ms[0m[38;5;249mh[0m[38;5;249mo[0m[38;5;249mw[0m[38;5;249mZ[0m[38;5;249mo[0m[38;5;249mo[0m[38;5;249mm[0m[38;5;249mC[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249mt[0m[38;5;249mr[0m[38;5;249mo[0m[38;5;249ml[0m[38;5;249ms[0m[38;5;249m [0m[38;5;249m&[0m[38;5;249m&[0m[38;5;249m [0m(
+ [38;5;240m     │[0m                            ┬  
+ [38;5;240m     │[0m                            ╰── Opened here
+ [38;5;240m     │[0m 
+ [38;5;246m1591 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m{[38;5;249m/[0m[38;5;249m*[0m[38;5;249m [0m[38;5;249mF[0m[38;5;249mo[0m[38;5;249mo[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249mP[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249mt[0m[38;5;249m [0m[38;5;249mq[0m[38;5;249mu[0m[38;5;249me[0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m [0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249mu[0m[38;5;249mn[0m[38;5;249mt[0m[38;5;249ms[0m[38;5;249m [0m[38;5;249m*[0m[38;5;249m/[0m[38;5;249m}[0m
+ [38;5;240m     │[0m       ┬  
+ [38;5;240m     │[0m       ╰── `,` or `)` expected
+[38;5;246m──────╯[0m
+
+  Plugin: vite:oxc
+  File: /home/hv/DuAn/DAVictory/frontend/src/components/testBuilder/ExamCanvas.jsx
+      at transformWithOxc (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:3970:19)
+      at TransformPluginContext.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:4046:26)
+      at EnvironmentPluginContainer.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:29893:51)
+      at async loadAndTransform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:24542:26)
+      at async viteTransformMiddleware (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:25356:20)
+19:15:20 [vite] Internal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] Error:[0m Expected `,` or `)` but found `{`
+      [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/components/testBuilder/ExamCanvas.jsx:1591:7 [38;5;246m][0m
+      [38;5;246m│[0m
+ [38;5;246m1525 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m{[0m[38;5;249ms[0m[38;5;249mh[0m[38;5;249mo[0m[38;5;249mw[0m[38;5;249mZ[0m[38;5;249mo[0m[38;5;249mo[0m[38;5;249mm[0m[38;5;249mC[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249mt[0m[38;5;249mr[0m[38;5;249mo[0m[38;5;249ml[0m[38;5;249ms[0m[38;5;249m [0m[38;5;249m&[0m[38;5;249m&[0m[38;5;249m [0m(
+ [38;5;240m     │[0m                            ┬  
+ [38;5;240m     │[0m                            ╰── Opened here
+ [38;5;240m     │[0m 
+ [38;5;246m1591 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m{[38;5;249m/[0m[38;5;249m*[0m[38;5;249m [0m[38;5;249mF[0m[38;5;249mo[0m[38;5;249mo[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249mP[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249mt[0m[38;5;249m [0m[38;5;249mq[0m[38;5;249mu[0m[38;5;249me[0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m [0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249mu[0m[38;5;249mn[0m[38;5;249mt[0m[38;5;249ms[0m[38;5;249m [0m[38;5;249m*[0m[38;5;249m/[0m[38;5;249m}[0m
+ [38;5;240m     │[0m       ┬  
+ [38;5;240m     │[0m       ╰── `,` or `)` expected
+[38;5;246m──────╯[0m
+
+  Plugin: vite:oxc
+  File: /home/hv/DuAn/DAVictory/frontend/src/components/testBuilder/ExamCanvas.jsx
+      at transformWithOxc (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:3970:19)
+      at TransformPluginContext.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:4046:26)
+      at EnvironmentPluginContainer.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:29893:51)
+      at async loadAndTransform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:24542:26)
+19:15:20 [vite] Internal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] Error:[0m Expected `,` or `)` but found `{`
+      [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/components/testBuilder/ExamCanvas.jsx:1591:7 [38;5;246m][0m
+      [38;5;246m│[0m
+ [38;5;246m1525 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m{[0m[38;5;249ms[0m[38;5;249mh[0m[38;5;249mo[0m[38;5;249mw[0m[38;5;249mZ[0m[38;5;249mo[0m[38;5;249mo[0m[38;5;249mm[0m[38;5;249mC[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249mt[0m[38;5;249mr[0m[38;5;249mo[0m[38;5;249ml[0m[38;5;249ms[0m[38;5;249m [0m[38;5;249m&[0m[38;5;249m&[0m[38;5;249m [0m(
+ [38;5;240m     │[0m                            ┬  
+ [38;5;240m     │[0m                            ╰── Opened here
+ [38;5;240m     │[0m 
+ [38;5;246m1591 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m{[38;5;249m/[0m[38;5;249m*[0m[38;5;249m [0m[38;5;249mF[0m[38;5;249mo[0m[38;5;249mo[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249mP[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249mt[0m[38;5;249m [0m[38;5;249mq[0m[38;5;249mu[0m[38;5;249me[0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m [0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249mu[0m[38;5;249mn[0m[38;5;249mt[0m[38;5;249ms[0m[38;5;249m [0m[38;5;249m*[0m[38;5;249m/[0m[38;5;249m}[0m
+ [38;5;240m     │[0m       ┬  
+ [38;5;240m     │[0m       ╰── `,` or `)` expected
+[38;5;246m──────╯[0m
+
+  Plugin: vite:oxc
+  File: /home/hv/DuAn/DAVictory/frontend/src/components/testBuilder/ExamCanvas.jsx
+      at transformWithOxc (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:3970:19)
+      at TransformPluginContext.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:4046:26)
+      at EnvironmentPluginContainer.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:29893:51)
+      at async loadAndTransform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:24542:26)
+19:15:21 [vite] Internal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] Error:[0m Expected `,` or `)` but found `{`
+      [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/components/testBuilder/ExamCanvas.jsx:1591:7 [38;5;246m][0m
+      [38;5;246m│[0m
+ [38;5;246m1525 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m{[0m[38;5;249ms[0m[38;5;249mh[0m[38;5;249mo[0m[38;5;249mw[0m[38;5;249mZ[0m[38;5;249mo[0m[38;5;249mo[0m[38;5;249mm[0m[38;5;249mC[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249mt[0m[38;5;249mr[0m[38;5;249mo[0m[38;5;249ml[0m[38;5;249ms[0m[38;5;249m [0m[38;5;249m&[0m[38;5;249m&[0m[38;5;249m [0m(
+ [38;5;240m     │[0m                            ┬  
+ [38;5;240m     │[0m                            ╰── Opened here
+ [38;5;240m     │[0m 
+ [38;5;246m1591 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m{[38;5;249m/[0m[38;5;249m*[0m[38;5;249m [0m[38;5;249mF[0m[38;5;249mo[0m[38;5;249mo[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249mP[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249mt[0m[38;5;249m [0m[38;5;249mq[0m[38;5;249mu[0m[38;5;249me[0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m [0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249mu[0m[38;5;249mn[0m[38;5;249mt[0m[38;5;249ms[0m[38;5;249m [0m[38;5;249m*[0m[38;5;249m/[0m[38;5;249m}[0m
+ [38;5;240m     │[0m       ┬  
+ [38;5;240m     │[0m       ╰── `,` or `)` expected
+[38;5;246m──────╯[0m
+
+  Plugin: vite:oxc
+  File: /home/hv/DuAn/DAVictory/frontend/src/components/testBuilder/ExamCanvas.jsx
+      at transformWithOxc (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:3970:19)
+      at TransformPluginContext.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:4046:26)
+      at EnvironmentPluginContainer.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:29893:51)
+      at async loadAndTransform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:24542:26)
+19:15:21 [vite] Internal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] Error:[0m Expected `,` or `)` but found `{`
+      [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/components/testBuilder/ExamCanvas.jsx:1591:7 [38;5;246m][0m
+      [38;5;246m│[0m
+ [38;5;246m1525 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m{[0m[38;5;249ms[0m[38;5;249mh[0m[38;5;249mo[0m[38;5;249mw[0m[38;5;249mZ[0m[38;5;249mo[0m[38;5;249mo[0m[38;5;249mm[0m[38;5;249mC[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249mt[0m[38;5;249mr[0m[38;5;249mo[0m[38;5;249ml[0m[38;5;249ms[0m[38;5;249m [0m[38;5;249m&[0m[38;5;249m&[0m[38;5;249m [0m(
+ [38;5;240m     │[0m                            ┬  
+ [38;5;240m     │[0m                            ╰── Opened here
+ [38;5;240m     │[0m 
+ [38;5;246m1591 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m{[38;5;249m/[0m[38;5;249m*[0m[38;5;249m [0m[38;5;249mF[0m[38;5;249mo[0m[38;5;249mo[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249mP[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249mt[0m[38;5;249m [0m[38;5;249mq[0m[38;5;249mu[0m[38;5;249me[0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m [0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249mu[0m[38;5;249mn[0m[38;5;249mt[0m[38;5;249ms[0m[38;5;249m [0m[38;5;249m*[0m[38;5;249m/[0m[38;5;249m}[0m
+ [38;5;240m     │[0m       ┬  
+ [38;5;240m     │[0m       ╰── `,` or `)` expected
+[38;5;246m──────╯[0m
+
+  Plugin: vite:oxc
+  File: /home/hv/DuAn/DAVictory/frontend/src/components/testBuilder/ExamCanvas.jsx
+      at transformWithOxc (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:3970:19)
+      at TransformPluginContext.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:4046:26)
+      at EnvironmentPluginContainer.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:29893:51)
+      at async loadAndTransform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:24542:26)
+      at async viteTransformMiddleware (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:25356:20)
+19:15:40 [vite] (client) hmr update /src/components/testBuilder/ExamCanvas.jsx
+19:16:17 [vite] (client) hmr update /src/components/testBuilder/blocks/shared/RichBlankEditor.jsx
+19:16:34 [vite] (client) hmr update /src/components/testBuilder/ExamCanvas.jsx
+19:22:09 [vite] (client) hmr update /src/components/testBuilder/blocks/ImageBlock.jsx
+19:22:09 [vite] (client) hmr update /src/components/testBuilder/blocks/NoteCompletionBlock.jsx
+19:22:25 [vite] (client) hmr update /src/pages/IeltsListeningTest.jsx
+19:22:39 [vite] (client) hmr update /src/pages/IeltsReadingTest.jsx
+19:22:59 [vite] (client) hmr update /src/styles/ieltsTest.css
+19:23:25 [vite] (client) hmr update /src/components/testBuilder/ExamCanvas.jsx
+19:24:25 [vite] (client) hmr update /src/components/testBuilder/ExamCanvas.jsx
+19:27:04 [vite] (client) hmr update /src/styles/ieltsTest.css
+19:27:05 [vite] (client) hmr update /src/pages/IeltsListeningTest.jsx
+19:27:05 [vite] (client) hmr update /src/pages/IeltsReadingTest.jsx
+19:27:41 [vite] (client) hmr update /src/components/testBuilder/blocks/shared/RichBlankEditor.jsx
+19:28:17 [vite] (client) hmr update /src/components/testBuilder/blocks/shared/RichBlankEditor.jsx
+19:29:39 [vite] (client) hmr update /src/pages/IeltsReadingTest.jsx, /src/pages/IeltsListeningTest.jsx, /src/pages/IeltsWritingTest.jsx, /src/pages/IeltsSpeakingTest.jsx, /src/pages/lms/LmsGradeSubmission.jsx, /src/pages/ExamLibrary.jsx, /src/pages/lms/LmsSubmissionDetail.jsx, /src/pages/lms/LmsTeacherSubmissions.jsx, /src/pages/TestComplete.jsx, /src/pages/ApiDebugPage.jsx, /src/pages/teacher/GradeAssignment.jsx, /src/components/question/QuestionRenderer.jsx, /src/components/testBuilder/ExamCanvas.jsx, /src/components/testBuilder/PreviewModal.jsx, /src/components/question/FillInBlankQuestion.jsx, /src/components/question/MultipleChoiceQuestion.jsx, /src/components/question/TFNGQuestion.jsx, /src/components/question/DragDropGroupQuestion.jsx, /src/components/question/SummaryCompletionQuestion.jsx, /src/components/question/SummaryCompletionSelectQuestion.jsx, /src/components/question/DropdownGroupQuestion.jsx, /src/components/question/MatchingFillQuestion.jsx, /src/components/common/RichInput.jsx, /src/components/testBuilder/PropertiesPanel.jsx, /src/components/testBuilder/SharedOptionsDropdownBlock.jsx, /src/components/testBuilder/blocks/PassageBlock.jsx, /src/components/testBuilder/blocks/AudioBlock.jsx, /src/components/testBuilder/blocks/ImageBlock.jsx, /src/components/testBuilder/blocks/MatchingFeaturesBlock.jsx, /src/components/testBuilder/blocks/DragMatchingBlock.jsx, /src/components/testBuilder/blocks/MatchingHeadingBlock.jsx, /src/components/testBuilder/blocks/MultipleChoiceMultiBlock.jsx, /src/components/testBuilder/blocks/MultipleChoiceBlock.jsx, /src/components/testBuilder/blocks/SentenceCompletionBlock.jsx, /src/components/testBuilder/blocks/TFNGBlock.jsx, /src/components/testBuilder/blocks/ShortAnswerBlock.jsx, /src/components/testBuilder/blocks/NoteCompletionBlock.jsx, /src/components/testBuilder/blocks/ImageNoteFormBlock.jsx, /src/components/testBuilder/blocks/SummaryCompletionBlock.jsx, /src/components/testBuilder/blocks/SpeakingInterviewBlock.jsx, /src/components/testBuilder/blocks/SpeakingCueCardBlock.jsx, /src/components/testBuilder/blocks/WritingTaskBlock.jsx, /src/components/testBuilder/blocks/shared/ImageUploadZone.jsx, /src/components/testBuilder/blocks/SummaryCompletionSelectBlock.jsx, /src/components/testBuilder/blocks/shared/RichBlankEditor.jsx
+19:30:16 [vite] (client) hmr update /src/components/testBuilder/blocks/shared/RichBlankEditor.jsx
+19:32:28 [vite] (client) hmr update /src/components/testBuilder/blocks/shared/RichBlankEditor.jsx
+19:32:42 [vite] (client) hmr update /src/components/common/BookmarkToggle.jsx
+19:33:02 [vite] (client) hmr update /src/components/common/BookmarkToggle.jsx
+19:33:45 [vite] (client) hmr update /src/components/common/BookmarkToggle.jsx
+19:34:03 [vite] (client) hmr update /src/components/testBuilder/blocks/ImageBlock.jsx
+19:34:12 [vite] (client) hmr update /src/components/testBuilder/blocks/ImageBlock.jsx
+19:34:32 [vite] (client) hmr update /src/components/common/BookmarkToggle.jsx
+19:34:40 [vite] (client) hmr update /src/pages/IeltsReadingTest.jsx, /src/pages/IeltsListeningTest.jsx, /src/pages/IeltsWritingTest.jsx, /src/pages/IeltsSpeakingTest.jsx, /src/pages/lms/LmsGradeSubmission.jsx, /src/pages/ExamLibrary.jsx, /src/pages/lms/LmsSubmissionDetail.jsx, /src/pages/lms/LmsTeacherSubmissions.jsx, /src/pages/TestComplete.jsx, /src/pages/ApiDebugPage.jsx, /src/pages/teacher/GradeAssignment.jsx, /src/components/question/QuestionRenderer.jsx, /src/components/testBuilder/ExamCanvas.jsx, /src/components/testBuilder/PreviewModal.jsx, /src/components/question/FillInBlankQuestion.jsx, /src/components/question/MultipleChoiceQuestion.jsx, /src/components/question/TFNGQuestion.jsx, /src/components/question/DragDropGroupQuestion.jsx, /src/components/question/SummaryCompletionQuestion.jsx, /src/components/question/SummaryCompletionSelectQuestion.jsx, /src/components/question/DropdownGroupQuestion.jsx, /src/components/question/MatchingFillQuestion.jsx, /src/components/common/RichInput.jsx, /src/components/testBuilder/PropertiesPanel.jsx, /src/components/testBuilder/SharedOptionsDropdownBlock.jsx, /src/components/testBuilder/blocks/PassageBlock.jsx, /src/components/testBuilder/blocks/AudioBlock.jsx, /src/components/testBuilder/blocks/ImageBlock.jsx, /src/components/testBuilder/blocks/MatchingFeaturesBlock.jsx, /src/components/testBuilder/blocks/DragMatchingBlock.jsx, /src/components/testBuilder/blocks/MatchingHeadingBlock.jsx, /src/components/testBuilder/blocks/MultipleChoiceMultiBlock.jsx, /src/components/testBuilder/blocks/MultipleChoiceBlock.jsx, /src/components/testBuilder/blocks/SentenceCompletionBlock.jsx, /src/components/testBuilder/blocks/TFNGBlock.jsx, /src/components/testBuilder/blocks/ShortAnswerBlock.jsx, /src/components/testBuilder/blocks/NoteCompletionBlock.jsx, /src/components/testBuilder/blocks/ImageNoteFormBlock.jsx, /src/components/testBuilder/blocks/SummaryCompletionBlock.jsx, /src/components/testBuilder/blocks/SpeakingInterviewBlock.jsx, /src/components/testBuilder/blocks/SpeakingCueCardBlock.jsx, /src/components/testBuilder/blocks/WritingTaskBlock.jsx, /src/components/testBuilder/blocks/shared/ImageUploadZone.jsx, /src/components/testBuilder/blocks/SummaryCompletionSelectBlock.jsx, /src/components/testBuilder/blocks/shared/RichBlankEditor.jsx
+19:34:43 [vite] (client) hmr update /src/components/common/BookmarkToggle.jsx
+19:35:08 [vite] (client) hmr update /src/styles/testBuilder.css
+19:35:23 [vite] (client) hmr update /src/components/common/BookmarkToggle.jsx
+19:35:33 [vite] (client) hmr update /src/components/common/BookmarkToggle.jsx
+19:36:04 [vite] (client) hmr update /src/styles/testBuilder.css
+19:38:32 [vite] (client) hmr update /src/components/common/BookmarkToggle.jsx
+19:40:31 [vite] (client) hmr update /src/components/question/DragDropGroupQuestion.jsx
+19:41:01 [vite] (client) hmr update /src/pages/IeltsListeningTest.jsx
+19:41:21 [vite] (client) hmr update /src/pages/IeltsReadingTest.jsx
+19:44:29 [vite] (client) hmr update /src/components/testBuilder/blocks/ImageBlock.jsx
+19:44:36 [vite] (client) hmr update /src/components/testBuilder/blocks/ImageBlock.jsx
+19:45:00 [vite] (client) hmr update /src/components/testBuilder/blocks/shared/RichBlankEditor.jsx
+19:46:08 [vite] (client) hmr update /src/components/testBuilder/blocks/NoteCompletionBlock.jsx
+19:46:16 [vite] (client) hmr update /src/components/testBuilder/blocks/NoteCompletionBlock.jsx
+19:47:34 [vite] (client) hmr update /src/pages/IeltsReadingTest.jsx, /src/pages/IeltsListeningTest.jsx, /src/pages/IeltsWritingTest.jsx, /src/pages/IeltsSpeakingTest.jsx, /src/pages/lms/LmsGradeSubmission.jsx, /src/pages/ExamLibrary.jsx, /src/pages/lms/LmsSubmissionDetail.jsx, /src/pages/lms/LmsTeacherSubmissions.jsx, /src/pages/TestComplete.jsx, /src/pages/ApiDebugPage.jsx, /src/pages/teacher/GradeAssignment.jsx, /src/components/question/QuestionRenderer.jsx, /src/components/testBuilder/ExamCanvas.jsx, /src/components/testBuilder/PreviewModal.jsx, /src/components/question/FillInBlankQuestion.jsx, /src/components/question/MultipleChoiceQuestion.jsx, /src/components/question/TFNGQuestion.jsx, /src/components/question/DragDropGroupQuestion.jsx, /src/components/question/SummaryCompletionQuestion.jsx, /src/components/question/SummaryCompletionSelectQuestion.jsx, /src/components/question/DropdownGroupQuestion.jsx, /src/components/question/MatchingFillQuestion.jsx, /src/components/common/RichInput.jsx, /src/components/testBuilder/PropertiesPanel.jsx, /src/components/testBuilder/SharedOptionsDropdownBlock.jsx, /src/components/testBuilder/blocks/PassageBlock.jsx, /src/components/testBuilder/blocks/AudioBlock.jsx, /src/components/testBuilder/blocks/ImageBlock.jsx, /src/components/testBuilder/blocks/MatchingFeaturesBlock.jsx, /src/components/testBuilder/blocks/DragMatchingBlock.jsx, /src/components/testBuilder/blocks/MatchingHeadingBlock.jsx, /src/components/testBuilder/blocks/MultipleChoiceMultiBlock.jsx, /src/components/testBuilder/blocks/MultipleChoiceBlock.jsx, /src/components/testBuilder/blocks/SentenceCompletionBlock.jsx, /src/components/testBuilder/blocks/TFNGBlock.jsx, /src/components/testBuilder/blocks/ShortAnswerBlock.jsx, /src/components/testBuilder/blocks/NoteCompletionBlock.jsx, /src/components/testBuilder/blocks/ImageNoteFormBlock.jsx, /src/components/testBuilder/blocks/SummaryCompletionBlock.jsx, /src/components/testBuilder/blocks/SpeakingInterviewBlock.jsx, /src/components/testBuilder/blocks/SpeakingCueCardBlock.jsx, /src/components/testBuilder/blocks/WritingTaskBlock.jsx, /src/components/testBuilder/blocks/shared/ImageUploadZone.jsx, /src/components/testBuilder/blocks/SummaryCompletionSelectBlock.jsx, /src/components/testBuilder/blocks/shared/RichBlankEditor.jsx
+19:47:49 [vite] (client) hmr update /src/components/testBuilder/blocks/shared/RichBlankEditor.jsx
+19:48:37 [vite] (client) hmr update /src/components/testBuilder/blocks/NoteCompletionBlock.jsx

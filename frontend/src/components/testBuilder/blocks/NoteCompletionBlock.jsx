@@ -5,6 +5,74 @@ import RichInput from '../../common/RichInput';
 import RichBlankEditor from './shared/RichBlankEditor';
 import { toRoman, loadImageFile, toPlainText, countBlankTokens, getNextQuestionNumber, isImagePinQuestion, isNoteBlankQuestion, getQuestionWeight, getPartQuestionStartNumber } from './shared/blockHelpers';
 
+// Bulk Answer Import Component
+const BulkAnswerImport = ({ questions, onImport }) => {
+  const [show, setShow] = useState(false);
+  const [text, setText] = useState('');
+
+  const handleImport = () => {
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+    if (lines.length === 0) {
+      alert('Vui lòng nhập đáp án (mỗi dòng 1 đáp án)');
+      return;
+    }
+    onImport(lines);
+    setText('');
+    setShow(false);
+    alert(`Đã import ${lines.length} đáp án`);
+  };
+
+  if (!show) {
+    return (
+      <button 
+        className="exam-add-btn" 
+        onClick={() => setShow(true)}
+        style={{ fontSize: 12, marginBottom: 8 }}
+      >
+        📋 Import hàng loạt đáp án
+      </button>
+    );
+  }
+
+  return (
+    <div style={{ marginBottom: 12, padding: 10, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 4 }}>
+      <div style={{ fontSize: 12, color: '#64748b', marginBottom: 6 }}>
+        Paste đáp án (mỗi dòng 1 đáp án, theo thứ tự câu hỏi):
+      </div>
+      <textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        rows={Math.min(questions.length, 10)}
+        placeholder={`Ví dụ:\nwater\n1|one\ntemperature\n...`}
+        style={{ 
+          width: '100%', 
+          padding: 8, 
+          border: '1px solid #cbd5e1', 
+          borderRadius: 3, 
+          fontSize: 12,
+          fontFamily: 'monospace'
+        }}
+      />
+      <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+        <button 
+          className="exam-add-btn" 
+          onClick={handleImport}
+          style={{ fontSize: 12 }}
+        >
+          ✓ Import {text.split('\n').filter(l => l.trim()).length} đáp án
+        </button>
+        <button 
+          className="exam-add-btn" 
+          onClick={() => { setShow(false); setText(''); }}
+          style={{ fontSize: 12, background: '#94a3b8' }}
+        >
+          Hủy
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const NoteCompletionBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelect, selected, dragHandleProps, onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onAddQuestion, selectedQuestionId }) => {
   const baseNumber = getPartQuestionStartNumber(group, allGroups);
   
@@ -79,22 +147,34 @@ const NoteCompletionBlock = ({ group, allGroups = [], onUpdate, onDelete, onSele
       &nbsp;–&nbsp;
       <input className="exam-q-range-input" value={group.toQuestion ?? ''} placeholder="10" onChange={(e) => onUpdate(group.id, { toQuestion: e.target.value ? Number(e.target.value) : null })} onClick={(e) => e.stopPropagation()} />
     </div>
-    {(group.questions ?? []).map((q, idx) => (
-      <div key={q.id} className={`exam-question${selectedQuestionId === q.id ? ' selected' : ''}`}
-        onClick={(e) => { e.stopPropagation(); onSelectQuestion(q); }}>
-        <div className="exam-q-num" style={{ background: '#854d0e' }}>{q.questionNumber ?? idx + 1}</div>
-        <div className="exam-q-body">
-          <div style={{ fontSize: 12, color: '#64748b', marginBottom: 4 }}>
-            Đáp án: <span style={{ fontSize: 11, color: '#94a3b8' }}>(dùng | để tách nhiều đáp án đúng, vd: 1|one)</span>
-          </div>
-          <input className="exam-q-fill-answer" style={{ display: 'block', width: '100%', textAlign: 'left' }}
-            value={q.answerText || ''} placeholder="nhập đáp án..."
-            onChange={(e) => onUpdateQuestion(group.id, q.id, { answerText: e.target.value })}
-            onClick={(e) => e.stopPropagation()} />
+
+    {/* Answer key section */}
+    {(group.questions ?? []).length > 0 && (
+      <div className="exam-ml-answer-section" onClick={(e) => e.stopPropagation()}>
+        <div className="exam-ml-answer-title">🔑 Đáp án (theo thứ tự câu hỏi)</div>
+        <div style={{ fontSize: 11, color: '#64748b', marginBottom: 8, fontStyle: 'italic' }}>
+          💡 Dùng | để tách nhiều đáp án đúng (vd: 1|one)
         </div>
-        <button className="exam-group-tool-btn danger" onClick={(e) => { e.stopPropagation(); onDeleteQuestion(group.id, q.id); }}><X size={11} /></button>
+        <BulkAnswerImport questions={group.questions} onImport={(answers) => {
+          answers.forEach((ans, idx) => {
+            if (group.questions[idx]) {
+              onUpdateQuestion(group.id, group.questions[idx].id, { answerText: ans });
+            }
+          });
+        }} />
+        {(group.questions ?? []).map((q) => (
+          <div key={q.id} className="exam-ml-answer-row">
+            <span className="exam-ml-answer-num">Câu {q.questionNumber}</span>
+            <input
+              style={{ flex: 1, padding: '4px 8px', border: '1px solid #e2e8f0', borderRadius: 4, fontSize: 13 }}
+              value={q.answerText ?? ''}
+              placeholder="Đáp án đúng (vd: 1|one)..."
+              onChange={(e) => onUpdateQuestion(group.id, q.id, { answerText: e.target.value })} />
+          </div>
+        ))}
       </div>
-    ))}
+    )}
+
     <button className="exam-add-btn" onClick={(e) => { e.stopPropagation(); onAddQuestion(group); }}>
       <Plus size={12} /> Thêm ô trống
     </button>

@@ -603,7 +603,6 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                                                         className="mf-bookmark-btn"
                                                         size={16}
                                                         active={Boolean(bookmarks?.[subQ.number])}
-                                                        inactiveColor="#bbb"
                                                         onToggle={() => toggleBookmark?.(subQ.number)}
                                                     />
                                                 )}

@@ -10,7 +10,7 @@
  * 
  * NOTE: Block components đã được tách ra thành các file riêng trong thư mục blocks/
  */
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useDroppable } from '@dnd-kit/core';
@@ -1357,6 +1357,12 @@ const ExamCanvas = ({
   const [activePartId, setActivePartId] = useState(null);
   const [showTimeModal, setShowTimeModal] = useState(false);
   const [draftTimeValue, setDraftTimeValue] = useState('');
+  const [zoomLevel, setZoomLevel] = useState(100);
+  const [showFooter, setShowFooter] = useState(false);
+  const [showZoomControls, setShowZoomControls] = useState(false);
+  const hideFooterTimeoutRef = useRef(null);
+  const hideZoomTimeoutRef = useRef(null);
+  
   const skillLabel = useMemo(() => {
     const map = {
       LISTENING: 'Listening',
@@ -1372,6 +1378,70 @@ const ExamCanvas = ({
     WRITING: 60,
     SPEAKING: 12,
   }[skill] ?? 60), [skill]);
+
+  // Handle scroll to show/hide footer and zoom controls
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowFooter(true);
+      setShowZoomControls(true);
+      
+      if (hideFooterTimeoutRef.current) {
+        clearTimeout(hideFooterTimeoutRef.current);
+      }
+      if (hideZoomTimeoutRef.current) {
+        clearTimeout(hideZoomTimeoutRef.current);
+      }
+      
+      hideFooterTimeoutRef.current = setTimeout(() => {
+        setShowFooter(false);
+      }, 3000);
+      
+      hideZoomTimeoutRef.current = setTimeout(() => {
+        setShowZoomControls(false);
+      }, 3000);
+    };
+
+    window.addEventListener('scroll', handleScroll, true);
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll, true);
+      if (hideFooterTimeoutRef.current) {
+        clearTimeout(hideFooterTimeoutRef.current);
+      }
+      if (hideZoomTimeoutRef.current) {
+        clearTimeout(hideZoomTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Handle zoom with touchpad (Ctrl + scroll)
+  useEffect(() => {
+    const handleWheel = (e) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        const delta = e.deltaY;
+        setZoomLevel((prev) => {
+          const newZoom = prev - delta * 1.33;
+          return Math.max(50, Math.min(150, newZoom));
+        });
+        
+        // Show zoom controls when zooming
+        setShowZoomControls(true);
+        if (hideZoomTimeoutRef.current) {
+          clearTimeout(hideZoomTimeoutRef.current);
+        }
+        hideZoomTimeoutRef.current = setTimeout(() => {
+          setShowZoomControls(false);
+        }, 3000);
+      }
+    };
+
+    const canvas = document.querySelector('.tb-canvas');
+    if (canvas) {
+      canvas.addEventListener('wheel', handleWheel, { passive: false });
+      return () => canvas.removeEventListener('wheel', handleWheel);
+    }
+  }, []);
 
   // Reset active part when skill changes
   useEffect(() => { setActivePartId(null); }, [skill]);
@@ -1459,7 +1529,103 @@ const ExamCanvas = ({
   );
 
   return (
-    <div className="tb-canvas" onClick={() => { }}>
+    <div className="tb-canvas" onClick={() => { }} style={{ position: 'relative' }}>
+      {/* Zoom controls */}
+      {showZoomControls && (
+        <div style={{ 
+          position: 'absolute', 
+          top: 10, 
+          right: 10, 
+          zIndex: 100, 
+          display: 'flex', 
+          gap: 4, 
+          background: 'white', 
+          padding: '4px 8px', 
+          borderRadius: 6, 
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          alignItems: 'center',
+          transition: 'opacity 0.3s ease',
+          opacity: showZoomControls ? 1 : 0
+        }}>
+        <button 
+          onClick={() => setZoomLevel(Math.max(50, zoomLevel - 10))}
+          style={{ 
+            padding: '4px 8px', 
+            border: '1px solid #e2e8f0', 
+            borderRadius: 4, 
+            background: 'white', 
+            cursor: 'pointer',
+            fontSize: 14,
+            fontWeight: 600
+          }}
+          title="Thu nhỏ"
+        >
+          −
+        </button>
+        <span style={{ fontSize: 12, color: '#64748b', minWidth: 45, textAlign: 'center' }}>
+          {zoomLevel}%
+        </span>
+        <button 
+          onClick={() => setZoomLevel(Math.min(150, zoomLevel + 10))}
+          style={{ 
+            padding: '4px 8px', 
+            border: '1px solid #e2e8f0', 
+            borderRadius: 4, 
+            background: 'white', 
+            cursor: 'pointer',
+            fontSize: 14,
+            fontWeight: 600
+          }}
+          title="Phóng to"
+        >
+          +
+        </button>
+        <button 
+          onClick={() => setZoomLevel(100)}
+          style={{ 
+            padding: '4px 8px', 
+            border: '1px solid #e2e8f0', 
+            borderRadius: 4, 
+            background: 'white', 
+            cursor: 'pointer',
+            fontSize: 11,
+            marginLeft: 4
+          }}
+          title="Đặt lại 100%"
+        >
+          Reset
+        </button>
+        </div>
+      )}
+
+      {/* Footer: Part question counts */}
+      {showFooter && (
+        <div className="exam-canvas-footer" style={{ 
+          position: 'fixed', 
+          bottom: 0, 
+          left: '280px',
+          width: 'calc(100vw - 580px)',
+          zIndex: 99,
+          background: 'white',
+          borderTop: '1px solid #e5e7eb',
+          transition: 'opacity 0.3s ease',
+          opacity: showFooter ? 1 : 0
+        }}>
+        {parts.map((part) => {
+          const questionCount = (part.questionGroups ?? []).reduce((sum, g) => {
+            if (g.contentType === 'AUDIO_TRANSCRIPT') return sum;
+            return sum + (g.questions ?? []).reduce((qSum, q) => qSum + (q.questionCount || 1), 0);
+          }, 0);
+          return (
+            <div key={part.id} className="exam-footer-part">
+              <span className="exam-footer-part-name">{part.name}</span>
+              <span className="exam-footer-part-count">{questionCount} câu</span>
+            </div>
+          );
+        })}
+        </div>
+      )}
+
       {/* Part tabs */}
       <div className="tb-part-tabs">
         {parts.map((p) => (
@@ -1472,9 +1638,17 @@ const ExamCanvas = ({
         <button className="tb-part-tab-add" title="Thêm Part mới" onClick={onAddPart}>+</button>
       </div>
 
-      {/* Exam paper */}
+      {/* Exam paper with zoom */}
       {activePart && (
-        <div className="exam-viewport">
+        <div style={{
+          height: zoomLevel < 100 ? `${100 / (zoomLevel / 100)}%` : '100%',
+          overflow: 'visible'
+        }}>
+          <div className="exam-viewport" style={{ 
+            transform: `scale(${zoomLevel / 100})`,
+            transformOrigin: 'top center',
+            transition: 'transform 0.2s ease'
+          }}>
           {/* Mocked exam header */}
           <div className="exam-mock-header">
             <img
@@ -1534,24 +1708,9 @@ const ExamCanvas = ({
               test={test}
               testId={testId} />
           </div>
+          </div>
         </div>
       )}
-
-      {/* Footer: Part question counts */}
-      <div className="exam-canvas-footer">
-        {parts.map((part) => {
-          const questionCount = (part.questionGroups ?? []).reduce((sum, g) => {
-            if (g.contentType === 'AUDIO_TRANSCRIPT') return sum;
-            return sum + (g.questions ?? []).reduce((qSum, q) => qSum + (q.questionCount || 1), 0);
-          }, 0);
-          return (
-            <div key={part.id} className="exam-footer-part">
-              <span className="exam-footer-part-name">{part.name}</span>
-              <span className="exam-footer-part-count">{questionCount} câu</span>
-            </div>
-          );
-        })}
-      </div>
 
       {showTimeModal && createPortal(
         <div className="exam-time-modal-overlay" onClick={closeTimeModal}>

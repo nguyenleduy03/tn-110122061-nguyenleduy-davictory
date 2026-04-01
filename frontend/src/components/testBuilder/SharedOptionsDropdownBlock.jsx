@@ -6,6 +6,7 @@
 import React from 'react';
 import { X, Plus, Upload, Image as ImageIcon } from 'lucide-react';
 import RichInput from '../common/RichInput';
+import ImageUploadZone from './blocks/shared/ImageUploadZone';
 import { loadImageFile } from './blocks/shared/blockHelpers';
 import { resolveDrivePreviewUrl } from '../../utils/mediaUrl';
 
@@ -35,13 +36,6 @@ const SharedOptionsDropdownBlock = ({
 
   const syncSharedOptions = (next) => {
     onUpdate(group.id, { sharedOptions: next });
-  };
-
-  const handleImageUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    e.target.value = '';
-    loadImageFile(file, (imageUrl) => onUpdate(group.id, { imageUrl }), module, testTitle, testId, 'SHARED_OPTIONS_DROPDOWN');
   };
 
   const updateOptionLabel = (idx, label) => {
@@ -248,101 +242,87 @@ const SharedOptionsDropdownBlock = ({
           {/* Image upload */}
           <div className="tb-sod-field">
             <label className="tb-sod-label">Ảnh minh họa (tùy chọn)</label>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <label className="exam-upload-btn">
-                <Upload size={14} /> Upload ảnh
-                <input type="file" accept="image/*" onChange={handleImageUpload} style={{ display: 'none' }} />
-              </label>
-              {group.imageUrl && (
-                <button
-                  type="button"
-                  className="exam-group-tool-btn danger"
-                  onClick={() => onUpdate(group.id, { imageUrl: null })}
-                  title="Xóa ảnh"
-                >
-                  <X size={14} />
-                </button>
-              )}
-            </div>
+            <ImageUploadZone
+              imageUrl={group.imageUrl}
+              onImageChange={(url) => onUpdate(group.id, { imageUrl: url })}
+              onImageDelete={() => onUpdate(group.id, { imageUrl: null })}
+              placeholder="Nhập URL ảnh hoặc kéo thả/paste ảnh vào đây"
+              module={module}
+              testTitle={testTitle}
+              testId={testId}
+              assetLabel="SHARED_OPTIONS_DROPDOWN"
+              showPreview={true}
+            />
             {group.imageUrl && (
-              <div style={{ marginTop: 12 }}>
-                <img
-                  src={resolveDrivePreviewUrl(group.imageUrl)}
-                  alt="Preview"
-                  style={{
-                    maxWidth: `${group.imageWidth || 100}%`,
-                    height: 'auto',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: 4,
-                  }}
+              <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <label style={{ fontSize: 12, color: '#6b7280' }}>Kích thước:</label>
+                <input
+                  type="range"
+                  min="30"
+                  max="100"
+                  value={group.imageWidth || 100}
+                  onChange={(e) => onUpdate(group.id, { imageWidth: Number(e.target.value) })}
+                  style={{ flex: 1 }}
                 />
-                <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <label style={{ fontSize: 12, color: '#6b7280' }}>Kích thước:</label>
-                  <input
-                    type="range"
-                    min="30"
-                    max="100"
-                    value={group.imageWidth || 100}
-                    onChange={(e) => onUpdate(group.id, { imageWidth: Number(e.target.value) })}
-                    style={{ flex: 1 }}
-                  />
-                  <span style={{ fontSize: 12, color: '#6b7280', minWidth: 40 }}>
-                    {group.imageWidth || 100}%
-                  </span>
-                </div>
+                <span style={{ fontSize: 12, color: '#6b7280', minWidth: 40 }}>
+                  {group.imageWidth || 100}%
+                </span>
               </div>
             )}
           </div>
 
           <div className="tb-sod-questions">
-            {questions.map((q) => {
-              const correct = (q.answerText ?? q.answers?.[0]?.answerText ?? '').trim();
-              return (
-                <div
-                  key={q.id}
-                  className={`tb-sod-q-row${selectedQuestionId === q.id ? ' selected' : ''}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onSelectQuestion(q);
-                  }}
-                >
-                  <span className="exam-q-num" style={{ background: '#0369a1' }}>{q.questionNumber ?? '?'}</span>
-                  <RichInput
-                    value={q.questionText || ''}
-                    placeholder="Nhãn câu (vd: El Niño)..."
-                    onChange={(html) => onUpdateQuestion(group.id, q.id, { questionText: html })}
-                  />
-                  <select
-                    className="tb-sod-correct-select"
-                    value={correct}
-                    title="Đáp án đúng"
-                    onClick={(e) => e.stopPropagation()}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      onUpdateQuestion(group.id, q.id, {
-                        answerText: v,
-                        answers: [{ blankIndex: 1, isCaseSensitive: false, answerText: v }],
-                      });
-                    }}
-                  >
-                    <option value="">—</option>
-                    {sharedOptions.map((o) => (
-                      <option key={o.key} value={o.key}>{o.key}</option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    className="exam-group-tool-btn danger"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDeleteQuestion(group.id, q.id);
-                    }}
-                  >
-                    <X size={11} />
-                  </button>
-                </div>
-              );
-            })}
+            <div className="exam-ml-answer-section" onClick={(e) => e.stopPropagation()}>
+              <div className="exam-ml-answer-title">🔑 Đáp án (chọn từ bảng lựa chọn)</div>
+              <div style={{ fontSize: 11, color: '#64748b', marginBottom: 8, fontStyle: 'italic' }}>
+                💡 Chọn đáp án đúng từ dropdown (A, B, C...)
+              </div>
+              {questions.map((q) => {
+                const correct = (q.answerText ?? q.answers?.[0]?.answerText ?? '').trim();
+                return (
+                  <div key={q.id} className="exam-ml-answer-row">
+                    <span className="exam-ml-answer-num">Câu {q.questionNumber ?? '?'}</span>
+                    <div style={{ flex: 1, display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <RichInput
+                        value={q.questionText || ''}
+                        placeholder="Nhãn câu (vd: El Niño)..."
+                        onChange={(html) => onUpdateQuestion(group.id, q.id, { questionText: html })}
+                        style={{ flex: 1 }}
+                      />
+                      <select
+                        className="tb-sod-correct-select"
+                        value={correct}
+                        title="Đáp án đúng"
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          onUpdateQuestion(group.id, q.id, {
+                            answerText: v,
+                            answers: [{ blankIndex: 1, isCaseSensitive: false, answerText: v }],
+                          });
+                        }}
+                        style={{ padding: '4px 8px', border: '1px solid #e2e8f0', borderRadius: 4, fontSize: 13 }}
+                      >
+                        <option value="">—</option>
+                        {sharedOptions.map((o) => (
+                          <option key={o.key} value={o.key}>{o.key}</option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        className="exam-group-tool-btn danger"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDeleteQuestion(group.id, q.id);
+                        }}
+                      >
+                        <X size={11} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           <div style={{ display: 'flex', gap: 4 }}>

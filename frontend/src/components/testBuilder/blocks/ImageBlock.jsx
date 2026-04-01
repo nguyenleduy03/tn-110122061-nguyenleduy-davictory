@@ -7,6 +7,74 @@ import ImageUploadZone from './shared/ImageUploadZone';
 import { resolveDrivePreviewUrl } from '../../../utils/mediaUrl';
 import { toRoman, loadImageFile, toPlainText, countBlankTokens, getNextQuestionNumber, isImagePinQuestion, isNoteBlankQuestion, getQuestionWeight } from './shared/blockHelpers';
 
+// Bulk Answer Import Component
+const BulkAnswerImport = ({ questions, onImport }) => {
+  const [show, setShow] = useState(false);
+  const [text, setText] = useState('');
+
+  const handleImport = () => {
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+    if (lines.length === 0) {
+      alert('Vui lòng nhập đáp án (mỗi dòng 1 đáp án)');
+      return;
+    }
+    onImport(lines);
+    setText('');
+    setShow(false);
+    alert(`Đã import ${lines.length} đáp án`);
+  };
+
+  if (!show) {
+    return (
+      <button 
+        className="exam-add-btn" 
+        onClick={() => setShow(true)}
+        style={{ fontSize: 12, marginBottom: 8 }}
+      >
+        📋 Import hàng loạt đáp án
+      </button>
+    );
+  }
+
+  return (
+    <div style={{ marginBottom: 12, padding: 10, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 4 }}>
+      <div style={{ fontSize: 12, color: '#64748b', marginBottom: 6 }}>
+        Paste đáp án (mỗi dòng 1 đáp án, theo thứ tự câu hỏi):
+      </div>
+      <textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        rows={Math.min(questions.length, 10)}
+        placeholder={`Ví dụ:\nwater\n1|one\ntemperature\n...`}
+        style={{ 
+          width: '100%', 
+          padding: 8, 
+          border: '1px solid #cbd5e1', 
+          borderRadius: 3, 
+          fontSize: 12,
+          fontFamily: 'monospace'
+        }}
+      />
+      <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+        <button 
+          className="exam-add-btn" 
+          onClick={handleImport}
+          style={{ fontSize: 12 }}
+        >
+          ✓ Import {text.split('\n').filter(l => l.trim()).length} đáp án
+        </button>
+        <button 
+          className="exam-add-btn" 
+          onClick={() => { setShow(false); setText(''); }}
+          style={{ fontSize: 12, background: '#94a3b8' }}
+        >
+          Hủy
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const ImageBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps, children, testTitle, testId, module = 'READING' }) => (
   <div className={`exam-group${selected ? ' selected' : ''}`}
     onClick={(e) => { e.stopPropagation(); onSelect(group); }}>
@@ -592,6 +660,16 @@ function TcCellEditor({ value, onChange, startQNum }) {
         suppressContentEditableWarning
         data-placeholder="Nhập nội dung…"
         onInput={() => { renumber(); onChange(toText(editorRef.current)); }}
+        onPaste={(e) => {
+          e.preventDefault();
+          let text = e.clipboardData.getData('text/plain');
+          // Tự động chuyển ký hiệu thành [blank]
+          text = text.replace(/_{3,}|\.{3,}|-{3,}/g, '[blank]');
+          // Convert thành HTML với chip
+          const html = toHTML(text, startQRef.current);
+          document.execCommand('insertHTML', false, html);
+          setTimeout(() => { renumber(); onChange(toText(editorRef.current)); }, 0);
+        }}
         onKeyDown={(e) => {
           if (e.key === 'Enter') { e.preventDefault(); document.execCommand('insertLineBreak'); onChange(toText(editorRef.current)); }
         }}
@@ -1096,6 +1174,13 @@ function TableCompletionBlock({ group, onUpdate, onDelete, onSelect, selected, d
           <div style={{ fontSize: 11, color: '#64748b', marginBottom: 8, fontStyle: 'italic' }}>
             💡 Dùng | để tách nhiều đáp án đúng (vd: 1|one)
           </div>
+          <BulkAnswerImport questions={questions} onImport={(answers) => {
+            answers.forEach((ans, idx) => {
+              if (questions[idx]) {
+                onUpdateQuestion(group.id, questions[idx].id, { answerText: ans });
+              }
+            });
+          }} />
           {questions.map((q) => (
             <div key={q.id} className="exam-ml-answer-row">
               <span className="exam-ml-answer-num">Câu {q.questionNumber}</span>

@@ -71,7 +71,7 @@ const DropdownGroupQuestion = ({
               {options.map((opt) => (
                 <li key={opt.key} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <div style={{ flex: 1 }}>
-                    <strong>{opt.key}</strong>{' '}
+                    <strong className="mcq-dropdown-key">{opt.key}</strong>
                     <span
                       dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(opt.label || '') }}
                     />

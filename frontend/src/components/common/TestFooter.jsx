@@ -52,7 +52,7 @@ const TestFooter = ({
                                             >
                                                 {bookmarks && bookmarks[num] && (
                                                     <div className="q-bookmark-flag">
-                                                        <BookmarkToggle size={16} active activeColor="#1a73e8" inactiveColor="#1a73e8" />
+                                                        <BookmarkToggle size={13} active />
                                                     </div>
                                                 )}
                                                 {/* Vạch ngang ở trên */}

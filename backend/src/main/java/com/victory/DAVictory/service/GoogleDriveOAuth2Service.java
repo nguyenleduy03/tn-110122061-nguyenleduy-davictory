@@ -92,14 +92,26 @@ public class GoogleDriveOAuth2Service {
     public boolean isAuthorized() throws Exception {
         try {
             Credential credential = getFlow().loadCredential("user");
-            boolean hasCredential = credential != null;
-            boolean hasToken = hasCredential && credential.getAccessToken() != null;
+            if (credential == null) {
+                System.out.println("🔍 Checking authorization: credential not found");
+                return false;
+            }
+
+            // Refresh token nếu access token bị hết hạn để trạng thái không bị mất tạm thời
+            if (credential.getAccessToken() == null
+                    || (credential.getExpiresInSeconds() != null && credential.getExpiresInSeconds() < 60)) {
+                boolean refreshed = credential.refreshToken();
+                if (!refreshed) {
+                    System.out.println("❌ Authorization refresh failed");
+                    return false;
+                }
+            }
             
             System.out.println("🔍 Checking authorization:");
-            System.out.println("   - Credential exists: " + hasCredential);
-            System.out.println("   - Access token exists: " + hasToken);
+            System.out.println("   - Credential exists: true");
+            System.out.println("   - Access token exists: " + (credential.getAccessToken() != null));
             
-            return hasToken;
+            return true;
         } catch (Exception e) {
             System.out.println("❌ Error checking authorization: " + e.getMessage());
             return false;

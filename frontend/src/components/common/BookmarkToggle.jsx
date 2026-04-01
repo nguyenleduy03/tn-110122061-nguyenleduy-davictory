@@ -3,11 +3,11 @@ import { Bookmark } from 'lucide-react';
 
 const BookmarkToggle = ({
     active = false,
-    size = 16,
+    size = 20,
     onToggle,
     className = '',
-    activeColor = '#1a73e8',
-    inactiveColor = '#ccc',
+    activeColor = '#fea706',
+    inactiveColor = '#686868',
     stopPropagation = true,
     strokeWidth,
     style,

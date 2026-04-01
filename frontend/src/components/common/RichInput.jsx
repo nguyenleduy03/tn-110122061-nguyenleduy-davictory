@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { stripInlineStyles } from '../../utils/textFormatters';
+import { sanitizeRichPasteHtml } from '../../utils/textFormatters';
 
 /**
  * RichInput — contentEditable text field used by the shared top toolbar.
@@ -44,10 +44,31 @@ const RichInput = ({ value, onChange, placeholder, style, multiline, className, 
         onClick={(e) => e.stopPropagation()}
         onBlur={(e) => { onChange(e.currentTarget.innerHTML); }}
         onInput={(e) => { onChange(e.currentTarget.innerHTML); }}
+        onKeyDown={(e) => {
+          if (!multiline || e.key !== 'Enter') return;
+          e.preventDefault();
+
+          const sel = window.getSelection?.();
+          if (sel?.rangeCount) {
+            try {
+              document.execCommand('insertLineBreak');
+            } catch {
+              const range = sel.getRangeAt(0);
+              range.deleteContents();
+              const br = document.createElement('br');
+              range.insertNode(br);
+              range.setStartAfter(br);
+              range.collapse(true);
+              sel.removeAllRanges();
+              sel.addRange(range);
+            }
+            onChange(ref.current.innerHTML);
+          }
+        }}
         onPaste={(e) => {
           e.preventDefault();
           const text = e.clipboardData.getData('text/html') || e.clipboardData.getData('text/plain');
-          const cleaned = stripInlineStyles(text);
+          const cleaned = sanitizeRichPasteHtml(text);
           document.execCommand('insertHTML', false, cleaned);
           onChange(ref.current.innerHTML);
         }}
