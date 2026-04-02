@@ -1715,11 +1715,12 @@ const ExamCanvas = ({
 
       {/* Exam paper with zoom */}
       {activePart && (
-        <div style={{
-          width: '100%',
-          minHeight: lockedViewportHeight ? `${lockedViewportHeight}px` : undefined,
-          overflow: 'visible'
-        }}>
+        <div
+          className="exam-viewport-shell"
+          style={{
+            minHeight: lockedViewportHeight ? `${lockedViewportHeight}px` : undefined,
+          }}
+        >
           <div ref={viewportRef} className="exam-viewport" style={{ 
             transform: `scale(${zoomScale})`,
             transformOrigin: 'top center',

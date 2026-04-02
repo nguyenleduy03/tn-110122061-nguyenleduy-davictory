@@ -101,6 +101,63 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
     const isFlowChart = questionType === 'flow_chart';
     const isImageDragDrop = questionType === 'image_drag_drop';
 
+    const matchingHeadingContainerRef = React.useRef(null);
+    const [headingOptionsBookmarkTop, setHeadingOptionsBookmarkTop] = React.useState(null);
+    const activeHeadingSubQ = React.useMemo(() => {
+        if (!isMatchingHeading) return null;
+        const activeNumber = Number(activeQuestion);
+        if (!Number.isFinite(activeNumber)) return null;
+        return (q.subQuestions || []).find((sq) => Number(sq.number) === activeNumber) || null;
+    }, [activeQuestion, isMatchingHeading, q.subQuestions]);
+
+    const syncHeadingOptionsBookmarkPosition = React.useCallback(() => {
+        if (!isMatchingHeading || isReview || !activeHeadingSubQ) {
+            setHeadingOptionsBookmarkTop(null);
+            return;
+        }
+
+        const container = matchingHeadingContainerRef.current;
+        if (!container) {
+            setHeadingOptionsBookmarkTop(null);
+            return;
+        }
+
+        const activeGap = document.querySelector(`.passage-section .heading-gap[data-number="${activeHeadingSubQ.number}"]`);
+        if (!activeGap) {
+            setHeadingOptionsBookmarkTop(null);
+            return;
+        }
+
+        const containerRect = container.getBoundingClientRect();
+        const gapRect = activeGap.getBoundingClientRect();
+        const rawTop = gapRect.top - containerRect.top;
+        const maxTop = Math.max(0, container.clientHeight - 24);
+        const clampedTop = Math.max(0, Math.min(rawTop, maxTop));
+        setHeadingOptionsBookmarkTop(clampedTop);
+    }, [activeHeadingSubQ, isMatchingHeading, isReview]);
+
+    React.useLayoutEffect(() => {
+        syncHeadingOptionsBookmarkPosition();
+    }, [syncHeadingOptionsBookmarkPosition, answers]);
+
+    React.useEffect(() => {
+        if (typeof window === 'undefined') return undefined;
+
+        const handleReposition = () => syncHeadingOptionsBookmarkPosition();
+        window.addEventListener('resize', handleReposition);
+
+        const passageSection = document.querySelector('.passage-section');
+        const questionsSection = matchingHeadingContainerRef.current?.closest('.questions-section');
+        passageSection?.addEventListener('scroll', handleReposition);
+        questionsSection?.addEventListener('scroll', handleReposition);
+
+        return () => {
+            window.removeEventListener('resize', handleReposition);
+            passageSection?.removeEventListener('scroll', handleReposition);
+            questionsSection?.removeEventListener('scroll', handleReposition);
+        };
+    }, [syncHeadingOptionsBookmarkPosition]);
+
     const imageDragDropContainerRef = React.useRef(null);
     const [imageBookmarkTop, setImageBookmarkTop] = React.useState(null);
     const imageSubQuestions = q.subQuestions || [];
@@ -808,11 +865,19 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
 
     if (isMatchingHeading) {
         return (
-            <div className="drag-drop-group matching-heading">
+            <div className="drag-drop-group matching-heading" ref={matchingHeadingContainerRef}>
                 <p className="dd-heading-instruction">
                     Choose the correct heading for each section and move it into the gap.
                 </p>
                 {renderBank()}
+                {!isReview && activeHeadingSubQ && headingOptionsBookmarkTop !== null && (
+                    <BookmarkToggle
+                        className="question-bookmark heading-options-floating-bookmark"
+                        style={{ top: `${headingOptionsBookmarkTop}px` }}
+                        active={Boolean(bookmarks?.[activeHeadingSubQ.number])}
+                        onToggle={() => toggleBookmark?.(activeHeadingSubQ.number)}
+                    />
+                )}
             </div>
         );
     }

@@ -86,33 +86,8 @@ const PassageContentStatic = React.memo(({ content }) => {
 
 const PassageRenderer = ({ part, answers, handleAnswerChange, activeQuestion, setActiveQuestion, bookmarks, toggleBookmark, isReview, testData }) => {
     const [gaps, setGaps] = React.useState([]);
-    const [headingBookmarkTop, setHeadingBookmarkTop] = React.useState(null);
     const startQuestionNumber = part.fromQuestion || 1;
     const containerRef = React.useRef(null);
-
-    const syncHeadingBookmarkPosition = React.useCallback(() => {
-        if (isReview || !containerRef.current) {
-            setHeadingBookmarkTop(null);
-            return;
-        }
-
-        const activeNumber = Number(activeQuestion);
-        if (!Number.isFinite(activeNumber)) {
-            setHeadingBookmarkTop(null);
-            return;
-        }
-
-        const activeGap = containerRef.current.querySelector(`.heading-gap[data-number="${activeNumber}"]`);
-        if (!activeGap) {
-            setHeadingBookmarkTop(null);
-            return;
-        }
-
-        const containerRect = containerRef.current.getBoundingClientRect();
-        const gapRect = activeGap.getBoundingClientRect();
-        const top = gapRect.top - containerRect.top;
-        setHeadingBookmarkTop(top);
-    }, [activeQuestion, isReview]);
 
     useLayoutEffect(() => {
         if (!containerRef.current) return undefined;
@@ -149,17 +124,6 @@ const PassageRenderer = ({ part, answers, handleAnswerChange, activeQuestion, se
             window.clearTimeout(timeoutId);
         };
     }, [part?.id, part?.passageTitle, part?.passageContent, isReview]);
-
-    useLayoutEffect(() => {
-        syncHeadingBookmarkPosition();
-    }, [syncHeadingBookmarkPosition, gaps, answers]);
-
-    useEffect(() => {
-        if (typeof window === 'undefined') return undefined;
-        const handleResize = () => syncHeadingBookmarkPosition();
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, [syncHeadingBookmarkPosition]);
 
     return (
         <div className="passage-renderer-wrapper" ref={containerRef}>
@@ -199,14 +163,6 @@ const PassageRenderer = ({ part, answers, handleAnswerChange, activeQuestion, se
                     node
                 );
             })}
-            {!isReview && headingBookmarkTop !== null && Number.isFinite(Number(activeQuestion)) && (
-                <BookmarkToggle
-                    className="question-bookmark heading-floating-bookmark"
-                    style={{ top: `${headingBookmarkTop}px` }}
-                    active={Boolean(bookmarks?.[Number(activeQuestion)])}
-                    onToggle={() => toggleBookmark?.(Number(activeQuestion))}
-                />
-            )}
         </div>
     );
 };

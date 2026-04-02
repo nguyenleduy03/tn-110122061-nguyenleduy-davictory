@@ -2058,6 +2058,11 @@
     padding-left: 15px;
 }
 
+.drag-drop-group.matching-heading {
+    position: relative;
+    padding-right: 32px;
+}
+
 .drag-drop-group.matching-info {
     display: flex;
     gap: 20px;
@@ -4616,6 +4621,13 @@
     z-index: 15;
 }
 
+.heading-options-floating-bookmark {
+    position: absolute;
+    right: 0;
+    transform: none;
+    z-index: 15;
+}
+
 .flow-floating-bookmark {
     position: absolute;
     right: 0;
@@ -5997,6 +6009,7 @@ body.text-size-xlarge .options-fs-overlay {
 .reading-page .summary-floating-bookmark,
 .reading-page .image-dd-floating-bookmark,
 .reading-page .heading-floating-bookmark,
+.reading-page .heading-options-floating-bookmark,
 .reading-page .matching-info-floating-bookmark,
 .reading-page .flow-floating-bookmark,
 .reading-page .table-floating-bookmark,

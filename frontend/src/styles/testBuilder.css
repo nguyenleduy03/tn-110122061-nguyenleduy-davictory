@@ -1156,6 +1156,13 @@
 }
 .tb-part-tab-add:hover { border-color: #1d2f5e; color: #1d2f5e; }
 
+.exam-viewport-shell {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  overflow: visible;
+}
+
 /* =============================================
    EXAM VIEWPORT
    ============================================= */
