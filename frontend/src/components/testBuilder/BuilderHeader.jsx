@@ -74,6 +74,7 @@ const BuilderHeader = ({
   const lastRangeRef = useRef(null);
   const lastContentEditableRef = useRef(null);
   const sizePickerRef = useRef(null);
+  const sizeMenuRef = useRef(null);
 
   const resolveTextAlign = (node, editableEl) => {
     const seen = [];
@@ -164,7 +165,9 @@ const BuilderHeader = ({
     };
 
     const onPointerDown = (e) => {
-      if (!sizePickerRef.current?.contains(e.target)) {
+      const insidePicker = sizePickerRef.current?.contains(e.target);
+      const insideMenu = sizeMenuRef.current?.contains(e.target);
+      if (!insidePicker && !insideMenu) {
         setSizeMenuOpen(false);
       }
     };
@@ -225,13 +228,65 @@ const BuilderHeader = ({
     return selectionEditable || lastContentEditableRef.current || document.querySelector('[contenteditable="true"]');
   };
 
-  const restoreAndExec = (cmd, val) => {
-    if (lastRangeRef.current) {
+  const captureCurrentSelection = () => {
+    try {
       const sel = window.getSelection();
-      sel.removeAllRanges();
-      sel.addRange(lastRangeRef.current);
+      if (!sel?.rangeCount) return;
+      const range = sel.getRangeAt(0);
+      const anchor = range.commonAncestorContainer;
+      const anchorEl = anchor?.nodeType === 1 ? anchor : anchor?.parentElement;
+      if (anchorEl?.closest?.('[contenteditable="true"]')) {
+        lastRangeRef.current = range.cloneRange();
+      }
+    } catch (error) {
+      console.error('captureCurrentSelection error:', error);
     }
-    document.execCommand(cmd, false, val);
+  };
+
+  const restoreSelection = () => {
+    try {
+      const sel = window.getSelection();
+      if (lastRangeRef.current) {
+        sel.removeAllRanges();
+        sel.addRange(lastRangeRef.current);
+        return true;
+      }
+    } catch (error) {
+      console.error('restoreSelection error:', error);
+    }
+    return false;
+  };
+
+  const restoreAndExec = (cmd, val) => {
+    const editableEl = getTargetEditable();
+    if (!editableEl) return;
+
+    editableEl.focus();
+    restoreSelection();
+
+    try {
+      if (['bold', 'italic', 'underline', 'strikeThrough', 'subscript', 'superscript', 'foreColor', 'hiliteColor', 'fontName', 'justifyLeft', 'justifyCenter', 'justifyRight', 'justifyFull', 'formatBlock', 'removeFormat'].includes(cmd)) {
+        document.execCommand('styleWithCSS', false, true);
+      }
+
+      if (cmd === 'formatBlock') {
+        const block = String(val || '').trim();
+        const normalized = block.startsWith('<') ? block : `<${block}>`;
+        document.execCommand(cmd, false, normalized);
+      } else if (cmd.startsWith('justify')) {
+        document.execCommand(cmd, false, null);
+      } else {
+        document.execCommand(cmd, false, val);
+      }
+    } catch (error) {
+      console.error(`restoreAndExec '${cmd}' error:`, error);
+    }
+
+    try {
+      editableEl.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'formatChange', data: null }));
+    } catch {
+      editableEl.dispatchEvent(new Event('input', { bubbles: true }));
+    }
   };
 
   const applyCustomFontSize = (rawSize) => {
@@ -303,13 +358,13 @@ const BuilderHeader = ({
     if (!sizeMenuOpen || !sizeMenuStyle || typeof document === 'undefined') return null;
 
     return createPortal(
-      <div className="tb-size-picker-menu" style={sizeMenuStyle} onMouseDown={(e) => e.stopPropagation()}>
+      <div ref={sizeMenuRef} className="tb-size-picker-menu" style={sizeMenuStyle} onMouseDown={(e) => e.stopPropagation()}>
         {FONT_SIZE_PRESETS.map((size) => (
           <button
             key={size}
             type="button"
             className={`tb-size-picker-item${String(customFontSize) === String(size) ? ' active' : ''}`}
-            onMouseDown={(e) => {
+            onPointerDown={(e) => {
               e.preventDefault();
               e.stopPropagation();
               applyPresetFontSize(size);
@@ -532,6 +587,8 @@ const BuilderHeader = ({
         <div className="tb-rgroup">
           <div className="tb-rgroup-btns">
             <select className="tb-rbn-select" style={{ width: 126 }} title="Font chữ"
+              onMouseDown={captureCurrentSelection}
+              onFocus={captureCurrentSelection}
               onChange={(e) => restoreAndExec('fontName', e.target.value)}>
               {FONT_FAMILIES.map(f => <option key={f.val} value={f.val}>{f.label}</option>)}
             </select>
@@ -549,9 +606,6 @@ const BuilderHeader = ({
                 onClick={(e) => e.stopPropagation()}
                 onWheel={(e) => {
                   e.preventDefault();
-                  const sel = window.getSelection();
-                  if (!sel?.rangeCount || sel.getRangeAt(0).collapsed) return;
-                  
                   const direction = e.deltaY > 0 ? -2 : 2;
                   const current = Number.parseInt(normalizeEvenFontSize(customFontSize), 10);
                   const fallback = Number.isFinite(current) ? current : DEFAULT_FONT_SIZE;
@@ -562,9 +616,6 @@ const BuilderHeader = ({
                   applyCustomFontSize(normalized);
                 }}
                 onBlur={() => {
-                  const sel = window.getSelection();
-                  if (!sel?.rangeCount || sel.getRangeAt(0).collapsed) return;
-                  
                   const next = normalizeEvenFontSize(customFontSize);
                   setCustomFontSize(next);
                   applyCustomFontSize(next);
@@ -572,9 +623,6 @@ const BuilderHeader = ({
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
-                    const sel = window.getSelection();
-                    if (!sel?.rangeCount || sel.getRangeAt(0).collapsed) return;
-                    
                     const next = normalizeEvenFontSize(customFontSize);
                     setCustomFontSize(next);
                     applyCustomFontSize(next);
@@ -676,6 +724,8 @@ const BuilderHeader = ({
         <div className="tb-rgroup">
           <div className="tb-rgroup-btns">
             <select className="tb-rbn-select" style={{ width: 138 }} title="Kiểu văn bản"
+              onMouseDown={captureCurrentSelection}
+              onFocus={captureCurrentSelection}
               onChange={(e) => restoreAndExec('formatBlock', e.target.value)}>
               <option value="p">Văn bản thường</option>
               <option value="h1">Tiêu đề 1</option>

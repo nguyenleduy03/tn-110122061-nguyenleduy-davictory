@@ -95,6 +95,21 @@ const RichBlankEditor = ({
     }
   };
 
+  const isCaretAtStartOfElement = (range, element) => {
+    if (!range || !element) return false;
+    const testRange = document.createRange();
+    testRange.selectNodeContents(element);
+    testRange.setEnd(range.startContainer, range.startOffset);
+    return String(testRange.toString() || '').replace(/\u00A0/g, ' ').trim().length === 0;
+  };
+
+  const normalizeAfterStructuralChange = () => {
+    setTimeout(() => {
+      renumber();
+      onChange(saveValue());
+    }, 0);
+  };
+
   const renumber = () => {
     let n = startNumber - 1;
     editorRef.current?.querySelectorAll('[data-blank="true"] .rbe-blank-num').forEach((el) => {
@@ -303,6 +318,31 @@ const RichBlankEditor = ({
         }}
         onKeyDown={(e) => {
           if (insertBlankShortcut(e)) return;
+
+          if (e.key === 'Backspace') {
+            const sel = window.getSelection?.();
+            if (sel?.rangeCount && sel.isCollapsed) {
+              const range = sel.getRangeAt(0);
+              const anchor = range.commonAncestorContainer;
+              const anchorEl = anchor?.nodeType === 1 ? anchor : anchor?.parentElement;
+              const listItem = anchorEl?.closest?.('li');
+
+              if (listItem && editorRef.current?.contains(listItem) && isCaretAtStartOfElement(range, listItem)) {
+                e.preventDefault();
+
+                try {
+                  editorRef.current.focus();
+                  restoreSelection();
+                  document.execCommand('outdent');
+                } catch (error) {
+                  console.error('RichBlankEditor backspace outdent failed:', error);
+                }
+
+                normalizeAfterStructuralChange();
+                return;
+              }
+            }
+          }
 
           if (e.key === 'Enter') {
             const sel = window.getSelection?.();

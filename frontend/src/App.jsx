@@ -55,7 +55,7 @@ const TestApiPage = lazy(() => import('./pages/TestApiPage'))
 function App() {
   return (
     <Router>
-      <Suspense fallback={<div style={{ padding: 24, textAlign: 'center' }}>Đang tải...</div>}>
+      <Suspense fallback={null}>
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/test-api" element={<TestApiPage />} />
@@ -107,17 +107,17 @@ function App() {
           <Route path="/lms/grade/:type/:id" element={<RoleBasedRoute requiredRole="TEACHER"><LmsGradeSubmission /></RoleBasedRoute>} />
           <Route path="/lms/teacher/analytics" element={<RoleBasedRoute requiredRole="TEACHER"><LmsTeacherAnalytics /></RoleBasedRoute>} />
           <Route path="/lms/teacher/settings" element={<RoleBasedRoute requiredRole="TEACHER"><LmsTeacherSettings /></RoleBasedRoute>} />
-          
+
           {/* Teacher assignment templates */}
           <Route path="/teacher/assignments/templates" element={<RoleBasedRoute requiredRole="TEACHER"><AssignmentTemplates /></RoleBasedRoute>} />
           <Route path="/teacher/assignments/create" element={<RoleBasedRoute requiredRole="TEACHER"><CreateAssignment /></RoleBasedRoute>} />
-          
+
           {/* Student assignment routes */}
           <Route path="/student/lms" element={<RoleBasedRoute requiredRole="STUDENT"><StudentLms /></RoleBasedRoute>} />
           <Route path="/student/assignments/:id" element={<RoleBasedRoute requiredRole="STUDENT"><AssignmentDetail /></RoleBasedRoute>} />
           <Route path="/student/assignments/:id/submit" element={<RoleBasedRoute requiredRole="STUDENT"><SubmitAssignment /></RoleBasedRoute>} />
           <Route path="/student/assignments/:id/result" element={<RoleBasedRoute requiredRole="STUDENT"><AssignmentResult /></RoleBasedRoute>} />
-          
+
           {/* Grading routes */}
           <Route path="/teacher/grade/writing/:id" element={<RoleBasedRoute requiredRole="TEACHER"><GradeWriting /></RoleBasedRoute>} />
           <Route path="/teacher/grade/speaking/:id" element={<RoleBasedRoute requiredRole="TEACHER"><GradeSpeaking /></RoleBasedRoute>} />

@@ -174,7 +174,7 @@
 .mf-q-num {
     font-weight: 700;
     color: #111;
-    min-width: 24px;
+    min-width: 0;
 }
 
 .mf-q-text {
@@ -2267,7 +2267,7 @@
 
 .dd-question-num {
     font-weight: bold;
-    width: 20px;
+    width: auto;
 }
 
 .dd-question-text {
@@ -5813,8 +5813,16 @@ body.text-size-xlarge .options-fs-overlay {
     border: none;
 }
 
-.question-focus-frame :is(.tfng-number, .dd-question-num, .mf-q-num, .heading-gap-number, .fc-blank-num) {
+.question-focus-frame :is(.tfng-number, .dd-question-num, .mf-q-num, .heading-gap-number, .fc-blank-num, .mcq-dropdown-number) {
     position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.35em;
+    font-size: 16px;
+    line-height: 1.5;
+    font-weight: 700;
+    flex-shrink: 0;
 }
 
 .question-focus-frame :is(.tfng-number, .dd-question-num, .mf-q-num, .heading-gap-number, .fc-blank-num)::after {
@@ -5983,6 +5991,31 @@ body.text-size-xlarge .options-fs-overlay {
     transform: none;
 }
 
+/* Reading-only: nudge bookmarks slightly to the right */
+.reading-page .tfng-text>.question-bookmark,
+.reading-page .fill-in-blank-item>.question-bookmark,
+.reading-page .summary-floating-bookmark,
+.reading-page .image-dd-floating-bookmark,
+.reading-page .heading-floating-bookmark,
+.reading-page .matching-info-floating-bookmark,
+.reading-page .flow-floating-bookmark,
+.reading-page .table-floating-bookmark,
+.reading-page .mcq-dropdown-row>.question-bookmark {
+    right: -15px;
+}
+
+.reading-page .fc-blank>.question-bookmark {
+    right: -26px;
+}
+
+.reading-page .drop-zone>.question-bookmark {
+    right: -28px;
+}
+
+.reading-page .mf-item-inner>.question-bookmark {
+    margin-right: -4px;
+}
+
 .bookmark-portal-target {
     display: inline-flex;
     align-items: center;
@@ -6139,19 +6172,24 @@ body.text-size-xlarge .options-fs-overlay {
     font-weight: 700;
     color: #111;
     cursor: pointer;
-    min-width: 28px;
-    line-height: 1.45;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.35em;
+    font-size: 16px;
+    line-height: 1.5;
     align-self: start;
     position: relative;
+    flex-shrink: 0;
 }
 
 .mcq-dropdown-number::after {
     content: '';
     position: absolute;
-    top: -2px;
-    right: -5px;
-    bottom: -2px;
-    left: -5px;
+    top: -3px;
+    right: -6px;
+    bottom: -3px;
+    left: -6px;
     border: 2px solid transparent;
     border-radius: 6px;
     pointer-events: none;

@@ -749,7 +749,7 @@ const IeltsReadingTest = () => {
     }
 
     return (
-        <div className="ielts-container">
+        <div className="ielts-container reading-page">
             <TestHeader
                 candidateName={testData?.candidateName}
                 candidateId={testData?.candidateId}

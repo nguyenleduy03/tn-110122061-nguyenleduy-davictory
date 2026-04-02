@@ -164,6 +164,14 @@ const GroupPanel = ({ group, onChange, onDelete }) => (
     {(group.contentType === 'NOTE_COMPLETION') && (
       <div className="tb-field">
         <label className="tb-label">ℹ️ Note Completion</label>
+        <div className="tb-field" style={{ marginTop: 8 }}>
+          <label className="tb-label">Tiêu đề ghi chú</label>
+          <RichInput
+            value={group.title ?? ''}
+            onChange={(html) => onChange({ title: html })}
+            placeholder="VD: Phone call about furniture"
+          />
+        </div>
         <div style={{ fontSize: 12, color: '#6b7280', padding: '6px 10px', background: '#fefce8', borderRadius: 6, border: '1px solid #fde68a' }}>
           <div>Nhập nội dung ghi chú vào canvas trực tiếp. Dùng <code>[blank]</code> để đánh dấu ô trống.</div>
           <div style={{ marginTop: '8px', padding: '6px', background: '#fff3cd', borderRadius: 4, border: '1px solid #ffeaa7' }}>
@@ -300,31 +308,6 @@ const GroupPanel = ({ group, onChange, onDelete }) => (
         />
       </div>
     )}
-
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-      <div className="tb-field">
-        <label className="tb-label">Câu hỏi từ</label>
-        <input
-          className="tb-input"
-          type="number"
-          min={1}
-          value={group.fromQuestion ?? ''}
-          onChange={(e) => onChange({ fromQuestion: Number(e.target.value) })}
-          placeholder="1"
-        />
-      </div>
-      <div className="tb-field">
-        <label className="tb-label">Đến câu</label>
-        <input
-          className="tb-input"
-          type="number"
-          min={1}
-          value={group.toQuestion ?? ''}
-          onChange={(e) => onChange({ toQuestion: Number(e.target.value) })}
-          placeholder="13"
-        />
-      </div>
-    </div>
 
     <div className="tb-section-divider" />
     <button className="tb-delete-btn" onClick={onDelete}>
