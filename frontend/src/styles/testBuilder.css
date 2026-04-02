@@ -207,6 +207,109 @@
 .tb-rbn-select:hover { border-color: #93c5fd; }
 .tb-rbn-select:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.12); }
 
+.tb-rbn-size-input {
+  appearance: textfield;
+  -moz-appearance: textfield;
+  width: 80px;
+  text-align: center;
+}
+
+.tb-size-picker {
+  position: relative;
+  display: inline-flex;
+  align-items: stretch;
+  width: 112px;
+  border: 1px solid #d6e3f7;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  overflow: visible;
+  z-index: 1;
+}
+
+.tb-size-picker:focus-within {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+
+.tb-size-picker-input {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  padding: 0 8px;
+}
+
+.tb-size-picker-input:hover,
+.tb-size-picker-input:focus {
+  border: none;
+  box-shadow: none;
+}
+
+.tb-size-picker-toggle {
+  width: 28px;
+  flex: 0 0 28px;
+  border: none;
+  border-left: 1px solid #d6e3f7;
+  background: linear-gradient(180deg, #ffffff 0%, #eef5ff 100%);
+  color: #475569;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.tb-size-picker-toggle:hover {
+  background: #eaf2ff;
+  color: #1d4ed8;
+}
+
+.tb-size-picker-toggle svg {
+  pointer-events: none;
+}
+
+.tb-size-picker-menu {
+  z-index: 1000;
+  width: 84px;
+  min-width: 84px;
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 6px;
+  border: 1px solid #d6e3f7;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 12px 28px rgba(15, 72, 160, 0.14);
+}
+
+.tb-size-picker-item {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: #374151;
+  border-radius: 8px;
+  padding: 6px 8px;
+  text-align: center;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.tb-size-picker-item:hover,
+.tb-size-picker-item.active {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.tb-rbn-size-input::-webkit-outer-spin-button,
+.tb-rbn-size-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 /* Color picker buttons */
 .tb-rbn-color-lbl {
   display: inline-flex;
@@ -890,32 +993,53 @@
   box-shadow: 0 0 0 3px rgba(47, 122, 247, 0.14);
 }
 .tb-dnd-guide {
-  margin-bottom: 10px;
-  padding: 9px 10px;
+  margin-bottom: 8px;
+  padding: 8px 10px;
   border-radius: 10px;
   border: 1px solid #d6e6ff;
   background: #f6faff;
 }
+.tb-dnd-guide-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
 .tb-dnd-guide p {
-  margin: 0 0 5px;
+  margin: 0;
   font-size: 11px;
   font-weight: 700;
   color: #2259a8;
 }
+.tb-dnd-guide-toggle {
+  border: 1px solid #cfe0ff;
+  background: #fff;
+  color: #3564b9;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.tb-dnd-guide-toggle:hover {
+  background: #eef5ff;
+  border-color: #a9c9ff;
+}
 .tb-dnd-guide ul {
-  margin: 0;
+  margin: 6px 0 0;
   padding-left: 16px;
 }
 .tb-dnd-guide li {
-  margin-bottom: 3px;
-  font-size: 11px;
-  line-height: 1.35;
+  margin-bottom: 2px;
+  font-size: 10.5px;
+  line-height: 1.3;
   color: #486184;
 }
 .tb-palette-grid {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 7px;
 }
 .tb-palette-item {
   display: flex;
@@ -923,7 +1047,7 @@
   align-items: center;
   justify-content: flex-start;
   gap: 10px;
-  padding: 10px 12px;
+  padding: 8px 11px;
   background: #ffffff;
   border: 1.5px dashed #b8d2fa;
   border-radius: 10px;
@@ -944,9 +1068,9 @@
 .tb-palette-item.dragging { opacity: 0.45; }
 .tb-palette-item-icon {
   display: inline-flex;
-  width: 28px;
-  height: 28px;
-  flex: 0 0 28px;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
   align-items: center;
   justify-content: center;
   border-radius: 8px;
@@ -957,8 +1081,8 @@
 .tb-palette-item-label {
   flex: 1;
   min-width: 0;
-  font-size: 11px;
-  line-height: 1.2;
+  font-size: 10.5px;
+  line-height: 1.15;
   font-weight: 600;
 }
 .tb-palette-item-drag-hint {
@@ -2635,7 +2759,6 @@
 .pv-empty { color: #9ca3af; font-style: italic; font-size: 13px; }
 
 /* ── Part section ── */
-.pv-part-section { }
 .pv-part-banner {
   display: flex; align-items: baseline; gap: 10px;
   padding: 12px 24px 10px;

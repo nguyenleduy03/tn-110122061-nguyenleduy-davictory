@@ -3,6 +3,9 @@ import { applyDbFormattingMarkers } from '../../utils/textFormatters';
 import BookmarkToggle from '../common/BookmarkToggle';
 
 const SummaryCompletionSelectQuestion = ({ q, activeQuestion, setActiveQuestion, answers, handleAnswerChange, inputRefs, bookmarks, toggleBookmark, isReview }) => {
+    const summaryTextRef = React.useRef(null);
+    const [activeBookmarkTop, setActiveBookmarkTop] = React.useState(null);
+
     const isAutoCompletionTitle = (value) => {
         const plain = String(value || '')
             .replace(/<[^>]*>/g, ' ')
@@ -65,9 +68,50 @@ const SummaryCompletionSelectQuestion = ({ q, activeQuestion, setActiveQuestion,
         : payloadFromText
             ? (payloadFromText.noteText || payloadFromText.text || questionData.noteText || '')
             : (questionData.noteText || questionData.text || '');
+    const summarySubQuestions = questionData.subQuestions || [];
+    const activeSummarySubQ = React.useMemo(() => {
+        const activeNumber = Number(activeQuestion);
+        if (!Number.isFinite(activeNumber)) return null;
+        return summarySubQuestions.find((sq) => Number(sq.number) === activeNumber) || null;
+    }, [activeQuestion, summarySubQuestions]);
     const allowOptionReuse = questionData.allowOptionReuse !== false;
 
     const [isDragOverBank, setIsDragOverBank] = React.useState(false);
+
+    const syncBookmarkPosition = React.useCallback(() => {
+        if (isReview || !activeSummarySubQ) {
+            setActiveBookmarkTop(null);
+            return;
+        }
+
+        const container = summaryTextRef.current;
+        if (!container) {
+            setActiveBookmarkTop(null);
+            return;
+        }
+
+        const activeNode = container.querySelector(`#question-${activeSummarySubQ.number}`);
+        if (!activeNode) {
+            setActiveBookmarkTop(null);
+            return;
+        }
+
+        const containerRect = container.getBoundingClientRect();
+        const activeRect = activeNode.getBoundingClientRect();
+        const top = activeRect.top - containerRect.top + (activeRect.height / 2);
+        setActiveBookmarkTop(top);
+    }, [activeSummarySubQ, isReview]);
+
+    React.useLayoutEffect(() => {
+        syncBookmarkPosition();
+    }, [syncBookmarkPosition, answers, noteText]);
+
+    React.useEffect(() => {
+        if (typeof window === 'undefined') return undefined;
+        const handleResize = () => syncBookmarkPosition();
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, [syncBookmarkPosition]);
 
     const formatInlineHtml = (value) => {
         if (typeof value !== 'string') return value || '';
@@ -157,16 +201,9 @@ const SummaryCompletionSelectQuestion = ({ q, activeQuestion, setActiveQuestion,
             <span
                 key={key}
                 id={`question-${qNum}`}
-                className={`inline-question summary-inline-item ${isActive ? 'active-question-input' : ''} relative-pos`}
+                className={`inline-question summary-inline-item ${isActive ? 'active-question-input' : ''} ${Boolean(bookmarks?.[qNum]) ? 'bookmarked-question-input' : ''} relative-pos`}
                 onClick={() => setActiveQuestion?.(qNum)}
             >
-                {!isReview && isActive && (
-                    <BookmarkToggle
-                        className="summary-bookmark"
-                        active={Boolean(bookmarks?.[qNum])}
-                        onToggle={() => toggleBookmark?.(qNum)}
-                    />
-                )}
                 <span
                     ref={(el) => { if (inputRefs?.current) inputRefs.current[qNum] = el; }}
                     className={`inline-input summary-input drag-drop-blank ${isReview ? (isCorrect ? 'review-correct' : 'review-wrong') : ''}`}
@@ -321,8 +358,16 @@ const SummaryCompletionSelectQuestion = ({ q, activeQuestion, setActiveQuestion,
             {instructions && (
                 <p className="summary-instructions" dangerouslySetInnerHTML={{ __html: formatInlineHtml(instructions) }} />
             )}
-            <div className="summary-text">
+            <div className="summary-text" ref={summaryTextRef}>
                 {renderParagraph()}
+                {!isReview && activeSummarySubQ && activeBookmarkTop !== null && (
+                    <BookmarkToggle
+                        className="question-bookmark summary-floating-bookmark"
+                        style={{ top: `${activeBookmarkTop}px` }}
+                        active={Boolean(bookmarks?.[activeSummarySubQ.number])}
+                        onToggle={() => toggleBookmark?.(activeSummarySubQ.number)}
+                    />
+                )}
             </div>
             <div
                 className={`summary-word-bank ${isDragOverBank ? 'drag-over' : ''}`}

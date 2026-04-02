@@ -1218,6 +1218,7 @@ const SharedOptionsDropdownGroup = ({ group, activeQ, onSetActive }) => {
   }));
   const previewQ = {
     heading: group.title || '',
+    questionTitle: group.questionTitle || '',
     instruction: [group.mainInstruction, group.subInstruction].filter(Boolean).join('<br/><br/>'),
     imageUrl: group.imageUrl,
     imageWidth: group.imageWidth,

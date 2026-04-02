@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import {
   Home, Eye, Save, Send, Settings, Shuffle, List,
@@ -31,16 +32,22 @@ const FONT_FAMILIES = [
   { val: 'Calibri',         label: 'Calibri'         },
 ];
 
-// execCommand fontSize: 1=8px 2=10px 3=12px 4=14px 5=18px 6=24px 7=36px
-const FONT_SIZES = [
-  { val: '1', label: '8'  },
-  { val: '2', label: '10' },
-  { val: '3', label: '12' },
-  { val: '4', label: '14' },
-  { val: '5', label: '18' },
-  { val: '6', label: '24' },
-  { val: '7', label: '36' },
-];
+const MIN_FONT_SIZE = 8;
+const MAX_FONT_SIZE = 96;
+const DEFAULT_FONT_SIZE = 16;
+const FONT_SIZE_PRESETS = Array.from({ length: 21 }, (_, i) => String(MIN_FONT_SIZE + (i * 2)));
+
+const extractIntegerText = (rawSize) => String(rawSize ?? '').match(/\d+/)?.[0] ?? '';
+
+const normalizeEvenFontSize = (rawSize) => {
+  const parsed = Number.parseInt(extractIntegerText(rawSize), 10);
+  if (!Number.isFinite(parsed)) return String(DEFAULT_FONT_SIZE);
+
+  let sizePx = Math.max(MIN_FONT_SIZE, Math.min(MAX_FONT_SIZE, parsed));
+  if (sizePx % 2 !== 0) sizePx += 1;
+  if (sizePx > MAX_FONT_SIZE) sizePx = MAX_FONT_SIZE;
+  return String(sizePx);
+};
 
 // Builder mode tools
 const BUILDER_TOOLS = [
@@ -61,12 +68,50 @@ const BuilderHeader = ({
   activeSkill,
 }) => {
   const [activeFormats, setActiveFormats] = useState({});
+  const [customFontSize, setCustomFontSize] = useState(String(DEFAULT_FONT_SIZE));
+  const [sizeMenuOpen, setSizeMenuOpen] = useState(false);
+  const [sizeMenuStyle, setSizeMenuStyle] = useState(null);
   const lastRangeRef = useRef(null);
+  const lastContentEditableRef = useRef(null);
+  const sizePickerRef = useRef(null);
+
+  const resolveTextAlign = (node, editableEl) => {
+    const seen = [];
+    let current = node?.nodeType === 1 ? node : node?.parentElement;
+
+    while (current) {
+      seen.push(current);
+      if (current === editableEl) break;
+      current = current.parentElement;
+    }
+
+    let fallback = '';
+    for (const el of seen) {
+      const inlineAlign = String(el.getAttribute?.('style') || '').match(/(?:^|;)\s*text-align\s*:\s*(left|center|right|justify|start|end)\s*(?:;|$)/i)?.[1]?.toLowerCase() || '';
+      const attrAlign = String(el.getAttribute?.('align') || '').toLowerCase();
+      const styleAlign = String(window.getComputedStyle(el).textAlign || '').toLowerCase();
+      const align = inlineAlign || attrAlign || styleAlign;
+
+      if (align === 'center' || align === 'right' || align === 'justify' || align === 'end') return align;
+      if (!fallback && (align === 'left' || align === 'start')) fallback = align;
+    }
+
+    return fallback;
+  };
 
   // Track active formatting state + save last selection
   useEffect(() => {
     const update = () => {
       try {
+        const sel = window.getSelection();
+        const anchorNode = sel?.anchorNode || sel?.focusNode || null;
+        const anchorEl = anchorNode?.nodeType === 1 ? anchorNode : anchorNode?.parentElement;
+        const activeEl = document.activeElement;
+        const editableEl = (activeEl && activeEl.isContentEditable)
+          ? activeEl
+          : anchorEl?.closest?.('[contenteditable="true"]')
+            || document.querySelector('[contenteditable="true"]');
+
         const states = {
           bold: document.queryCommandState('bold'),
           italic: document.queryCommandState('italic'),
@@ -81,22 +126,27 @@ const BuilderHeader = ({
           justifyRight: false,
         };
         
-        // Check CSS alignment for active contentEditable
-        const activeEl = document.activeElement;
-        if (activeEl && activeEl.isContentEditable) {
-          const computedStyle = window.getComputedStyle(activeEl);
-          const textAlign = computedStyle.textAlign;
-          
+        // Check CSS alignment for the selected block rather than only the root editable.
+        if (editableEl) {
+          const blockEl = anchorEl?.closest?.('p,div,section,article,header,footer,blockquote,figure,figcaption,h1,h2,h3,h4,h5,h6,li') || editableEl;
+          const textAlign = resolveTextAlign(blockEl, editableEl) || resolveTextAlign(anchorEl, editableEl) || resolveTextAlign(sel?.focusNode, editableEl);
+
           states.justifyLeft = textAlign === 'left' || textAlign === 'start' || textAlign === '';
           states.justifyCenter = textAlign === 'center';
           states.justifyRight = textAlign === 'right' || textAlign === 'end';
         }
         
         setActiveFormats(states);
-        
-        const sel = window.getSelection();
-        if (sel?.rangeCount > 0 && document.activeElement?.isContentEditable) {
-          lastRangeRef.current = sel.getRangeAt(0).cloneRange();
+        if (editableEl?.isContentEditable) {
+          lastContentEditableRef.current = editableEl;
+        }
+        if (sel?.rangeCount > 0) {
+          const range = sel.getRangeAt(0);
+          const rangeAnchor = range.commonAncestorContainer;
+          const rangeAnchorEl = rangeAnchor?.nodeType === 1 ? rangeAnchor : rangeAnchor?.parentElement;
+          if (rangeAnchorEl?.closest?.('[contenteditable="true"]')) {
+            lastRangeRef.current = range.cloneRange();
+          }
         }
       } catch (_) {}
     };
@@ -104,7 +154,77 @@ const BuilderHeader = ({
     return () => document.removeEventListener('selectionchange', update);
   }, []);
 
+  useEffect(() => {
+    const onFocusIn = (e) => {
+      const target = e.target;
+      if (!target) return;
+      if (target.isContentEditable) {
+        lastContentEditableRef.current = target;
+      }
+    };
+
+    const onPointerDown = (e) => {
+      if (!sizePickerRef.current?.contains(e.target)) {
+        setSizeMenuOpen(false);
+      }
+    };
+
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') setSizeMenuOpen(false);
+    };
+
+    document.addEventListener('focusin', onFocusIn);
+    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('focusin', onFocusIn);
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!sizeMenuOpen) return undefined;
+
+    const updateSizeMenuPosition = () => {
+      const rect = sizePickerRef.current?.getBoundingClientRect();
+      if (!rect || typeof window === 'undefined') return;
+
+      const menuWidth = 84;
+      const left = Math.min(Math.max(8, rect.right - menuWidth), window.innerWidth - menuWidth - 8);
+      const top = rect.bottom + 4;
+
+      setSizeMenuStyle({
+        position: 'fixed',
+        top: `${top}px`,
+        left: `${left}px`,
+        minWidth: `${menuWidth}px`,
+      });
+    };
+
+    updateSizeMenuPosition();
+    window.addEventListener('resize', updateSizeMenuPosition);
+    window.addEventListener('scroll', updateSizeMenuPosition, true);
+    return () => {
+      window.removeEventListener('resize', updateSizeMenuPosition);
+      window.removeEventListener('scroll', updateSizeMenuPosition, true);
+    };
+  }, [sizeMenuOpen]);
+
   // For select dropdowns that steal focus: restore selection then exec
+  const getTargetEditable = () => {
+    const activeEl = document.activeElement;
+    if (activeEl && activeEl.isContentEditable) {
+      return activeEl;
+    }
+
+    const sel = window.getSelection?.();
+    const anchorNode = sel?.anchorNode || sel?.focusNode || null;
+    const anchorEl = anchorNode?.nodeType === 1 ? anchorNode : anchorNode?.parentElement;
+    const selectionEditable = anchorEl?.closest?.('[contenteditable="true"]');
+    return selectionEditable || lastContentEditableRef.current || document.querySelector('[contenteditable="true"]');
+  };
+
   const restoreAndExec = (cmd, val) => {
     if (lastRangeRef.current) {
       const sel = window.getSelection();
@@ -114,22 +234,103 @@ const BuilderHeader = ({
     document.execCommand(cmd, false, val);
   };
 
+  const applyCustomFontSize = (rawSize) => {
+    const sizePx = Number.parseInt(normalizeEvenFontSize(rawSize), 10);
+    if (!Number.isFinite(sizePx) || sizePx <= 0) return;
+
+    const editableEl = getTargetEditable();
+    if (!editableEl || !editableEl.isContentEditable) return;
+
+    editableEl.focus();
+
+    try {
+      const sel = window.getSelection();
+      if (lastRangeRef.current) {
+        sel.removeAllRanges();
+        sel.addRange(lastRangeRef.current);
+      } else if (sel?.rangeCount) {
+        const currentRange = sel.getRangeAt(0);
+        const currentAnchor = currentRange.commonAncestorContainer;
+        const currentAnchorEl = currentAnchor?.nodeType === 1 ? currentAnchor : currentAnchor?.parentElement;
+        if (currentAnchorEl?.closest?.('[contenteditable="true"]')) {
+          lastRangeRef.current = currentRange.cloneRange();
+        }
+      }
+
+      if (!sel?.rangeCount) return;
+      const range = sel.getRangeAt(0);
+      
+      // Nếu không có text được chọn, không làm gì
+      if (range.collapsed) return;
+
+      const wrapper = document.createElement('span');
+      wrapper.style.fontSize = `${sizePx}px`;
+      wrapper.appendChild(range.extractContents());
+      range.insertNode(wrapper);
+
+      const nextRange = document.createRange();
+      nextRange.selectNodeContents(wrapper);
+      nextRange.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(nextRange);
+      lastRangeRef.current = nextRange.cloneRange();
+
+      editableEl.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'formatChange', data: null }));
+    } catch (error) {
+      console.error('applyCustomFontSize error:', error);
+    }
+  };
+
+  const applyPresetFontSize = (size) => {
+    const next = normalizeEvenFontSize(size);
+    setCustomFontSize(next);
+
+    try {
+      const sel = window.getSelection();
+      if (lastRangeRef.current) {
+        sel.removeAllRanges();
+        sel.addRange(lastRangeRef.current);
+      }
+    } catch (e) {
+      console.error('Failed to restore selection:', e);
+    }
+    
+    applyCustomFontSize(next);
+    setSizeMenuOpen(false);
+  };
+
+  const renderSizeMenu = () => {
+    if (!sizeMenuOpen || !sizeMenuStyle || typeof document === 'undefined') return null;
+
+    return createPortal(
+      <div className="tb-size-picker-menu" style={sizeMenuStyle} onMouseDown={(e) => e.stopPropagation()}>
+        {FONT_SIZE_PRESETS.map((size) => (
+          <button
+            key={size}
+            type="button"
+            className={`tb-size-picker-item${String(customFontSize) === String(size) ? ' active' : ''}`}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              applyPresetFontSize(size);
+            }}
+          >
+            {size}
+          </button>
+        ))}
+      </div>,
+      document.body,
+    );
+  };
+
   // For buttons: preventDefault keeps focus in the contentEditable
   const btn = (cmd, val = null) => (e) => {
     e.preventDefault();
-    
-    // Find contentEditable element
-    const activeEl = document.activeElement;
-    let editableEl = null;
-    
-    if (activeEl && activeEl.isContentEditable) {
-      editableEl = activeEl;
-    } else {
-      editableEl = document.querySelector('[contenteditable="true"]');
-    }
+
+    const editableEl = getTargetEditable();
     
     if (!editableEl) {
-      console.warn('No contentEditable element found');
+      console.warn('No editable element found');
       return;
     }
     
@@ -334,10 +535,76 @@ const BuilderHeader = ({
               onChange={(e) => restoreAndExec('fontName', e.target.value)}>
               {FONT_FAMILIES.map(f => <option key={f.val} value={f.val}>{f.label}</option>)}
             </select>
-            <select className="tb-rbn-select" style={{ width: 52 }} title="Cỡ chữ"
-              onChange={(e) => restoreAndExec('fontSize', e.target.value)}>
-              {FONT_SIZES.map(s => <option key={s.val} value={s.val}>{s.label}</option>)}
-            </select>
+            <div className="tb-size-picker" ref={sizePickerRef}>
+              <input
+                className="tb-rbn-select tb-rbn-size-input tb-size-picker-input"
+                type="text"
+                min={8}
+                max={96}
+                inputMode="numeric"
+                value={customFontSize}
+                placeholder="16"
+                onChange={(e) => setCustomFontSize(extractIntegerText(e.target.value))}
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={(e) => e.stopPropagation()}
+                onWheel={(e) => {
+                  e.preventDefault();
+                  const sel = window.getSelection();
+                  if (!sel?.rangeCount || sel.getRangeAt(0).collapsed) return;
+                  
+                  const direction = e.deltaY > 0 ? -2 : 2;
+                  const current = Number.parseInt(normalizeEvenFontSize(customFontSize), 10);
+                  const fallback = Number.isFinite(current) ? current : DEFAULT_FONT_SIZE;
+                  const next = Math.max(MIN_FONT_SIZE, Math.min(MAX_FONT_SIZE, fallback + direction));
+                  const evenNext = next % 2 === 0 ? next : next + 1;
+                  const normalized = String(Math.min(MAX_FONT_SIZE, evenNext));
+                  setCustomFontSize(normalized);
+                  applyCustomFontSize(normalized);
+                }}
+                onBlur={() => {
+                  const sel = window.getSelection();
+                  if (!sel?.rangeCount || sel.getRangeAt(0).collapsed) return;
+                  
+                  const next = normalizeEvenFontSize(customFontSize);
+                  setCustomFontSize(next);
+                  applyCustomFontSize(next);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const sel = window.getSelection();
+                    if (!sel?.rangeCount || sel.getRangeAt(0).collapsed) return;
+                    
+                    const next = normalizeEvenFontSize(customFontSize);
+                    setCustomFontSize(next);
+                    applyCustomFontSize(next);
+                  }
+                }}
+                title="Cỡ chữ (cuộn chuột hoặc nhập số)"
+              />
+              <button
+                type="button"
+                className="tb-size-picker-toggle"
+                title="Chọn cỡ chữ mặc định"
+                aria-label="Chọn cỡ chữ mặc định"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  
+                  // Lưu selection hiện tại trước khi mở menu
+                  const sel = window.getSelection();
+                  if (sel?.rangeCount) {
+                    lastRangeRef.current = sel.getRangeAt(0).cloneRange();
+                  }
+                  
+                  setSizeMenuOpen((open) => !open);
+                }}
+              >
+                <ChevronDown size={12} />
+              </button>
+
+              {renderSizeMenu()}
+            </div>
           </div>
           <span className="tb-rgroup-lbl">Phông chữ</span>
         </div>

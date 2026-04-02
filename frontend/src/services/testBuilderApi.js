@@ -544,6 +544,7 @@ function serializeGroupContent(group, part) {
   if (ct === 'SHARED_OPTIONS_DROPDOWN') {
     return JSON.stringify({
       sharedOptions: group.sharedOptions || [],
+      questionTitle: group.questionTitle || '',
       mainInstruction: group.mainInstruction || '',
       subInstruction: group.subInstruction || '',
       hideOptionsTable: group.hideOptionsTable || false,
@@ -906,6 +907,7 @@ function deserializeGroupContent(contentType, passageText) {
       const parsed = JSON.parse(passageText);
       return {
         sharedOptions: parsed.sharedOptions || [],
+        questionTitle: parsed.questionTitle || '',
         mainInstruction: parsed.mainInstruction || '',
         subInstruction: parsed.subInstruction || '',
       };

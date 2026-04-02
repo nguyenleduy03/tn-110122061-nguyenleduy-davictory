@@ -77,7 +77,7 @@ const MatchingFillQuestion = ({ q, activeQuestion, setActiveQuestion, answers, h
             <div className="tfng-text">
               {!isReview && isActive && (
                 <BookmarkToggle
-                  className="tfng-bookmark"
+                  className="question-bookmark"
                   active={Boolean(bookmarks?.[subQ.number])}
                   onToggle={() => toggleBookmark?.(subQ.number)}
                 />
@@ -89,7 +89,7 @@ const MatchingFillQuestion = ({ q, activeQuestion, setActiveQuestion, answers, h
                     <span dangerouslySetInnerHTML={{ __html: formatAndClean(inlineBlankParts.before) }} />
                     <input
                       type="text"
-                      className={`fill-blank-input inline ${isReview ? (isCorrect ? 'review-correct' : 'review-wrong') : ''}`}
+                      className={`fill-blank-input inline ${isReview ? (isCorrect ? 'review-correct' : 'review-wrong') : ''} ${Boolean(bookmarks?.[subQ.number]) ? 'bookmarked-answer-input' : ''}`}
                       value={answer}
                       onChange={(e) => !isReview && handleAnswerChange(subQ.id, e.target.value)}
                       placeholder={isReview ? '' : '...'}
@@ -119,7 +119,7 @@ const MatchingFillQuestion = ({ q, activeQuestion, setActiveQuestion, answers, h
               <div className="tfng-options" style={{ marginTop: 10 }}>
                 <input
                   type="text"
-                  className={`fill-blank-input ${isReview ? (isCorrect ? 'review-correct' : 'review-wrong') : ''}`}
+                  className={`fill-blank-input ${isReview ? (isCorrect ? 'review-correct' : 'review-wrong') : ''} ${Boolean(bookmarks?.[subQ.number]) ? 'bookmarked-answer-input' : ''}`}
                   value={answer}
                   onChange={(e) => !isReview && handleAnswerChange(subQ.id, e.target.value)}
                   placeholder={isReview ? '' : 'Your answer...'}

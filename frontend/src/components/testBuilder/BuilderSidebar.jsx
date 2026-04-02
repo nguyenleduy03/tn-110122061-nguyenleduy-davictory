@@ -208,6 +208,7 @@ const BuilderSidebar = ({
   const [openParts, setOpenParts] = useState({});
   const [paletteQuery, setPaletteQuery] = useState('');
   const [splitRatio, setSplitRatio] = useState(62);
+  const [showDragGuide, setShowDragGuide] = useState(true);
   const splitRef = useRef(null);
   const draggingRef = useRef(false);
 
@@ -386,13 +387,25 @@ const BuilderSidebar = ({
           placeholder="Tìm nhanh dạng câu hỏi..."
         />
 
-        <div className="tb-dnd-guide">
-          <p><strong>Kéo-thả nhanh</strong></p>
-          <ul>
-            <li>Kéo loại câu hỏi từ danh sách bên dưới vào vùng canvas.</li>
-            <li>Với Reading, kéo <strong>Reading Passage</strong> vào cột trái trước.</li>
-            <li>Sau đó kéo nhóm câu hỏi vào cột phải để hoàn tất.</li>
-          </ul>
+        <div className={`tb-dnd-guide${showDragGuide ? '' : ' collapsed'}`}>
+          <div className="tb-dnd-guide-header">
+            <p><strong>Kéo-thả nhanh</strong></p>
+            <button
+              type="button"
+              className="tb-dnd-guide-toggle"
+              onClick={() => setShowDragGuide((prev) => !prev)}
+              title={showDragGuide ? 'Ẩn hướng dẫn' : 'Hiện hướng dẫn'}
+            >
+              {showDragGuide ? 'Ẩn' : 'Hiện'}
+            </button>
+          </div>
+          {showDragGuide && (
+            <ul>
+              <li>Kéo loại câu hỏi từ danh sách bên dưới vào vùng canvas.</li>
+              <li>Với Reading, kéo <strong>Reading Passage</strong> vào cột trái trước.</li>
+              <li>Sau đó kéo nhóm câu hỏi vào cột phải để hoàn tất.</li>
+            </ul>
+          )}
         </div>
 
         <div className="tb-palette-grid">

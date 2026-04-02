@@ -101,6 +101,139 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
     const isFlowChart = questionType === 'flow_chart';
     const isImageDragDrop = questionType === 'image_drag_drop';
 
+    const imageDragDropContainerRef = React.useRef(null);
+    const [imageBookmarkTop, setImageBookmarkTop] = React.useState(null);
+    const imageSubQuestions = q.subQuestions || [];
+    const activeImageSubQ = React.useMemo(() => {
+        if (!isImageDragDrop) return null;
+        const activeNumber = Number(activeQuestion);
+        if (!Number.isFinite(activeNumber)) return null;
+        return imageSubQuestions.find((sq) => Number(sq.number) === activeNumber) || null;
+    }, [activeQuestion, imageSubQuestions, isImageDragDrop]);
+
+    const syncImageBookmarkPosition = React.useCallback(() => {
+        if (!isImageDragDrop || isReview || !activeImageSubQ) {
+            setImageBookmarkTop(null);
+            return;
+        }
+
+        const container = imageDragDropContainerRef.current;
+        if (!container) {
+            setImageBookmarkTop(null);
+            return;
+        }
+
+        const activeNode = container.querySelector(`#question-${activeImageSubQ.number}`);
+        if (!activeNode) {
+            setImageBookmarkTop(null);
+            return;
+        }
+
+        const containerRect = container.getBoundingClientRect();
+        const activeRect = activeNode.getBoundingClientRect();
+        const top = activeRect.top - containerRect.top + (activeRect.height / 2);
+        setImageBookmarkTop(top);
+    }, [activeImageSubQ, isImageDragDrop, isReview]);
+
+    React.useLayoutEffect(() => {
+        syncImageBookmarkPosition();
+    }, [syncImageBookmarkPosition, answers]);
+
+    React.useEffect(() => {
+        if (typeof window === 'undefined') return undefined;
+        const handleResize = () => syncImageBookmarkPosition();
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, [syncImageBookmarkPosition]);
+
+    const matchingInfoContainerRef = React.useRef(null);
+    const [ddBookmarkTop, setDdBookmarkTop] = React.useState(null);
+    const activeMatchingSubQ = React.useMemo(() => {
+        if (!isMatchingInfo) return null;
+        const activeNumber = Number(activeQuestion);
+        if (!Number.isFinite(activeNumber)) return null;
+        return (q.subQuestions || []).find((sq) => Number(sq.number) === activeNumber) || null;
+    }, [activeQuestion, isMatchingInfo, q.subQuestions]);
+
+    const syncDdBookmarkPosition = React.useCallback(() => {
+        if (!isMatchingInfo || isReview || !activeMatchingSubQ) {
+            setDdBookmarkTop(null);
+            return;
+        }
+
+        const container = matchingInfoContainerRef.current;
+        if (!container) {
+            setDdBookmarkTop(null);
+            return;
+        }
+
+        const activeNode = container.querySelector(`#question-${activeMatchingSubQ.number}`);
+        if (!activeNode) {
+            setDdBookmarkTop(null);
+            return;
+        }
+
+        const containerRect = container.getBoundingClientRect();
+        const activeRect = activeNode.getBoundingClientRect();
+        const top = activeRect.top - containerRect.top;
+        setDdBookmarkTop(top);
+    }, [activeMatchingSubQ, isMatchingInfo, isReview]);
+
+    React.useLayoutEffect(() => {
+        syncDdBookmarkPosition();
+    }, [syncDdBookmarkPosition, answers]);
+
+    React.useEffect(() => {
+        if (typeof window === 'undefined') return undefined;
+        const handleResize = () => syncDdBookmarkPosition();
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, [syncDdBookmarkPosition]);
+
+    const flowChartContainerRef = React.useRef(null);
+    const [flowBookmarkTop, setFlowBookmarkTop] = React.useState(null);
+    const activeFlowSubQ = React.useMemo(() => {
+        if (!isFlowChart) return null;
+        const activeNumber = Number(activeQuestion);
+        if (!Number.isFinite(activeNumber)) return null;
+        return (q.subQuestions || []).find((sq) => Number(sq.number) === activeNumber) || null;
+    }, [activeQuestion, isFlowChart, q.subQuestions]);
+
+    const syncFlowBookmarkPosition = React.useCallback(() => {
+        if (!isFlowChart || isReview || !activeFlowSubQ) {
+            setFlowBookmarkTop(null);
+            return;
+        }
+
+        const container = flowChartContainerRef.current;
+        if (!container) {
+            setFlowBookmarkTop(null);
+            return;
+        }
+
+        const activeNode = container.querySelector(`#question-${activeFlowSubQ.number}`);
+        if (!activeNode) {
+            setFlowBookmarkTop(null);
+            return;
+        }
+
+        const containerRect = container.getBoundingClientRect();
+        const activeRect = activeNode.getBoundingClientRect();
+        const top = activeRect.top - containerRect.top;
+        setFlowBookmarkTop(top);
+    }, [activeFlowSubQ, isFlowChart, isReview]);
+
+    React.useLayoutEffect(() => {
+        syncFlowBookmarkPosition();
+    }, [syncFlowBookmarkPosition, answers]);
+
+    React.useEffect(() => {
+        if (typeof window === 'undefined') return undefined;
+        const handleResize = () => syncFlowBookmarkPosition();
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, [syncFlowBookmarkPosition]);
+
     // Calculate max length of bank options for sizing dropzones
     const bankOptions = (q.bankOptions || []).map(resolveText).filter(Boolean);
     const totalDropZones = (q.subQuestions || []).length;
@@ -171,14 +304,6 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                     const inlineBlankParts = extractInlineBlankParts(subQ.text || '');
                     const hasInlineBlank = !!inlineBlankParts;
 
-                    const bookmarkNode = !isReview && isActive ? (
-                        <BookmarkToggle
-                            className="dd-bookmark-btn"
-                            active={Boolean(bookmarks?.[subQ.number])}
-                            onToggle={() => toggleBookmark?.(subQ.number)}
-                        />
-                    ) : null;
-
                     const inlineDropStyle = hasInlineBlank && hasDisplayAnswer
                         ? { width: `clamp(88px, ${Math.max(8, displayAnswer.length + 2)}ch, 360px)` }
                         : undefined;
@@ -196,7 +321,7 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                                 if (isReview || !hasDisplayAnswer) return;
                                 handleDragStart(e, displayAnswer, subQ.id);
                             }}
-                            className={`dd-drop-zone ${isMatchingInfo ? 'dd-drop-info' : ''} ${hasInlineBlank ? 'dd-drop-inline' : ''} ${hasDisplayAnswer ? 'dd-drop-filled' : ''} ${isActive && !hasDisplayAnswer ? 'dd-drop-active' : ''} ${isReview ? (isCorrect ? 'review-correct' : 'review-wrong') : ''} relative-pos`}
+                            className={`dd-drop-zone ${isMatchingInfo ? 'dd-drop-info' : ''} ${hasInlineBlank ? 'dd-drop-inline' : ''} ${hasDisplayAnswer ? 'dd-drop-filled' : ''} ${isActive && !hasDisplayAnswer ? 'dd-drop-active' : ''} ${Boolean(bookmarks?.[subQ.number]) ? 'dd-drop-bookmarked' : ''} ${isReview ? (isCorrect ? 'review-correct' : 'review-wrong') : ''} relative-pos`}
                             style={dropZoneStyle}
                         >
                             {hasDisplayAnswer ? (
@@ -243,7 +368,6 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                                     ) : (
                                         <span dangerouslySetInnerHTML={{ __html: formatAndClean(subQ.text || '') }} />
                                     )}
-                                    {bookmarkNode}
                                 </div>
                             ) : null}
 
@@ -269,7 +393,6 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                                 )}
 
                                 {isMatchingInfo && !hasInlineBlank && dropZoneNode}
-                                {!isMatchingInfo && bookmarkNode}
                             </div>
                         </div>
                     );
@@ -299,7 +422,7 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
         const allowReuse = (typeof q.allowOptionReuse === 'boolean') ? q.allowOptionReuse : true;
 
         return (
-            <div className="fc-container">
+            <div className="fc-container" ref={flowChartContainerRef}>
                 <div className="fc-layout">
                     <div className="fc-chart">
                         {chartTitle && <div className="fc-chart-title">{chartTitle}</div>}
@@ -324,13 +447,12 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                                                 const hasDisplayAnswer = displayAnswer.trim() !== '';
                                                 const isActive = subQ ? activeQuestion === subQ.number : false;
                                                 const showQuestionNumber = !hasDisplayAnswer;
-                                                const hasBookmark = !isReview && !!subQ && isActive;
 
                                                 return (
                                                     <span
                                                         key={pidx}
                                                         id={subQ ? `question-${subQ.number}` : undefined}
-                                                        className={`fc-blank${hasDisplayAnswer ? ' fc-blank-filled' : ''}${isActive && showQuestionNumber ? ' fc-blank-active' : ''}${hasBookmark ? ' fc-blank-has-bookmark' : ''} ${isReview && subQ ? (isCorrect ? 'review-correct' : 'review-wrong') : ''} relative-pos`}
+                                                        className={`fc-blank${hasDisplayAnswer ? ' fc-blank-filled' : ''}${isActive && showQuestionNumber ? ' fc-blank-active' : ''}${Boolean(bookmarks?.[subQ?.number]) ? ' fc-blank-bookmarked' : ''} ${isReview && subQ ? (isCorrect ? 'review-correct' : 'review-wrong') : ''} relative-pos`}
                                                         onClick={(e) => { e.stopPropagation(); if (subQ && !isReview) setActiveQuestion(subQ.number); }}
                                                         onDragOver={isReview ? undefined : handleDragOver}
                                                         onDrop={isReview ? undefined : (e) => subQ && handleDrop(e, subQ.id)}
@@ -339,13 +461,6 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                                                         tabIndex={subQ && !isReview ? 0 : -1}
                                                         onFocus={() => { if (subQ && !isReview) setActiveQuestion(subQ.number); }}
                                                     >
-                                                        {hasBookmark && (
-                                                            <BookmarkToggle
-                                                                className="fc-blank-bookmark"
-                                                                active={Boolean(bookmarks?.[subQ.number])}
-                                                                onToggle={() => toggleBookmark?.(subQ.number)}
-                                                            />
-                                                        )}
                                                         {showQuestionNumber && <strong className="fc-blank-num">{subQ?.number}</strong>}
                                                         {hasDisplayAnswer && <span className="fc-blank-answer">{displayAnswer}</span>}
                                                     </span>
@@ -378,6 +493,14 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                         })}
                     </div>
                 </div>
+                {!isReview && activeFlowSubQ && flowBookmarkTop !== null && (
+                    <BookmarkToggle
+                        className="question-bookmark flow-floating-bookmark"
+                        style={{ top: `${flowBookmarkTop}px` }}
+                        active={Boolean(bookmarks?.[activeFlowSubQ.number])}
+                        onToggle={() => toggleBookmark?.(activeFlowSubQ.number)}
+                    />
+                )}
             </div>
         );
     };
@@ -399,12 +522,18 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
         const allowReuse = (typeof q.allowOptionReuse === 'boolean') ? q.allowOptionReuse : true;
 
         return (
-            <div className="image-drag-drop-container">
+            <div className="image-drag-drop-container" ref={imageDragDropContainerRef}>
                 <div className="image-drag-drop-body">
                     <div className={`image-area${constrainHalfPage ? ' half-page' : ''}`}>
                         <div style={{ position: 'relative', width: `${imageWidth}%`, margin: '0 auto' }}>
                             {q.imageUrl ? (
-                                <img src={resolveDrivePreviewUrl(q.imageUrl)} alt="Map" className="idd-map-image" style={{ width: '100%', display: 'block' }} />
+                                <img
+                                    src={resolveDrivePreviewUrl(q.imageUrl)}
+                                    alt="Map"
+                                    className="idd-map-image"
+                                    style={{ width: '100%', display: 'block' }}
+                                    onLoad={syncImageBookmarkPosition}
+                                />
                             ) : (
                                 <div className="image-placeholder">
                                     Image Placeholder (Add imageUrl to data)
@@ -425,7 +554,8 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                                 return (
                                     <div
                                         key={subQ.id}
-                                        className={`drop-zone ml-drop-zone ${isActive ? 'active' : ''} ${isReview ? (isCorrect ? 'review-correct' : 'review-wrong') : ''}`}
+                                        id={`question-${subQ.number}`}
+                                        className={`drop-zone ml-drop-zone ${isActive ? 'active' : ''} ${Boolean(bookmarks?.[subQ.number]) ? 'drop-zone-bookmarked' : ''} ${isReview ? (isCorrect ? 'review-correct' : 'review-wrong') : ''}`}
                                         onClick={() => { if (!isReview) setActiveQuestion?.(subQ.number); }}
                                         onDrop={isReview ? undefined : (e) => handleDrop(e, subQ.id)}
                                         onDragOver={isReview ? undefined : handleDragOver}
@@ -436,14 +566,6 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                                             minWidth: `${pinBoxWidth}px`
                                         }}
                                     >
-                                        {!isReview && isActive && (
-                                            <BookmarkToggle
-                                                className="drop-zone-bookmark"
-                                                active={Boolean(bookmarks?.[subQ.number])}
-                                                onToggle={() => toggleBookmark?.(subQ.number)}
-                                            />
-                                        )}
-
                                         <strong className={`drop-zone-number${hasAnswer ? ' with-answer' : ''}`}>{subQ.number}</strong>
 
                                         {answer ? (
@@ -495,6 +617,14 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                         </div>
                     </div>
                 </div>
+                {!isReview && activeImageSubQ && imageBookmarkTop !== null && (
+                    <BookmarkToggle
+                        className="question-bookmark image-dd-floating-bookmark"
+                        style={{ top: `${imageBookmarkTop}px` }}
+                        active={Boolean(bookmarks?.[activeImageSubQ.number])}
+                        onToggle={() => toggleBookmark?.(activeImageSubQ.number)}
+                    />
+                )}
             </div>
         );
     };
@@ -597,7 +727,7 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                                             <div className="mf-item-inner">
                                                 {!isReview && isActive && (
                                                     <BookmarkToggle
-                                                        className="mf-bookmark-btn"
+                                                        className="question-bookmark"
                                                         active={Boolean(bookmarks?.[subQ.number])}
                                                         onToggle={() => toggleBookmark?.(subQ.number)}
                                                     />
@@ -689,13 +819,21 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
 
     if (isMatchingInfo) {
         return (
-            <div className="drag-drop-group matching-info">
+            <div className="drag-drop-group matching-info" ref={matchingInfoContainerRef}>
                 <div className="dd-info-questions-col">
                     {renderQuestions()}
                 </div>
                 <div className="dd-info-bank-col">
                     {renderBank()}
                 </div>
+                {!isReview && activeMatchingSubQ && ddBookmarkTop !== null && (
+                    <BookmarkToggle
+                        className="question-bookmark matching-info-floating-bookmark"
+                        style={{ top: `${ddBookmarkTop}px` }}
+                        active={Boolean(bookmarks?.[activeMatchingSubQ.number])}
+                        onToggle={() => toggleBookmark?.(activeMatchingSubQ.number)}
+                    />
+                )}
             </div>
         );
     }

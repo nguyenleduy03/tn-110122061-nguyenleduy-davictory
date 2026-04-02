@@ -62,7 +62,7 @@ const RichInput = ({ value, onChange, placeholder, style, multiline, className, 
               sel.removeAllRanges();
               sel.addRange(range);
             }
-            onChange(ref.current.innerHTML);
+            onChange(serializeContentEditableHtml(ref.current));
           }
         }}
         onPaste={(e) => {

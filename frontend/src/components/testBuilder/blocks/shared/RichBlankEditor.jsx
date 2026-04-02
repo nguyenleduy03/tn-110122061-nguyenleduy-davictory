@@ -281,8 +281,8 @@ const RichBlankEditor = ({
         contentEditable
         suppressContentEditableWarning
         data-placeholder={placeholder}
-        onInput={() => { renumber(); onChange(toText(editorRef.current)); }}
-        onKeyUp={() => { renumber(); onChange(toText(editorRef.current)); }}
+        onInput={() => { renumber(); onChange(saveValue()); }}
+        onKeyUp={() => { renumber(); onChange(saveValue()); }}
         onPaste={(e) => {
           e.preventDefault();
           let html = e.clipboardData.getData('text/html') || e.clipboardData.getData('text/plain');

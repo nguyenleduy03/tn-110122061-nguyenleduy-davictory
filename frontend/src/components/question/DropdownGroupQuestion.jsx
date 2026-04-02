@@ -43,6 +43,13 @@ const DropdownGroupQuestion = ({
 
   return (
     <div className="mcq-dropdown-group">
+      {group.questionTitle && (
+        <p
+          className="question-instruction"
+          style={{ marginBottom: 8, fontWeight: 600 }}
+          dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(group.questionTitle) }}
+        />
+      )}
       {group.instruction && (
         <p
           className="question-instruction"
@@ -67,7 +74,15 @@ const DropdownGroupQuestion = ({
           )}
 
           {options.length > 0 && !group.hideOptionsTable && (
-            <ul className="mcq-dropdown-legend" style={{ flex: group.imageUrl ? 1 : 'none', margin: 0, width: group.imageUrl ? 'auto' : '100%' }}>
+            <ul
+              className="mcq-dropdown-legend"
+              style={{
+                flex: group.imageUrl ? 1 : 'none',
+                margin: 0,
+                width: group.imageUrl ? 'auto' : '100%',
+                maxWidth: 'min(100%, 920px)'
+              }}
+            >
               {options.map((opt) => (
                 <li key={opt.key} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <div style={{ flex: 1 }}>
@@ -96,6 +111,7 @@ const DropdownGroupQuestion = ({
           const current = answers?.[question.id] ?? '';
           const correctKey = question.correctOptionKey ?? question.correctAnswer;
           const isActive = activeQuestion === number;
+          const isBookmarked = Boolean(bookmarks?.[number]);
 
           let displayValue = current;
           let reviewClass = '';
@@ -109,7 +125,7 @@ const DropdownGroupQuestion = ({
             <div
               key={question.id}
               id={`question-${number}`}
-              className={`mcq-dropdown-row ${isActive ? 'active-question' : ''}`}
+              className={`mcq-dropdown-row ${isActive ? 'active-question question-focus-active' : ''} ${!isReview && isBookmarked ? 'question-focus-bookmarked' : ''}`}
               onClick={() => setActiveQuestion?.(number)}
             >
               <span className="mcq-dropdown-number">{number}</span>
@@ -143,7 +159,7 @@ const DropdownGroupQuestion = ({
               </select>
               {!isReview && isActive && (
                 <BookmarkToggle
-                  className="mcq-dropdown-bookmark"
+                  className="question-bookmark"
                   active={Boolean(bookmarks?.[number])}
                   onToggle={() => toggleBookmark?.(number)}
                 />

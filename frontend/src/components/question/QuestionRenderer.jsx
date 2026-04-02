@@ -207,6 +207,49 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
         const answerMap = answers || answer || {};
         const opts = q.validationOptions || {};
 
+        const tableContainerRef = React.useRef(null);
+        const [tableBookmarkTop, setTableBookmarkTop] = React.useState(null);
+        const activeTableSubQ = React.useMemo(() => {
+            const activeNumber = Number(activeQuestion);
+            if (!Number.isFinite(activeNumber)) return null;
+            return subQuestions.find((sq) => Number(sq.number) === activeNumber) || null;
+        }, [activeQuestion, subQuestions]);
+
+        const syncTableBookmarkPosition = React.useCallback(() => {
+            if (isReview || !activeTableSubQ) {
+                setTableBookmarkTop(null);
+                return;
+            }
+
+            const container = tableContainerRef.current;
+            if (!container) {
+                setTableBookmarkTop(null);
+                return;
+            }
+
+            const activeNode = container.querySelector(`#question-${activeTableSubQ.number}`);
+            if (!activeNode) {
+                setTableBookmarkTop(null);
+                return;
+            }
+
+            const containerRect = container.getBoundingClientRect();
+            const activeRect = activeNode.getBoundingClientRect();
+            const top = activeRect.top - containerRect.top;
+            setTableBookmarkTop(top);
+        }, [activeTableSubQ, isReview]);
+
+        React.useLayoutEffect(() => {
+            syncTableBookmarkPosition();
+        }, [syncTableBookmarkPosition, answers]);
+
+        React.useEffect(() => {
+            if (typeof window === 'undefined') return undefined;
+            const handleResize = () => syncTableBookmarkPosition();
+            window.addEventListener('resize', handleResize);
+            return () => window.removeEventListener('resize', handleResize);
+        }, [syncTableBookmarkPosition]);
+
         const normalizeBlankTokens = (text) => {
             let s = String(text || '');
             // Legacy HTML from editor chips
@@ -280,7 +323,7 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
             return (
                 <span
                     id={`question-${subQ.number}`}
-                    className={`table-inline-wrap inline-question ${isActive ? 'active-question-input' : ''} relative-pos`}
+                    className={`table-inline-wrap inline-question ${isActive ? 'active-question-input' : ''} ${Boolean(bookmarks?.[subQ.number]) ? 'bookmarked-question-input' : ''} relative-pos`}
                     key={`tc-${subQ.id}`}
                 >
                     <input
@@ -294,13 +337,6 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
                         onChange={(e) => { if (!isReview) handleAnswerChange?.(subQ.id, e.target.value); }}
                         readOnly={isReview}
                     />
-                    {!isReview && isActive && (
-                        <BookmarkToggle
-                            className="tc-bookmark"
-                            active={Boolean(bookmarks?.[subQ.number])}
-                            onToggle={() => toggleBookmark?.(subQ.number)}
-                        />
-                    )}
                 </span>
             );
         };
@@ -323,10 +359,10 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
         // Fallback nếu dữ liệu bảng chưa có cấu trúc
         if (!columns.length || !tableRows.length) {
             return (
-                <div className="table-completion-container">
+                <div className="table-completion-container" ref={tableContainerRef}>
                     <div className="table-completion-grid">
                         {subQuestions.map((subQ) => (
-                            <div key={subQ.id} className="table-cell-input relative-pos">
+                            <div key={subQ.id} id={`question-${subQ.number}`} className={`table-cell-input ${Boolean(bookmarks?.[subQ.number]) ? 'bookmarked-question-input' : ''} relative-pos`}>
                                 <label>Q{subQ.number}</label>
                                 {(() => {
                                     const isActive = activeQuestion === subQ.number;
@@ -349,22 +385,23 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
                                         />
                                     );
                                 })()}
-                                {!isReview && activeQuestion === subQ.number && (
-                                    <BookmarkToggle
-                                        className="tc-bookmark"
-                                        active={Boolean(bookmarks?.[subQ.number])}
-                                        onToggle={() => toggleBookmark?.(subQ.number)}
-                                    />
-                                )}
                             </div>
                         ))}
                     </div>
+                    {!isReview && activeTableSubQ && tableBookmarkTop !== null && (
+                        <BookmarkToggle
+                            className="question-bookmark table-floating-bookmark"
+                            style={{ top: `${tableBookmarkTop}px` }}
+                            active={Boolean(bookmarks?.[activeTableSubQ.number])}
+                            onToggle={() => toggleBookmark?.(activeTableSubQ.number)}
+                        />
+                    )}
                 </div>
             );
         }
 
         return (
-            <div className="table-completion-container">
+            <div className="table-completion-container" ref={tableContainerRef}>
                 <div className="tc-table-wrap">
                     <table className="tc-table">
                         {(q.tableTitle || columns.some((c) => c.header)) && (
@@ -394,6 +431,14 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
                         </tbody>
                     </table>
                 </div>
+                {!isReview && activeTableSubQ && tableBookmarkTop !== null && (
+                    <BookmarkToggle
+                        className="question-bookmark table-floating-bookmark"
+                        style={{ top: `${tableBookmarkTop}px` }}
+                        active={Boolean(bookmarks?.[activeTableSubQ.number])}
+                        onToggle={() => toggleBookmark?.(activeTableSubQ.number)}
+                    />
+                )}
             </div>
         );
     }

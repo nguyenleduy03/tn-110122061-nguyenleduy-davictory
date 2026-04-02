@@ -438,6 +438,7 @@ const TestBuilder = () => {
         case 'MULTIPLE_CHOICE_MULTI':
           return {
             title: `Multiple Choice (nhiều) ${groupIdx}`,
+            instructions: '',
             chooseCount: 2,
             fromQuestion: null, toQuestion: null,
             questions: [makeMMCQ(1)],
@@ -453,6 +454,8 @@ const TestBuilder = () => {
             title: `Questions ${startQuestionNumber}–${startQuestionNumber + 4}`,
             fromQuestion: startQuestionNumber,
             toQuestion: startQuestionNumber + 4,
+            instructions: '',
+            questionTitle: '',
             mainInstruction: '',
             subInstruction: '',
             imageUrl: '',

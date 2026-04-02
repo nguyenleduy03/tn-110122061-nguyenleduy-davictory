@@ -190,10 +190,10 @@ const SharedOptionsDropdownBlock = ({
 
         <div className="tb-sod-main">
           <div className="tb-sod-range-row">
-            <span className="tb-sod-range-label">Tiêu đề nhóm (vd: Questions 26–30)</span>
+            <span className="tb-sod-range-label">Tiêu đề hiển thị trên trang thi</span>
             <RichInput
               value={group.title ?? ''}
-              placeholder="Questions 26 – 30"
+              placeholder="Nhập tiêu đề hiển thị"
               onChange={(html) => onUpdate(group.id, { title: html })}
             />
           </div>
@@ -270,12 +270,21 @@ const SharedOptionsDropdownBlock = ({
               </div>
             )}
           </div>
-
           <div className="tb-sod-questions">
             <div className="exam-ml-answer-section" onClick={(e) => e.stopPropagation()}>
               <div className="exam-ml-answer-title">🔑 Đáp án (chọn từ bảng lựa chọn)</div>
               <div style={{ fontSize: 11, color: '#64748b', marginBottom: 8, fontStyle: 'italic' }}>
                 💡 Chọn đáp án đúng từ dropdown (A, B, C...)
+              </div>
+              <div className="tb-sod-field" style={{ marginBottom: 12 }}>
+                <label className="tb-sod-label">Tiêu đề hiển thị trên trang thi</label>
+                <RichInput
+                  multiline
+                  rows={2}
+                  value={group.questionTitle ?? ''}
+                  placeholder="Nhập tiêu đề hiển thị phía trên danh sách đáp án..."
+                  onChange={(html) => onUpdate(group.id, { questionTitle: html })}
+                />
               </div>
               {questions.map((q) => {
                 const correct = (q.answerText ?? q.answers?.[0]?.answerText ?? '').trim();

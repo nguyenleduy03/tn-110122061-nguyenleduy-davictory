@@ -1036,9 +1036,19 @@ const IeltsListeningTest = () => {
                                                 ? q.subQuestions.map((sq) => sq.number).filter((n) => n != null)
                                                 : (q?.number != null ? [q.number] : []);
 
+                                        const hasBookmarkedInBlock = !isReview && questionNumbers.some((n) => Boolean(bookmarks?.[n]));
+                                        const isActiveBlock = questionNumbers.includes(activeQuestion);
+                                        const questionBlockClassName = [
+                                            'question-focus-frame',
+                                            hasBookmarkedInBlock
+                                                ? 'question-focus-bookmarked'
+                                                : (isActiveBlock ? 'question-focus-active' : '')
+                                        ].filter(Boolean).join(' ');
+
                                         return (
                                             <div
                                                 key={q.id}
+                                                className={questionBlockClassName}
                                                 data-question-numbers={questionNumbers.length ? questionNumbers.join(' ') : undefined}
                                             >
                                                 <QuestionRenderer

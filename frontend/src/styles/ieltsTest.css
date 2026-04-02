@@ -171,13 +171,6 @@
     gap: 8px;
 }
 
-.mf-bookmark-btn {
-    padding: 2px;
-    margin-left: auto;
-    order: 3;
-    flex-shrink: 0;
-}
-
 .mf-q-num {
     font-weight: 700;
     color: #111;
@@ -1377,6 +1370,13 @@
     box-shadow: 0 0 0 1px #5b9bd5;
 }
 
+.inline-question.bookmarked-question-input .inline-input,
+.table-cell-input.bookmarked-question-input .inline-input,
+.inline-question.bookmarked-question-input .drag-drop-blank {
+    border-color: #fea706 !important;
+    box-shadow: 0 0 0 1px rgba(254, 167, 6, 0.35);
+}
+
 .inline-input {
     border: 1px solid #333;
     border-radius: 4px;
@@ -1778,6 +1778,8 @@
    ================================================================ */
 .fc-container {
     padding: 4px 0;
+    position: relative;
+    padding-right: 32px;
 }
 
 .fc-header {
@@ -1885,18 +1887,17 @@
     box-shadow: none;
 }
 
+.fc-blank.fc-blank-bookmarked,
+.fc-blank.fc-blank-bookmarked.fc-blank-active,
+.fc-blank.fc-blank-bookmarked:hover {
+    border: 2px solid #fea706 !important;
+    background: #fff;
+    box-shadow: none;
+}
+
 .fc-blank:hover:not(.fc-blank-filled) {
     border-color: #6ea8ff;
     background: #eef5ff;
-}
-
-.fc-blank-bookmark {
-    position: absolute;
-    right: -22px;
-    left: auto;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 2;
 }
 
 .fc-blank-num {
@@ -2060,6 +2061,8 @@
 .drag-drop-group.matching-info {
     display: flex;
     gap: 20px;
+    position: relative;
+    padding-right: 32px;
 }
 
 .dd-info-questions-col {
@@ -2189,10 +2192,12 @@
 /* Sub questions area */
 .dd-sub-questions {
     flex: 1;
+    position: relative;
+    padding-right: 32px;
 }
 
 .dd-sub-questions.dd-info-padded {
-    padding-right: 20px;
+    padding-right: 0;
 }
 
 .dd-questions-list {
@@ -2245,13 +2250,6 @@
     gap: 6px;
 }
 
-.dd-info-text .dd-bookmark-btn {
-    position: static;
-    margin-left: auto;
-    align-self: center;
-    flex-shrink: 0;
-}
-
 .dd-default-meta {
     display: flex;
     align-items: center;
@@ -2264,11 +2262,6 @@
     display: flex;
     align-items: center;
     gap: 5px;
-    flex-shrink: 0;
-}
-
-.dd-default-meta .dd-bookmark-btn {
-    margin-left: auto;
     flex-shrink: 0;
 }
 
@@ -2380,6 +2373,22 @@
     font-size: calc(var(--answer-input-font-size) - 1px);
 }
 
+.dd-drop-zone.dd-drop-bookmarked,
+.dd-drop-zone.dd-drop-bookmarked:hover,
+.dd-drop-zone.dd-drop-bookmarked:focus,
+.dd-drop-zone.dd-drop-bookmarked.dd-drop-active,
+.dd-drop-zone.dd-drop-bookmarked.dd-drop-filled {
+    border-color: #fea706 !important;
+    border-style: solid !important;
+    box-shadow: 0 0 0 2px rgba(254, 167, 6, 0.16) !important;
+    background-color: #fff;
+}
+
+.dd-drop-zone.dd-drop-inline.dd-drop-bookmarked,
+.dd-drop-zone.dd-drop-info.dd-drop-bookmarked {
+    border-width: 1.5px !important;
+}
+
 .dd-drop-zone.dd-drop-info .dd-drop-clear {
     display: inline !important;
     margin: 0 !important;
@@ -2462,6 +2471,14 @@
     font-weight: bold;
     color: #111827;
     cursor: grab;
+}
+
+.heading-gap-zone.heading-gap-bookmarked,
+.heading-gap-zone.heading-gap-bookmarked:hover,
+.heading-gap-zone.heading-gap-bookmarked.heading-gap-active,
+.heading-gap-zone.heading-gap-bookmarked.heading-gap-filled {
+    border: 2px solid #fea706 !important;
+    background-color: #fff;
 }
 
 .heading-gap-placeholder {
@@ -4429,22 +4446,6 @@
     list-style: none;
 }
 
-.fill-in-blank-bookmark {
-    position: absolute;
-    right: -24px;
-    left: auto;
-    top: 50%;
-    transform: translateY(-50%);
-}
-
-.tfng-bookmark {
-    margin-top: 0;
-    margin-left: auto;
-    align-self: flex-start;
-    order: 2;
-    flex-shrink: 0;
-}
-
 .tfng-question-content {
     display: flex;
     align-items: baseline;
@@ -4512,13 +4513,6 @@
     align-items: center;
     margin: 0 4px;
     vertical-align: middle;
-}
-
-.summary-bookmark {
-    margin-right: 0;
-    margin-left: 4px;
-    order: 2;
-    flex-shrink: 0;
 }
 
 .summary-input {
@@ -4605,6 +4599,28 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
+    position: relative;
+}
+
+.image-dd-floating-bookmark {
+    position: absolute;
+    right: 0;
+    transform: translateY(-50%);
+    z-index: 15;
+}
+
+.heading-floating-bookmark {
+    position: absolute;
+    right: 0;
+    transform: none;
+    z-index: 15;
+}
+
+.flow-floating-bookmark {
+    position: absolute;
+    right: 0;
+    transform: none;
+    z-index: 15;
 }
 
 .image-drag-drop-body {
@@ -4689,13 +4705,12 @@
     border: 1.5px solid #1a73e8;
 }
 
-.drop-zone-bookmark {
-    position: absolute;
-    right: -24px;
-    left: auto;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 2;
+.drop-zone.drop-zone-bookmarked,
+.drop-zone.drop-zone-bookmarked.active,
+.ml-drop-zone.drop-zone-bookmarked,
+.ml-drop-zone.drop-zone-bookmarked.active {
+    border-color: #fea706 !important;
+    border-style: solid !important;
 }
 
 .drop-zone-number {
@@ -5692,6 +5707,28 @@ body.text-size-xlarge .options-fs-overlay {
     color: #111;
 }
 
+.table-completion-container {
+    position: relative;
+    padding-right: 32px;
+}
+
+.table-floating-bookmark {
+    position: absolute;
+    right: 0;
+    transform: none;
+}
+
+.table-completion-grid {
+    display: grid;
+    gap: 10px;
+}
+
+.table-cell-input {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
 .tc-table-wrap {
     overflow-x: auto;
     width: 100%;
@@ -5765,19 +5802,48 @@ body.text-size-xlarge .options-fs-overlay {
     margin: 0 4px;
 }
 
-.tc-bookmark {
-    flex-shrink: 0;
-    margin-right: 0;
-    margin-left: 4px;
-    order: 2;
-    position: static;
-}
-
 /* UI Utility Classes */
 .question-range-header {
     font-size: 15px;
     font-weight: 600;
     margin-bottom: 8px;
+}
+
+.question-focus-frame {
+    border: none;
+}
+
+.question-focus-frame :is(.tfng-number, .dd-question-num, .mf-q-num, .heading-gap-number, .fc-blank-num) {
+    position: relative;
+}
+
+.question-focus-frame :is(.tfng-number, .dd-question-num, .mf-q-num, .heading-gap-number, .fc-blank-num)::after {
+    content: '';
+    position: absolute;
+    top: -3px;
+    right: -6px;
+    bottom: -3px;
+    left: -6px;
+    border: 2px solid transparent;
+    border-radius: 6px;
+    pointer-events: none;
+    transition: border-color 0.15s ease;
+}
+
+.question-focus-active :is(.tfng-number, .dd-question-num, .mf-q-num, .heading-gap-number, .fc-blank-num) {
+    z-index: 1;
+}
+
+.question-focus-bookmarked :is(.tfng-number, .dd-question-num, .mf-q-num, .heading-gap-number, .fc-blank-num) {
+    z-index: 1;
+}
+
+.question-focus-active :is(.tfng-number, .dd-question-num, .mf-q-num, .heading-gap-number, .fc-blank-num)::after {
+    border-color: #3b82f6;
+}
+
+.question-focus-bookmarked :is(.tfng-number, .dd-question-num, .mf-q-num, .heading-gap-number, .fc-blank-num)::after {
+    border-color: #fea706;
 }
 
 .question-header-container {
@@ -5810,6 +5876,111 @@ body.text-size-xlarge .options-fs-overlay {
 
 .bookmark-toggle svg {
     display: block;
+}
+
+/* Question bookmark system: one place for style + position */
+.question-bookmark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    line-height: 0;
+    z-index: 3;
+}
+
+.question-bookmark svg {
+    display: block;
+    width: 19px;
+    height: 19px;
+}
+
+/* Right-aligned bookmark like choice-question header */
+.tfng-text {
+    position: relative;
+    padding-right: 32px;
+}
+
+.tfng-text>.question-bookmark {
+    position: absolute;
+    right: 0;
+    top: 0;
+    margin: 0;
+}
+
+/* Inline fill-in-blank */
+.fill-in-blank-item {
+    padding-right: 32px;
+}
+
+.fill-in-blank-item>.question-bookmark {
+    position: absolute;
+    right: 0;
+    top: 0;
+    margin: 0;
+}
+
+.fill-in-blank-item.fill-in-blank-inline-row {
+    line-height: 1.55;
+}
+
+.fill-in-blank-item.fill-in-blank-inline-row>.question-bookmark {
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+/* Summary/note completion: keep a fixed right bookmark column */
+.summary-text {
+    position: relative;
+    padding-right: 32px;
+}
+
+.summary-text .summary-inline-item.relative-pos {
+    position: relative;
+}
+
+.summary-floating-bookmark {
+    position: absolute;
+    right: 0;
+    transform: translateY(-50%);
+}
+
+/* Drag/drop blanks */
+.fc-blank.fc-blank-has-bookmark {
+    margin-right: 24px;
+}
+
+.fc-blank>.question-bookmark {
+    position: absolute;
+    right: -22px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.drop-zone>.question-bookmark {
+    position: absolute;
+    right: -24px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+/* Row-based drag/drop and matching features */
+.matching-info-floating-bookmark {
+    position: absolute;
+    right: 0;
+    transform: none;
+}
+
+.mf-item-inner>.question-bookmark {
+    margin-left: auto;
+    align-self: flex-start;
+}
+
+/* Dropdown-group question bookmark is anchored to each row */
+.mcq-dropdown-row>.question-bookmark {
+    position: absolute;
+    right: 0;
+    top: 0;
+    transform: none;
 }
 
 .bookmark-portal-target {
@@ -5853,7 +6024,8 @@ body.text-size-xlarge .options-fs-overlay {
 
 /* ─── MCQ shared dropdown (Listening) ─── */
 .mcq-dropdown-group {
-    max-width: 720px;
+    width: 100%;
+    max-width: none;
 }
 
 .mcq-dropdown-group .question-heading {
@@ -5907,15 +6079,23 @@ body.text-size-xlarge .options-fs-overlay {
 }
 
 .mcq-dropdown-list {
-    display: grid;
-    grid-template-columns: auto 1fr auto auto;
-    gap: 12px 10px;
-    align-items: center;
-    max-width: fit-content;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    max-width: 100%;
 }
 
 .mcq-dropdown-row {
-    display: contents;
+    display: grid;
+    grid-template-columns: auto auto auto;
+    column-gap: 6px;
+    align-items: start;
+    justify-content: start;
+    position: relative;
+    width: 100%;
+    max-width: 100%;
+    padding: 2px 30px 2px 0;
 }
 
 .mcq-dropdown-text {
@@ -5924,11 +6104,25 @@ body.text-size-xlarge .options-fs-overlay {
     white-space: pre-wrap;
     word-break: break-word;
     cursor: pointer;
-    max-width: 100%;
+    max-width: min(62vw, 620px);
+    min-width: 0;
+    display: block;
 }
 
-.mcq-dropdown-bookmark {
-    justify-self: end;
+.mcq-dropdown-text p,
+.mcq-dropdown-text div {
+    margin: 0;
+}
+
+.mcq-dropdown-text ul,
+.mcq-dropdown-text ol {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.mcq-dropdown-text li {
+    margin: 0;
+    line-height: 1.4;
 }
 
 
@@ -5936,8 +6130,8 @@ body.text-size-xlarge .options-fs-overlay {
     border-bottom: none;
 }
 
-.mcq-dropdown-row.active-question>* {
-    background: #fff;
+.mcq-dropdown-row.active-question {
+    background: transparent;
 }
 
 
@@ -5945,6 +6139,39 @@ body.text-size-xlarge .options-fs-overlay {
     font-weight: 700;
     color: #111;
     cursor: pointer;
+    min-width: 28px;
+    line-height: 1.45;
+    align-self: start;
+    position: relative;
+}
+
+.mcq-dropdown-number::after {
+    content: '';
+    position: absolute;
+    top: -2px;
+    right: -5px;
+    bottom: -2px;
+    left: -5px;
+    border: 2px solid transparent;
+    border-radius: 6px;
+    pointer-events: none;
+    transition: border-color 0.15s ease;
+}
+
+.mcq-dropdown-row.question-focus-active .mcq-dropdown-number {
+    z-index: 1;
+}
+
+.mcq-dropdown-row.question-focus-bookmarked .mcq-dropdown-number {
+    z-index: 1;
+}
+
+.mcq-dropdown-row.question-focus-active .mcq-dropdown-number::after {
+    border-color: #3b82f6;
+}
+
+.mcq-dropdown-row.question-focus-bookmarked .mcq-dropdown-number::after {
+    border-color: #fea706;
 }
 
 
@@ -5956,6 +6183,8 @@ body.text-size-xlarge .options-fs-overlay {
     font-weight: 700;
     padding: 0 8px;
     background: #fff;
+    justify-self: start;
+    align-self: start;
 }
 
 .mcq-dropdown-select.review-correct {
@@ -6056,6 +6285,12 @@ body.text-size-xlarge .options-fs-overlay {
     outline: none !important;
     border-color: #1a73e8 !important;
     box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1) !important;
+}
+
+.fill-blank-input.bookmarked-answer-input,
+.fill-blank-input.bookmarked-answer-input:focus {
+    border-color: #fea706 !important;
+    box-shadow: 0 0 0 2px rgba(254, 167, 6, 0.18) !important;
 }
 
 .fill-blank-input.review-correct {

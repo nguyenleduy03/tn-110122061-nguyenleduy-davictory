@@ -112,6 +112,15 @@ const shouldPreserveAlignment = (node) => {
   return wordCount <= 10 && directBlockChildren.length <= 1 && brCount <= 1;
 };
 
+const getFontSizeValue = (node) => {
+  const raw = String(node?.getAttribute?.('style') || '');
+  const size = raw.match(/(?:^|;)\s*font-size\s*:\s*([^;]+)\s*(?:;|$)/i)?.[1];
+  if (!size) return '';
+
+  const normalized = String(size).trim();
+  return /^\d+(?:\.\d+)?(?:px|pt|em|rem|%)$/i.test(normalized) ? normalized : '';
+};
+
 /**
  * Serialize a contentEditable element so root text alignment survives save/load.
  * This preserves innerHTML and wraps it when the editable itself is centered/right-aligned.
@@ -264,6 +273,7 @@ export const sanitizeRichPasteHtml = (html) => {
       const children = Array.from(node.childNodes).map(serialize).join('');
       const style = node.getAttribute?.('style') || '';
       const align = getTextAlign(node);
+      const fontSize = getFontSizeValue(node);
       const isEmptyBlock = !children || !children.replace(/<br\s*\/?>/gi, '').trim();
 
       // Drop empty wrappers from ChatGPT-style copied content.
@@ -276,6 +286,7 @@ export const sanitizeRichPasteHtml = (html) => {
       if (isUnderlineStyle(style)) content = `<u>${content}</u>`;
       if (isItalicStyle(style)) content = `<em>${content}</em>`;
       if (isBoldStyle(style)) content = `<strong>${content}</strong>`;
+      if (fontSize) content = `<span style="font-size:${fontSize};">${content}</span>`;
 
       switch (tag) {
         case 'strong':
@@ -354,26 +365,37 @@ export const stripInlineStyles = (html) => {
     allElements.forEach(el => {
       const style = String(el.getAttribute('style') || '');
       const align = style.match(/(?:^|;)\s*text-align\s*:\s*(left|center|right|justify)\s*(?:;|$)/i)?.[1];
+      const fontSize = style.match(/(?:^|;)\s*font-size\s*:\s*([^;]+)\s*(?:;|$)/i)?.[1];
       if (align && shouldPreserveAlignment(el)) el.setAttribute('data-rte-align', align.toLowerCase());
+      if (fontSize && /^\d+(?:\.\d+)?(?:px|pt|em|rem|%)$/i.test(fontSize.trim())) {
+        el.setAttribute('data-rte-font-size', fontSize.trim());
+      }
       el.removeAttribute('style');
       el.removeAttribute('class');
       el.removeAttribute('id');
     });
 
-    // Unwrap only span and div tags (keep strong, em, u, b, i, etc.)
+    // Keep block wrappers that carry alignment/size, unwrap only inline wrappers.
     let changed = true;
     while (changed) {
       changed = false;
-      const wrappers = temp.querySelectorAll('span, div');
+      const wrappers = temp.querySelectorAll('span, div, p, section, article, header, footer, blockquote, figure, figcaption, h1, h2, h3, h4, h5, h6');
       wrappers.forEach(el => {
+        const fontSize = el.getAttribute('data-rte-font-size');
         if (el.getAttribute('data-rte-align')) {
           const align = el.getAttribute('data-rte-align');
           el.removeAttribute('data-rte-align');
+          if (fontSize) el.removeAttribute('data-rte-font-size');
           el.style.textAlign = align;
-          if (el.tagName.toLowerCase() === 'div') {
-            // Keep the wrapper so alignment is preserved.
-            return;
-          }
+          if (fontSize) el.style.fontSize = fontSize;
+          // Keep block wrappers so alignment is preserved.
+          return;
+        }
+
+        if (fontSize) {
+          el.removeAttribute('data-rte-font-size');
+          el.style.fontSize = fontSize;
+          return;
         }
 
         if (el.parentNode) {

@@ -59,7 +59,7 @@ const HeadingGap = ({ qId, number, answer, correctAnswer, handleAnswerChange, is
     return (
         <div id={`question-${number}`}
             onClick={(e) => { e.stopPropagation(); if (!isReview) setActiveQuestion(Number(number)); }}
-            className={`heading-gap-zone ${isFilled ? 'heading-gap-filled' : ''} ${isActive && !isFilled ? 'heading-gap-active' : ''} ${isReview ? (answer?.trim() === correctAnswer?.trim() ? 'review-correct' : 'review-wrong') : ''}`}
+            className={`heading-gap-zone ${isFilled ? 'heading-gap-filled' : ''} ${isActive && !isFilled ? 'heading-gap-active' : ''} ${!isReview && bookmarks?.[number] ? 'heading-gap-bookmarked' : ''} ${isReview ? (answer?.trim() === correctAnswer?.trim() ? 'review-correct' : 'review-wrong') : ''}`}
             onDragOver={handleDragOver}
             onDrop={isReview ? undefined : handleDrop}
             draggable={!isReview && isFilled}
@@ -86,57 +86,49 @@ const PassageContentStatic = React.memo(({ content }) => {
 
 const PassageRenderer = ({ part, answers, handleAnswerChange, activeQuestion, setActiveQuestion, bookmarks, toggleBookmark, isReview, testData }) => {
     const [gaps, setGaps] = React.useState([]);
-    const [bookmarkNodes, setBookmarkNodes] = React.useState([]);
+    const [headingBookmarkTop, setHeadingBookmarkTop] = React.useState(null);
     const startQuestionNumber = part.fromQuestion || 1;
     const containerRef = React.useRef(null);
+
+    const syncHeadingBookmarkPosition = React.useCallback(() => {
+        if (isReview || !containerRef.current) {
+            setHeadingBookmarkTop(null);
+            return;
+        }
+
+        const activeNumber = Number(activeQuestion);
+        if (!Number.isFinite(activeNumber)) {
+            setHeadingBookmarkTop(null);
+            return;
+        }
+
+        const activeGap = containerRef.current.querySelector(`.heading-gap[data-number="${activeNumber}"]`);
+        if (!activeGap) {
+            setHeadingBookmarkTop(null);
+            return;
+        }
+
+        const containerRect = containerRef.current.getBoundingClientRect();
+        const gapRect = activeGap.getBoundingClientRect();
+        const top = gapRect.top - containerRect.top;
+        setHeadingBookmarkTop(top);
+    }, [activeQuestion, isReview]);
 
     useLayoutEffect(() => {
         if (!containerRef.current) return undefined;
 
-        if (isReview) {
-            const existingTargets = containerRef.current.querySelectorAll('.bookmark-portal-target');
-            existingTargets.forEach((target) => target.remove());
-            setBookmarkNodes([]);
-        }
-
-        const processGaps = (nodes) => {
-            if (isReview) {
-                setBookmarkNodes([]);
-                return;
-            }
-            const bNodes = [];
-            nodes.forEach(node => {
-                let p = node.nextElementSibling || node.parentElement;
-                if (p && p.tagName !== 'P') {
-                    const parentP = node.closest('p');
-                    if (parentP) p = parentP;
-                }
-
-                if (p && p.tagName === 'P') {
-                    let bContainer = p.querySelector('.bookmark-portal-target');
-                    if (!bContainer) {
-                        bContainer = document.createElement('span');
-                        bContainer.className = 'bookmark-portal-target';
-                        if (p.firstChild) p.insertBefore(bContainer, p.firstChild);
-                        else p.appendChild(bContainer);
-                    }
-                    bNodes.push({ container: bContainer, num: node.getAttribute('data-number') });
-                }
-            });
-            setBookmarkNodes(bNodes);
-        };
+        const existingTargets = containerRef.current.querySelectorAll('.bookmark-portal-target');
+        existingTargets.forEach((target) => target.remove());
 
         const mountGaps = () => {
             if (!containerRef.current) return false;
             const nodes = Array.from(containerRef.current.querySelectorAll('.heading-gap'));
             if (nodes.length === 0) {
                 setGaps([]);
-                setBookmarkNodes([]);
                 return false;
             }
 
             setGaps(nodes);
-            processGaps(nodes);
             return true;
         };
 
@@ -157,6 +149,17 @@ const PassageRenderer = ({ part, answers, handleAnswerChange, activeQuestion, se
             window.clearTimeout(timeoutId);
         };
     }, [part?.id, part?.passageTitle, part?.passageContent, isReview]);
+
+    useLayoutEffect(() => {
+        syncHeadingBookmarkPosition();
+    }, [syncHeadingBookmarkPosition, gaps, answers]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return undefined;
+        const handleResize = () => syncHeadingBookmarkPosition();
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, [syncHeadingBookmarkPosition]);
 
     return (
         <div className="passage-renderer-wrapper" ref={containerRef}>
@@ -190,29 +193,20 @@ const PassageRenderer = ({ part, answers, handleAnswerChange, activeQuestion, se
                         handleAnswerChange={handleAnswerChange}
                         isActive={activeQuestion == number}
                         setActiveQuestion={setActiveQuestion}
+                        bookmarks={bookmarks}
                         isReview={isReview}
                     />,
                     node
                 );
             })}
-            {!isReview && bookmarkNodes.map((bNode, i) => {
-                const bookmarkNumber = Number.parseInt(bNode.num, 10);
-                const shouldShowBookmark = Number.isFinite(bookmarkNumber)
-                    && bookmarkNumber === Number(activeQuestion);
-
-                if (!shouldShowBookmark) return null;
-
-                return createPortal(
-                    <BookmarkToggle
-                        className="bookmark-portal-container"
-                        size={16}
-                        active={Boolean(bookmarks?.[bookmarkNumber])}
-                        onToggle={() => toggleBookmark?.(bookmarkNumber)}
-                    />,
-                    bNode.container,
-                    `bookmark-portal-${bookmarkNumber}-${i}`
-                );
-            })}
+            {!isReview && headingBookmarkTop !== null && Number.isFinite(Number(activeQuestion)) && (
+                <BookmarkToggle
+                    className="question-bookmark heading-floating-bookmark"
+                    style={{ top: `${headingBookmarkTop}px` }}
+                    active={Boolean(bookmarks?.[Number(activeQuestion)])}
+                    onToggle={() => toggleBookmark?.(Number(activeQuestion))}
+                />
+            )}
         </div>
     );
 };
@@ -860,9 +854,19 @@ const IeltsReadingTest = () => {
                                                 ? q.subQuestions.map((sq) => sq.number).filter((n) => n != null)
                                                 : (q?.number != null ? [q.number] : []);
 
+                                        const hasBookmarkedInBlock = !isReview && questionNumbers.some((n) => Boolean(bookmarks?.[n]));
+                                        const isActiveBlock = questionNumbers.includes(activeQuestion);
+                                        const questionBlockClassName = [
+                                            'question-focus-frame',
+                                            hasBookmarkedInBlock
+                                                ? 'question-focus-bookmarked'
+                                                : (isActiveBlock ? 'question-focus-active' : '')
+                                        ].filter(Boolean).join(' ');
+
                                         return (
                                             <div
                                                 key={q.id}
+                                                className={questionBlockClassName}
                                                 data-question-numbers={questionNumbers.length ? questionNumbers.join(' ') : undefined}
                                             >
                                                 <QuestionRenderer
