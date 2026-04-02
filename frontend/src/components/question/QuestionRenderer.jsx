@@ -294,7 +294,7 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
                         onChange={(e) => { if (!isReview) handleAnswerChange?.(subQ.id, e.target.value); }}
                         readOnly={isReview}
                     />
-                    {!isReview && (
+                    {!isReview && isActive && (
                         <BookmarkToggle
                             className="tc-bookmark"
                             active={Boolean(bookmarks?.[subQ.number])}
@@ -329,6 +329,7 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
                             <div key={subQ.id} className="table-cell-input relative-pos">
                                 <label>Q{subQ.number}</label>
                                 {(() => {
+                                    const isActive = activeQuestion === subQ.number;
                                     const rawValue = answerMap[subQ.id] || '';
                                     const isCorrect = checkAnswer(rawValue, subQ.correctAnswer);
                                     const displayValue = (isReview && !isCorrect)
@@ -342,12 +343,13 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
                                             placeholder={`Q${subQ.number}`}
                                             value={displayValue}
                                             onClick={() => setActiveQuestion?.(subQ.number)}
+                                            onFocus={() => { if (!isReview) setActiveQuestion?.(subQ.number); }}
                                             onChange={(e) => { if (!isReview) handleAnswerChange?.(subQ.id, e.target.value); }}
                                             readOnly={isReview}
                                         />
                                     );
                                 })()}
-                                {!isReview && (
+                                {!isReview && activeQuestion === subQ.number && (
                                     <BookmarkToggle
                                         className="tc-bookmark"
                                         active={Boolean(bookmarks?.[subQ.number])}

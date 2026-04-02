@@ -8,6 +8,7 @@ const FillInBlankQuestion = ({ q, activeQuestion, setActiveQuestion, answer, han
         .replace(/\[\s*blank\s*\]/gi, '_______');
     const parts = normalizedText ? normalizedText.split('_______') : [];
     const opts = q.validationOptions || {};
+    const isActive = activeQuestion === q.number;
 
     const normalizeAnswer = (text) => {
         let s = String(text || '').trim();
@@ -31,11 +32,11 @@ const FillInBlankQuestion = ({ q, activeQuestion, setActiveQuestion, answer, han
         ? String(q.correctAnswer || '').split('|')[0]
         : String(answer || '');
 
-    if (parts.length < 2) return <li id={`question-${q.number}`} className="fill-in-blank-item">{!isReview && <BookmarkToggle className="fill-in-blank-bookmark" active={Boolean(bookmarks?.[q.number])} onToggle={() => toggleBookmark?.(q.number)} />}{q.text}</li>;
+    if (parts.length < 2) return <li id={`question-${q.number}`} className="fill-in-blank-item" onClick={() => setActiveQuestion?.(q.number)}>{!isReview && isActive && <BookmarkToggle className="fill-in-blank-bookmark" active={Boolean(bookmarks?.[q.number])} onToggle={() => toggleBookmark?.(q.number)} />}{q.text}</li>;
 
     return (
-        <li id={`question-${q.number}`} className="fill-in-blank-item">
-            {!isReview && (
+        <li id={`question-${q.number}`} className="fill-in-blank-item" onClick={() => setActiveQuestion?.(q.number)}>
+            {!isReview && isActive && (
                 <BookmarkToggle
                     className="fill-in-blank-bookmark"
                     active={Boolean(bookmarks?.[q.number])}

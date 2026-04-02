@@ -195,17 +195,24 @@ const PassageRenderer = ({ part, answers, handleAnswerChange, activeQuestion, se
                     node
                 );
             })}
-            {!isReview && bookmarkNodes.map((bNode, i) => (
-                createPortal(
+            {!isReview && bookmarkNodes.map((bNode, i) => {
+                const bookmarkNumber = Number.parseInt(bNode.num, 10);
+                const shouldShowBookmark = Number.isFinite(bookmarkNumber)
+                    && bookmarkNumber === Number(activeQuestion);
+
+                if (!shouldShowBookmark) return null;
+
+                return createPortal(
                     <BookmarkToggle
                         className="bookmark-portal-container"
                         size={16}
-                        active={Boolean(bookmarks?.[bNode.num])}
-                        onToggle={() => toggleBookmark?.(bNode.num)}
+                        active={Boolean(bookmarks?.[bookmarkNumber])}
+                        onToggle={() => toggleBookmark?.(bookmarkNumber)}
                     />,
-                    bNode.container
-                )
-            ))}
+                    bNode.container,
+                    `bookmark-portal-${bookmarkNumber}-${i}`
+                );
+            })}
         </div>
     );
 };

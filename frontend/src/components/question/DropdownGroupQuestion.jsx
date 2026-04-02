@@ -125,7 +125,13 @@ const DropdownGroupQuestion = ({
                 className={`mcq-dropdown-select ${reviewClass}`}
                 value={displayValue || ''}
                 disabled={isReview}
-                onClick={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (!isReview) setActiveQuestion?.(number);
+                }}
+                onFocus={() => {
+                  if (!isReview) setActiveQuestion?.(number);
+                }}
                 onChange={(e) => handleChange(question.id, e.target.value)}
               >
                 <option value="">…</option>
@@ -135,7 +141,7 @@ const DropdownGroupQuestion = ({
                   </option>
                 ))}
               </select>
-              {!isReview && (
+              {!isReview && isActive && (
                 <BookmarkToggle
                   className="mcq-dropdown-bookmark"
                   active={Boolean(bookmarks?.[number])}

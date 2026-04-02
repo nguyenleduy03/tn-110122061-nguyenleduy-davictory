@@ -53,9 +53,13 @@ const MultipleChoiceQuestion = ({ q, activeQuestion, setActiveQuestion, answer, 
     // Image-based MCQ layout (like IELTS Listening image selection)
     if (hasImageOptions) {
         return (
-            <div className="tfng-question relative-pos">
+            <div
+                className="tfng-question relative-pos"
+                onClick={() => setActiveQuestion?.(q.number)}
+                onFocus={() => setActiveQuestion?.(q.number)}
+            >
                 <div className="tfng-text">
-                    {!isReview && (
+                    {!isReview && isActive && (
                         <BookmarkToggle
                             className="tfng-bookmark"
                             active={nums.some(n => bookmarks?.[n])}
@@ -120,9 +124,13 @@ const MultipleChoiceQuestion = ({ q, activeQuestion, setActiveQuestion, answer, 
 
     // Text-based MCQ layout (original)
     return (
-        <div className="tfng-question relative-pos">
+        <div
+            className="tfng-question relative-pos"
+            onClick={() => setActiveQuestion?.(q.number)}
+            onFocus={() => setActiveQuestion?.(q.number)}
+        >
             <div className="tfng-text">
-                {!isReview && (
+                {!isReview && isActive && (
                     <BookmarkToggle
                         className="tfng-bookmark"
                         active={nums.some(n => bookmarks?.[n])}

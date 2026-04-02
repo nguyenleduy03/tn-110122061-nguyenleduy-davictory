@@ -75,7 +75,7 @@ const MatchingFillQuestion = ({ q, activeQuestion, setActiveQuestion, answers, h
             style={{ marginBottom: 10 }}
           >
             <div className="tfng-text">
-              {!isReview && (
+              {!isReview && isActive && (
                 <BookmarkToggle
                   className="tfng-bookmark"
                   active={Boolean(bookmarks?.[subQ.number])}
@@ -94,7 +94,13 @@ const MatchingFillQuestion = ({ q, activeQuestion, setActiveQuestion, answers, h
                       onChange={(e) => !isReview && handleAnswerChange(subQ.id, e.target.value)}
                       placeholder={isReview ? '' : '...'}
                       disabled={isReview}
-                      onClick={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (!isReview) setActiveQuestion?.(subQ.number);
+                      }}
+                      onFocus={() => {
+                        if (!isReview) setActiveQuestion?.(subQ.number);
+                      }}
                       style={{ width: `clamp(80px, ${Math.max(8, answer.length + 2)}ch, 300px)` }}
                     />
                     <span dangerouslySetInnerHTML={{ __html: formatAndClean(inlineBlankParts.after) }} />
@@ -118,7 +124,13 @@ const MatchingFillQuestion = ({ q, activeQuestion, setActiveQuestion, answers, h
                   onChange={(e) => !isReview && handleAnswerChange(subQ.id, e.target.value)}
                   placeholder={isReview ? '' : 'Your answer...'}
                   disabled={isReview}
-                  onClick={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!isReview) setActiveQuestion?.(subQ.number);
+                  }}
+                  onFocus={() => {
+                    if (!isReview) setActiveQuestion?.(subQ.number);
+                  }}
                 />
                 {showCorrect && (
                   <div className="fill-blank-correct">

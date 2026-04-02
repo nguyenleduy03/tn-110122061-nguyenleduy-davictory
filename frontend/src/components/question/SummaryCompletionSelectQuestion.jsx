@@ -160,7 +160,7 @@ const SummaryCompletionSelectQuestion = ({ q, activeQuestion, setActiveQuestion,
                 className={`inline-question summary-inline-item ${isActive ? 'active-question-input' : ''} relative-pos`}
                 onClick={() => setActiveQuestion?.(qNum)}
             >
-                {!isReview && (
+                {!isReview && isActive && (
                     <BookmarkToggle
                         className="summary-bookmark"
                         active={Boolean(bookmarks?.[qNum])}

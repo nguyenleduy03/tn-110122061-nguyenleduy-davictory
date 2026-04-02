@@ -1640,7 +1640,7 @@
 
 .part-title-bookmark {
     position: absolute;
-    top: -12px;
+    top: -16px;
     left: 50%;
     transform: translateX(-50%);
     display: inline-flex;
@@ -1741,7 +1741,7 @@
 /* Bookmark flag above status dash in footer */
 .q-bookmark-flag {
     position: absolute;
-    top: -13px;
+    top: -16px;
     left: 50%;
     transform: translateX(-50%);
     width: 16px;

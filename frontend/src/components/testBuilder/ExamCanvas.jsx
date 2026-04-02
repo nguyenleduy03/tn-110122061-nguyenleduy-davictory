@@ -1358,7 +1358,9 @@ const ExamCanvas = ({
   const [showTimeModal, setShowTimeModal] = useState(false);
   const [draftTimeValue, setDraftTimeValue] = useState('');
   const [zoomLevel, setZoomLevel] = useState(100);
+  const [showFooter, setShowFooter] = useState(false);
   const [showZoomControls, setShowZoomControls] = useState(false);
+  const hideFooterTimeoutRef = useRef(null);
   const hideZoomTimeoutRef = useRef(null);
   
   const skillLabel = useMemo(() => {
@@ -1377,14 +1379,22 @@ const ExamCanvas = ({
     SPEAKING: 12,
   }[skill] ?? 60), [skill]);
 
-  // Handle scroll to show/hide zoom controls
+  // Handle scroll to show/hide footer and zoom controls
   useEffect(() => {
     const handleScroll = () => {
+      setShowFooter(true);
       setShowZoomControls(true);
       
+      if (hideFooterTimeoutRef.current) {
+        clearTimeout(hideFooterTimeoutRef.current);
+      }
       if (hideZoomTimeoutRef.current) {
         clearTimeout(hideZoomTimeoutRef.current);
       }
+      
+      hideFooterTimeoutRef.current = setTimeout(() => {
+        setShowFooter(false);
+      }, 3000);
       
       hideZoomTimeoutRef.current = setTimeout(() => {
         setShowZoomControls(false);
@@ -1395,6 +1405,9 @@ const ExamCanvas = ({
     
     return () => {
       window.removeEventListener('scroll', handleScroll, true);
+      if (hideFooterTimeoutRef.current) {
+        clearTimeout(hideFooterTimeoutRef.current);
+      }
       if (hideZoomTimeoutRef.current) {
         clearTimeout(hideZoomTimeoutRef.current);
       }
@@ -1585,22 +1598,43 @@ const ExamCanvas = ({
         </div>
       )}
 
-      {/* Part tabs */}
-      <div className="tb-part-tabs">
-        {parts.map((p) => {
-          const questionCount = (p.questionGroups ?? []).reduce((sum, g) => {
+      {/* Footer: Part question counts */}
+      {showFooter && (
+        <div className="exam-canvas-footer" style={{ 
+          position: 'fixed', 
+          bottom: 0, 
+          left: '280px',
+          width: 'calc(100vw - 580px)',
+          zIndex: 99,
+          background: 'white',
+          borderTop: '1px solid #e5e7eb',
+          transition: 'opacity 0.3s ease',
+          opacity: showFooter ? 1 : 0
+        }}>
+        {parts.map((part) => {
+          const questionCount = (part.questionGroups ?? []).reduce((sum, g) => {
             if (g.contentType === 'AUDIO_TRANSCRIPT') return sum;
             return sum + (g.questions ?? []).reduce((qSum, q) => qSum + (q.questionCount || 1), 0);
           }, 0);
           return (
-            <button key={p.id}
-              className={`tb-part-tab${activePart?.id === p.id ? ' active' : ''}`}
-              onClick={() => setActivePartId(p.id)}>
-              {p.name || `Part ${p.orderIndex}`}
-              {questionCount > 0 && <span style={{ marginLeft: 6, fontSize: 11, opacity: 0.7 }}>({questionCount})</span>}
-            </button>
+            <div key={part.id} className="exam-footer-part">
+              <span className="exam-footer-part-name">{part.name}</span>
+              <span className="exam-footer-part-count">{questionCount} câu</span>
+            </div>
           );
         })}
+        </div>
+      )}
+
+      {/* Part tabs */}
+      <div className="tb-part-tabs">
+        {parts.map((p) => (
+          <button key={p.id}
+            className={`tb-part-tab${activePart?.id === p.id ? ' active' : ''}`}
+            onClick={() => setActivePartId(p.id)}>
+            {p.name || `Part ${p.orderIndex}`}
+          </button>
+        ))}
         <button className="tb-part-tab-add" title="Thêm Part mới" onClick={onAddPart}>+</button>
       </div>
 

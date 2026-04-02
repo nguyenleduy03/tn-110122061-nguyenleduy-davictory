@@ -23,7 +23,7 @@ const TFNGQuestion = ({ q, activeQuestion, setActiveQuestion, answer, handleAnsw
         >
 
             <div className="tfng-text">
-                {!isReview && (
+                {!isReview && isActive && (
                     <BookmarkToggle
                         className="tfng-bookmark"
                         active={nums.some(n => bookmarks?.[n])}

@@ -171,7 +171,7 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                     const inlineBlankParts = extractInlineBlankParts(subQ.text || '');
                     const hasInlineBlank = !!inlineBlankParts;
 
-                    const bookmarkNode = !isReview ? (
+                    const bookmarkNode = !isReview && isActive ? (
                         <BookmarkToggle
                             className="dd-bookmark-btn"
                             active={Boolean(bookmarks?.[subQ.number])}
@@ -324,7 +324,7 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                                                 const hasDisplayAnswer = displayAnswer.trim() !== '';
                                                 const isActive = subQ ? activeQuestion === subQ.number : false;
                                                 const showQuestionNumber = !hasDisplayAnswer;
-                                                const hasBookmark = !isReview && !!subQ;
+                                                const hasBookmark = !isReview && !!subQ && isActive;
 
                                                 return (
                                                     <span
@@ -436,7 +436,7 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                                             minWidth: `${pinBoxWidth}px`
                                         }}
                                     >
-                                        {!isReview && (
+                                        {!isReview && isActive && (
                                             <BookmarkToggle
                                                 className="drop-zone-bookmark"
                                                 active={Boolean(bookmarks?.[subQ.number])}
@@ -595,7 +595,7 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                                     >
                                         <td className="mf-td-item">
                                             <div className="mf-item-inner">
-                                                {!isReview && (
+                                                {!isReview && isActive && (
                                                     <BookmarkToggle
                                                         className="mf-bookmark-btn"
                                                         active={Boolean(bookmarks?.[subQ.number])}
