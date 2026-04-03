@@ -466,10 +466,12 @@ function serializeGroupContent(group, part) {
   if (ct === 'IMAGE_NOTE_FORM') {
     const topNoteText = group.topNoteText ?? (group.imagePosition === 'bottom' ? '' : (group.noteText || ''));
     const bottomNoteText = group.bottomNoteText ?? (group.imagePosition === 'bottom' ? (group.noteText || '') : '');
+    const combinedNoteText = [topNoteText, bottomNoteText].filter(Boolean).join('\n\n');
     return JSON.stringify({
-      noteText: group.noteText || [topNoteText, bottomNoteText].filter(Boolean).join('\n\n'),
+      noteText: combinedNoteText || group.noteText || '',
       topNoteText,
       bottomNoteText,
+      instructions: group.instructions || '',
       imagePosition: group.imagePosition || 'top',
       imageWidth: group.imageWidth || 100,
       pinBoxWidth: group.pinBoxWidth || 60,

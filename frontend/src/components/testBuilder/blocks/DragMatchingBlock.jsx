@@ -29,19 +29,27 @@ const DragMatchingBlock = ({ group, onUpdate, onDelete, onSelect, selected, drag
   const handleImportOptions = (text) => {
     const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
     if (lines.length === 0) return;
+    
+    // Xóa option rỗng (không có text)
+    const nonEmptyOptions = options.filter(o => o.text?.trim());
+    
     const imported = lines.map((label, i) => ({
       id: `opt-${Date.now()}-${i}`,
       text: label
     }));
-    onUpdate(group.id, { optionBank: [...options, ...imported] });
+    onUpdate(group.id, { optionBank: [...nonEmptyOptions, ...imported] });
     setShowImportOptions(false);
   };
 
   const handleImportQuestions = (text) => {
     const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
     if (lines.length === 0) return;
-    const startNum = questions.length > 0
-      ? Math.max(...questions.map(q => q.questionNumber || 0)) + 1
+    
+    // Xóa câu rỗng (không có questionText)
+    const nonEmptyQuestions = questions.filter(q => q.questionText?.trim());
+    
+    const startNum = nonEmptyQuestions.length > 0
+      ? Math.max(...nonEmptyQuestions.map(q => q.questionNumber || 0)) + 1
       : (group.fromQuestion || 1);
     const imported = lines.map((qText, i) => ({
       id: `q-${Date.now()}-${i}`,
@@ -50,7 +58,7 @@ const DragMatchingBlock = ({ group, onUpdate, onDelete, onSelect, selected, drag
       answerText: '',
       answers: [{ blankIndex: 1, isCaseSensitive: false, answerText: '' }]
     }));
-    onUpdate(group.id, { questions: [...questions, ...imported] });
+    onUpdate(group.id, { questions: [...nonEmptyQuestions, ...imported] });
     setShowImportQuestions(false);
   };
   return (

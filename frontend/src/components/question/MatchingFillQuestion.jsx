@@ -100,7 +100,6 @@ const MatchingFillQuestion = ({ q, activeQuestion, setActiveQuestion, answers, h
                       onFocus={() => {
                         if (!isReview) setActiveQuestion?.(subQ.number);
                       }}
-                      style={{ width: `clamp(80px, ${Math.max(8, answer.length + 2)}ch, 300px)` }}
                     />
                     <span dangerouslySetInnerHTML={{ __html: formatAndClean(inlineBlankParts.after) }} />
                     {showCorrect && (

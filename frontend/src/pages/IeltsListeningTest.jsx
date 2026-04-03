@@ -104,6 +104,7 @@ const IeltsListeningTest = () => {
     const audioResumeRef = useRef({ partIndex: 0, seconds: 0 });
     const audioCycleCountRef = useRef(0);
     const currentPartIndexRef = useRef(0);
+    const audioUserInitiatedRef = useRef(false);
     const skipExitSnapshotRef = useRef(false);
 
     const [searchParams] = useSearchParams();
@@ -150,7 +151,8 @@ const IeltsListeningTest = () => {
     const restoreRuntimeSnapshot = useCallback(() => {
         if (isReview || !testId) {
             audioResumeRef.current = { partIndex: 0, seconds: 0 };
-            setAudioStarted(Boolean(isReview));
+            audioUserInitiatedRef.current = false;
+            setAudioStarted(false);
             return;
         }
 
@@ -177,8 +179,8 @@ const IeltsListeningTest = () => {
             seconds: resumeSeconds,
         };
 
-        // Auto-start Listening when entering the test.
-        setAudioStarted(true);
+        audioUserInitiatedRef.current = false;
+        setAudioStarted(false);
     }, [isReview, testId, isFullTest, fullTestSnapshotKey, draftStorageKey]);
 
     useEffect(() => {
@@ -365,7 +367,7 @@ const IeltsListeningTest = () => {
     }, [currentPartIndex, effectiveAudioUrl, audioPlayCycles, advanceToNextListeningPart]);
 
     useEffect(() => {
-        if (!audioStarted || isReview) return;
+        if (!audioStarted || isReview || !audioUserInitiatedRef.current) return;
         const audioEl = audioRef.current;
         if (!audioEl) return;
 
@@ -398,6 +400,7 @@ const IeltsListeningTest = () => {
     }, [audioStarted, isReview, currentPartIndex, effectiveAudioUrl, audioPlayCycles]);
 
     const handlePlay = () => {
+        audioUserInitiatedRef.current = true;
         if (audioCycleCountRef.current >= audioPlayCycles) {
             audioCycleCountRef.current = 0;
         }
@@ -580,7 +583,8 @@ const IeltsListeningTest = () => {
                     : 0,
             };
 
-            setAudioStarted(Boolean(isReview));
+            audioUserInitiatedRef.current = false;
+            setAudioStarted(false);
         };
 
         restoreSnapshot();
@@ -617,7 +621,8 @@ const IeltsListeningTest = () => {
                 : 0,
         };
 
-        setAudioStarted(Boolean(isReview));
+        audioUserInitiatedRef.current = false;
+        setAudioStarted(false);
     }, [isFullTest, isReview, partCount, testId, draftStorageKey, setCurrentPartIndex, setActiveQuestion]);
 
     useEffect(() => {
@@ -1051,7 +1056,7 @@ const IeltsListeningTest = () => {
             )}
 
             {/* Audio start overlay */}
-            {!audioStarted && (
+            {!audioStarted && !isReview && (
                 <div className="listening-audio-overlay">
                     <Headphones size={80} strokeWidth={1.5} />
                     <p className="listening-audio-warning">

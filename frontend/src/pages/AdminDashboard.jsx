@@ -147,6 +147,16 @@ export default function AdminDashboard() {
           onClick={() => setShowAddUser(true)}
           style={{
             display: 'inline-flex',
+
+          <AdminCard
+            icon={FileText}
+            title="Quản lý đề thi"
+            description="Xem, chỉnh sửa và quản trị toàn bộ đề thi trong hệ thống"
+            color="#0f766e"
+            actions={[
+              { label: 'Mở quản lý đề thi', href: '/admin/tests', primary: true }
+            ]}
+          />
             alignItems: 'center',
             gap: '8px',
             padding: '10px 16px',

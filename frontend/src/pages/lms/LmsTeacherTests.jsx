@@ -32,6 +32,7 @@ const STATUS_LABELS = {
   REVIEWING: 'Đang duyệt',
   PUBLISHED: 'Đã phát hành',
   ARCHIVED: 'Lưu trữ',
+  DELETED: 'Thùng rác',
 };
 
 const STATUS_FILTERS = [
@@ -40,6 +41,7 @@ const STATUS_FILTERS = [
   { value: 'REVIEWING', label: 'Đang duyệt' },
   { value: 'PUBLISHED', label: 'Đã phát hành' },
   { value: 'ARCHIVED', label: 'Lưu trữ' },
+  { value: 'DELETED', label: 'Thùng rác' },
 ];
 
 const TYPE_FILTERS = [
@@ -111,6 +113,7 @@ export default function LmsTeacherTests() {
   });
 
   const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+  const isAdmin = authApi.hasRole('ADMIN');
 
   // Fetch teachers for filter (disabled - requires MANAGER/ADMIN role)
   // useEffect(() => {
@@ -327,6 +330,23 @@ export default function LmsTeacherTests() {
     } catch (err) {
       console.error(err);
       setError('Nhân bản đề thi thất bại. Vui lòng thử lại.');
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleMoveToTrash = async (test) => {
+    if (!test?.id) return;
+    if (!window.confirm(`Đưa đề thi "${test.title || 'Không tên'}" vào thùng rác?`)) return;
+
+    setActionLoadingId(test.id);
+    setError('');
+    try {
+      await testBuilderApi.deleteTest(test.id);
+      await fetchTests();
+    } catch (err) {
+      console.error(err);
+      setError('Đưa đề thi vào thùng rác thất bại. Vui lòng thử lại.');
     } finally {
       setActionLoadingId(null);
     }
@@ -611,13 +631,25 @@ export default function LmsTeacherTests() {
                           <button
                             type="button"
                             className="lms-cta ghost"
-                            onClick={() => handlePermanentDelete(test)}
+                            onClick={() => handleMoveToTrash(test)}
                             disabled={actionLoadingId === test.id}
-                            style={{ borderColor: '#fecaca', color: '#dc2626' }}
+                            style={{ borderColor: '#fed7aa', color: '#c2410c' }}
                           >
                             {actionLoadingId === test.id ? <Loader2 size={14} className="lms-spin" /> : <Trash2 size={14} />}
-                            Xóa vĩnh viễn
+                            Cho vào thùng rác
                           </button>
+                          {isAdmin && (
+                            <button
+                              type="button"
+                              className="lms-cta ghost"
+                              onClick={() => handlePermanentDelete(test)}
+                              disabled={actionLoadingId === test.id}
+                              style={{ borderColor: '#fecaca', color: '#dc2626' }}
+                            >
+                              {actionLoadingId === test.id ? <Loader2 size={14} className="lms-spin" /> : <Trash2 size={14} />}
+                              Xóa vĩnh viễn
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

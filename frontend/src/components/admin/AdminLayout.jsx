@@ -13,6 +13,7 @@ import '../../styles/adminDashboard.css';
 const NAV_ITEMS = [
   { label: 'Tổng quan', path: '/admin', icon: LayoutDashboard },
   { label: 'Người dùng', path: '/admin/users', icon: Users },
+  { label: 'Đề thi', path: '/admin/tests', icon: School },
   { label: 'Giảng viên & lớp', path: '/admin/teacher-class', icon: School },
   { label: 'Hệ thống', path: '/debug', icon: Database },
   { label: 'Cài đặt', path: '/admin/settings', icon: Settings },
@@ -42,6 +43,7 @@ export default function AdminLayout({ title, subtitle, children }) {
                 (item.path === '/admin' &&
                   location.pathname.startsWith('/admin') &&
                   !location.pathname.startsWith('/admin/users') &&
+                  !location.pathname.startsWith('/admin/tests') &&
                   !location.pathname.startsWith('/admin/teacher-class'));
 
               return (

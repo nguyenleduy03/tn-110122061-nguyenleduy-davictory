@@ -62,10 +62,16 @@ const RichBlankEditor = ({
 
   const saveValue = () => serializeContentEditableHtml(editorRef.current).replace(/\[blank\]/gi, '[blank]');
 
-  // Set initial HTML on mount only (avoids cursor-jumping on re-renders)
+  // Keep the editor in sync with external value changes without fighting local typing.
   useEffect(() => {
-    if (editorRef.current) editorRef.current.innerHTML = toHTML(value || '');
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!editorRef.current) return;
+
+    const nextHtml = toHTML(value || '');
+    if (editorRef.current.innerHTML === nextHtml) return;
+
+    editorRef.current.innerHTML = nextHtml;
+    renumber();
+  }, [value]);
 
   useEffect(() => {
     const updateSelection = () => {

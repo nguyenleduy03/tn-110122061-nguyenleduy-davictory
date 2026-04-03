@@ -80,6 +80,7 @@ function App() {
           <Route path="/my-dashboard/settings" element={<ProtectedRoute><DashboardSettings /></ProtectedRoute>} />
           <Route path="/admin" element={<RoleBasedRoute requiredRole="ADMIN"><ErrorBoundary><AdminDashboard /></ErrorBoundary></RoleBasedRoute>} />
           <Route path="/admin/users" element={<RoleBasedRoute requiredRole="ADMIN"><ErrorBoundary><AdminUsers /></ErrorBoundary></RoleBasedRoute>} />
+          <Route path="/admin/tests" element={<RoleBasedRoute requiredRole="ADMIN"><Navigate to="/lms/teacher/tests" replace /></RoleBasedRoute>} />
           <Route path="/admin/drive" element={<RoleBasedRoute requiredRole="ADMIN"><Navigate to="/admin#drive" replace /></RoleBasedRoute>} />
           <Route path="/admin/teacher-class" element={<RoleBasedRoute requiredRole="ADMIN"><ErrorBoundary><ClassManagement /></ErrorBoundary></RoleBasedRoute>} />
 

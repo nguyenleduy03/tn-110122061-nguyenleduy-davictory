@@ -2,6 +2,7 @@
 
 :root {
     --answer-input-font-size: 15px;
+    --answer-input-width: 120px;
     /* IELTS typography controls: edit these 4 values in one place */
     --ielts-question-content-font-size: 15px;
     --ielts-question-content-line-height: 1.6;
@@ -1133,7 +1134,7 @@
     flex-shrink: 0;
     background-color: #ffffff;
     border: 1px solid #c6ccd4;
-    padding: clamp(12px, 1.5vw, 16px) clamp(12px, 2vw, 15px);
+    padding: clamp(12px, 1.5vw, 15px) clamp(12px, 2vw, 15px);
     margin: clamp(10px, 1.2vw, 15px) clamp(16px, 2.5vw, 40px);
     border-radius: 4px;
 }
@@ -1142,6 +1143,14 @@
 .instruction-bar h3 {
     margin: 0 0 8px 0;
     font-size: 16px;
+}
+
+.instruction-bar .instruction-bar-title {
+    font-weight: 700;
+}
+
+.instruction-bar .instruction-bar-title * {
+    font-weight: 700 !important;
 }
 
 .instruction-bar .instruction-bar-content,
@@ -1433,7 +1442,7 @@
     font-size: var(--answer-input-font-size);
     font-weight: 400;
     outline: none;
-    width: 140px;
+    width: var(--answer-input-width);
     text-align: center;
     box-sizing: border-box;
     background-color: #fff;
@@ -1626,7 +1635,7 @@
 /* Footer Navigation */
 .ielts-footer {
     flex-shrink: 0;
-    height: 64px;
+    height: 55px;
     display: flex;
     align-items: stretch;
     position: relative;
@@ -1691,7 +1700,7 @@
 
 .part-title-bookmark {
     position: absolute;
-    top: -16px;
+    top: -12px;
     left: 50%;
     transform: translateX(-50%);
     display: inline-flex;
@@ -1792,7 +1801,7 @@
 /* Bookmark flag above status dash in footer */
 .q-bookmark-flag {
     position: absolute;
-    top: -16px;
+    top: -12px;
     left: 50%;
     transform: translateX(-50%);
     width: 16px;
@@ -4568,8 +4577,8 @@
 .summary-title {
     margin-top: 0;
     margin-bottom: 10px;
-    font-size: var(--ielts-question-content-font-size);
-    line-height: var(--ielts-question-content-line-height);
+    font-size: var(--ielts-question-instruction-font-size);
+    line-height: var(--ielts-question-instruction-line-height);
     font-weight: 400;
 }
 
@@ -4577,7 +4586,7 @@
     font-size: var(--ielts-question-content-font-size);
     line-height: var(--ielts-question-content-line-height);
     white-space: normal;
-    font-family: Arial, Helvetica, sans-serif;
+    font-family: inherit;
 }
 
 .summary-text li>p,
@@ -4600,7 +4609,7 @@
 }
 
 .summary-input {
-    width: 120px;
+    width: var(--answer-input-width);
     text-align: center;
     font-weight: 400;
 }
@@ -5892,8 +5901,8 @@ body.text-size-xlarge .options-fs-overlay {
 }
 
 .tc-inline-input {
-    width: 72px;
-    min-width: 64px;
+    width: var(--answer-input-width);
+    min-width: var(--answer-input-width);
     text-align: center;
     margin: 0 4px;
     font-size: var(--answer-input-font-size);
@@ -6756,9 +6765,9 @@ body.text-size-xlarge .options-fs-overlay {
 }
 
 .fill-blank-input.inline {
-    width: auto !important;
-    min-width: 80px !important;
-    max-width: 300px !important;
+    width: var(--answer-input-width) !important;
+    min-width: var(--answer-input-width) !important;
+    max-width: var(--answer-input-width) !important;
     display: inline-block !important;
     vertical-align: baseline !important;
     margin: 0 6px !important;

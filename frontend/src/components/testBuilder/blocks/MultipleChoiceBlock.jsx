@@ -81,8 +81,11 @@ const MultipleChoiceBlock = ({ group, onUpdate, onDelete, onSelect, selected, dr
   const handleImportOptions = (q, text) => {
     const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
     if (lines.length === 0) return;
-    const existingOpts = q.options || [];
+    
+    // Xóa option rỗng (không có optionText)
+    const existingOpts = (q.options || []).filter(o => o.optionText?.trim());
     const startIdx = existingOpts.length;
+    
     const imported = lines.map((optText, i) => ({
       id: Date.now() + i,
       optionLabel: String.fromCharCode(65 + startIdx + i),
