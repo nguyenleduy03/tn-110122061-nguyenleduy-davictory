@@ -173,8 +173,8 @@ const MCQQuestion = ({ q, multiple, active, onSetActive }) => {
                 {o.optionMode === 'image' && o.optionImageUrl
                   ? <img src={o.optionImageUrl} alt={o.optionLabel} style={{ maxWidth: 140, maxHeight: 90, borderRadius: 4, display: 'block' }} />
                   : (o.optionText
-                      ? <span dangerouslySetInnerHTML={{ __html: formatPreviewText(o.optionText) }} />
-                      : <em className="pv-empty">...</em>)
+                    ? <span dangerouslySetInnerHTML={{ __html: formatPreviewText(o.optionText) }} />
+                    : <em className="pv-empty">...</em>)
                 }
               </span>
             </label>
@@ -1217,7 +1217,7 @@ export const SharedOptionsDropdownGroup = ({ group, activeQ, onSetActive }) => {
         answers={answers}
         handleAnswerChange={handleAnswerChange}
         bookmarks={{}}
-        toggleBookmark={() => {}}
+        toggleBookmark={() => { }}
         isReview={false}
       />
     </div>

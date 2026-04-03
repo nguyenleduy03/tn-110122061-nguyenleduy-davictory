@@ -6198,9 +6198,39 @@ body.text-size-xlarge .options-fs-overlay {
 
 .mcq-dropdown-layout {
     display: grid;
-    grid-template-columns: minmax(180px, 240px) 1fr;
-    gap: 20px;
+    grid-template-columns: max-content auto;
+    column-gap: 12px;
+    row-gap: 12px;
     align-items: start;
+    justify-content: start;
+    width: 100%;
+}
+
+.mcq-dropdown-layout.no-legend {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.mcq-dropdown-questions-col {
+    min-width: 0;
+}
+
+.mcq-dropdown-group-image {
+    margin: 8px 0 12px;
+}
+
+.mcq-dropdown-group-image img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.mcq-dropdown-legend-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-self: end;
+    width: fit-content;
+    max-width: min(100%, 920px);
 }
 
 .mcq-dropdown-legend {
@@ -6208,7 +6238,7 @@ body.text-size-xlarge .options-fs-overlay {
     width: auto;
     min-width: 220px;
     list-style: none;
-    margin: 0 0 16px 0;
+    margin: 0;
     padding: 10px 12px;
     position: relative;
     border: 1px solid #ccc;
@@ -6218,11 +6248,7 @@ body.text-size-xlarge .options-fs-overlay {
     line-height: 1.6;
 }
 
-.mcq-dropdown-legend.has-title {
-    padding-top: 10px;
-}
-
-.mcq-dropdown-legend li:not(.mcq-dropdown-legend-title) {
+.mcq-dropdown-legend li {
     margin-bottom: 8px;
     white-space: pre-wrap;
     word-break: break-word;
@@ -6351,6 +6377,7 @@ body.text-size-xlarge .options-fs-overlay {
     font-size: 16px;
     line-height: 1.5;
     align-self: start;
+    margin-right: 4px;
     position: relative;
     flex-shrink: 0;
 }
@@ -6411,6 +6438,10 @@ body.text-size-xlarge .options-fs-overlay {
 @media (max-width: 640px) {
     .mcq-dropdown-layout {
         grid-template-columns: 1fr;
+    }
+
+    .mcq-dropdown-legend-wrap {
+        justify-self: start;
     }
 }
 

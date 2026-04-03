@@ -77,6 +77,7 @@ const DropdownGroupQuestion = ({
   const instructionText = (!hasMeaningfulText(instructionRaw) || isQuestionMetaLabel(instructionRaw)) ? '' : instructionRaw;
   const optionsTableTitleText = (!hasMeaningfulText(optionsTableTitleRaw) || isQuestionMetaLabel(optionsTableTitleRaw)) ? '' : optionsTableTitleRaw;
   const questionTitleText = (!hasMeaningfulText(questionTitleRaw) || isQuestionMetaLabel(questionTitleRaw)) ? '' : questionTitleRaw;
+  const showOptionsLegend = options.length > 0 && !group.hideOptionsTable;
 
   const handleChange = (questionId, value) => {
     if (isReview) return;
@@ -106,46 +107,98 @@ const DropdownGroupQuestion = ({
           />
         )}
 
-      {(group.imageUrl || (options.length > 0 && !group.hideOptionsTable)) && (
-        <div style={{ display: 'flex', gap: '20px', margin: '8px 0 12px', alignItems: 'flex-end' }}>
-          {group.imageUrl && (
-            <div style={{ width: `${group.imageWidth || 100}%` }}>
-              <img
-                src={resolveDrivePreviewUrl(group.imageUrl)}
-                alt="Question illustration"
-                style={{
-                  width: '100%',
-                  height: 'auto',
-                  display: 'block',
-                }}
-              />
-            </div>
+      {group.imageUrl && (
+        <div className="mcq-dropdown-group-image" style={{ width: `${group.imageWidth || 100}%` }}>
+          <img
+            src={resolveDrivePreviewUrl(group.imageUrl)}
+            alt="Question illustration"
+          />
+        </div>
+      )}
+
+      <div className={`mcq-dropdown-layout ${showOptionsLegend ? 'has-legend' : 'no-legend'}`}>
+        <div className="mcq-dropdown-questions-col">
+          {questionTitleText && (
+            <div
+              className="question-instruction dropdown-question-title"
+              dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(questionTitleText) }}
+            />
           )}
 
-          {options.length > 0 && !group.hideOptionsTable && (
-            <div
-              className="mcq-dropdown-legend-wrap"
-              style={{
-                flex: '0 1 auto',
-                margin: 0,
-                width: 'fit-content',
-                maxWidth: 'min(100%, 920px)'
-              }}
-            >
-              {optionsTableTitleText && (
+          <div className="mcq-dropdown-list">
+            {questions.map((question) => {
+              const number = question.number ?? question.questionNumber;
+              const current = answers?.[question.id] ?? '';
+              const correctKey = question.correctOptionKey ?? question.correctAnswer;
+              const isActive = activeQuestion === number;
+              const isBookmarked = Boolean(bookmarks?.[number]);
+
+              let displayValue = current;
+              let reviewClass = '';
+              if (isReview && correctKey) {
+                const isCorrect = current && String(current) === String(correctKey);
+                displayValue = isCorrect ? current : correctKey;
+                reviewClass = isCorrect ? 'review-correct' : 'review-wrong';
+              }
+
+              return (
                 <div
-                  className="mcq-dropdown-legend-title"
-                  dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(optionsTableTitleText) }}
-                />
-              )}
-              <ul
-                className="mcq-dropdown-legend"
-                style={{
-                  margin: 0,
-                  width: 'fit-content',
-                  maxWidth: 'min(100%, 920px)'
-                }}
-              >
+                  key={question.id}
+                  id={`question-${number}`}
+                  className={`mcq-dropdown-row ${isActive ? 'active-question question-focus-active' : ''} ${!isReview && isBookmarked ? 'question-focus-bookmarked' : ''}`}
+                  onClick={() => setActiveQuestion?.(number)}
+                >
+                  <span className="mcq-dropdown-number">{number}</span>
+                  <span
+                    className="mcq-dropdown-text"
+                    dangerouslySetInnerHTML={{
+                      __html: formatTextWithWhitespace(
+                        question.text || question.questionText || '',
+                      ),
+                    }}
+                  />
+                  <select
+                    className={`mcq-dropdown-select ${reviewClass}`}
+                    value={displayValue || ''}
+                    disabled={isReview}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (!isReview) setActiveQuestion?.(number);
+                    }}
+                    onFocus={() => {
+                      if (!isReview) setActiveQuestion?.(number);
+                    }}
+                    onChange={(e) => handleChange(question.id, e.target.value)}
+                  >
+                    <option value="">…</option>
+                    {options.map((opt) => (
+                      <option key={opt.key} value={opt.key}>
+                        {opt.key}
+                      </option>
+                    ))}
+                  </select>
+                  {!isReview && isActive && (
+                    <BookmarkToggle
+                      className="question-bookmark"
+                      active={Boolean(bookmarks?.[number])}
+                      onToggle={() => toggleBookmark?.(number)}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {showOptionsLegend && (
+          <div className="mcq-dropdown-legend-wrap">
+            {optionsTableTitleText && (
+              <div
+                className="mcq-dropdown-legend-title"
+                dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(optionsTableTitleText) }}
+              />
+            )}
+            <ul className="mcq-dropdown-legend">
               {options.map((opt) => (
                 <li key={opt.key} className="mcq-dropdown-legend-item">
                   <div className="mcq-dropdown-legend-content">
@@ -163,81 +216,9 @@ const DropdownGroupQuestion = ({
                   )}
                 </li>
               ))}
-              </ul>
-            </div>
-          )}
-        </div>
-      )}
-
-      {questionTitleText && (
-        <div
-          className="question-instruction dropdown-question-title"
-          dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(questionTitleText) }}
-        />
-      )}
-
-      <div className="mcq-dropdown-list">
-        {questions.map((question) => {
-          const number = question.number ?? question.questionNumber;
-          const current = answers?.[question.id] ?? '';
-          const correctKey = question.correctOptionKey ?? question.correctAnswer;
-          const isActive = activeQuestion === number;
-          const isBookmarked = Boolean(bookmarks?.[number]);
-
-          let displayValue = current;
-          let reviewClass = '';
-          if (isReview && correctKey) {
-            const isCorrect = current && String(current) === String(correctKey);
-            displayValue = isCorrect ? current : correctKey;
-            reviewClass = isCorrect ? 'review-correct' : 'review-wrong';
-          }
-
-          return (
-            <div
-              key={question.id}
-              id={`question-${number}`}
-              className={`mcq-dropdown-row ${isActive ? 'active-question question-focus-active' : ''} ${!isReview && isBookmarked ? 'question-focus-bookmarked' : ''}`}
-              onClick={() => setActiveQuestion?.(number)}
-            >
-              <span className="mcq-dropdown-number">{number}</span>
-              <span
-                className="mcq-dropdown-text"
-                dangerouslySetInnerHTML={{
-                  __html: formatTextWithWhitespace(
-                    question.text || question.questionText || '',
-                  ),
-                }}
-              />
-              <select
-                className={`mcq-dropdown-select ${reviewClass}`}
-                value={displayValue || ''}
-                disabled={isReview}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (!isReview) setActiveQuestion?.(number);
-                }}
-                onFocus={() => {
-                  if (!isReview) setActiveQuestion?.(number);
-                }}
-                onChange={(e) => handleChange(question.id, e.target.value)}
-              >
-                <option value="">…</option>
-                {options.map((opt) => (
-                  <option key={opt.key} value={opt.key}>
-                    {opt.key}
-                  </option>
-                ))}
-              </select>
-              {!isReview && isActive && (
-                <BookmarkToggle
-                  className="question-bookmark"
-                  active={Boolean(bookmarks?.[number])}
-                  onToggle={() => toggleBookmark?.(number)}
-                />
-              )}
-            </div>
-          );
-        })}
+            </ul>
+          </div>
+        )}
       </div>
     </div>
   );

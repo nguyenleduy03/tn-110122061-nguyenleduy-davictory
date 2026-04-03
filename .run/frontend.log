@@ -5,21 +5,25 @@
 [vite] 🌐 Public IP: 123.22.61.173
 [vite] 🔗 API Base URL: http://123.22.61.173:8080/api
 
-  VITE v8.0.0-beta.16  ready in 1215 ms
+  VITE v8.0.0-beta.16  ready in 1530 ms
 
   ➜  Local:   http://localhost:5173/
   ➜  Network: http://192.168.1.20:5173/
-11:02:33 [vite] (client) hmr update /src/components/question/DropdownGroupQuestion.jsx
-11:02:55 [vite] (client) hmr update /src/styles/ieltsTest.css
-11:03:09 [vite] (client) hmr update /src/pages/TestBuilder.jsx
-11:03:09 [vite] (client) hmr update /src/components/testBuilder/blocks/AudioBlock.jsx
-11:03:09 [vite] (client) hmr update /src/pages/TestComplete.jsx, /src/pages/ExamLibrary.jsx, /src/pages/IeltsListeningTest.jsx
-11:03:09 [vite] (client) hmr update /src/pages/TestBuilder.jsx
-11:03:09 [vite] (client) hmr update /src/pages/IeltsListeningTest.jsx
-11:05:09 [vite] (client) hmr update /src/styles/ieltsTest.css
-11:06:55 [vite] (client) hmr update /src/styles/ieltsTest.css
-11:07:03 [vite] (client) hmr update /src/components/testBuilder/PropertiesPanel.jsx, /src/components/testBuilder/SharedOptionsDropdownBlock.jsx, /src/components/testBuilder/ExamCanvas.jsx, /src/components/testBuilder/blocks/shared/ImageUploadZone.jsx, /src/components/testBuilder/blocks/PassageBlock.jsx, /src/components/testBuilder/blocks/AudioBlock.jsx, /src/components/testBuilder/blocks/ImageBlock.jsx, /src/components/testBuilder/blocks/DragMatchingBlock.jsx, /src/components/testBuilder/blocks/MatchingFeaturesBlock.jsx, /src/components/testBuilder/blocks/MatchingHeadingBlock.jsx, /src/components/testBuilder/blocks/MultipleChoiceBlock.jsx, /src/components/testBuilder/blocks/MultipleChoiceMultiBlock.jsx, /src/components/testBuilder/blocks/TFNGBlock.jsx, /src/components/testBuilder/blocks/SentenceCompletionBlock.jsx, /src/components/testBuilder/blocks/ShortAnswerBlock.jsx, /src/components/testBuilder/blocks/NoteCompletionBlock.jsx, /src/components/testBuilder/blocks/ImageNoteFormBlock.jsx, /src/components/testBuilder/blocks/SummaryCompletionBlock.jsx, /src/components/testBuilder/blocks/SpeakingInterviewBlock.jsx, /src/components/testBuilder/blocks/SpeakingCueCardBlock.jsx, /src/components/testBuilder/blocks/WritingTaskBlock.jsx
-11:07:15 [vite] (client) hmr update /src/components/testBuilder/blocks/AudioBlock.jsx
-11:08:35 [vite] (client) hmr update /src/pages/TestBuilder.jsx
-11:08:41 [vite] (client) hmr update /src/styles/testBuilder.css
-11:09:07 [vite] (client) hmr update /src/components/question/DropdownGroupQuestion.jsx
+11:19:01 [vite] (client) hmr update /src/components/question/DropdownGroupQuestion.jsx
+11:19:12 [vite] (client) hmr update /src/components/question/DropdownGroupQuestion.jsx
+11:19:36 [vite] (client) hmr update /src/components/question/DropdownGroupQuestion.jsx
+11:19:54 [vite] (client) hmr update /src/styles/ieltsTest.css
+11:21:37 [vite] (client) hmr update /src/styles/ieltsTest.css
+11:22:07 [vite] (client) hmr update /src/components/question/DropdownGroupQuestion.jsx
+11:22:08 [vite] (client) hmr update /src/pages/IeltsListeningTest.jsx
+11:22:08 [vite] (client) hmr update /src/styles/ieltsTest.css
+11:22:08 [vite] (client) hmr update /src/pages/IeltsListeningTest.jsx, /src/pages/ExamLibrary.jsx
+11:22:08 [vite] (client) hmr update /src/components/testBuilder/PreviewModal.jsx
+11:22:15 [vite] (client) hmr update /src/components/testBuilder/blocks/AudioBlock.jsx
+11:22:25 [vite] (client) hmr update /src/styles/testBuilder.css
+11:26:36 [vite] (client) hmr update /src/styles/testBuilder.css
+11:26:36 [vite] (client) hmr update /src/components/testBuilder/blocks/AudioBlock.jsx
+11:28:19 [vite] (client) hmr update /src/pages/TestBuilder.jsx
+11:28:19 [vite] (client) hmr update /src/components/testBuilder/PropertiesPanel.jsx, /src/components/testBuilder/SharedOptionsDropdownBlock.jsx, /src/components/testBuilder/ExamCanvas.jsx, /src/components/testBuilder/blocks/shared/ImageUploadZone.jsx, /src/components/testBuilder/blocks/PassageBlock.jsx, /src/components/testBuilder/blocks/AudioBlock.jsx, /src/components/testBuilder/blocks/ImageBlock.jsx, /src/components/testBuilder/blocks/DragMatchingBlock.jsx, /src/components/testBuilder/blocks/MatchingFeaturesBlock.jsx, /src/components/testBuilder/blocks/MatchingHeadingBlock.jsx, /src/components/testBuilder/blocks/MultipleChoiceBlock.jsx, /src/components/testBuilder/blocks/MultipleChoiceMultiBlock.jsx, /src/components/testBuilder/blocks/TFNGBlock.jsx, /src/components/testBuilder/blocks/SentenceCompletionBlock.jsx, /src/components/testBuilder/blocks/ShortAnswerBlock.jsx, /src/components/testBuilder/blocks/NoteCompletionBlock.jsx, /src/components/testBuilder/blocks/ImageNoteFormBlock.jsx, /src/components/testBuilder/blocks/SummaryCompletionBlock.jsx, /src/components/testBuilder/blocks/SpeakingInterviewBlock.jsx, /src/components/testBuilder/blocks/SpeakingCueCardBlock.jsx, /src/components/testBuilder/blocks/WritingTaskBlock.jsx
+11:28:19 [vite] (client) hmr update /src/components/testBuilder/blocks/AudioBlock.jsx
+11:28:19 [vite] (client) hmr update /src/styles/testBuilder.css

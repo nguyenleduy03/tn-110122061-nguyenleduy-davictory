@@ -38,22 +38,22 @@
 
  :: Spring Boot ::                (v4.0.3)
 
-2026-04-03T10:55:58.092+07:00  INFO 47823 --- [DAVictory] [           main] c.v.DAVictory.DaVictoryApplication       : Starting DaVictoryApplication using Java 21.0.10 with PID 47823 (/home/hv/DuAn/DAVictory/backend/target/classes started by hv in /home/hv/DuAn/DAVictory/backend)
-2026-04-03T10:55:58.097+07:00  INFO 47823 --- [DAVictory] [           main] c.v.DAVictory.DaVictoryApplication       : No active profile set, falling back to 1 default profile: "default"
-2026-04-03T10:55:59.383+07:00  INFO 47823 --- [DAVictory] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
-2026-04-03T10:55:59.586+07:00  INFO 47823 --- [DAVictory] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 194 ms. Found 58 JPA repository interfaces.
-2026-04-03T10:56:00.337+07:00  INFO 47823 --- [DAVictory] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 8080 (http)
-2026-04-03T10:56:00.353+07:00  INFO 47823 --- [DAVictory] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
-2026-04-03T10:56:00.353+07:00  INFO 47823 --- [DAVictory] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/11.0.18]
-2026-04-03T10:56:00.413+07:00  INFO 47823 --- [DAVictory] [           main] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 2215 ms
-2026-04-03T10:56:00.639+07:00  INFO 47823 --- [DAVictory] [           main] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
-2026-04-03T10:56:00.688+07:00  INFO 47823 --- [DAVictory] [           main] org.hibernate.orm.core                   : HHH000001: Hibernate ORM core version 7.2.4.Final
-2026-04-03T10:56:01.167+07:00  INFO 47823 --- [DAVictory] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
-2026-04-03T10:56:01.197+07:00  INFO 47823 --- [DAVictory] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
-2026-04-03T10:56:01.361+07:00  INFO 47823 --- [DAVictory] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@2a21cbe7
-2026-04-03T10:56:01.363+07:00  INFO 47823 --- [DAVictory] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
-2026-04-03T10:56:01.420+07:00  WARN 47823 --- [DAVictory] [           main] org.hibernate.orm.deprecation            : HHH90000025: MySQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
-2026-04-03T10:56:01.438+07:00  INFO 47823 --- [DAVictory] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+2026-04-03T11:17:16.083+07:00  INFO 53527 --- [DAVictory] [           main] c.v.DAVictory.DaVictoryApplication       : Starting DaVictoryApplication using Java 21.0.10 with PID 53527 (/home/hv/DuAn/DAVictory/backend/target/classes started by hv in /home/hv/DuAn/DAVictory/backend)
+2026-04-03T11:17:16.087+07:00  INFO 53527 --- [DAVictory] [           main] c.v.DAVictory.DaVictoryApplication       : No active profile set, falling back to 1 default profile: "default"
+2026-04-03T11:17:17.351+07:00  INFO 53527 --- [DAVictory] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-04-03T11:17:17.647+07:00  INFO 53527 --- [DAVictory] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 282 ms. Found 58 JPA repository interfaces.
+2026-04-03T11:17:18.539+07:00  INFO 53527 --- [DAVictory] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 8080 (http)
+2026-04-03T11:17:18.557+07:00  INFO 53527 --- [DAVictory] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-04-03T11:17:18.557+07:00  INFO 53527 --- [DAVictory] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/11.0.18]
+2026-04-03T11:17:18.622+07:00  INFO 53527 --- [DAVictory] [           main] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 2450 ms
+2026-04-03T11:17:18.880+07:00  INFO 53527 --- [DAVictory] [           main] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-04-03T11:17:18.944+07:00  INFO 53527 --- [DAVictory] [           main] org.hibernate.orm.core                   : HHH000001: Hibernate ORM core version 7.2.4.Final
+2026-04-03T11:17:19.493+07:00  INFO 53527 --- [DAVictory] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-04-03T11:17:19.531+07:00  INFO 53527 --- [DAVictory] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-04-03T11:17:19.738+07:00  INFO 53527 --- [DAVictory] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@18be3205
+2026-04-03T11:17:19.740+07:00  INFO 53527 --- [DAVictory] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-04-03T11:17:19.798+07:00  WARN 53527 --- [DAVictory] [           main] org.hibernate.orm.deprecation            : HHH90000025: MySQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-04-03T11:17:19.817+07:00  INFO 53527 --- [DAVictory] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
 	Database JDBC URL [jdbc:mysql://localhost:3306/DAVictory?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true]
 	Database driver: MySQL Connector/J
 	Database dialect: MySQLDialect
@@ -65,67 +65,48 @@
 	Pool: DataSourceConnectionProvider
 	Minimum pool size: undefined/unknown
 	Maximum pool size: undefined/unknown
-2026-04-03T10:56:03.953+07:00  INFO 47823 --- [DAVictory] [           main] org.hibernate.orm.core                   : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
-2026-04-03T10:56:05.032+07:00  INFO 47823 --- [DAVictory] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
-2026-04-03T10:56:05.153+07:00  INFO 47823 --- [DAVictory] [           main] o.s.d.j.r.query.QueryEnhancerFactories   : Hibernate is in classpath; If applicable, HQL parser will be used.
-2026-04-03T10:56:07.101+07:00  INFO 47823 --- [DAVictory] [           main] c.v.DAVictory.config.PublicIpService     : ✅ Lấy IP từ https://api.ipify.org: 123.22.61.173
-2026-04-03T10:56:07.101+07:00  INFO 47823 --- [DAVictory] [           main] c.v.DAVictory.config.PublicIpService     : 🌐 Public IP đã phát hiện: 123.22.61.173
-2026-04-03T10:56:07.109+07:00  INFO 47823 --- [DAVictory] [           main] c.victory.DAVictory.config.CorsConfig    : CORS: Thêm IP public 123.22.61.173 vào allowed origins
-2026-04-03T10:56:07.110+07:00  INFO 47823 --- [DAVictory] [           main] c.victory.DAVictory.config.CorsConfig    : CORS allowed origins: [http://localhost:5173, http://localhost:3000, http://localhost:80, http://localhost, https://davictory.io.vn, http://davictory.io.vn, http://123.22.61.173:5173, http://123.22.61.173:3000, http://123.22.61.173:80, http://123.22.61.173]
-2026-04-03T10:56:10.045+07:00  INFO 47823 --- [DAVictory] [           main] eAuthenticationProviderManagerConfigurer : Global AuthenticationManager configured with AuthenticationProvider bean with name authenticationProvider
-2026-04-03T10:56:10.046+07:00  WARN 47823 --- [DAVictory] [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with an AuthenticationProvider bean. UserDetailsService beans will not be used by Spring Security for automatically configuring username/password login. Consider removing the AuthenticationProvider bean. Alternatively, consider using the UserDetailsService in a manually instantiated DaoAuthenticationProvider. If the current configuration is intentional, to turn off this warning, increase the logging level of 'org.springframework.security.config.annotation.authentication.configuration.InitializeUserDetailsBeanManagerConfigurer' to ERROR
-2026-04-03T10:56:12.542+07:00  WARN 47823 --- [DAVictory] [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
-2026-04-03T10:56:13.483+07:00  INFO 47823 --- [DAVictory] [           main] o.s.v.b.OptionalValidatorFactoryBean     : Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
-2026-04-03T10:56:15.336+07:00  INFO 47823 --- [DAVictory] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat started on port 8080 (http) with context path '/'
-2026-04-03T10:56:15.350+07:00  INFO 47823 --- [DAVictory] [           main] c.v.DAVictory.DaVictoryApplication       : Started DaVictoryApplication in 17.86 seconds (process running for 18.399)
-2026-04-03T10:56:15.637+07:00  INFO 47823 --- [DAVictory] [nio-8080-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
-2026-04-03T10:56:15.638+07:00  INFO 47823 --- [DAVictory] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
-2026-04-03T10:56:15.642+07:00  INFO 47823 --- [DAVictory] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 4 ms
-2026-04-03T10:56:15.711+07:00  INFO 47823 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    : 🔧 [TestStructureInitializer] Bắt đầu khởi tạo cấu trúc IELTS...
-2026-04-03T10:56:15.728+07:00  INFO 47823 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ DifficultyLevels (5 cấp độ)
-2026-04-03T10:56:15.760+07:00  INFO 47823 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ Sessions (Listening / Reading / Writing / Speaking × Academic & General)
-2026-04-03T10:56:15.902+07:00  INFO 47823 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ Parts (các phần trong mỗi kỹ năng)
-2026-04-03T10:56:15.955+07:00  INFO 47823 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ QuestionTypes (14 loại câu hỏi IELTS)
-2026-04-03T10:56:15.956+07:00  INFO 47823 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    : ✅ [TestStructureInitializer] Hoàn tất khởi tạo cấu trúc IELTS.
+2026-04-03T11:17:22.436+07:00  INFO 53527 --- [DAVictory] [           main] org.hibernate.orm.core                   : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-04-03T11:17:22.748+07:00  INFO 53527 --- [DAVictory] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-04-03T11:17:22.856+07:00  INFO 53527 --- [DAVictory] [           main] o.s.d.j.r.query.QueryEnhancerFactories   : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-04-03T11:17:25.966+07:00  INFO 53527 --- [DAVictory] [           main] c.v.DAVictory.config.PublicIpService     : ✅ Lấy IP từ https://api.ipify.org: 123.22.61.173
+2026-04-03T11:17:25.966+07:00  INFO 53527 --- [DAVictory] [           main] c.v.DAVictory.config.PublicIpService     : 🌐 Public IP đã phát hiện: 123.22.61.173
+2026-04-03T11:17:25.980+07:00  INFO 53527 --- [DAVictory] [           main] c.victory.DAVictory.config.CorsConfig    : CORS: Thêm IP public 123.22.61.173 vào allowed origins
+2026-04-03T11:17:25.981+07:00  INFO 53527 --- [DAVictory] [           main] c.victory.DAVictory.config.CorsConfig    : CORS allowed origins: [http://localhost:5173, http://localhost:3000, http://localhost:80, http://localhost, https://davictory.io.vn, http://davictory.io.vn, http://123.22.61.173:5173, http://123.22.61.173:3000, http://123.22.61.173:80, http://123.22.61.173]
+2026-04-03T11:17:28.798+07:00  INFO 53527 --- [DAVictory] [           main] eAuthenticationProviderManagerConfigurer : Global AuthenticationManager configured with AuthenticationProvider bean with name authenticationProvider
+2026-04-03T11:17:28.798+07:00  WARN 53527 --- [DAVictory] [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with an AuthenticationProvider bean. UserDetailsService beans will not be used by Spring Security for automatically configuring username/password login. Consider removing the AuthenticationProvider bean. Alternatively, consider using the UserDetailsService in a manually instantiated DaoAuthenticationProvider. If the current configuration is intentional, to turn off this warning, increase the logging level of 'org.springframework.security.config.annotation.authentication.configuration.InitializeUserDetailsBeanManagerConfigurer' to ERROR
+2026-04-03T11:17:30.378+07:00  WARN 53527 --- [DAVictory] [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-04-03T11:17:30.926+07:00  INFO 53527 --- [DAVictory] [           main] o.s.v.b.OptionalValidatorFactoryBean     : Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2026-04-03T11:17:31.941+07:00  INFO 53527 --- [DAVictory] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat started on port 8080 (http) with context path '/'
+2026-04-03T11:17:31.952+07:00  INFO 53527 --- [DAVictory] [           main] c.v.DAVictory.DaVictoryApplication       : Started DaVictoryApplication in 16.472 seconds (process running for 16.935)
+2026-04-03T11:17:32.222+07:00  INFO 53527 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    : 🔧 [TestStructureInitializer] Bắt đầu khởi tạo cấu trúc IELTS...
+2026-04-03T11:17:32.233+07:00  INFO 53527 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ DifficultyLevels (5 cấp độ)
+2026-04-03T11:17:32.250+07:00  INFO 53527 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ Sessions (Listening / Reading / Writing / Speaking × Academic & General)
+2026-04-03T11:17:32.357+07:00  INFO 53527 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ Parts (các phần trong mỗi kỹ năng)
+2026-04-03T11:17:32.401+07:00  INFO 53527 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ QuestionTypes (14 loại câu hỏi IELTS)
+2026-04-03T11:17:32.401+07:00  INFO 53527 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    : ✅ [TestStructureInitializer] Hoàn tất khởi tạo cấu trúc IELTS.
+2026-04-03T11:17:33.937+07:00  INFO 53527 --- [DAVictory] [nio-8080-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-04-03T11:17:33.938+07:00  INFO 53527 --- [DAVictory] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-04-03T11:17:33.941+07:00  INFO 53527 --- [DAVictory] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 3 ms
+🔍 Checking authorization:
+   - Credential exists: true
+🔍 Checking authorization:
+   - Credential exists: true
+   - Access token exists: true
+   - Access token exists: true
+🔍 Checking authorization:
+   - Credential exists: true
+   - Access token exists: true
+🔍 Checking authorization:
+   - Credential exists: true
+   - Access token exists: true
 🔍 Saving 0 questions for group: Audio transcript
 🔍 Saving 0 questions for group: Audio transcript
 🔍 Saving 0 questions for group: Audio transcript
 🔍 Saving 0 questions for group: Audio transcript
-🗑️ Cleaning up unused group: 11232
-🗑️ Cleaning up unused group: 11233
-🗑️ Cleaning up unused group: 11234
-🗑️ Cleaning up unused group: 11235
-🔍 Saving 0 questions for group: Audio transcript
-🔍 Saving 0 questions for group: Audio transcript
-🔍 Saving 0 questions for group: Audio transcript
-🔍 Saving 0 questions for group: Audio transcript
-🗑️ Cleaning up unused group: 11236
-🗑️ Cleaning up unused group: 11237
-🗑️ Cleaning up unused group: 11238
-🗑️ Cleaning up unused group: 11239
-🔍 Saving 0 questions for group: Audio transcript
-🔍 Saving 1 questions for group: Nhóm 2
-📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question: 
-📝 Answer 1: ''
-✅ Saved answer 1 with ID: 36553
-✅ Successfully saved question 1
-🔍 Saving 0 questions for group: Audio transcript
-🔍 Saving 0 questions for group: Audio transcript
-🔍 Saving 0 questions for group: Audio transcript
-🗑️ Cleaning up unused group: 11240
-🗑️ Cleaning up unused group: 11241
-🗑️ Cleaning up unused group: 11242
-🗑️ Cleaning up unused group: 11243
-🗑️ Cleaning up unused group: 11244
-🔍 Saving 0 questions for group: Audio transcript
-🔍 Saving 0 questions for group: Audio transcript
-🔍 Saving 0 questions for group: Audio transcript
-🔍 Saving 0 questions for group: Audio transcript
-2026-04-03T11:06:49.491+07:00  INFO 47823 --- [DAVictory] [nio-8080-exec-6] o.apache.coyote.http11.Http11Processor   : Error parsing HTTP request header
+2026-04-03T11:22:47.366+07:00  INFO 53527 --- [DAVictory] [io-8080-exec-10] o.apache.coyote.http11.Http11Processor   : Error parsing HTTP request header
  Note: further occurrences of HTTP request parsing errors will be logged at DEBUG level.
 
-java.lang.IllegalArgumentException: Invalid character found in method name [0x030x000x00+&0xe00x000x000x000x000x00Cookie: ]. HTTP method names must be tokens
+java.lang.IllegalArgumentException: Invalid character found in method name [0xa00x050x00`0x000x000x000x000x000x000x000x000x000x000x000x000x000x000x000x000x000x000x000x000x050x020x000x010x000x000xa10xaa...]. HTTP method names must be tokens
 	at org.apache.coyote.http11.Http11InputBuffer.parseRequestLine(Http11InputBuffer.java:391) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
 	at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:270) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
 	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:63) ~[tomcat-embed-core-11.0.18.jar:11.0.18]

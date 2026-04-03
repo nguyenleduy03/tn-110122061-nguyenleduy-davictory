@@ -249,14 +249,14 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
         /* plain text legacy */
       }
     }
-    
+
     console.log('[transformGroup] mcq_dropdown_group data:', {
       groupId: group.questionGroupId || group.id,
       rawPassageText: group.passageText?.substring(0, 200),
       parsedMeta: meta,
       metaSharedOptionsCount: meta.sharedOptions?.length || 0
     });
-    
+
     const sharedOptions = (meta.sharedOptions || []).map((o, i) => {
       if (typeof o === 'string') return { key: String.fromCharCode(65 + i), label: o, imageUrl: '' };
       const key = (o.key || o.optionLabel || String.fromCharCode(65 + i)).toString().trim().charAt(0);
