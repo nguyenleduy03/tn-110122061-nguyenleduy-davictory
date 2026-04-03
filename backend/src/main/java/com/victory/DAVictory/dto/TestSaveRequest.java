@@ -49,12 +49,14 @@ public class TestSaveRequest {
         private String contentType;
         private String passageText;   // Nội dung bài đọc hoặc JSON metadata (bảng, sơ đồ...)
         private String audioUrl;
+        private Integer audioPlayCount;
         private String imageUrl;
         private Integer imageWidth;
         private Integer fromQuestion;
         private Integer toQuestion;
         private Integer orderIndex;
         private Boolean allowOptionReuse;
+        private Boolean hideOptionsTable;
         private List<QuestionSave> questions;
     }
 

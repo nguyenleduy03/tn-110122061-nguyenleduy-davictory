@@ -1,18 +1,11 @@
 import React from 'react';
 import { applyDbFormattingMarkers } from '../../utils/textFormatters';
+import { isQuestionMetaLabel } from '../../utils/questionLabelUtils';
 import BookmarkToggle from '../common/BookmarkToggle';
 
 const SummaryCompletionSelectQuestion = ({ q, activeQuestion, setActiveQuestion, answers, handleAnswerChange, inputRefs, bookmarks, toggleBookmark, isReview }) => {
     const summaryTextRef = React.useRef(null);
     const [activeBookmarkTop, setActiveBookmarkTop] = React.useState(null);
-
-    const isAutoCompletionTitle = (value) => {
-        const plain = String(value || '')
-            .replace(/<[^>]*>/g, ' ')
-            .replace(/\s+/g, ' ')
-            .trim();
-        return /^(note|summary)\s*completion\s*\d*$/i.test(plain);
-    };
 
     // Parse data if it's a JSON string
     let questionData = q;
@@ -61,8 +54,9 @@ const SummaryCompletionSelectQuestion = ({ q, activeQuestion, setActiveQuestion,
 
     const options = (questionData.optionBank || []).map(resolveText).filter(Boolean);
     const explicitInstructions = cleanInstructionText(payloadFromText?.instructions || questionData.instructions || '');
-    const titleFallback = cleanInstructionText(payloadFromText?.title || '');
-    const instructions = explicitInstructions || (isAutoCompletionTitle(titleFallback) ? '' : titleFallback);
+    const titleText = cleanInstructionText(questionData.title || payloadFromText?.title || '');
+    const title = isQuestionMetaLabel(titleText) ? '' : titleText;
+    const instructions = explicitInstructions;
     const noteText = payloadFromNoteText
         ? (payloadFromNoteText.noteText || payloadFromNoteText.text || '')
         : payloadFromText
@@ -355,6 +349,9 @@ const SummaryCompletionSelectQuestion = ({ q, activeQuestion, setActiveQuestion,
 
     return (
         <div className="summary-completion-container">
+            {title && (
+                <p className="summary-title" dangerouslySetInnerHTML={{ __html: formatInlineHtml(title) }} />
+            )}
             {instructions && (
                 <p className="summary-instructions" dangerouslySetInnerHTML={{ __html: formatInlineHtml(instructions) }} />
             )}

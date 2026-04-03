@@ -3,6 +3,7 @@ import { X, Plus, Volume2, Image, ChevronUp, ChevronDown } from 'lucide-react';
 import GroupToolbar from './shared/GroupToolbar';
 import RichInput from '../../common/RichInput';
 import RichBlankEditor from './shared/RichBlankEditor';
+import { serializeContentEditableHtml } from '../../../utils/textFormatters';
 import { toRoman, loadImageFile, toPlainText, countBlankTokens, getNextQuestionNumber, isImagePinQuestion, isNoteBlankQuestion, getQuestionWeight, getPartQuestionStartNumber } from './shared/blockHelpers';
 
 // Bulk Answer Import Component
@@ -94,12 +95,13 @@ const NoteCompletionBlock = ({ group, allGroups = [], onUpdate, onDelete, onSele
       />
     </div>
 
-    {/* Note title (edit from properties panel only) */}
-    <div
-      className="exam-note-form-title exam-note-form-title--locked"
+    {/* Note title (e.g. "Phone call about second-hand furniture") */}
+    <div contentEditable suppressContentEditableWarning className="exam-note-form-title"
       onMouseDown={(e) => e.stopPropagation()}
       onMouseUp={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
+      onInput={(e) => onUpdate(group.id, { title: serializeContentEditableHtml(e.currentTarget) })}
+      onBlur={(e) => onUpdate(group.id, { title: serializeContentEditableHtml(e.currentTarget) })}
       data-placeholder="Tiêu đề ghi chú (VD: Phone call about furniture)"
       dangerouslySetInnerHTML={{ __html: group.title || '' }}
     />

@@ -1,10 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { FilePlus, Pencil, Search, AlertCircle, Loader2, RefreshCw, Shuffle } from 'lucide-react';
+import { FilePlus, Pencil, Search, AlertCircle, Loader2, RefreshCw, Shuffle, Copy, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import LmsLayout from '../../components/lms/LmsLayout';
 import ShuffleTestModal from '../../components/shuffle/ShuffleTestModal';
 import { testBuilderApi } from '../../services/testBuilderApi';
 import { API_CONFIG } from '../../config/api';
+import { authApi } from '../../services/authApi';
+import { buildSavePayload, parseLoadedTest } from '../../services/testBuilderApi';
 
 const SKILL_FILTERS = [
   { value: '', label: 'Tất cả kỹ năng' },
@@ -98,6 +100,7 @@ export default function LmsTeacherTests() {
   const [createdSort, setCreatedSort] = useState('');
   const [updatedSort, setUpdatedSort] = useState('');
   const [changingStatusId, setChangingStatusId] = useState(null);
+  const [actionLoadingId, setActionLoadingId] = useState(null);
   const [showShuffleModal, setShowShuffleModal] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [pagination, setPagination] = useState({
@@ -271,6 +274,78 @@ export default function LmsTeacherTests() {
       setError('Không thể cập nhật trạng thái đề thi. Vui lòng thử lại.');
     } finally {
       setChangingStatusId(null);
+    }
+  };
+
+  const handleDuplicateTest = async (test) => {
+    if (!test?.id) return;
+
+    setActionLoadingId(test.id);
+    setError('');
+    try {
+      const loaded = await testBuilderApi.loadFullTest(test.id);
+      const { test: loadedTest, sessions } = parseLoadedTest(loaded);
+      const structure = await testBuilderApi.getStructure(loadedTest.testType || test.testType || 'ACADEMIC');
+      const userId = Number(authApi.getStoredUser()?.id);
+
+      const duplicatedSessions = Object.fromEntries(
+        Object.entries(sessions).map(([skillKey, parts]) => [
+          skillKey,
+          (parts || []).map((part) => ({
+            ...part,
+            questionGroups: (part.questionGroups || []).map((group) => ({
+              ...group,
+              backendGroupId: null,
+              backendTestQGId: null,
+              questions: (group.questions || []).map((question) => ({
+                ...question,
+                backendQuestionId: null,
+              })),
+            })),
+          })),
+        ])
+      );
+
+      if (!Number.isFinite(userId)) {
+        throw new Error('Không xác định được người dùng hiện tại');
+      }
+
+      const payload = buildSavePayload(
+        {
+          ...loadedTest,
+          title: `${loadedTest.title || test.title || 'Đề thi'} (bản sao)`,
+        },
+        duplicatedSessions,
+        structure,
+        userId,
+        null,
+        loadedTest.sessionDurations
+      );
+
+      await testBuilderApi.saveFullTest(payload);
+      await fetchTests();
+    } catch (err) {
+      console.error(err);
+      setError('Nhân bản đề thi thất bại. Vui lòng thử lại.');
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handlePermanentDelete = async (test) => {
+    if (!test?.id) return;
+    if (!window.confirm(`Xóa vĩnh viễn đề thi "${test.title || 'Không tên'}"? Hành động này không thể hoàn tác.`)) return;
+
+    setActionLoadingId(test.id);
+    setError('');
+    try {
+      await testBuilderApi.permanentlyDeleteTest(test.id);
+      await fetchTests();
+    } catch (err) {
+      console.error(err);
+      setError('Xóa vĩnh viễn đề thi thất bại. Vui lòng thử lại.');
+    } finally {
+      setActionLoadingId(null);
     }
   };
 
@@ -520,9 +595,30 @@ export default function LmsTeacherTests() {
                         </select>
                       </td>
                       <td>
-                        <Link to={`/teacher/tests/${test.id}/edit`} className="lms-cta ghost">
-                          <Pencil size={14} /> Chỉnh sửa
-                        </Link>
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                          <Link to={`/teacher/tests/${test.id}/edit`} className="lms-cta ghost">
+                            <Pencil size={14} /> Chỉnh sửa
+                          </Link>
+                          <button
+                            type="button"
+                            className="lms-cta ghost"
+                            onClick={() => handleDuplicateTest(test)}
+                            disabled={actionLoadingId === test.id}
+                          >
+                            {actionLoadingId === test.id ? <Loader2 size={14} className="lms-spin" /> : <Copy size={14} />}
+                            Nhân bản
+                          </button>
+                          <button
+                            type="button"
+                            className="lms-cta ghost"
+                            onClick={() => handlePermanentDelete(test)}
+                            disabled={actionLoadingId === test.id}
+                            style={{ borderColor: '#fecaca', color: '#dc2626' }}
+                          >
+                            {actionLoadingId === test.id ? <Loader2 size={14} className="lms-spin" /> : <Trash2 size={14} />}
+                            Xóa vĩnh viễn
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}

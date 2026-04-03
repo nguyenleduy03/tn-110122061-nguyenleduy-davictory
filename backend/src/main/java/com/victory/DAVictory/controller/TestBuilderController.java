@@ -123,6 +123,21 @@ public class TestBuilderController {
         }
     }
 
+    /**
+     * DELETE /api/test-builder/{id}/permanent
+     * Xóa vĩnh viễn đề thi cùng các bản ghi liên quan.
+     */
+    @DeleteMapping("/{id}/permanent")
+    @PreAuthorize("hasAnyRole('TEACHER', 'MANAGER', 'ADMIN')")
+    public ResponseEntity<?> permanentlyDeleteTest(@PathVariable Long id) {
+        try {
+            testBuilderService.permanentlyDeleteTest(id);
+            return ResponseEntity.ok(Map.of("message", "Đã xóa vĩnh viễn đề thi"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     private boolean isStudentOnly(Authentication authentication) {
         if (authentication == null) return false;
         boolean isStudent = hasRole(authentication, "STUDENT");

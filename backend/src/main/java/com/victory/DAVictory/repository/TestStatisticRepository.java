@@ -33,4 +33,6 @@ public interface TestStatisticRepository extends JpaRepository<TestStatistic, Lo
     // Tổng lượt thi toàn hệ thống
     @Query("SELECT COALESCE(SUM(ts.totalAttempts), 0) FROM TestStatistic ts")
     Long sumTotalAttempts();
+
+    void deleteByTestId(Long testId);
 }

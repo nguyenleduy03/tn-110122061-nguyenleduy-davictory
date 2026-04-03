@@ -11,4 +11,6 @@ import java.util.List;
 public interface GuestExamAttemptRepository extends JpaRepository<GuestExamAttempt, Long> {
     List<GuestExamAttempt> findByEmailOrderByCreatedAtDesc(String email);
     long countByEmailAndCreatedAtAfter(String email, LocalDateTime after);
+
+    void deleteByTestId(Long testId);
 }

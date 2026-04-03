@@ -52,6 +52,7 @@ public class GoogleDriveOAuth2Service {
 
     private static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
     private static final String TOKENS_DIRECTORY_PATH = "tokens";
+    private static final String CREDENTIAL_KEY = "user";
 
     private final Map<String, String> folderCache = new ConcurrentHashMap<>();
 
@@ -79,19 +80,30 @@ public class GoogleDriveOAuth2Service {
     }
 
     public String getAuthorizationUrl() throws Exception {
-        return getFlow().newAuthorizationUrl().setRedirectUri(redirectUri).build();
+        return getFlow().newAuthorizationUrl()
+                .setRedirectUri(redirectUri)
+                .setAccessType("offline")
+                .set("prompt", "consent")
+                .set("include_granted_scopes", "true")
+                .build();
     }
 
     public void storeCredential(String code) throws Exception {
         var tokenResponse = getFlow().newTokenRequest(code)
                 .setRedirectUri(redirectUri)
                 .execute();
-        getFlow().createAndStoreCredential(tokenResponse, "user");
+
+        if (tokenResponse.getRefreshToken() == null || tokenResponse.getRefreshToken().isBlank()) {
+            throw new RuntimeException("Google không trả về refresh token. Hãy thu hồi quyền rồi ủy quyền lại một lần nữa.");
+        }
+
+        getFlow().getCredentialDataStore().delete(CREDENTIAL_KEY);
+        getFlow().createAndStoreCredential(tokenResponse, CREDENTIAL_KEY);
     }
 
     public boolean isAuthorized() throws Exception {
         try {
-            Credential credential = getFlow().loadCredential("user");
+            Credential credential = getFlow().loadCredential(CREDENTIAL_KEY);
             if (credential == null) {
                 System.out.println("🔍 Checking authorization: credential not found");
                 return false;
@@ -119,7 +131,7 @@ public class GoogleDriveOAuth2Service {
     }
 
     public void revokeAccess() throws Exception {
-        Credential credential = getFlow().loadCredential("user");
+        Credential credential = getFlow().loadCredential(CREDENTIAL_KEY);
         if (credential != null) {
             String token = credential.getAccessToken();
             if (token != null) {
@@ -131,7 +143,7 @@ public class GoogleDriveOAuth2Service {
                 conn.disconnect();
             }
             // Delete stored credential
-            getFlow().getCredentialDataStore().delete("user");
+            getFlow().getCredentialDataStore().delete(CREDENTIAL_KEY);
         }
     }
 
@@ -179,7 +191,7 @@ public class GoogleDriveOAuth2Service {
 
     private Drive getDriveService() throws Exception {
         HttpTransport httpTransport = GoogleNetHttpTransport.newTrustedTransport();
-        Credential credential = getFlow().loadCredential("user");
+        Credential credential = getFlow().loadCredential(CREDENTIAL_KEY);
         
         if (credential == null) {
             throw new RuntimeException("No credentials found. Please authorize first.");
@@ -198,7 +210,7 @@ public class GoogleDriveOAuth2Service {
     }
 
     public String getAccessToken() throws Exception {
-        Credential credential = getFlow().loadCredential("user");
+        Credential credential = getFlow().loadCredential(CREDENTIAL_KEY);
         if (credential == null) {
             throw new RuntimeException("No credentials found. Please authorize first.");
         }

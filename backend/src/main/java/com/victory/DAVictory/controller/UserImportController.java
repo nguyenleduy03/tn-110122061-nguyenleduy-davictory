@@ -24,12 +24,36 @@ public class UserImportController {
      */
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> getAllUsers(@RequestParam(defaultValue = "false") boolean includeDeleted) {
+    public ResponseEntity<?> getAllUsers(
+            @RequestParam(defaultValue = "false") boolean includeDeleted,
+            @RequestParam(required = false) String tab,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size) {
         try {
+            if (page != null || size != null || (tab != null && !tab.isBlank()) || (search != null && !search.isBlank())) {
+                return ResponseEntity.ok(userService.getPaginatedUsers(
+                        includeDeleted,
+                        tab,
+                        search,
+                        page != null ? page : 0,
+                        size != null ? size : 20));
+            }
+
             List<UserDTO> users = userService.getAllUsers(includeDeleted);
             return ResponseEntity.ok(users);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("message", "Lỗi khi lấy danh sách người dùng: " + e.getMessage()));
+        }
+    }
+
+    @GetMapping("/dashboard-stats")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getDashboardStats() {
+        try {
+            return ResponseEntity.ok(userService.getAdminDashboardStats());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Lỗi khi lấy thống kê dashboard: " + e.getMessage()));
         }
     }
 

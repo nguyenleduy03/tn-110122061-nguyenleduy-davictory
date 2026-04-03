@@ -72,7 +72,6 @@ const MatchingFillQuestion = ({ q, activeQuestion, setActiveQuestion, answers, h
             id={`question-${subQ.number}`}
             className={`tfng-question relative-pos ${isActive ? 'active' : ''}`}
             onClick={() => !isReview && setActiveQuestion(subQ.number)}
-            style={{ marginBottom: 10 }}
           >
             <div className="tfng-text">
               {!isReview && isActive && (
@@ -116,7 +115,7 @@ const MatchingFillQuestion = ({ q, activeQuestion, setActiveQuestion, answers, h
               </div>
             </div>
             {!hasInlineBlank && (
-              <div className="tfng-options" style={{ marginTop: 10 }}>
+              <div className="tfng-options matching-fill-options">
                 <input
                   type="text"
                   className={`fill-blank-input ${isReview ? (isCorrect ? 'review-correct' : 'review-wrong') : ''} ${Boolean(bookmarks?.[subQ.number]) ? 'bookmarked-answer-input' : ''}`}

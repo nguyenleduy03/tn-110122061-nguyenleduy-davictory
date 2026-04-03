@@ -41,6 +41,11 @@ public class TestBuilderService {
     private final TestPartRepository testPartRepository;
     private final TestQuestionGroupRepository testQuestionGroupRepository;
     private final TestSettingRepository testSettingRepository;
+    private final TestStatisticRepository testStatisticRepository;
+    private final FullTestProgressRepository fullTestProgressRepository;
+    private final GuestExamAttemptRepository guestExamAttemptRepository;
+    private final ExamAttemptRepository examAttemptRepository;
+    private final AssignmentRepository assignmentRepository;
     private final UserRepository userRepository;
     private final SessionRepository sessionRepository;
     private final PartRepository partRepository;
@@ -48,6 +53,8 @@ public class TestBuilderService {
     private final QuestionRepository questionRepository;
     private final QuestionOptionRepository questionOptionRepository;
     private final AnswerRepository answerRepository;
+    private final QuestionStatisticRepository questionStatisticRepository;
+    private final QuestionTagMapRepository questionTagMapRepository;
     private final AttemptAnswerRepository attemptAnswerRepository;
     private final QuestionTypeRepository questionTypeRepository;
     private final DriveAssetRenameService driveAssetRenameService;
@@ -175,12 +182,14 @@ public class TestBuilderService {
                                             if (gs.getInstructions() != null) qg.setInstructions(gs.getInstructions());
                                             if (gs.getPassageText() != null) qg.setPassageText(gs.getPassageText());
                                             if (gs.getAudioUrl() != null) qg.setAudioUrl(gs.getAudioUrl());
+                                            if (gs.getAudioPlayCount() != null) qg.setAudioPlayCount(gs.getAudioPlayCount());
                                             if (gs.getImageUrl() != null) qg.setImageUrl(gs.getImageUrl());
                                             if (gs.getImageWidth() != null) qg.setImageWidth(gs.getImageWidth());
                                             if (gs.getFromQuestion() != null) qg.setFromQuestion(gs.getFromQuestion());
                                             if (gs.getToQuestion() != null) qg.setToQuestion(gs.getToQuestion());
                                             if (gs.getOrderIndex() != null) qg.setOrderIndex(gs.getOrderIndex());
                                             if (gs.getAllowOptionReuse() != null) qg.setAllowOptionReuse(gs.getAllowOptionReuse());
+                                            if (gs.getHideOptionsTable() != null) qg.setHideOptionsTable(gs.getHideOptionsTable());
                                             qg = questionGroupRepository.save(qg);
 
                                             // Xóa cứng theo thứ tự đúng để tránh FK constraint
@@ -305,11 +314,13 @@ public class TestBuilderService {
                     gr.setContentType(qg.getContentType());
                     gr.setPassageText(qg.getPassageText());
                     gr.setAudioUrl(qg.getAudioUrl());
+                    gr.setAudioPlayCount(qg.getAudioPlayCount());
                     gr.setImageUrl(qg.getImageUrl());
                     gr.setImageWidth(qg.getImageWidth());
                     gr.setFromQuestion(tqg.getQuestionFrom());
                     gr.setToQuestion(tqg.getQuestionTo());
                     gr.setOrderIndex(tqg.getOrderIndex());
+                    gr.setHideOptionsTable(qg.getHideOptionsTable());
 
                     // ─── Questions ───
                     List<Question> questions = questionRepository
@@ -525,6 +536,39 @@ public class TestBuilderService {
         testRepository.save(test);
     }
 
+    @Transactional
+    public void permanentlyDeleteTest(Long testId) {
+        Test test = testRepository.findById(testId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đề thi"));
+
+        List<Long> questionGroupIds = testQuestionGroupRepository.findQuestionGroupIdsByTestId(testId);
+
+        assignmentRepository.deleteByTestId(testId);
+        examAttemptRepository.deleteByTestId(testId);
+        testStatisticRepository.deleteByTestId(testId);
+        testSettingRepository.deleteByTestId(testId);
+        fullTestProgressRepository.deleteByTestId(testId);
+        guestExamAttemptRepository.deleteByTestId(testId);
+
+        testRepository.delete(test);
+
+        for (Long groupId : questionGroupIds) {
+            if (testQuestionGroupRepository.findByQuestionGroupId(groupId).isEmpty()
+                    && !hasAttemptAnswersForGroup(groupId)) {
+                List<Question> questions = questionRepository.findByQuestionGroupIdOrderByOrderIndexAsc(groupId);
+                for (Question question : questions) {
+                    Long questionId = question.getId();
+                    questionStatisticRepository.deleteByQuestionId(questionId);
+                    questionTagMapRepository.deleteByQuestionId(questionId);
+                }
+                answerRepository.deleteByQuestionGroupId(groupId);
+                questionOptionRepository.deleteByQuestionGroupId(groupId);
+                questionRepository.deleteByQuestionGroupId(groupId);
+                questionGroupRepository.deleteById(groupId);
+            }
+        }
+    }
+
     // ═══════════════════════════════════════════════════════════════
     //  PRIVATE HELPERS
     // ═══════════════════════════════════════════════════════════════
@@ -551,12 +595,14 @@ public class TestBuilderService {
         qg.setContentType(gs.getContentType());
         qg.setPassageText(gs.getPassageText());
         qg.setAudioUrl(gs.getAudioUrl());
+        qg.setAudioPlayCount(gs.getAudioPlayCount() != null ? gs.getAudioPlayCount() : 1);
         qg.setImageUrl(gs.getImageUrl());
         qg.setImageWidth(gs.getImageWidth());
         qg.setFromQuestion(gs.getFromQuestion());
         qg.setToQuestion(gs.getToQuestion());
         qg.setOrderIndex(gs.getOrderIndex());
         qg.setAllowOptionReuse(gs.getAllowOptionReuse() != null ? gs.getAllowOptionReuse() : false);
+        qg.setHideOptionsTable(gs.getHideOptionsTable() != null ? gs.getHideOptionsTable() : false);
 
         if (gs.getQuestions() != null && !gs.getQuestions().isEmpty()) {
             TestSaveRequest.QuestionSave firstQ = gs.getQuestions().get(0);

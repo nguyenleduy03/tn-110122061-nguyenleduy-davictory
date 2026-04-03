@@ -2,15 +2,17 @@ package com.victory.DAVictory.repository;
 
 import com.victory.DAVictory.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.time.LocalDateTime;
 
 @Repository
-public interface UserRepository extends JpaRepository<User, Long> {
+public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificationExecutor<User> {
     
     Optional<User> findByUsername(String username);
     
@@ -30,6 +32,17 @@ public interface UserRepository extends JpaRepository<User, Long> {
     
     @Query("SELECT COUNT(u) FROM User u JOIN u.roles r WHERE r.name = :roleName")
     long countByRoleName(@Param("roleName") String roleName);
+
+    long countByDeletedAtIsNull();
+
+    long countByDeletedAtIsNullAndIsActiveTrue();
+
+    long countByDeletedAtIsNotNull();
+
+    @Query("SELECT COUNT(u) FROM User u JOIN u.roles r WHERE u.deletedAt IS NULL AND r.name = :roleName")
+    long countActiveByRoleName(@Param("roleName") String roleName);
+
+    long countByDeletedAtIsNullAndLastLoginBetween(LocalDateTime start, LocalDateTime end);
     
     @Query("SELECT u FROM User u JOIN u.roles r WHERE r.id = :roleId")
     List<User> findByRoleId(@Param("roleId") Long roleId);

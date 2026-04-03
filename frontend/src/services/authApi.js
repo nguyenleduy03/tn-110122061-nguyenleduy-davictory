@@ -189,6 +189,20 @@ export const authApi = {
     });
   },
 
+  // Lấy danh sách người dùng theo trang cho trang admin
+  getPaginatedUsers: async ({ includeDeleted = false, tab = 'ALL', search = '', page = 0, size = 20 } = {}) => {
+    const response = await apiClient.get('/admin/users', {
+      params: {
+        includeDeleted,
+        tab,
+        search,
+        page,
+        size,
+      },
+    });
+    return response.data;
+  },
+
   // Cập nhật trạng thái active của user
   toggleUserActive: async (userId) => {
     const response = await apiClient.put(`/admin/users/${userId}/toggle-active`);

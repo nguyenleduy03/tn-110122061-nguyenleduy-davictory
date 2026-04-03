@@ -2,6 +2,19 @@
 
 :root {
     --answer-input-font-size: 15px;
+    /* IELTS typography controls: edit these 4 values in one place */
+    --ielts-question-content-font-size: 15px;
+    --ielts-question-content-line-height: 1.6;
+    --ielts-question-instruction-font-size: 15px;
+    --ielts-question-instruction-line-height: 1.5;
+    /* IELTS spacing controls: edit once for all question types */
+    --ielts-question-group-gap: 30px;
+    --ielts-question-header-gap: 10px;
+    --ielts-question-item-gap: 10px;
+    --ielts-question-inline-gap: 8px;
+    --ielts-question-block-padding-y: 12px;
+    --ielts-question-block-padding-x: 14px;
+    --ielts-question-instruction-gap: 6px;
     --test-page-bg: #f8f8f8;
     --review-correct-bg: #9df5be;
     --review-wrong-bg: #ffccd0;
@@ -178,7 +191,8 @@
 }
 
 .mf-q-text {
-    line-height: 1.5;
+    font-size: var(--ielts-question-content-font-size);
+    line-height: var(--ielts-question-content-line-height);
     flex: 1;
 }
 
@@ -1130,7 +1144,8 @@
 
 .instruction-bar p {
     margin: 0;
-    font-size: 15px;
+    font-size: var(--ielts-question-instruction-font-size);
+    line-height: var(--ielts-question-instruction-line-height);
 }
 
 .instruction-bar p strong,
@@ -1468,9 +1483,9 @@
 
 /* CSS for Multiple Choice Questions */
 .tfng-question {
-    margin-bottom: 10px;
+    margin-bottom: 0;
     background: transparent;
-    padding: 15px;
+    padding: var(--ielts-question-block-padding-y) var(--ielts-question-block-padding-x);
     border-radius: 4px;
     border: none;
 }
@@ -1479,8 +1494,8 @@
     font-weight: normal;
     display: flex;
     align-items: flex-start;
-    gap: 8px;
-    margin-bottom: 15px;
+    gap: var(--ielts-question-inline-gap);
+    margin-bottom: var(--ielts-question-header-gap);
 }
 
 .tfng-number {
@@ -1499,9 +1514,13 @@
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 4px;
+    gap: var(--ielts-question-item-gap);
     padding-left: 15px;
     width: 100%;
+}
+
+.tfng-options.matching-fill-options {
+    margin-top: var(--ielts-question-header-gap);
 }
 
 .tfng-radio-label {
@@ -1795,8 +1814,8 @@
 
 .fc-instruction {
     margin: 0;
-    font-size: 15px;
-    line-height: 1.6;
+    font-size: var(--ielts-question-instruction-font-size);
+    line-height: var(--ielts-question-instruction-line-height);
     color: #111;
 }
 
@@ -1833,8 +1852,8 @@
 
 .fc-node-text {
     margin: 0;
-    font-size: 15px;
-    line-height: 1.65;
+    font-size: var(--ielts-question-content-font-size);
+    line-height: var(--ielts-question-content-line-height);
     color: #111;
     white-space: nowrap;
 }
@@ -1973,7 +1992,7 @@
     }
 
     .fc-instruction {
-        font-size: 15px;
+        font-size: var(--ielts-question-instruction-font-size);
     }
 
     .fc-blank-num {
@@ -2054,7 +2073,7 @@
    DRAG & DROP GROUP QUESTION
    ============================================================ */
 .drag-drop-group {
-    margin-bottom: 30px;
+    margin-bottom: 0;
     padding-left: 15px;
 }
 
@@ -2091,6 +2110,8 @@
 
 .dd-heading-instruction {
     margin-bottom: 0;
+    font-size: var(--ielts-question-instruction-font-size);
+    line-height: var(--ielts-question-instruction-line-height);
     color: #555;
 }
 
@@ -2208,7 +2229,7 @@
 .dd-questions-list {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: var(--ielts-question-item-gap);
 }
 
 .dd-question-row {
@@ -2221,7 +2242,7 @@
 }
 
 .dd-question-row.dd-row-default {
-    padding: 10px;
+    padding: var(--ielts-question-inline-gap);
 }
 
 .dd-question-row.dd-row-info {
@@ -2240,8 +2261,8 @@
     gap: 8px;
     flex: 1 1 auto;
     margin-right: 10px;
-    font-size: 15px;
-    line-height: 1.5;
+    font-size: var(--ielts-question-content-font-size);
+    line-height: var(--ielts-question-content-line-height);
 }
 
 .dd-info-text.dd-info-inline {
@@ -2277,6 +2298,8 @@
 
 .dd-question-text {
     flex: 1;
+    font-size: var(--ielts-question-content-font-size);
+    line-height: var(--ielts-question-content-line-height);
 }
 
 .dd-question-inline {
@@ -4457,7 +4480,7 @@
     gap: 6px;
     flex: 1 1 auto;
     min-width: 0;
-    line-height: 1.5;
+    line-height: var(--ielts-question-content-line-height);
 }
 
 .tfng-question-text {
@@ -4465,7 +4488,8 @@
     display: block;
     margin: 0;
     min-width: 0;
-    line-height: inherit;
+    font-size: var(--ielts-question-content-font-size);
+    line-height: var(--ielts-question-content-line-height);
 }
 
 .tfng-question-text p,
@@ -4476,16 +4500,16 @@
 
 /* Summary Completion Question */
 .summary-completion-container {
-    margin-bottom: 10px;
-    padding: 8px 0;
+    margin-bottom: 0;
+    padding: var(--ielts-question-inline-gap) 0;
     line-height: 1.5;
 }
 
 .summary-instructions {
-    font-size: 14px;
+    font-size: var(--ielts-question-instruction-font-size);
     font-weight: 500;
-    margin-bottom: 10px;
-    line-height: 1.6;
+    margin-bottom: var(--ielts-question-instruction-gap);
+    line-height: var(--ielts-question-instruction-line-height);
 }
 
 .summary-title {
@@ -4495,8 +4519,8 @@
 }
 
 .summary-text {
-    font-size: 15px;
-    line-height: 1.65;
+    font-size: var(--ielts-question-content-font-size);
+    line-height: var(--ielts-question-content-line-height);
     white-space: normal;
     font-family: Arial, Helvetica, sans-serif;
 }
@@ -4544,7 +4568,7 @@
 }
 
 .summary-word-bank {
-    margin-top: 10px;
+    margin-top: var(--ielts-question-header-gap);
     min-height: 48px;
     padding: 8px;
     border: 2px dashed transparent;
@@ -5714,14 +5738,17 @@ body.text-size-xlarge .options-fs-overlay {
 
 /* TABLE COMPLETION (test page) */
 .tc-instruction {
-    margin: 4px 0 10px;
-    font-size: 15px;
+    margin: 0 0 var(--ielts-question-header-gap);
+    font-size: var(--ielts-question-instruction-font-size);
+    line-height: var(--ielts-question-instruction-line-height);
     color: #111;
 }
 
 .table-completion-container {
     position: relative;
     padding-right: 32px;
+    font-size: var(--ielts-question-content-font-size);
+    line-height: var(--ielts-question-content-line-height);
 }
 
 .table-floating-bookmark {
@@ -5732,7 +5759,7 @@ body.text-size-xlarge .options-fs-overlay {
 
 .table-completion-grid {
     display: grid;
-    gap: 10px;
+    gap: var(--ielts-question-item-gap);
 }
 
 .table-cell-input {
@@ -5763,7 +5790,8 @@ body.text-size-xlarge .options-fs-overlay {
     padding: 8px 14px;
     text-align: center;
     font-weight: 700;
-    font-size: 14px;
+    font-size: calc(var(--ielts-question-content-font-size) + 1px);
+    line-height: var(--ielts-question-content-line-height);
     background: #f9fafb;
 }
 
@@ -5772,7 +5800,8 @@ body.text-size-xlarge .options-fs-overlay {
     padding: 7px 14px;
     text-align: center;
     font-weight: 700;
-    font-size: 13.5px;
+    font-size: var(--ielts-question-content-font-size);
+    line-height: var(--ielts-question-content-line-height);
     white-space: nowrap;
     background: #f3f4f6;
 }
@@ -5780,8 +5809,8 @@ body.text-size-xlarge .options-fs-overlay {
 .tc-cell {
     border: 1px solid #d1d5db;
     padding: 7px 14px;
-    font-size: 13.5px;
-    line-height: 1.5;
+    font-size: var(--ielts-question-content-font-size);
+    line-height: var(--ielts-question-content-line-height);
     vertical-align: middle;
 }
 
@@ -5804,6 +5833,11 @@ body.text-size-xlarge .options-fs-overlay {
     box-sizing: border-box;
 }
 
+.table-cell-input label {
+    font-size: var(--ielts-question-content-font-size);
+    line-height: var(--ielts-question-content-line-height);
+}
+
 .table-inline-wrap {
     display: inline-flex;
     align-items: center;
@@ -5818,11 +5852,33 @@ body.text-size-xlarge .options-fs-overlay {
 .question-range-header {
     font-size: 15px;
     font-weight: 600;
-    margin-bottom: 8px;
+    margin: 0 0 var(--ielts-question-header-gap);
+}
+
+.question-group-block {
+    margin-bottom: var(--ielts-question-group-gap);
+}
+
+.question-group-block:last-child {
+    margin-bottom: 0;
+}
+
+.question-group-block>.question-focus-frame+.question-focus-frame {
+    margin-top: var(--ielts-question-item-gap);
 }
 
 .question-focus-frame {
     border: none;
+}
+
+.question-focus-frame>.tfng-question,
+.question-focus-frame>.summary-completion-container,
+.question-focus-frame>.drag-drop-group,
+.question-focus-frame>.mcq-dropdown-group,
+.question-focus-frame>.table-completion-container,
+.question-focus-frame>.matching-fill-container,
+.question-focus-frame>.mf-container {
+    margin-bottom: 0;
 }
 
 .question-focus-frame :is(.tfng-number, .dd-question-num, .mf-q-num, .heading-gap-number, .fc-blank-num, .mcq-dropdown-number) {
@@ -5867,21 +5923,44 @@ body.text-size-xlarge .options-fs-overlay {
 }
 
 .question-header-container {
-    margin-bottom: 12px;
+    margin-bottom: var(--ielts-question-header-gap);
 }
 
 .question-heading {
-    margin: 0 0 6px 0 !important;
+    margin: 0 0 var(--ielts-question-instruction-gap) 0 !important;
     font-weight: 700;
     font-size: 20px;
     color: #111;
 }
 
 .question-instruction {
-    margin: 0 !important;
-    font-size: 14px;
+    margin: 0 0 var(--ielts-question-instruction-gap) !important;
+    font-size: var(--ielts-question-instruction-font-size);
     color: #111;
-    line-height: 1.4;
+    line-height: var(--ielts-question-instruction-line-height);
+}
+
+.mcq-group-instruction {
+    margin: 0 0 var(--ielts-question-header-gap);
+    font-size: var(--ielts-question-instruction-font-size);
+    line-height: var(--ielts-question-instruction-line-height);
+}
+
+.mcq-group-instruction>br:first-child,
+.mcq-group-instruction>br:last-child,
+.mcq-group-instruction br+br {
+    display: none;
+}
+
+.mcq-group-instruction p,
+.mcq-group-instruction div,
+.mcq-group-instruction ul,
+.mcq-group-instruction ol {
+    margin: 0;
+}
+
+.mcq-group-instruction>*+* {
+    margin-top: var(--ielts-question-instruction-gap);
 }
 
 .bookmark-toggle {
@@ -5929,7 +6008,12 @@ body.text-size-xlarge .options-fs-overlay {
 
 /* Inline fill-in-blank */
 .fill-in-blank-item {
+    margin-bottom: var(--ielts-question-item-gap);
     padding-right: 32px;
+}
+
+.fill-in-blank-item:last-child {
+    margin-bottom: 0;
 }
 
 .fill-in-blank-item>.question-bookmark {
@@ -6077,15 +6161,39 @@ body.text-size-xlarge .options-fs-overlay {
 .mcq-dropdown-group .question-heading {
     font-weight: 700;
     font-size: 1.05rem;
-    margin: 0 0 8px 0;
+    margin: 0 0 var(--ielts-question-instruction-gap) 0;
     color: #111;
 }
 
 .mcq-dropdown-group .question-instruction {
-    margin: 0 0 12px 0;
-    font-size: 14px;
-    line-height: 1.45;
+    margin: 0 0 var(--ielts-question-instruction-gap) 0;
+    font-size: var(--ielts-question-instruction-font-size);
+    line-height: var(--ielts-question-instruction-line-height);
     color: #222;
+}
+
+.mcq-dropdown-group .question-instruction.dropdown-question-title {
+    margin-bottom: var(--ielts-question-header-gap) !important;
+    font-weight: 600;
+}
+
+.mcq-dropdown-group .question-instruction>br:first-child,
+.mcq-dropdown-group .question-instruction>br:last-child,
+.mcq-dropdown-group .question-instruction br+br {
+    display: none;
+}
+
+.mcq-dropdown-group .question-instruction p,
+.mcq-dropdown-group .question-instruction div,
+.mcq-dropdown-group .question-instruction ul,
+.mcq-dropdown-group .question-instruction ol,
+.mcq-dropdown-group .question-instruction li,
+.mcq-dropdown-group .question-instruction blockquote {
+    margin: 0;
+}
+
+.mcq-dropdown-group .question-instruction>*+* {
+    margin-top: var(--ielts-question-instruction-gap);
 }
 
 .mcq-dropdown-layout {
@@ -6098,9 +6206,11 @@ body.text-size-xlarge .options-fs-overlay {
 .mcq-dropdown-legend {
     display: table;
     width: auto;
+    min-width: 220px;
     list-style: none;
     margin: 0 0 16px 0;
     padding: 10px 12px;
+    position: relative;
     border: 1px solid #ccc;
     border-radius: 4px;
     background: #fff;
@@ -6108,10 +6218,59 @@ body.text-size-xlarge .options-fs-overlay {
     line-height: 1.6;
 }
 
-.mcq-dropdown-legend li {
+.mcq-dropdown-legend.has-title {
+    padding-top: 10px;
+}
+
+.mcq-dropdown-legend li:not(.mcq-dropdown-legend-title) {
     margin-bottom: 8px;
     white-space: pre-wrap;
     word-break: break-word;
+}
+
+.mcq-dropdown-legend-title {
+    position: static;
+    transform: none;
+    display: block;
+    margin: 0 0 8px;
+    padding: 0;
+    max-width: none;
+    width: fit-content;
+    background: transparent;
+    font-size: var(--ielts-question-instruction-font-size);
+    line-height: var(--ielts-question-instruction-line-height);
+    font-weight: 600;
+    color: #111;
+    white-space: normal;
+}
+
+.mcq-dropdown-legend-title p,
+.mcq-dropdown-legend-title div,
+.mcq-dropdown-legend-title ul,
+.mcq-dropdown-legend-title ol,
+.mcq-dropdown-legend-title li {
+    margin: 0;
+}
+
+.mcq-dropdown-legend-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.mcq-dropdown-legend-content {
+    display: block;
+    max-width: 100%;
+}
+
+.mcq-dropdown-legend-image {
+    display: block;
+    width: min(100%, 250px);
+    max-width: 250px;
+    height: 230px;
+    object-fit: contain;
+    border-radius: 4px;
 }
 
 .mcq-dropdown-legend li:last-child {
@@ -6127,7 +6286,7 @@ body.text-size-xlarge .options-fs-overlay {
 .mcq-dropdown-list {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: var(--ielts-question-item-gap);
     width: 100%;
     max-width: 100%;
 }
@@ -6135,7 +6294,7 @@ body.text-size-xlarge .options-fs-overlay {
 .mcq-dropdown-row {
     display: grid;
     grid-template-columns: auto auto auto;
-    column-gap: 6px;
+    column-gap: var(--ielts-question-inline-gap);
     align-items: start;
     justify-content: start;
     position: relative;
@@ -6145,8 +6304,8 @@ body.text-size-xlarge .options-fs-overlay {
 }
 
 .mcq-dropdown-text {
-    font-size: 14px;
-    line-height: 1.4;
+    font-size: var(--ielts-question-content-font-size);
+    line-height: var(--ielts-question-content-line-height);
     white-space: pre-wrap;
     word-break: break-word;
     cursor: pointer;
@@ -6305,8 +6464,8 @@ body.text-size-xlarge .options-fs-overlay {
 }
 
 .fill-blank-text {
-    font-size: 15px !important;
-    line-height: 1.7 !important;
+    font-size: var(--ielts-question-content-font-size) !important;
+    line-height: var(--ielts-question-content-line-height) !important;
     color: #1f2937 !important;
     margin-bottom: 10px !important;
 }

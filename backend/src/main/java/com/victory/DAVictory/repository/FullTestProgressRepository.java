@@ -12,4 +12,6 @@ public interface FullTestProgressRepository extends JpaRepository<FullTestProgre
     Optional<FullTestProgress> findByUserIdAndTestId(Long userId, Long testId);
 
     List<FullTestProgress> findByUserIdAndStatusOrderByUpdatedAtDesc(Long userId, String status);
+
+    void deleteByTestId(Long testId);
 }

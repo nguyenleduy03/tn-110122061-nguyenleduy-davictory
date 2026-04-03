@@ -64,28 +64,31 @@ const SharedOptionsDropdownBlock = ({
   const handleImportOptions = (text) => {
     const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
     if (lines.length === 0) return;
+    const startIdx = sharedOptions.length;
     const imported = lines.map((label, i) => ({
       id: `so-${Date.now()}-${i}`,
-      key: String.fromCharCode(65 + i),
+      key: String.fromCharCode(65 + startIdx + i),
       label,
       imageUrl: ''
     }));
-    syncSharedOptions(imported);
+    syncSharedOptions([...sharedOptions, ...imported]);
     setShowImportOptions(false);
   };
 
   const handleImportQuestions = (text) => {
     const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
     if (lines.length === 0) return;
-    const fromQ = group.fromQuestion || 1;
+    const startNum = questions.length > 0 
+      ? Math.max(...questions.map(q => q.questionNumber || 0)) + 1
+      : (group.fromQuestion || 1);
     const imported = lines.map((qText, i) => ({
       id: `q-${Date.now()}-${i}`,
-      questionNumber: fromQ + i,
+      questionNumber: startNum + i,
       questionText: qText,
       answerText: '',
       answers: [{ blankIndex: 1, isCaseSensitive: false, answerText: '' }]
     }));
-    onUpdate(group.id, { questions: imported });
+    onUpdate(group.id, { questions: [...questions, ...imported] });
     setShowImportQuestions(false);
   };
 
@@ -101,16 +104,23 @@ const SharedOptionsDropdownBlock = ({
 
       <div className="tb-sod-layout">
         <aside className="tb-sod-rail" onClick={(e) => e.stopPropagation()}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div className="tb-sod-rail-title">Bảng lựa chọn</div>
-            <label style={{ fontSize: 11, color: '#64748b', display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
-              <input
-                type="checkbox"
-                checked={group.hideOptionsTable ?? false}
-                onChange={(e) => onUpdate(group.id, { hideOptionsTable: e.target.checked })}
-              />
-              Ẩn bảng
-            </label>
+          <div style={{ marginBottom: 8 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+              <div className="tb-sod-rail-title">Tiêu đề bảng lựa chọn</div>
+              <label style={{ fontSize: 11, color: '#64748b', display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={group.hideOptionsTable ?? false}
+                  onChange={(e) => onUpdate(group.id, { hideOptionsTable: e.target.checked })}
+                />
+                Ẩn bảng
+              </label>
+            </div>
+            <RichInput
+              value={group.optionsTableTitle ?? ''}
+              placeholder="Nhập tiêu đề bảng lựa chọn..."
+              onChange={(html) => onUpdate(group.id, { optionsTableTitle: html })}
+            />
           </div>
           <p className="tb-sod-rail-hint">Áp dụng cho mọi câu trong nhóm</p>
           {sharedOptions.map((opt, idx) => (

@@ -15,7 +15,7 @@ public class GoogleDriveAuthController {
 
     private final GoogleDriveOAuth2Service driveService;
 
-    @Value("${google.drive.frontend-url:http://localhost:5173}")
+    @Value("${google.drive.frontend-url:https://davictory.io.vn}")
     private String frontendUrl;
 
     @GetMapping("/authorize")

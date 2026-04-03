@@ -9,11 +9,63 @@ import { ieltsApi } from "../services/ieltsApi";
 import TextHighlighter from "../components/common/TextHighlighter";
 import NotesPanel from "../components/common/NotesPanel";
 import { formatTextWithWhitespace } from "../utils/textFormatters";
+import { isQuestionMetaLabel } from "../utils/questionLabelUtils";
 import { computeFullTestProgressPercent, getFullTestSessionState, parseJsonSafe } from "../utils/fullTestProgress";
 import { buildDraftStorageKey, buildTimerPersistKey, clearDraftByTest, parseJsonSafe as parseRuntimeJsonSafe, markTestSubmitted, getSubmittedRedirect } from "../utils/testRuntimeState";
 import { useNotes } from "../hooks/useNotes";
 import GuestInfoForm from "../components/common/GuestInfoForm";
 import BookmarkToggle from "../components/common/BookmarkToggle";
+
+const normalizeGroupInstructionText = (value) => {
+    const blockTag = '(?:p|div|blockquote|li|ul|ol|h[1-6])';
+    const emptyBlockPattern = new RegExp(`<(${blockTag})\\b[^>]*>\\s*(?:&nbsp;|\\u00A0|\\s|<br\\s*\\/?>(?:\\s|&nbsp;)*)*<\\/\\1>`, 'gi');
+    const adjacentBlockPattern = new RegExp(`<\\/(${blockTag})>\\s*<(${blockTag})\\b[^>]*>`, 'gi');
+    const blockTagPattern = new RegExp(`<\\/?(${blockTag})\\b[^>]*>`, 'gi');
+
+    return String(value || '')
+        .replace(/\u00A0|&nbsp;/gi, ' ')
+        .replace(/<span\b[^>]*>\s*(?:&nbsp;|\u00A0|\s|<br\s*\/?>)*<\/span>/gi, ' ')
+        .replace(emptyBlockPattern, '\n')
+        .replace(adjacentBlockPattern, '\n')
+        .replace(blockTagPattern, '')
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/\r\n?/g, '\n')
+        .split('\n')
+        .map((line) => line.replace(/\s+/g, ' ').trim())
+        .filter((line) => line.replace(/<[^>]*>/g, '').replace(/\s+/g, '').length > 0)
+        .join('\n');
+};
+
+const resolveInstructionValue = (value) => {
+    if (typeof value === 'string') return value;
+    if (value && typeof value === 'object') {
+        return value.text || value.value || value.label || '';
+    }
+    return '';
+};
+
+const buildGroupInstructionText = (question) => {
+    const instructionParts = [question?.mainInstruction, question?.subInstruction]
+        .map(resolveInstructionValue)
+        .map((item) => String(item || '').trim())
+        .filter(Boolean);
+
+    if (instructionParts.length > 0) {
+        return instructionParts.join('\n');
+    }
+
+    return resolveInstructionValue(question?.groupInstruction);
+};
+
+const isComponentManagedDropdownGroup = (groupType) => {
+    const normalized = String(groupType || '')
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, '_')
+        .replace(/-/g, '_');
+
+    return normalized === 'mcq_dropdown_group' || normalized === 'shared_options_dropdown';
+};
 
 const resolvePlayableMediaUrl = (url) => {
     if (!url || typeof url !== 'string') return url;
@@ -46,6 +98,7 @@ const IeltsListeningTest = () => {
     const containerRef = useRef(null);
     const [audioObjectUrl, setAudioObjectUrl] = useState(null);
     const audioResumeRef = useRef({ partIndex: 0, seconds: 0 });
+    const audioReplayCountRef = useRef(0);
     const currentPartIndexRef = useRef(0);
     const skipExitSnapshotRef = useRef(false);
 
@@ -183,6 +236,11 @@ const IeltsListeningTest = () => {
     const partCount = testData?.parts?.length || 0;
 
     const playableAudioUrl = resolvePlayableMediaUrl(part?.audioUrl);
+    const audioPlayCount = useMemo(() => {
+        const count = Number(part?.audioPlayCount);
+        return Number.isFinite(count) && count > 0 ? Math.floor(count) : 1;
+    }, [part?.audioPlayCount]);
+    const effectiveAudioUrl = audioObjectUrl || playableAudioUrl;
 
     useEffect(() => {
         let active = true;
@@ -223,7 +281,9 @@ const IeltsListeningTest = () => {
         currentPartIndexRef.current = currentPartIndex;
     }, [currentPartIndex]);
 
-    const effectiveAudioUrl = audioObjectUrl || playableAudioUrl;
+    useEffect(() => {
+        audioReplayCountRef.current = 0;
+    }, [currentPartIndex, effectiveAudioUrl]);
 
     useEffect(() => {
         const audioEl = audioRef.current;
@@ -253,14 +313,30 @@ const IeltsListeningTest = () => {
             }
         };
 
+        const handleEnded = () => {
+            const nextReplayCount = audioReplayCountRef.current + 1;
+            audioReplayCountRef.current = nextReplayCount;
+
+            if (nextReplayCount < audioPlayCount) {
+                try {
+                    audioEl.currentTime = 0;
+                } catch {
+                    // Ignore reset failures; playback still continues.
+                }
+                audioEl.play().catch(() => { });
+            }
+        };
+
         audioEl.addEventListener('timeupdate', syncCurrentTime);
         audioEl.addEventListener('loadedmetadata', restoreCurrentTime);
+        audioEl.addEventListener('ended', handleEnded);
 
         return () => {
             audioEl.removeEventListener('timeupdate', syncCurrentTime);
             audioEl.removeEventListener('loadedmetadata', restoreCurrentTime);
+            audioEl.removeEventListener('ended', handleEnded);
         };
-    }, [effectiveAudioUrl]);
+    }, [effectiveAudioUrl, audioPlayCount]);
 
     useEffect(() => {
         if (!audioStarted || isReview) return;
@@ -280,8 +356,21 @@ const IeltsListeningTest = () => {
             }
         }
 
+        const duration = Number.isFinite(audioEl.duration) ? audioEl.duration : null;
+        const atEnd = duration != null
+            ? audioEl.currentTime >= Math.max(0, duration - 0.25)
+            : false;
+        if (atEnd || audioReplayCountRef.current >= audioPlayCount) {
+            audioReplayCountRef.current = 0;
+            try {
+                audioEl.currentTime = 0;
+            } catch {
+                // Ignore seek errors when restarting playback.
+            }
+        }
+
         audioEl.play().catch(() => { });
-    }, [audioStarted, isReview, effectiveAudioUrl]);
+    }, [audioStarted, isReview, effectiveAudioUrl, audioPlayCount]);
 
     const handlePlay = () => {
         setAudioStarted(true);
@@ -293,6 +382,15 @@ const IeltsListeningTest = () => {
                     audioEl.currentTime = Math.max(0, resume.seconds);
                 } catch {
                     // Ignore seek errors, playback still proceeds.
+                }
+            }
+            const duration = Number.isFinite(audioEl.duration) ? audioEl.duration : null;
+            if (duration != null && audioEl.currentTime >= Math.max(0, duration - 0.25)) {
+                audioReplayCountRef.current = 0;
+                try {
+                    audioEl.currentTime = 0;
+                } catch {
+                    // Ignore restart seek errors.
                 }
             }
             audioEl.play().catch(() => { });
@@ -984,7 +1082,7 @@ const IeltsListeningTest = () => {
                         for (const q of (part.questions || [])) {
                             const groupType = (q.type === 'drag-and-drop' || q.type === 'matching_heading' || q.type === 'matching_info')
                                 ? 'drag-drop' : q.type;
-                            const groupInstr = q.groupInstruction || '';
+                            const groupInstr = buildGroupInstructionText(q);
                             const isMulti = q.allowMultipleAnswers ? '1' : '0';
                             const groupKey = `${groupType}|${isMulti}|${groupInstr}`;
 
@@ -1000,10 +1098,14 @@ const IeltsListeningTest = () => {
                             currentGroup.questions.push(q);
                         }
                         return questionGroups.map((group, gi) => {
-                            const groupInstruction = group.instructions;
+                            const shouldSuppressGroupInstruction = isComponentManagedDropdownGroup(group.type);
+                            const groupInstructionRaw = shouldSuppressGroupInstruction
+                                ? ''
+                                : normalizeGroupInstructionText(group.instructions);
+                            const groupInstruction = isQuestionMetaLabel(groupInstructionRaw) ? '' : groupInstructionRaw;
 
                             return (
-                                <div key={gi} style={{ marginBottom: '40px' }}>
+                                <div key={gi} className="question-group-block">
                                     {/* Questions range header */}
                                     {(() => {
                                         const allNums = group.questions.flatMap(q => {

@@ -1,5 +1,6 @@
 import React from 'react';
 import { applyDbFormattingMarkers } from '../../utils/textFormatters';
+import { isQuestionMetaLabel } from '../../utils/questionLabelUtils';
 import BookmarkToggle from '../common/BookmarkToggle';
 
 const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answers, handleAnswerChange, inputRefs, bookmarks, toggleBookmark, isReview }) => {
@@ -12,14 +13,6 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
         if (!Number.isFinite(activeNumber)) return null;
         return summarySubQuestions.find((sq) => Number(sq.number) === activeNumber) || null;
     }, [activeQuestion, summarySubQuestions]);
-
-    const isAutoCompletionTitle = (value) => {
-        const plain = String(value || '')
-            .replace(/<[^>]*>/g, ' ')
-            .replace(/\s+/g, ' ')
-            .trim();
-        return /^(note|summary)\s*completion\s*\d*$/i.test(plain);
-    };
 
     const parseEmbeddedQuestionPayload = (rawText) => {
         if (typeof rawText !== 'string') return null;
@@ -51,8 +44,9 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
         ? (payloadFromText.noteText || payloadFromText.text || q?.noteText || '')
         : (q?.noteText || q?.text || '');
     const explicitInstructions = cleanInstructionText(payloadFromText?.instructions || q?.instructions || '');
-    const titleFallback = cleanInstructionText(payloadFromText?.title || '');
-    const instructionsText = explicitInstructions || (isAutoCompletionTitle(titleFallback) ? '' : titleFallback);
+    const titleText = cleanInstructionText(q?.title || payloadFromText?.title || '');
+    const title = isQuestionMetaLabel(titleText) ? '' : titleText;
+    const instructionsText = explicitInstructions;
 
     const syncBookmarkPosition = React.useCallback(() => {
         if (isReview || !activeSummarySubQ) {
@@ -297,6 +291,9 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
 
     return (
         <div className="summary-completion-container">
+            {title && (
+                <p className="summary-title" dangerouslySetInnerHTML={{ __html: formatInlineHtml(title) }} />
+            )}
             {instructionsText && (
                 <p className="summary-instructions" dangerouslySetInnerHTML={{ __html: formatInlineHtml(instructionsText) }} />
             )}

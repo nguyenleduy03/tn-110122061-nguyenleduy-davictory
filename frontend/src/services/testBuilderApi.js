@@ -147,6 +147,11 @@ export const testBuilderApi = {
     await apiClient.delete(`/test-builder/${testId}`);
   },
 
+  // ─── Xóa vĩnh viễn đề thi ────────────────────────────────────
+  permanentlyDeleteTest: async (testId) => {
+    await apiClient.delete(`/test-builder/${testId}/permanent`);
+  },
+
   // ─── Cập nhật trạng thái đề thi ──────────────────────────────
   updateTestStatus: async (testId, status) => {
     const res = await apiClient.put(`/tests/${testId}/status`, null, {
@@ -240,12 +245,14 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
             contentType: mapContentType(group.contentType),
             passageText: serializeGroupContent(group, part),
             audioUrl: group.audioUrl || null,
+            audioPlayCount: group.audioPlayCount ?? 1,
             imageUrl: group.imageUrl || null,
             imageWidth: group.imageWidth || null,
             fromQuestion: group.fromQuestion || null,
             toQuestion: group.toQuestion || null,
             orderIndex: gIdx + 1,
             allowOptionReuse: group.allowOptionReuse !== false, // Default true
+            hideOptionsTable: group.hideOptionsTable ?? false,
             instructions: group.instructions || null,  // Add group-level instructions
             validationOptions: group.ignoreCase !== undefined || group.ignoreSpaces || group.ignorePunctuation || group.ignoreChars ? {
               ignoreCase: group.ignoreCase !== false,
@@ -544,6 +551,7 @@ function serializeGroupContent(group, part) {
   if (ct === 'SHARED_OPTIONS_DROPDOWN') {
     return JSON.stringify({
       sharedOptions: group.sharedOptions || [],
+      optionsTableTitle: group.optionsTableTitle || '',
       questionTitle: group.questionTitle || '',
       mainInstruction: group.mainInstruction || '',
       subInstruction: group.subInstruction || '',
@@ -687,6 +695,8 @@ export function parseLoadedTest(data) {
           toQuestion: groupResp.toQuestion,
           orderIndex: groupResp.orderIndex,
           allowOptionReuse: (typeof groupResp.allowOptionReuse === 'boolean') ? groupResp.allowOptionReuse : true,
+          hideOptionsTable: (typeof groupResp.hideOptionsTable === 'boolean') ? groupResp.hideOptionsTable : undefined,
+          audioPlayCount: Number.isFinite(Number(groupResp.audioPlayCount)) ? Number(groupResp.audioPlayCount) : 1,
           questions: (groupResp.questions || []).map(qResp => {
             const questionCount = qResp.questionCount || 1;
             const startNum = qResp.questionNumber;
@@ -755,7 +765,14 @@ export function parseLoadedTest(data) {
         if (contentType === 'AUDIO_TRANSCRIPT') {
           base.questions = [];
         }
-        return { ...base, ...deserializeGroupContent(groupResp.contentType, groupResp.passageText) };
+        const content = deserializeGroupContent(groupResp.contentType, groupResp.passageText);
+        return {
+          ...base,
+          ...content,
+          hideOptionsTable: content.hideOptionsTable !== undefined
+            ? content.hideOptionsTable
+            : (typeof base.hideOptionsTable === 'boolean' ? base.hideOptionsTable : false),
+        };
       });
 
       // Backward compat: reconstruct READING_PASSAGE from legacy embedded data
@@ -905,11 +922,14 @@ function deserializeGroupContent(contentType, passageText) {
     }
     if (contentType === 'SHARED_OPTIONS_DROPDOWN') {
       const parsed = JSON.parse(passageText);
+      const hasHideOptionsTable = Object.prototype.hasOwnProperty.call(parsed, 'hideOptionsTable');
       return {
         sharedOptions: parsed.sharedOptions || [],
+        optionsTableTitle: parsed.optionsTableTitle || '',
         questionTitle: parsed.questionTitle || '',
         mainInstruction: parsed.mainInstruction || '',
         subInstruction: parsed.subInstruction || '',
+        hideOptionsTable: hasHideOptionsTable ? Boolean(parsed.hideOptionsTable) : undefined,
       };
     }
     if (contentType === 'CUSTOM') {

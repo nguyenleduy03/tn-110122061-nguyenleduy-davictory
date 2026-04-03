@@ -1,5 +1,6 @@
 import React from 'react';
 import { formatTextWithWhitespace, stripInlineStyles } from '../../utils/textFormatters';
+import { isQuestionMetaLabel } from '../../utils/questionLabelUtils';
 import { resolveDrivePreviewUrl } from '../../utils/mediaUrl';
 import BookmarkToggle from '../common/BookmarkToggle';
 
@@ -100,6 +101,19 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
     const isMatchingFeatures = questionType === 'matching_features';
     const isFlowChart = questionType === 'flow_chart';
     const isImageDragDrop = questionType === 'image_drag_drop';
+    const previewBankOptions = (q.bankOptions || []).map(resolveText).filter(Boolean);
+
+    // Debug matching_info
+    if (isMatchingInfo) {
+        console.log('[DragDropGroupQuestion] matching_info data:', {
+            questionId: q.id,
+            type: questionType,
+            leftHeader: q.leftHeader,
+            rightHeader: q.rightHeader,
+            bankOptions: previewBankOptions.slice(0, 3),
+            subQuestionsCount: (q.subQuestions || []).length
+        });
+    }
 
     const matchingHeadingContainerRef = React.useRef(null);
     const [headingOptionsBookmarkTop, setHeadingOptionsBookmarkTop] = React.useState(null);
@@ -294,6 +308,16 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
     // Calculate max length of bank options for sizing dropzones
     const bankOptions = (q.bankOptions || []).map(resolveText).filter(Boolean);
     const totalDropZones = (q.subQuestions || []).length;
+    
+    // Debug: Log bankOptions for matching_heading
+    if (isMatchingHeading) {
+        console.log('[DragDropGroupQuestion] matching_heading data:', {
+            questionId: q.id,
+            rawBankOptions: q.bankOptions,
+            processedBankOptions: bankOptions,
+            subQuestionsCount: totalDropZones
+        });
+    }
     // Reuse cards by default for "machine" drag/drop styles.
     // You can explicitly override per-question/group via q.allowOptionReuse (boolean).
     const allowOptionReuse = (typeof q.allowOptionReuse === 'boolean')
@@ -461,8 +485,8 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
     const renderFlowChart = () => {
         const flowNodes = q.flowNodes ?? [];
         const subQuestions = q.subQuestions ?? [];
-        const chartTitle = /^\s*(nh[oó]m|group)\s*\d*\s*$/i.test(String(q.title || '')) ? '' : q.title;
-        const bankTitle = q.bankTitle || '';
+        const chartTitle = isQuestionMetaLabel(q.title) ? '' : (q.title || '');
+        const bankTitle = isQuestionMetaLabel(q.bankTitle) ? '' : (q.bankTitle || '');
 
         let blankCounter = 0;
         const nodeRenderData = flowNodes.map((node) => {
@@ -652,7 +676,7 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                     </div>
 
                     <div className="bank-area" onDragOver={handleDragOver} onDrop={handleBankDrop}>
-                        {q.rightTitle && (
+                        {!isQuestionMetaLabel(q.rightTitle) && q.rightTitle && (
                             <div className="dd-bank-title" dangerouslySetInnerHTML={{ __html: formatAndClean(q.rightTitle) }} />
                         )}
                         <div className="bank-options-list">
@@ -711,12 +735,12 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
         const numbers = subQuestions.map((sq) => sq.number).filter((n) => Number.isFinite(n));
         const minNum = numbers.length ? Math.min(...numbers) : null;
         const maxNum = numbers.length ? Math.max(...numbers) : null;
-        const heading = q.heading
+        const heading = (isQuestionMetaLabel(q.heading) ? '' : q.heading)
             || (minNum !== null && maxNum !== null
                 ? (minNum === maxNum ? `Question ${minNum}` : `Questions ${minNum}–${maxNum}`)
                 : 'Questions');
 
-        const instruction = q.instruction
+        const instruction = (isQuestionMetaLabel(q.instruction) ? '' : q.instruction)
             || `Choose the correct group (${categories[0]?.label || 'A'}–${categories[categories.length - 1]?.label || 'E'}) for each item. You may choose any group more than once.`;
 
         const handleSelect = (questionId, label) => {

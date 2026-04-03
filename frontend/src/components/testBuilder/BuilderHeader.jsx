@@ -215,6 +215,8 @@ const BuilderHeader = ({
   }, [sizeMenuOpen]);
 
   // For select dropdowns that steal focus: restore selection then exec
+  // IMPORTANT: Không dùng document.querySelector('[contenteditable]') vì có nhiều editable trên trang.
+  // Chỉ dùng lastContentEditableRef (element cuối cùng user tương tác).
   const getTargetEditable = () => {
     const activeEl = document.activeElement;
     if (activeEl && activeEl.isContentEditable) {
@@ -225,7 +227,8 @@ const BuilderHeader = ({
     const anchorNode = sel?.anchorNode || sel?.focusNode || null;
     const anchorEl = anchorNode?.nodeType === 1 ? anchorNode : anchorNode?.parentElement;
     const selectionEditable = anchorEl?.closest?.('[contenteditable="true"]');
-    return selectionEditable || lastContentEditableRef.current || document.querySelector('[contenteditable="true"]');
+    // lastContentEditableRef.current là element cuối user focus vào — đúng hơn querySelector đầu tiên.
+    return selectionEditable || lastContentEditableRef.current || null;
   };
 
   const captureCurrentSelection = () => {
@@ -300,35 +303,72 @@ const BuilderHeader = ({
 
     try {
       const sel = window.getSelection();
+
+      // Khôi phục selection đã lưu (từ trước khi focus rời contenteditable)
       if (lastRangeRef.current) {
-        sel.removeAllRanges();
-        sel.addRange(lastRangeRef.current);
-      } else if (sel?.rangeCount) {
-        const currentRange = sel.getRangeAt(0);
-        const currentAnchor = currentRange.commonAncestorContainer;
-        const currentAnchorEl = currentAnchor?.nodeType === 1 ? currentAnchor : currentAnchor?.parentElement;
-        if (currentAnchorEl?.closest?.('[contenteditable="true"]')) {
-          lastRangeRef.current = currentRange.cloneRange();
+        try {
+          // Kiểm tra range còn hợp lệ không (node chưa bị remove khỏi DOM)
+          const rangeAnchor = lastRangeRef.current.commonAncestorContainer;
+          if (rangeAnchor && editableEl.contains(rangeAnchor)) {
+            sel.removeAllRanges();
+            sel.addRange(lastRangeRef.current);
+          } else {
+            // Range stale — không khôi phục, reset để tránh apply sai vị trí
+            lastRangeRef.current = null;
+          }
+        } catch (_rangeErr) {
+          lastRangeRef.current = null;
         }
       }
 
-      if (!sel?.rangeCount) return;
+      // Nếu sau khi restore vẫn không có range, thử lấy từ selection hiện tại
+      if (!sel?.rangeCount) {
+        // Không có selection, không thể áp dụng font size
+        return;
+      }
+
       const range = sel.getRangeAt(0);
-      
-      // Nếu không có text được chọn, không làm gì
-      if (range.collapsed) return;
 
-      const wrapper = document.createElement('span');
-      wrapper.style.fontSize = `${sizePx}px`;
-      wrapper.appendChild(range.extractContents());
-      range.insertNode(wrapper);
+      // Verify range nằm trong editable đúng
+      const rangeAnchor = range.commonAncestorContainer;
+      const rangeAnchorEl = rangeAnchor?.nodeType === 1 ? rangeAnchor : rangeAnchor?.parentElement;
+      if (!rangeAnchorEl?.closest?.('[contenteditable="true"]')) return;
 
-      const nextRange = document.createRange();
-      nextRange.selectNodeContents(wrapper);
-      nextRange.collapse(false);
-      sel.removeAllRanges();
-      sel.addRange(nextRange);
-      lastRangeRef.current = nextRange.cloneRange();
+      if (range.collapsed) {
+        // Không có text chọn: áp dụng cỡ chữ cho lần gõ tiếp theo bằng execCommand fontSize.
+        // Dùng CSS thông qua styleWithCSS để tương thích các trình duyệt.
+        try {
+          document.execCommand('styleWithCSS', false, true);
+          // execCommand fontSize chỉ nhận giá trị 1-7 (HTML font size)
+          // Dùng wrapper span thay thế để không giới hạn ở 7 mức.
+          // Chèn span rỗng với font-size CSS làm điểm neo cỡ chữ.
+          const marker = document.createElement('span');
+          marker.style.fontSize = `${sizePx}px`;
+          marker.textContent = '\u200B'; // Zero-width space để có thể đặt caret vào
+          range.insertNode(marker);
+          const afterMarker = document.createRange();
+          afterMarker.setStart(marker.firstChild, marker.firstChild.length);
+          afterMarker.collapse(true);
+          sel.removeAllRanges();
+          sel.addRange(afterMarker);
+          lastRangeRef.current = afterMarker.cloneRange();
+        } catch (_) {
+          // Bỏ qua nếu không thể áp dụng
+        }
+      } else {
+        // Có text đang chọn: wrap bằng span với font-size
+        const wrapper = document.createElement('span');
+        wrapper.style.fontSize = `${sizePx}px`;
+        wrapper.appendChild(range.extractContents());
+        range.insertNode(wrapper);
+
+        const nextRange = document.createRange();
+        nextRange.selectNodeContents(wrapper);
+        nextRange.collapse(false);
+        sel.removeAllRanges();
+        sel.addRange(nextRange);
+        lastRangeRef.current = nextRange.cloneRange();
+      }
 
       editableEl.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'formatChange', data: null }));
     } catch (error) {
@@ -338,20 +378,13 @@ const BuilderHeader = ({
 
   const applyPresetFontSize = (size) => {
     const next = normalizeEvenFontSize(size);
+    // Cập nhật UI input đồng bộ
     setCustomFontSize(next);
-
-    try {
-      const sel = window.getSelection();
-      if (lastRangeRef.current) {
-        sel.removeAllRanges();
-        sel.addRange(lastRangeRef.current);
-      }
-    } catch (e) {
-      console.error('Failed to restore selection:', e);
-    }
-    
-    applyCustomFontSize(next);
+    // Đóng menu trước khi apply để tránh event conflict
     setSizeMenuOpen(false);
+    // Áp dụng ngay lập tức với giá trị đã tính (không chờ React re-render)
+    // lastRangeRef đã được lưu khi user click nút toggle menu.
+    applyCustomFontSize(next);
   };
 
   const renderSizeMenu = () => {
@@ -602,7 +635,11 @@ const BuilderHeader = ({
                 value={customFontSize}
                 placeholder="16"
                 onChange={(e) => setCustomFontSize(extractIntegerText(e.target.value))}
-                onMouseDown={(e) => e.stopPropagation()}
+                onMouseDown={(e) => {
+                  // Capture selection TRƯỚC khi input nhận focus (trước khi selection bị clear)
+                  captureCurrentSelection();
+                  e.stopPropagation();
+                }}
                 onClick={(e) => e.stopPropagation()}
                 onWheel={(e) => {
                   e.preventDefault();
@@ -638,13 +675,24 @@ const BuilderHeader = ({
                 onMouseDown={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  
-                  // Lưu selection hiện tại trước khi mở menu
+
+                  // Lưu selection hiện tại trước khi mở menu.
+                  // Phải lưu cả lastContentEditableRef nếu selection không nằm trong editable.
                   const sel = window.getSelection();
                   if (sel?.rangeCount) {
-                    lastRangeRef.current = sel.getRangeAt(0).cloneRange();
+                    const r = sel.getRangeAt(0);
+                    const anchor = r.commonAncestorContainer;
+                    const anchorEl = anchor?.nodeType === 1 ? anchor : anchor?.parentElement;
+                    const insideEditable = anchorEl?.closest?.('[contenteditable="true"]');
+                    if (insideEditable) {
+                      // Capture cả lastContentEditableRef để getTargetEditable() trả về đúng
+                      lastContentEditableRef.current = insideEditable;
+                      lastRangeRef.current = r.cloneRange();
+                    } else if (lastRangeRef.current) {
+                      // Giữ nguyên lastRangeRef đã có từ trước
+                    }
                   }
-                  
+
                   setSizeMenuOpen((open) => !open);
                 }}
               >

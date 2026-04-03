@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Plus, Volume2, Image, ChevronUp, ChevronDown } from 'lucide-react';
+import { X, Plus, Volume2, Image, ChevronUp, ChevronDown, Upload } from 'lucide-react';
 import GroupToolbar from './shared/GroupToolbar';
 import RichInput from '../../common/RichInput';
 import RichBlankEditor from './shared/RichBlankEditor';
@@ -9,6 +9,10 @@ import { stripInlineStyles } from '../../../utils/textFormatters';
 const DragMatchingBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps,
   onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onAddQuestion, selectedQuestionId }) => {
   const options = group.optionBank ?? [];
+  const questions = group.questions ?? [];
+  
+  const [showImportOptions, setShowImportOptions] = React.useState(false);
+  const [showImportQuestions, setShowImportQuestions] = React.useState(false);
   
   // Clean options on mount if they have HTML comments
   useEffect(() => {
@@ -21,7 +25,34 @@ const DragMatchingBlock = ({ group, onUpdate, onDelete, onSelect, selected, drag
       onUpdate(group.id, { optionBank: cleaned });
     }
   }, []);
-  const questions = group.questions ?? [];
+
+  const handleImportOptions = (text) => {
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    if (lines.length === 0) return;
+    const imported = lines.map((label, i) => ({
+      id: `opt-${Date.now()}-${i}`,
+      text: label
+    }));
+    onUpdate(group.id, { optionBank: [...options, ...imported] });
+    setShowImportOptions(false);
+  };
+
+  const handleImportQuestions = (text) => {
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    if (lines.length === 0) return;
+    const startNum = questions.length > 0
+      ? Math.max(...questions.map(q => q.questionNumber || 0)) + 1
+      : (group.fromQuestion || 1);
+    const imported = lines.map((qText, i) => ({
+      id: `q-${Date.now()}-${i}`,
+      questionNumber: startNum + i,
+      questionText: qText,
+      answerText: '',
+      answers: [{ blankIndex: 1, isCaseSensitive: false, answerText: '' }]
+    }));
+    onUpdate(group.id, { questions: [...questions, ...imported] });
+    setShowImportQuestions(false);
+  };
   return (
     <div className={`exam-group${selected ? ' selected' : ''}`}
       onClick={(e) => { e.stopPropagation(); onSelect(group); }}>
@@ -87,10 +118,41 @@ const DragMatchingBlock = ({ group, onUpdate, onDelete, onSelect, selected, drag
               </button>
             </div>
           ))}
-          <button className="exam-add-btn" style={{ marginTop: 6 }}
-            onClick={(e) => { e.stopPropagation(); onAddQuestion(group); }}>
-            <Plus size={12} /> Thêm mục
-          </button>
+          <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+            <button className="exam-add-btn" style={{ flex: 1 }}
+              onClick={(e) => { e.stopPropagation(); onAddQuestion(group); }}>
+              <Plus size={12} /> Thêm mục
+            </button>
+            <button className="exam-add-btn"
+              onClick={(e) => { e.stopPropagation(); setShowImportQuestions(true); }}
+              style={{ fontSize: 11, padding: '4px 8px' }}>
+              📋
+            </button>
+          </div>
+          
+          {showImportQuestions && (
+            <div className="exam-import-modal" onClick={(e) => e.stopPropagation()}>
+              <textarea
+                autoFocus
+                placeholder="Nhập mỗi câu hỏi trên một dòng..."
+                rows={8}
+                style={{ width: '100%', padding: 8, fontSize: 13 }}
+              />
+              <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                <button className="exam-add-btn" style={{ flex: 1 }}
+                  onClick={(e) => {
+                    const text = e.target.parentElement.previousElementSibling.value;
+                    handleImportQuestions(text);
+                  }}>
+                  Import
+                </button>
+                <button className="exam-add-btn"
+                  onClick={() => setShowImportQuestions(false)}>
+                  Hủy
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Right column: word bank */}
@@ -121,10 +183,41 @@ const DragMatchingBlock = ({ group, onUpdate, onDelete, onSelect, selected, drag
                 </button>
               </div>
             ))}
-            <button className="exam-add-btn" style={{ marginTop: 6 }}
-              onClick={(e) => { e.stopPropagation(); onUpdate(group.id, { optionBank: [...options, { id: Date.now(), text: '' }] }); }}>
-              <Plus size={11} /> Thêm lựa chọn
-            </button>
+            <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+              <button className="exam-add-btn" style={{ flex: 1 }}
+                onClick={(e) => { e.stopPropagation(); onUpdate(group.id, { optionBank: [...options, { id: Date.now(), text: '' }] }); }}>
+                <Plus size={11} /> Thêm lựa chọn
+              </button>
+              <button className="exam-add-btn"
+                onClick={(e) => { e.stopPropagation(); setShowImportOptions(true); }}
+                style={{ fontSize: 11, padding: '4px 8px' }}>
+                📋
+              </button>
+            </div>
+            
+            {showImportOptions && (
+              <div className="exam-import-modal" onClick={(e) => e.stopPropagation()}>
+                <textarea
+                  autoFocus
+                  placeholder="Nhập mỗi lựa chọn trên một dòng..."
+                  rows={8}
+                  style={{ width: '100%', padding: 8, fontSize: 13 }}
+                />
+                <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                  <button className="exam-add-btn" style={{ flex: 1 }}
+                    onClick={(e) => {
+                      const text = e.target.parentElement.previousElementSibling.value;
+                      handleImportOptions(text);
+                    }}>
+                    Import
+                  </button>
+                  <button className="exam-add-btn"
+                    onClick={() => setShowImportOptions(false)}>
+                    Hủy
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

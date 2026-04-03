@@ -10,7 +10,7 @@
  * 
  * NOTE: Block components đã được tách ra thành các file riêng trong thư mục blocks/
  */
-import React, { useState, useMemo, useEffect, useRef, useLayoutEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useDroppable } from '@dnd-kit/core';
@@ -247,11 +247,6 @@ const PreviewContent = ({ test, sessions, sessionDurations, activeSkill, onSetAc
         {(group.mainInstruction || group.subInstruction) && (
           <div className="pv-group-instructions" style={{ marginTop: 4 }}>
             <span dangerouslySetInnerHTML={{ __html: [group.mainInstruction, group.subInstruction].filter(Boolean).join('<br/><br/>') }} />
-          </div>
-        )}
-        {group.questionTitle && (
-          <div className="pv-group-instructions" style={{ marginTop: 4 }}>
-            <span dangerouslySetInnerHTML={{ __html: formatPreviewText(group.questionTitle) }} />
           </div>
         )}
         {questions.map((q) => {
@@ -1359,41 +1354,16 @@ const ExamCanvas = ({
   onSetActiveSkill,
   testId,
 }) => {
-  const zoomStorageKey = useMemo(() => {
-    const safeTestId = testId ?? 'default-test';
-    const safeSkill = skill ?? 'default-skill';
-    return `test-builder-zoom:${safeTestId}:${safeSkill}`;
-  }, [testId, skill]);
-
-  const readSavedZoomLevel = () => {
-    if (typeof window === 'undefined') return 100;
-    try {
-      const saved = window.sessionStorage.getItem(zoomStorageKey);
-      const parsed = saved ? Number.parseInt(saved, 10) : 100;
-      return Number.isFinite(parsed) ? Math.max(50, Math.min(150, parsed)) : 100;
-    } catch {
-      return 100;
-    }
-  };
-
-  const normalizeZoomLevel = (value) => {
-    const parsed = Number.parseFloat(String(value));
-    if (!Number.isFinite(parsed)) return 100;
-    const clamped = Math.max(50, Math.min(150, parsed));
-    const rounded = Math.round(clamped / 2) * 2;
-    return Math.max(50, Math.min(150, rounded));
-  };
-
   const [activePartId, setActivePartId] = useState(null);
   const [showTimeModal, setShowTimeModal] = useState(false);
   const [draftTimeValue, setDraftTimeValue] = useState('');
-  const [zoomLevel, setZoomLevel] = useState(readSavedZoomLevel);
-  const [lockedViewportHeight, setLockedViewportHeight] = useState(0);
+  const [zoomLevel, setZoomLevel] = useState(100);
   const [showFooter, setShowFooter] = useState(false);
   const [showZoomControls, setShowZoomControls] = useState(false);
-  const viewportRef = useRef(null);
   const hideFooterTimeoutRef = useRef(null);
   const hideZoomTimeoutRef = useRef(null);
+  const zoomRatio = zoomLevel / 100;
+  const zoomDisplay = `${zoomLevel.toFixed(1)}%`;
   
   const skillLabel = useMemo(() => {
     const map = {
@@ -1454,7 +1424,7 @@ const ExamCanvas = ({
         const delta = e.deltaY;
         setZoomLevel((prev) => {
           const newZoom = prev - delta * 1.33;
-          return normalizeZoomLevel(newZoom);
+          return Math.round(Math.max(50, Math.min(150, newZoom)) * 10) / 10;
         });
         
         // Show zoom controls when zooming
@@ -1474,47 +1444,6 @@ const ExamCanvas = ({
       return () => canvas.removeEventListener('wheel', handleWheel);
     }
   }, []);
-
-  // Keep zoom level persistent when switching between parts or revisiting the builder.
-  useEffect(() => {
-    const savedZoom = readSavedZoomLevel();
-    setZoomLevel(normalizeZoomLevel(savedZoom));
-  }, [zoomStorageKey]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    try {
-      window.sessionStorage.setItem(zoomStorageKey, String(zoomLevel));
-    } catch {
-      // Ignore storage failures.
-    }
-  }, [zoomLevel, zoomStorageKey]);
-
-  useLayoutEffect(() => {
-    const el = viewportRef.current;
-    if (!el) return undefined;
-
-    const updateLockedHeight = () => {
-      const currentHeight = Math.ceil(el.offsetHeight || 0);
-      if (currentHeight > 0) {
-        setLockedViewportHeight((prev) => Math.max(prev, currentHeight));
-      }
-    };
-
-    updateLockedHeight();
-
-    let resizeObserver = null;
-    if (typeof ResizeObserver !== 'undefined') {
-      resizeObserver = new ResizeObserver(() => {
-        updateLockedHeight();
-      });
-      resizeObserver.observe(el);
-    }
-
-    return () => {
-      if (resizeObserver) resizeObserver.disconnect();
-    };
-  }, [activePartId, zoomLevel, parts.length, skill, testId]);
 
   // Reset active part when skill changes
   useEffect(() => { setActivePartId(null); }, [skill]);
@@ -1589,8 +1518,6 @@ const ExamCanvas = ({
 
   const activePartInstructionText = toPlainText(activePart?.instructions);
   const activePartInstructionHtml = normalizeRichHtml(activePart?.instructions || '');
-  const normalizedZoomLevel = normalizeZoomLevel(zoomLevel);
-  const zoomScale = normalizedZoomLevel / 100;
 
   // For Reading: passage pane highlights when dragging a READING_PASSAGE over the left pane
   const isPassagePaneOver = !!dragOverPassagePaneId && (
@@ -1623,7 +1550,7 @@ const ExamCanvas = ({
           opacity: showZoomControls ? 1 : 0
         }}>
         <button 
-          onClick={() => setZoomLevel((prev) => normalizeZoomLevel(prev - 10))}
+          onClick={() => setZoomLevel((prev) => Math.max(50, Math.round((prev - 10) * 10) / 10))}
           style={{ 
             padding: '4px 8px', 
             border: '1px solid #e2e8f0', 
@@ -1638,10 +1565,10 @@ const ExamCanvas = ({
           −
         </button>
         <span style={{ fontSize: 12, color: '#64748b', minWidth: 45, textAlign: 'center' }}>
-          {Math.round(normalizedZoomLevel)}%
+          {zoomDisplay}
         </span>
         <button 
-          onClick={() => setZoomLevel((prev) => normalizeZoomLevel(prev + 10))}
+          onClick={() => setZoomLevel((prev) => Math.min(150, Math.round((prev + 10) * 10) / 10))}
           style={{ 
             padding: '4px 8px', 
             border: '1px solid #e2e8f0', 
@@ -1715,17 +1642,8 @@ const ExamCanvas = ({
 
       {/* Exam paper with zoom */}
       {activePart && (
-        <div
-          className="exam-viewport-shell"
-          style={{
-            minHeight: lockedViewportHeight ? `${lockedViewportHeight}px` : undefined,
-          }}
-        >
-          <div ref={viewportRef} className="exam-viewport" style={{ 
-            transform: `scale(${zoomScale})`,
-            transformOrigin: 'top center',
-            transition: 'transform 0.2s ease'
-          }}>
+        <div className="exam-viewport-shell" style={{ zoom: String(zoomRatio) }}>
+          <div className="exam-viewport">
           {/* Mocked exam header */}
           <div className="exam-mock-header">
             <img

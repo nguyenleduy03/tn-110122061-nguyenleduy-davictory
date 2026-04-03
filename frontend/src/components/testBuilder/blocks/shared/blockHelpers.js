@@ -165,31 +165,50 @@ export const loadImageFile = async (file, setImageUrl, module = 'READING', testT
   }
 };
 
-export const loadAudioFile = async (file, setAudioUrl, module = 'LISTENING', testTitle = '', testId = null, assetLabel = '') => {
+export const loadAudioFile = async (file, setAudioUrl, module = 'LISTENING', testTitle = '', testId = null, assetLabel = '', options = {}) => {
   if (!file || !file.type?.startsWith('audio/')) return;
+  const {
+    onStart,
+    onProgress,
+    onDone,
+    onError,
+  } = options;
   
   try {
+    onStart?.();
+
     // Show loading state with base64 preview first
     const reader = new FileReader();
+    reader.onprogress = (event) => {
+      if (!event.lengthComputable) return;
+      const progress = Math.max(1, Math.min(35, Math.round((event.loaded / event.total) * 35)));
+      onProgress?.(progress, 'Đang xử lý file audio...');
+    };
     reader.onload = () => {
       const preview = String(reader.result || '');
       if (preview) setAudioUrl(preview);
+      onProgress?.(35, 'Đang tải lên Google Drive...');
     };
     reader.readAsDataURL(file);
 
     // Upload to Google Drive
     const { fileApi } = await import('../../../../services/fileApi');
+    onProgress?.(45, 'Đang khởi tạo tải lên...');
     const uploadName = buildUploadFileName(file.name, module, testTitle, assetLabel, file.name.includes('.') ? `.${String(file.name).split('.').pop()}` : '');
     const uploadFile = new File([file], uploadName, { type: file.type || 'audio/*' });
+    onProgress?.(60, 'Đang đẩy file lên Drive...');
     const result = module === 'SPEAKING'
       ? await fileApi.uploadSpeakingAudio(uploadFile, testTitle, testId)
       : await fileApi.uploadListeningAudio(uploadFile, testTitle, testId);
     
     // Set the Drive URL
     setAudioUrl(result.url);
+    onProgress?.(100, 'Tải lên hoàn tất');
+    onDone?.(result);
     return result;
   } catch (err) {
     console.error('Audio upload failed:', err);
+    onError?.(err);
     alert('Lỗi upload audio: ' + (err.response?.data?.error || err.message || 'Unknown error'));
   }
 };

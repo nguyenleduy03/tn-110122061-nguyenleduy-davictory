@@ -63,11 +63,13 @@ public class TestFullResponse {
         private String contentType;
         private String passageText;
         private String audioUrl;
+        private Integer audioPlayCount;
         private String imageUrl;
         private Integer imageWidth;
         private Integer fromQuestion;
         private Integer toQuestion;
         private Integer orderIndex;
+        private Boolean hideOptionsTable;
         private List<QuestionResp> questions;
     }
 

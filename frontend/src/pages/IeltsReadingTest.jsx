@@ -12,10 +12,62 @@ import NotesPanel from "../components/common/NotesPanel";
 import BookmarkToggle from "../components/common/BookmarkToggle";
 import { createPortal } from "react-dom";
 import { formatTextWithWhitespace } from "../utils/textFormatters";
+import { isQuestionMetaLabel } from "../utils/questionLabelUtils";
 import { computeFullTestProgressPercent, getFullTestSessionState, parseJsonSafe } from "../utils/fullTestProgress";
 import { buildTimerPersistKey, clearDraftByTest, markTestSubmitted, getSubmittedRedirect } from "../utils/testRuntimeState";
 import { useNotes } from "../hooks/useNotes";
 import { assignmentApi } from "../services/assignmentApi";
+
+const normalizeGroupInstructionText = (value) => {
+    const blockTag = '(?:p|div|blockquote|li|ul|ol|h[1-6])';
+    const emptyBlockPattern = new RegExp(`<(${blockTag})\\b[^>]*>\\s*(?:&nbsp;|\\u00A0|\\s|<br\\s*\\/?>(?:\\s|&nbsp;)*)*<\\/\\1>`, 'gi');
+    const adjacentBlockPattern = new RegExp(`<\\/(${blockTag})>\\s*<(${blockTag})\\b[^>]*>`, 'gi');
+    const blockTagPattern = new RegExp(`<\\/?(${blockTag})\\b[^>]*>`, 'gi');
+
+    return String(value || '')
+        .replace(/\u00A0|&nbsp;/gi, ' ')
+        .replace(/<span\b[^>]*>\s*(?:&nbsp;|\u00A0|\s|<br\s*\/?>)*<\/span>/gi, ' ')
+        .replace(emptyBlockPattern, '\n')
+        .replace(adjacentBlockPattern, '\n')
+        .replace(blockTagPattern, '')
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/\r\n?/g, '\n')
+        .split('\n')
+        .map((line) => line.replace(/\s+/g, ' ').trim())
+        .filter((line) => line.replace(/<[^>]*>/g, '').replace(/\s+/g, '').length > 0)
+        .join('\n');
+};
+
+const resolveInstructionValue = (value) => {
+    if (typeof value === 'string') return value;
+    if (value && typeof value === 'object') {
+        return value.text || value.value || value.label || '';
+    }
+    return '';
+};
+
+const buildGroupInstructionText = (question) => {
+    const instructionParts = [question?.mainInstruction, question?.subInstruction]
+        .map(resolveInstructionValue)
+        .map((item) => String(item || '').trim())
+        .filter(Boolean);
+
+    if (instructionParts.length > 0) {
+        return instructionParts.join('\n');
+    }
+
+    return resolveInstructionValue(question?.groupInstruction);
+};
+
+const isComponentManagedDropdownGroup = (groupType) => {
+    const normalized = String(groupType || '')
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, '_')
+        .replace(/-/g, '_');
+
+    return normalized === 'mcq_dropdown_group' || normalized === 'shared_options_dropdown';
+};
 
 const HeadingGap = ({ qId, number, answer, correctAnswer, handleAnswerChange, isActive, setActiveQuestion, bookmarks, toggleBookmark, isReview }) => {
     const handleDragOver = (e) => { if (isReview) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
@@ -688,7 +740,7 @@ const IeltsReadingTest = () => {
     for (const q of part.questions) {
         const groupType = (q.type === 'drag-and-drop' || q.type === 'matching_heading' || q.type === 'matching_info')
             ? 'drag-drop' : q.type;
-        const groupInstr = q.groupInstruction || '';
+        const groupInstr = buildGroupInstructionText(q);
         const isMulti = q.allowMultipleAnswers ? '1' : '0';
         const groupKey = `${groupType}|${isMulti}|${groupInstr}`;
 
@@ -773,10 +825,14 @@ const IeltsReadingTest = () => {
                     <div className="questions-content" style={{ paddingBottom: '80px' }}>
                         {questionGroups.map((group, gi) => {
                             // Get instruction from group
-                            const groupInstruction = group.instructions;
+                            const shouldSuppressGroupInstruction = isComponentManagedDropdownGroup(group.type);
+                            const groupInstructionRaw = shouldSuppressGroupInstruction
+                                ? ''
+                                : normalizeGroupInstructionText(group.instructions);
+                            const groupInstruction = isQuestionMetaLabel(groupInstructionRaw) ? '' : groupInstructionRaw;
 
                             return (
-                                <div key={gi} style={{ marginBottom: '40px' }}>
+                                <div key={gi} className="question-group-block">
                                     {/* Questions range header */}
                                     {(() => {
                                         const allNums = group.questions.flatMap(q => {

@@ -11,8 +11,12 @@ const AudioBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleP
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadMessage, setUploadMessage] = useState('');
+  const [previewAudioUrl, setPreviewAudioUrl] = useState('');
 
-  const audioSrc = useMemo(() => resolveDrivePreviewUrl(group.audioUrl || ''), [group.audioUrl]);
+  const audioSrc = useMemo(() => resolveDrivePreviewUrl(group.audioUrl || previewAudioUrl || ''), [group.audioUrl, previewAudioUrl]);
 
   useEffect(() => {
     setIsPlaying(false);
@@ -30,11 +34,60 @@ const AudioBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleP
     }
   }, [audioSrc]);
 
+  useEffect(() => {
+    if (group.audioUploadStatus === 'uploading') {
+      setUploading(true);
+      return;
+    }
+    setUploading(false);
+    if (group.audioUploadStatus === 'idle' || group.audioUploadStatus === 'error') {
+      setUploadProgress(0);
+      setUploadMessage('');
+    }
+  }, [group.audioUploadStatus]);
+
   const handleAudioUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = '';
-    loadAudioFile(file, (audioUrl) => onUpdate(group.id, { audioUrl }), module, testTitle, testId, group.contentType || 'AUDIO_TRANSCRIPT');
+    loadAudioFile(
+      file,
+      setPreviewAudioUrl,
+      module,
+      testTitle,
+      testId,
+      group.contentType || 'AUDIO_TRANSCRIPT',
+      {
+        onStart: () => {
+          setUploading(true);
+          setUploadProgress(4);
+          setUploadMessage('Đang chuẩn bị upload...');
+          onUpdate(group.id, { audioUploadStatus: 'uploading' });
+        },
+        onProgress: (progress, message) => {
+          setUploadProgress(progress);
+          if (message) setUploadMessage(message);
+        },
+        onDone: (result) => {
+          setPreviewAudioUrl('');
+          setUploading(false);
+          setUploadProgress(100);
+          setUploadMessage('Upload hoàn tất');
+          onUpdate(group.id, { audioUrl: result.url, audioUploadStatus: 'idle' });
+        },
+        onError: () => {
+          setUploading(false);
+          setUploadProgress(0);
+          setUploadMessage('');
+          onUpdate(group.id, { audioUploadStatus: 'error' });
+        },
+      }
+    );
+  };
+
+  const handlePlayCountChange = (e) => {
+    const nextCount = Number.parseInt(e.target.value, 10);
+    onUpdate(group.id, { audioPlayCount: Number.isFinite(nextCount) && nextCount > 0 ? nextCount : 1 });
   };
 
   useEffect(() => {
@@ -160,6 +213,34 @@ const AudioBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleP
             />
           </div>
 
+          {uploading && (
+            <div className="exam-audio-upload-progress" style={{ width: '100%' }}>
+              <div className="exam-audio-upload-progress-bar" style={{ width: `${uploadProgress}%` }} />
+              <div className="exam-audio-upload-progress-meta">
+                <span>{uploadMessage || 'Đang tải lên...'}</span>
+                <span>{Math.min(100, Math.max(0, Math.round(uploadProgress)))}%</span>
+              </div>
+            </div>
+          )}
+
+          {module === 'LISTENING' && (
+            <label className="exam-audio-url-wrap" style={{ gap: 8 }} title="Số lần phát audio">
+              <span style={{ fontSize: 12, color: '#475569', whiteSpace: 'nowrap' }}>Số lần phát</span>
+              <input
+                className="exam-audio-url-input"
+                type="number"
+                min="1"
+                max="10"
+                step="1"
+                value={group.audioPlayCount ?? 1}
+                onChange={handlePlayCountChange}
+                onClick={(e) => e.stopPropagation()}
+                style={{ width: 88 }}
+                disabled={uploading}
+              />
+            </label>
+          )}
+
           <label className="exam-audio-upload-btn" title="Tải file audio">
             <Upload size={13} />
             <span>Tải file</span>
@@ -169,6 +250,7 @@ const AudioBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleP
               hidden
               onClick={(e) => e.stopPropagation()}
               onChange={handleAudioUpload}
+              disabled={uploading}
             />
           </label>
         </div>

@@ -28,4 +28,6 @@ public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
     // Đếm số bài đã nộp / chưa nộp
     @Query("SELECT COUNT(s) FROM AssignmentSubmission s WHERE s.assignment.id = :assignmentId AND s.status != 'NOT_SUBMITTED'")
     long countSubmissions(@Param("assignmentId") Long assignmentId);
+
+    void deleteByTestId(Long testId);
 }

@@ -32,4 +32,6 @@ public interface QuestionStatisticRepository extends JpaRepository<QuestionStati
     // Câu hỏi có chỉ số phân biệt thấp (cần rà soát)
     @Query("SELECT qs FROM QuestionStatistic qs WHERE qs.discriminationIndex < :threshold AND qs.totalAttempts >= :minAttempts")
     List<QuestionStatistic> findLowDiscrimination(@Param("threshold") double threshold, @Param("minAttempts") int minAttempts);
+
+    void deleteByQuestionId(Long questionId);
 }

@@ -17,7 +17,6 @@ const TestBuilder = lazy(() => import('./pages/TestBuilder'))
 const TeacherManage = lazy(() => import('./pages/TeacherManage'))
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'))
 const AdminUsers = lazy(() => import('./pages/AdminUsers'))
-const GoogleDriveSettings = lazy(() => import('./pages/GoogleDriveSettings'))
 const LmsTeacherDashboard = lazy(() => import('./pages/lms/LmsTeacherDashboard'))
 const ClassManagement = lazy(() => import('./pages/ClassManagement'))
 const LmsTeacherClasses = lazy(() => import('./pages/lms/LmsTeacherClasses'))
@@ -81,7 +80,7 @@ function App() {
           <Route path="/my-dashboard/settings" element={<ProtectedRoute><DashboardSettings /></ProtectedRoute>} />
           <Route path="/admin" element={<RoleBasedRoute requiredRole="ADMIN"><ErrorBoundary><AdminDashboard /></ErrorBoundary></RoleBasedRoute>} />
           <Route path="/admin/users" element={<RoleBasedRoute requiredRole="ADMIN"><ErrorBoundary><AdminUsers /></ErrorBoundary></RoleBasedRoute>} />
-          <Route path="/admin/drive" element={<RoleBasedRoute requiredRole="ADMIN"><ErrorBoundary><GoogleDriveSettings /></ErrorBoundary></RoleBasedRoute>} />
+          <Route path="/admin/drive" element={<RoleBasedRoute requiredRole="ADMIN"><Navigate to="/admin#drive" replace /></RoleBasedRoute>} />
           <Route path="/admin/teacher-class" element={<RoleBasedRoute requiredRole="ADMIN"><ErrorBoundary><ClassManagement /></ErrorBoundary></RoleBasedRoute>} />
 
           <Route path="/manager" element={<RoleBasedRoute requiredRole="MANAGER"><ErrorBoundary><ManagerDashboard /></ErrorBoundary></RoleBasedRoute>} />

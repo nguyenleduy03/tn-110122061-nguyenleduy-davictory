@@ -249,6 +249,14 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
         /* plain text legacy */
       }
     }
+    
+    console.log('[transformGroup] mcq_dropdown_group data:', {
+      groupId: group.questionGroupId || group.id,
+      rawPassageText: group.passageText?.substring(0, 200),
+      parsedMeta: meta,
+      metaSharedOptionsCount: meta.sharedOptions?.length || 0
+    });
+    
     const sharedOptions = (meta.sharedOptions || []).map((o, i) => {
       if (typeof o === 'string') return { key: String.fromCharCode(65 + i), label: o, imageUrl: '' };
       const key = (o.key || o.optionLabel || String.fromCharCode(65 + i)).toString().trim().charAt(0);
@@ -271,6 +279,8 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
     const headingHtml = formatTextWithWhitespace(group.title || '');
     const mainInst = formatTextWithWhitespace(meta.mainInstruction || '');
     const subInst = formatTextWithWhitespace(meta.subInstruction || '');
+    const optionsTableTitleHtml = formatTextWithWhitespace(meta.optionsTableTitle || '');
+    const questionTitleHtml = formatTextWithWhitespace(meta.questionTitle || '');
 
     return [{
       id: `group-${group.questionGroupId || group.id}`,
@@ -280,6 +290,8 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
       mainInstruction: mainInst,
       subInstruction: subInst,
       instruction: [mainInst, subInst].filter(Boolean).join('<br/><br/>'),
+      optionsTableTitle: optionsTableTitleHtml,
+      questionTitle: questionTitleHtml,
       imageUrl: group.imageUrl || '',
       imageWidth: group.imageWidth || 100,
       hideOptionsTable: meta.hideOptionsTable || false,
@@ -610,6 +622,14 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
     const groupDetail = await fetchGroupDetail(baseUrl, group.questionGroupId || group.id);
     const matchingPairs = groupDetail?.matchingPairs || [];
 
+    console.log('[transformGroup] matching_heading data:', {
+      feType,
+      groupId: group.questionGroupId || group.id,
+      matchingPairsCount: matchingPairs.length,
+      matchingPairs: matchingPairs.slice(0, 3), // Log first 3 pairs
+      groupPassageText: group.passageText?.substring(0, 200)
+    });
+
     let parsedBank = null;
     if (group.passageText) {
       try {
@@ -815,6 +835,7 @@ export const ieltsApi = {
         let mergedPassageContent = '';
         let mergedPassageTitle = '';
         let mergedAudioUrl = null;
+        let mergedAudioPlayCount = 1;
         let mergedImageUrl = null;
         let mergedInstructions = '';
 
@@ -852,6 +873,9 @@ export const ieltsApi = {
           }
           if (group.audioUrl && !mergedAudioUrl) {
             mergedAudioUrl = group.audioUrl;
+            mergedAudioPlayCount = Number.isFinite(Number(group.audioPlayCount)) && Number(group.audioPlayCount) > 0
+              ? Number(group.audioPlayCount)
+              : 1;
           }
           if (group.imageUrl && !mergedImageUrl) {
             mergedImageUrl = group.imageUrl;
@@ -895,6 +919,7 @@ export const ieltsApi = {
             contentType: group.contentType,
             passageText: group.passageText,
             audioUrl: group.audioUrl,
+            audioPlayCount: group.audioPlayCount,
             imageUrl: group.imageUrl,
             instructions: group.instructions,
             // Provide transformed questions
@@ -1014,6 +1039,7 @@ export const ieltsApi = {
           passageContent: mergedPassageContent,
           questionsLabel: mergedPassageTitle || 'Questions',
           audioUrl: mergedAudioUrl,
+          audioPlayCount: mergedAudioPlayCount,
           imageUrl: mergedImageUrl,
 
           // Writing-specific fields

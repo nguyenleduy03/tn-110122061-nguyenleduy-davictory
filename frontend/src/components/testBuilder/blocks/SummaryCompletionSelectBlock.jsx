@@ -3,7 +3,7 @@ import { X, Plus } from 'lucide-react';
 import GroupToolbar from './shared/GroupToolbar';
 import RichInput from '../../common/RichInput';
 import RichBlankEditor from './shared/RichBlankEditor';
-import { stripInlineStyles } from '../../../utils/textFormatters';
+import { stripInlineStyles, serializeContentEditableHtml } from '../../../utils/textFormatters';
 
 const SummaryCompletionSelectBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps, onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onAddQuestion, selectedQuestionId }) => {
   const options = group.optionBank ?? [];
@@ -61,7 +61,8 @@ const SummaryCompletionSelectBlock = ({ group, onUpdate, onDelete, onSelect, sel
         onMouseDown={(e) => e.stopPropagation()}
         onMouseUp={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
-        onBlur={(e) => onUpdate(group.id, { title: e.currentTarget.innerHTML })}
+        onInput={(e) => onUpdate(group.id, { title: serializeContentEditableHtml(e.currentTarget) })}
+        onBlur={(e) => onUpdate(group.id, { title: serializeContentEditableHtml(e.currentTarget) })}
         data-placeholder="Tiêu đề tóm tắt (VD: The History of Glass)"
         dangerouslySetInnerHTML={{ __html: group.title || '' }}
       />

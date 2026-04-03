@@ -71,20 +71,52 @@ const recalculateQuestionNumbers = (groups) => {
   });
 };
 
+const hasActiveMediaUpload = (sessions = {}) => Object.values(sessions).some((parts) => (
+  (parts || []).some((part) => (
+    (part.questionGroups || []).some((group) => group?.audioUploadStatus === 'uploading')
+  ))
+));
+
+const createListeningAudioGroup = (partId, orderIndex = 1) => ({
+  id: nextId(),
+  partId,
+  contentType: 'AUDIO_TRANSCRIPT',
+  title: 'Audio transcript',
+  passageText: '',
+  audioUrl: '',
+  audioPlayCount: 1,
+  imageUrl: '',
+  orderIndex,
+  questions: [],
+});
+
 const makeDefaultParts = (skillKey) => {
   if (skillKey === 'LISTENING') {
-    return [1, 2, 3, 4].map((i) => ({
-      id: nextId(), name: `Part ${i}`, orderIndex: i,
-      durationMinutes: null, totalQuestions: 10,
-      instructions: '', questionGroups: [],
-    }));
+    return [1, 2, 3, 4].map((i) => {
+      const partId = nextId();
+      const start = (i - 1) * 10 + 1;
+      const end = start + 9;
+      return {
+        id: partId,
+        name: `Part ${i}`,
+        orderIndex: i,
+        durationMinutes: null,
+        totalQuestions: 10,
+        instructions: `<strong>Questions ${start}–${end}</strong>`,
+        questionGroups: [createListeningAudioGroup(partId)],
+      };
+    });
   }
   if (skillKey === 'READING') {
-    return [1, 2, 3].map((i) => ({
-      id: nextId(), name: `Passage ${i}`, orderIndex: i,
-      durationMinutes: null, totalQuestions: 13,
-      instructions: '', questionGroups: [],
-    }));
+    return [1, 2, 3].map((i) => {
+      const start = (i - 1) * 13 + 1;
+      const end = start + 12;
+      return {
+        id: nextId(), name: `Passage ${i}`, orderIndex: i,
+        durationMinutes: null, totalQuestions: 13,
+        instructions: `<strong>Questions ${start}–${end}</strong>`, questionGroups: [],
+      };
+    });
   }
   if (skillKey === 'WRITING') {
     return [
@@ -121,8 +153,8 @@ const makeDefaultParts = (skillKey) => {
   }
   return [{
     id: nextId(), name: 'Part 1', orderIndex: 1,
-    durationMinutes: null, totalQuestions: 1,
-    instructions: '', questionGroups: [],
+    durationMinutes: null, totalQuestions: 10,
+    instructions: '<strong>Questions 1–10</strong>', questionGroups: [],
   }];
 };
 
@@ -312,15 +344,31 @@ const TestBuilder = () => {
     }));
 
   const addPart = () => {
+    // Tính toán question range theo quy chuẩn IELTS
+    const lastPart = parts[parts.length - 1];
+    let startQ = 1;
+    if (lastPart) {
+      const lastGroups = lastPart.questionGroups || [];
+      if (lastGroups.length > 0) {
+        const lastGroup = lastGroups[lastGroups.length - 1];
+        startQ = (lastGroup.toQuestion || lastGroup.fromQuestion || 0) + 1;
+      }
+    }
+    const endQ = startQ + 9; // Mặc định 10 câu
+    
     const newPart = {
       id: nextId(),
       name: `Part ${parts.length + 1}`,
       orderIndex: parts.length + 1,
       durationMinutes: null,
       totalQuestions: 10,
-      instructions: '',
-      questionGroups: [],
+      instructions: `<strong>Questions ${startQ}–${endQ}</strong>`,
+      questionGroups: activeSkill === 'LISTENING' ? [createListeningAudioGroup(null)] : [],
     };
+
+    if (activeSkill === 'LISTENING') {
+      newPart.questionGroups = [createListeningAudioGroup(newPart.id)];
+    }
     setParts((prev) => [...prev, newPart]);
     setSelection({ type: 'part', data: newPart });
   };
@@ -1143,7 +1191,7 @@ const TestBuilder = () => {
   }, [sessions, savedTestId, structure, test, navigate]);
 
   useEffect(() => {
-    if (!autoSaveEnabled || roleError || saving) return undefined;
+    if (!autoSaveEnabled || roleError || saving || hasActiveMediaUpload(sessions)) return undefined;
 
     const currentSnapshot = JSON.stringify({ test, sessions });
     if (currentSnapshot === lastAutoSaveSnapshotRef.current) return undefined;

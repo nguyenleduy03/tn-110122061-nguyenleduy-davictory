@@ -2,6 +2,7 @@ package com.victory.DAVictory.repository;
 
 import com.victory.DAVictory.entity.ExamAttempt;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -58,5 +59,11 @@ public interface ExamAttemptRepository extends JpaRepository<ExamAttempt, Long> 
     // Tất cả attempts của danh sách học viên
     @Query("SELECT e FROM ExamAttempt e WHERE e.user.id IN :userIds ORDER BY e.startedAt DESC")
     List<ExamAttempt> findByUserIdInOrderByStartedAtDesc(@Param("userIds") List<Long> userIds);
+
+       @Modifying
+       @Query("UPDATE ExamAttempt e SET e.test = null WHERE e.test.id = :testId")
+       int clearTestReferenceByTestId(@Param("testId") Long testId);
+
+       void deleteByTestId(Long testId);
 }
 

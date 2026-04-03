@@ -12,4 +12,6 @@ public interface TestSettingRepository extends JpaRepository<TestSetting, Long> 
     Optional<TestSetting> findByTestId(Long testId);
 
     boolean existsByTestId(Long testId);
+
+    void deleteByTestId(Long testId);
 }

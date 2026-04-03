@@ -1,5 +1,6 @@
 import React from 'react';
 import { formatTextWithWhitespace } from '../../utils/textFormatters';
+import { isQuestionMetaLabel } from '../../utils/questionLabelUtils';
 import BookmarkToggle from '../common/BookmarkToggle';
 import { resolveDrivePreviewUrl } from '../../utils/mediaUrl';
 
@@ -21,6 +22,23 @@ const DropdownGroupQuestion = ({
     return String(value ?? '');
   };
 
+  const sanitizeInstructionHtml = (value) => String(value || '')
+    .replace(/<p\b[^>]*>\s*(?:&nbsp;|\u00A0|\s|<br\s*\/?>)*<\/p>/gi, '')
+    .replace(/<div\b[^>]*>\s*(?:&nbsp;|\u00A0|\s|<br\s*\/?>)*<\/div>/gi, '')
+    .replace(/<span\b[^>]*>\s*(?:&nbsp;|\u00A0|\s|<br\s*\/?>|[|│┃¦])*<\/span>/gi, '')
+    .trim();
+
+  const hasMeaningfulText = (value) => {
+    const plain = String(value || '')
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/\u00A0|&nbsp;/gi, ' ')
+      .replace(/[|│┃¦]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    return /[A-Za-z0-9À-ỹ]/.test(plain);
+  };
+
   const group = q || {};
   const questions = group.subQuestions || group.questions || [];
   const options = (group.sharedOptions || []).map((opt, index) => {
@@ -34,7 +52,31 @@ const DropdownGroupQuestion = ({
     };
   });
 
+  console.log('[DropdownGroupQuestion] Dropdown data:', {
+    groupId: group.id,
+    rawSharedOptions: group.sharedOptions,
+    processedOptions: options,
+    questionsCount: questions.length
+  });
+
   console.log('DropdownGroupQuestion imageWidth:', group.imageWidth, 'imageUrl:', group.imageUrl);
+
+  const headingRaw = sanitizeInstructionHtml(group.heading || group.title || '');
+  const instructionParts = [group.mainInstruction, group.subInstruction]
+    .map(resolveText)
+    .map(sanitizeInstructionHtml)
+    .map((item) => String(item || '').trim())
+    .filter(Boolean)
+    .filter((item) => hasMeaningfulText(item))
+    .filter((item) => !isQuestionMetaLabel(item));
+  const instructionRaw = instructionParts.length ? '' : sanitizeInstructionHtml(group.instruction || '');
+  const optionsTableTitleRaw = sanitizeInstructionHtml(group.optionsTableTitle || '');
+  const questionTitleRaw = sanitizeInstructionHtml(group.questionTitle || '');
+
+  const headingText = (!hasMeaningfulText(headingRaw) || isQuestionMetaLabel(headingRaw)) ? '' : headingRaw;
+  const instructionText = (!hasMeaningfulText(instructionRaw) || isQuestionMetaLabel(instructionRaw)) ? '' : instructionRaw;
+  const optionsTableTitleText = (!hasMeaningfulText(optionsTableTitleRaw) || isQuestionMetaLabel(optionsTableTitleRaw)) ? '' : optionsTableTitleRaw;
+  const questionTitleText = (!hasMeaningfulText(questionTitleRaw) || isQuestionMetaLabel(questionTitleRaw)) ? '' : questionTitleRaw;
 
   const handleChange = (questionId, value) => {
     if (isReview) return;
@@ -43,22 +85,29 @@ const DropdownGroupQuestion = ({
 
   return (
     <div className="mcq-dropdown-group">
-      {group.questionTitle && (
+      {headingText && (
         <p
-          className="question-instruction"
-          style={{ marginBottom: 8, fontWeight: 600 }}
-          dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(group.questionTitle) }}
+          className="question-heading"
+          dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(headingText) }}
         />
       )}
-      {group.instruction && (
-        <p
-          className="question-instruction"
-          dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(group.instruction) }}
-        />
-      )}
+      {instructionParts.length > 0
+        ? instructionParts.map((instructionPart, idx) => (
+          <div
+            key={`dropdown-instruction-${idx}`}
+            className="question-instruction"
+            dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(instructionPart) }}
+          />
+        ))
+        : instructionText && (
+          <div
+            className="question-instruction"
+            dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(instructionText) }}
+          />
+        )}
 
       {(group.imageUrl || (options.length > 0 && !group.hideOptionsTable)) && (
-        <div style={{ display: 'flex', gap: '20px', margin: '16px 0', alignItems: 'flex-end' }}>
+        <div style={{ display: 'flex', gap: '20px', margin: '8px 0 12px', alignItems: 'flex-end' }}>
           {group.imageUrl && (
             <div style={{ width: `${group.imageWidth || 100}%` }}>
               <img
@@ -74,18 +123,32 @@ const DropdownGroupQuestion = ({
           )}
 
           {options.length > 0 && !group.hideOptionsTable && (
-            <ul
-              className="mcq-dropdown-legend"
+            <div
+              className="mcq-dropdown-legend-wrap"
               style={{
-                flex: group.imageUrl ? 1 : 'none',
+                flex: '0 1 auto',
                 margin: 0,
-                width: group.imageUrl ? 'auto' : '100%',
+                width: 'fit-content',
                 maxWidth: 'min(100%, 920px)'
               }}
             >
+              {optionsTableTitleText && (
+                <div
+                  className="mcq-dropdown-legend-title"
+                  dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(optionsTableTitleText) }}
+                />
+              )}
+              <ul
+                className="mcq-dropdown-legend"
+                style={{
+                  margin: 0,
+                  width: 'fit-content',
+                  maxWidth: 'min(100%, 920px)'
+                }}
+              >
               {options.map((opt) => (
-                <li key={opt.key} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div style={{ flex: 1 }}>
+                <li key={opt.key} className="mcq-dropdown-legend-item">
+                  <div className="mcq-dropdown-legend-content">
                     <strong className="mcq-dropdown-key">{opt.key}</strong>
                     <span
                       dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(opt.label || '') }}
@@ -95,14 +158,22 @@ const DropdownGroupQuestion = ({
                     <img
                       src={resolveDrivePreviewUrl(opt.imageUrl)}
                       alt={`Option ${opt.key}`}
-                      style={{ maxWidth: '150px', maxHeight: '100px', objectFit: 'contain' }}
+                      className="mcq-dropdown-legend-image"
                     />
                   )}
                 </li>
               ))}
-            </ul>
+              </ul>
+            </div>
           )}
         </div>
+      )}
+
+      {questionTitleText && (
+        <div
+          className="question-instruction dropdown-question-title"
+          dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(questionTitleText) }}
+        />
       )}
 
       <div className="mcq-dropdown-list">

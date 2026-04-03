@@ -3,6 +3,7 @@ import { X, Plus, Image } from 'lucide-react';
 import GroupToolbar from './shared/GroupToolbar';
 import RichInput from '../../common/RichInput';
 import ImageUploadZone from './shared/ImageUploadZone';
+import { serializeContentEditableHtml } from '../../../utils/textFormatters';
 import { loadImageFile } from './shared/blockHelpers';
 
 const MultipleChoiceBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps, testTitle, testId, module = 'READING',
@@ -80,14 +81,16 @@ const MultipleChoiceBlock = ({ group, onUpdate, onDelete, onSelect, selected, dr
   const handleImportOptions = (q, text) => {
     const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
     if (lines.length === 0) return;
+    const existingOpts = q.options || [];
+    const startIdx = existingOpts.length;
     const imported = lines.map((optText, i) => ({
       id: Date.now() + i,
-      optionLabel: String.fromCharCode(65 + i),
+      optionLabel: String.fromCharCode(65 + startIdx + i),
       optionText: optText,
       isCorrect: false,
-      orderIndex: i
+      orderIndex: startIdx + i
     }));
-    onUpdateQuestion(group.id, q.id, { options: imported });
+    onUpdateQuestion(group.id, q.id, { options: [...existingOpts, ...imported] });
     setImportStates(prev => ({ ...prev, [q.id]: false }));
   };
 
@@ -123,7 +126,8 @@ const MultipleChoiceBlock = ({ group, onUpdate, onDelete, onSelect, selected, dr
         onMouseDown={(e) => e.stopPropagation()}
         onMouseUp={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
-        onBlur={(e) => onUpdate(group.id, { title: e.currentTarget.innerHTML })}
+        onInput={(e) => onUpdate(group.id, { title: serializeContentEditableHtml(e.currentTarget) })}
+        onBlur={(e) => onUpdate(group.id, { title: serializeContentEditableHtml(e.currentTarget) })}
         dangerouslySetInnerHTML={{ __html: group.title || '' }}
       />
       

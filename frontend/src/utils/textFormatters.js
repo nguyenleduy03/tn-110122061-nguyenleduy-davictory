@@ -282,24 +282,32 @@ export const sanitizeRichPasteHtml = (html) => {
       }
 
       let content = children;
+      // Áp dụng inline formatting từ style attribute
       if (isStrikeStyle(style)) content = `<del>${content}</del>`;
       if (isUnderlineStyle(style)) content = `<u>${content}</u>`;
       if (isItalicStyle(style)) content = `<em>${content}</em>`;
       if (isBoldStyle(style)) content = `<strong>${content}</strong>`;
-      if (fontSize) content = `<span style="font-size:${fontSize};">${content}</span>`;
+      // fontSize chỉ được wrap ở đây nếu tag KHÔNG phải là span.
+      // Với span: font-size sẽ được áp dụng trực tiếp trong case 'span' bên dưới
+      // để tránh double-wrap <span style="font-size:.."><span style="font-size:..">...</span></span>
+      const isInlineTag = ['strong', 'b', 'em', 'i', 'u', 'del', 's', 'mark', 'sup', 'sub', 'a'].includes(tag);
+      if (fontSize && tag !== 'span' && !isInlineTag) {
+        content = `<span style="font-size:${fontSize};">${content}</span>`;
+      }
 
       switch (tag) {
         case 'strong':
         case 'b':
-          return `<strong>${content}</strong>`;
+          // Nếu có fontSize trên bold element, wrap font-size bên ngoài bold
+          return fontSize ? `<span style="font-size:${fontSize};"><strong>${content}</strong></span>` : `<strong>${content}</strong>`;
         case 'em':
         case 'i':
-          return `<em>${content}</em>`;
+          return fontSize ? `<span style="font-size:${fontSize};"><em>${content}</em></span>` : `<em>${content}</em>`;
         case 'u':
-          return `<u>${content}</u>`;
+          return fontSize ? `<span style="font-size:${fontSize};"><u>${content}</u></span>` : `<u>${content}</u>`;
         case 'del':
         case 's':
-          return `<del>${content}</del>`;
+          return fontSize ? `<span style="font-size:${fontSize};"><del>${content}</del></span>` : `<del>${content}</del>`;
         case 'mark':
           return `<mark>${content}</mark>`;
         case 'sup':
@@ -334,6 +342,9 @@ export const sanitizeRichPasteHtml = (html) => {
           }
           return `${isEmptyBlock ? '<br/>' : `${content}<br/>`}`;
         case 'span':
+          // Span: áp dụng font-size trực tiếp lên span này để tránh double-wrap.
+          // Không wrap content thêm lần nữa — content đã có format từ children.
+          if (fontSize) return `<span style="font-size:${fontSize};">${content}</span>`;
           return content;
         case 'ul':
         case 'ol':

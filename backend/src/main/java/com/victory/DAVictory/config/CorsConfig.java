@@ -51,11 +51,11 @@ public class CorsConfig {
             allowedOrigins.add("http://" + publicIp + ":3000");
             allowedOrigins.add("http://" + publicIp + ":80");
             allowedOrigins.add("http://" + publicIp);
-            log.info("🔓 CORS: Thêm IP public {} vào allowed origins", publicIp);
+            log.info("CORS: Thêm IP public {} vào allowed origins", publicIp);
         }
 
         config.setAllowedOrigins(allowedOrigins);
-        log.info("✅ CORS allowed origins: {}", allowedOrigins);
+        log.info("CORS allowed origins: {}", allowedOrigins);
 
         // Các HTTP methods được phép
         config.setAllowedMethods(Arrays.asList(

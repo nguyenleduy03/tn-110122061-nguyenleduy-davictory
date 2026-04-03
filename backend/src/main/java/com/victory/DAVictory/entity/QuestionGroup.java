@@ -55,6 +55,9 @@ public class QuestionGroup {
     @Column(length = 500)
     private String audioUrl; // URL file âm thanh (Listening)
 
+    @Column(nullable = false)
+    private Integer audioPlayCount = 1; // Số lần phát audio cho block nghe
+
     @Column(columnDefinition = "LONGTEXT")
     private String imageUrl; // URL hình ảnh đính kèm (Map, Diagram)
 
@@ -84,6 +87,9 @@ public class QuestionGroup {
 
     @Column(nullable = false)
     private Boolean useSharedOptions = false; // Sử dụng bộ lựa chọn chung
+
+    @Column(nullable = false)
+    private Boolean hideOptionsTable = false; // Ẩn bảng lựa chọn trong dropdown chung
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)

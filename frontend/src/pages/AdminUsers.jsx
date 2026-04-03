@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   Users,
   Search,
@@ -44,7 +44,6 @@ const hasAdminRole = (roles) => {
 };
 
 export default function AdminUsers() {
-  const location = useLocation();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -66,6 +65,21 @@ export default function AdminUsers() {
   const [deleteClassPassword, setDeleteClassPassword] = useState('');
   const [managementLoading, setManagementLoading] = useState(false);
   const [managementData, setManagementData] = useState({ classes: [], teachers: [] });
+  const [pagination, setPagination] = useState({
+    page: 0,
+    size: 20,
+    totalElements: 0,
+    totalPages: 0,
+  });
+  const [summaryCounts, setSummaryCounts] = useState({
+    totalUsers: 0,
+    activeUsers: 0,
+    deletedUsers: 0,
+    adminCount: 0,
+    managerCount: 0,
+    teacherCount: 0,
+    studentCount: 0,
+  });
 
   // Lấy thông tin user hiện tại
   const currentUser = authApi.getStoredUser();
@@ -96,15 +110,18 @@ export default function AdminUsers() {
   }, [isCurrentUserAdmin]);
 
   useEffect(() => {
-    fetchUsers();
     fetchManagementData();
   }, []);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [pagination.page, pagination.size, searchTerm, activeTab]);
 
   const fetchUsers = async () => {
     try {
       setLoading(true);
       setLoadError('');
-      console.log('[AdminUsers] Fetching users with includeDeleted=true...');
+      console.log('[AdminUsers] Fetching paginated users...');
       
       // Kiểm tra token trước
       const token = localStorage.getItem('authToken');
@@ -112,9 +129,24 @@ export default function AdminUsers() {
         throw new Error('Chưa đăng nhập. Vui lòng đăng nhập lại.');
       }
       
-      const data = await authApi.getAllUsers(true);
-      console.log('[AdminUsers] Received users:', data);
-      setUsers(Array.isArray(data) ? data : []);
+      const data = await authApi.getPaginatedUsers({
+        includeDeleted: activeTab === 'DELETED',
+        tab: activeTab,
+        search: searchTerm,
+        page: pagination.page,
+        size: pagination.size,
+      });
+
+      console.log('[AdminUsers] Received page:', data);
+      setUsers(Array.isArray(data?.content) ? data.content : []);
+      setSummaryCounts((prev) => ({ ...prev, ...(data?.summary || {}) }));
+      setPagination((prev) => ({
+        ...prev,
+        page: Number.isFinite(Number(data?.page)) ? Number(data.page) : prev.page,
+        size: Number.isFinite(Number(data?.size)) ? Number(data.size) : prev.size,
+        totalElements: Number.isFinite(Number(data?.totalElements)) ? Number(data.totalElements) : prev.totalElements,
+        totalPages: Number.isFinite(Number(data?.totalPages)) ? Number(data.totalPages) : prev.totalPages,
+      }));
     } catch (error) {
       console.error('[AdminUsers] Error fetching users:', error);
       console.error('[AdminUsers] Error response:', error.response);
@@ -132,6 +164,7 @@ export default function AdminUsers() {
       
       setLoadError(errorMsg);
       setUsers([]);
+      setSummaryCounts((prev) => ({ ...prev, totalUsers: 0, activeUsers: 0, deletedUsers: 0 }));
     } finally {
       setLoading(false);
     }
@@ -401,22 +434,7 @@ export default function AdminUsers() {
 
   const isDeletedUser = (user) => Boolean(user?.deletedAt);
 
-  const filteredUsers = users.filter(user => {
-    const fullName = (user.fullName || '').toLowerCase();
-    const username = (user.username || '').toLowerCase();
-    const email = (user.email || '').toLowerCase();
-    const query = searchTerm.toLowerCase();
-
-    const matchesSearch = fullName.includes(query) || username.includes(query) || email.includes(query);
-    
-    if (activeTab === 'DELETED') {
-      return matchesSearch && isDeletedUser(user);
-    }
-    
-    if (isDeletedUser(user)) return false;
-    if (activeTab === 'ALL') return matchesSearch;
-    return matchesSearch && Array.isArray(user.roles) && user.roles.includes(activeTab);
-  });
+  const filteredUsers = users;
 
   const handleToggleActive = async (userId) => {
     try {
@@ -424,6 +442,7 @@ export default function AdminUsers() {
       setUsers(users.map(user => 
         user.id === userId ? { ...user, isActive: !user.isActive } : user
       ));
+      fetchUsers();
     } catch (error) {
       notify('error', 'Đổi trạng thái thất bại', error?.message || 'Không thể thay đổi trạng thái.');
     }
@@ -506,6 +525,7 @@ export default function AdminUsers() {
       ));
       setShowModal(null);
       notify('success', 'Cập nhật thành công', 'Đã cập nhật thông tin thành công.');
+      fetchUsers();
     } catch (error) {
       notify('error', 'Cập nhật thất bại', error?.message || 'Không thể cập nhật thông tin.');
     }
@@ -583,6 +603,7 @@ export default function AdminUsers() {
       notify('success', 'Xóa người dùng thành công', `Đã xóa ${deleteTarget.fullName || deleteTarget.username || 'người dùng'} thành công.`);
       setDeleteTarget(null);
       setDeletePassword('');
+      fetchUsers();
     } catch (error) {
       console.error('Delete user error:', error);
       console.error('Error response:', error.response?.data);
@@ -649,7 +670,7 @@ export default function AdminUsers() {
               </span>
             </h1>
             <p style={{ color: '#6b7280', marginTop: 8, fontSize: 16 }}>
-              Tổng cộng <strong>{users.length}</strong> người dùng • {users.filter(u => u.isActive).length} đang hoạt động
+              Tổng cộng <strong>{summaryCounts.totalUsers}</strong> người dùng • {summaryCounts.activeUsers} đang hoạt động
             </p>
           </div>
           
@@ -698,19 +719,22 @@ export default function AdminUsers() {
           boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)'
         }}>
           {[
-            { key: 'ALL', label: 'Tất cả', icon: Users, count: users.filter(u => !isDeletedUser(u)).length },
-            { key: 'ADMIN', label: 'Quản trị viên', icon: Shield, count: users.filter(u => !isDeletedUser(u) && Array.isArray(u.roles) && u.roles.includes('ADMIN')).length },
-            { key: 'MANAGER', label: 'Quản lý', icon: Target, count: users.filter(u => !isDeletedUser(u) && Array.isArray(u.roles) && u.roles.includes('MANAGER')).length },
-            { key: 'TEACHER', label: 'Giáo viên', icon: GraduationCap, count: users.filter(u => !isDeletedUser(u) && Array.isArray(u.roles) && u.roles.includes('TEACHER')).length },
-            { key: 'STUDENT', label: 'Học viên', icon: BookOpen, count: users.filter(u => !isDeletedUser(u) && Array.isArray(u.roles) && u.roles.includes('STUDENT')).length },
-            { key: 'DELETED', label: 'Đã xóa', icon: XCircle, count: users.filter(u => isDeletedUser(u)).length }
+            { key: 'ALL', label: 'Tất cả', icon: Users, count: summaryCounts.totalUsers },
+            { key: 'ADMIN', label: 'Quản trị viên', icon: Shield, count: summaryCounts.adminCount },
+            { key: 'MANAGER', label: 'Quản lý', icon: Target, count: summaryCounts.managerCount },
+            { key: 'TEACHER', label: 'Giáo viên', icon: GraduationCap, count: summaryCounts.teacherCount },
+            { key: 'STUDENT', label: 'Học viên', icon: BookOpen, count: summaryCounts.studentCount },
+            { key: 'DELETED', label: 'Đã xóa', icon: XCircle, count: summaryCounts.deletedUsers }
           ].map(tab => {
             const IconComponent = tab.icon;
             const isActive = activeTab === tab.key;
             return (
               <button
                 key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
+                onClick={() => {
+                  setActiveTab(tab.key);
+                  setPagination((prev) => ({ ...prev, page: 0 }));
+                }}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 8,
                   padding: '12px 20px', borderRadius: 12, border: 'none',
@@ -762,7 +786,10 @@ export default function AdminUsers() {
               type="text"
               placeholder="Tìm kiếm theo tên, username, email..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setPagination((prev) => ({ ...prev, page: 0 }));
+              }}
               style={{
                 width: '100%', padding: '14px 20px 14px 50px', 
                 border: '2px solid #f1f5f9', borderRadius: 12, fontSize: 15,
@@ -787,7 +814,7 @@ export default function AdminUsers() {
             display: 'flex', alignItems: 'center', gap: 8
           }}>
             <BarChart3 size={16} />
-            {filteredUsers.length} kết quả
+            {pagination.totalElements} kết quả
           </div>
         </div>
 
@@ -1193,6 +1220,69 @@ export default function AdminUsers() {
               ))}
             </tbody>
           </table>
+
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: 12,
+            padding: '16px 20px',
+            borderTop: '1px solid #f1f5f9',
+            background: '#fcfdff',
+          }}>
+            <div style={{ fontSize: 13, color: '#64748b' }}>
+              Trang <strong>{pagination.page + 1}</strong> / <strong>{Math.max(pagination.totalPages, 1)}</strong>
+              {' '}• {filteredUsers.length} bản ghi trên trang
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <select
+                value={pagination.size}
+                onChange={(e) => setPagination((prev) => ({ ...prev, size: Number(e.target.value), page: 0 }))}
+                style={{
+                  padding: '10px 12px',
+                  borderRadius: 10,
+                  border: '1px solid #dbe4f0',
+                  background: '#fff',
+                  color: '#334155',
+                  fontWeight: 600,
+                }}
+              >
+                {[10, 20, 50, 100].map((size) => (
+                  <option key={size} value={size}>Hiển thị {size}</option>
+                ))}
+              </select>
+              <button
+                onClick={() => setPagination((prev) => ({ ...prev, page: Math.max(prev.page - 1, 0) }))}
+                disabled={pagination.page <= 0}
+                style={{
+                  padding: '10px 14px',
+                  borderRadius: 10,
+                  border: '1px solid #dbe4f0',
+                  background: pagination.page <= 0 ? '#f8fafc' : '#fff',
+                  color: '#334155',
+                  fontWeight: 700,
+                  cursor: pagination.page <= 0 ? 'not-allowed' : 'pointer',
+                }}
+              >
+                Trước
+              </button>
+              <button
+                onClick={() => setPagination((prev) => ({ ...prev, page: Math.min(prev.page + 1, Math.max(prev.totalPages - 1, 0)) }))}
+                disabled={pagination.page >= pagination.totalPages - 1}
+                style={{
+                  padding: '10px 14px',
+                  borderRadius: 10,
+                  border: '1px solid #dbe4f0',
+                  background: pagination.page >= pagination.totalPages - 1 ? '#f8fafc' : '#fff',
+                  color: '#334155',
+                  fontWeight: 700,
+                  cursor: pagination.page >= pagination.totalPages - 1 ? 'not-allowed' : 'pointer',
+                }}
+              >
+                Sau
+              </button>
+            </div>
+          </div>
         </div>
         )}
 

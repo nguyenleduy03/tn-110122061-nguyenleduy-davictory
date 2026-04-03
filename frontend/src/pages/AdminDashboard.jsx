@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useRef, useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import {
   Users,
   Upload,
@@ -14,9 +14,13 @@ import {
   AlertCircle,
   Loader2,
   Plus,
+  RefreshCcw,
+  ShieldCheck,
+  ShieldAlert,
+  CloudCog,
+  ExternalLink,
 } from 'lucide-react';
 import AdminLayout from '../components/admin/AdminLayout.jsx';
-import AdminHeader from '../components/admin/AdminHeader.jsx';
 import AddUserModal from '../components/admin/AddUserModal.jsx';
 import { authApi } from '../services/authApi';
 import '../styles/adminDashboard.css';
@@ -28,13 +32,16 @@ const isAdminOnly = (roles) => {
 };
 
 export default function AdminDashboard() {
+  const location = useLocation();
   const user = authApi.getStoredUser();
   const hasPermission = isAdminOnly(user?.roles);
+  const driveSectionRef = useRef(null);
 
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState(null);
   const [error, setError] = useState('');
   const [showAddUser, setShowAddUser] = useState(false);
+  const [driveActionLoading, setDriveActionLoading] = useState(false);
   const [stats, setStats] = useState({
     totalUsers: 0,
     activeUsers: 0,
@@ -54,25 +61,19 @@ export default function AdminDashboard() {
     fetchDriveStatus();
   }, []);
 
+  useEffect(() => {
+    if (location.hash === '#drive' && driveSectionRef.current) {
+      driveSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [location.hash]);
+
   const fetchStats = async () => {
     try {
-      // Fetch real stats from API
-      const usersData = await authApi.getAllUsers();
-      const testsData = []; // Tạm thời để empty array
-      
-      setStats({
-        totalUsers: usersData.length,
-        activeUsers: usersData.filter(u => u.isActive).length,
-        totalTests: testsData.length,
-        pendingApproval: 0, // Tạm thời
-        systemHealth: 98.5,
-        todayLogins: usersData.filter(u => {
-          if (!u.lastLogin) return false;
-          const today = new Date().toDateString();
-          const loginDate = new Date(u.lastLogin).toDateString();
-          return today === loginDate;
-        }).length
-      });
+      const response = await authApi.get('/admin/users/dashboard-stats');
+      setStats((prev) => ({
+        ...prev,
+        ...response.data,
+      }));
     } catch (error) {
       console.error('Error fetching stats:', error);
     }
@@ -84,6 +85,31 @@ export default function AdminDashboard() {
       setDriveStatus(response.data);
     } catch (error) {
       console.error('Error fetching drive status:', error);
+    }
+  };
+
+  const handleDriveAuthorize = async () => {
+    try {
+      setDriveActionLoading(true);
+      const response = await authApi.get('/admin/drive/authorize-url');
+      window.location.href = response.data.url;
+    } catch (error) {
+      setError(error.response?.data?.error || error.message || 'Không thể mở trang ủy quyền Google Drive');
+    } finally {
+      setDriveActionLoading(false);
+    }
+  };
+
+  const handleDriveRevoke = async () => {
+    if (!window.confirm('Bạn có chắc muốn thu hồi quyền truy cập Google Drive?')) return;
+    try {
+      setDriveActionLoading(true);
+      await authApi.post('/admin/drive/revoke');
+      await fetchDriveStatus();
+    } catch (error) {
+      setError(error.response?.data?.error || error.message || 'Không thể thu hồi quyền Google Drive');
+    } finally {
+      setDriveActionLoading(false);
     }
   };
 
@@ -115,8 +141,6 @@ export default function AdminDashboard() {
       title="Bảng điều khiển quản trị"
       subtitle="Quản lý toàn bộ hệ thống DAVictory theo thời gian thực"
     >
-      <AdminHeader />
-      
       <div className="admin-quick-actions" style={{ marginBottom: 20 }}>
         <button 
           className="quick-action-btn"
@@ -202,6 +226,101 @@ export default function AdminDashboard() {
           </div>
         )}
 
+        <section className="admin-drive-panel" id="drive" ref={driveSectionRef}>
+          <div className="admin-drive-panel-head">
+            <div className="admin-drive-panel-title">
+              <div className="admin-drive-panel-badge">
+                <CloudCog size={18} />
+                Google Drive
+              </div>
+              <h2>Ủy quyền Drive & trạng thái</h2>
+              <p>
+                Tích hợp trực tiếp vào trang quản trị để kiểm tra, ủy quyền và thu hồi Google Drive ở cùng một nơi.
+              </p>
+            </div>
+
+            <div className={`admin-drive-status ${driveStatus.authorized ? 'is-on' : 'is-off'}`}>
+              {driveStatus.authorized ? <ShieldCheck size={18} /> : <ShieldAlert size={18} />}
+              <div>
+                <strong>{driveStatus.authorized ? 'Đã kết nối' : 'Chưa kết nối'}</strong>
+                <span>{driveStatus.message || 'Trạng thái Google Drive'}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="admin-drive-grid">
+            <div className="admin-drive-summary">
+              <div className="admin-drive-summary-top">
+                <div>
+                  <span className="admin-drive-kicker">Tài khoản Drive</span>
+                  <h3>{driveStatus.displayName || 'Chưa có tài khoản liên kết'}</h3>
+                  <p>{driveStatus.email || 'Hãy ủy quyền một lần để dùng lâu dài.'}</p>
+                </div>
+                <button className="admin-drive-refresh" onClick={fetchDriveStatus} disabled={driveActionLoading}>
+                  <RefreshCcw size={15} />
+                  Làm mới
+                </button>
+              </div>
+
+              <div className="admin-drive-metrics">
+                <div className="admin-drive-metric">
+                  <span>Dung lượng đã dùng</span>
+                  <strong>{driveStatus.storageUsage || '0 B'} / {driveStatus.storageLimit || '0 B'}</strong>
+                </div>
+                <div className="admin-drive-metric">
+                  <span>Số file</span>
+                  <strong>{driveStatus.totalFiles ?? 0}</strong>
+                </div>
+                <div className="admin-drive-metric">
+                  <span>Folder size</span>
+                  <strong>{driveStatus.folderSize || '0 B'}</strong>
+                </div>
+              </div>
+
+              {driveStatus.authorized && (
+                <div className="admin-drive-progress">
+                  <div className="admin-drive-progress-bar">
+                    <div style={{ width: `${driveStatus.storagePercent ?? 0}%` }} />
+                  </div>
+                  <div className="admin-drive-progress-note">
+                    Đã dùng {driveStatus.storagePercent ?? 0}% dung lượng Drive
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="admin-drive-actions-card">
+              <h3>Thao tác nhanh</h3>
+              <p>
+                Ủy quyền Drive chỉ cần làm một lần. Sau đó hệ thống tự làm mới token khi còn hiệu lực.
+              </p>
+
+              <div className="admin-drive-actions-list">
+                <button className="admin-drive-btn primary" onClick={handleDriveAuthorize} disabled={driveActionLoading}>
+                  {driveActionLoading ? <Loader2 size={16} className="spin" /> : <ExternalLink size={16} />}
+                  {driveStatus.authorized ? 'Ủy quyền lại' : 'Ủy quyền Drive'}
+                </button>
+
+                <button className="admin-drive-btn ghost" onClick={fetchDriveStatus} disabled={driveActionLoading}>
+                  <RefreshCcw size={16} />
+                  Kiểm tra lại
+                </button>
+
+                {driveStatus.authorized && (
+                  <button className="admin-drive-btn danger" onClick={handleDriveRevoke} disabled={driveActionLoading}>
+                    <ShieldAlert size={16} />
+                    Thu hồi quyền
+                  </button>
+                )}
+              </div>
+
+              <div className="admin-drive-note">
+                <strong>Lưu ý:</strong> Nếu Google báo cần xác minh, hãy dùng tài khoản tester đã được thêm vào Google Cloud Console.
+              </div>
+            </div>
+          </div>
+        </section>
+
         {importResult && (
           <div className="admin-alert admin-alert-info admin-import-result">
             <div className="admin-import-title">
@@ -238,21 +357,6 @@ export default function AdminDashboard() {
               { label: 'Tổng cộng', value: stats.totalUsers },
               { label: 'Hoạt động', value: stats.activeUsers },
               { label: 'Hôm nay', value: '+' + stats.todayLogins }
-            ]}
-          />
-
-          <AdminCard
-            icon={Database}
-            title="Google Drive"
-            description="Quản lý kết nối và lưu trữ file trên Google Drive"
-            color="#4285f4"
-            size="large"
-            actions={[
-              { label: 'Quản lý', href: '/admin/drive', primary: true }
-            ]}
-            stats={[
-              { label: 'Trạng thái', value: driveStatus.authorized ? 'Đã kết nối' : 'Chưa kết nối' },
-              { label: 'Dung lượng', value: driveStatus.authorized ? `${driveStatus.storageUsage} / ${driveStatus.storageLimit}` : 'N/A' }
             ]}
           />
 
