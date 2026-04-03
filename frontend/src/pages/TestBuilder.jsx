@@ -443,6 +443,7 @@ const TestBuilder = () => {
     });
     const makeMMCQ = (num) => makeQ(num, 'MULTIPLE_CHOICE_MULTIPLE', {
       chooseCount: 2,
+      questionCount: 2,
       options: ['A', 'B', 'C', 'D', 'E'].map((l, i) => ({ id: nextId(), optionLabel: l, optionText: '', isCorrect: false, orderIndex: i })),
     });
 
@@ -880,15 +881,27 @@ const TestBuilder = () => {
         if (p.id !== partId) return p;
         const updatedGroups = p.questionGroups.map((g) => {
           if (g.id !== groupId) return g;
-          return {
-            ...g,
-            questions: g.questions.map((q) =>
-              q.id === questionId ? { ...q, ...updates } : q
-            ),
-          };
+          
+          const updatedQuestions = g.questions.map((q) => {
+            if (q.id !== questionId) return q;
+            const updated = { ...q, ...updates };
+            
+            // Nếu là MMCQ và update options, tự động tính chooseCount từ số đáp án đúng
+            if (g.contentType === 'MULTIPLE_CHOICE_MULTI' && 'options' in updates) {
+              const correctCount = (updates.options || []).filter(opt => opt.isCorrect).length;
+              if (correctCount > 0) {
+                updated.questionCount = correctCount;
+              }
+            }
+            
+            return updated;
+          });
+          
+          return { ...g, questions: updatedQuestions };
         });
+        
         // Tính lại question numbers nếu questionCount thay đổi
-        return 'questionCount' in updates
+        return 'questionCount' in updates || ('options' in updates)
           ? { ...p, questionGroups: recalculateQuestionNumbers(updatedGroups) }
           : { ...p, questionGroups: updatedGroups };
       })

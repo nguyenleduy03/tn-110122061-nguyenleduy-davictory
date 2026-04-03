@@ -64,7 +64,11 @@ const isComponentManagedDropdownGroup = (groupType) => {
         .replace(/\s+/g, '_')
         .replace(/-/g, '_');
 
-    return normalized === 'mcq_dropdown_group' || normalized === 'shared_options_dropdown';
+    return normalized === 'mcq_dropdown_group'
+        || normalized === 'shared_options_dropdown'
+        || normalized === 'note_completion'
+        || normalized === 'summary_completion'
+        || normalized === 'summary_completion_select';
 };
 
 const resolvePlayableMediaUrl = (url) => {
@@ -98,7 +102,7 @@ const IeltsListeningTest = () => {
     const containerRef = useRef(null);
     const [audioObjectUrl, setAudioObjectUrl] = useState(null);
     const audioResumeRef = useRef({ partIndex: 0, seconds: 0 });
-    const audioReplayCountRef = useRef(0);
+    const audioCycleCountRef = useRef(0);
     const currentPartIndexRef = useRef(0);
     const skipExitSnapshotRef = useRef(false);
 
@@ -173,8 +177,8 @@ const IeltsListeningTest = () => {
             seconds: resumeSeconds,
         };
 
-        // Always require explicit Play after returning to test.
-        setAudioStarted(false);
+        // Auto-start Listening when entering the test.
+        setAudioStarted(true);
     }, [isReview, testId, isFullTest, fullTestSnapshotKey, draftStorageKey]);
 
     useEffect(() => {
@@ -235,12 +239,26 @@ const IeltsListeningTest = () => {
     } = useTestNavigation(testData);
     const partCount = testData?.parts?.length || 0;
 
-    const playableAudioUrl = resolvePlayableMediaUrl(part?.audioUrl);
-    const audioPlayCount = useMemo(() => {
-        const count = Number(part?.audioPlayCount);
+    const playableAudioUrl = resolvePlayableMediaUrl(testData?.audioUrl || part?.audioUrl);
+    const audioPlayCycles = useMemo(() => {
+        const count = Number(testData?.audioPlayCount);
         return Number.isFinite(count) && count > 0 ? Math.floor(count) : 1;
-    }, [part?.audioPlayCount]);
+    }, [testData?.audioPlayCount]);
     const effectiveAudioUrl = audioObjectUrl || playableAudioUrl;
+
+    const advanceToNextListeningPart = useCallback(() => {
+        if (!testData?.parts?.length) return false;
+
+        for (let nextIndex = currentPartIndexRef.current + 1; nextIndex < testData.parts.length; nextIndex += 1) {
+            const nextPart = testData.parts[nextIndex];
+            if (resolvePlayableMediaUrl(nextPart?.audioUrl)) {
+                setCurrentPartIndex(nextIndex);
+                return true;
+            }
+        }
+
+        return false;
+    }, [setCurrentPartIndex, testData]);
 
     useEffect(() => {
         let active = true;
@@ -252,6 +270,11 @@ const IeltsListeningTest = () => {
             });
             return undefined;
         }
+
+        setAudioObjectUrl((prev) => {
+            if (prev) URL.revokeObjectURL(prev);
+            return null;
+        });
 
         const loadAudioBlob = async () => {
             try {
@@ -282,10 +305,6 @@ const IeltsListeningTest = () => {
     }, [currentPartIndex]);
 
     useEffect(() => {
-        audioReplayCountRef.current = 0;
-    }, [currentPartIndex, effectiveAudioUrl]);
-
-    useEffect(() => {
         const audioEl = audioRef.current;
         if (!audioEl) return undefined;
 
@@ -314,17 +333,24 @@ const IeltsListeningTest = () => {
         };
 
         const handleEnded = () => {
-            const nextReplayCount = audioReplayCountRef.current + 1;
-            audioReplayCountRef.current = nextReplayCount;
+            if (advanceToNextListeningPart()) {
+                return;
+            }
 
-            if (nextReplayCount < audioPlayCount) {
+            const nextCycleCount = audioCycleCountRef.current + 1;
+            audioCycleCountRef.current = nextCycleCount;
+
+            if (nextCycleCount < audioPlayCycles) {
+                setCurrentPartIndex(0);
                 try {
                     audioEl.currentTime = 0;
                 } catch {
                     // Ignore reset failures; playback still continues.
                 }
-                audioEl.play().catch(() => { });
+                return;
             }
+
+            setAudioStarted(false);
         };
 
         audioEl.addEventListener('timeupdate', syncCurrentTime);
@@ -336,7 +362,7 @@ const IeltsListeningTest = () => {
             audioEl.removeEventListener('loadedmetadata', restoreCurrentTime);
             audioEl.removeEventListener('ended', handleEnded);
         };
-    }, [effectiveAudioUrl, audioPlayCount]);
+    }, [currentPartIndex, effectiveAudioUrl, audioPlayCycles, advanceToNextListeningPart]);
 
     useEffect(() => {
         if (!audioStarted || isReview) return;
@@ -360,8 +386,7 @@ const IeltsListeningTest = () => {
         const atEnd = duration != null
             ? audioEl.currentTime >= Math.max(0, duration - 0.25)
             : false;
-        if (atEnd || audioReplayCountRef.current >= audioPlayCount) {
-            audioReplayCountRef.current = 0;
+        if (atEnd || audioCycleCountRef.current >= audioPlayCycles) {
             try {
                 audioEl.currentTime = 0;
             } catch {
@@ -370,9 +395,12 @@ const IeltsListeningTest = () => {
         }
 
         audioEl.play().catch(() => { });
-    }, [audioStarted, isReview, effectiveAudioUrl, audioPlayCount]);
+    }, [audioStarted, isReview, currentPartIndex, effectiveAudioUrl, audioPlayCycles]);
 
     const handlePlay = () => {
+        if (audioCycleCountRef.current >= audioPlayCycles) {
+            audioCycleCountRef.current = 0;
+        }
         setAudioStarted(true);
         const audioEl = audioRef.current;
         if (audioEl) {
@@ -386,7 +414,7 @@ const IeltsListeningTest = () => {
             }
             const duration = Number.isFinite(audioEl.duration) ? audioEl.duration : null;
             if (duration != null && audioEl.currentTime >= Math.max(0, duration - 0.25)) {
-                audioReplayCountRef.current = 0;
+                audioCycleCountRef.current = 0;
                 try {
                     audioEl.currentTime = 0;
                 } catch {
@@ -1037,9 +1065,9 @@ const IeltsListeningTest = () => {
             )}
 
             <div className="instruction-bar">
-                <h3 dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(part.title || '') }} />
+                <div className="instruction-bar-title" dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(part.title || '') }} />
                 {part.instructions && (
-                    <p dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(part.instructions) }} />
+                    <div className="instruction-bar-content" dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(part.instructions) }} />
                 )}
                 {isReview && scoreInfo && (
                     <div className="review-score-banner">
@@ -1244,13 +1272,7 @@ const IeltsListeningTest = () => {
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         setCurrentPartIndex(index);
-                                                        setActiveQuestion(q.number);
-                                                        setTimeout(() => {
-                                                            const el = document.getElementById(`question-${q.number}`);
-                                                            if (el) {
-                                                                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                                            }
-                                                        }, 50);
+                                                        setActiveQuestion(q.number, { scroll: true });
                                                     }}
                                                 >
                                                     {hasBookmarked && (

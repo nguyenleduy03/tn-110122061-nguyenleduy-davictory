@@ -158,11 +158,28 @@ const NoteCompletionBlock = ({ group, allGroups = [], onUpdate, onDelete, onSele
           💡 Dùng | để tách nhiều đáp án đúng (vd: 1|one)
         </div>
         <BulkAnswerImport questions={group.questions} onImport={(answers) => {
+          // Xóa tất cả câu rỗng (không có answerText) trước khi import
+          const nonEmptyQuestions = (group.questions || []).filter(q => q.answerText?.trim());
+          const emptyQuestions = (group.questions || []).filter(q => !q.answerText?.trim());
+          
+          // Nếu có câu rỗng và số câu import >= số câu rỗng, xóa hết câu rỗng
+          let finalQuestions = [...nonEmptyQuestions];
+          
+          // Thêm câu mới hoặc update câu có sẵn
           answers.forEach((ans, idx) => {
-            if (group.questions[idx]) {
-              onUpdateQuestion(group.id, group.questions[idx].id, { answerText: ans });
+            if (finalQuestions[idx]) {
+              finalQuestions[idx] = { ...finalQuestions[idx], answerText: ans };
+            } else {
+              // Tạo câu mới
+              finalQuestions.push({
+                id: Date.now() + idx,
+                questionNumber: (group.fromQuestion || 1) + idx,
+                answerText: ans
+              });
             }
           });
+          
+          onUpdate(group.id, { questions: finalQuestions });
         }} />
         {(group.questions ?? []).map((q) => (
           <div key={q.id} className="exam-ml-answer-row">

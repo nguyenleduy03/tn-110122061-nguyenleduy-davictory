@@ -121,6 +121,30 @@ const SummaryCompletionSelectQuestion = ({ q, activeQuestion, setActiveQuestion,
         return withMarkers.replace(/\\n|\n/g, '<br/>');
     };
 
+    const toReactStyleObject = (rawStyle) => {
+        if (typeof rawStyle !== 'string') return undefined;
+
+        const styleObj = {};
+        rawStyle.split(';').forEach((declaration) => {
+            const [rawName, ...rawValueParts] = declaration.split(':');
+            if (!rawName || !rawValueParts.length) return;
+
+            const propName = rawName.trim();
+            const propValue = rawValueParts.join(':').trim();
+            if (!propName || !propValue) return;
+
+            if (propName.startsWith('--')) {
+                styleObj[propName] = propValue;
+                return;
+            }
+
+            const camelName = propName.toLowerCase().replace(/-([a-z])/g, (_m, letter) => letter.toUpperCase());
+            styleObj[camelName] = propValue;
+        });
+
+        return Object.keys(styleObj).length ? styleObj : undefined;
+    };
+
     const normalizeBlankTokens = (text) => {
         let s = applyDbFormattingMarkers(String(text || ''));
         s = s.replace(/\s*(?:<p>\s*)?\{\s*"noteText"\s*:\s*""\s*,\s*"title"\s*:\s*""\s*\}(?:\s*<\/p>)?\s*$/gi, '');
@@ -128,24 +152,7 @@ const SummaryCompletionSelectQuestion = ({ q, activeQuestion, setActiveQuestion,
         s = s.replace(/<span[^>]*data-blank=["']true["'][^>]*>[\s\S]*?<\/span>/gi, '[blank]');
         s = s.replace(/<button[^>]*data-del=["']true["'][^>]*>[\s\S]*?<\/button>/gi, '');
         s = s.replace(/<span[^>]*class=["'][^"']*rbe-blank-(?:num|del)[^"']*["'][^>]*>[\s\S]*?<\/span>/gi, '');
-        // Keep blanks inline even when editor inserts hard line breaks around them.
-        s = s.replace(/<br\b[^>]*\/?>(?:\s|&nbsp;)*(\[(?:blank|\d+)\])/gi, ' $1');
-        s = s.replace(/(\[(?:blank|\d+)\])(?:\s|&nbsp;)*<br\b[^>]*\/?>/gi, '$1 ');
-        s = s.replace(/\\n\s*(\[(?:blank|\d+)\])/gi, ' $1');
-        s = s.replace(/(\[(?:blank|\d+)\])\s*\\n/gi, '$1 ');
-        s = s.replace(/\r?\n\s*(\[(?:blank|\d+)\])/gi, ' $1');
-        s = s.replace(/(\[(?:blank|\d+)\])\s*\r?\n/gi, '$1 ');
         s = s.replace(/(\[(?:blank|\d+)\])\s*[x×]\s+/gi, '$1 ');
-        s = s.replace(/<(p|div)\b[^>]*>\s*(\[(?:blank|\d+)\][\s\S]*?)\s*<\/\1>/gi, ' $2 ');
-        s = s.replace(/<\/li>\s*([\s\S]*?\[(?:blank|\d+)\][\s\S]*?)(?=\s*(?:<li\b|<\/(?:ul|ol)\b))/gi, (_match, fragment) => {
-            const merged = String(fragment || '')
-                .trim()
-                .replace(/^<(p|div)\b[^>]*>\s*/i, '')
-                .replace(/\s*<\/(p|div)>$/i, '')
-                .replace(/<\/li>\s*$/i, '')
-                .trim();
-            return merged ? ` ${merged} </li>` : '</li>';
-        });
         s = s.replace(/\[\s*blank\s*\]/gi, '[blank]');
         return s;
     };
@@ -154,9 +161,21 @@ const SummaryCompletionSelectQuestion = ({ q, activeQuestion, setActiveQuestion,
         const props = { key };
         Array.from(node.attributes || []).forEach((attr) => {
             const attrName = String(attr.name || '').toLowerCase();
-            if (!attrName || attrName === 'style' || attrName === 'contenteditable') return;
+            if (!attrName || attrName === 'contenteditable' || attrName.startsWith('on')) return;
             if (attrName === 'class') {
                 props.className = attr.value;
+                return;
+            }
+            if (attrName === 'style') {
+                const styleObj = toReactStyleObject(attr.value);
+                if (styleObj) props.style = { ...(props.style || {}), ...styleObj };
+                return;
+            }
+            if (attrName === 'align') {
+                const alignValue = String(attr.value || '').trim().toLowerCase();
+                if (alignValue) {
+                    props.style = { ...(props.style || {}), textAlign: alignValue };
+                }
                 return;
             }
             props[attr.name] = attr.value;
@@ -350,10 +369,10 @@ const SummaryCompletionSelectQuestion = ({ q, activeQuestion, setActiveQuestion,
     return (
         <div className="summary-completion-container">
             {title && (
-                <p className="summary-title" dangerouslySetInnerHTML={{ __html: formatInlineHtml(title) }} />
+                <div className="summary-title" dangerouslySetInnerHTML={{ __html: formatInlineHtml(title) }} />
             )}
             {instructions && (
-                <p className="summary-instructions" dangerouslySetInnerHTML={{ __html: formatInlineHtml(instructions) }} />
+                <div className="summary-instructions" dangerouslySetInnerHTML={{ __html: formatInlineHtml(instructions) }} />
             )}
             <div className="summary-text" ref={summaryTextRef}>
                 {renderParagraph()}

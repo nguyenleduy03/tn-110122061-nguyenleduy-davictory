@@ -34,6 +34,7 @@ const isQuestionTypeLabel = (value) => {
         'multiple choice',
         'drag matching',
         'note completion',
+        'notes completion',
         'note form',
         'image + note form',
         'image note form',
@@ -75,7 +76,7 @@ const isQuestionTypeLabel = (value) => {
 
     if (exactTypes.has(withoutIndex) || exactTypes.has(withoutBracketSuffix)) return true;
 
-    return /^(note|summary|sentence|form|table|diagram|map|flow chart)\s+completion\s*\d*$/.test(value)
+    return /^(notes?|summary|sentence|form|table|diagram|map|flow chart)\s+completion\s*\d*$/.test(value)
         || /^matching\s+(heading|headings|info|information|feature|features)\s*\d*$/.test(value)
         || /^true\s*false\s*not\s*given\s*\d*$/.test(value)
         || /^yes\s*no\s*not\s*given\s*\d*$/.test(value)
@@ -86,8 +87,8 @@ const isQuestionTypeLabel = (value) => {
         || /^writing task\s*\d*$/.test(value)
         || /^custom\s*\d*$/.test(value)
         || /^part\s*\d+\s*(?:-\s*(?:interview|cue card|discussion))?$/.test(value)
-        || /^(note|summary|table|matching|flow chart|multiple choice)\s+question\s*\d*$/.test(value)
-        || /^(note|summary|table|matching|flow chart|multiple choice)\s+questions\s*\d+\s*(?:-|–)\s*\d+$/.test(value);
+        || /^(notes?|summary|table|matching|flow chart|multiple choice)\s+question\s*\d*$/.test(value)
+        || /^(notes?|summary|table|matching|flow chart|multiple choice)\s+questions\s*\d+\s*(?:-|–)\s*\d+$/.test(value);
 };
 
 export const isQuestionMetaLabel = (value) => {

@@ -66,7 +66,11 @@ const isComponentManagedDropdownGroup = (groupType) => {
         .replace(/\s+/g, '_')
         .replace(/-/g, '_');
 
-    return normalized === 'mcq_dropdown_group' || normalized === 'shared_options_dropdown';
+    return normalized === 'mcq_dropdown_group'
+        || normalized === 'shared_options_dropdown'
+        || normalized === 'note_completion'
+        || normalized === 'summary_completion'
+        || normalized === 'summary_completion_select';
 };
 
 const HeadingGap = ({ qId, number, answer, correctAnswer, handleAnswerChange, isActive, setActiveQuestion, bookmarks, toggleBookmark, isReview }) => {
@@ -777,9 +781,9 @@ const IeltsReadingTest = () => {
             />
 
             <div className="instruction-bar">
-                <h3 dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(part.title || '') }} />
+                <div className="instruction-bar-title" dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(part.title || '') }} />
                 {(part.instructions || part.instruction) && (
-                    <p dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(part.instructions || part.instruction) }} />
+                    <div className="instruction-bar-content" dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(part.instructions || part.instruction) }} />
                 )}
                 {isReview && scoreInfo && (
                     <div className="review-score-banner">
@@ -985,13 +989,7 @@ const IeltsReadingTest = () => {
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         setCurrentPartIndex(index);
-                                                        setActiveQuestion(q.number);
-                                                        setTimeout(() => {
-                                                            const el = document.getElementById(`question-${q.number}`);
-                                                            if (el) {
-                                                                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                                            }
-                                                        }, 50);
+                                                        setActiveQuestion(q.number, { scroll: true });
                                                     }}
                                                 >
                                                     {hasBookmarked && (

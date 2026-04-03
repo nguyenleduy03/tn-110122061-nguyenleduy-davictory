@@ -107,6 +107,8 @@ const TestComplete = () => {
                     const questions = part.questions || [];
 
                     questions.forEach((q) => {
+                        const qCount = q.questionCount || 1;
+
                         if (Array.isArray(q.subQuestions) && q.subQuestions.length > 0) {
                             q.subQuestions.forEach((sq) => {
                                 const userAns = savedAnswers?.[sq.id] ?? '';
@@ -120,6 +122,7 @@ const TestComplete = () => {
                                     userAns,
                                     correctAns,
                                     isCorrect,
+                                    weight: 1,
                                 });
                             });
                             return;
@@ -141,6 +144,7 @@ const TestComplete = () => {
                                     userAns: u,
                                     correctAns: c,
                                     isCorrect,
+                                    weight: 1,
                                 });
                             });
                             return;
@@ -157,6 +161,7 @@ const TestComplete = () => {
                                 userAns: Array.isArray(userAns) ? userAns.join(', ') : userAns,
                                 correctAns: Array.isArray(correctAns) ? correctAns.join(', ') : correctAns,
                                 isCorrect,
+                                weight: qCount,
                             });
                             return;
                         }
@@ -169,6 +174,7 @@ const TestComplete = () => {
                             userAns,
                             correctAns,
                             isCorrect,
+                            weight: qCount,
                         });
                     });
                 });
@@ -178,8 +184,8 @@ const TestComplete = () => {
                     partMap.get(row.partLabel).push(row);
                 });
 
-                const correct = rows.filter((r) => r.isCorrect).length;
-                const total = rows.length;
+                const correct = rows.filter((r) => r.isCorrect).reduce((sum, r) => sum + (r.weight || 1), 0);
+                const total = rows.reduce((sum, r) => sum + (r.weight || 1), 0);
                 const wrong = Math.max(0, total - correct);
 
                 const scoreText = Number.isFinite(savedScore?.score)

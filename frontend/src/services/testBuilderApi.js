@@ -413,7 +413,7 @@ function sanitizeCompletionTitle(value, contentType) {
   const plain = raw.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
   if (!plain) return '';
 
-  if (contentType === 'NOTE_COMPLETION' && /^note\s*completion\s*\d*$/i.test(plain)) {
+  if (contentType === 'NOTE_COMPLETION' && /^notes?\s*completion\s*\d*$/i.test(plain)) {
     return '';
   }
 
@@ -852,6 +852,7 @@ function deserializeGroupContent(contentType, passageText) {
         noteText: parsed.noteText || [topNoteText, bottomNoteText].filter(Boolean).join('\n\n'),
         topNoteText,
         bottomNoteText,
+        instructions: parsed.instructions || '',
         imagePosition: parsed.imagePosition || 'top',
         imageWidth: parsed.imageWidth || 100,
         pinBoxWidth: parsed.pinBoxWidth || 60,

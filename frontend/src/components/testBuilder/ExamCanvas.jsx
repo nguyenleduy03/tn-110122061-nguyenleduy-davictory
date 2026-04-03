@@ -1265,7 +1265,11 @@ const PartView = ({ skill, part, selection, onSelectGroup, onSelectQuestion, onU
           onMoveGroupUp={onMoveGroupUp}
           onMoveGroupDown={onMoveGroupDown}
           dragHandleProps={dragHandleProps}
-          testTitle={test?.title} testId={testId} skill={skill} />
+          testTitle={test?.title}
+          testId={testId}
+          skill={skill}
+          showPlayCount={skill === 'LISTENING' && part.orderIndex === 1}
+        />
       )}
     </SortableGroupWrapper>
   );
@@ -1600,43 +1604,24 @@ const ExamCanvas = ({
         </div>
       )}
 
-      {/* Footer: Part question counts */}
-      {showFooter && (
-        <div className="exam-canvas-footer" style={{ 
-          position: 'fixed', 
-          bottom: 0, 
-          left: '280px',
-          width: 'calc(100vw - 580px)',
-          zIndex: 99,
-          background: 'white',
-          borderTop: '1px solid #e5e7eb',
-          transition: 'opacity 0.3s ease',
-          opacity: showFooter ? 1 : 0
-        }}>
-        {parts.map((part) => {
-          const questionCount = (part.questionGroups ?? []).reduce((sum, g) => {
+      {/* Part tabs */}
+      <div className="tb-part-tabs">
+        {parts.map((p) => {
+          const questionCount = (p.questionGroups ?? []).reduce((sum, g) => {
             if (g.contentType === 'AUDIO_TRANSCRIPT') return sum;
             return sum + (g.questions ?? []).reduce((qSum, q) => qSum + (q.questionCount || 1), 0);
           }, 0);
           return (
-            <div key={part.id} className="exam-footer-part">
-              <span className="exam-footer-part-name">{part.name}</span>
-              <span className="exam-footer-part-count">{questionCount} câu</span>
-            </div>
+            <button key={p.id}
+              className={`tb-part-tab${activePart?.id === p.id ? ' active' : ''}`}
+              onClick={() => setActivePartId(p.id)}>
+              {p.name || `Part ${p.orderIndex}`}
+              <span style={{ marginLeft: '8px', fontSize: '11px', opacity: 0.7 }}>
+                ({questionCount} câu)
+              </span>
+            </button>
           );
         })}
-        </div>
-      )}
-
-      {/* Part tabs */}
-      <div className="tb-part-tabs">
-        {parts.map((p) => (
-          <button key={p.id}
-            className={`tb-part-tab${activePart?.id === p.id ? ' active' : ''}`}
-            onClick={() => setActivePartId(p.id)}>
-            {p.name || `Part ${p.orderIndex}`}
-          </button>
-        ))}
         <button className="tb-part-tab-add" title="Thêm Part mới" onClick={onAddPart}>+</button>
       </div>
 

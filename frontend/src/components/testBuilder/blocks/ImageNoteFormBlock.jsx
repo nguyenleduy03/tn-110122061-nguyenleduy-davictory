@@ -3,6 +3,7 @@ import { X, Plus, Volume2, Image, ChevronUp, ChevronDown } from 'lucide-react';
 import GroupToolbar from './shared/GroupToolbar';
 import RichInput from '../../common/RichInput';
 import RichBlankEditor from './shared/RichBlankEditor';
+import ImageUploadZone from './shared/ImageUploadZone';
 import { serializeContentEditableHtml } from '../../../utils/textFormatters';
 import { resolveDrivePreviewUrl } from '../../../utils/mediaUrl';
 import { toRoman, loadImageFile, toPlainText, countBlankTokens, getNextQuestionNumber, getPartQuestionStartNumber, isImagePinQuestion, isNoteBlankQuestion, getQuestionWeight } from './shared/blockHelpers';
@@ -224,26 +225,19 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
 
   const imageSection = (
     <div style={{ marginBottom: 16 }}>
-      <div style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
-        <input 
-          style={{ flex: 1, padding: '4px 8px', border: '1px solid #e2e8f0', borderRadius: 4, fontSize: 13 }}
-          value={group.imageUrl?.startsWith('data:') ? '(ảnh đã tải lên)' : (group.imageUrl || '')} 
-          placeholder="URL ảnh hoặc tải lên..."
-          readOnly={group.imageUrl?.startsWith('data:')}
-          onChange={(e) => onUpdate(group.id, { imageUrl: e.target.value })}
-        />
-        <label style={{ padding: '4px 12px', background: '#3b82f6', color: '#fff', borderRadius: 4, cursor: 'pointer', fontSize: 12 }}>
-          Tải lên
-          <input type="file" accept="image/*" style={{ display: 'none' }} onClick={(e) => e.stopPropagation()} onChange={handleFileUpload} />
-        </label>
-        {group.imageUrl && (
-          <button style={{ padding: '4px 8px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}
-            onClick={(e) => { e.stopPropagation(); onUpdate(group.id, { imageUrl: '' }); }}>
-            <X size={12} />
-          </button>
-        )}
-      </div>
-      <div style={{ display: 'flex', gap: 12, marginBottom: 8, fontSize: 12 }} onClick={(e) => e.stopPropagation()}>
+      <ImageUploadZone
+        imageUrl={group.imageUrl}
+        onImageChange={(url) => onUpdate(group.id, { imageUrl: url })}
+        onImageDelete={() => onUpdate(group.id, { imageUrl: '' })}
+        placeholder="Nhập URL hoặc kéo thả/paste ảnh..."
+        module={module}
+        testTitle={testTitle}
+        testId={testId}
+        assetLabel="IMAGE_NOTE_FORM"
+        showPreview={true}
+        compact={false}
+      />
+      <div style={{ display: 'flex', gap: 12, marginBottom: 8, fontSize: 12, marginTop: 8 }} onClick={(e) => e.stopPropagation()}>
         <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <input type="radio" checked={imagePosition === 'top'} onChange={() => onUpdate(group.id, { imagePosition: 'top' })} />
           Ảnh trên
@@ -358,7 +352,18 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
       <GroupToolbar group={group} dragHandleProps={dragHandleProps} onDelete={onDelete} />
 
       {/* Instructions */}
-      <div className="exam-note-instructions">Complete the form below. Write <strong>NO MORE THAN TWO WORDS AND/OR A NUMBER</strong> for each answer.</div>
+      <div style={{ marginBottom: 12 }} onClick={(e) => e.stopPropagation()}>
+        <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4, color: '#555' }}>
+          Hướng dẫn:
+        </label>
+        <RichInput
+          multiline
+          rows={2}
+          value={group.instructions || ''}
+          placeholder="Complete the form below. Write NO MORE THAN TWO WORDS AND/OR A NUMBER for each answer."
+          onChange={(html) => onUpdate(group.id, { instructions: html })}
+        />
+      </div>
 
       {/* Title */}
       <div contentEditable suppressContentEditableWarning className="exam-note-form-title"
@@ -559,11 +564,26 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
                 ? [...noteBlanks, ...imagePins]
                 : [...noteBlanks.slice(0, topNoteBlankCount), ...imagePins, ...noteBlanks.slice(topNoteBlankCount)];
             
+            // Xóa câu rỗng trước khi import
+            const nonEmptyQuestions = orderedQuestions.filter(q => q.answerText?.trim());
+            let finalQuestions = [...nonEmptyQuestions];
+            
+            // Update hoặc tạo mới
             answers.forEach((ans, idx) => {
-              if (orderedQuestions[idx]) {
-                onUpdateQuestion(group.id, orderedQuestions[idx].id, { answerText: ans });
+              if (finalQuestions[idx]) {
+                finalQuestions[idx] = { ...finalQuestions[idx], answerText: ans };
+              } else {
+                finalQuestions.push({
+                  id: Date.now() + idx,
+                  questionNumber: baseNumber + idx,
+                  answerText: ans,
+                  pinX: 10,
+                  pinY: 10
+                });
               }
             });
+            
+            onUpdate(group.id, { questions: finalQuestions });
           }} />
           {(() => {
             const imagePins = questions.filter(isImagePinQuestion);

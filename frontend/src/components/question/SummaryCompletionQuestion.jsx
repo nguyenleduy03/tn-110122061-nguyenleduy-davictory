@@ -98,6 +98,30 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
         return withMarkers.replace(/\\n|\n/g, '<br/>');
     };
 
+    const toReactStyleObject = (rawStyle) => {
+        if (typeof rawStyle !== 'string') return undefined;
+
+        const styleObj = {};
+        rawStyle.split(';').forEach((declaration) => {
+            const [rawName, ...rawValueParts] = declaration.split(':');
+            if (!rawName || !rawValueParts.length) return;
+
+            const propName = rawName.trim();
+            const propValue = rawValueParts.join(':').trim();
+            if (!propName || !propValue) return;
+
+            if (propName.startsWith('--')) {
+                styleObj[propName] = propValue;
+                return;
+            }
+
+            const camelName = propName.toLowerCase().replace(/-([a-z])/g, (_m, letter) => letter.toUpperCase());
+            styleObj[camelName] = propValue;
+        });
+
+        return Object.keys(styleObj).length ? styleObj : undefined;
+    };
+
     const normalizeBlankTokens = (text) => {
         let s = applyDbFormattingMarkers(String(text || ''));
         // Some legacy payloads accidentally append serialized empty JSON at the end.
@@ -108,27 +132,8 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
         // Remove legacy blank-chip controls that leaked into stored HTML.
         s = s.replace(/<button[^>]*data-del=["']true["'][^>]*>[\s\S]*?<\/button>/gi, '');
         s = s.replace(/<span[^>]*class=["'][^"']*rbe-blank-(?:num|del)[^"']*["'][^>]*>[\s\S]*?<\/span>/gi, '');
-        // Keep blanks inline even when editor inserts hard line breaks around them.
-        s = s.replace(/<br\b[^>]*\/?>(?:\s|&nbsp;)*(\[(?:blank|\d+)\])/gi, ' $1');
-        s = s.replace(/(\[(?:blank|\d+)\])(?:\s|&nbsp;)*<br\b[^>]*\/?>/gi, '$1 ');
-        s = s.replace(/\\n\s*(\[(?:blank|\d+)\])/gi, ' $1');
-        s = s.replace(/(\[(?:blank|\d+)\])\s*\\n/gi, '$1 ');
-        s = s.replace(/\r?\n\s*(\[(?:blank|\d+)\])/gi, ' $1');
-        s = s.replace(/(\[(?:blank|\d+)\])\s*\r?\n/gi, '$1 ');
         // Legacy parser bug sometimes left the delete marker "×" right after blank.
         s = s.replace(/(\[(?:blank|\d+)\])\s*[x×]\s+/gi, '$1 ');
-        // Flatten standalone block wrappers around blank fragments.
-        s = s.replace(/<(p|div)\b[^>]*>\s*(\[(?:blank|\d+)\][\s\S]*?)\s*<\/\1>/gi, ' $2 ');
-        // Some legacy content places blank fragments between </li> and the next list item/end.
-        s = s.replace(/<\/li>\s*([\s\S]*?\[(?:blank|\d+)\][\s\S]*?)(?=\s*(?:<li\b|<\/(?:ul|ol)\b))/gi, (_match, fragment) => {
-            const merged = String(fragment || '')
-                .trim()
-                .replace(/^<(p|div)\b[^>]*>\s*/i, '')
-                .replace(/\s*<\/(p|div)>$/i, '')
-                .replace(/<\/li>\s*$/i, '')
-                .trim();
-            return merged ? ` ${merged} </li>` : '</li>';
-        });
         // Normalize token form
         s = s.replace(/\[\s*blank\s*\]/gi, '[blank]');
         return s;
@@ -138,9 +143,21 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
         const props = { key };
         Array.from(node.attributes || []).forEach((attr) => {
             const attrName = String(attr.name || '').toLowerCase();
-            if (!attrName || attrName === 'style' || attrName === 'contenteditable') return;
+            if (!attrName || attrName === 'contenteditable' || attrName.startsWith('on')) return;
             if (attrName === 'class') {
                 props.className = attr.value;
+                return;
+            }
+            if (attrName === 'style') {
+                const styleObj = toReactStyleObject(attr.value);
+                if (styleObj) props.style = { ...(props.style || {}), ...styleObj };
+                return;
+            }
+            if (attrName === 'align') {
+                const alignValue = String(attr.value || '').trim().toLowerCase();
+                if (alignValue) {
+                    props.style = { ...(props.style || {}), textAlign: alignValue };
+                }
                 return;
             }
             props[attr.name] = attr.value;
@@ -292,10 +309,10 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
     return (
         <div className="summary-completion-container">
             {title && (
-                <p className="summary-title" dangerouslySetInnerHTML={{ __html: formatInlineHtml(title) }} />
+                <div className="summary-title" dangerouslySetInnerHTML={{ __html: formatInlineHtml(title) }} />
             )}
             {instructionsText && (
-                <p className="summary-instructions" dangerouslySetInnerHTML={{ __html: formatInlineHtml(instructionsText) }} />
+                <div className="summary-instructions" dangerouslySetInnerHTML={{ __html: formatInlineHtml(instructionsText) }} />
             )}
             <div className="summary-text" ref={summaryTextRef}>
                 {renderParagraph()}

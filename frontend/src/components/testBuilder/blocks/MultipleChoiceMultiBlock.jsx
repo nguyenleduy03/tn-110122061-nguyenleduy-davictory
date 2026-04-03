@@ -74,11 +74,6 @@ const MultipleChoiceMultiBlock = ({ group, onUpdate, onDelete, onSelect, selecte
             placeholder="Choose TWO letters, A–E."
             onChange={(html) => onUpdate(group.id, { instructions: html })}
           />
-          <input type="number" min={1} max={8} className="exam-choose-n-input" style={{ width: 50 }}
-            value={group.chooseCount ?? 2}
-            onChange={(e) => onUpdate(group.id, { chooseCount: Number(e.target.value) })}
-            onClick={(e) => e.stopPropagation()} />
-          <span style={{ fontSize: 13, color: '#666', whiteSpace: 'nowrap' }}>đáp án</span>
         </div>
       </div>
       

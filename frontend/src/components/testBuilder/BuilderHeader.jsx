@@ -100,6 +100,51 @@ const BuilderHeader = ({
     return fallback;
   };
 
+  const resolveFontSize = (node, editableEl) => {
+    const seen = [];
+    let current = node?.nodeType === 1 ? node : node?.parentElement;
+
+    while (current) {
+      seen.push(current);
+      if (current === editableEl) break;
+      current = current.parentElement;
+    }
+
+    for (const el of seen) {
+      const inlineSize = String(el.getAttribute?.('style') || '').match(/(?:^|;)\s*font-size\s*:\s*([^;]+)\s*(?:;|$)/i)?.[1];
+      if (inlineSize) return normalizeEvenFontSize(inlineSize);
+
+      const computedSize = String(window.getComputedStyle(el).fontSize || '').trim();
+      const px = computedSize.match(/\d+(?:\.\d+)?/)?.[0];
+      if (px) return normalizeEvenFontSize(px);
+    }
+
+    return '';
+  };
+
+  const resolveSelectionNode = (range, editableEl) => {
+    if (!range) return editableEl || null;
+
+    const { startContainer, startOffset } = range;
+    if (!startContainer) return editableEl || null;
+
+    if (startContainer.nodeType === 3) {
+      return startContainer.parentElement || editableEl || null;
+    }
+
+    if (startContainer.nodeType === 1) {
+      const element = startContainer;
+      const beforeNode = element.childNodes?.[Math.max(0, startOffset - 1)] || null;
+      const atNode = element.childNodes?.[startOffset] || null;
+      const candidate = beforeNode || atNode || element;
+      if (candidate?.nodeType === 3) return candidate.parentElement || element || editableEl || null;
+      if (candidate?.nodeType === 1) return candidate;
+      return element;
+    }
+
+    return startContainer.parentElement || editableEl || null;
+  };
+
   // Track active formatting state + save last selection
   useEffect(() => {
     const update = () => {
@@ -140,6 +185,14 @@ const BuilderHeader = ({
         setActiveFormats(states);
         if (editableEl?.isContentEditable) {
           lastContentEditableRef.current = editableEl;
+        }
+        if (editableEl) {
+          const currentRange = sel?.rangeCount > 0 ? sel.getRangeAt(0) : null;
+          const selectionNode = resolveSelectionNode(currentRange, editableEl) || anchorEl || editableEl;
+          const activeFontSize = resolveFontSize(selectionNode, editableEl);
+          if (activeFontSize) {
+            setCustomFontSize((prev) => (String(prev) === String(activeFontSize) ? prev : activeFontSize));
+          }
         }
         if (sel?.rangeCount > 0) {
           const range = sel.getRangeAt(0);
@@ -246,6 +299,22 @@ const BuilderHeader = ({
     }
   };
 
+  const syncCurrentSelection = (editableEl) => {
+    try {
+      const sel = window.getSelection();
+      if (!sel?.rangeCount) return;
+      const range = sel.getRangeAt(0);
+      const anchor = range.commonAncestorContainer;
+      const anchorEl = anchor?.nodeType === 1 ? anchor : anchor?.parentElement;
+      if (editableEl?.contains?.(anchorEl)) {
+        lastContentEditableRef.current = editableEl;
+        lastRangeRef.current = range.cloneRange();
+      }
+    } catch (error) {
+      console.error('syncCurrentSelection error:', error);
+    }
+  };
+
   const restoreSelection = () => {
     try {
       const sel = window.getSelection();
@@ -290,6 +359,8 @@ const BuilderHeader = ({
     } catch {
       editableEl.dispatchEvent(new Event('input', { bubbles: true }));
     }
+
+    syncCurrentSelection(editableEl);
   };
 
   const applyCustomFontSize = (rawSize) => {
@@ -374,6 +445,8 @@ const BuilderHeader = ({
     } catch (error) {
       console.error('applyCustomFontSize error:', error);
     }
+
+    syncCurrentSelection(editableEl);
   };
 
   const applyPresetFontSize = (size) => {

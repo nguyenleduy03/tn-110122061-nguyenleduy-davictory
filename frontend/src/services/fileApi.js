@@ -21,7 +21,40 @@ const getDriveUploadConfig = async (mediaType, module, testTitle, testId) => {
   }
 };
 
-const uploadDirectToGoogleDrive = async (file, mediaType, module, testTitle, testId) => {
+const uploadToGoogleDriveWithProgress = (file, accessToken, onProgress) => new Promise((resolve, reject) => {
+  const xhr = new XMLHttpRequest();
+  xhr.open('POST', 'https://www.googleapis.com/upload/drive/v3/files?uploadType=media&fields=id,name', true);
+  xhr.setRequestHeader('Authorization', `Bearer ${accessToken}`);
+  xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+  xhr.setRequestHeader('X-Upload-Content-Type', file.type || 'application/octet-stream');
+
+  xhr.upload.onprogress = (event) => {
+    if (!event.lengthComputable) return;
+    const percent = Math.round((event.loaded / event.total) * 100);
+    onProgress?.(percent, 'Đang tải file lên Google Drive...');
+  };
+
+  xhr.onload = () => {
+    try {
+      const text = xhr.responseText || '';
+      if (xhr.status < 200 || xhr.status >= 300) {
+        reject(new Error(`Google Drive upload failed: ${text || xhr.statusText || xhr.status}`));
+        return;
+      }
+      const data = JSON.parse(text);
+      resolve(data);
+    } catch (error) {
+      reject(error);
+    }
+  };
+
+  xhr.onerror = () => reject(new Error('Google Drive upload failed: network error'));
+  xhr.send(file);
+});
+
+const uploadDirectToGoogleDrive = async (file, mediaType, module, testTitle, testId, options = {}) => {
+  const onProgress = options.onProgress;
+  onProgress?.(5, 'Đang lấy cấu hình Google Drive...');
   const { accessToken, rootFolderId, folderPath } = await getDriveUploadConfig(mediaType, module, testTitle, testId);
   const fileName = file.name || `upload-${Date.now()}`;
 
@@ -64,32 +97,24 @@ const uploadDirectToGoogleDrive = async (file, mediaType, module, testTitle, tes
   const resolveFolderPath = async (parentId, path) => {
     const segments = String(path || '').split('/').map(sanitizeSegment).filter(Boolean);
     let current = parentId;
-    for (const segment of segments) {
+    for (let idx = 0; idx < segments.length; idx += 1) {
+      const segment = segments[idx];
+      onProgress?.(10 + Math.round((idx / Math.max(1, segments.length + 1)) * 10), `Đang chuẩn bị thư mục Drive (${idx + 1}/${segments.length})...`);
       current = await findOrCreateFolder(current, segment);
     }
     return current;
   };
 
+  onProgress?.(15, 'Đang chuẩn bị thư mục lưu trữ...');
   const folderId = await resolveFolderPath(rootFolderId, folderPath);
 
-  const createResponse = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=media&fields=id,name', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': file.type || 'application/octet-stream',
-      'X-Upload-Content-Type': file.type || 'application/octet-stream',
-    },
-    body: file,
+  onProgress?.(20, 'Đang tải file lên Google Drive...');
+  const created = await uploadToGoogleDriveWithProgress(file, accessToken, (percent, message) => {
+    onProgress?.(Math.max(0, Math.min(100, Math.round(percent))), message);
   });
-
-  const createText = await createResponse.text();
-  if (!createResponse.ok) {
-    throw new Error(`Google Drive upload failed: ${createText}`);
-  }
-
-  const created = JSON.parse(createText);
   const fileId = created.id;
 
+  onProgress?.(90, 'Đang gắn file vào thư mục...');
   const moveResponse = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?addParents=${encodeURIComponent(folderId)}&fields=id`, {
     method: 'PATCH',
     headers: {
@@ -103,6 +128,7 @@ const uploadDirectToGoogleDrive = async (file, mediaType, module, testTitle, tes
     throw new Error(`Google Drive folder move failed: ${moveText}`);
   }
 
+  onProgress?.(96, 'Đang thiết lập quyền truy cập...');
   const permResponse = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/permissions`, {
     method: 'POST',
     headers: {
@@ -115,6 +141,8 @@ const uploadDirectToGoogleDrive = async (file, mediaType, module, testTitle, tes
     const permText = await permResponse.text();
     throw new Error(`Google Drive permission failed: ${permText}`);
   }
+
+  onProgress?.(100, 'Tải lên hoàn tất');
 
   return {
     id: fileId,
@@ -134,29 +162,29 @@ export const fileApi = {
    * @param {string} testTitle - Tên đề thi để tạo cấu trúc thư mục Drive
    * @returns {Promise<{id, url, fileName, mediaType}>}
    */
-  uploadFile: async (file, mediaType, module, testTitle, testId) => {
-    return uploadDirectToGoogleDrive(file, mediaType, module, testTitle, testId);
+  uploadFile: async (file, mediaType, module, testTitle, testId, options = {}) => {
+    return uploadDirectToGoogleDrive(file, mediaType, module, testTitle, testId, options);
   },
 
   /**
    * Upload audio cho Listening
    */
-  uploadListeningAudio: async (file, testTitle, testId) => {
-    return fileApi.uploadFile(file, 'AUDIO', 'LISTENING', testTitle, testId);
+  uploadListeningAudio: async (file, testTitle, testId, options = {}) => {
+    return fileApi.uploadFile(file, 'AUDIO', 'LISTENING', testTitle, testId, options);
   },
 
   /**
    * Upload image cho Reading/Writing
    */
-  uploadImage: async (file, module = 'READING', testTitle, testId) => {
-    return fileApi.uploadFile(file, 'IMAGE', module, testTitle, testId);
+  uploadImage: async (file, module = 'READING', testTitle, testId, options = {}) => {
+    return fileApi.uploadFile(file, 'IMAGE', module, testTitle, testId, options);
   },
 
   /**
    * Upload audio cho Speaking
    */
-  uploadSpeakingAudio: async (file, testTitle, testId) => {
-    return fileApi.uploadFile(file, 'AUDIO', 'SPEAKING', testTitle, testId);
+  uploadSpeakingAudio: async (file, testTitle, testId, options = {}) => {
+    return fileApi.uploadFile(file, 'AUDIO', 'SPEAKING', testTitle, testId, options);
   },
 
   /**

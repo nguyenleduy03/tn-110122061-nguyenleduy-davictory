@@ -28,7 +28,95 @@ export const SESSION_META = {
 export const formatPreviewText = (text) => {
   if (!text) return '';
   const normalized = normalizeRichHtml(text);
-  return stripInlineStyles(normalized);
+  return stripInlineStyles(normalized)
+    .replace(/(?:<br\s*\/?>(?:\s|&nbsp;)*){3,}/gi, '<br/><br/>')
+    .replace(/^(?:<br\s*\/?>(?:\s|&nbsp;)*)+/i, '')
+    .replace(/(?:<br\s*\/?>(?:\s|&nbsp;)*)+$/i, '');
+};
+
+const mapDomAttributesToProps = (node, key) => {
+  const props = { key };
+  Array.from(node.attributes || []).forEach((attr) => {
+    const attrName = String(attr.name || '').toLowerCase();
+    if (!attrName || attrName === 'style' || attrName === 'contenteditable') return;
+    if (attrName === 'class') {
+      props.className = attr.value;
+      return;
+    }
+    props[attr.name] = attr.value;
+  });
+  return props;
+};
+
+const renderPreviewTextWithTokens = (text, keyPrefix, blankState, renderToken) => {
+  const tokenRegex = /\[(blank|\d+)\]/gi;
+  const rawText = String(text || '');
+  const rendered = [];
+  let cursor = 0;
+  let match;
+
+  while ((match = tokenRegex.exec(rawText)) !== null) {
+    const before = rawText.slice(cursor, match.index);
+    if (before) rendered.push(before);
+    rendered.push(renderToken(match[1], `${keyPrefix}-token-${cursor}`, blankState));
+    cursor = tokenRegex.lastIndex;
+  }
+
+  const after = rawText.slice(cursor);
+  if (after) rendered.push(after);
+
+  return rendered.length ? rendered : rawText;
+};
+
+const renderPreviewDomNodeWithTokens = (node, keyPrefix, blankState, renderToken) => {
+  if (!node) return null;
+
+  if (node.nodeType === 3) {
+    return renderPreviewTextWithTokens(node.textContent || '', keyPrefix, blankState, renderToken);
+  }
+
+  if (node.nodeType !== 1) return null;
+
+  const tagName = String(node.tagName || '').toLowerCase();
+  if (!tagName || tagName === 'script' || tagName === 'style') return null;
+
+  const children = Array.from(node.childNodes || []).flatMap((child, idx) => {
+    const childNode = renderPreviewDomNodeWithTokens(child, `${keyPrefix}-${idx}`, blankState, renderToken);
+    if (Array.isArray(childNode)) {
+      return childNode.filter((entry) => entry !== null && entry !== undefined);
+    }
+    return childNode === null || childNode === undefined ? [] : [childNode];
+  });
+
+  const props = mapDomAttributesToProps(node, keyPrefix);
+  return React.createElement(tagName, props, children.length ? children : undefined);
+};
+
+const renderCompletionPreviewHtml = (value, renderToken) => {
+  const normalized = formatPreviewText(value || '');
+  if (!normalized) return null;
+
+  if (typeof DOMParser === 'undefined') {
+    return <span dangerouslySetInnerHTML={{ __html: normalized }} />;
+  }
+
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(`<div>${normalized}</div>`, 'text/html');
+    const root = doc.body.firstElementChild;
+    if (!root) return null;
+
+    const blankState = { cursor: 0 };
+    return Array.from(root.childNodes || []).flatMap((node, idx) => {
+      const renderedNode = renderPreviewDomNodeWithTokens(node, `completion-node-${idx}`, blankState, renderToken);
+      if (Array.isArray(renderedNode)) {
+        return renderedNode.filter((entry) => entry !== null && entry !== undefined);
+      }
+      return renderedNode === null || renderedNode === undefined ? [] : [renderedNode];
+    });
+  } catch {
+    return <span dangerouslySetInnerHTML={{ __html: normalized }} />;
+  }
 };
 
 export const toRoman = (n) => {
@@ -81,43 +169,47 @@ export const QuestionRange = ({ group }) => {
 // ─── Parse Helpers ────────────────────────────────────────────────────
 
 export const parseSummaryPreview = (text, questions, activeQ, onSetActive) => {
-  const parts = (text || '').split(/\[blank\]/gi);
-  return parts.map((part, i) => {
-    if (i >= parts.length - 1) return <React.Fragment key={`t${i}`}>{part}</React.Fragment>;
-    const q = questions[i];
-    const num = q?.questionNumber ?? i + 1;
+  return renderCompletionPreviewHtml(text, (tokenValue, key, blankState) => {
+    const token = String(tokenValue || '').toLowerCase();
+    const numeric = Number(tokenValue);
+
+    const q = token === 'blank' || Number.isNaN(numeric)
+      ? questions[blankState.cursor++]
+      : questions.find((item) => Number(item?.questionNumber) === numeric) || questions[blankState.cursor++];
+    const num = q?.questionNumber ?? (Number.isFinite(numeric) ? numeric : blankState.cursor);
     const isActive = activeQ === num;
+
     return (
-      <React.Fragment key={i}>
-        {part}
-        <span
-          className={`pv-blank-box${isActive ? ' active' : ''}`}
-          onClick={() => onSetActive(num)}
-        >{num}</span>
-      </React.Fragment>
+      <span
+        key={key}
+        className={`pv-blank-box${isActive ? ' active' : ''}`}
+        onClick={() => onSetActive(num)}
+      >{num}</span>
     );
   });
 };
 
 export const parseNotePreview = (text, questions, activeQ, onSetActive, answers, onAnswer) => {
-  const parts = (text || '').split(/\[blank\]/gi);
-  return parts.map((part, i) => {
-    if (i >= parts.length - 1) return <React.Fragment key={`t${i}`}>{part}</React.Fragment>;
-    const q = questions[i];
-    const num = q?.questionNumber ?? i + 1;
+  return renderCompletionPreviewHtml(text, (tokenValue, key, blankState) => {
+    const token = String(tokenValue || '').toLowerCase();
+    const numeric = Number(tokenValue);
+
+    const q = token === 'blank' || Number.isNaN(numeric)
+      ? questions[blankState.cursor++]
+      : questions.find((item) => Number(item?.questionNumber) === numeric) || questions[blankState.cursor++];
+    const num = q?.questionNumber ?? (Number.isFinite(numeric) ? numeric : blankState.cursor);
     const isActive = activeQ === num;
+
     return (
-      <React.Fragment key={i}>
-        {part}
-        <input
-          className={`pv-note-inline-input${isActive ? ' active' : ''}`}
-          value={answers?.[num] ?? ''}
-          onChange={(e) => onAnswer?.(num, e.target.value)}
-          onFocus={() => onSetActive(num)}
-          placeholder={String(num)}
-          onClick={(e) => e.stopPropagation()}
-        />
-      </React.Fragment>
+      <input
+        key={key}
+        className={`pv-note-inline-input${isActive ? ' active' : ''}`}
+        value={answers?.[num] ?? ''}
+        onChange={(e) => onAnswer?.(num, e.target.value)}
+        onFocus={() => onSetActive(num)}
+        placeholder={String(num)}
+        onClick={(e) => e.stopPropagation()}
+      />
     );
   });
 };

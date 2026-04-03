@@ -6,7 +6,7 @@ import RichBlankEditor from './shared/RichBlankEditor';
 import { toRoman, loadImageFile, loadAudioFile, toPlainText, countBlankTokens, getNextQuestionNumber, isImagePinQuestion, isNoteBlankQuestion, getQuestionWeight } from './shared/blockHelpers';
 import { resolveDrivePreviewUrl } from '../../../utils/mediaUrl';
 
-const AudioBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps, testTitle, testId, module = 'LISTENING' }) => {
+const AudioBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps, testTitle, testId, module = 'LISTENING', showPlayCount = true }) => {
   const audioRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -163,45 +163,85 @@ const AudioBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleP
     ? `${Math.floor(duration / 60)}:${String(Math.floor(duration % 60)).padStart(2, '0')}`
     : '--:--';
   const progress = duration > 0 ? Math.min(100, (currentTime / duration) * 100) : 0;
+  const hasAudio = Boolean(audioSrc);
+  const statusLabel = uploading
+    ? 'Đang tải lên'
+    : hasAudio
+      ? (isPlaying ? 'Đang phát' : 'Sẵn sàng')
+      : 'Chưa có audio';
 
   return (
     <div className={`exam-group${selected ? ' selected' : ''}`}
       onClick={(e) => { e.stopPropagation(); onSelect(group); }}>
       <GroupToolbar group={group} dragHandleProps={dragHandleProps} onDelete={onDelete} />
-      <div className="exam-audio-player">
-        <audio ref={audioRef} src={audioSrc || undefined} preload="metadata" />
-        <button
-          className="exam-audio-play-btn"
-          type="button"
-          title={isPlaying ? 'Tạm dừng' : 'Phát audio'}
-          onClick={handleTogglePlay}
-          disabled={!audioSrc}
-        >
-          <span className={`exam-audio-play-glyph${isPlaying ? ' is-paused' : ''}`} aria-hidden="true" />
-        </button>
-        <div className="exam-audio-progress-wrap">
-          <input
-            className="exam-audio-seek"
-            type="range"
-            min="0"
-            step="0.1"
-            max={duration > 0 ? duration : 0}
-            value={Math.min(currentTime, duration || currentTime)}
-            onChange={handleSeek}
-            disabled={!audioSrc || duration <= 0}
-            style={{
-              background: duration > 0
-                ? `linear-gradient(to right, #1d2f5e 0%, #1d2f5e ${progress}%, #e2e8f0 ${progress}%, #e2e8f0 100%)`
-                : '#e2e8f0',
-            }}
-          />
-          <div className="exam-audio-time-row">
-            <span className="exam-audio-time">{formattedCurrent}</span>
-            <span className="exam-audio-time">/ {formattedDuration}</span>
+      <div className="exam-audio-card">
+        <div className="exam-audio-card-head">
+          <div className="exam-audio-card-title-wrap">
+            <div className={`exam-audio-card-badge${hasAudio ? ' is-live' : ' is-empty'}`}>
+              <span className={`exam-audio-card-dot${isPlaying ? ' is-pulsing' : ''}`} />
+            </div>
+            <div>
+              <div className="exam-audio-card-title">Audio transcript</div>
+              <div className="exam-audio-card-subtitle">Dán link, nghe thử và tải file audio</div>
+            </div>
+          </div>
+
+          <div className="exam-audio-card-metrics">
+            <span className={`exam-audio-chip${uploading ? ' is-uploading' : hasAudio ? ' is-ready' : ''}`}>
+              {statusLabel}
+            </span>
+            <span className="exam-audio-chip is-neutral">{formattedCurrent} / {formattedDuration}</span>
+            {module === 'LISTENING' && showPlayCount && (
+              <span className="exam-audio-chip is-accent">{group.audioPlayCount ?? 1} vòng</span>
+            )}
           </div>
         </div>
 
-        <div className="exam-audio-source-wrap">
+        {uploading && (
+          <div className="exam-audio-upload-progress">
+            <div className="exam-audio-upload-progress-bar" style={{ width: `${uploadProgress}%` }} />
+            <div className="exam-audio-upload-progress-meta">
+              <span>{uploadMessage || 'Đang tải lên...'}</span>
+              <span>{Math.min(100, Math.max(0, Math.round(uploadProgress)))}%</span>
+            </div>
+          </div>
+        )}
+
+        <div className="exam-audio-player">
+          <audio ref={audioRef} src={audioSrc || undefined} preload="metadata" />
+          <button
+            className="exam-audio-play-btn"
+            type="button"
+            title={isPlaying ? 'Tạm dừng' : 'Phát audio'}
+            onClick={handleTogglePlay}
+            disabled={!audioSrc}
+          >
+            <span className={`exam-audio-play-glyph${isPlaying ? ' is-paused' : ''}`} aria-hidden="true" />
+          </button>
+          <div className="exam-audio-progress-wrap">
+            <input
+              className="exam-audio-seek"
+              type="range"
+              min="0"
+              step="0.1"
+              max={duration > 0 ? duration : 0}
+              value={Math.min(currentTime, duration || currentTime)}
+              onChange={handleSeek}
+              disabled={!audioSrc || duration <= 0}
+              style={{
+                background: duration > 0
+                  ? `linear-gradient(to right, #1d2f5e 0%, #1d2f5e ${progress}%, #e2e8f0 ${progress}%, #e2e8f0 100%)`
+                  : '#e2e8f0',
+              }}
+            />
+            <div className="exam-audio-time-row">
+              <span className="exam-audio-time">{formattedCurrent}</span>
+              <span className="exam-audio-time">/ {formattedDuration}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="exam-audio-source-grid">
           <div className="exam-audio-url-wrap">
             <LinkIcon size={13} />
             <input
@@ -213,21 +253,11 @@ const AudioBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleP
             />
           </div>
 
-          {uploading && (
-            <div className="exam-audio-upload-progress" style={{ width: '100%' }}>
-              <div className="exam-audio-upload-progress-bar" style={{ width: `${uploadProgress}%` }} />
-              <div className="exam-audio-upload-progress-meta">
-                <span>{uploadMessage || 'Đang tải lên...'}</span>
-                <span>{Math.min(100, Math.max(0, Math.round(uploadProgress)))}%</span>
-              </div>
-            </div>
-          )}
-
-          {module === 'LISTENING' && (
-            <label className="exam-audio-url-wrap" style={{ gap: 8 }} title="Số lần phát audio">
-              <span style={{ fontSize: 12, color: '#475569', whiteSpace: 'nowrap' }}>Số lần phát</span>
+          {module === 'LISTENING' && showPlayCount && (
+            <label className="exam-audio-pill-field" title="Số lần phát audio">
+              <span className="exam-audio-pill-label">Số vòng</span>
               <input
-                className="exam-audio-url-input"
+                className="exam-audio-pill-input"
                 type="number"
                 min="1"
                 max="10"
@@ -235,7 +265,6 @@ const AudioBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleP
                 value={group.audioPlayCount ?? 1}
                 onChange={handlePlayCountChange}
                 onClick={(e) => e.stopPropagation()}
-                style={{ width: 88 }}
                 disabled={uploading}
               />
             </label>

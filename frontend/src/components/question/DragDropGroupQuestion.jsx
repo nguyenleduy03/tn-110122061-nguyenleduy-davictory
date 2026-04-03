@@ -1,10 +1,10 @@
 import React from 'react';
-import { formatTextWithWhitespace, stripInlineStyles } from '../../utils/textFormatters';
+import { formatTextWithWhitespace } from '../../utils/textFormatters';
 import { isQuestionMetaLabel } from '../../utils/questionLabelUtils';
 import { resolveDrivePreviewUrl } from '../../utils/mediaUrl';
 import BookmarkToggle from '../common/BookmarkToggle';
 
-const formatAndClean = (text) => stripInlineStyles(formatTextWithWhitespace(text));
+const formatAndClean = (text) => formatTextWithWhitespace(text);
 
 const normalizeGroupType = (rawType) => String(rawType || '')
     .trim()
@@ -308,7 +308,7 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
     // Calculate max length of bank options for sizing dropzones
     const bankOptions = (q.bankOptions || []).map(resolveText).filter(Boolean);
     const totalDropZones = (q.subQuestions || []).length;
-    
+
     // Debug: Log bankOptions for matching_heading
     if (isMatchingHeading) {
         console.log('[DragDropGroupQuestion] matching_heading data:', {
@@ -383,12 +383,15 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                         : String(answer || '');
                     const hasDisplayAnswer = displayAnswer.trim() !== '';
                     const inlineBlankParts = extractInlineBlankParts(subQ.text || '');
-                    const hasInlineBlank = !!inlineBlankParts;
+                    const hasInlineBlank = !isMatchingInfo && !!inlineBlankParts;
+                    const infoText = isMatchingInfo
+                        ? normalizeBlankTokens(subQ.text || '').replace(/\[blank\]/gi, '').trim()
+                        : (subQ.text || '');
 
                     const inlineDropStyle = hasInlineBlank && hasDisplayAnswer
                         ? { width: `clamp(88px, ${Math.max(8, displayAnswer.length + 2)}ch, 360px)` }
                         : undefined;
-                    const fixedInfoStyle = isMatchingInfo && !hasInlineBlank
+                    const fixedInfoStyle = isMatchingInfo
                         ? { width: dropZoneWidth }
                         : undefined;
                     const dropZoneStyle = inlineDropStyle || fixedInfoStyle;
@@ -406,19 +409,9 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                             style={dropZoneStyle}
                         >
                             {hasDisplayAnswer ? (
-                                <>
-                                    <span className="dd-drop-answer">
-                                        {displayAnswer}
-                                    </span>
-                                    {!isReview && (
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); handleClear(subQ.id); }}
-                                            className="dd-drop-clear"
-                                        >
-                                            ×
-                                        </button>
-                                    )}
-                                </>
+                                <span className="dd-drop-answer">
+                                    {displayAnswer}
+                                </span>
                             ) : (
                                 isMatchingInfo ? (
                                     <div className="dd-drop-number">
@@ -438,7 +431,7 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                             className={`dd-question-row ${isMatchingInfo ? 'dd-row-info' : 'dd-row-default'}`}
                             onClick={() => setActiveQuestion?.(subQ.number)}
                         >
-                            {isMatchingInfo && subQ.text ? (
+                            {isMatchingInfo && infoText ? (
                                 <div className={`dd-info-text ${hasInlineBlank ? 'dd-info-inline' : ''}`}>
                                     {hasInlineBlank ? (
                                         <span className="dd-inline-content">
@@ -447,7 +440,7 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                                             <span dangerouslySetInnerHTML={{ __html: formatAndClean(inlineBlankParts.after) }} />
                                         </span>
                                     ) : (
-                                        <span dangerouslySetInnerHTML={{ __html: formatAndClean(subQ.text || '') }} />
+                                        <span dangerouslySetInnerHTML={{ __html: formatAndClean(infoText) }} />
                                     )}
                                 </div>
                             ) : null}
@@ -473,7 +466,7 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                                     )
                                 )}
 
-                                {isMatchingInfo && !hasInlineBlank && dropZoneNode}
+                                {isMatchingInfo && dropZoneNode}
                             </div>
                         </div>
                     );
@@ -636,7 +629,7 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                                     <div
                                         key={subQ.id}
                                         id={`question-${subQ.number}`}
-                                        className={`drop-zone ml-drop-zone ${isActive ? 'active' : ''} ${Boolean(bookmarks?.[subQ.number]) ? 'drop-zone-bookmarked' : ''} ${isReview ? (isCorrect ? 'review-correct' : 'review-wrong') : ''}`}
+                                        className={`drop-zone ml-drop-zone ${isActive && !hasAnswer ? 'active' : ''} ${hasAnswer ? 'has-answer' : ''} ${Boolean(bookmarks?.[subQ.number]) ? 'drop-zone-bookmarked' : ''} ${isReview ? (isCorrect ? 'review-correct' : 'review-wrong') : ''}`}
                                         onClick={() => { if (!isReview) setActiveQuestion?.(subQ.number); }}
                                         onDrop={isReview ? undefined : (e) => handleDrop(e, subQ.id)}
                                         onDragOver={isReview ? undefined : handleDragOver}
@@ -647,7 +640,9 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                                             minWidth: `${pinBoxWidth}px`
                                         }}
                                     >
-                                        <strong className={`drop-zone-number${hasAnswer ? ' with-answer' : ''}`}>{subQ.number}</strong>
+                                        {!hasAnswer && (
+                                            <strong className="drop-zone-number">{subQ.number}</strong>
+                                        )}
 
                                         {answer ? (
                                             <div
@@ -659,14 +654,6 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                                                 }}
                                             >
                                                 {displayAnswer}
-                                                {!isReview && (
-                                                    <span
-                                                        className="dz-clear"
-                                                        onClick={(e) => { e.stopPropagation(); handleClear(subQ.id); }}
-                                                    >
-                                                        ×
-                                                    </span>
-                                                )}
                                             </div>
                                         ) : null}
                                     </div>
@@ -909,11 +896,13 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
     if (isMatchingInfo) {
         return (
             <div className="drag-drop-group matching-info" ref={matchingInfoContainerRef}>
-                <div className="dd-info-questions-col">
-                    {renderQuestions()}
-                </div>
-                <div className="dd-info-bank-col">
-                    {renderBank()}
+                <div className="matching-info-layout">
+                    <div className="dd-info-questions-col">
+                        {renderQuestions()}
+                    </div>
+                    <div className="dd-info-bank-col">
+                        {renderBank()}
+                    </div>
                 </div>
                 {!isReview && activeMatchingSubQ && ddBookmarkTop !== null && (
                     <BookmarkToggle

@@ -452,23 +452,6 @@ const QuestionPanel = ({ question, onChange, onDelete }) => {
               placeholder="Choose TWO correct answers." />
           </div>
           <div className="tb-field">
-            <label className="tb-label">Số đáp án cần chọn</label>
-            <input className="tb-input" type="number" min={1} max={10}
-              value={question.chooseCount ?? 2}
-              onChange={(e) => onChange({ chooseCount: Number(e.target.value) })}
-              placeholder="2" />
-          </div>
-          <div className="tb-field">
-            <label className="tb-label">Số câu hỏi (hiển thị)</label>
-            <input className="tb-input" type="number" min={1} max={10}
-              value={question.questionCount ?? 1}
-              onChange={(e) => onChange({ questionCount: Number(e.target.value) })}
-              placeholder="1" />
-            <small style={{ color: '#666', fontSize: '12px' }}>
-              Ví dụ: 2 câu → hiển thị "Câu 1-2", câu tiếp theo sẽ là "Câu 3"
-            </small>
-          </div>
-          <div className="tb-field">
             <label className="tb-label">Các lựa chọn (tick để chọn đáp án đúng)</label>
             <div className="tb-option-list">
               {options.map((opt, idx) => (

@@ -182,14 +182,6 @@ const QuestionItem = ({ question, selected, onClick, onUpdate, onDelete }) => {
 
         {type === 'MULTIPLE_CHOICE_MULTIPLE' && (
           <>
-            <div className="exam-choose-n-row">
-              Chọn&nbsp;
-              <input className="exam-choose-n-input" type="number" min={1} max={10}
-                value={question.chooseCount ?? 2}
-                onChange={(e) => onUpdate({ chooseCount: Number(e.target.value) })}
-                onClick={(e) => e.stopPropagation()} />
-              &nbsp;đáp án đúng
-            </div>
             <div className="exam-q-options">
               {(question.options ?? []).map((opt, i) => (
                 <div key={i} className="exam-q-option">
@@ -951,7 +943,10 @@ function TableCompletionBlock({ group, onUpdate, onDelete, onSelect, selected, d
     const newRows = dataRows.map((rowData, ri) => {
       const cells = {};
       newCols.forEach((col, ci) => {
-        cells[col.id] = rowData[ci] || '';
+        let cellValue = rowData[ci] || '';
+        // Auto-convert blank patterns to [blank] (same as paste in cell)
+        cellValue = cellValue.replace(/_{3,}|\.{3,}|-{3,}/g, '[blank]');
+        cells[col.id] = cellValue;
       });
       return {
         id: `r${Date.now()}_${ri}`,
@@ -1169,11 +1164,26 @@ function TableCompletionBlock({ group, onUpdate, onDelete, onSelect, selected, d
             💡 Dùng | để tách nhiều đáp án đúng (vd: 1|one)
           </div>
           <BulkAnswerImport questions={questions} onImport={(answers) => {
+            // Xóa câu rỗng trước khi import
+            const nonEmptyQuestions = questions.filter(q => q.answerText?.trim());
+            let finalQuestions = [...nonEmptyQuestions];
+            
+            // Update hoặc tạo mới
             answers.forEach((ans, idx) => {
-              if (questions[idx]) {
-                onUpdateQuestion(group.id, questions[idx].id, { answerText: ans });
+              if (finalQuestions[idx]) {
+                finalQuestions[idx] = { ...finalQuestions[idx], answerText: ans };
+              } else {
+                finalQuestions.push({
+                  id: Date.now() + idx,
+                  questionNumber: (group.fromQuestion || 1) + idx,
+                  answerText: ans,
+                  pinX: 10 + (idx % 3) * 20,
+                  pinY: 10 + Math.floor(idx / 3) * 20
+                });
               }
             });
+            
+            onUpdate(group.id, { questions: finalQuestions });
           }} />
           {questions.map((q) => (
             <div key={q.id} className="exam-ml-answer-row">

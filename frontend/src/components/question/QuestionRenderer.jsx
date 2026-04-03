@@ -169,18 +169,35 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
     }
 
     if (normalizedType === 'summary-completion' || normalizedType === 'note-completion') {
+        const shouldRenderStandaloneImage = q.imageUrl && !q.imagePosition;
         return (
-            <SummaryCompletionQuestion
-                q={q}
-                activeQuestion={activeQuestion}
-                setActiveQuestion={setActiveQuestion}
-                answers={answers || {}}
-                handleAnswerChange={handleAnswerChange}
-                inputRefs={inputRefs}
-                bookmarks={bookmarks}
-                toggleBookmark={toggleBookmark}
-                isReview={isReview}
-            />
+            <>
+                {shouldRenderStandaloneImage && (
+                    <div style={{ marginBottom: 16, textAlign: 'center' }}>
+                        <img 
+                            src={q.imageUrl} 
+                            alt="Question diagram" 
+                            style={{ 
+                                maxWidth: `${q.imageWidth || 100}%`, 
+                                height: 'auto',
+                                borderRadius: 4,
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                            }} 
+                        />
+                    </div>
+                )}
+                <SummaryCompletionQuestion
+                    q={q}
+                    activeQuestion={activeQuestion}
+                    setActiveQuestion={setActiveQuestion}
+                    answers={answers || {}}
+                    handleAnswerChange={handleAnswerChange}
+                    inputRefs={inputRefs}
+                    bookmarks={bookmarks}
+                    toggleBookmark={toggleBookmark}
+                    isReview={isReview}
+                />
+            </>
         );
     }
 

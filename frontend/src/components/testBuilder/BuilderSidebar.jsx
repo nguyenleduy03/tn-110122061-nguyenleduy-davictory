@@ -344,7 +344,9 @@ const BuilderSidebar = ({
                     <span className="tb-tree-group-name">
                       {toTreePlainText(g.title) || '(chưa đặt tên)'}
                     </span>
-                    <span className="tb-tree-group-count">{g.questions?.length ?? 0}</span>
+                    <span className="tb-tree-group-count">
+                      {(g.questions ?? []).reduce((sum, q) => sum + (q.questionCount || 1), 0)}
+                    </span>
                   </div>
                 );
               })}

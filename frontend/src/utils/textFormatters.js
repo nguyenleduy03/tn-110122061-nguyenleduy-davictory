@@ -129,13 +129,10 @@ export const serializeContentEditableHtml = (el) => {
   if (!el) return '';
 
   const html = el.innerHTML || '';
-  const align = String(el.style?.textAlign || '').toLowerCase();
-  const computedAlign = typeof window !== 'undefined' && el.ownerDocument?.defaultView
-    ? String(el.ownerDocument.defaultView.getComputedStyle(el).textAlign || '').toLowerCase()
-    : '';
-
-  const resolvedAlign = align || computedAlign;
-  if (!resolvedAlign || ['left', 'start', 'initial', 'unset', 'inherit', ''].includes(resolvedAlign)) {
+  // Only persist alignment explicitly set on this editable element.
+  // Do not persist inherited/computed alignment from parent CSS.
+  const align = String(el.style?.textAlign || '').toLowerCase().trim();
+  if (!align || ['left', 'start', 'initial', 'unset', 'inherit', ''].includes(align)) {
     return html;
   }
 
@@ -143,7 +140,7 @@ export const serializeContentEditableHtml = (el) => {
     return html;
   }
 
-  return `<div style="text-align:${resolvedAlign};">${html}</div>`;
+  return `<div style="text-align:${align};">${html}</div>`;
 };
 
 const escapeHtml = (text) => String(text)
@@ -370,6 +367,7 @@ export const stripInlineStyles = (html) => {
   try {
     const temp = document.createElement('div');
     temp.innerHTML = html;
+    const preserveSemanticTags = new Set(['strong', 'b', 'em', 'i', 'u', 'del', 's', 'mark', 'sup', 'sub', 'a']);
 
     // Remove style, class, id from all elements
     const allElements = temp.querySelectorAll('*');
@@ -392,6 +390,11 @@ export const stripInlineStyles = (html) => {
       changed = false;
       const wrappers = temp.querySelectorAll('span, div, p, section, article, header, footer, blockquote, figure, figcaption, h1, h2, h3, h4, h5, h6');
       wrappers.forEach(el => {
+        const tag = String(el.tagName || '').toLowerCase();
+        if (preserveSemanticTags.has(tag)) {
+          return;
+        }
+
         const fontSize = el.getAttribute('data-rte-font-size');
         if (el.getAttribute('data-rte-align')) {
           const align = el.getAttribute('data-rte-align');

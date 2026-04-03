@@ -1,8 +1,8 @@
 import React from 'react';
-import { formatTextWithWhitespace, stripInlineStyles } from '../../utils/textFormatters';
+import { formatTextWithWhitespace } from '../../utils/textFormatters';
 import BookmarkToggle from '../common/BookmarkToggle';
 
-const formatAndClean = (text) => stripInlineStyles(formatTextWithWhitespace(text));
+const formatAndClean = (text) => formatTextWithWhitespace(text);
 
 const normalizeBlankTokens = (text) => {
   let s = String(text || '');

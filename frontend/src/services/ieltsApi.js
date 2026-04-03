@@ -121,6 +121,8 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
     feType = 'summary-completion';
   } else if (contentType === 'SUMMARY_COMPLETION_SELECT') {
     feType = 'summary-completion-select';
+  } else if (contentType === 'IMAGE_NOTE_FORM') {
+    feType = 'note-completion';
   } else if (contentType === 'FLOW_CHART') {
     feType = 'flow_chart';
   } else if (contentType === 'TABLE_COMPLETION') {
@@ -387,7 +389,43 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
 
   // ─── NOTE_COMPLETION → 1 group question ────────────────────────────
   if (feType === 'note-completion') {
-    const noteText = group.passageText || group.title || '';
+    let imageUrl = group.imageUrl || null;
+    let imageWidth = group.imageWidth || 100;
+    const instructions = formatTextWithWhitespace(group.instructions || '');
+    let noteText = group.passageText || group.title || '';
+    let imagePosition = null;
+    let topNoteText = '';
+    let bottomNoteText = '';
+    let pinBoxWidth = group.pinBoxWidth || 60;
+
+    if (contentType === 'IMAGE_NOTE_FORM' && group.passageText) {
+      try {
+        const parsed = JSON.parse(group.passageText);
+        const fallbackTopText = parsed.imagePosition === 'bottom' ? '' : (parsed.noteText || '');
+        const fallbackBottomText = parsed.imagePosition === 'bottom' ? (parsed.noteText || '') : '';
+        topNoteText = parsed.topNoteText ?? fallbackTopText;
+        bottomNoteText = parsed.bottomNoteText ?? fallbackBottomText;
+        imagePosition = parsed.imagePosition || 'top';
+        imageWidth = parsed.imageWidth || imageWidth;
+        pinBoxWidth = parsed.pinBoxWidth || pinBoxWidth;
+
+        const imageHtml = imageUrl
+          ? `<div class="image-note-form-image" style="margin: 16px auto; text-align: center;"><img src="${imageUrl}" alt="Question diagram" style="max-width: ${imageWidth}%; height: auto; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" /></div>`
+          : '';
+        const topHtml = topNoteText || '';
+        const bottomHtml = bottomNoteText || '';
+
+        if (imagePosition === 'middle') {
+          noteText = `${topHtml}${imageHtml}${bottomHtml}`;
+        } else if (imagePosition === 'bottom') {
+          noteText = `${topHtml}${bottomHtml}${imageHtml}`;
+        } else {
+          noteText = `${imageHtml}${topHtml}${bottomHtml}`;
+        }
+      } catch {
+        // Keep defaults when passageText is plain text or malformed JSON.
+      }
+    }
 
     const blankCount = (noteText.match(/\[blank\]/gi) || []).length;
     const totalBlanks = Math.max(blankCount, questions.length);
@@ -405,6 +443,13 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
       questionTypeCode: typeCode,
       title: group.title || '',
       text: noteText,
+      instructions,
+      imagePosition,
+      imageUrl,
+      imageWidth,
+      pinBoxWidth,
+      topNoteText,
+      bottomNoteText,
       subQuestions,
       validationOptions: group.validationOptions || null,
     }];
@@ -606,7 +651,7 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
       questionTypeCode: typeCode,
       heading: '',
       instruction,
-      rightTitle: stripInlineStyles(parsedMapMeta.rightTitle || ''),
+      rightTitle: formatTextWithWhitespace(parsedMapMeta.rightTitle || ''),
       imageUrl: group.imageUrl || null,
       imageWidth: parsedMapMeta.imageWidth ?? 100,
       pinBoxWidth: parsedMapMeta.pinBoxWidth ?? 60,
@@ -678,8 +723,8 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
       id: `group-${group.questionGroupId || group.id}`,
       type: feType,
       questionTypeCode: typeCode,
-      leftHeader: stripInlineStyles(parsedBank?.leftTitle || group.leftTitle || 'Questions'),
-      rightHeader: stripInlineStyles(parsedBank?.rightTitle || group.rightTitle || 'Options'),
+      leftHeader: formatTextWithWhitespace(parsedBank?.leftTitle || group.leftTitle || 'Questions'),
+      rightHeader: formatTextWithWhitespace(parsedBank?.rightTitle || group.rightTitle || 'Options'),
       allowOptionReuse: (typeof parsedBank?.allowOptionReuse === 'boolean') ? parsedBank.allowOptionReuse : true,
       bankOptions,
       subQuestions,
@@ -829,6 +874,8 @@ export const ieltsApi = {
     // counter dùng chung toàn bộ transform (pass by ref)
     const globalCounterRef = { counter: 1 };
 
+    let listeningAudioPlayCount = 1;
+
     // 3. Transform parts — giữ nguyên group structure, transform questions bên trong
     const populatedParts = await Promise.all(
       targetSession.parts.map(async (part, index) => {
@@ -876,6 +923,9 @@ export const ieltsApi = {
             mergedAudioPlayCount = Number.isFinite(Number(group.audioPlayCount)) && Number(group.audioPlayCount) > 0
               ? Number(group.audioPlayCount)
               : 1;
+            if (targetMode === 'LISTENING') {
+              listeningAudioPlayCount = mergedAudioPlayCount;
+            }
           }
           if (group.imageUrl && !mergedImageUrl) {
             mergedImageUrl = group.imageUrl;
@@ -1071,6 +1121,8 @@ export const ieltsApi = {
       candidateId: 'DEFAULT-ID',
       testType: testData.testType || `Academic ${targetMode.charAt(0) + targetMode.slice(1).toLowerCase()}`,
       totalMinutes: targetSession.durationMinutes || testData.durationMinutes || 60,
+      audioUrl: targetMode === 'LISTENING' ? (listeningAudioPlayCount ? populatedParts.find((p) => p.audioUrl)?.audioUrl || null : null) : undefined,
+      audioPlayCount: targetMode === 'LISTENING' ? listeningAudioPlayCount : undefined,
       parts: populatedParts,
     };
   },

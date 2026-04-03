@@ -177,33 +177,43 @@ export const loadAudioFile = async (file, setAudioUrl, module = 'LISTENING', tes
   try {
     onStart?.();
 
+    let lastProgress = 0;
+    const emitProgress = (nextProgress, message) => {
+      const clamped = Math.max(lastProgress, Math.min(100, Math.round(nextProgress)));
+      lastProgress = clamped;
+      onProgress?.(clamped, message);
+    };
+
     // Show loading state with base64 preview first
     const reader = new FileReader();
     reader.onprogress = (event) => {
       if (!event.lengthComputable) return;
-      const progress = Math.max(1, Math.min(35, Math.round((event.loaded / event.total) * 35)));
-      onProgress?.(progress, 'Đang xử lý file audio...');
+      const progress = Math.max(1, Math.min(18, Math.round((event.loaded / event.total) * 18)));
+      emitProgress(progress, 'Đang xử lý file audio...');
     };
     reader.onload = () => {
       const preview = String(reader.result || '');
       if (preview) setAudioUrl(preview);
-      onProgress?.(35, 'Đang tải lên Google Drive...');
+      emitProgress(20, 'Đang tải lên Google Drive...');
     };
     reader.readAsDataURL(file);
 
     // Upload to Google Drive
     const { fileApi } = await import('../../../../services/fileApi');
-    onProgress?.(45, 'Đang khởi tạo tải lên...');
+    emitProgress(24, 'Đang khởi tạo tải lên...');
     const uploadName = buildUploadFileName(file.name, module, testTitle, assetLabel, file.name.includes('.') ? `.${String(file.name).split('.').pop()}` : '');
     const uploadFile = new File([file], uploadName, { type: file.type || 'audio/*' });
-    onProgress?.(60, 'Đang đẩy file lên Drive...');
     const result = module === 'SPEAKING'
-      ? await fileApi.uploadSpeakingAudio(uploadFile, testTitle, testId)
-      : await fileApi.uploadListeningAudio(uploadFile, testTitle, testId);
+      ? await fileApi.uploadSpeakingAudio(uploadFile, testTitle, testId, {
+          onProgress: (progress, message) => emitProgress(24 + Math.round((Math.max(0, Math.min(100, progress)) / 100) * 68), message),
+        })
+      : await fileApi.uploadListeningAudio(uploadFile, testTitle, testId, {
+          onProgress: (progress, message) => emitProgress(24 + Math.round((Math.max(0, Math.min(100, progress)) / 100) * 68), message),
+        });
     
     // Set the Drive URL
     setAudioUrl(result.url);
-    onProgress?.(100, 'Tải lên hoàn tất');
+    emitProgress(100, 'Tải lên hoàn tất');
     onDone?.(result);
     return result;
   } catch (err) {
