@@ -40,7 +40,7 @@ export default function RoleBasedRoute({ children, requiredRole, allowHigher = t
     });
 
     if (!canAccess) {
-        return <Navigate to="/" replace />;
+        return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
     return children;

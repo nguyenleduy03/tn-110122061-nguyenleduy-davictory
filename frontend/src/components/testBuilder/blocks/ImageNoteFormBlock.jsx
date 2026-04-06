@@ -6,7 +6,16 @@ import RichBlankEditor from './shared/RichBlankEditor';
 import ImageUploadZone from './shared/ImageUploadZone';
 import { serializeContentEditableHtml } from '../../../utils/textFormatters';
 import { resolveDrivePreviewUrl } from '../../../utils/mediaUrl';
-import { toRoman, loadImageFile, toPlainText, countBlankTokens, getNextQuestionNumber, getPartQuestionStartNumber, isImagePinQuestion, isNoteBlankQuestion, getQuestionWeight } from './shared/blockHelpers';
+import { toRoman, loadImageFile, toPlainText, getNextQuestionNumber, getPartQuestionStartNumber, getQuestionWeight } from './shared/blockHelpers';
+import {
+  IMAGE_NOTE_SECTIONS,
+  countBlankTokens,
+  isImagePinQuestion,
+  isNoteBlankQuestion,
+  getImageNoteFormOrderedQuestions,
+  getImageNoteFormDisplayNumberMap,
+  normalizeImageNoteFormQuestions,
+} from '../../../utils/imageNoteForm';
 
 // Bulk Answer Import Component
 const BulkAnswerImport = ({ questions, onImport }) => {
@@ -88,15 +97,15 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
   const topNoteText = group.topNoteText ?? (group.imagePosition === 'bottom' ? '' : (group.noteText || ''));
   const bottomNoteText = group.bottomNoteText ?? (group.imagePosition === 'bottom' ? (group.noteText || '') : '');
   const baseNumber = getPartQuestionStartNumber(group, allGroups);
-  const imagePins = questions.filter(isImagePinQuestion);
-  const noteBlanks = questions.filter(isNoteBlankQuestion);
-  const topNoteBlankCount = countBlankTokens(topNoteText);
+
+  const orderedQuestions = getImageNoteFormOrderedQuestions(group);
+  const displayNumberById = getImageNoteFormDisplayNumberMap({ ...group, fromQuestion: baseNumber });
 
   // Helper: Tạo note-blank question mới
   const createNoteBlankQuestion = () => ({
     id: Date.now() + Math.random() * 1000,
     groupId: group.id,
-    questionNumber: baseNumber, // Tạm thời, useEffect sẽ sắp xếp lại
+    questionNumber: getNextQuestionNumber(questions),
     questionText: '',
     answerText: '',
     questionMode: 'note-blank', // QUAN TRỌNG: Đánh dấu rõ ràng
@@ -109,47 +118,29 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
   useEffect(() => {
     if (questions.length === 0) return;
 
-    console.log('🔍 ImageNoteForm useEffect triggered:', {
-      questionsLength: questions.length,
-      imagePinsCount: imagePins.length,
-      noteBlanksCount: noteBlanks.length,
-      imagePosition,
-      questions: questions.map(q => ({
-        id: q.id,
-        num: q.questionNumber,
-        mode: q.questionMode,
-        hasPin: q.pinX != null
-      }))
-    });
+    const reordered = normalizeImageNoteFormQuestions({
+      ...group,
+      fromQuestion: baseNumber,
+      questions: orderedQuestions.map((q, idx) => ({
+        ...q,
+        questionNumber: baseNumber + idx,
+        orderIndex: idx + 1,
+      })),
+    }).questions;
 
-    // Sắp xếp theo thứ tự hiển thị: ảnh trên → pins trước, ảnh giữa → đoạn trên / pins / đoạn dưới, ảnh dưới → blanks trước
-    const orderedQuestions = imagePosition === 'top'
-      ? [...imagePins, ...noteBlanks]
-      : imagePosition === 'bottom'
-        ? [...noteBlanks, ...imagePins]
-        : [...noteBlanks.slice(0, topNoteBlankCount), ...imagePins, ...noteBlanks.slice(topNoteBlankCount)];
-
-    console.log('📊 Ordered questions:', orderedQuestions.map(q => ({
-      id: q.id,
-      num: q.questionNumber,
-      mode: q.questionMode,
-      hasPin: q.pinX != null
-    })));
-
-    // Kiểm tra xem có cần đánh số lại không
-    const needsReorder = orderedQuestions.some((q, idx) => q.questionNumber !== baseNumber + idx);
+    const nextToQuestion = reordered.length > 0 ? baseNumber + reordered.length - 1 : group.toQuestion;
+    const needsReorder = orderedQuestions.some((q, idx) => q.questionNumber !== baseNumber + idx)
+      || reordered.some((q, idx) => q.questionNumber !== baseNumber + idx)
+      || group.toQuestion !== nextToQuestion;
 
     if (needsReorder) {
-      console.log('✏️ Reordering questions...');
-      const reordered = orderedQuestions.map((q, idx) => ({ ...q, questionNumber: baseNumber + idx }));
-      const newToQuestion = baseNumber + reordered.length - 1;
-      onUpdate(group.id, { 
+      onUpdate(group.id, {
         fromQuestion: baseNumber,
         questions: reordered,
-        toQuestion: newToQuestion
+        toQuestion: nextToQuestion,
       });
     }
-  }, [questions.length, imagePosition, topNoteBlankCount, baseNumber]);
+  }, [questions, imagePosition, baseNumber, orderedQuestions, group, onUpdate]);
 
   useEffect(() => {
     const onMove = (e) => {
@@ -188,9 +179,7 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
     
-    const maxQuestionNumber = questions.length > 0 
-      ? Math.max(...questions.map(q => q.questionNumber || 0))
-      : baseNumber - 1;
+    const maxQuestionNumber = getNextQuestionNumber(questions) - 1;
     
     const newQ = {
       id: Date.now(),
@@ -201,6 +190,7 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
       pinX: Math.max(0, Math.min(92, x)),
       pinY: Math.max(0, Math.min(92, y)),
       questionMode: 'image-pin',
+      questionSection: IMAGE_NOTE_SECTIONS.IMAGE,
       questionType: { typeName: 'FILL_IN_BLANK' },
     };
     onUpdate(group.id, { fromQuestion: baseNumber, questions: [...questions, newQ] });
@@ -212,6 +202,110 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
       noteText: combined,
       topNoteText: nextTopText,
       bottomNoteText: nextBottomText,
+    });
+  };
+
+  const insertQuestionsForSection = (newQuestions, section) => {
+    const questionSection = section === 'bottom'
+      ? IMAGE_NOTE_SECTIONS.BOTTOM
+      : IMAGE_NOTE_SECTIONS.TOP;
+
+    return [
+      ...questions,
+      ...newQuestions.map((q) => ({
+        ...q,
+        questionSection,
+      })),
+    ];
+  };
+
+  const createBlankQuestionForSection = (section) => ({
+    id: Date.now() + Math.random() * 1000,
+    groupId: group.id,
+    questionNumber: getNextQuestionNumber(questions),
+    questionText: '',
+    answerText: '',
+    questionMode: 'note-blank',
+    questionSection: section,
+    questionType: { typeName: 'FILL_IN_BLANK' },
+  });
+
+  const resizeSectionQuestions = (sectionQuestions, desiredCount, section) => {
+    const nextQuestions = sectionQuestions
+      .slice(0, desiredCount)
+      .map((q) => ({
+        ...q,
+        questionSection: section,
+      }));
+
+    while (nextQuestions.length < desiredCount) {
+      nextQuestions.push(createBlankQuestionForSection(section));
+    }
+
+    return nextQuestions;
+  };
+
+  const getSectionBuckets = () => {
+    const hasExplicitSections = questions.some((q) => q?.questionSection);
+    const imagePinsNow = questions.filter(isImagePinQuestion);
+
+    if (hasExplicitSections) {
+      return {
+        top: questions.filter((q) => q?.questionSection === IMAGE_NOTE_SECTIONS.TOP),
+        image: questions.filter((q) => q?.questionSection === IMAGE_NOTE_SECTIONS.IMAGE || isImagePinQuestion(q)),
+        bottom: questions.filter((q) => q?.questionSection === IMAGE_NOTE_SECTIONS.BOTTOM),
+      };
+    }
+
+    const noteQuestions = questions.filter(isNoteBlankQuestion);
+    if (imagePosition === 'top') {
+      return { top: noteQuestions, image: imagePinsNow, bottom: [] };
+    }
+
+    if (imagePosition === 'bottom') {
+      return { top: [], image: imagePinsNow, bottom: noteQuestions };
+    }
+
+    const currentTopCount = countBlankTokens(topNoteText);
+    return {
+      top: noteQuestions.slice(0, currentTopCount),
+      image: imagePinsNow,
+      bottom: noteQuestions.slice(currentTopCount),
+    };
+  };
+
+  const applySectionedNoteChanges = ({ nextTopCount, nextBottomCount }) => {
+    const { top, image, bottom } = getSectionBuckets();
+    let nextQuestions;
+
+    if (imagePosition === 'top') {
+      nextQuestions = [
+        ...resizeSectionQuestions(top, nextTopCount, IMAGE_NOTE_SECTIONS.TOP),
+        ...image,
+      ];
+    } else if (imagePosition === 'bottom') {
+      nextQuestions = [
+        ...image,
+        ...resizeSectionQuestions(bottom, nextBottomCount, IMAGE_NOTE_SECTIONS.BOTTOM),
+      ];
+    } else {
+      nextQuestions = [
+        ...resizeSectionQuestions(top, nextTopCount, IMAGE_NOTE_SECTIONS.TOP),
+        ...image,
+        ...resizeSectionQuestions(bottom, nextBottomCount, IMAGE_NOTE_SECTIONS.BOTTOM),
+      ];
+    }
+
+    const normalized = normalizeImageNoteFormQuestions({
+      ...group,
+      fromQuestion: baseNumber,
+      questions: nextQuestions,
+    }).questions;
+
+    onUpdate(group.id, {
+      fromQuestion: baseNumber,
+      questions: normalized,
+      toQuestion: normalized.length > 0 ? baseNumber + normalized.length - 1 : group.toQuestion,
     });
   };
 
@@ -274,6 +368,7 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
             <img src={resolveDrivePreviewUrl(group.imageUrl)} alt="Question" draggable={false}
               style={{ display: 'block', width: '100%', height: 'auto', pointerEvents: 'none' }} />
             {questions.filter(isImagePinQuestion).map((q) => {
+              const displayNumber = displayNumberById.get(q.id) ?? q.questionNumber;
               const x = livePin?.qId === q.id ? livePin.x : (q.pinX ?? 10);
               const y = livePin?.qId === q.id ? livePin.y : (q.pinY ?? 10);
               return (
@@ -302,7 +397,7 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
                     dragRef.current = { qId: q.id, origX: q.pinX ?? 10, origY: q.pinY ?? 10, startCX: e.clientX, startCY: e.clientY };
                   }}
                   onClick={(e) => { e.stopPropagation(); onSelectQuestion(q); }}>
-                  <span style={{ minWidth: 20, textAlign: 'center' }}>{q.questionNumber}</span>
+                  <span style={{ minWidth: 20, textAlign: 'center' }}>{displayNumber}</span>
                   {q.questionText && (
                     <span style={{ fontSize: 12, fontWeight: 'normal' }}>{q.questionText}:</span>
                   )}
@@ -343,9 +438,11 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
   const topEditor = imagePosition === 'top' || imagePosition === 'middle';
   const bottomEditor = imagePosition === 'bottom' || imagePosition === 'middle';
   const topEditorStart = baseNumber;
+  const topSectionCount = orderedQuestions.filter((q) => q.questionSection === IMAGE_NOTE_SECTIONS.TOP).length;
+  const imageSectionCount = orderedQuestions.filter((q) => q.questionSection === IMAGE_NOTE_SECTIONS.IMAGE).length;
   const bottomEditorStart = imagePosition === 'middle'
-    ? baseNumber + topNoteBlankCount + imagePins.length
-    : baseNumber + imagePins.length;
+    ? baseNumber + topSectionCount + imageSectionCount
+    : baseNumber + imageSectionCount;
 
   return (
     <div className={`exam-group${selected ? ' selected' : ''}`} onClick={(e) => { e.stopPropagation(); onSelect(group); }}>
@@ -383,34 +480,10 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
           syncNoteText(text, '');
 
           setTimeout(() => {
-            const blankMatches = countBlankTokens(text);
-            const noteQuestions = questions.filter(isNoteBlankQuestion);
-            const imagePinsNow = questions.filter(isImagePinQuestion);
-
-            if (blankMatches !== noteQuestions.length) {
-              if (blankMatches > noteQuestions.length) {
-                const needToCreate = blankMatches - noteQuestions.length;
-                const maxNum = questions.length > 0
-                  ? Math.max(...questions.map(q => q.questionNumber || 0))
-                  : baseNumber - 1;
-                const newQuestions = [];
-                for (let i = 0; i < needToCreate; i++) {
-                  newQuestions.push({
-                    id: Date.now() + Math.random() * 1000,
-                    groupId: group.id,
-                    questionNumber: maxNum + i + 1,
-                    questionText: '',
-                    answerText: '',
-                    questionMode: 'note-blank',
-                    questionType: { typeName: 'FILL_IN_BLANK' },
-                  });
-                }
-                onUpdate(group.id, { fromQuestion: baseNumber, questions: [...questions, ...newQuestions] });
-              } else {
-                const toKeep = noteQuestions.slice(0, blankMatches);
-                onUpdate(group.id, { fromQuestion: baseNumber, questions: [...imagePinsNow, ...toKeep] });
-              }
-            }
+            applySectionedNoteChanges({
+              nextTopCount: countBlankTokens(text),
+              nextBottomCount: 0,
+            });
           }, 100);
         },
         'VD:\nGround Floor:\n- Living room: (ô trống) square meters\n- Kitchen: Located in the (ô trống)',
@@ -423,34 +496,10 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
           syncNoteText(text, bottomNoteText);
 
           setTimeout(() => {
-            const blankMatches = countBlankTokens(text) + countBlankTokens(bottomNoteText);
-            const noteQuestions = questions.filter(isNoteBlankQuestion);
-            const imagePinsNow = questions.filter(isImagePinQuestion);
-
-            if (blankMatches !== noteQuestions.length) {
-              if (blankMatches > noteQuestions.length) {
-                const needToCreate = blankMatches - noteQuestions.length;
-                const maxNum = questions.length > 0
-                  ? Math.max(...questions.map(q => q.questionNumber || 0))
-                  : baseNumber - 1;
-                const newQuestions = [];
-                for (let i = 0; i < needToCreate; i++) {
-                  newQuestions.push({
-                    id: Date.now() + Math.random() * 1000,
-                    groupId: group.id,
-                    questionNumber: maxNum + i + 1,
-                    questionText: '',
-                    answerText: '',
-                    questionMode: 'note-blank',
-                    questionType: { typeName: 'FILL_IN_BLANK' },
-                  });
-                }
-                onUpdate(group.id, { fromQuestion: baseNumber, questions: [...questions, ...newQuestions] });
-              } else {
-                const toKeep = noteQuestions.slice(0, blankMatches);
-                onUpdate(group.id, { fromQuestion: baseNumber, questions: [...imagePinsNow, ...toKeep] });
-              }
-            }
+            applySectionedNoteChanges({
+              nextTopCount: countBlankTokens(text),
+              nextBottomCount: countBlankTokens(bottomNoteText),
+            });
           }, 100);
         },
         'VD:\nGround Floor:\n- Living room: (ô trống) square meters\n- Kitchen: Located in the (ô trống)',
@@ -465,34 +514,10 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
           syncNoteText(topNoteText, text);
 
           setTimeout(() => {
-            const blankMatches = countBlankTokens(topNoteText) + countBlankTokens(text);
-            const noteQuestions = questions.filter(isNoteBlankQuestion);
-            const imagePinsNow = questions.filter(isImagePinQuestion);
-
-            if (blankMatches !== noteQuestions.length) {
-              if (blankMatches > noteQuestions.length) {
-                const needToCreate = blankMatches - noteQuestions.length;
-                const maxNum = questions.length > 0
-                  ? Math.max(...questions.map(q => q.questionNumber || 0))
-                  : baseNumber - 1;
-                const newQuestions = [];
-                for (let i = 0; i < needToCreate; i++) {
-                  newQuestions.push({
-                    id: Date.now() + Math.random() * 1000,
-                    groupId: group.id,
-                    questionNumber: maxNum + i + 1,
-                    questionText: '',
-                    answerText: '',
-                    questionMode: 'note-blank',
-                    questionType: { typeName: 'FILL_IN_BLANK' },
-                  });
-                }
-                onUpdate(group.id, { fromQuestion: baseNumber, questions: [...questions, ...newQuestions] });
-              } else {
-                const toKeep = noteQuestions.slice(0, blankMatches);
-                onUpdate(group.id, { fromQuestion: baseNumber, questions: [...imagePinsNow, ...toKeep] });
-              }
-            }
+            applySectionedNoteChanges({
+              nextTopCount: countBlankTokens(topNoteText),
+              nextBottomCount: countBlankTokens(text),
+            });
           }, 100);
         },
         'VD:\n- First floor: (ô trống) rooms\n- Balcony: (ô trống) overlooking the garden',
@@ -505,34 +530,10 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
           syncNoteText('', text);
 
           setTimeout(() => {
-            const blankMatches = countBlankTokens(text);
-            const noteQuestions = questions.filter(isNoteBlankQuestion);
-            const imagePinsNow = questions.filter(isImagePinQuestion);
-
-            if (blankMatches !== noteQuestions.length) {
-              if (blankMatches > noteQuestions.length) {
-                const needToCreate = blankMatches - noteQuestions.length;
-                const maxNum = questions.length > 0
-                  ? Math.max(...questions.map(q => q.questionNumber || 0))
-                  : baseNumber - 1;
-                const newQuestions = [];
-                for (let i = 0; i < needToCreate; i++) {
-                  newQuestions.push({
-                    id: Date.now() + Math.random() * 1000,
-                    groupId: group.id,
-                    questionNumber: maxNum + i + 1,
-                    questionText: '',
-                    answerText: '',
-                    questionMode: 'note-blank',
-                    questionType: { typeName: 'FILL_IN_BLANK' },
-                  });
-                }
-                onUpdate(group.id, { fromQuestion: baseNumber, questions: [...questions, ...newQuestions] });
-              } else {
-                const toKeep = noteQuestions.slice(0, blankMatches);
-                onUpdate(group.id, { fromQuestion: baseNumber, questions: [...imagePinsNow, ...toKeep] });
-              }
-            }
+            applySectionedNoteChanges({
+              nextTopCount: 0,
+              nextBottomCount: countBlankTokens(text),
+            });
           }, 100);
         },
         'VD:\n- First floor: (ô trống) rooms\n- Balcony: (ô trống) overlooking the garden',
@@ -556,14 +557,6 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
             💡 Dùng | để tách nhiều đáp án đúng (vd: 1|one)
           </div>
           <BulkAnswerImport questions={questions} onImport={(answers) => {
-            const imagePins = questions.filter(isImagePinQuestion);
-            const noteBlanks = questions.filter(isNoteBlankQuestion);
-            const orderedQuestions = imagePosition === 'top' 
-              ? [...imagePins, ...noteBlanks]
-              : imagePosition === 'bottom'
-                ? [...noteBlanks, ...imagePins]
-                : [...noteBlanks.slice(0, topNoteBlankCount), ...imagePins, ...noteBlanks.slice(topNoteBlankCount)];
-            
             // Xóa câu rỗng trước khi import
             const nonEmptyQuestions = orderedQuestions.filter(q => q.answerText?.trim());
             let finalQuestions = [...nonEmptyQuestions];
@@ -586,23 +579,20 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
             onUpdate(group.id, { questions: finalQuestions });
           }} />
           {(() => {
-            const imagePins = questions.filter(isImagePinQuestion);
-            const noteBlanks = questions.filter(isNoteBlankQuestion);
-            const orderedQuestions = imagePosition === 'top' 
-              ? [...imagePins, ...noteBlanks]
-              : imagePosition === 'bottom'
-                ? [...noteBlanks, ...imagePins]
-                : [...noteBlanks.slice(0, topNoteBlankCount), ...imagePins, ...noteBlanks.slice(topNoteBlankCount)];
-            
             return orderedQuestions.map((q) => (
+              (() => {
+                const displayNumber = displayNumberById.get(q.id) ?? q.questionNumber;
+                return (
               <div key={q.id} className="exam-ml-answer-row">
-                <span className="exam-ml-answer-num">Câu {q.questionNumber}</span>
+                <span className="exam-ml-answer-num">Câu {displayNumber}</span>
                 <input
                   style={{ flex: 1, padding: '4px 8px', border: '1px solid #e2e8f0', borderRadius: 4, fontSize: 13 }}
                   value={q.answerText ?? ''}
                   placeholder="Đáp án đúng (vd: 1|one)..."
                   onChange={(e) => onUpdateQuestion(group.id, q.id, { answerText: e.target.value })} />
               </div>
+                );
+              })()
             ));
           })()}
         </div>

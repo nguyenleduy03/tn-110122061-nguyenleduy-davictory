@@ -120,7 +120,9 @@ public class QuestionBankService {
         if (request.getTitle() != null && !request.getTitle().isBlank()) {
             group.setTitle(request.getTitle());
         } else {
-            String autoTitle = groupQT.getDisplayName();
+            String autoTitle = "IMAGE_NOTE_FORM".equalsIgnoreCase(request.getContentType())
+                    ? "Ảnh + Note Form"
+                    : groupQT.getDisplayName();
             if (request.getFromQuestion() != null && request.getToQuestion() != null) {
                 autoTitle += " (Questions " + request.getFromQuestion() + "-" + request.getToQuestion() + ")";
             }
@@ -269,6 +271,7 @@ public class QuestionBankService {
                 answer.setAnswerText(aReq.getAnswerText());
                 answer.setAlternativeAnswers(aReq.getAlternativeAnswers());
                 answer.setIsCaseSensitive(aReq.getIsCaseSensitive() != null ? aReq.getIsCaseSensitive() : false);
+                answer.setIsSample(aReq.getIsSample() != null ? aReq.getIsSample() : false);
                 answer.setBlankIndex(aReq.getBlankIndex() != null ? aReq.getBlankIndex() : i + 1);
                 answer.setWordLimit(aReq.getWordLimit());
                 answerRepository.save(answer);
@@ -339,6 +342,7 @@ public class QuestionBankService {
                 answer.setAnswerText(aReq.getAnswerText());
                 answer.setAlternativeAnswers(aReq.getAlternativeAnswers());
                 answer.setIsCaseSensitive(aReq.getIsCaseSensitive() != null ? aReq.getIsCaseSensitive() : false);
+                answer.setIsSample(aReq.getIsSample() != null ? aReq.getIsSample() : false);
                 answer.setBlankIndex(aReq.getBlankIndex() != null ? aReq.getBlankIndex() : i + 1);
                 answer.setWordLimit(aReq.getWordLimit());
                 answerRepository.save(answer);

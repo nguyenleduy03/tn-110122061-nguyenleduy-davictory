@@ -23,6 +23,21 @@ public class FileUploadService {
 
     @Transactional
     public MediaFile uploadFile(MultipartFile file, MediaType mediaType, String module, String testTitle, User uploadedBy) throws Exception {
+        String folder = buildFolderPath(testTitle, module, mediaType);
+        return uploadFile(file, mediaType, module, testTitle, null, null, null, folder, uploadedBy);
+    }
+
+    @Transactional
+    public MediaFile uploadFile(MultipartFile file, MediaType mediaType, String module, String testTitle,
+                                String classCode, String testCode, String skillName, String studentCode,
+                                User uploadedBy) throws Exception {
+        String folder = buildFolderPath(classCode, testCode, skillName, studentCode, testTitle, module, mediaType);
+        return uploadFile(file, mediaType, module, testTitle, classCode, testCode, skillName, studentCode, folder, uploadedBy);
+    }
+
+    private MediaFile uploadFile(MultipartFile file, MediaType mediaType, String module, String testTitle,
+                                 String classCode, String testCode, String skillName, String studentCode, String folder,
+                                 User uploadedBy) throws Exception {
         String checksum = calculateChecksum(file);
         
         var existing = mediaFileRepository.findByChecksum(checksum);
@@ -31,7 +46,6 @@ public class FileUploadService {
             return existing.get();
         }
 
-        String folder = buildFolderPath(testTitle, module, mediaType);
         String driveUrl = googleDriveService.uploadFile(file, folder);
 
         MediaFile mediaFile = new MediaFile();
@@ -95,6 +109,20 @@ public class FileUploadService {
         }
 
         return String.join("/", root, sanitizedTestTitle, sanitizedModule, sanitizedMediaType);
+    }
+
+    public String buildFolderPath(String classCode, String testCode, String skillName, String studentCode,
+                                  String fallbackTitle, String module, MediaType mediaType) {
+        String sanitizedClassCode = sanitizePathSegment(classCode);
+        String sanitizedTestCode = sanitizePathSegment(testCode != null ? testCode : fallbackTitle);
+        String sanitizedSkillName = sanitizePathSegment(skillName != null ? skillName : module);
+        String sanitizedStudentCode = sanitizePathSegment(studentCode);
+
+        if (sanitizedClassCode != null && sanitizedTestCode != null && sanitizedSkillName != null && sanitizedStudentCode != null) {
+            return String.join("/", "Test", sanitizedClassCode, sanitizedTestCode, sanitizedSkillName, sanitizedStudentCode);
+        }
+
+        return buildFolderPath(fallbackTitle, module, mediaType);
     }
 
     private String sanitizePathSegment(String value) {

@@ -42,6 +42,9 @@ public class Answer {
     @Column(nullable = false)
     private Boolean isCaseSensitive = false; // Phân biệt hoa thường
 
+    @Column
+    private Boolean isSample = false; // Đáp án mẫu (hiển thị trong đề, không tính điểm)
+
     @Column(nullable = false)
     private Integer blankIndex;
     // Vị trí ô trống trong câu (1, 2, 3...)

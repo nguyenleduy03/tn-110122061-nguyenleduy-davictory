@@ -26,8 +26,23 @@ export const toPlainText = (value) => {
   }
 };
 
-export const countBlankTokens = (text = '') => 
-  (String(text).match(/\[blank\]|\(ô trống\)/gi) || []).length;
+export const countBlankTokens = (text = '') => {
+  const value = String(text || '');
+  const markerMatches = value.match(/\[blank\]|\(ô trống\)/gi) || [];
+
+  if (!value.includes('<')) {
+    return markerMatches.length;
+  }
+
+  try {
+    const root = document.createElement('div');
+    root.innerHTML = value;
+    const chipCount = root.querySelectorAll('[data-blank="true"], .rbe-blank').length;
+    return markerMatches.length + chipCount;
+  } catch {
+    return markerMatches.length;
+  }
+};
 
 export const isImagePinQuestion = (q) => 
   q?.questionMode === 'image-pin' || (q?.questionMode !== 'note-blank' && q?.pinX != null && q?.pinY != null);

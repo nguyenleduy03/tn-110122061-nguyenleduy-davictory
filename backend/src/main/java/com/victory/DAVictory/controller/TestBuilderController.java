@@ -44,11 +44,14 @@ public class TestBuilderController {
      * Tải toàn bộ đề thi bao gồm câu hỏi lồng sâu.
      */
     @GetMapping("/{id}/full")
-    @PreAuthorize("hasAnyRole('STUDENT', 'TEACHER', 'MANAGER', 'ADMIN')")
     public ResponseEntity<?> loadFullTest(@PathVariable Long id, Authentication authentication) {
         try {
             TestFullResponse result = testBuilderService.loadFullTest(id);
-            if (isStudentOnly(authentication) && result.getStatus() != TestStatus.PUBLISHED) {
+            if (authentication == null && result.getStatus() != TestStatus.PUBLISHED && result.getStatus() != TestStatus.TEST_EXAM) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Đề thi chưa được phát hành"));
+            }
+            if (isStudentOnly(authentication) && result.getStatus() != TestStatus.PUBLISHED && result.getStatus() != TestStatus.TEST_EXAM) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(Map.of("error", "Bạn không có quyền xem đề thi này"));
             }
@@ -100,7 +103,7 @@ public class TestBuilderController {
             if (status != null) {
                 result = testBuilderService.getTestsByStatus(status);
             } else {
-                result = testBuilderService.getAllTests();
+                result = testBuilderService.getActiveTests();
             }
             return ResponseEntity.ok(result);
         } catch (RuntimeException e) {
@@ -128,7 +131,7 @@ public class TestBuilderController {
      * Xóa vĩnh viễn đề thi cùng các bản ghi liên quan.
      */
     @DeleteMapping("/{id}/permanent")
-    @PreAuthorize("hasAnyRole('TEACHER', 'MANAGER', 'ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> permanentlyDeleteTest(@PathVariable Long id) {
         try {
             testBuilderService.permanentlyDeleteTest(id);

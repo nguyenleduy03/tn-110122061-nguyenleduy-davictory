@@ -12,8 +12,10 @@ import {
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import "../styles/ieltsTest.css";
 import TestHeader from "../components/common/TestHeader";
+import GuestInfoForm from "../components/common/GuestInfoForm";
 import { ieltsApi } from "../services/ieltsApi";
 import { authApi } from "../services/authApi";
+import { fileApi } from "../services/fileApi";
 import { normalizeRichHtml } from "../utils/textFormatters";
 import { buildTimerPersistKey, markTestSubmitted, getSubmittedRedirect } from "../utils/testRuntimeState";
 
@@ -164,6 +166,22 @@ const resolveDefaultPartDurationSec = (part) => {
     : STANDARD_PART_DURATION_SECONDS;
 };
 
+const toSafeFileSegment = (value) => String(value || '')
+  .trim()
+  .replace(/[\\/:*?"<>|]/g, '_')
+  .replace(/\s+/g, '_')
+  .replace(/_+/g, '_')
+  .replace(/^_+|_+$/g, '');
+
+const isUntitledLike = (value) => {
+  const normalized = toSafeFileSegment(value).toLowerCase();
+  if (!normalized) return true;
+  return normalized === 'untitled'
+    || normalized.startsWith('untitled_')
+    || normalized === 'untiltle'
+    || normalized.startsWith('untiltle_');
+};
+
 const STAGE_UI_TEXT = {
   intro: {
     startButton: 'Start now',
@@ -244,24 +262,25 @@ const audioBufferToWavBlob = (audioBuffer) => {
   return new Blob([buffer], { type: "audio/wav" });
 };
 
-const mergeRecordingBlobsToUrl = async (blobs) => {
-  if (!blobs?.length) return '';
+const mergeRecordingBlobs = async (blobs) => {
+  const usableBlobs = (blobs || []).filter((blob) => blob && blob.size > 0);
+  if (!usableBlobs.length) return null;
 
   const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-  if (!AudioContextClass) {
-    return URL.createObjectURL(blobs[0]);
+  if (!AudioContextClass || usableBlobs.length === 1) {
+    return usableBlobs[0];
   }
 
   const context = new AudioContextClass();
   try {
     const decoded = [];
-    for (const blob of blobs) {
+    for (const blob of usableBlobs) {
       const buf = await blob.arrayBuffer();
       const audio = await context.decodeAudioData(buf.slice(0));
       decoded.push(audio);
     }
 
-    if (!decoded.length) return '';
+    if (!decoded.length) return usableBlobs[0];
 
     const sampleRate = decoded[0].sampleRate;
     const numberOfChannels = Math.max(...decoded.map((b) => b.numberOfChannels));
@@ -278,9 +297,9 @@ const mergeRecordingBlobsToUrl = async (blobs) => {
       writeOffset += buffer.length;
     });
 
-    return URL.createObjectURL(audioBufferToWavBlob(merged));
+    return audioBufferToWavBlob(merged);
   } catch {
-    return URL.createObjectURL(blobs[0]);
+    return usableBlobs[0];
   } finally {
     await context.close().catch(() => { });
   }
@@ -290,29 +309,71 @@ const mergeRecordingBlobsToUrl = async (blobs) => {
 const Waveform = ({ analyser, width = 280, height = 48, className = "spk-waveform" }) => {
   const canvasRef = useRef(null);
   const rafRef = useRef(null);
+  const peaksRef = useRef(null);
 
   useEffect(() => {
     if (!analyser) return;
     const canvas = canvasRef.current;
+    if (!canvas) return;
     const ctx = canvas.getContext("2d");
-    const bufferLength = analyser.frequencyBinCount;
+    if (!ctx) return;
+
+    const bufferLength = analyser.fftSize;
     const dataArray = new Uint8Array(bufferLength);
+    const columnCount = Math.max(40, Math.floor(canvas.width / 2));
+    const peaks = peaksRef.current?.length === columnCount
+      ? peaksRef.current
+      : new Float32Array(columnCount);
+    peaksRef.current = peaks;
 
     const draw = () => {
       rafRef.current = requestAnimationFrame(draw);
-      analyser.getByteFrequencyData(dataArray);
+      analyser.getByteTimeDomainData(dataArray);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const barW = Math.max(2, canvas.width / bufferLength) * 2.5;
-      let x = 0;
-      for (let i = 0; i < bufferLength; i++) {
-        const barH = (dataArray[i] / 255) * canvas.height;
-        ctx.fillStyle = `rgba(220,38,38,${0.5 + dataArray[i] / 510})`;
-        ctx.fillRect(x, canvas.height - barH, barW - 1, barH);
-        x += barW;
+
+      const midY = canvas.height / 2;
+
+      // Sample across the full canvas width so the waveform always fills the bar,
+      // even when analyser buffer size is smaller than visual columns.
+      const samplesPerColumn = Math.max(1, Math.floor(bufferLength / columnCount));
+      const sampleWindow = Math.max(1, Math.ceil(samplesPerColumn / 2));
+      const amplitudeCap = Math.max(2, canvas.height * 0.48);
+      const stepX = canvas.width / Math.max(1, columnCount);
+      const barWidth = Math.max(1, stepX * 0.82);
+
+      for (let x = 0; x < columnCount; x += 1) {
+        const center = Math.round((x / Math.max(1, columnCount - 1)) * Math.max(0, bufferLength - 1));
+        const start = Math.max(0, center - sampleWindow);
+        const end = Math.min(bufferLength - 1, center + sampleWindow);
+
+        let peak = 0;
+        for (let i = start; i <= end; i += 1) {
+          const sample = Math.abs((dataArray[i] - 128) / 128);
+          if (sample > peak) peak = sample;
+        }
+
+        const boosted = Math.min(1, Math.pow(peak, 0.66) * 1.85);
+        const target = Math.max(0.55, boosted * amplitudeCap);
+        const prev = peaks[x] || 0;
+        const smooth = target > prev ? 0.58 : 0.2;
+        peaks[x] = prev + (target - prev) * smooth;
+      }
+
+      ctx.fillStyle = "rgba(192, 0, 28, 0.96)";
+      for (let x = 0; x < columnCount; x += 1) {
+        const half = peaks[x];
+        const left = x * stepX;
+        const top = Math.max(0, midY - half);
+        const barHeight = Math.min(canvas.height, half * 2);
+        ctx.fillRect(left, top, barWidth, barHeight);
       }
     };
+
     draw();
-    return () => cancelAnimationFrame(rafRef.current);
+
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
   }, [analyser]);
 
   return (
@@ -350,6 +411,11 @@ const CueCard = ({ question }) => (
 // ── Main page ─────────────────────────────────────────────────────────────────
 const IeltsSpeakingTest = () => {
   const [testData, setTestData] = useState(null);
+  const [previewRefreshTick, setPreviewRefreshTick] = useState(0);
+  const [showGuestForm, setShowGuestForm] = useState(false);
+  const [guestInfo, setGuestInfo] = useState(null);
+  const [isGuest, setIsGuest] = useState(false);
+  const [attemptId, setAttemptId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -386,6 +452,24 @@ const IeltsSpeakingTest = () => {
     if (!submittedRedirect) return;
     navigate(submittedRedirect, { replace: true });
   }, [timerPersistKey, navigate]);
+
+  useEffect(() => {
+    const savedGuestInfo = sessionStorage.getItem('guestExamInfo');
+    if (savedGuestInfo) {
+      try {
+        const info = JSON.parse(savedGuestInfo);
+        setGuestInfo(info);
+        setIsGuest(true);
+        return;
+      } catch {
+        sessionStorage.removeItem('guestExamInfo');
+      }
+    }
+
+    if (!ieltsApi.isAuthenticated()) {
+      setShowGuestForm(true);
+    }
+  }, []);
 
   const [currentPartIdx, setCurrentPartIdx] = useState(0);
   const [currentQIdx, setCurrentQIdx] = useState(0);
@@ -442,7 +526,24 @@ const IeltsSpeakingTest = () => {
   const pendingTransitionRef = useRef(null);
   const pendingAudioUrlsRef = useRef({});
   const pendingAudioBlobsRef = useRef({});
+  const partReviewAudioBlobsRef = useRef({});
+  const submitInFlightRef = useRef(false);
   const [analyser, setAnalyser] = useState(null);
+
+  useEffect(() => {
+    const handlePreviewRefresh = (event) => {
+      if (event.origin !== window.location.origin) return;
+      const payload = event.data;
+      if (!payload || payload.type !== 'DAVICTORY_PREVIEW_REFRESH') return;
+      if (String(payload.testId) !== String(testId)) return;
+      const skill = String(payload.skillType || '').toUpperCase();
+      if (skill && skill !== 'SPEAKING') return;
+      setPreviewRefreshTick((prev) => prev + 1);
+    };
+
+    window.addEventListener('message', handlePreviewRefresh);
+    return () => window.removeEventListener('message', handlePreviewRefresh);
+  }, [testId]);
 
   // ── Load test data ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -487,6 +588,16 @@ const IeltsSpeakingTest = () => {
 
       setTestData(configuredData);
       setLoading(false);
+
+      if (isGuest && guestInfo && !attemptId) {
+        ieltsApi.startGuestAttempt(guestInfo, testId, 'SPEAKING')
+          .then((attempt) => {
+            setAttemptId(attempt.id);
+          })
+          .catch((startError) => {
+            console.error('[Speaking] Failed to start guest attempt:', startError);
+          });
+      }
     }).catch((err) => {
       console.error('[Speaking] Lỗi tải bài thi:', err);
       setError(err.message === 'AUTH_REQUIRED'
@@ -494,7 +605,7 @@ const IeltsSpeakingTest = () => {
         : `Không thể tải bài thi: ${err.message}`);
       setLoading(false);
     });
-  }, [testId, mode, isFullTest, selectedPracticeParts, durationOverrideMinutes, noTimeLimit]);
+  }, [testId, mode, isFullTest, selectedPracticeParts, durationOverrideMinutes, noTimeLimit, previewRefreshTick, isGuest, guestInfo, attemptId]);
 
   useEffect(() => {
     if (!micCheckUrl) return undefined;
@@ -644,7 +755,7 @@ const IeltsSpeakingTest = () => {
       audioCtxRef.current = ctx;
       const src = ctx.createMediaStreamSource(stream);
       const an = ctx.createAnalyser();
-      an.fftSize = 128;
+      an.fftSize = 2048;
       src.connect(an);
       analyserRef.current = an;
       setMicAllowed(true);
@@ -766,12 +877,14 @@ const IeltsSpeakingTest = () => {
     };
     mr.onstop = () => {
       const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-      const url = URL.createObjectURL(blob);
-      if (pendingAudioUrlsRef.current[qId]) {
-        URL.revokeObjectURL(pendingAudioUrlsRef.current[qId]);
+      if (blob.size > 0) {
+        const url = URL.createObjectURL(blob);
+        if (pendingAudioUrlsRef.current[qId]) {
+          URL.revokeObjectURL(pendingAudioUrlsRef.current[qId]);
+        }
+        pendingAudioUrlsRef.current[qId] = url;
+        pendingAudioBlobsRef.current[qId] = blob;
       }
-      pendingAudioUrlsRef.current[qId] = url;
-      pendingAudioBlobsRef.current[qId] = blob;
       setPhase("done");
       setAnalyser(null);
       setRecordingStopSeq((s) => s + 1);
@@ -842,7 +955,10 @@ const IeltsSpeakingTest = () => {
         delete pendingAudioUrlsRef.current[q.id];
       }
       if (pendingAudioBlobsRef.current[q.id]) {
-        orderedBlobs.push(pendingAudioBlobsRef.current[q.id]);
+        const candidateBlob = pendingAudioBlobsRef.current[q.id];
+        if (candidateBlob.size > 0) {
+          orderedBlobs.push(candidateBlob);
+        }
         delete pendingAudioBlobsRef.current[q.id];
       }
     });
@@ -865,10 +981,13 @@ const IeltsSpeakingTest = () => {
   }, [currentPart]);
 
   const buildPartReviewAudio = useCallback(async (partIdx, orderedBlobs) => {
-    if (!orderedBlobs?.length) return;
+    const mergedBlob = await mergeRecordingBlobs(orderedBlobs);
+    if (!mergedBlob || mergedBlob.size <= 0) return;
 
-    const mergedUrl = await mergeRecordingBlobsToUrl(orderedBlobs);
+    const mergedUrl = URL.createObjectURL(mergedBlob);
     if (!mergedUrl) return;
+
+    partReviewAudioBlobsRef.current[partIdx] = mergedBlob;
 
     setPartReviewAudioUrls((prev) => {
       if (prev[partIdx] && prev[partIdx] !== mergedUrl) {
@@ -942,6 +1061,9 @@ const IeltsSpeakingTest = () => {
       delete next[currentPartIdx];
       return next;
     });
+    if (partReviewAudioBlobsRef.current[currentPartIdx]) {
+      delete partReviewAudioBlobsRef.current[currentPartIdx];
+    }
 
     pendingTransitionRef.current = null;
     autoStartTriggeredRef.current = false;
@@ -1098,15 +1220,148 @@ const IeltsSpeakingTest = () => {
     return () => clearInterval(thinkTimer);
   }, [stage, phase, thinkSecondsLeft, isCueCard, startPrep, startRecording]);
 
-  const submitTest = useCallback(() => {
-    const timeSpentSeconds = Math.floor((Date.now() - startTime) / 1000);
-    const recordedAnswers = Object.keys(audioUrls).reduce((acc, qid) => {
-      acc[qid] = 'RECORDED';
-      return acc;
-    }, {});
+  const buildDriveSubmissionAnswers = useCallback(async () => {
+    const parts = testData?.parts || [];
+    if (!parts.length) return {};
 
-    // Submit bài thi bình thường
-    const submitPromise = ieltsApi.submitAnswers(testId, 'SPEAKING', recordedAnswers, timeSpentSeconds);
+    const rawTestTitle =
+      testData?.testTitle
+      || testData?.title
+      || testData?.sessionName
+      || `Speaking_Test_${testId}`;
+    const fallbackTestCode = `Speaking_Test_${testId || 'UNKNOWN'}`;
+    const normalizedTitle = toSafeFileSegment(rawTestTitle);
+    const resolvedTestCode = (!normalizedTitle || isUntitledLike(normalizedTitle))
+      ? fallbackTestCode
+      : normalizedTitle;
+    const resolvedTestTitle = isUntitledLike(rawTestTitle)
+      ? resolvedTestCode
+      : rawTestTitle;
+    const driveAnswers = {};
+
+    const blobFromObjectUrl = async (objectUrl) => {
+      if (!objectUrl) return null;
+      const response = await fetch(objectUrl);
+      if (!response.ok) {
+        throw new Error(`Cannot read local recording (${response.status})`);
+      }
+      const blob = await response.blob();
+      return blob && blob.size > 0 ? blob : null;
+    };
+
+    const resolvePartUploadBlob = async (part, partIdx) => {
+      const reviewBlob = partReviewAudioBlobsRef.current?.[partIdx];
+      if (reviewBlob && reviewBlob.size > 0) {
+        return reviewBlob;
+      }
+
+      const reviewUrl = partReviewAudioUrls?.[partIdx];
+      if (reviewUrl) {
+        const blob = await blobFromObjectUrl(reviewUrl);
+        if (blob) return blob;
+      }
+
+      const questionBlobs = [];
+      for (const question of (part?.questions || [])) {
+        const qId = question?.id;
+        if (!qId) continue;
+
+        const pendingBlob = pendingAudioBlobsRef.current[qId];
+        if (pendingBlob && pendingBlob.size > 0) {
+          questionBlobs.push(pendingBlob);
+          continue;
+        }
+
+        const sourceUrl = pendingAudioUrlsRef.current[qId] || audioUrls[qId];
+        if (!sourceUrl) continue;
+        const sourceBlob = await blobFromObjectUrl(sourceUrl);
+        if (sourceBlob) {
+          questionBlobs.push(sourceBlob);
+        }
+      }
+
+      if (!questionBlobs.length) return null;
+
+      const mergedBlob = await mergeRecordingBlobs(questionBlobs);
+      return mergedBlob && mergedBlob.size > 0 ? mergedBlob : null;
+    };
+
+    for (let partIdx = 0; partIdx < parts.length; partIdx += 1) {
+      const part = parts[partIdx];
+      const partDisplayNumber = part?.partNumber || (partIdx + 1);
+      const partQuestions = (part?.questions || []).filter((q) => Boolean(q?.id));
+      if (!partQuestions.length) continue;
+
+      try {
+        const uploadBlob = await resolvePartUploadBlob(part, partIdx);
+        if (!uploadBlob) {
+          continue;
+        }
+
+        const mimeType = uploadBlob.type && uploadBlob.type.startsWith('audio/') ? uploadBlob.type : 'audio/wav';
+        const extension = mimeType.includes('wav')
+          ? 'wav'
+          : (mimeType.includes('ogg') ? 'ogg' : 'webm');
+        const safePartNumber = toSafeFileSegment(partDisplayNumber) || String(partIdx + 1);
+        const fileName = `part_${safePartNumber}.${extension}`;
+        const uploadFile = new File([uploadBlob], fileName, { type: mimeType });
+
+        const uploaded = await fileApi.uploadSpeakingAudio(uploadFile, resolvedTestTitle, testId, {
+          skillName: 'SPEAKING',
+          testCode: resolvedTestCode,
+        });
+        const driveUrl = String(uploaded?.url || '').trim();
+        if (!driveUrl) {
+          throw new Error('Drive upload succeeded but returned empty URL');
+        }
+
+        partQuestions.forEach((question) => {
+          driveAnswers[question.id] = driveUrl;
+        });
+      } catch (error) {
+        const reason = error?.message || 'Unknown error';
+        throw new Error(`Không thể upload ghi âm Part ${partDisplayNumber}: ${reason}`);
+      }
+    }
+
+    return driveAnswers;
+  }, [audioUrls, partReviewAudioUrls, testData, testId]);
+
+  const submitTest = useCallback(() => {
+    if (submitInFlightRef.current) return;
+    if (isGuest && !attemptId) {
+      alert('Vui lòng chờ hệ thống khởi tạo lượt làm bài khách trước khi nộp.');
+      return;
+    }
+    submitInFlightRef.current = true;
+
+    const timeSpentSeconds = Math.floor((Date.now() - startTime) / 1000);
+    const handleSubmitError = (err) => {
+      console.error('[Speaking] Lỗi nộp bài:', err);
+      const message = err?.message || err?.response?.data?.error || 'Không thể nộp bài lên Google Drive. Vui lòng thử lại.';
+      alert(message);
+    };
+
+    // Upload audio recordings to Drive first, then submit with Drive URLs.
+    const submitPromise = buildDriveSubmissionAnswers()
+      .then((driveAnswers) => {
+        if (isGuest && attemptId) {
+          const guestAnswers = Object.entries(driveAnswers).map(([questionId, selectedOptionLabel]) => {
+            const parsedQuestionId = Number.parseInt(questionId, 10);
+            if (!Number.isFinite(parsedQuestionId)) return null;
+
+            return {
+              questionId: parsedQuestionId,
+              selectedOptionLabel: String(selectedOptionLabel || ''),
+            };
+          }).filter(Boolean);
+
+          return ieltsApi.submitGuestAttempt(attemptId, timeSpentSeconds, guestAnswers);
+        }
+
+        return ieltsApi.submitAnswers(testId, 'SPEAKING', driveAnswers, timeSpentSeconds, testData);
+      });
+
     localStorage.removeItem(`ieltsTimerDeadline_${timerPersistKey}`);
 
     if (isFullTest) {
@@ -1119,17 +1374,24 @@ const IeltsSpeakingTest = () => {
             sessionStorage.setItem('ieltsFullTest', JSON.stringify(updated));
             const next = updated.sections[nextIdx];
             ieltsApi.clearFullTestProgress(testId).catch(() => { });
-            submitPromise.finally(() => {
-              const nextUrl = `/test/${next.skill}/${next.testId}?fullTest=true&mode=${session.mode || mode}`;
-              markTestSubmitted(timerPersistKey, nextUrl);
-              navigate(nextUrl);
-            });
+            submitPromise
+              .then(() => {
+                const nextUrl = `/test/${next.skill}/${next.testId}?fullTest=true&mode=${session.mode || mode}`;
+                markTestSubmitted(timerPersistKey, nextUrl);
+                navigate(nextUrl);
+              })
+              .catch(handleSubmitError)
+              .finally(() => {
+                submitInFlightRef.current = false;
+              });
             return;
-          } else {
-            sessionStorage.removeItem('ieltsFullTest');
-            sessionStorage.removeItem(`ieltsFullTestSnapshot_speaking_${testId}`);
-            ieltsApi.clearFullTestProgress(testId).catch(() => { });
-            submitPromise.finally(() => {
+          }
+
+          sessionStorage.removeItem('ieltsFullTest');
+          sessionStorage.removeItem(`ieltsFullTestSnapshot_speaking_${testId}`);
+          ieltsApi.clearFullTestProgress(testId).catch(() => { });
+          submitPromise
+            .then(() => {
               const completeParams = new URLSearchParams({
                 mode: session.mode || mode,
                 skill: 'speaking',
@@ -1142,41 +1404,64 @@ const IeltsSpeakingTest = () => {
               const completeUrl = `/test/complete?${completeParams.toString()}`;
               markTestSubmitted(timerPersistKey, completeUrl);
               navigate(completeUrl);
+            })
+            .catch(handleSubmitError)
+            .finally(() => {
+              submitInFlightRef.current = false;
             });
-            return;
-          }
+          return;
         }
-      } catch { navigate('/exam-library'); return; }
-    }
-
-    submitPromise.then((resp) => {
-      // Nếu là bài tập, submit vào assignment API
-      if (assignmentId && resp?.attemptId) {
-        import('../utils/assignmentHelper').then(({ submitTestToAssignment }) => {
-          submitTestToAssignment(
-            parseInt(assignmentId),
-            resp.attemptId,
-            navigate,
-            null,
-            (err) => alert(`Nộp bài tập thất bại: ${err.message}`)
-          );
-        });
+      } catch {
+        submitInFlightRef.current = false;
+        navigate('/exam-library');
         return;
       }
+    }
 
-      const completeParams = new URLSearchParams({
-        mode,
-        skill: 'speaking',
-        testId: String(testId),
+    submitPromise
+      .then((resp) => {
+        // Nếu là bài tập, submit vào assignment API
+        if (assignmentId && resp?.attemptId) {
+          return import('../utils/assignmentHelper').then(({ submitTestToAssignment }) => {
+            submitTestToAssignment(
+              parseInt(assignmentId),
+              resp.attemptId,
+              navigate,
+              null,
+              (err) => alert(`Nộp bài tập thất bại: ${err.message}`)
+            );
+          });
+        }
+
+        const completeParams = new URLSearchParams({
+          mode,
+          skill: 'speaking',
+          testId: String(testId),
+        });
+        if (mode === 'exam' && allowReviewInExam) {
+          completeParams.set('allowReview', 'true');
+        }
+        const completeUrl = `/test/complete?${completeParams.toString()}`;
+        markTestSubmitted(timerPersistKey, completeUrl);
+        navigate(completeUrl);
+        return null;
+      })
+      .catch(handleSubmitError)
+      .finally(() => {
+        submitInFlightRef.current = false;
       });
-      if (mode === 'exam' && allowReviewInExam) {
-        completeParams.set('allowReview', 'true');
-      }
-      const completeUrl = `/test/complete?${completeParams.toString()}`;
-      markTestSubmitted(timerPersistKey, completeUrl);
-      navigate(completeUrl);
-    });
-  }, [audioUrls, startTime, testId, isFullTest, navigate, mode, allowReviewInExam, timerPersistKey, assignmentId]);
+  }, [
+    startTime,
+    testId,
+    testData,
+    isFullTest,
+    navigate,
+    mode,
+    allowReviewInExam,
+    timerPersistKey,
+    assignmentId,
+    buildDriveSubmissionAnswers,
+  ]);
 
   // ── Render ─────────────────────────────────────────────────────────────────
   if (loading)
@@ -1196,6 +1481,18 @@ const IeltsSpeakingTest = () => {
     );
   if (!testData)
     return <div style={{ padding: "50px" }}>No test data available</div>;
+
+  if (showGuestForm) {
+    return <GuestInfoForm
+      onSubmit={(data) => {
+        setGuestInfo(data);
+        sessionStorage.setItem('guestExamInfo', JSON.stringify(data));
+        setIsGuest(true);
+        setShowGuestForm(false);
+      }}
+      onCancel={() => navigate(-1)}
+    />;
+  }
 
   const micBtnClass = [
     "spk-mic-btn",
@@ -1272,219 +1569,79 @@ const IeltsSpeakingTest = () => {
       {/* Main card ──────────────────────────────────────────────────────── */}
       <main className="spk-main">
         <div className="spk-card spk-unified-card">
-        {stage === 'mic-test' && (
-          <div className="spk-stage-screen spk-check-stage spk-check-mic-only">
-            <h2 className="spk-check-mic-title">TEST YOUR MICROPHONE</h2>
+          {stage === 'mic-test' && (
+            <div className="spk-stage-screen spk-check-stage spk-check-mic-only">
+              <h2 className="spk-check-mic-title">TEST YOUR MICROPHONE</h2>
 
-            {micCheckStatus === 'recorded' && micCheckUrl ? (
-              <>
-                <div className="spk-check-mic-review-player">
-                  <audio controls src={micCheckUrl} className="spk-check-mic-review-audio" />
-                </div>
-
-                <p className="spk-check-mic-review-text">Click the Play button to listen to your microphone test recording.</p>
-                <p className="spk-check-mic-review-text">If your microphone works properly, click <strong>Start Exam</strong>.</p>
-
-                <div className="spk-check-mic-actions spk-check-mic-review-actions">
-                  <button
-                    type="button"
-                    className="spk-next-btn spk-check-mic-again-btn"
-                    onClick={startMicCheckRecording}
-                  >
-                    Test Mic Again <RotateCcw size={16} />
-                  </button>
-
-                  <button
-                    className="spk-next-btn spk-check-mic-start-btn"
-                    onClick={() => startPartWithIndex(initialPartIndex)}
-                    type="button"
-                  >
-                    Start Exam <ChevronRight size={18} />
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="spk-check-mic-center">
-                  <div className={`spk-check-mic-icon ${micCheckStatus === 'recording' ? 'is-recording' : ''}`} aria-hidden="true">
-                    <Mic size={40} />
+              {micCheckStatus === 'recorded' && micCheckUrl ? (
+                <>
+                  <div className="spk-check-mic-review-player">
+                    <audio controls src={micCheckUrl} className="spk-check-mic-review-audio" />
                   </div>
-                </div>
 
-                {micCheckStatus === 'recording' && analyser && (
-                  <div className="spk-check-mic-wave">
-                    <Waveform analyser={analyser} width={560} height={36} className="spk-check-mic-waveform" />
+                  <p className="spk-check-mic-review-text">Click the Play button to listen to your microphone test recording.</p>
+                  <p className="spk-check-mic-review-text">If your microphone works properly, click <strong>Start Exam</strong>.</p>
+
+                  <div className="spk-check-mic-actions spk-check-mic-review-actions">
+                    <button
+                      type="button"
+                      className="spk-next-btn spk-check-mic-again-btn"
+                      onClick={startMicCheckRecording}
+                    >
+                      Test Mic Again <RotateCcw size={16} />
+                    </button>
+
+                    <button
+                      className="spk-next-btn spk-check-mic-start-btn"
+                      onClick={() => startPartWithIndex(initialPartIndex)}
+                      type="button"
+                    >
+                      Start Exam <ChevronRight size={18} />
+                    </button>
                   </div>
-                )}
-
-                <p className="spk-check-mic-desc">
-                  To complete this activity, you must allow access to your system's microphone.
-                </p>
-
-                <div className="spk-check-mic-actions">
-                  <button
-                    type="button"
-                    className="spk-start-btn spk-check-mic-test-btn"
-                    onClick={() => {
-                      if (micCheckStatus === 'recording') {
-                        stopMicCheckRecording();
-                      } else {
-                        startMicCheckRecording();
-                      }
-                    }}
-                  >
-                    {micCheckStatus === 'recording' ? 'Stop' : 'Test Microphone'}
-                  </button>
-
-                  <button
-                    className="spk-next-btn spk-check-mic-skip-btn"
-                    onClick={() => startPartWithIndex(initialPartIndex)}
-                    type="button"
-                  >
-                    Skip
-                  </button>
-                </div>
-              </>
-            )}
-
-            {micAllowed === false && (
-              <p className="spk-mic-error">
-                ⚠ Microphone access denied. Please allow microphone in your
-                browser settings and reload.
-              </p>
-            )}
-          </div>
-        )}
-
-        {stage === 'part-intro' && (
-          <div className="spk-stage-screen spk-part-intro">
-            <div className="spk-intro-topbar">
-              <div className="spk-intro-topbar-spacer" aria-hidden="true" />
-              <div
-                className="spk-intro-title spk-intro-title-rich"
-                role="heading"
-                aria-level={2}
-                dangerouslySetInnerHTML={{ __html: currentPartTitleHtml }}
-              />
-              <button className="spk-start-btn spk-intro-start-btn" onClick={startPartQuestions}>
-                {STAGE_UI_TEXT.intro.startButton}
-              </button>
-            </div>
-
-            <div className="spk-intro-content spk-stage-body">
-              <h3 className="spk-intro-section-title">{STAGE_UI_TEXT.intro.instructionTitle}</h3>
-              {partInstructions.length > 0 ? (
-                <div className="spk-intro-instructions">
-                  {partInstructions.map((inst, idx) => (
-                    <div
-                      key={idx}
-                      className="spk-intro-instruction"
-                      dangerouslySetInnerHTML={{ __html: formatSpeakingHtml(inst) }}
-                    />
-                  ))}
-                </div>
+                </>
               ) : (
-                <div className="spk-intro-instruction">{STAGE_UI_TEXT.intro.noInstruction}</div>
-              )}
-            </div>
-          </div>
-        )}
+                <>
+                  <div className="spk-check-mic-center">
+                    <div className={`spk-check-mic-icon ${micCheckStatus === 'recording' ? 'is-recording' : ''}`} aria-hidden="true">
+                      <Mic size={40} />
+                    </div>
+                  </div>
 
-        {stage === 'part-review' && (
-          <div className="spk-stage-screen spk-review">
-            <div className="spk-intro-topbar spk-review-topbar">
-              <button className="spk-next-btn spk-review-reset-btn" onClick={resetCurrentPart}>
-                {STAGE_UI_TEXT.review.resetPart} <RotateCcw size={16} />
-              </button>
-              <div
-                className="spk-intro-title spk-intro-title-rich"
-                role="heading"
-                aria-level={2}
-                dangerouslySetInnerHTML={{ __html: currentPartTitleHtml }}
-              />
-              {currentPartIdx < totalParts - 1 ? (
-                <button className="spk-next-btn spk-review-next-btn" onClick={() => startPartWithIndex(currentPartIdx + 1)}>
-                  {STAGE_UI_TEXT.review.nextPart} <ChevronRight size={18} />
-                </button>
-              ) : (
-                <button className="spk-next-btn spk-review-next-btn" onClick={submitTest}>
-                  {STAGE_UI_TEXT.review.submit}
-                </button>
-              )}
-            </div>
+                  {micCheckStatus === 'recording' && analyser && (
+                    <div className="spk-check-mic-wave">
+                      <Waveform analyser={analyser} width={560} height={36} className="spk-check-mic-waveform" />
+                    </div>
+                  )}
 
-            <div className="spk-review-full-body spk-stage-body">
-              <div className="spk-review-full-title">{STAGE_UI_TEXT.review.endTitlePrefix} {currentPartDisplayNumber}</div>
-              <div className="spk-review-full-sub">{STAGE_UI_TEXT.review.subtitle}</div>
+                  <p className="spk-check-mic-desc">
+                    To complete this activity, you must allow access to your system's microphone.
+                  </p>
 
-              {partReviewAudioUrls[currentPartIdx] ? (
-                <audio controls src={partReviewAudioUrls[currentPartIdx]} className="spk-review-full-audio" />
-              ) : (
-                <div className="spk-review-missing">{STAGE_UI_TEXT.review.missingRecording}</div>
-              )}
+                  <div className="spk-check-mic-actions">
+                    <button
+                      type="button"
+                      className="spk-start-btn spk-check-mic-test-btn"
+                      onClick={() => {
+                        if (micCheckStatus === 'recording') {
+                          stopMicCheckRecording();
+                        } else {
+                          startMicCheckRecording();
+                        }
+                      }}
+                    >
+                      {micCheckStatus === 'recording' ? 'Stop' : 'Test Microphone'}
+                    </button>
 
-              <div className="spk-review-full-note">
-                {STAGE_UI_TEXT.review.continuePrefix} <strong>{STAGE_UI_TEXT.review.continueAction}</strong> {STAGE_UI_TEXT.review.continueSuffix}{reviewContinuePartSuffix}
-              </div>
-              <div className="spk-review-full-note">{STAGE_UI_TEXT.review.resetPrefix} <strong>{STAGE_UI_TEXT.review.resetAction}</strong> {STAGE_UI_TEXT.review.resetSuffix}</div>
-            </div>
-          </div>
-        )}
-
-        {stage === 'part' && (
-          <div className="spk-stage-screen spk-part-live">
-            <div className="spk-intro-topbar spk-part-topbar">
-              <div className="spk-intro-topbar-spacer" aria-hidden="true" />
-              <div
-                className="spk-intro-title spk-intro-title-rich"
-                role="heading"
-                aria-level={2}
-                dangerouslySetInnerHTML={{ __html: currentPartTitleHtml }}
-              />
-              <button
-                className="spk-next-btn spk-part-next-top"
-                onClick={goNext}
-                disabled={!canAdvanceQuestion}
-              >
-                {partTopActionLabel}
-                {canAdvanceQuestion && <ChevronRight size={18} />}
-              </button>
-            </div>
-
-            <div className="spk-part-question-stage">
-              {renderPartQuestionPrompt(currentQ, currentQIdx)}
-            </div>
-
-            {/* Mic button + status ────────────────────────────────────────── */}
-            <div className="spk-mic-area">
-              {phase === "idle" && (
-                <p className="spk-idle-hint">
-                  {micIdleHint}
-                </p>
-              )}
-              {phase === "recording" && (
-                <div className="spk-rec-status">
-                  <span className="spk-rec-dot" />
-                  <span>{STAGE_UI_TEXT.part.recordingPrefix} · {fmtTime(recSeconds)}</span>
-                </div>
-              )}
-              {phase === "done" && (
-                <p className="spk-done-hint">{STAGE_UI_TEXT.part.doneHint}</p>
-              )}
-
-              <button
-                className={micBtnClass}
-                onClick={handleMicBtn}
-                disabled={micButtonDisabled}
-                title={micButtonAriaLabel}
-                aria-label={micButtonAriaLabel}
-              >
-                {phase === "recording" ? <MicOff size={38} /> : <Mic size={38} />}
-              </button>
-
-              {/* Waveform */}
-              {phase === "recording" && analyser && (
-                <Waveform analyser={analyser} />
+                    <button
+                      className="spk-next-btn spk-check-mic-skip-btn"
+                      onClick={() => startPartWithIndex(initialPartIndex)}
+                      type="button"
+                    >
+                      Skip
+                    </button>
+                  </div>
+                </>
               )}
 
               {micAllowed === false && (
@@ -1494,9 +1651,149 @@ const IeltsSpeakingTest = () => {
                 </p>
               )}
             </div>
+          )}
 
-          </div>
-        )}
+          {stage === 'part-intro' && (
+            <div className="spk-stage-screen spk-part-intro">
+              <div className="spk-intro-topbar">
+                <div className="spk-intro-topbar-spacer" aria-hidden="true" />
+                <div
+                  className="spk-intro-title spk-intro-title-rich"
+                  role="heading"
+                  aria-level={2}
+                  dangerouslySetInnerHTML={{ __html: currentPartTitleHtml }}
+                />
+                <button className="spk-next-btn spk-intro-start-btn" onClick={startPartQuestions}>
+                  {STAGE_UI_TEXT.intro.startButton}
+                </button>
+              </div>
+
+              <div className="spk-intro-content spk-stage-body">
+                <h3 className="spk-intro-section-title">{STAGE_UI_TEXT.intro.instructionTitle}</h3>
+                {partInstructions.length > 0 ? (
+                  <div className="spk-intro-instructions">
+                    {partInstructions.map((inst, idx) => (
+                      <div
+                        key={idx}
+                        className="spk-intro-instruction"
+                        dangerouslySetInnerHTML={{ __html: formatSpeakingHtml(inst) }}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="spk-intro-instruction">{STAGE_UI_TEXT.intro.noInstruction}</div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {stage === 'part-review' && (
+            <div className="spk-stage-screen spk-review">
+              <div className="spk-intro-topbar spk-review-topbar">
+                <button className="spk-next-btn spk-review-reset-btn" onClick={resetCurrentPart}>
+                  {STAGE_UI_TEXT.review.resetPart} <RotateCcw size={16} />
+                </button>
+                <div
+                  className="spk-intro-title spk-intro-title-rich"
+                  role="heading"
+                  aria-level={2}
+                  dangerouslySetInnerHTML={{ __html: currentPartTitleHtml }}
+                />
+                {currentPartIdx < totalParts - 1 ? (
+                  <button className="spk-next-btn spk-review-next-btn" onClick={() => startPartWithIndex(currentPartIdx + 1)}>
+                    {STAGE_UI_TEXT.review.nextPart} <ChevronRight size={18} />
+                  </button>
+                ) : (
+                  <button className="spk-next-btn spk-review-next-btn" onClick={submitTest}>
+                    {STAGE_UI_TEXT.review.submit}
+                  </button>
+                )}
+              </div>
+
+              <div className="spk-review-full-body spk-stage-body">
+                <div className="spk-review-full-title">{STAGE_UI_TEXT.review.endTitlePrefix} {currentPartDisplayNumber}</div>
+                <div className="spk-review-full-sub">{STAGE_UI_TEXT.review.subtitle}</div>
+
+                {partReviewAudioUrls[currentPartIdx] ? (
+                  <audio controls src={partReviewAudioUrls[currentPartIdx]} className="spk-review-full-audio" />
+                ) : (
+                  <div className="spk-review-missing">{STAGE_UI_TEXT.review.missingRecording}</div>
+                )}
+
+                <div className="spk-review-full-note">
+                  {STAGE_UI_TEXT.review.continuePrefix} <strong>{STAGE_UI_TEXT.review.continueAction}</strong> {STAGE_UI_TEXT.review.continueSuffix}{reviewContinuePartSuffix}
+                </div>
+                <div className="spk-review-full-note">{STAGE_UI_TEXT.review.resetPrefix} <strong>{STAGE_UI_TEXT.review.resetAction}</strong> {STAGE_UI_TEXT.review.resetSuffix}</div>
+              </div>
+            </div>
+          )}
+
+          {stage === 'part' && (
+            <div className="spk-stage-screen spk-part-live">
+              <div className="spk-intro-topbar spk-part-topbar">
+                <div className="spk-intro-topbar-spacer" aria-hidden="true" />
+                <div
+                  className="spk-intro-title spk-intro-title-rich"
+                  role="heading"
+                  aria-level={2}
+                  dangerouslySetInnerHTML={{ __html: currentPartTitleHtml }}
+                />
+                <button
+                  className="spk-next-btn spk-part-next-top"
+                  onClick={goNext}
+                  disabled={!canAdvanceQuestion}
+                >
+                  {partTopActionLabel}
+                  {canAdvanceQuestion && <ChevronRight size={18} />}
+                </button>
+              </div>
+
+              <div className="spk-part-question-stage">
+                {renderPartQuestionPrompt(currentQ, currentQIdx)}
+              </div>
+
+              {/* Mic button + status ────────────────────────────────────────── */}
+              <div className="spk-mic-area">
+                {phase === "idle" && (
+                  <p className="spk-idle-hint">
+                    {micIdleHint}
+                  </p>
+                )}
+                {phase === "recording" && (
+                  <div className="spk-rec-status">
+                    <span className="spk-rec-dot" />
+                    <span>{STAGE_UI_TEXT.part.recordingPrefix} · {fmtTime(recSeconds)}</span>
+                  </div>
+                )}
+                {phase === "done" && (
+                  <p className="spk-done-hint">{STAGE_UI_TEXT.part.doneHint}</p>
+                )}
+
+                <button
+                  className={micBtnClass}
+                  onClick={handleMicBtn}
+                  disabled={micButtonDisabled}
+                  title={micButtonAriaLabel}
+                  aria-label={micButtonAriaLabel}
+                >
+                  {phase === "recording" ? <MicOff size={38} /> : <Mic size={38} />}
+                </button>
+
+                {/* Waveform */}
+                {phase === "recording" && analyser && (
+                  <Waveform analyser={analyser} />
+                )}
+
+                {micAllowed === false && (
+                  <p className="spk-mic-error">
+                    ⚠ Microphone access denied. Please allow microphone in your
+                    browser settings and reload.
+                  </p>
+                )}
+              </div>
+
+            </div>
+          )}
         </div>
       </main>
     </div>

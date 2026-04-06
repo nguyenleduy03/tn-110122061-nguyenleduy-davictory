@@ -150,24 +150,29 @@ public class GuestExamService {
                     .filter(s -> s != null && !s.isBlank())
                     .toList();
 
+            List<String> answerList = parseAnswerList(ans);
+            if (!answerList.isEmpty()) {
+                return equalsIgnoreOrder(normalizeList(answerList), normalizeList(correctOptions));
+            }
+
             String single = firstNonBlank(ans.getSelectedOptionLabel(), ans.getTextAnswer());
             return isInNormalized(single, correctOptions);
         }
 
         if (qt.getHasTextAnswer() || qt.getHasMatching()) {
             List<Answer> answers = answerRepository.findByQuestionIdOrderByBlankIndexAsc(question.getId());
-            List<String> correctAnswers = new ArrayList<>();
-            for (Answer a : answers) {
-                if (a.getAnswerText() != null && !a.getAnswerText().isBlank()) {
-                    correctAnswers.add(a.getAnswerText());
-                }
-                if (a.getAlternativeAnswers() != null && !a.getAlternativeAnswers().isBlank()) {
-                    correctAnswers.addAll(parseAlternativeAnswers(a.getAlternativeAnswers()));
-                }
+            List<List<String>> acceptedGroups = collectShortAnswerAcceptedGroups(answers);
+            if (acceptedGroups.isEmpty()) {
+                return false;
+            }
+
+            List<String> submittedAnswers = parseAnswerList(ans);
+            if (!submittedAnswers.isEmpty()) {
+                return matchesShortAnswerGroups(acceptedGroups, submittedAnswers);
             }
 
             String single = firstNonBlank(ans.getTextAnswer(), ans.getSelectedOptionLabel());
-            return isInNormalized(single, correctAnswers);
+            return matchesShortAnswerGroups(acceptedGroups, List.of(single));
         }
 
         return false;
@@ -176,7 +181,20 @@ public class GuestExamService {
     private boolean hasAnyAnswer(AttemptAnswerSave save) {
         return (save.getSelectedOptionLabel() != null && !save.getSelectedOptionLabel().isBlank())
                 || (save.getTextAnswer() != null && !save.getTextAnswer().isBlank())
-                || (save.getMatchingAnswer() != null && !save.getMatchingAnswer().isBlank());
+                || hasMeaningfulMatchingAnswer(save.getMatchingAnswer());
+    }
+
+    private boolean hasMeaningfulMatchingAnswer(String matchingAnswer) {
+        if (matchingAnswer == null || matchingAnswer.isBlank()) {
+            return false;
+        }
+
+        try {
+            List<String> values = objectMapper.readValue(matchingAnswer, new TypeReference<List<String>>() {});
+            return values.stream().anyMatch(value -> value != null && !value.isBlank());
+        } catch (Exception e) {
+            return true;
+        }
     }
 
     private List<String> parseAlternativeAnswers(String json) {
@@ -185,6 +203,86 @@ public class GuestExamService {
         } catch (Exception e) {
             return Collections.emptyList();
         }
+    }
+
+    private List<String> parseAnswerList(AttemptAnswerSave ans) {
+        if (ans.getMatchingAnswer() == null || ans.getMatchingAnswer().isBlank()) {
+            return Collections.emptyList();
+        }
+        try {
+            return objectMapper.readValue(ans.getMatchingAnswer(), new TypeReference<List<String>>() {});
+        } catch (Exception e) {
+            return Collections.emptyList();
+        }
+    }
+
+    private List<List<String>> collectShortAnswerAcceptedGroups(List<Answer> answers) {
+        if (answers == null || answers.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        Map<Integer, List<String>> grouped = new TreeMap<>();
+        for (Answer ans : answers) {
+            if (ans == null || Boolean.TRUE.equals(ans.getIsSample())) {
+                continue;
+            }
+
+            Integer blankIndex = ans.getBlankIndex() != null ? ans.getBlankIndex() : 1;
+            List<String> bucket = grouped.computeIfAbsent(blankIndex, key -> new ArrayList<>());
+
+            if (ans.getAnswerText() != null && !ans.getAnswerText().isBlank()) {
+                bucket.add(ans.getAnswerText());
+            }
+            if (ans.getAlternativeAnswers() != null && !ans.getAlternativeAnswers().isBlank()) {
+                bucket.addAll(parseAlternativeAnswers(ans.getAlternativeAnswers()));
+            }
+        }
+
+        return grouped.values().stream()
+                .map(this::normalizeList)
+                .filter(group -> !group.isEmpty())
+                .toList();
+    }
+
+    private boolean matchesShortAnswerGroups(List<List<String>> acceptedGroups, List<String> submittedAnswers) {
+        if (acceptedGroups == null || acceptedGroups.isEmpty()) {
+            return false;
+        }
+
+        List<String> normalizedSubmitted = normalizeList(submittedAnswers);
+
+        if (acceptedGroups.size() == 1) {
+            String single = normalizedSubmitted.isEmpty() ? "" : normalizedSubmitted.get(0);
+            return isInNormalized(single, acceptedGroups.get(0));
+        }
+
+        if (normalizedSubmitted.size() != acceptedGroups.size()) {
+            return false;
+        }
+
+        for (int i = 0; i < acceptedGroups.size(); i++) {
+            String userValue = normalizedSubmitted.get(i);
+            List<String> accepted = acceptedGroups.get(i);
+            if (!isInNormalized(userValue, accepted)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private List<String> normalizeList(List<String> values) {
+        if (values == null) {
+            return Collections.emptyList();
+        }
+        return values.stream().map(this::normalize).filter(v -> !v.isBlank()).toList();
+    }
+
+    private boolean equalsIgnoreOrder(List<String> a, List<String> b) {
+        if (a.size() != b.size()) {
+            return false;
+        }
+        return a.stream().allMatch(b::contains);
     }
 
     private String normalize(String val) {

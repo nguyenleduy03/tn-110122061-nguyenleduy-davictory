@@ -94,6 +94,16 @@ export const normalizeRichHtml = (text) => {
     .replace(/\\n|\n/g, '<br/>');
 };
 
+/**
+ * Keep visual line breaks when block wrappers are later flattened.
+ * Useful before calling stripInlineStyles(), which may unwrap div/p tags.
+ */
+export const preserveBlockLineBreaks = (html) => {
+  if (typeof html !== 'string') return html || '';
+
+  return html.replace(/<\/(?:p|div|section|article|header|footer|blockquote|figure|figcaption|h[1-6])\s*>/gi, (match) => `${match}<br/>`);
+};
+
 const shouldPreserveAlignment = (node) => {
   if (!node || !node.querySelector) return false;
 
@@ -121,6 +131,44 @@ const getFontSizeValue = (node) => {
   return /^\d+(?:\.\d+)?(?:px|pt|em|rem|%)$/i.test(normalized) ? normalized : '';
 };
 
+const normalizeLegacyFontTags = (html) => {
+  if (typeof html !== 'string' || !/<font[\s>]/i.test(html)) return html || '';
+
+  try {
+    const temp = document.createElement('div');
+    temp.innerHTML = html;
+    const htmlSizeMap = { 1: '10px', 2: '13px', 3: '16px', 4: '18px', 5: '24px', 6: '32px', 7: '48px' };
+
+    temp.querySelectorAll('font').forEach((fontEl) => {
+      const span = document.createElement('span');
+      const face = String(fontEl.getAttribute('face') || '').trim();
+      const size = String(fontEl.getAttribute('size') || '').trim();
+      const color = String(fontEl.getAttribute('color') || '').trim();
+      const styleAttr = String(fontEl.getAttribute('style') || '').trim();
+
+      if (styleAttr) span.setAttribute('style', styleAttr);
+      if (face) span.style.fontFamily = face;
+      if (size) {
+        if (/^\d+$/.test(size)) {
+          span.style.fontSize = htmlSizeMap[Number(size)] || '16px';
+        } else if (/^\d+(?:\.\d+)?(?:px|pt|em|rem|%)$/i.test(size)) {
+          span.style.fontSize = size;
+        }
+      }
+      if (color) span.style.color = color;
+
+      while (fontEl.firstChild) {
+        span.appendChild(fontEl.firstChild);
+      }
+      fontEl.replaceWith(span);
+    });
+
+    return temp.innerHTML;
+  } catch {
+    return html;
+  }
+};
+
 /**
  * Serialize a contentEditable element so root text alignment survives save/load.
  * This preserves innerHTML and wraps it when the editable itself is centered/right-aligned.
@@ -128,7 +176,7 @@ const getFontSizeValue = (node) => {
 export const serializeContentEditableHtml = (el) => {
   if (!el) return '';
 
-  const html = el.innerHTML || '';
+  const html = normalizeLegacyFontTags(el.innerHTML || '');
   // Only persist alignment explicitly set on this editable element.
   // Do not persist inherited/computed alignment from parent CSS.
   const align = String(el.style?.textAlign || '').toLowerCase().trim();

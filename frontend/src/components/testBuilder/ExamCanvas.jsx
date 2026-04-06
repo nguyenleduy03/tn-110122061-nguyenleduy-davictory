@@ -16,7 +16,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { useDroppable } from '@dnd-kit/core';
 import { createPortal } from 'react-dom';
 import { Plus, X, Clock, TimerReset, Check, Eye, Headphones, BookOpen, PenLine, Mic, Volume2, FileText } from 'lucide-react';
-import { normalizeRichHtml, stripInlineStyles } from '../../utils/textFormatters';
+import { normalizeRichHtml, preserveBlockLineBreaks, stripInlineStyles } from '../../utils/textFormatters';
 import { resolveDrivePreviewUrl } from '../../utils/mediaUrl';
 import SharedOptionsDropdownBlock from './SharedOptionsDropdownBlock';
 
@@ -929,7 +929,7 @@ const PREVIEW_SESSION_META = {
 const formatPreviewText = (text) => {
   if (!text) return '';
   const normalized = normalizeRichHtml(text);
-  return stripInlineStyles(normalized);
+  return stripInlineStyles(preserveBlockLineBreaks(normalized));
 };
 
 // ---- Sortable wrapper ----
@@ -1280,7 +1280,7 @@ const PartView = ({ skill, part, selection, onSelectGroup, onSelectQuestion, onU
     return (
       <div className="exam-split">
         {/* LEFT: passage texts only */}
-      <div className={`exam-pane passage${isPassagePaneLocked ? ' pane-locked' : ''}`}>
+        <div className={`exam-pane passage${isPassagePaneLocked ? ' pane-locked' : ''}`}>
           {isPassagePaneLocked && (
             <div className="exam-pane-lock-overlay">Chỉ nhận <strong>Đoạn văn</strong></div>
           )}
@@ -1368,7 +1368,7 @@ const ExamCanvas = ({
   const hideZoomTimeoutRef = useRef(null);
   const zoomRatio = zoomLevel / 100;
   const zoomDisplay = `${zoomLevel.toFixed(1)}%`;
-  
+
   const skillLabel = useMemo(() => {
     const map = {
       LISTENING: 'Listening',
@@ -1390,25 +1390,25 @@ const ExamCanvas = ({
     const handleScroll = () => {
       setShowFooter(true);
       setShowZoomControls(true);
-      
+
       if (hideFooterTimeoutRef.current) {
         clearTimeout(hideFooterTimeoutRef.current);
       }
       if (hideZoomTimeoutRef.current) {
         clearTimeout(hideZoomTimeoutRef.current);
       }
-      
+
       hideFooterTimeoutRef.current = setTimeout(() => {
         setShowFooter(false);
       }, 3000);
-      
+
       hideZoomTimeoutRef.current = setTimeout(() => {
         setShowZoomControls(false);
       }, 3000);
     };
 
     window.addEventListener('scroll', handleScroll, true);
-    
+
     return () => {
       window.removeEventListener('scroll', handleScroll, true);
       if (hideFooterTimeoutRef.current) {
@@ -1430,7 +1430,7 @@ const ExamCanvas = ({
           const newZoom = prev - delta * 1.33;
           return Math.round(Math.max(50, Math.min(150, newZoom)) * 10) / 10;
         });
-        
+
         // Show zoom controls when zooming
         setShowZoomControls(true);
         if (hideZoomTimeoutRef.current) {
@@ -1538,69 +1538,69 @@ const ExamCanvas = ({
     <div className="tb-canvas" onClick={() => { }} style={{ position: 'relative' }}>
       {/* Zoom controls */}
       {showZoomControls && (
-        <div style={{ 
-          position: 'absolute', 
-          top: 10, 
-          right: 10, 
-          zIndex: 100, 
-          display: 'flex', 
-          gap: 4, 
-          background: 'white', 
-          padding: '4px 8px', 
-          borderRadius: 6, 
+        <div style={{
+          position: 'absolute',
+          top: 10,
+          right: 10,
+          zIndex: 100,
+          display: 'flex',
+          gap: 4,
+          background: 'white',
+          padding: '4px 8px',
+          borderRadius: 6,
           boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
           alignItems: 'center',
           transition: 'opacity 0.3s ease',
           opacity: showZoomControls ? 1 : 0
         }}>
-        <button 
-          onClick={() => setZoomLevel((prev) => Math.max(50, Math.round((prev - 10) * 10) / 10))}
-          style={{ 
-            padding: '4px 8px', 
-            border: '1px solid #e2e8f0', 
-            borderRadius: 4, 
-            background: 'white', 
-            cursor: 'pointer',
-            fontSize: 14,
-            fontWeight: 600
-          }}
-          title="Thu nhỏ"
-        >
-          −
-        </button>
-        <span style={{ fontSize: 12, color: '#64748b', minWidth: 45, textAlign: 'center' }}>
-          {zoomDisplay}
-        </span>
-        <button 
-          onClick={() => setZoomLevel((prev) => Math.min(150, Math.round((prev + 10) * 10) / 10))}
-          style={{ 
-            padding: '4px 8px', 
-            border: '1px solid #e2e8f0', 
-            borderRadius: 4, 
-            background: 'white', 
-            cursor: 'pointer',
-            fontSize: 14,
-            fontWeight: 600
-          }}
-          title="Phóng to"
-        >
-          +
-        </button>
-        <button 
-          onClick={() => setZoomLevel(100)}
-          style={{ 
-            padding: '4px 8px', 
-            border: '1px solid #e2e8f0', 
-            borderRadius: 4, 
-            background: 'white', 
-            cursor: 'pointer',
-            fontSize: 11,
-            marginLeft: 4
-          }}
-          title="Đặt lại 100%"
-        >
-          Reset
-        </button>
+          <button
+            onClick={() => setZoomLevel((prev) => Math.max(50, Math.round((prev - 10) * 10) / 10))}
+            style={{
+              padding: '4px 8px',
+              border: '1px solid #e2e8f0',
+              borderRadius: 4,
+              background: 'white',
+              cursor: 'pointer',
+              fontSize: 14,
+              fontWeight: 600
+            }}
+            title="Thu nhỏ"
+          >
+            −
+          </button>
+          <span style={{ fontSize: 12, color: '#64748b', minWidth: 45, textAlign: 'center' }}>
+            {zoomDisplay}
+          </span>
+          <button
+            onClick={() => setZoomLevel((prev) => Math.min(150, Math.round((prev + 10) * 10) / 10))}
+            style={{
+              padding: '4px 8px',
+              border: '1px solid #e2e8f0',
+              borderRadius: 4,
+              background: 'white',
+              cursor: 'pointer',
+              fontSize: 14,
+              fontWeight: 600
+            }}
+            title="Phóng to"
+          >
+            +
+          </button>
+          <button
+            onClick={() => setZoomLevel(100)}
+            style={{
+              padding: '4px 8px',
+              border: '1px solid #e2e8f0',
+              borderRadius: 4,
+              background: 'white',
+              cursor: 'pointer',
+              fontSize: 11,
+              marginLeft: 4
+            }}
+            title="Đặt lại 100%"
+          >
+            Reset
+          </button>
         </div>
       )}
 
@@ -1629,65 +1629,65 @@ const ExamCanvas = ({
       {activePart && (
         <div className="exam-viewport-shell" style={{ zoom: String(zoomRatio) }}>
           <div className="exam-viewport">
-          {/* Mocked exam header */}
-          <div className="exam-mock-header">
-            <img
-              src={resolvedLogoSrc}
-              alt={resolvedLogoAlt}
-              className="exam-mock-logo-image"
-            />
-            <div className="exam-mock-info">
-              <span>Nguyễn Văn A</span>
-              <span style={{ color: '#ddd' }}>|</span>
-              <span>ID: 12345678</span>
-              <span style={{ color: '#ddd' }}>|</span>
-              <span className="exam-mock-timer">
-                {currentDuration === 0 ? 'No limit' : `${String(currentDuration).padStart(2, '0')}:00`}
-              </span>
-              <button type="button" className="exam-mock-time-btn" onClick={handleSetPartTime}>
-                <Clock size={14} />
-                <span>
-                  Đặt thời gian
-                  <small>{skillLabel} · {currentDuration === 0 ? 'Không giới hạn' : `${currentDuration} phút`}</small>
+            {/* Mocked exam header */}
+            <div className="exam-mock-header">
+              <img
+                src={resolvedLogoSrc}
+                alt={resolvedLogoAlt}
+                className="exam-mock-logo-image"
+              />
+              <div className="exam-mock-info">
+                <span>Nguyễn Văn A</span>
+                <span style={{ color: '#ddd' }}>|</span>
+                <span>ID: 12345678</span>
+                <span style={{ color: '#ddd' }}>|</span>
+                <span className="exam-mock-timer">
+                  {currentDuration === 0 ? 'No limit' : `${String(currentDuration).padStart(2, '0')}:00`}
                 </span>
-              </button>
+                <button type="button" className="exam-mock-time-btn" onClick={handleSetPartTime}>
+                  <Clock size={14} />
+                  <span>
+                    Đặt thời gian
+                    <small>{skillLabel} · {currentDuration === 0 ? 'Không giới hạn' : `${currentDuration} phút`}</small>
+                  </span>
+                </button>
               </div>
             </div>
 
-          {/* Part instruction bar */}
-          <div className="exam-instruction">
-            <div><strong>{activePart.name}</strong></div>
-            {activePartInstructionText && (
-              <div style={{ marginTop: '4px' }} dangerouslySetInnerHTML={{ __html: activePartInstructionHtml }} />
-            )}
-            {!activePartInstructionText && (
-              <div style={{ color: '#aaa', fontStyle: 'italic', marginTop: '4px' }}>Chọn Part để thêm hướng dẫn</div>
-            )}
-          </div>
+            {/* Part instruction bar */}
+            <div className="exam-instruction">
+              <div><strong>{activePart.name}</strong></div>
+              {activePartInstructionText && (
+                <div style={{ marginTop: '4px' }} dangerouslySetInnerHTML={{ __html: activePartInstructionHtml }} />
+              )}
+              {!activePartInstructionText && (
+                <div style={{ color: '#aaa', fontStyle: 'italic', marginTop: '4px' }}>Chọn Part để thêm hướng dẫn</div>
+              )}
+            </div>
 
-          {/* WYSIWYG content */}
-          <div className="exam-body">
-            <PartView
-              skill={skill}
-              part={activePart}
-              selection={selection}
-              onSelectGroup={onSelectGroup}
-              onSelectQuestion={onSelectQuestion}
-              onUpdateGroup={onUpdateGroup}
-              onUpdateQuestion={onUpdateQuestion}
-              onDeleteGroup={onDeleteGroup}
-              onDeleteQuestion={onDeleteQuestion}
-              onAddQuestion={onAddQuestion}
-              onAddGroup={onAddGroup}
-              onMoveGroupUp={onMoveGroupUp}
-              onMoveGroupDown={onMoveGroupDown}
-              isDropOver={isDropOver}
-              isPassagePaneOver={isPassagePaneOver}
-              isPassagePaneLocked={isPassagePaneLocked}
-              isMHLocked={isMHLocked}
-              test={test}
-              testId={testId} />
-          </div>
+            {/* WYSIWYG content */}
+            <div className="exam-body">
+              <PartView
+                skill={skill}
+                part={activePart}
+                selection={selection}
+                onSelectGroup={onSelectGroup}
+                onSelectQuestion={onSelectQuestion}
+                onUpdateGroup={onUpdateGroup}
+                onUpdateQuestion={onUpdateQuestion}
+                onDeleteGroup={onDeleteGroup}
+                onDeleteQuestion={onDeleteQuestion}
+                onAddQuestion={onAddQuestion}
+                onAddGroup={onAddGroup}
+                onMoveGroupUp={onMoveGroupUp}
+                onMoveGroupDown={onMoveGroupDown}
+                isDropOver={isDropOver}
+                isPassagePaneOver={isPassagePaneOver}
+                isPassagePaneLocked={isPassagePaneLocked}
+                isMHLocked={isMHLocked}
+                test={test}
+                testId={testId} />
+            </div>
           </div>
         </div>
       )}

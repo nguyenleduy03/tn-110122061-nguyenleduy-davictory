@@ -340,23 +340,29 @@ const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isRevie
         if (durationSeconds <= 0) return;
 
         const tick = () => {
+            let shouldTriggerTimeUp = false;
+
             setTimeLeft((prev) => {
                 const remaining = Math.max(0, prev - 1);
 
                 if (remaining <= 0) {
-                    if (!hasTriggeredTimeUpRef.current) {
-                        hasTriggeredTimeUpRef.current = true;
-                        if (timerStorageKey) {
-                            localStorage.removeItem(timerStorageKey);
-                        }
-                        if (onTimeUp) onTimeUp();
-                    }
+                    shouldTriggerTimeUp = true;
                     return 0;
                 }
 
                 persistRemainingTime(remaining, durationSeconds);
                 return remaining;
             });
+
+            if (shouldTriggerTimeUp && !hasTriggeredTimeUpRef.current) {
+                hasTriggeredTimeUpRef.current = true;
+                if (timerStorageKey) {
+                    localStorage.removeItem(timerStorageKey);
+                }
+                window.setTimeout(() => {
+                    if (onTimeUp) onTimeUp();
+                }, 0);
+            }
         };
 
         const timer = setInterval(tick, 1000);

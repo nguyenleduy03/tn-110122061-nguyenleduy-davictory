@@ -4,12 +4,15 @@ import { ArrowLeftRight, ArrowLeft, ArrowRight } from "lucide-react";
 import { useSearchParams, useNavigate, useParams } from "react-router-dom";
 import "../styles/ieltsTest.css";
 import TestHeader from "../components/common/TestHeader";
+import GuestInfoForm from "../components/common/GuestInfoForm";
 import { useDividerResize } from "../hooks/useDividerResize";
 import TextHighlighter from "../components/common/TextHighlighter";
 import NotesPanel from "../components/common/NotesPanel";
 import { ieltsApi } from "../services/ieltsApi";
 import { assignmentApi } from "../services/assignmentApi";
-import { formatTextWithWhitespace, normalizeRichHtml, stripInlineStyles } from "../utils/textFormatters";
+import { fileApi } from "../services/fileApi";
+import { authApi } from "../services/authApi";
+import { formatTextWithWhitespace, normalizeRichHtml, preserveBlockLineBreaks, stripInlineStyles } from "../utils/textFormatters";
 import { computeFullTestProgressPercent, getFullTestSessionState, parseJsonSafe } from "../utils/fullTestProgress";
 import { buildDraftStorageKey, buildTimerPersistKey, clearDraftByTest, parseJsonSafe as parseRuntimeJsonSafe, markTestSubmitted, getSubmittedRedirect } from "../utils/testRuntimeState";
 import { useNotes } from "../hooks/useNotes";
@@ -27,7 +30,7 @@ const toHtmlContent = (value) => {
     }
 
     const normalized = normalizeRichHtml(raw);
-    return stripInlineStyles(normalized);
+    return stripInlineStyles(preserveBlockLineBreaks(normalized));
 };
 
 const toComparableText = (value) => String(value || '')
@@ -35,6 +38,37 @@ const toComparableText = (value) => String(value || '')
     .replace(/\s+/g, ' ')
     .trim()
     .toLowerCase();
+
+const toSafeFileSegment = (value) => String(value || '')
+    .trim()
+    .replace(/[\\/:*?"<>|]/g, '_')
+    .replace(/\s+/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '');
+
+const isUntitledLike = (value) => {
+    const normalized = toSafeFileSegment(value).toLowerCase();
+    if (!normalized) return true;
+    return normalized === 'untitled'
+        || normalized.startsWith('untitled_')
+        || normalized === 'untiltle'
+        || normalized.startsWith('untiltle_');
+};
+
+const toDisplayValue = (value) => (value == null ? '' : String(value).trim());
+
+const isPlaceholderCandidateCode = (value) => {
+    const normalized = toSafeFileSegment(value).toUpperCase().replace(/[_\s]+/g, '-');
+    return !normalized || [
+        'DEFAULT-ID',
+        'DEFAULT',
+        'N/A',
+        'NA',
+        'UNKNOWN',
+        'NULL',
+        'UNDEFINED',
+    ].includes(normalized);
+};
 
 const WritingTaskPane = ({ part, style }) => {
     if (!part) return null;
@@ -103,8 +137,15 @@ const WritingAnswerPane = ({ partId, minWords, value, onChange, style }) => {
 
 const IeltsWritingTest = () => {
     const [testData, setTestData] = useState(null);
+    const [previewRefreshTick, setPreviewRefreshTick] = useState(0);
+    const [showGuestForm, setShowGuestForm] = useState(false);
+    const [guestInfo, setGuestInfo] = useState(null);
+    const [isGuest, setIsGuest] = useState(false);
+    const [attemptId, setAttemptId] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitStatusText, setSubmitStatusText] = useState('');
     const [currentPartIndex, setCurrentPartIndex] = useState(0);
     const [writingAnswers, setWritingAnswers] = useState({});
     const [startTime] = useState(() => Date.now()); // theo dõi thời gian làm bài
@@ -145,19 +186,53 @@ const IeltsWritingTest = () => {
         if (!submittedRedirect) return;
         navigate(submittedRedirect, { replace: true });
     }, [timerPersistKey, navigate]);
+
+    useEffect(() => {
+        const savedGuestInfo = sessionStorage.getItem('guestExamInfo');
+        if (savedGuestInfo) {
+            try {
+                const info = JSON.parse(savedGuestInfo);
+                setGuestInfo(info);
+                setIsGuest(true);
+                return;
+            } catch {
+                sessionStorage.removeItem('guestExamInfo');
+            }
+        }
+
+        if (!ieltsApi.isAuthenticated()) {
+            setShowGuestForm(true);
+        }
+    }, []);
     const autosaveStateRef = useRef({
         writingAnswers: {},
         currentPartIndex: 0,
         testData: null,
     });
     const previousWritingAnswersRef = useRef(writingAnswers);
+    const submitInFlightRef = useRef(false);
+
+    useEffect(() => {
+        const handlePreviewRefresh = (event) => {
+            if (event.origin !== window.location.origin) return;
+            const payload = event.data;
+            if (!payload || payload.type !== 'DAVICTORY_PREVIEW_REFRESH') return;
+            if (String(payload.testId) !== String(testId)) return;
+            const skill = String(payload.skillType || '').toUpperCase();
+            if (skill && skill !== 'WRITING') return;
+            setPreviewRefreshTick((prev) => prev + 1);
+        };
+
+        window.addEventListener('message', handlePreviewRefresh);
+        return () => window.removeEventListener('message', handlePreviewRefresh);
+    }, [testId]);
 
     useEffect(() => {
         if (!testId) { setError('Không tìm thấy ID bài thi.'); setLoading(false); return; }
-        
+
         const fallbackParam = searchParams.get('fallback');
         const fallbackSkills = fallbackParam ? fallbackParam.split(',') : [];
-        
+
         ieltsApi.getTestSession(testId, 'WRITING', fallbackSkills).then((data) => {
             const shouldApplyPracticeConfig = mode === 'practice' && !isFullTest;
             let configuredData = data;
@@ -204,6 +279,16 @@ const IeltsWritingTest = () => {
             setTestData(configuredData);
             setCurrentPartIndex(resolvedStartPartIndex >= 0 ? resolvedStartPartIndex : 0);
             setLoading(false);
+
+            if (isGuest && guestInfo && !attemptId) {
+                ieltsApi.startGuestAttempt(guestInfo, testId, 'WRITING')
+                    .then((attempt) => {
+                        setAttemptId(attempt.id);
+                    })
+                    .catch((startError) => {
+                        console.error('[Writing] Failed to start guest attempt:', startError);
+                    });
+            }
         }).catch((err) => {
             console.error('[Writing] Lỗi tải bài thi:', err);
             setError(err.message === 'AUTH_REQUIRED'
@@ -211,7 +296,7 @@ const IeltsWritingTest = () => {
                 : `Không thể tải bài thi: ${err.message}`);
             setLoading(false);
         });
-    }, [testId, mode, isFullTest, selectedPracticeParts, startPartNumber, durationOverrideMinutes, noTimeLimit]);
+    }, [testId, mode, isFullTest, selectedPracticeParts, startPartNumber, durationOverrideMinutes, noTimeLimit, previewRefreshTick, isGuest, guestInfo, attemptId]);
 
     useEffect(() => {
         if (!isFullTest || !testData || !testId) return undefined;
@@ -431,7 +516,104 @@ const IeltsWritingTest = () => {
         } catch { navigate('/exam-library'); }
     };
 
+    const uploadWritingDraftsToDrive = useCallback(async (onStatusChange) => {
+        const parts = testData?.parts || [];
+        if (!parts.length) return {};
+        const driveUrlByQuestionId = {};
+
+        const storedUser = authApi.getStoredUser();
+
+        const rawTestTitle = testData?.testTitle
+            || testData?.title
+            || testData?.sessionName
+            || `Writing_Test_${testId}`;
+        const fallbackTestCode = `Writing_Test_${testId || 'UNKNOWN'}`;
+        const normalizedTitle = toSafeFileSegment(rawTestTitle);
+        const resolvedTestCode = (!normalizedTitle || isUntitledLike(normalizedTitle))
+            ? fallbackTestCode
+            : normalizedTitle;
+        const resolvedTestTitle = isUntitledLike(rawTestTitle)
+            ? resolvedTestCode
+            : rawTestTitle;
+        const resolvedCandidateCode = [
+            storedUser?.studentCode,
+            storedUser?.candidateCode,
+            storedUser?.code,
+            storedUser?.id,
+            storedUser?.username,
+            testData?.candidateId,
+        ]
+            .map(toDisplayValue)
+            .find((value) => !isPlaceholderCandidateCode(value))
+            || 'UNKNOWN_CANDIDATE';
+
+        for (let idx = 0; idx < parts.length; idx += 1) {
+            const partItem = parts[idx];
+            const partAnswer = String(writingAnswers?.[partItem.id] || '').trim();
+            if (!partAnswer) continue;
+            const firstQuestionId = partItem?.questions?.[0]?.id;
+
+            const partDisplayNumber = Number.isFinite(Number(partItem?.partNumber))
+                ? Number(partItem.partNumber)
+                : (idx + 1);
+            const safePartNumber = toSafeFileSegment(partDisplayNumber) || String(idx + 1);
+            const fileName = `part_${safePartNumber}.txt`;
+
+            const taskLabel = String(
+                partItem?.taskLabel
+                || partItem?.title
+                || partItem?.name
+                || `Task_${idx + 1}`
+            ).trim();
+            const fileContent = [
+                `Test: ${resolvedTestTitle}`,
+                `MaThiSinh: ${resolvedCandidateCode}`,
+                `MaDe: ${resolvedTestCode}`,
+                `Part: ${partDisplayNumber}`,
+                `Task: ${taskLabel}`,
+                `SubmittedAt: ${new Date().toISOString()}`,
+                '',
+                partAnswer,
+            ].join('\n');
+
+            const writingFile = new File([fileContent], fileName, {
+                type: 'text/plain;charset=utf-8',
+            });
+
+            try {
+                onStatusChange?.(`Đang upload part_${safePartNumber}.txt lên Drive...`);
+                const uploaded = await fileApi.uploadWritingDocument(writingFile, resolvedTestTitle, testId, {
+                    skillName: 'WRITING',
+                    testCode: resolvedTestCode,
+                    onProgress: (percent, message) => {
+                        const normalizedPercent = Number.isFinite(percent) ? Math.max(0, Math.min(100, Math.round(percent))) : null;
+                        const progressText = normalizedPercent == null ? '' : ` (${normalizedPercent}%)`;
+                        onStatusChange?.(`${message || `Đang upload part_${safePartNumber}.txt`}${progressText}`);
+                    },
+                });
+                const driveUrl = String(uploaded?.url || '').trim();
+                if (firstQuestionId && driveUrl) {
+                    driveUrlByQuestionId[firstQuestionId] = driveUrl;
+                }
+            } catch (error) {
+                const reason = error?.message || 'Unknown error';
+                throw new Error(`Không thể upload bài Writing part_${safePartNumber}.txt lên Drive: ${reason}`);
+            }
+        }
+
+        return driveUrlByQuestionId;
+    }, [testData, testId, writingAnswers]);
+
     const submitTest = () => {
+        if (submitInFlightRef.current) return;
+        if (isGuest && !attemptId) {
+            alert('Vui lòng chờ hệ thống khởi tạo lượt làm bài khách trước khi nộp.');
+            return;
+        }
+        submitInFlightRef.current = true;
+        setIsSubmitting(true);
+        setSubmitStatusText('Đang chuẩn bị nộp bài...');
+
         const timeTakenSeconds = Math.floor((Date.now() - startTime) / 1000);
         const parts = testData?.parts || [];
 
@@ -447,11 +629,63 @@ const IeltsWritingTest = () => {
             }
         });
 
-        ieltsApi.submitAnswers(testId, 'WRITING', writingPayload, timeTakenSeconds)
+        let driveUploadWarning = null;
+
+        uploadWritingDraftsToDrive(setSubmitStatusText)
+            .catch((uploadError) => {
+                driveUploadWarning = uploadError;
+                console.warn('[Writing] Upload Drive thất bại, chuyển sang submit trực tiếp:', uploadError);
+                setSubmitStatusText('Upload Drive lỗi, đang nộp bài trực tiếp...');
+                return {};
+            })
+            .then((driveUrlByQuestionId) => {
+                setSubmitStatusText('Đang nộp bài...');
+
+                const writingPayloadWithDrive = Object.entries(writingPayload).reduce((acc, [questionId, textValue]) => {
+                    const driveUrl = String(driveUrlByQuestionId?.[questionId] || '').trim();
+                    if (driveUrl) {
+                        acc[questionId] = {
+                            textAnswer: textValue,
+                            selectedOptionLabel: driveUrl,
+                        };
+                    } else {
+                        acc[questionId] = textValue;
+                    }
+                    return acc;
+                }, {});
+
+                if (isGuest && attemptId) {
+                    const guestAnswers = Object.entries(writingPayloadWithDrive).map(([questionId, answerValue]) => {
+                        const parsedQuestionId = Number.parseInt(questionId, 10);
+                        if (!Number.isFinite(parsedQuestionId)) return null;
+
+                        if (typeof answerValue === 'string') {
+                            return {
+                                questionId: parsedQuestionId,
+                                textAnswer: answerValue,
+                            };
+                        }
+
+                        return {
+                            questionId: parsedQuestionId,
+                            textAnswer: answerValue?.textAnswer || null,
+                            selectedOptionLabel: answerValue?.selectedOptionLabel || null,
+                        };
+                    }).filter(Boolean);
+
+                    return ieltsApi.submitGuestAttempt(attemptId, timeTakenSeconds, guestAnswers);
+                }
+
+                return ieltsApi.submitAnswers(testId, 'WRITING', writingPayloadWithDrive, timeTakenSeconds);
+            })
             .then((resp) => {
                 clearDraftByTest('writing', testId);
                 localStorage.removeItem(`ieltsTimerDeadline_${timerPersistKey}`);
-                
+
+                if (driveUploadWarning) {
+                    alert(`Đã nộp bài thành công nhưng chưa lưu được bản sao lên Drive. Chi tiết: ${driveUploadWarning.message || 'Unknown error'}`);
+                }
+
                 // Nếu là bài tập, submit vào assignment API
                 if (assignmentId && resp?.attemptId) {
                     import('../utils/assignmentHelper').then(({ submitTestToAssignment }) => {
@@ -465,7 +699,7 @@ const IeltsWritingTest = () => {
                     });
                     return;
                 }
-                
+
                 if (isFullTest) { handleFullTestNext(); return; }
                 const completeParams = new URLSearchParams({
                     mode,
@@ -481,17 +715,15 @@ const IeltsWritingTest = () => {
             })
             .catch((err) => {
                 console.error('[Writing] Lỗi nộp bài:', err);
-                const completeParams = new URLSearchParams({
-                    mode,
-                    skill: 'writing',
-                    testId: String(testId),
-                });
-                if (mode === 'exam') {
-                    completeParams.set('allowReview', 'true');
-                }
-                const completeUrl = `/test/complete?${completeParams.toString()}`;
-                markTestSubmitted(timerPersistKey, completeUrl);
-                navigate(completeUrl);
+                const message = err?.message
+                    || err?.response?.data?.error
+                    || 'Không thể nộp bài Writing. Vui lòng thử lại.';
+                alert(message);
+            })
+            .finally(() => {
+                submitInFlightRef.current = false;
+                setIsSubmitting(false);
+                setSubmitStatusText('');
             });
     };
 
@@ -509,6 +741,18 @@ const IeltsWritingTest = () => {
         </div>
     );
     if (!testData) return <div style={{ padding: "50px" }}>No test data available</div>;
+
+    if (showGuestForm) {
+        return <GuestInfoForm
+            onSubmit={(data) => {
+                setGuestInfo(data);
+                sessionStorage.setItem('guestExamInfo', JSON.stringify(data));
+                setIsGuest(true);
+                setShowGuestForm(false);
+            }}
+            onCancel={() => navigate(-1)}
+        />;
+    }
 
     const parts = testData.parts || [];
     const part = parts[currentPartIndex];
@@ -533,7 +777,42 @@ const IeltsWritingTest = () => {
                 isNotesOpen={isNotesOpen}
                 onToggleNotes={() => setIsNotesOpen((v) => !v)}
                 mode={assignmentId ? 'practice' : mode}
+                hideSubmitButton={isSubmitting}
             />
+
+            {isSubmitting && (
+                <div
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        background: 'rgba(15, 23, 42, 0.42)',
+                        zIndex: 2500,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '20px',
+                    }}
+                >
+                    <div
+                        style={{
+                            minWidth: '280px',
+                            maxWidth: '92vw',
+                            background: '#ffffff',
+                            borderRadius: '12px',
+                            padding: '18px 20px',
+                            boxShadow: '0 20px 45px rgba(2, 6, 23, 0.28)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px',
+                        }}
+                    >
+                        <div className="test-loading-spinner" style={{ width: '24px', height: '24px', margin: 0 }}></div>
+                        <p style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: '#1f2937' }}>
+                            {submitStatusText || 'Đang nộp bài...'}
+                        </p>
+                    </div>
+                </div>
+            )}
 
             <div className="instruction-bar">
                 <h3 dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(part.title || '') }} />

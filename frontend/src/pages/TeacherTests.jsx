@@ -8,13 +8,16 @@ import {
   ChevronDown,
   AlertCircle,
   Loader2,
+  RefreshCw,
   FileText,
   Clock,
   CheckCircle2,
   Archive,
   Eye,
+  Link as LinkIcon,
 } from 'lucide-react';
 import DashboardLayout from '../components/layout/DashboardLayout';
+import PublicShareLinkModal from '../components/common/PublicShareLinkModal';
 import { testBuilderApi } from '../services/testBuilderApi';
 import { authApi } from '../services/authApi';
 
@@ -22,8 +25,10 @@ import { authApi } from '../services/authApi';
 const STATUS_CONFIG = {
   DRAFT:      { label: 'Nháp',             icon: FileText,     color: '#6b7280', bg: '#f3f4f6' },
   REVIEWING:  { label: 'Đang kiểm duyệt',  icon: Clock,        color: '#d97706', bg: '#fef3c7' },
+  TEST_EXAM:  { label: 'Test Exam',       icon: Eye,          color: '#7c3aed', bg: '#f3e8ff' },
   PUBLISHED:  { label: 'Đã xuất bản',      icon: CheckCircle2, color: '#16a34a', bg: '#dcfce7' },
   ARCHIVED:   { label: 'Lưu trữ',          icon: Archive,      color: '#9ca3af', bg: '#f3f4f6' },
+  DELETED:    { label: 'Thùng rác',        icon: Trash2,       color: '#dc2626', bg: '#fee2e2' },
 };
 
 const STATUS_OPTIONS = [
@@ -32,6 +37,7 @@ const STATUS_OPTIONS = [
 ];
 
 const TYPE_LABELS = { ACADEMIC: 'Academic', GENERAL: 'General Training' };
+const SUPPORTED_PUBLIC_SKILLS = ['LISTENING', 'READING', 'WRITING', 'SPEAKING'];
 
 /* ── Helpers ── */
 const formatDate = (iso) => {
@@ -39,6 +45,39 @@ const formatDate = (iso) => {
   return new Date(iso).toLocaleDateString('vi-VN', {
     day: '2-digit', month: '2-digit', year: 'numeric',
   });
+};
+
+const extractIncludedSkills = (test) => {
+  const sessions = Array.isArray(test?.sessions) ? test.sessions : [];
+  return sessions
+    .filter((session) => session?.isIncluded !== false)
+    .map((session) => String(session?.skillType || '').toUpperCase())
+    .filter(Boolean);
+};
+
+const resolvePublicSkill = (test) => {
+  const includedSkills = extractIncludedSkills(test);
+
+  for (const skill of SUPPORTED_PUBLIC_SKILLS) {
+    if (includedSkills.includes(skill)) return skill;
+  }
+
+  return null;
+};
+
+const skillToPathSegment = (skill) => {
+  switch (String(skill || '').toUpperCase()) {
+    case 'LISTENING':
+      return 'listening';
+    case 'READING':
+      return 'reading';
+    case 'WRITING':
+      return 'writing';
+    case 'SPEAKING':
+      return 'speaking';
+    default:
+      return null;
+  }
 };
 
 /* ── StatusBadge ── */
@@ -72,11 +111,11 @@ function ConfirmModal({ test, onConfirm, onCancel }) {
           <AlertCircle size={22} color="#dc2626" style={{ flexShrink: 0, marginTop: 2 }} />
           <div>
             <p style={{ fontWeight: 700, fontSize: 16, color: '#111827', marginBottom: 6 }}>
-              Xóa đề thi?
+              Cho vào thùng rác?
             </p>
             <p style={{ fontSize: 14, color: '#6b7280' }}>
-              Đề thi <strong>"{test.title || 'Không tên'}"</strong> sẽ bị xóa vĩnh viễn.
-              Hành động này không thể hoàn tác.
+              Đề thi <strong>"{test.title || 'Không tên'}"</strong> sẽ được chuyển vào thùng rác.
+              Bạn có thể khôi phục hoặc xóa vĩnh viễn sau nếu cần.
             </p>
           </div>
         </div>
@@ -97,7 +136,7 @@ function ConfirmModal({ test, onConfirm, onCancel }) {
               background: '#dc2626', color: '#fff', fontSize: 14, cursor: 'pointer', fontWeight: 600,
             }}
           >
-            Xóa
+            Cho vào thùng rác
           </button>
         </div>
       </div>
@@ -112,6 +151,8 @@ export default function TeacherTests() {
   // Kiểm tra quyền TEACHER
   const user = authApi.getStoredUser();
   const hasPermission = user?.roles?.some(r => ['TEACHER', 'MANAGER', 'ADMIN'].includes(r));
+  const isAdmin = authApi.hasRole('ADMIN');
+  const canRestoreTest = (test) => isAdmin || String(test?.createdByUsername || '') === String(user?.username || '');
 
   const [tests, setTests]           = useState([]);
   const [loading, setLoading]       = useState(true);
@@ -120,13 +161,23 @@ export default function TeacherTests() {
   const [statusFilter, setStatus]   = useState('');
   const [deleteTarget, setDeleteTarget] = useState(null); // test to confirm delete
   const [deleting, setDeleting]     = useState(false);
+  const [actionLoadingId, setActionLoadingId] = useState(null);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [shareModalTest, setShareModalTest] = useState(null);
+  const [shareModalSkill, setShareModalSkill] = useState('');
+  const [shareModalStatus, setShareModalStatus] = useState('');
+  const [shareData, setShareData] = useState(null);
+  const [shareLoading, setShareLoading] = useState(false);
+  const [shareError, setShareError] = useState('');
 
   const fetchTests = useCallback(async () => {
     if (!hasPermission) { setLoading(false); return; }
     setLoading(true);
     setError('');
     try {
-      const data = await testBuilderApi.getAllTests(statusFilter || undefined);
+      const data = isAdmin
+        ? await testBuilderApi.getAllTests(statusFilter || undefined)
+        : await testBuilderApi.getMyTests(statusFilter || undefined);
       setTests(Array.isArray(data) ? data : (data.content ?? []));
     } catch (err) {
       if (err.response?.status === 403) {
@@ -138,7 +189,7 @@ export default function TeacherTests() {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, hasPermission]);
+  }, [statusFilter, hasPermission, isAdmin]);
 
   useEffect(() => { fetchTests(); }, [fetchTests]);
 
@@ -147,7 +198,11 @@ export default function TeacherTests() {
     setDeleting(true);
     try {
       await testBuilderApi.deleteTest(deleteTarget.id);
-      setTests(prev => prev.filter(t => t.id !== deleteTarget.id));
+      if (statusFilter === 'DELETED') {
+        await fetchTests();
+      } else {
+        setTests(prev => prev.filter(t => t.id !== deleteTarget.id));
+      }
     } catch (err) {
       setError('Xóa đề thi thất bại. Vui lòng thử lại.');
     } finally {
@@ -156,15 +211,169 @@ export default function TeacherTests() {
     }
   };
 
+  const handleRestore = async (test) => {
+    if (!test?.id) return;
+    if (!canRestoreTest(test)) {
+      setError('Chỉ người tạo hoặc admin mới có thể khôi phục đề thi đã xóa.');
+      return;
+    }
+
+    setActionLoadingId(test.id);
+    setError('');
+    try {
+      await testBuilderApi.restoreTest(test.id);
+      await fetchTests();
+    } catch (err) {
+      setError(err?.response?.data?.error || 'Khôi phục đề thi thất bại. Vui lòng thử lại.');
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleCreatePublicLink = async (test) => {
+    if (!test?.id) return;
+
+    setShareModalTest(test);
+    setShareModalStatus(test?.status || '');
+    setShareModalOpen(true);
+    setShareData(null);
+    setShareError('');
+
+    const isShareable = ['PUBLISHED', 'TEST_EXAM'].includes(String(test?.status || '').toUpperCase());
+    if (!isShareable) {
+      setShareLoading(false);
+      return;
+    }
+
+    setShareLoading(true);
+
+    try {
+      const skill = await resolvePublicSkillForShare(test);
+      const pathSegment = skillToPathSegment(skill);
+      if (!pathSegment) {
+        setShareModalSkill('');
+        setShareLoading(false);
+        return;
+      }
+
+      const currentShare = await testBuilderApi.getCurrentShareLink(test.id, skill);
+      if (currentShare?.exists) {
+        setShareData(currentShare);
+        setShareModalSkill(skill);
+      } else {
+        setShareModalSkill(skill);
+      }
+    } catch (err) {
+      setShareError(err?.response?.data?.error || err?.message || 'Không thể kiểm tra link công khai.');
+    } finally {
+      setShareLoading(false);
+    }
+  };
+
+  const promoteToTestExamAndShare = async () => {
+    if (!shareModalTest?.id) return;
+
+    setShareLoading(true);
+    setShareError('');
+    try {
+      if (String(shareModalStatus || '').toUpperCase() !== 'TEST_EXAM') {
+        const updated = await testBuilderApi.updateTestStatus(shareModalTest.id, 'TEST_EXAM');
+        setShareModalTest((prev) => (prev ? { ...prev, ...updated, status: updated?.status || 'TEST_EXAM' } : prev));
+        setTests((prev) => prev.map((item) => (
+          item.id === shareModalTest.id ? { ...item, ...updated, status: updated?.status || 'TEST_EXAM' } : item
+        )));
+        setShareModalStatus('TEST_EXAM');
+      }
+
+      await createOrRefreshPublicLink(false);
+    } catch (err) {
+      setShareError(err?.response?.data?.error || err?.message || 'Không thể chuyển sang Test Exam.');
+    } finally {
+      setShareLoading(false);
+    }
+  };
+
+  const resolvePublicSkillForShare = async (test) => {
+    let skill = resolvePublicSkill(test);
+    if (skill) return skill;
+
+    try {
+      const fullTest = await testBuilderApi.loadFullTest(test.id);
+      const fallbackSkills = extractIncludedSkills(fullTest);
+      for (const supported of SUPPORTED_PUBLIC_SKILLS) {
+        if (fallbackSkills.includes(supported)) return supported;
+      }
+    } catch (err) {
+      console.warn('Không tải được chi tiết đề để xác định skill chia sẻ:', err);
+    }
+
+    return null;
+  };
+
+  const createOrRefreshPublicLink = async (refresh = false) => {
+    if (!shareModalTest?.id) return;
+
+    setShareLoading(true);
+    setShareError('');
+    try {
+      const skill = await resolvePublicSkillForShare(shareModalTest);
+      const pathSegment = skillToPathSegment(skill);
+      if (!pathSegment) {
+        throw new Error('Đề thi này chưa có kỹ năng hợp lệ để tạo link công khai.');
+      }
+
+      const generated = await testBuilderApi.generateShareLink(shareModalTest.id, skill, refresh);
+      setShareData(generated);
+      setShareModalSkill(skill);
+    } catch (err) {
+      setShareError(err?.response?.data?.error || err?.message || 'Không thể tạo link công khai.');
+    } finally {
+      setShareLoading(false);
+    }
+  };
+
+  const deletePublicLink = async () => {
+    if (!shareModalTest?.id) return;
+
+    setShareLoading(true);
+    setShareError('');
+    try {
+      const skill = await resolvePublicSkillForShare(shareModalTest);
+      const pathSegment = skillToPathSegment(skill);
+      if (!pathSegment) {
+        throw new Error('Đề thi này chưa có kỹ năng hợp lệ để xóa link công khai.');
+      }
+
+      await testBuilderApi.deactivateShareLink(shareModalTest.id, skill);
+      setShareData(null);
+      setShareModalOpen(false);
+    } catch (err) {
+      setShareError(err?.response?.data?.error || err?.message || 'Không thể xóa link công khai.');
+    } finally {
+      setShareLoading(false);
+    }
+  };
+
   /* Client-side search filter */
   const filtered = tests.filter(t => {
     const title = (t.title ?? '').toLowerCase();
-    return title.includes(search.toLowerCase());
+    if (!title.includes(search.toLowerCase())) return false;
+    if (statusFilter && t?.status !== statusFilter) return false;
+    if (!statusFilter && t?.status === 'DELETED') return false;
+    return true;
   });
+
+  const dashboardStats = {
+    total: tests.length,
+    published: tests.filter((test) => test.status === 'PUBLISHED').length,
+    testExam: tests.filter((test) => test.status === 'TEST_EXAM').length,
+    shareable: tests.filter((test) => ['PUBLISHED', 'TEST_EXAM'].includes(String(test.status || '').toUpperCase())).length,
+    deleted: tests.filter((test) => test.status === 'DELETED').length,
+  };
 
   return (
     <DashboardLayout>
-      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '28px 24px' }}>
+      <div style={pageShellStyle}>
 
         {!hasPermission && (
           <div style={{ textAlign: 'center', padding: '40px', background: '#fff3cd', borderRadius: 12, marginBottom: 24 }}>
@@ -179,61 +388,72 @@ export default function TeacherTests() {
           </div>
         )}
 
-        {/* ── Page title row ── */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+        <div style={heroStyle}>
           <div>
-            <h1 style={{ fontSize: 22, fontWeight: 700, color: '#111827', margin: 0 }}>Đề thi của tôi</h1>
-            <p style={{ fontSize: 14, color: '#6b7280', marginTop: 4 }}>Quản lý và chỉnh sửa các đề thi bạn đã tạo</p>
+            <div style={eyebrowStyle}>Teacher test hub</div>
+            <h1 style={heroTitleStyle}>Quản lý đề thi hiện đại</h1>
+            <p style={heroSubtitleStyle}>Theo dõi đề, đổi trạng thái, tạo link public và quản lý vòng đời bài thi từ một nơi.</p>
           </div>
-          <Link
-            to="/teacher/tests/new"
-            style={{
-              display: 'inline-flex', alignItems: 'center', gap: 8,
-              padding: '9px 18px', borderRadius: 8,
-              background: '#2563eb', color: '#fff', textDecoration: 'none',
-              fontSize: 14, fontWeight: 600, boxShadow: '0 1px 4px rgba(37,99,235,0.3)',
-              transition: 'background 0.15s',
-            }}
-            onMouseEnter={e => e.currentTarget.style.background = '#1d4ed8'}
-            onMouseLeave={e => e.currentTarget.style.background = '#2563eb'}
-          >
-            <FilePlus size={16} />
-            Tạo đề thi mới
-          </Link>
+          <div style={heroActionsStyle}>
+            <button
+              type="button"
+              onClick={() => setStatus('DELETED')}
+              style={statusPillStyle(statusFilter === 'DELETED', '#dc2626', '#fee2e2', '#fecaca')}
+            >
+              <Trash2 size={16} />
+              Thùng rác
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatus('')}
+              style={statusPillStyle(!statusFilter, '#334155', '#fff', '#cbd5e1')}
+            >
+              <RefreshCw size={16} />
+              Tất cả
+            </button>
+            <Link
+              to="/teacher/tests/new"
+              style={primaryCtaStyle}
+            >
+              <FilePlus size={16} />
+              Tạo đề thi mới
+            </Link>
+          </div>
         </div>
 
-        {/* ── Filters bar ── */}
-        <div style={{
-          display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center',
-          background: '#fff', padding: '14px 16px', borderRadius: 10,
-          border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-        }}>
+        <div style={statsGridStyle}>
+          <StatCard label="Tổng đề" value={dashboardStats.total} tone="#2563eb" hint="Tất cả đề đang quản lý" />
+          <StatCard label="Đã phát hành" value={dashboardStats.published} tone="#16a34a" hint="Sẵn sàng cho học viên" />
+          <StatCard label="Test Exam" value={dashboardStats.testExam} tone="#7c3aed" hint="Chỉ dùng cho link public" />
+          <StatCard label="Sẵn sàng chia sẻ" value={dashboardStats.shareable} tone="#0f766e" hint="PUBLISHED + TEST_EXAM" />
+        </div>
+
+        <div style={panelStyle}>
+          <div style={panelHeaderStyle}>
+            <div>
+              <div style={sectionLabelStyle}>Bộ lọc</div>
+              <div style={panelTitleStyle}>Tìm nhanh đề thi cần chỉnh sửa</div>
+            </div>
+            <span style={countBadgeStyle}>{filtered.length} đề thi</span>
+          </div>
+          <div style={filterRowStyle}>
           {/* Search */}
-          <div style={{ position: 'relative', flex: '1 1 220px', minWidth: 180 }}>
+          <div style={searchWrapStyle}>
             <Search size={15} color="#9ca3af" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Tìm theo tên đề thi..."
-              style={{
-                width: '100%', padding: '7px 12px 7px 32px',
-                border: '1px solid #d1d5db', borderRadius: 7,
-                fontSize: 13, outline: 'none', boxSizing: 'border-box',
-                color: '#374151', background: '#f9fafb',
-              }}
+              style={searchInputStyle}
             />
           </div>
 
           {/* Status filter */}
-          <div style={{ position: 'relative' }}>
+          <div style={selectWrapStyle}>
             <select
               value={statusFilter}
               onChange={e => setStatus(e.target.value)}
-              style={{
-                padding: '7px 30px 7px 12px', border: '1px solid #d1d5db', borderRadius: 7,
-                fontSize: 13, color: '#374151', background: '#f9fafb',
-                appearance: 'none', cursor: 'pointer', outline: 'none',
-              }}
+              style={selectStyle}
             >
               {STATUS_OPTIONS.map(o => (
                 <option key={o.value} value={o.value}>{o.label}</option>
@@ -242,18 +462,12 @@ export default function TeacherTests() {
             <ChevronDown size={13} color="#9ca3af" style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
           </div>
 
-          <span style={{ fontSize: 13, color: '#6b7280', marginLeft: 'auto' }}>
-            {filtered.length} đề thi
-          </span>
+          </div>
         </div>
 
         {/* ── Error ── */}
         {error && (
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px',
-            background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8,
-            color: '#dc2626', fontSize: 14, marginBottom: 16,
-          }}>
+          <div style={errorBannerStyle}>
             <AlertCircle size={16} />
             {error}
           </div>
@@ -261,16 +475,13 @@ export default function TeacherTests() {
 
         {/* ── Loading ── */}
         {loading ? (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '60px 0', gap: 10, color: '#6b7280' }}>
+          <div style={loadingStyle}>
             <Loader2 size={20} style={{ animation: 'spin 1s linear infinite' }} />
             <span>Đang tải...</span>
           </div>
         ) : filtered.length === 0 ? (
           /* ── Empty state ── */
-          <div style={{
-            textAlign: 'center', padding: '60px 24px',
-            background: '#fff', borderRadius: 12, border: '1px dashed #d1d5db',
-          }}>
+          <div style={emptyStateStyle}>
             <FileText size={40} color="#d1d5db" style={{ margin: '0 auto 16px' }} />
             <p style={{ fontSize: 16, fontWeight: 600, color: '#374151', marginBottom: 8 }}>
               {search || statusFilter ? 'Không tìm thấy đề thi phù hợp' : 'Bạn chưa có đề thi nào'}
@@ -281,15 +492,7 @@ export default function TeacherTests() {
                 : 'Hãy tạo đề thi đầu tiên của bạn ngay bây giờ'}
             </p>
             {!search && !statusFilter && (
-              <Link
-                to="/teacher/tests/new"
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 8,
-                  padding: '9px 20px', borderRadius: 8,
-                  background: '#2563eb', color: '#fff', textDecoration: 'none',
-                  fontSize: 14, fontWeight: 600,
-                }}
-              >
+              <Link to="/teacher/tests/new" style={primaryCtaStyle}>
                 <FilePlus size={15} />
                 Tạo đề thi đầu tiên
               </Link>
@@ -297,13 +500,17 @@ export default function TeacherTests() {
           </div>
         ) : (
           /* ── Test cards ── */
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={listStackStyle}>
             {filtered.map(test => (
               <TestRow
                 key={test.id}
                 test={test}
                 onEdit={() => navigate(`/teacher/tests/${test.id}/edit`)}
                 onDelete={() => setDeleteTarget(test)}
+                onCreatePublicLink={() => handleCreatePublicLink(test)}
+                onRestore={() => handleRestore(test)}
+                canRestore={canRestoreTest(test)}
+                actionLoading={actionLoadingId === test.id}
               />
             ))}
           </div>
@@ -319,13 +526,34 @@ export default function TeacherTests() {
         />
       )}
 
-      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+      <PublicShareLinkModal
+        isOpen={shareModalOpen}
+        onClose={() => {
+          if (shareLoading) return;
+          setShareModalOpen(false);
+        }}
+        onConfirm={() => createOrRefreshPublicLink(false)}
+        onRefresh={() => createOrRefreshPublicLink(true)}
+        onDelete={deletePublicLink}
+        onPromoteAndCreate={promoteToTestExamAndShare}
+        canSharePublicly={['PUBLISHED', 'TEST_EXAM'].includes(String(shareModalStatus || '').toUpperCase())}
+        loading={shareLoading}
+        error={shareError}
+        shareData={shareData}
+        testTitle={shareModalTest?.title}
+        skillLabel={shareModalSkill}
+        testStatus={shareModalStatus}
+      />
+
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      .share-badge { display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:700; }
+      `}</style>
     </DashboardLayout>
   );
 }
 
 /* ── TestRow ── */
-function TestRow({ test, onEdit, onDelete }) {
+function TestRow({ test, onEdit, onDelete, onCreatePublicLink, onRestore, canRestore, actionLoading }) {
   const [hovered, setHovered] = useState(false);
 
   return (
@@ -362,6 +590,10 @@ function TestRow({ test, onEdit, onDelete }) {
           </span>
           <span style={{ color: '#d1d5db', fontSize: 12 }}>·</span>
           <span style={{ fontSize: 12, color: '#6b7280' }}>
+            Tạo bởi: {test.createdByUsername || '—'}
+          </span>
+          <span style={{ color: '#d1d5db', fontSize: 12 }}>·</span>
+          <span style={{ fontSize: 12, color: '#6b7280' }}>
             Tạo ngày: {formatDate(test.createdAt)}
           </span>
           {test.updatedAt && test.updatedAt !== test.createdAt && (
@@ -380,32 +612,53 @@ function TestRow({ test, onEdit, onDelete }) {
 
       {/* Actions */}
       <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-        <ActionBtn
-          icon={<Pencil size={14} />}
-          label="Chỉnh sửa"
-          onClick={onEdit}
-          color="#2563eb"
-          bgHover="#eff6ff"
-        />
-        <ActionBtn
-          icon={<Trash2 size={14} />}
-          label="Xóa"
-          onClick={onDelete}
-          color="#dc2626"
-          bgHover="#fef2f2"
-        />
+        {test.status === 'DELETED' ? (
+          <ActionBtn
+            icon={actionLoading ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <RefreshCw size={14} />}
+            label="Khôi phục"
+            onClick={onRestore}
+            color="#0f766e"
+            bgHover="#ecfeff"
+            disabled={actionLoading || !canRestore}
+          />
+        ) : (
+          <>
+            <ActionBtn
+              icon={<Pencil size={14} />}
+              label="Chỉnh sửa"
+              onClick={onEdit}
+              color="#2563eb"
+              bgHover="#eff6ff"
+            />
+            <ActionBtn
+              icon={<LinkIcon size={14} />}
+              label="Link công khai"
+              onClick={onCreatePublicLink}
+              color="#0f766e"
+              bgHover="#ecfeff"
+            />
+            <ActionBtn
+              icon={<Trash2 size={14} />}
+              label="Thùng rác"
+              onClick={onDelete}
+              color="#dc2626"
+              bgHover="#fef2f2"
+            />
+          </>
+        )}
       </div>
     </div>
   );
 }
 
-function ActionBtn({ icon, label, onClick, color, bgHover }) {
+function ActionBtn({ icon, label, onClick, color, bgHover, disabled = false }) {
   const [h, setH] = useState(false);
   return (
     <button
       onClick={onClick}
       onMouseEnter={() => setH(true)}
       onMouseLeave={() => setH(false)}
+      disabled={disabled}
       title={label}
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 5,
@@ -414,6 +667,7 @@ function ActionBtn({ icon, label, onClick, color, bgHover }) {
         color: h ? color : '#6b7280',
         fontSize: 12, fontWeight: 500, cursor: 'pointer',
         transition: 'all 0.15s',
+        opacity: disabled ? 0.6 : 1,
       }}
     >
       {icon}
@@ -421,3 +675,256 @@ function ActionBtn({ icon, label, onClick, color, bgHover }) {
     </button>
   );
 }
+
+function StatCard({ label, value, tone, hint }) {
+  return (
+    <div style={statCardStyle(tone)}>
+      <div style={statValueStyle}>{value}</div>
+      <div style={statLabelStyle}>{label}</div>
+      <div style={statHintStyle}>{hint}</div>
+    </div>
+  );
+}
+
+const pageShellStyle = {
+  maxWidth: 1200,
+  margin: '0 auto',
+  padding: '28px 24px 40px',
+};
+
+const heroStyle = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  gap: 20,
+  alignItems: 'flex-start',
+  marginBottom: 18,
+  padding: 22,
+  borderRadius: 24,
+  background: 'linear-gradient(135deg, #ffffff 0%, #eff6ff 100%)',
+  border: '1px solid #dbeafe',
+  boxShadow: '0 18px 50px rgba(37, 99, 235, 0.08)',
+};
+
+const eyebrowStyle = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  padding: '4px 10px',
+  borderRadius: 999,
+  background: '#dbeafe',
+  color: '#1d4ed8',
+  fontSize: 11,
+  fontWeight: 700,
+  letterSpacing: '0.06em',
+  textTransform: 'uppercase',
+};
+
+const heroTitleStyle = {
+  margin: '10px 0 0',
+  fontSize: 28,
+  fontWeight: 800,
+  letterSpacing: '-0.02em',
+  color: '#0f172a',
+};
+
+const heroSubtitleStyle = {
+  margin: '10px 0 0',
+  maxWidth: 720,
+  color: '#475569',
+  fontSize: 14.5,
+  lineHeight: 1.6,
+};
+
+const heroActionsStyle = {
+  display: 'flex',
+  gap: 10,
+  flexWrap: 'wrap',
+  justifyContent: 'flex-end',
+};
+
+const primaryCtaStyle = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 8,
+  padding: '10px 16px',
+  borderRadius: 14,
+  background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+  color: '#fff',
+  textDecoration: 'none',
+  fontSize: 14,
+  fontWeight: 700,
+  boxShadow: '0 10px 24px rgba(37, 99, 235, 0.18)',
+};
+
+const statusPillStyle = (active, color, bg, borderColor) => ({
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 8,
+  padding: '10px 16px',
+  borderRadius: 14,
+  background: bg,
+  color,
+  fontSize: 14,
+  fontWeight: 700,
+  border: `1px solid ${borderColor}`,
+  cursor: 'pointer',
+  boxShadow: active ? '0 8px 20px rgba(0,0,0,0.06)' : 'none',
+});
+
+const statsGridStyle = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+  gap: 12,
+  marginBottom: 18,
+};
+
+const statCardStyle = (tone) => ({
+  padding: 18,
+  borderRadius: 18,
+  background: '#fff',
+  border: `1px solid ${tone}22`,
+  boxShadow: '0 12px 32px rgba(15, 23, 42, 0.06)',
+  position: 'relative',
+  overflow: 'hidden',
+});
+
+const statValueStyle = {
+  fontSize: 28,
+  fontWeight: 800,
+  letterSpacing: '-0.03em',
+  color: '#0f172a',
+};
+
+const statLabelStyle = {
+  marginTop: 4,
+  fontSize: 13,
+  fontWeight: 700,
+  color: '#334155',
+};
+
+const statHintStyle = {
+  marginTop: 4,
+  fontSize: 12,
+  color: '#64748b',
+  lineHeight: 1.45,
+};
+
+const panelStyle = {
+  padding: 16,
+  borderRadius: 22,
+  background: '#fff',
+  border: '1px solid #e2e8f0',
+  boxShadow: '0 12px 32px rgba(15, 23, 42, 0.06)',
+  marginBottom: 16,
+};
+
+const panelHeaderStyle = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  gap: 12,
+  marginBottom: 12,
+};
+
+const sectionLabelStyle = {
+  fontSize: 11,
+  fontWeight: 700,
+  color: '#64748b',
+  textTransform: 'uppercase',
+  letterSpacing: '0.08em',
+};
+
+const panelTitleStyle = {
+  fontSize: 16,
+  fontWeight: 800,
+  color: '#0f172a',
+  marginTop: 4,
+};
+
+const countBadgeStyle = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  padding: '6px 10px',
+  borderRadius: 999,
+  background: '#eff6ff',
+  color: '#1d4ed8',
+  fontSize: 12,
+  fontWeight: 700,
+};
+
+const filterRowStyle = {
+  display: 'flex',
+  gap: 12,
+  flexWrap: 'wrap',
+  alignItems: 'center',
+};
+
+const searchWrapStyle = {
+  position: 'relative',
+  flex: '1 1 260px',
+  minWidth: 220,
+};
+
+const searchInputStyle = {
+  width: '100%',
+  padding: '12px 12px 12px 34px',
+  border: '1px solid #dbe3ef',
+  borderRadius: 14,
+  fontSize: 13.5,
+  outline: 'none',
+  boxSizing: 'border-box',
+  color: '#0f172a',
+  background: '#f8fafc',
+};
+
+const selectWrapStyle = {
+  position: 'relative',
+};
+
+const selectStyle = {
+  padding: '12px 34px 12px 14px',
+  border: '1px solid #dbe3ef',
+  borderRadius: 14,
+  fontSize: 13.5,
+  color: '#0f172a',
+  background: '#f8fafc',
+  appearance: 'none',
+  cursor: 'pointer',
+  outline: 'none',
+};
+
+const errorBannerStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 8,
+  padding: '14px 16px',
+  background: '#fef2f2',
+  border: '1px solid #fecaca',
+  borderRadius: 14,
+  color: '#dc2626',
+  fontSize: 14,
+  marginBottom: 16,
+};
+
+const loadingStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: '64px 0',
+  gap: 10,
+  color: '#64748b',
+};
+
+const emptyStateStyle = {
+  textAlign: 'center',
+  padding: '72px 24px',
+  background: '#fff',
+  borderRadius: 22,
+  border: '1px dashed #cbd5e1',
+  boxShadow: '0 12px 32px rgba(15, 23, 42, 0.04)',
+};
+
+const listStackStyle = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 12,
+};

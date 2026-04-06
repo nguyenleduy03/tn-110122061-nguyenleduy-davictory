@@ -106,9 +106,94 @@ function mapQuestionType(questionTypeCode) {
   }
 }
 
+function resolveImageWidthPercent(value, fallback = 100) {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string') {
+    const parsed = Number.parseFloat(value.replace('%', '').trim());
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return fallback;
+}
+
+function resolvePinBoxWidthPx(value, fallback = 60) {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string') {
+    const parsed = Number.parseFloat(value.replace('px', '').trim());
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return fallback;
+}
+
+function resolveDbQuestionNumber(question) {
+  const parsed = Number(question?.questionNumber ?? question?.number ?? null);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function parseAlternativeAnswers(rawValue) {
+  if (!rawValue) return [];
+
+  if (Array.isArray(rawValue)) {
+    return rawValue
+      .map((item) => String(item || '').trim())
+      .filter(Boolean);
+  }
+
+  const normalized = String(rawValue || '').trim();
+  if (!normalized) return [];
+
+  if (normalized.startsWith('[') && normalized.endsWith(']')) {
+    try {
+      const parsed = JSON.parse(normalized);
+      if (Array.isArray(parsed)) {
+        return parsed
+          .map((item) => String(item || '').trim())
+          .filter(Boolean);
+      }
+    } catch {
+      // Keep fallback parsing below for legacy non-JSON values.
+    }
+  }
+
+  return normalized
+    .split(/\r?\n|\|/g)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function collectAcceptedAnswers(answerItems = []) {
+  const seen = new Set();
+  const accepted = [];
+
+  for (const item of (answerItems || [])) {
+    const candidates = [];
+
+    if (item?.answerText) {
+      candidates.push(String(item.answerText).trim());
+    }
+
+    const alternatives = parseAlternativeAnswers(item?.alternativeAnswers);
+    for (const alt of alternatives) {
+      candidates.push(alt);
+    }
+
+    for (const candidate of candidates) {
+      const value = String(candidate || '').trim();
+      if (!value) continue;
+
+      const key = value.toLowerCase();
+      if (seen.has(key)) continue;
+
+      seen.add(key);
+      accepted.push(value);
+    }
+  }
+
+  return accepted;
+}
+
 // ─── Transform 1 question group từ BE → FE question(s) ──────────────
 // Priority: check group.contentType FIRST, then fallback to questionTypeCode
-async function transformGroup(baseUrl, group, globalCounterRef) {
+async function transformGroup(baseUrl, group) {
   const questions = group.questions || [];
   const contentType = (group.contentType || '').toUpperCase();
 
@@ -152,7 +237,7 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
   } else if (contentType === 'SENTENCE_COMPLETION') {
     feType = 'fill-in-the-blank';
   } else if (contentType === 'SHORT_ANSWER_GROUP' || contentType === 'SHORT_ANSWER') {
-    feType = 'fill-in-the-blank';
+    feType = 'short-answer-group';
   } else if (contentType === 'SHARED_OPTIONS_DROPDOWN') {
     feType = 'mcq_dropdown_group';
   } else if (contentType === 'SPEAKING_CUECARD' || contentType === 'SPEAKING_INTERVIEW' || contentType === 'SPEAKING_DISCUSSION') {
@@ -167,7 +252,7 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
     }
 
     return questions.map((q) => {
-      const num = globalCounterRef.counter++;
+      const num = resolveDbQuestionNumber(q);
 
       if (contentType === 'SPEAKING_CUECARD') {
         // Clean bulletPoints: remove empty strings and extract text from HTML lists
@@ -206,7 +291,6 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
       if (contentType === 'SPEAKING_INTERVIEW' || contentType === 'SPEAKING_DISCUSSION') {
         // Filter out questions with empty questionText
         if (!q.questionText || !q.questionText.trim()) {
-          globalCounterRef.counter--; // Don't count empty questions
           return null;
         }
 
@@ -268,7 +352,7 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
     });
 
     const subQuestions = questions.map((q) => {
-      const num = globalCounterRef.counter++;
+      const num = resolveDbQuestionNumber(q);
       const letter = ((q.answers || [])[0]?.answerText || '').trim();
       return {
         id: `q${q.id}`,
@@ -295,10 +379,129 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
       optionsTableTitle: optionsTableTitleHtml,
       questionTitle: questionTitleHtml,
       imageUrl: group.imageUrl || '',
-      imageWidth: group.imageWidth || 100,
+      imageWidth: resolveImageWidthPercent(group.imageWidth),
       hideOptionsTable: meta.hideOptionsTable || false,
       sharedOptions,
       subQuestions,
+    }];
+  }
+
+  // ─── SHORT_ANSWER_GROUP → flatten theo blankIndex / sample row ─────────
+  if (feType === 'short-answer-group') {
+    const orderedQuestions = [...questions].sort((a, b) => Number(a?.orderIndex || 0) - Number(b?.orderIndex || 0));
+
+    const subQuestions = [];
+
+    orderedQuestions.forEach((question, questionIdx) => {
+      const rawAnswers = Array.isArray(question?.answers) ? [...question.answers] : [];
+      const orderedAnswers = rawAnswers.sort((a, b) => {
+        const aIndex = Number(a?.blankIndex || 0);
+        const bIndex = Number(b?.blankIndex || 0);
+        if (aIndex !== bIndex) return aIndex - bIndex;
+        return Number(a?.id || 0) - Number(b?.id || 0);
+      });
+
+      const placeholderCount = Math.max(
+        Number(question?.questionCount || 0) || 0,
+        orderedAnswers.length,
+        1,
+      );
+
+      const usedBlankIndices = new Set();
+
+      orderedAnswers.forEach((ans, answerIdx) => {
+        const blankIndex = Number.isFinite(Number(ans?.blankIndex)) && Number(ans?.blankIndex) > 0
+          ? Number(ans.blankIndex)
+          : (answerIdx + 1);
+        usedBlankIndices.add(blankIndex);
+
+        subQuestions.push({
+          id: `q${question.id}_b${blankIndex}_${answerIdx}`,
+          questionId: question.id,
+          number: blankIndex,
+          blankIndex,
+          rowIndex: answerIdx,
+          isSample: Boolean(ans?.isSample),
+          text: formatTextWithWhitespace(question?.questionText || question?.blankContext || ''),
+          answerText: ans?.answerText || '',
+          alternativeAnswers: ans?.alternativeAnswers || null,
+          wordLimit: ans?.wordLimit || null,
+          isCaseSensitive: Boolean(ans?.isCaseSensitive),
+          questionOrderIndex: questionIdx,
+        });
+      });
+
+      for (let i = 1; subQuestions.filter((row) => row.questionId === question.id).length < placeholderCount; i += 1) {
+        if (usedBlankIndices.has(i)) continue;
+        usedBlankIndices.add(i);
+        subQuestions.push({
+          id: `q${question.id}_b${i}_placeholder`,
+          questionId: question.id,
+          number: i,
+          blankIndex: i,
+          rowIndex: orderedAnswers.length + subQuestions.filter((row) => row.questionId === question.id).length,
+          isSample: false,
+          text: formatTextWithWhitespace(question?.questionText || question?.blankContext || ''),
+          answerText: '',
+          alternativeAnswers: null,
+          wordLimit: null,
+          isCaseSensitive: false,
+          questionOrderIndex: questionIdx,
+        });
+      }
+    });
+
+    const orderedRows = subQuestions.sort((a, b) => {
+      if (a.questionOrderIndex !== b.questionOrderIndex) {
+        return a.questionOrderIndex - b.questionOrderIndex;
+      }
+      if (a.blankIndex !== b.blankIndex) {
+        return a.blankIndex - b.blankIndex;
+      }
+      if (a.isSample !== b.isSample) {
+        return a.isSample ? 1 : -1;
+      }
+      return a.rowIndex - b.rowIndex;
+    });
+
+    const rowsWithDisplayNumbers = [];
+    const rangeStart = Number(group?.fromQuestion ?? group?.questionFrom ?? null);
+    const firstQuestionNumber = resolveDbQuestionNumber(orderedQuestions[0]);
+    const hasRangeStart = Number.isFinite(rangeStart) && rangeStart > 0;
+    const hasFirstQuestionNumber = Number.isFinite(firstQuestionNumber) && firstQuestionNumber > 0;
+
+    let runningDisplayNumber = hasRangeStart
+      ? rangeStart
+      : (hasFirstQuestionNumber ? firstQuestionNumber : 1);
+
+    orderedRows.forEach((row) => {
+      if (row.isSample) {
+        rowsWithDisplayNumbers.push({
+          ...row,
+          displayNumber: null,
+          number: null,
+        });
+        return;
+      }
+
+      const displayNumber = runningDisplayNumber;
+      runningDisplayNumber += 1;
+
+      rowsWithDisplayNumbers.push({
+        ...row,
+        displayNumber,
+        number: displayNumber,
+      });
+    });
+
+    return [{
+      id: `group-${group.questionGroupId || group.id}`,
+      type: 'short-answer-group',
+      questionTypeCode: typeCode || 'SHORT_ANSWER',
+      title: formatTextWithWhitespace(group.title || ''),
+      groupInstruction: formatTextWithWhitespace(group.instructions || ''),
+      subQuestions: rowsWithDisplayNumbers,
+      validationOptions: group.validationOptions || null,
     }];
   }
 
@@ -309,13 +512,14 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
       const isMultiSelect = feType === 'multiple-choice' && correctOpts.length > 1;
       const selectCount = isMultiSelect ? correctOpts.length : 0;
 
-      const num = globalCounterRef.counter;
+      const num = resolveDbQuestionNumber(q);
+      const rawQuestionCount = Number(q?.questionCount);
+      const questionCount = Number.isFinite(rawQuestionCount) && rawQuestionCount > 0
+        ? Math.floor(rawQuestionCount)
+        : (isMultiSelect ? Math.max(1, selectCount) : 1);
       let numberRange = null;
-      if (isMultiSelect) {
-        numberRange = Array.from({ length: selectCount }, (_, i) => num + i);
-        globalCounterRef.counter += selectCount;
-      } else {
-        globalCounterRef.counter += 1;
+      if (questionCount > 1 && num != null) {
+        numberRange = Array.from({ length: questionCount }, (_, i) => num + i);
       }
 
       const optionsList = (q.options || []).length > 0
@@ -369,7 +573,7 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
     }
 
     const subQuestions = questions.map((q) => {
-      const num = globalCounterRef.counter++;
+      const num = resolveDbQuestionNumber(q);
       const correctAnswer = (q.answers || [])[0]?.answerText || '';
       return { id: `q${q.id}`, number: num, text: q.questionText || '', correctAnswer };
     });
@@ -389,14 +593,15 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
 
   // ─── NOTE_COMPLETION → 1 group question ────────────────────────────
   if (feType === 'note-completion') {
+    const orderedQuestions = [...questions].sort((a, b) => Number(a?.questionNumber || 0) - Number(b?.questionNumber || 0));
     let imageUrl = group.imageUrl || null;
-    let imageWidth = group.imageWidth || 100;
+    let imageWidth = resolveImageWidthPercent(group.imageWidth);
     const instructions = formatTextWithWhitespace(group.instructions || '');
     let noteText = group.passageText || group.title || '';
     let imagePosition = null;
     let topNoteText = '';
     let bottomNoteText = '';
-    let pinBoxWidth = group.pinBoxWidth || 60;
+    let pinBoxWidth = resolvePinBoxWidthPx(group.pinBoxWidth, 60);
 
     if (contentType === 'IMAGE_NOTE_FORM' && group.passageText) {
       try {
@@ -406,8 +611,8 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
         topNoteText = parsed.topNoteText ?? fallbackTopText;
         bottomNoteText = parsed.bottomNoteText ?? fallbackBottomText;
         imagePosition = parsed.imagePosition || 'top';
-        imageWidth = parsed.imageWidth || imageWidth;
-        pinBoxWidth = parsed.pinBoxWidth || pinBoxWidth;
+        imageWidth = resolveImageWidthPercent(parsed.imageWidth, imageWidth);
+        pinBoxWidth = resolvePinBoxWidthPx(parsed.pinBoxWidth, pinBoxWidth);
 
         const imageHtml = imageUrl
           ? `<div class="image-note-form-image" style="margin: 16px auto; text-align: center;"><img src="${imageUrl}" alt="Question diagram" style="max-width: ${imageWidth}%; height: auto; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" /></div>`
@@ -430,11 +635,18 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
     const blankCount = (noteText.match(/\[blank\]/gi) || []).length;
     const totalBlanks = Math.max(blankCount, questions.length);
     const subQuestions = Array.from({ length: totalBlanks }, (_, idx) => {
-      const q = questions[idx] || null;
-      const num = globalCounterRef.counter++;
+      const q = orderedQuestions[idx] || null;
+      const num = q ? resolveDbQuestionNumber(q) : null;
       const correctAnswer = q ? ((q.answers || [])[0]?.answerText || '') : '';
       const id = q ? `q${q.id}` : `tmp-note-${group.questionGroupId || group.id}-${idx + 1}`;
-      return { id, number: num, correctAnswer };
+      return {
+        id,
+        number: num,
+        correctAnswer,
+        top: q?.pinY !== null && q?.pinY !== undefined ? `${q.pinY}%` : null,
+        left: q?.pinX !== null && q?.pinX !== undefined ? `${q.pinX}%` : null,
+        questionMode: q?.questionMode || (q?.pinX !== null && q?.pinX !== undefined ? 'image-pin' : 'note-blank'),
+      };
     });
 
     return [{
@@ -463,7 +675,7 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
     const totalBlanks = Math.max(blankCount, questions.length);
     const subQuestions = Array.from({ length: totalBlanks }, (_, idx) => {
       const q = questions[idx] || null;
-      const num = globalCounterRef.counter++;
+      const num = q ? resolveDbQuestionNumber(q) : null;
       const correctAnswer = q ? ((q.answers || [])[0]?.answerText || '') : '';
       const id = q ? `q${q.id}` : `tmp-summary-${group.questionGroupId || group.id}-${idx + 1}`;
       return { id, number: num, correctAnswer };
@@ -508,7 +720,7 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
     const totalBlanks = Math.max(blankCount, questions.length);
     const subQuestions = Array.from({ length: totalBlanks }, (_, idx) => {
       const q = questions[idx] || null;
-      const num = globalCounterRef.counter++;
+      const num = q ? resolveDbQuestionNumber(q) : null;
       const correctAnswer = q ? ((q.answers || [])[0]?.answerText || '') : '';
       const id = q ? `q${q.id}` : `tmp-summary-select-${group.questionGroupId || group.id}-${idx + 1}`;
       return { id, number: num, correctAnswer };
@@ -531,7 +743,7 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
   // ─── FLOW_CHART → 1 group question ───────────────────────────────
   if (feType === 'flow_chart') {
     const subQuestions = questions.map((q) => {
-      const num = globalCounterRef.counter++;
+      const num = resolveDbQuestionNumber(q);
       const correctAnswer = (q.answers || [])[0]?.answerText || '';
       return { id: `q${q.id}`, number: num, correctAnswer };
     });
@@ -620,8 +832,9 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
       }
     }
 
-    const subQuestions = questions.map((q) => {
-      const num = globalCounterRef.counter++;
+    const orderedQuestions = [...questions].sort((a, b) => Number(a?.questionNumber || 0) - Number(b?.questionNumber || 0));
+    const subQuestions = orderedQuestions.map((q) => {
+      const num = resolveDbQuestionNumber(q);
       const correctAnswer = (q.answers || [])[0]?.answerText
         || (q.options || []).find(o => o.isCorrect)?.optionText
         || '';
@@ -653,8 +866,8 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
       instruction,
       rightTitle: formatTextWithWhitespace(parsedMapMeta.rightTitle || ''),
       imageUrl: group.imageUrl || null,
-      imageWidth: parsedMapMeta.imageWidth ?? 100,
-      pinBoxWidth: parsedMapMeta.pinBoxWidth ?? 60,
+      imageWidth: resolveImageWidthPercent(parsedMapMeta.imageWidth),
+      pinBoxWidth: resolvePinBoxWidthPx(parsedMapMeta.pinBoxWidth, 60),
       constrainHalfPage: Boolean(parsedMapMeta.constrainHalfPage),
       allowOptionReuse: (typeof parsedMapMeta.allowOptionReuse === 'boolean') ? parsedMapMeta.allowOptionReuse : true,
       bankOptions,
@@ -705,7 +918,7 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
     }
 
     const subQuestions = questions.map((q) => {
-      const num = globalCounterRef.counter++;
+      const num = resolveDbQuestionNumber(q);
 
       const correctAnswer = (q.answers || [])[0]?.answerText
         || (q.options || []).find(o => o.isCorrect)?.optionText
@@ -767,7 +980,7 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
 
     // Transform questions - each question is a row in the table
     const subQuestions = questions.map((q) => {
-      const num = globalCounterRef.counter++;
+      const num = resolveDbQuestionNumber(q);
       const correctAnswer = (q.answers || [])[0]?.answerText
         || (q.options || []).find(o => o.isCorrect)?.optionText
         || '';
@@ -797,7 +1010,7 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
   // ─── MATCHING_FILLABLE → 1 group question (fill-in variant) ───────────
   if (feType === 'matching_fillable') {
     const subQuestions = questions.map((q) => {
-      const num = globalCounterRef.counter++;
+      const num = resolveDbQuestionNumber(q);
       const correctAnswer = (q.answers || [])[0]?.answerText || '';
       return {
         id: q.id,
@@ -830,7 +1043,7 @@ async function transformGroup(baseUrl, group, globalCounterRef) {
 
   // Fallback: đối xử như fill-in-the-blank
   return questions.map((q) => {
-    const num = globalCounterRef.counter++;
+    const num = resolveDbQuestionNumber(q);
     return {
       id: `q${q.id}`,
       number: num,
@@ -870,9 +1083,6 @@ export const ieltsApi = {
     }
 
     if (!targetSession) throw new Error(`Bài thi chưa có nội dung cho kỹ năng ${targetMode}. Vui lòng tạo câu hỏi trước.`);
-
-    // counter dùng chung toàn bộ transform (pass by ref)
-    const globalCounterRef = { counter: 1 };
 
     let listeningAudioPlayCount = 1;
 
@@ -959,7 +1169,7 @@ export const ieltsApi = {
           }
 
           // Transform group's questions using transformGroup()
-          const transformedQuestions = await transformGroup(baseUrl, group, globalCounterRef);
+          const transformedQuestions = await transformGroup(baseUrl, group);
 
           transformedGroups.push({
             ...group,
@@ -1226,10 +1436,33 @@ export const ieltsApi = {
       let selectedOptionLabel = null;
       let matchingAnswer = null;
 
+      const toNullableText = (rawValue) => {
+        if (rawValue === null || rawValue === undefined) return null;
+        const text = String(rawValue).trim();
+        return text === '' ? null : text;
+      };
+
       if (Array.isArray(value)) {
         matchingAnswer = JSON.stringify(value);
       } else if (value && typeof value === 'object') {
-        matchingAnswer = JSON.stringify(value);
+        const hasExplicitAnswerFields =
+          Object.prototype.hasOwnProperty.call(value, 'textAnswer')
+          || Object.prototype.hasOwnProperty.call(value, 'selectedOptionLabel')
+          || Object.prototype.hasOwnProperty.call(value, 'matchingAnswer');
+
+        if (hasExplicitAnswerFields) {
+          textAnswer = toNullableText(value.textAnswer);
+          selectedOptionLabel = toNullableText(value.selectedOptionLabel);
+
+          const explicitMatching = value.matchingAnswer;
+          if (explicitMatching !== null && explicitMatching !== undefined && explicitMatching !== '') {
+            matchingAnswer = typeof explicitMatching === 'string'
+              ? explicitMatching
+              : JSON.stringify(explicitMatching);
+          }
+        } else {
+          matchingAnswer = JSON.stringify(value);
+        }
       } else if (typeof value === 'string') {
         textAnswer = value;
         selectedOptionLabel = value;

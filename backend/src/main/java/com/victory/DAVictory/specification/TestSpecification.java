@@ -20,6 +20,11 @@ public class TestSpecification {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
 
+            // Mặc định ẩn đề đã xóa khỏi danh sách thường; chỉ hiện khi filter status = DELETED.
+            if (filter.getStatus() == null) {
+                predicates.add(criteriaBuilder.notEqual(root.get("status"), com.victory.DAVictory.enums.TestStatus.DELETED));
+            }
+
             // 1. Search theo title (case-insensitive)
             if (filter.getSearch() != null && !filter.getSearch().trim().isEmpty()) {
                 String searchPattern = "%" + filter.getSearch().trim().toLowerCase() + "%";

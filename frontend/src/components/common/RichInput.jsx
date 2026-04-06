@@ -16,6 +16,13 @@ import { sanitizeRichPasteHtml, serializeContentEditableHtml } from '../../utils
 const RichInput = ({ value, onChange, placeholder, style, multiline, className, rows }) => {
   const ref = useRef(null);
 
+  const escapeHtml = (text) => String(text || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
   useEffect(() => {
     if (ref.current && ref.current !== document.activeElement) {
       ref.current.innerHTML = value || '';
@@ -67,8 +74,13 @@ const RichInput = ({ value, onChange, placeholder, style, multiline, className, 
         }}
         onPaste={(e) => {
           e.preventDefault();
-          const text = e.clipboardData.getData('text/html') || e.clipboardData.getData('text/plain');
-          const cleaned = sanitizeRichPasteHtml(text);
+          const pastedHtml = e.clipboardData.getData('text/html');
+          const pastedText = e.clipboardData.getData('text/plain');
+          const cleaned = pastedHtml
+            ? sanitizeRichPasteHtml(pastedHtml)
+            : (multiline
+                ? escapeHtml(pastedText).replace(/\r\n?/g, '\n').replace(/\n/g, '<br/>')
+                : sanitizeRichPasteHtml(pastedText));
           document.execCommand('insertHTML', false, cleaned);
           onChange(serializeContentEditableHtml(ref.current));
         }}

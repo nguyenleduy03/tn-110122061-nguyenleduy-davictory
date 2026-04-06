@@ -13,6 +13,7 @@ import com.google.api.client.util.store.FileDataStoreFactory;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.DriveScopes;
 import com.google.api.services.drive.model.File;
+import com.google.api.services.drive.model.FileList;
 import com.google.api.services.drive.model.Permission;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -485,5 +486,49 @@ public class GoogleDriveOAuth2Service {
 
     public void deleteFile(String fileId) throws Exception {
         getDriveService().files().delete(fileId).execute();
+    }
+
+    public void deleteFolderByPath(String folderPath) throws Exception {
+        if (folderPath == null || folderPath.isBlank()) {
+            return;
+        }
+
+        String folderId = findFolderIdForPath(folderPath);
+        if (folderId == null) {
+            log.warn("Không tìm thấy folder Drive theo path: {}", folderPath);
+            return;
+        }
+
+        deleteFolderRecursive(folderId);
+    }
+
+    public void deleteFolderRecursive(String folderId) throws Exception {
+        if (folderId == null || folderId.isBlank()) {
+            return;
+        }
+
+        Drive service = getDriveService();
+        String pageToken = null;
+
+        do {
+            FileList children = service.files().list()
+                    .setQ(String.format("'%s' in parents and trashed=false", folderId))
+                    .setSpaces("drive")
+                    .setFields("nextPageToken, files(id, mimeType)")
+                    .setPageToken(pageToken)
+                    .execute();
+
+            for (File child : children.getFiles()) {
+                if ("application/vnd.google-apps.folder".equals(child.getMimeType())) {
+                    deleteFolderRecursive(child.getId());
+                } else {
+                    service.files().delete(child.getId()).execute();
+                }
+            }
+
+            pageToken = children.getNextPageToken();
+        } while (pageToken != null && !pageToken.isBlank());
+
+        service.files().delete(folderId).execute();
     }
 }

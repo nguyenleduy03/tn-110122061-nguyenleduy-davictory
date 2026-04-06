@@ -114,11 +114,7 @@ const SummaryCompletionSelectQuestion = ({ q, activeQuestion, setActiveQuestion,
             .replace(/\u00A0/g, ' ')
             .replace(/\\t|\/t|\t/g, '    ');
 
-        if (/<[a-z][\s\S]*>/i.test(withMarkers)) {
-            return withMarkers.replace(/\\n/g, '<br/>');
-        }
-
-        return withMarkers.replace(/\\n|\n/g, '<br/>');
+        return withMarkers.replace(/\\n|\r?\n/g, '<br/>');
     };
 
     const toReactStyleObject = (rawStyle) => {
@@ -159,16 +155,56 @@ const SummaryCompletionSelectQuestion = ({ q, activeQuestion, setActiveQuestion,
 
     const mapDomAttributesToProps = (node, key) => {
         const props = { key };
+        const tagName = String(node?.tagName || '').toLowerCase();
+        const rawStyle = String(node?.getAttribute?.('style') || '');
+        const hasFontTagFace = Boolean(node?.hasAttribute?.('face'));
+        const hasFontTagSize = Boolean(node?.hasAttribute?.('size'));
+        const hasFontOverride = hasFontTagFace || hasFontTagSize || /(?:^|;)\s*(?:font-size|font-family|font)\s*:/i.test(rawStyle);
+        const hasSpecialTag = ['strong', 'b', 'em', 'i', 'u', 'mark', 'sup', 'sub', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(tagName);
+        const hasSpecialInlineStyle = /(?:^|;)\s*(?:font-weight|font-style|text-decoration|text-align|color|background(?:-color)?|text-transform|letter-spacing|word-spacing)\s*:/i.test(rawStyle);
+        const hasSpecialAlignAttr = /^(center|right|justify)$/i.test(String(node?.getAttribute?.('align') || ''));
+        const hasSpecialDescendant = typeof node?.querySelector === 'function' && Boolean(
+            node.querySelector('strong,b,em,i,u,mark,sup,sub,h1,h2,h3,h4,h5,h6,[align="center"],[align="right"],[align="justify"],[style*="font-weight"],[style*="font-style"],[style*="text-decoration"],[style*="text-align"],[style*="color"],[style*="background"],[style*="text-transform"],[style*="letter-spacing"],[style*="word-spacing"]')
+        );
+        const shouldPreserveTypographyOverride = hasSpecialTag || hasSpecialInlineStyle || hasSpecialAlignAttr || (hasFontOverride && hasSpecialDescendant);
+
         Array.from(node.attributes || []).forEach((attr) => {
             const attrName = String(attr.name || '').toLowerCase();
             if (!attrName || attrName === 'contenteditable' || attrName.startsWith('on')) return;
+            if (attrName === 'face') {
+                if (!shouldPreserveTypographyOverride) return;
+                const faceValue = String(attr.value || '').trim();
+                if (faceValue) {
+                    props.style = { ...(props.style || {}), fontFamily: faceValue };
+                }
+                return;
+            }
+            if (attrName === 'size') {
+                if (!shouldPreserveTypographyOverride) return;
+                const rawSize = String(attr.value || '').trim();
+                const htmlSizeMap = { 1: 10, 2: 13, 3: 16, 4: 18, 5: 24, 6: 32, 7: 48 };
+                if (/^\d+$/.test(rawSize)) {
+                    const mapped = htmlSizeMap[Number(rawSize)] || 16;
+                    props.style = { ...(props.style || {}), fontSize: `${mapped}px` };
+                } else if (/^\d+(?:\.\d+)?(?:px|pt|em|rem|%)$/i.test(rawSize)) {
+                    props.style = { ...(props.style || {}), fontSize: rawSize };
+                }
+                return;
+            }
             if (attrName === 'class') {
                 props.className = attr.value;
                 return;
             }
             if (attrName === 'style') {
                 const styleObj = toReactStyleObject(attr.value);
-                if (styleObj) props.style = { ...(props.style || {}), ...styleObj };
+                if (styleObj) {
+                    if (!shouldPreserveTypographyOverride) {
+                        delete styleObj.fontSize;
+                        delete styleObj.fontFamily;
+                        delete styleObj.font;
+                    }
+                    props.style = { ...(props.style || {}), ...styleObj };
+                }
                 return;
             }
             if (attrName === 'align') {
@@ -191,44 +227,57 @@ const SummaryCompletionSelectQuestion = ({ q, activeQuestion, setActiveQuestion,
             const seqIndex = blankState.cursor;
             const subQ = questionData.subQuestions?.[seqIndex] || null;
             blankState.cursor += 1;
-            const fallbackNum = seqIndex + 1;
-            const qNum = subQ?.number ?? fallbackNum;
-            const qId = subQ ? subQ.id : `q${qNum}`;
+            const qNum = subQ?.number ?? null;
+            const qId = subQ?.id ?? null;
             return { subQ, qNum, qId };
         }
 
         const subQ = questionData.subQuestions?.find((sq) => Number(sq.number) === numeric) || null;
-        const qNum = subQ?.number ?? numeric;
-        const qId = subQ ? subQ.id : `q${qNum}`;
+        const qNum = subQ?.number ?? (Number.isFinite(numeric) ? numeric : null);
+        const qId = subQ?.id ?? null;
         return { subQ, qNum, qId };
     };
 
     const renderDropToken = (tokenValue, key, blankState) => {
         const { subQ, qNum, qId } = resolveTokenTarget(tokenValue, blankState);
-        const isActive = activeQuestion === qNum;
-        const answer = answers?.[qId] || '';
+        const isActive = qNum != null && activeQuestion === qNum;
+        const answer = qId ? (answers?.[qId] || '') : '';
         const isCorrect = answer === subQ?.correctAnswer;
         const displayAnswer = (isReview && !isCorrect) ? subQ?.correctAnswer : answer;
+        const hasDisplayAnswer = String(displayAnswer || '').trim() !== '';
+        const answerCharWidth = Math.max(8, String(displayAnswer || '').length + 2);
+        const dynamicWidth = hasDisplayAnswer
+            ? `clamp(96px, ${answerCharWidth}ch, 420px)`
+            : 'var(--answer-input-width)';
 
         return (
             <span
                 key={key}
-                id={`question-${qNum}`}
-                className={`inline-question summary-inline-item ${isActive ? 'active-question-input' : ''} ${Boolean(bookmarks?.[qNum]) ? 'bookmarked-question-input' : ''} relative-pos`}
-                onClick={() => setActiveQuestion?.(qNum)}
+                id={qNum != null ? `question-${qNum}` : undefined}
+                className={`inline-question summary-inline-item ${isActive ? 'active-question-input' : ''} ${qNum != null && Boolean(bookmarks?.[qNum]) ? 'bookmarked-question-input' : ''} relative-pos`}
+                onClick={() => { if (qNum != null) setActiveQuestion?.(qNum); }}
             >
                 <span
-                    ref={(el) => { if (inputRefs?.current) inputRefs.current[qNum] = el; }}
-                    className={`inline-input summary-input drag-drop-blank ${isReview ? (isCorrect ? 'review-correct' : 'review-wrong') : ''}`}
-                    onDrop={(e) => handleDrop(e, qId, qNum)}
+                    ref={(el) => {
+                        if (!inputRefs?.current) return;
+                        if (qNum != null) inputRefs.current[qNum] = el;
+                    }}
+                    className={`inline-input summary-input drag-drop-blank ${hasDisplayAnswer ? 'has-answer' : ''} ${isReview ? (isCorrect ? 'review-correct' : 'review-wrong') : ''}`}
+                    onDrop={(e) => { if (qId && qNum != null) handleDrop(e, qId, qNum); }}
                     onDragOver={handleDragOver}
-                    onClick={() => { if (!isReview) setActiveQuestion?.(qNum); }}
-                    style={{ minWidth: 120, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', cursor: isReview ? 'default' : 'pointer' }}
+                    onClick={() => { if (!isReview && qNum != null) setActiveQuestion?.(qNum); }}
+                    style={{
+                        cursor: isReview ? 'default' : 'pointer',
+                        width: dynamicWidth,
+                        minWidth: hasDisplayAnswer ? '96px' : 'var(--answer-input-width)',
+                        maxWidth: hasDisplayAnswer ? '420px' : 'var(--answer-input-width)',
+                        justifyContent: hasDisplayAnswer ? 'flex-start' : 'center',
+                    }}
                 >
                     {displayAnswer ? (
                         <span
-                            draggable={!isReview}
-                            onDragStart={(e) => { if (!isReview) handleDragStart(e, displayAnswer, qId); }}
+                            draggable={!isReview && Boolean(qId)}
+                            onDragStart={(e) => { if (!isReview && qId) handleDragStart(e, displayAnswer, qId); }}
                             style={{
                                 cursor: isReview ? 'default' : 'grab',
                                 padding: '2px 4px'
@@ -237,7 +286,7 @@ const SummaryCompletionSelectQuestion = ({ q, activeQuestion, setActiveQuestion,
                             {displayAnswer}
                         </span>
                     ) : (
-                        <span style={{ color: '#9ca3af' }}>{qNum}</span>
+                        <span style={{ color: '#9ca3af' }}>{qNum ?? ''}</span>
                     )}
                 </span>
             </span>

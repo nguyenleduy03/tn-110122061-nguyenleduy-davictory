@@ -78,6 +78,7 @@ public class TestFullResponse {
         private Long id;
         private Integer questionNumber;
         private Integer questionCount; // Số câu hỏi hiển thị
+        private String questionSection; // top | image | bottom cho IMAGE_NOTE_FORM
         private String groupInstruction; // Instruction chung cho nhóm câu
         private String questionText;
         private String blankContext;
@@ -108,6 +109,7 @@ public class TestFullResponse {
         private String answerText;
         private String alternativeAnswers;
         private Boolean isCaseSensitive;
+        private Boolean isSample;
         private Integer blankIndex;
         private String wordLimit;
     }

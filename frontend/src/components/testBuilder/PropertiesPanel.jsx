@@ -501,6 +501,7 @@ const QuestionPanel = ({ question, onChange, onDelete }) => {
             value={answers[0]?.answerText ?? ''}
             onChange={(e) =>
               onChange({
+                answerText: e.target.value,
                 answers: [{ ...(answers[0] ?? { blankIndex: 0, isCaseSensitive: false }), answerText: e.target.value }],
               })
             }

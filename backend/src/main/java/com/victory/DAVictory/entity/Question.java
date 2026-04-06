@@ -49,6 +49,9 @@ public class Question {
     @Column(columnDefinition = "TEXT")
     private String questionText; // Nội dung câu hỏi / yêu cầu
 
+    @Column(length = 20)
+    private String questionSection; // top | image | bottom cho IMAGE_NOTE_FORM
+
     @Column(columnDefinition = "TEXT")
     private String blankContext;
     // Câu chứa chỗ trống, ví dụ: "The event starts at ___"

@@ -19,7 +19,6 @@ import {
   Timer,
   Target,
   Laptop,
-  Eye,
 } from 'lucide-react';
 import Navbar from '../components/layout/Navbar';
 import { API_CONFIG } from '../config/api';
@@ -106,11 +105,13 @@ const isAnsweredValue = (value) => {
 
 const hasMeaningfulSkillDraft = (skill, payload) => {
   if (!payload || typeof payload !== 'object') return false;
+  const hasSavedDraftMetadata = Number(payload.savedAt) > 0 || Object.keys(payload).length > 0;
 
   if (skill === 'WRITING') {
     const answers = payload.writingAnswers;
-    if (!answers || typeof answers !== 'object') return false;
-    return Object.values(answers).some((v) => typeof v === 'string' && v.trim() !== '');
+    const hasAnswers = answers && typeof answers === 'object'
+      && Object.values(answers).some((v) => typeof v === 'string' && v.trim() !== '');
+    return Boolean(hasAnswers || hasSavedDraftMetadata);
   }
 
   if (skill === 'READING' || skill === 'LISTENING') {
@@ -119,14 +120,16 @@ const hasMeaningfulSkillDraft = (skill, payload) => {
     const hasAnswers = answers && typeof answers === 'object' && Object.values(answers).some(isAnsweredValue);
     const hasBookmarks = bookmarks && typeof bookmarks === 'object' && Object.values(bookmarks).some(Boolean);
     const hasMovedPart = Number(payload.currentPartIndex) > 0;
-    return Boolean(hasAnswers || hasBookmarks || hasMovedPart);
+    return Boolean(hasAnswers || hasBookmarks || hasMovedPart || hasSavedDraftMetadata);
   }
 
   if (skill === 'SPEAKING') {
-    return Number(payload.recordedQuestionCount) > 0 || Number(payload.currentPartIdx) > 0;
+    return Boolean(Number(payload.recordedQuestionCount) > 0 || Number(payload.currentPartIdx) > 0 || hasSavedDraftMetadata);
   }
 
-  return false;
+  // Realtime timer keys may not exist anymore; a saved draft itself means
+  // the attempt is in progress until the user submits (draft is cleared on submit).
+  return hasSavedDraftMetadata;
 };
 
 const parseResumeFromTimerKey = (storageKey, skill, testId) => {
@@ -143,36 +146,6 @@ const parseResumeFromTimerKey = (storageKey, skill, testId) => {
   return {
     mode: match[1] || 'practice',
   };
-};
-
-// Scan sessionStorage for any submitted lock matching skill + testId → return redirectUrl or null
-const getSubmittedResultUrl = (skill, testId) => {
-  if (typeof window === 'undefined') return null;
-  const safeSkill = String(skill || '').toLowerCase();
-  const safeTestId = String(testId || '').trim();
-  if (!safeSkill || !safeTestId) return null;
-
-  // Only show "Xem kết quả" for Reading/Listening (auto-grading skills)
-  const isObjectiveSkill = safeSkill === 'listening' || safeSkill === 'reading';
-  if (!isObjectiveSkill) return null;
-
-  // Check if user has already viewed the result
-  const viewedKey = `ieltsResultViewed_${safeSkill}_${safeTestId}`;
-  if (localStorage.getItem(viewedKey)) {
-    return null; // Already viewed, don't show "Xem kết quả"
-  }
-
-  // Pattern: ieltsSubmittedLock_{skill}_{testId}_*
-  const prefix = `ieltsSubmittedLock_${safeSkill}_${safeTestId}_`;
-  for (let i = 0; i < sessionStorage.length; i++) {
-    const key = sessionStorage.key(i);
-    if (!key || !key.startsWith(prefix)) continue;
-    try {
-      const payload = JSON.parse(sessionStorage.getItem(key) || '');
-      if (payload && payload.redirectUrl) return { key, redirectUrl: payload.redirectUrl };
-    } catch { /* ignore */ }
-  }
-  return null;
 };
 
 // Check if test has been completed (submitted or viewed result)
@@ -293,9 +266,8 @@ function SeriesDetail({ series, index, onBack, fullTestProgress }) {
       const testId = String(skillGroups[skill]?.[0]?.id || '');
       if (!testId) return;
 
-      // Skip resume detection if test has been submitted (submitted lock exists)
-      // UI will show "Xem kết quả" based on realtime submitted check.
-      if (getSubmittedResultUrl(skill, testId)) return;
+      // Skip resume detection for completed tests.
+      if (isTestCompleted(skill, testId)) return;
 
       const prefix = `ieltsDraft_${skill.toLowerCase()}_`;
       const suffix = `_${testId}`;
@@ -536,15 +508,12 @@ function SeriesDetail({ series, index, onBack, fullTestProgress }) {
           const m = SKILL_META[skill];
           const tests = skillGroups[skill];
           const testId = tests?.[0]?.id;
-          const submitted = testId ? getSubmittedResultUrl(skill, testId) : null;
           const isCompleted = testId ? isTestCompleted(skill, testId) : false;
           const hasResume = skillResumeMap[skill];
-          
+
           // Determine button text
           let buttonText;
-          if (submitted) {
-            buttonText = <><Eye size={15} color="white" /> Xem kết quả</>;
-          } else if (isCompleted) {
+          if (isCompleted) {
             buttonText = <><Zap size={15} fill="white" color="white" /> Làm lại</>;
           } else if (hasResume) {
             buttonText = <><Zap size={15} fill="white" color="white" /> Tiếp tục</>;
@@ -562,15 +531,8 @@ function SeriesDetail({ series, index, onBack, fullTestProgress }) {
               <button
                 type="button"
                 className="skill-card-btn"
-                style={{ background: submitted ? '#16a34a' : m.btnColor }}
+                style={{ background: m.btnColor }}
                 onClick={() => {
-                  const latestSubmitted = testId ? getSubmittedResultUrl(skill, testId) : null;
-                  if (latestSubmitted) {
-                    // Navigate to results and clear the lock
-                    sessionStorage.removeItem(latestSubmitted.key);
-                    navigate(latestSubmitted.redirectUrl);
-                    return;
-                  }
                   const resume = skillResumeMap[skill];
                   if (resume) {
                     const rawQuery = String(resume.queryString || '').replace(/^\?/, '');
@@ -608,14 +570,14 @@ function SeriesDetail({ series, index, onBack, fullTestProgress }) {
           </div>
         </div>
         <button className="full-test-start-btn" onClick={() => setShowFullTestModal(true)}>
-          <Zap size={15} fill="white" color="white" /> 
+          <Zap size={15} fill="white" color="white" />
           {(() => {
             // Check if all skills completed
             const allSkillsCompleted = available.every(skill => {
               const testId = skillGroups[skill]?.[0]?.id;
               return testId && isTestCompleted(skill, testId);
             });
-            
+
             if (allSkillsCompleted) return 'Làm lại';
             if (hasSavedFullTestProgress) return 'Tiếp tục';
             return 'Bắt đầu';

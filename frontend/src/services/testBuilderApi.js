@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { API_CONFIG } from '../config/api';
+import { normalizeImageNoteFormQuestions } from '../utils/imageNoteForm';
 
 const apiClient = axios.create({
   baseURL: API_CONFIG.BASE_URL,
@@ -142,6 +143,13 @@ export const testBuilderApi = {
     return res.data;
   },
 
+  // ─── Danh sách đề thi của tôi ─────────────────────────────────
+  getMyTests: async (status) => {
+    const url = status ? `/tests/my-tests?status=${encodeURIComponent(status)}` : '/tests/my-tests';
+    const res = await apiClient.get(url);
+    return res.data;
+  },
+
   // ─── Xóa đề thi ──────────────────────────────────────────────
   deleteTest: async (testId) => {
     await apiClient.delete(`/test-builder/${testId}`);
@@ -156,6 +164,49 @@ export const testBuilderApi = {
   updateTestStatus: async (testId, status) => {
     const res = await apiClient.put(`/tests/${testId}/status`, null, {
       params: { status },
+    });
+    return res.data;
+  },
+
+  // ─── Khôi phục đề thi từ thùng rác ──────────────────────────
+  restoreTest: async (testId) => {
+    const res = await apiClient.put(`/tests/${testId}/restore`);
+    return res.data;
+  },
+
+  // ─── Tạo / làm mới link chia sẻ công khai ────────────────────
+  generateShareLink: async (testId, skillType, refresh = false) => {
+    const res = await apiClient.post('/test-share/generate', {
+      testId,
+      skillType,
+      refresh,
+    });
+    return res.data;
+  },
+
+  // ─── Validate link chia sẻ công khai (không cần auth) ────────
+  validateShareLink: async (testId, skillType, token) => {
+    const url = `${API_CONFIG.BASE_URL}/public/test-share/validate?testId=${encodeURIComponent(testId)}&skillType=${encodeURIComponent(skillType)}&token=${encodeURIComponent(token)}`;
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!res.ok) return { valid: false };
+    return await res.json();
+  },
+
+  // ─── Lấy link chia sẻ hiện tại nếu đã có ─────────────────────
+  getCurrentShareLink: async (testId, skillType) => {
+    const res = await apiClient.get('/test-share/current', {
+      params: { testId, skillType },
+    });
+    return res.data;
+  },
+
+  // ─── Xóa / vô hiệu hóa link chia sẻ hiện tại ────────────────
+  deactivateShareLink: async (testId, skillType) => {
+    const res = await apiClient.delete('/test-share/deactivate', {
+      params: { testId, skillType },
     });
     return res.data;
   },
@@ -179,11 +230,6 @@ export const testBuilderApi = {
 export function buildSavePayload(test, sessions, structure, createdByUserId, existingTestId = null, sessionDurationsOverride = null) {
   const sessionPayloads = [];
 
-  const getGroupQuestionCount = (group) => {
-    if (group?.contentType === 'AUDIO_TRANSCRIPT') return 0;
-    return (group?.questions ?? []).reduce((sum, q) => sum + (q.questionCount || 1), 0);
-  };
-
   // Xác định skills cần gửi: full test = tất cả, single = chỉ 1 skill
   const isFullTest = test.isFullTest ?? true;
   const allowedSkills = isFullTest
@@ -203,33 +249,13 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
     const hasContent = parts.some(p => (p.questionGroups?.length ?? 0) > 0);
     if (!hasContent) continue;
 
-    // Tính startQuestionNumber cho mỗi part trong session
-    let sessionQuestionNumber = 1;
-    const partsWithQuestionNumbers = parts.map(part => {
-      const partStartNumber = sessionQuestionNumber;
-      const calculatedQuestionsInPart = (part.questionGroups || []).reduce((sum, group) => {
-        return sum + getGroupQuestionCount(group);
-      }, 0);
-      const configuredQuestionsInPart = Number(part.totalQuestions || 0);
-      const totalQuestionsInPart = Math.max(
-        calculatedQuestionsInPart,
-        Number.isFinite(configuredQuestionsInPart) ? configuredQuestionsInPart : 0
-      );
-      sessionQuestionNumber += totalQuestionsInPart;
-
-      return { ...part, startQuestionNumber: partStartNumber };
-    });
-
-    const partPayloads = partsWithQuestionNumbers.map((part, partIdx) => {
+    const partPayloads = parts.map((part, partIdx) => {
       // Tìm Part ID từ structure dựa trên orderIndex
       const structPart = structInfo.parts.find(sp => sp.orderIndex === part.orderIndex)
         || structInfo.parts[partIdx];
 
       // Lưu tất cả groups kể cả READING_PASSAGE
       const questionGroups = part.questionGroups || [];
-
-      // Tính questionNumber liên tục trong part
-      let partQuestionNumber = (part.startQuestionNumber || 1) - 1;
 
       return {
         partId: structPart?.partId,
@@ -247,7 +273,7 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
             audioUrl: group.audioUrl || null,
             audioPlayCount: group.audioPlayCount ?? 1,
             imageUrl: group.imageUrl || null,
-            imageWidth: group.imageWidth || null,
+            imageWidth: group.imageWidth ?? null,
             fromQuestion: group.fromQuestion || null,
             toQuestion: group.toQuestion || null,
             orderIndex: gIdx + 1,
@@ -266,10 +292,22 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
               console.log(`   - answerText: "${q.answerText}"`);
               console.log(`   - existing answers: ${q.answers?.length || 0}`);
 
-              // Tính questionCount cho MCQ multiple
-              const questionCount = q.questionCount || 1;
-              const currentQuestionNumber = partQuestionNumber + 1;
-              partQuestionNumber += questionCount; // Tăng theo questionCount
+              // Luôn lấy questionNumber trực tiếp từ dữ liệu câu hỏi (DB/UI state), không tự đếm ở FE.
+              const rawQuestionNumber = Number(q?.questionNumber);
+              const currentQuestionNumber = Number.isFinite(rawQuestionNumber) ? rawQuestionNumber : null;
+
+              // Short Answer: questionCount = số đáp án thật (không phải sample)
+              let questionCount;
+              if (group.contentType === 'SHORT_ANSWER_GROUP') {
+                const answers = Array.isArray(q?.answers) ? q.answers : [];
+                const realAnswers = answers.filter(ans => !ans.isSample);
+                questionCount = Math.max(1, realAnswers.length);
+              } else {
+                const rawQuestionCount = Number(q?.questionCount);
+                questionCount = Number.isFinite(rawQuestionCount) && rawQuestionCount > 0
+                  ? Math.floor(rawQuestionCount)
+                  : 1;
+              }
 
               // Debug drag matching
               if (group.contentType === 'DRAG_MATCHING') {
@@ -295,6 +333,50 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
               // Xây dựng answers[] để gửi lên backend
               let answers;
 
+              const normalizeAnswerList = (sourceAnswers, fallbackText = '') => {
+                const rawAnswers = Array.isArray(sourceAnswers) ? sourceAnswers : [];
+                const mappedAnswers = rawAnswers
+                  .map((ans, idx) => {
+                    if (typeof ans === 'string') {
+                      return {
+                        answerText: ans,
+                        alternativeAnswers: null,
+                        isCaseSensitive: false,
+                        blankIndex: idx + 1,
+                        wordLimit: null,
+                        isSample: false,
+                      };
+                    }
+
+                    return {
+                      answerText: ans?.answerText || '',
+                      alternativeAnswers: ans?.alternativeAnswers || null,
+                      isCaseSensitive: ans?.isCaseSensitive || false,
+                      blankIndex: ans?.blankIndex || idx + 1,
+                      wordLimit: ans?.wordLimit || null,
+                      isSample: ans?.isSample || false,
+                    };
+                  })
+                  .filter((ans) => ans.answerText !== '' || ans.alternativeAnswers || ans.wordLimit != null);
+
+                if (mappedAnswers.length > 0) {
+                  return mappedAnswers;
+                }
+
+                if (fallbackText != null && String(fallbackText).trim() !== '') {
+                  return [{
+                    answerText: fallbackText,
+                    alternativeAnswers: null,
+                    isCaseSensitive: false,
+                    blankIndex: 1,
+                    wordLimit: null,
+                    isSample: false,
+                  }];
+                }
+
+                return [];
+              };
+
               // Đặc biệt xử lý DRAG_MATCHING, MATCHING_FEATURES, SUMMARY_COMPLETION_SELECT - luôn tạo answer cho mọi câu hỏi
               if (group.contentType === 'DRAG_MATCHING' || group.contentType === 'MATCHING_FEATURES' || group.contentType === 'SUMMARY_COMPLETION_SELECT') {
                 const existingAnswer = q.answers?.[0];
@@ -304,21 +386,12 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
                   isCaseSensitive: existingAnswer?.isCaseSensitive || false,
                   blankIndex: existingAnswer?.blankIndex || 1,
                   wordLimit: existingAnswer?.wordLimit || null,
+                  isSample: existingAnswer?.isSample || false,
                 }];
                 console.log(`   ✅ ${group.contentType} answer created: "${answers[0].answerText}"`);
               } else if (isTextAnswer) {
-                // Logic cũ cho các loại khác (gồm MCQ_DROPDOWN: một chữ A/B/C…)
-                const existingAnswer = q.answers?.[0];
-                const textAns = (q.answerText != null && q.answerText !== '')
-                  ? q.answerText
-                  : (existingAnswer?.answerText ?? '');
-                answers = [{
-                  answerText: textAns,
-                  alternativeAnswers: existingAnswer?.alternativeAnswers || null,
-                  isCaseSensitive: existingAnswer?.isCaseSensitive || false,
-                  blankIndex: existingAnswer?.blankIndex || 1,
-                  wordLimit: existingAnswer?.wordLimit || null,
-                }];
+                // Giữ toàn bộ danh sách đáp án cho short answer / fill blank.
+                answers = normalizeAnswerList(q.answers, q.answerText);
               } else {
                 answers = [];
               }
@@ -331,6 +404,7 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
               const result = {
                 questionTypeCode: typeCode,
                 questionNumber: currentQuestionNumber,
+                questionSection: q.questionSection || null,
                 questionText: q.questionText || '',
                 blankContext: q.blankContext || null,
                 pinX: q.pinX ?? null,
@@ -424,6 +498,88 @@ function sanitizeCompletionTitle(value, contentType) {
   return value || '';
 }
 
+function countBlankTokens(text = '') {
+  const value = String(text || '');
+  const markerMatches = value.match(/\[blank\]|\(ô trống\)/gi) || [];
+
+  if (!value.includes('<')) {
+    return markerMatches.length;
+  }
+
+  try {
+    const root = document.createElement('div');
+    root.innerHTML = value;
+    const chipCount = root.querySelectorAll('[data-blank="true"], .rbe-blank').length;
+    return markerMatches.length + chipCount;
+  } catch {
+    return markerMatches.length;
+  }
+}
+
+function isImagePinQuestion(q) {
+  return q?.questionMode === 'image-pin' || (q?.pinX != null && q?.pinY != null);
+}
+
+function isNoteBlankQuestion(q) {
+  return q?.questionMode === 'note-blank' || !isImagePinQuestion(q);
+}
+
+function toFinitePinPercent(value) {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string') {
+    const parsed = Number.parseFloat(value.replace('%', '').trim());
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return null;
+}
+
+function buildImageNotePinCoordinates(group) {
+  const questions = group?.questions || [];
+  return questions
+    .filter(isImagePinQuestion)
+    .map((q) => {
+      const questionNumber = Number(q?.questionNumber);
+      const pinX = toFinitePinPercent(q?.pinX);
+      const pinY = toFinitePinPercent(q?.pinY);
+
+      if (!Number.isFinite(questionNumber) || pinX === null || pinY === null) return null;
+      return {
+        questionNumber,
+        pinX: Number(pinX.toFixed(4)),
+        pinY: Number(pinY.toFixed(4)),
+      };
+    })
+    .filter(Boolean);
+}
+
+function normalizeImageNoteFormGroup(group) {
+  if (group?.contentType !== 'IMAGE_NOTE_FORM') return group;
+
+  const questions = group.questions || [];
+  const imagePosition = group.imagePosition || 'middle';
+  const topNoteText = group.topNoteText ?? (group.imagePosition === 'bottom' ? '' : (group.noteText || ''));
+  const bottomNoteText = group.bottomNoteText ?? (group.imagePosition === 'bottom' ? (group.noteText || '') : '');
+  const topBlankCount = countBlankTokens(topNoteText);
+
+  const imagePins = questions.filter(isImagePinQuestion);
+  const noteBlanks = questions.filter(isNoteBlankQuestion);
+
+  const orderedQuestions = imagePosition === 'top'
+    ? [...imagePins, ...noteBlanks]
+    : imagePosition === 'bottom'
+      ? [...noteBlanks, ...imagePins]
+      : [...noteBlanks.slice(0, topBlankCount), ...imagePins, ...noteBlanks.slice(topBlankCount)];
+
+  const startNumber = Number(group.fromQuestion || 1);
+  const normalizedQuestions = orderedQuestions.map((q, idx) => ({
+    ...q,
+    questionNumber: startNumber + idx,
+    orderIndex: idx + 1,
+  }));
+
+  return { ...group, questions: normalizedQuestions };
+}
+
 // ─── Serialize nội dung group thành passageText (JSON) ───────────
 
 function serializeGroupContent(group, part) {
@@ -467,14 +623,16 @@ function serializeGroupContent(group, part) {
     const topNoteText = group.topNoteText ?? (group.imagePosition === 'bottom' ? '' : (group.noteText || ''));
     const bottomNoteText = group.bottomNoteText ?? (group.imagePosition === 'bottom' ? (group.noteText || '') : '');
     const combinedNoteText = [topNoteText, bottomNoteText].filter(Boolean).join('\n\n');
+    const pinCoordinates = buildImageNotePinCoordinates(group);
     return JSON.stringify({
       noteText: combinedNoteText || group.noteText || '',
       topNoteText,
       bottomNoteText,
       instructions: group.instructions || '',
       imagePosition: group.imagePosition || 'top',
-      imageWidth: group.imageWidth || 100,
-      pinBoxWidth: group.pinBoxWidth || 60,
+      imageWidth: group.imageWidth ?? 100,
+      pinBoxWidth: group.pinBoxWidth ?? 60,
+      pinCoordinates,
     });
   }
   // Matching heading: lưu heading bank
@@ -681,6 +839,8 @@ export function parseLoadedTest(data) {
           contentType = 'MULTIPLE_CHOICE_GROUP';
         } else if (contentType === 'MULTIPLE_CHOICE_MULTI') {
           // Keep as is
+        } else if (contentType === 'SHORT_ANSWER') {
+          contentType = 'SHORT_ANSWER_GROUP';
         }
 
         const base = {
@@ -739,6 +899,7 @@ export function parseLoadedTest(data) {
               questionNumber: qResp.questionNumber,
               questionCount: questionCount,
               numberRange: numberRange,
+              questionSection: qResp.questionSection || null,
               questionText: qResp.questionText,
               blankContext: qResp.blankContext,
               pinX: qResp.pinX ?? null,
@@ -754,6 +915,7 @@ export function parseLoadedTest(data) {
                 answerText: ans.answerText,
                 alternativeAnswers: ans.alternativeAnswers,
                 isCaseSensitive: ans.isCaseSensitive,
+                isSample: ans.isSample || false,
                 blankIndex: ans.blankIndex,
                 wordLimit: ans.wordLimit,
               })),
@@ -768,13 +930,35 @@ export function parseLoadedTest(data) {
           base.questions = [];
         }
         const content = deserializeGroupContent(groupResp.contentType, groupResp.passageText);
-        return {
+        let loadedGroup = {
           ...base,
           ...content,
           hideOptionsTable: content.hideOptionsTable !== undefined
             ? content.hideOptionsTable
             : (typeof base.hideOptionsTable === 'boolean' ? base.hideOptionsTable : false),
         };
+
+        if (loadedGroup.contentType === 'IMAGE_NOTE_FORM' && loadedGroup.pinCoordinateMap instanceof Map) {
+          loadedGroup = {
+            ...loadedGroup,
+            questions: (loadedGroup.questions || []).map((q) => {
+              const qNumber = Number(q?.questionNumber);
+              if (!Number.isFinite(qNumber)) return q;
+
+              const mappedPin = loadedGroup.pinCoordinateMap.get(qNumber);
+              if (!mappedPin) return q;
+
+              return {
+                ...q,
+                pinX: mappedPin.pinX,
+                pinY: mappedPin.pinY,
+              };
+            }),
+          };
+        }
+
+        delete loadedGroup.pinCoordinateMap;
+        return normalizeImageNoteFormQuestions(loadedGroup);
       });
 
       // Backward compat: reconstruct READING_PASSAGE from legacy embedded data
@@ -850,15 +1034,37 @@ function deserializeGroupContent(contentType, passageText) {
       const parsed = JSON.parse(passageText);
       const topNoteText = parsed.topNoteText ?? (parsed.imagePosition === 'bottom' ? '' : (parsed.noteText || ''));
       const bottomNoteText = parsed.bottomNoteText ?? (parsed.imagePosition === 'bottom' ? (parsed.noteText || '') : '');
-      return {
+      const pinCoordinateMap = new Map();
+
+      if (Array.isArray(parsed.pinCoordinates)) {
+        parsed.pinCoordinates.forEach((entry) => {
+          const questionNumber = Number(entry?.questionNumber);
+          const pinX = toFinitePinPercent(entry?.pinX);
+          const pinY = toFinitePinPercent(entry?.pinY);
+
+          if (!Number.isFinite(questionNumber) || pinX === null || pinY === null) return;
+          pinCoordinateMap.set(questionNumber, { pinX, pinY });
+        });
+      }
+
+      const deserialized = {
         noteText: parsed.noteText || [topNoteText, bottomNoteText].filter(Boolean).join('\n\n'),
         topNoteText,
         bottomNoteText,
         instructions: parsed.instructions || '',
         imagePosition: parsed.imagePosition || 'top',
-        imageWidth: parsed.imageWidth || 100,
-        pinBoxWidth: parsed.pinBoxWidth || 60,
+        pinCoordinateMap,
       };
+
+      // Keep DB-level fallback values when legacy JSON does not carry width metadata.
+      if (parsed.imageWidth !== undefined && parsed.imageWidth !== null) {
+        deserialized.imageWidth = parsed.imageWidth;
+      }
+      if (parsed.pinBoxWidth !== undefined && parsed.pinBoxWidth !== null) {
+        deserialized.pinBoxWidth = parsed.pinBoxWidth;
+      }
+
+      return deserialized;
     }
     if (contentType === 'MATCHING_HEADING') {
       const parsed = JSON.parse(passageText);

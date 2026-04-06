@@ -19,7 +19,6 @@ import { Headphones, BookOpen, PenLine, Mic, GripVertical } from 'lucide-react';
 import BuilderHeader from '../components/testBuilder/BuilderHeader';
 import BuilderSidebar from '../components/testBuilder/BuilderSidebar';
 import ExamCanvas from '../components/testBuilder/ExamCanvas';
-import PreviewModal from '../components/testBuilder/PreviewModal';
 import IframePreviewModal from '../components/testBuilder/IframePreviewModal';
 import PropertiesPanel from '../components/testBuilder/PropertiesPanel';
 import ErrorBoundary from '../components/common/ErrorBoundary';
@@ -1355,160 +1354,146 @@ const TestBuilder = () => {
           />
         )}
 
-        <div className="tb-workspace">
-          {previewMode ? (
-            <ErrorBoundary>
-              <PreviewModal
-                test={test}
-                sessions={sessions}
-                onClose={() => setPreviewMode(false)}
-              />
-            </ErrorBoundary>
-          ) : (
-            <ErrorBoundary>
-              <DndContext
-                sensors={sensors}
-                collisionDetection={({ active, droppableContainers, ...rest }) => {
-                  try {
-                    // For palette items use rectIntersection so empty panes are detectable
-                    if (active?.data?.current?.source === 'palette') {
-                      return rectIntersection({ active, droppableContainers, ...rest });
-                    }
-                    return closestCenter({ active, droppableContainers, ...rest });
-                  } catch (error) {
-                    console.error('Error in collision detection:', error);
-                    // Fallback to closestCenter
-                    return closestCenter({ active, droppableContainers, ...rest });
+        <div className="tb-workspace" style={{ position: 'relative' }}>
+          <ErrorBoundary>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={({ active, droppableContainers, ...rest }) => {
+                try {
+                  if (active?.data?.current?.source === 'palette') {
+                    return rectIntersection({ active, droppableContainers, ...rest });
                   }
-                }}
-                onDragStart={handleDragStart}
-                onDragOver={handleDragOver}
-                onDragEnd={handleDragEnd}
-                onDragCancel={handleDragCancel}
-              >
-                <ErrorBoundary>
-                  <BuilderSidebar
-                    parts={parts}
-                    sessions={sessions}
-                    activeSessionKey={activeSkill}
-                    sessionDurations={sessionDurations}
-                    selection={selection}
-                    enabledSkills={enabledSkills}
-                    collapsed={leftSidebarCollapsed}
-                    onToggleCollapsed={() => setLeftSidebarCollapsed((prev) => !prev)}
-                    onSelectSession={(key) => { setActiveSkill(key); setSelection(null); }}
-                    onSelectPart={(p) => setSelection({ type: 'part', data: p })}
-                    onSelectGroup={(g) => setSelection({ type: 'group', data: { ...g } })}
-                    onUpdateSessionTime={(skillKey, minutes) => {
-                      setSessionDurations((prev) => ({
-                        ...prev,
-                        [skillKey]: minutes,
-                      }));
-                      setTest(prev => ({
-                        ...prev,
-                        sessionDurations: {
-                          ...prev.sessionDurations,
-                          [skillKey]: minutes
-                        }
-                      }));
-                    }}
-                  />
-                </ErrorBoundary>
-
-                <ErrorBoundary>
-                  <ExamCanvas
-                    test={test}
-                    testId={savedTestId || test?.id}
-                    skill={activeSkill}
-                    seriesLabel={test.seriesLabel}
-                    parts={parts}
-                    sessionDuration={sessionDuration}
-                    selection={selection}
-                    dragOverPartId={dragOverPartId}
-                    dragOverPassagePaneId={dragOverPassagePaneId}
-                    draggingContentType={activeOverlayItem?.contentType ?? null}
-                    onUpdatePart={updatePart}
-                    onMoveGroupUp={(groupId) => {
-                      const part = parts.find((p) => p.questionGroups?.some((g) => g.id === groupId));
-                      if (part) moveGroupByStep(part.id, groupId, -1);
-                    }}
-                    onMoveGroupDown={(groupId) => {
-                      const part = parts.find((p) => p.questionGroups?.some((g) => g.id === groupId));
-                      if (part) moveGroupByStep(part.id, groupId, 1);
-                    }}
-                    onSelectGroup={(g, partId) => setSelection({ type: 'group', data: { ...g, partId } })}
-                    onSelectQuestion={(q) => {
-                      const ctx = findQuestionContext(q.id);
-                      if (ctx) {
-                        setSelection({
-                          type: 'question',
-                          data: {
-                            ...q,
-                            partId: ctx.part.id,
-                            groupId: ctx.group.id,
-                            groupContentType: ctx.group.contentType,
-                          },
-                        });
-                      } else {
-                        setSelection({ type: 'question', data: q });
+                  return closestCenter({ active, droppableContainers, ...rest });
+                } catch (error) {
+                  console.error('Error in collision detection:', error);
+                  return closestCenter({ active, droppableContainers, ...rest });
+                }
+              }}
+              onDragStart={handleDragStart}
+              onDragOver={handleDragOver}
+              onDragEnd={handleDragEnd}
+              onDragCancel={handleDragCancel}
+            >
+              <ErrorBoundary>
+                <BuilderSidebar
+                  parts={parts}
+                  sessions={sessions}
+                  activeSessionKey={activeSkill}
+                  sessionDurations={sessionDurations}
+                  selection={selection}
+                  enabledSkills={enabledSkills}
+                  collapsed={leftSidebarCollapsed}
+                  onToggleCollapsed={() => setLeftSidebarCollapsed((prev) => !prev)}
+                  onSelectSession={(key) => { setActiveSkill(key); setSelection(null); }}
+                  onSelectPart={(p) => setSelection({ type: 'part', data: p })}
+                  onSelectGroup={(g) => setSelection({ type: 'group', data: { ...g } })}
+                  onUpdateSessionTime={(skillKey, minutes) => {
+                    setSessionDurations((prev) => ({
+                      ...prev,
+                      [skillKey]: minutes,
+                    }));
+                    setTest(prev => ({
+                      ...prev,
+                      sessionDurations: {
+                        ...prev.sessionDurations,
+                        [skillKey]: minutes
                       }
-                    }}
-                    onUpdateGroup={(groupId, upd) => {
-                      const part = parts.find((p) => p.questionGroups?.some((g) => g.id === groupId));
-                      if (part) updateGroup(part.id, groupId, upd);
-                    }}
-                    onUpdateQuestion={(groupId, questionId, upd) => {
-                      const part = parts.find((p) => p.questionGroups?.some((g) => g.id === groupId));
-                      if (part) updateQuestion(part.id, groupId, questionId, upd);
-                    }}
-                    onUpdateSessionTime={(skillKey, minutes) => {
-                      setSessionDurations((prev) => ({
-                        ...prev,
-                        [skillKey]: minutes,
-                      }));
-                      setTest((prev) => ({
-                        ...prev,
-                        sessionDurations: {
-                          ...(prev.sessionDurations || {}),
-                          [skillKey]: minutes,
+                    }));
+                  }}
+                />
+              </ErrorBoundary>
+
+              <ErrorBoundary>
+                <ExamCanvas
+                  test={test}
+                  testId={savedTestId || test?.id}
+                  skill={activeSkill}
+                  seriesLabel={test.seriesLabel}
+                  parts={parts}
+                  sessionDuration={sessionDuration}
+                  selection={selection}
+                  dragOverPartId={dragOverPartId}
+                  dragOverPassagePaneId={dragOverPassagePaneId}
+                  draggingContentType={activeOverlayItem?.contentType ?? null}
+                  onUpdatePart={updatePart}
+                  onMoveGroupUp={(groupId) => {
+                    const part = parts.find((p) => p.questionGroups?.some((g) => g.id === groupId));
+                    if (part) moveGroupByStep(part.id, groupId, -1);
+                  }}
+                  onMoveGroupDown={(groupId) => {
+                    const part = parts.find((p) => p.questionGroups?.some((g) => g.id === groupId));
+                    if (part) moveGroupByStep(part.id, groupId, 1);
+                  }}
+                  onSelectGroup={(g, partId) => setSelection({ type: 'group', data: { ...g, partId } })}
+                  onSelectQuestion={(q) => {
+                    const ctx = findQuestionContext(q.id);
+                    if (ctx) {
+                      setSelection({
+                        type: 'question',
+                        data: {
+                          ...q,
+                          partId: ctx.part.id,
+                          groupId: ctx.group.id,
+                          groupContentType: ctx.group.contentType,
                         },
-                      }));
-                    }}
-                    onDeleteGroup={(groupId) => {
-                      const part = parts.find((p) => p.questionGroups?.some((g) => g.id === groupId));
-                      if (part) deleteGroup(part.id, groupId);
-                    }}
-                    onDeleteQuestion={(groupId, questionId) => {
-                      const part = parts.find((p) => p.questionGroups?.some((g) => g.id === groupId));
-                      if (part) deleteQuestion(part.id, groupId, questionId);
-                    }}
-                    onAddQuestion={(group) => addQuestion(group)}
-                    onAddGroup={(part, contentType) => addGroup(part, contentType)}
-                    onAddPart={addPart}
-                  />
-                </ErrorBoundary>
+                      });
+                    } else {
+                      setSelection({ type: 'question', data: q });
+                    }
+                  }}
+                  onUpdateGroup={(groupId, upd) => {
+                    const part = parts.find((p) => p.questionGroups?.some((g) => g.id === groupId));
+                    if (part) updateGroup(part.id, groupId, upd);
+                  }}
+                  onUpdateQuestion={(groupId, questionId, upd) => {
+                    const part = parts.find((p) => p.questionGroups?.some((g) => g.id === groupId));
+                    if (part) updateQuestion(part.id, groupId, questionId, upd);
+                  }}
+                  onUpdateSessionTime={(skillKey, minutes) => {
+                    setSessionDurations((prev) => ({
+                      ...prev,
+                      [skillKey]: minutes,
+                    }));
+                    setTest((prev) => ({
+                      ...prev,
+                      sessionDurations: {
+                        ...(prev.sessionDurations || {}),
+                        [skillKey]: minutes,
+                      },
+                    }));
+                  }}
+                  onDeleteGroup={(groupId) => {
+                    const part = parts.find((p) => p.questionGroups?.some((g) => g.id === groupId));
+                    if (part) deleteGroup(part.id, groupId);
+                  }}
+                  onDeleteQuestion={(groupId, questionId) => {
+                    const part = parts.find((p) => p.questionGroups?.some((g) => g.id === groupId));
+                    if (part) deleteQuestion(part.id, groupId, questionId);
+                  }}
+                  onAddQuestion={(group) => addQuestion(group)}
+                  onAddGroup={(part, contentType) => addGroup(part, contentType)}
+                  onAddPart={addPart}
+                />
+              </ErrorBoundary>
 
-                {/* Drag overlay */}
-                <DragOverlay>
-                  {activeOverlayItem?.source === 'palette' && (
-                    <div className="tb-drag-preview">
-                      <span style={{ fontSize: 16 }}>
-                        {activeOverlayItem.icon ? React.createElement(activeOverlayItem.icon, { size: 16 }) : '📄'}
-                      </span>
-                      <span>{activeOverlayItem.label || 'Unknown Item'}</span>
-                    </div>
-                  )}
-                  {activeOverlayItem?.type === 'group' && (
-                    <div className="tb-drag-preview">
-                      <GripVertical size={14} /> Nhóm câu hỏi
-                    </div>
-                  )}
-                </DragOverlay>
-              </DndContext>
-            </ErrorBoundary>
-          )}
+              <DragOverlay>
+                {activeOverlayItem?.source === 'palette' && (
+                  <div className="tb-drag-preview">
+                    <span style={{ fontSize: 16 }}>
+                      {activeOverlayItem.icon ? React.createElement(activeOverlayItem.icon, { size: 16 }) : '📄'}
+                    </span>
+                    <span>{activeOverlayItem.label || 'Unknown Item'}</span>
+                  </div>
+                )}
+                {activeOverlayItem?.type === 'group' && (
+                  <div className="tb-drag-preview">
+                    <GripVertical size={14} /> Nhóm câu hỏi
+                  </div>
+                )}
+              </DragOverlay>
+            </DndContext>
+          </ErrorBoundary>
 
-          {/* PropertiesPanel only shown in edit mode */}
           {!previewMode && (
             <ErrorBoundary>
               <PropertiesPanel
@@ -1522,11 +1507,11 @@ const TestBuilder = () => {
           )}
         </div>
 
-        {/* Iframe Preview Modal - Overlay fullscreen */}
         {previewMode && (
           <IframePreviewModal
             testId={savedTestId || test?.id}
-            skillType={test?.singleSkill || activeSkill || 'READING'}
+            skillType={(test?.singleSkill || activeSkill || 'READING').toLowerCase()}
+            isVisible={previewMode}
             onClose={() => setPreviewMode(false)}
           />
         )}

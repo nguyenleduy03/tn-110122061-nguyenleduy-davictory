@@ -41,6 +41,7 @@ public class QuestionGroupResponse {
     public static class QuestionResp {
         private Long id;
         private Integer questionNumber;
+        private String questionSection;
         private String questionText;
         private String blankContext;
         private String imageUrl;
@@ -70,6 +71,7 @@ public class QuestionGroupResponse {
         private String answerText;
         private String alternativeAnswers;
         private Boolean isCaseSensitive;
+        private Boolean isSample;
         private Integer blankIndex;
         private String wordLimit;
     }
@@ -165,6 +167,7 @@ public class QuestionGroupResponse {
         QuestionResp resp = new QuestionResp();
         resp.setId(q.getId());
         resp.setQuestionNumber(q.getQuestionNumber());
+        resp.setQuestionSection(q.getQuestionSection());
         resp.setQuestionText(q.getQuestionText());
         resp.setBlankContext(q.getBlankContext());
         resp.setImageUrl(q.getImageUrl());
@@ -198,6 +201,7 @@ public class QuestionGroupResponse {
                 ans.setAnswerText(a.getAnswerText());
                 ans.setAlternativeAnswers(a.getAlternativeAnswers());
                 ans.setIsCaseSensitive(a.getIsCaseSensitive());
+                ans.setIsSample(a.getIsSample());
                 ans.setBlankIndex(a.getBlankIndex());
                 ans.setWordLimit(a.getWordLimit());
                 return ans;

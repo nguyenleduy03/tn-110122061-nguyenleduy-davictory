@@ -2,125 +2,87 @@
 > frontend@0.0.0 dev
 > vite --host 0.0.0.0
 
-[vite] 🌐 Public IP: 123.22.61.173
-[vite] 🔗 API Base URL: http://123.22.61.173:8080/api
+[vite] 🌐 Public IP: 14.160.194.211
+[vite] 🔗 API Base URL: http://14.160.194.211:8080/api
 
-  VITE v8.0.0-beta.16  ready in 1372 ms
+  VITE v8.0.0-beta.16  ready in 1258 ms
 
   ➜  Local:   http://localhost:5173/
   ➜  Network: http://192.168.1.20:5173/
-15:51:43 [vite] (client) hmr update /src/styles/ieltsTest.css
-15:59:12 [vite] (client) hmr update /src/styles/ieltsTest.css
-16:00:59 [vite] (client) hmr update /src/styles/ieltsTest.css
-16:01:49 [vite] (client) hmr update /src/styles/ieltsTest.css
-16:01:59 [vite] (client) hmr update /src/styles/testBuilder.css
-16:02:31 [vite] (client) hmr update /src/styles/ieltsTest.css
-16:02:34 [vite] (client) hmr update /src/components/question/DragDropGroupQuestion.jsx
-16:03:56 [vite] (client) hmr update /src/styles/testBuilder.css
-16:04:47 [vite] (client) hmr update /src/styles/testBuilder.css
-16:06:27 [vite] (client) hmr update /src/styles/ieltsTest.css
-16:09:11 [vite] (client) hmr update /src/components/testBuilder/blocks/ImageBlock.jsx
-16:10:17 [vite] (client) hmr update /src/styles/ieltsTest.css
-16:10:28 [vite] (client) hmr update /src/styles/ieltsTest.css
-16:10:40 [vite] (client) hmr update /src/styles/ieltsTest.css
-16:10:43 [vite] (client) hmr update /src/styles/ieltsTest.css
-16:11:42 [vite] (client) hmr update /src/components/testBuilder/blocks/ImageBlock.jsx
-16:13:09 [vite] (client) hmr update /src/pages/IeltsListeningTest.jsx, /src/components/question/DragDropGroupQuestion.jsx, /src/components/question/SummaryCompletionQuestion.jsx, /src/components/question/SummaryCompletionSelectQuestion.jsx, /src/components/question/DropdownGroupQuestion.jsx
-16:13:57 [vite] (client) hmr update /src/pages/TestBuilder.jsx, /src/pages/lms/LmsTeacherTests.jsx, /src/components/shuffle/ShuffleTestModal.jsx
-16:13:59 [vite] (client) hmr update /src/components/testBuilder/blocks/ImageBlock.jsx
-16:23:04 [vite] (client) hmr update /src/components/testBuilder/blocks/ImageNoteFormBlock.jsx
-16:23:17 [vite] (client) hmr update /src/components/testBuilder/blocks/ImageNoteFormBlock.jsx
-16:23:54 [vite] (client) hmr update /src/pages/IeltsListeningTest.jsx, /src/components/question/QuestionRenderer.jsx, /src/pages/ExamLibrary.jsx, /src/components/question/FillInBlankQuestion.jsx, /src/components/question/MultipleChoiceQuestion.jsx, /src/components/question/TFNGQuestion.jsx, /src/components/question/DragDropGroupQuestion.jsx, /src/components/question/SummaryCompletionQuestion.jsx, /src/components/question/SummaryCompletionSelectQuestion.jsx, /src/components/question/DropdownGroupQuestion.jsx, /src/components/question/MatchingFillQuestion.jsx, /src/components/testBuilder/ExamCanvas.jsx, /src/components/testBuilder/PreviewModal.jsx, /src/components/testBuilder/PropertiesPanel.jsx, /src/components/testBuilder/SharedOptionsDropdownBlock.jsx, /src/components/testBuilder/blocks/AudioBlock.jsx, /src/components/testBuilder/blocks/ImageBlock.jsx, /src/components/testBuilder/blocks/PassageBlock.jsx, /src/components/testBuilder/blocks/shared/ImageUploadZone.jsx, /src/components/testBuilder/blocks/DragMatchingBlock.jsx, /src/components/testBuilder/blocks/MultipleChoiceBlock.jsx, /src/components/testBuilder/blocks/MultipleChoiceMultiBlock.jsx, /src/components/testBuilder/blocks/MatchingFeaturesBlock.jsx, /src/components/testBuilder/blocks/MatchingHeadingBlock.jsx, /src/components/testBuilder/blocks/TFNGBlock.jsx, /src/components/testBuilder/blocks/SentenceCompletionBlock.jsx, /src/components/testBuilder/blocks/ShortAnswerBlock.jsx, /src/components/testBuilder/blocks/NoteCompletionBlock.jsx, /src/components/testBuilder/blocks/ImageNoteFormBlock.jsx, /src/components/testBuilder/blocks/SummaryCompletionBlock.jsx, /src/components/testBuilder/blocks/SpeakingInterviewBlock.jsx, /src/components/testBuilder/blocks/SpeakingCueCardBlock.jsx, /src/components/testBuilder/blocks/WritingTaskBlock.jsx, /src/components/common/RichInput.jsx, /src/components/testBuilder/blocks/SummaryCompletionSelectBlock.jsx, /src/components/testBuilder/blocks/shared/RichBlankEditor.jsx
-16:24:01 [vite] (client) hmr update /src/pages/IeltsListeningTest.jsx
-16:24:09 [vite] (client) hmr update /src/styles/ieltsTest.css
-16:24:32 [vite] (client) hmr update /src/components/question/SummaryCompletionQuestion.jsx
-16:24:51 [vite] (client) hmr update /src/components/question/SummaryCompletionSelectQuestion.jsx
-16:28:56 [vite] (client) hmr update /src/pages/IeltsListeningTest.jsx, /src/pages/ExamLibrary.jsx
-16:29:05 [vite] (client) hmr update /src/pages/IeltsListeningTest.jsx
-16:35:10 [vite] (client) hmr update /src/components/question/QuestionRenderer.jsx
-16:36:03 [vite] (client) hmr update /src/components/testBuilder/blocks/AudioBlock.jsx
-16:36:26 [vite] (client) hmr update /src/styles/testBuilder.css
-16:36:48 [vite] (client) hmr update /src/components/question/SummaryCompletionQuestion.jsx
-16:37:13 [vite] (client) hmr update /src/components/question/SummaryCompletionSelectQuestion.jsx
-16:40:13 [vite] (client) hmr update /src/components/testBuilder/PropertiesPanel.jsx, /src/components/testBuilder/SharedOptionsDropdownBlock.jsx, /src/components/testBuilder/ExamCanvas.jsx, /src/components/testBuilder/blocks/AudioBlock.jsx, /src/components/testBuilder/blocks/ImageBlock.jsx, /src/components/testBuilder/blocks/PassageBlock.jsx, /src/components/testBuilder/blocks/shared/ImageUploadZone.jsx, /src/components/testBuilder/blocks/DragMatchingBlock.jsx, /src/components/testBuilder/blocks/MultipleChoiceBlock.jsx, /src/components/testBuilder/blocks/MultipleChoiceMultiBlock.jsx, /src/components/testBuilder/blocks/MatchingFeaturesBlock.jsx, /src/components/testBuilder/blocks/MatchingHeadingBlock.jsx, /src/components/testBuilder/blocks/TFNGBlock.jsx, /src/components/testBuilder/blocks/SentenceCompletionBlock.jsx, /src/components/testBuilder/blocks/ShortAnswerBlock.jsx, /src/components/testBuilder/blocks/NoteCompletionBlock.jsx, /src/components/testBuilder/blocks/ImageNoteFormBlock.jsx, /src/components/testBuilder/blocks/SummaryCompletionBlock.jsx, /src/components/testBuilder/blocks/SpeakingInterviewBlock.jsx, /src/components/testBuilder/blocks/SpeakingCueCardBlock.jsx, /src/components/testBuilder/blocks/WritingTaskBlock.jsx
-16:40:24 [vite] (client) hmr update /src/components/testBuilder/PropertiesPanel.jsx, /src/components/testBuilder/SharedOptionsDropdownBlock.jsx, /src/components/testBuilder/ExamCanvas.jsx, /src/components/testBuilder/blocks/AudioBlock.jsx, /src/components/testBuilder/blocks/ImageBlock.jsx, /src/components/testBuilder/blocks/PassageBlock.jsx, /src/components/testBuilder/blocks/shared/ImageUploadZone.jsx, /src/components/testBuilder/blocks/DragMatchingBlock.jsx, /src/components/testBuilder/blocks/MultipleChoiceBlock.jsx, /src/components/testBuilder/blocks/MultipleChoiceMultiBlock.jsx, /src/components/testBuilder/blocks/MatchingFeaturesBlock.jsx, /src/components/testBuilder/blocks/MatchingHeadingBlock.jsx, /src/components/testBuilder/blocks/TFNGBlock.jsx, /src/components/testBuilder/blocks/SentenceCompletionBlock.jsx, /src/components/testBuilder/blocks/ShortAnswerBlock.jsx, /src/components/testBuilder/blocks/NoteCompletionBlock.jsx, /src/components/testBuilder/blocks/ImageNoteFormBlock.jsx, /src/components/testBuilder/blocks/SummaryCompletionBlock.jsx, /src/components/testBuilder/blocks/SpeakingInterviewBlock.jsx, /src/components/testBuilder/blocks/SpeakingCueCardBlock.jsx, /src/components/testBuilder/blocks/WritingTaskBlock.jsx
-16:40:37 [vite] (client) hmr update /src/components/testBuilder/PropertiesPanel.jsx, /src/components/testBuilder/SharedOptionsDropdownBlock.jsx, /src/components/testBuilder/ExamCanvas.jsx, /src/components/testBuilder/blocks/AudioBlock.jsx, /src/components/testBuilder/blocks/ImageBlock.jsx, /src/components/testBuilder/blocks/PassageBlock.jsx, /src/components/testBuilder/blocks/shared/ImageUploadZone.jsx, /src/components/testBuilder/blocks/DragMatchingBlock.jsx, /src/components/testBuilder/blocks/MultipleChoiceBlock.jsx, /src/components/testBuilder/blocks/MultipleChoiceMultiBlock.jsx, /src/components/testBuilder/blocks/MatchingFeaturesBlock.jsx, /src/components/testBuilder/blocks/MatchingHeadingBlock.jsx, /src/components/testBuilder/blocks/TFNGBlock.jsx, /src/components/testBuilder/blocks/SentenceCompletionBlock.jsx, /src/components/testBuilder/blocks/ShortAnswerBlock.jsx, /src/components/testBuilder/blocks/NoteCompletionBlock.jsx, /src/components/testBuilder/blocks/ImageNoteFormBlock.jsx, /src/components/testBuilder/blocks/SummaryCompletionBlock.jsx, /src/components/testBuilder/blocks/SpeakingInterviewBlock.jsx, /src/components/testBuilder/blocks/SpeakingCueCardBlock.jsx, /src/components/testBuilder/blocks/WritingTaskBlock.jsx
-16:41:06 [vite] (client) hmr update /src/styles/ieltsTest.css
-16:41:59 [vite] (client) hmr update /src/components/question/SummaryCompletionQuestion.jsx
-16:42:18 [vite] (client) hmr update /src/components/question/SummaryCompletionSelectQuestion.jsx
-16:46:18 [vite] (client) hmr update /src/pages/IeltsListeningTest.jsx
-16:46:18 [vite] (client) hmr update /src/components/testBuilder/blocks/AudioBlock.jsx
-16:46:18 [vite] (client) hmr update /src/pages/IeltsListeningTest.jsx, /src/pages/ExamLibrary.jsx
-16:46:18 [vite] (client) hmr update /src/components/testBuilder/PropertiesPanel.jsx, /src/components/testBuilder/SharedOptionsDropdownBlock.jsx, /src/components/testBuilder/ExamCanvas.jsx, /src/components/testBuilder/blocks/AudioBlock.jsx, /src/components/testBuilder/blocks/ImageBlock.jsx, /src/components/testBuilder/blocks/PassageBlock.jsx, /src/components/testBuilder/blocks/shared/ImageUploadZone.jsx, /src/components/testBuilder/blocks/DragMatchingBlock.jsx, /src/components/testBuilder/blocks/MultipleChoiceBlock.jsx, /src/components/testBuilder/blocks/MultipleChoiceMultiBlock.jsx, /src/components/testBuilder/blocks/MatchingFeaturesBlock.jsx, /src/components/testBuilder/blocks/MatchingHeadingBlock.jsx, /src/components/testBuilder/blocks/TFNGBlock.jsx, /src/components/testBuilder/blocks/SentenceCompletionBlock.jsx, /src/components/testBuilder/blocks/ShortAnswerBlock.jsx, /src/components/testBuilder/blocks/NoteCompletionBlock.jsx, /src/components/testBuilder/blocks/ImageNoteFormBlock.jsx, /src/components/testBuilder/blocks/SummaryCompletionBlock.jsx, /src/components/testBuilder/blocks/SpeakingInterviewBlock.jsx, /src/components/testBuilder/blocks/SpeakingCueCardBlock.jsx, /src/components/testBuilder/blocks/WritingTaskBlock.jsx
-16:46:18 [vite] (client) hmr update /src/styles/testBuilder.css
-16:46:18 [vite] (client) hmr update /src/components/testBuilder/PropertiesPanel.jsx, /src/components/testBuilder/SharedOptionsDropdownBlock.jsx, /src/components/testBuilder/ExamCanvas.jsx, /src/components/testBuilder/blocks/AudioBlock.jsx, /src/components/testBuilder/blocks/ImageBlock.jsx, /src/components/testBuilder/blocks/PassageBlock.jsx, /src/components/testBuilder/blocks/shared/ImageUploadZone.jsx, /src/components/testBuilder/blocks/DragMatchingBlock.jsx, /src/components/testBuilder/blocks/MultipleChoiceBlock.jsx, /src/components/testBuilder/blocks/MultipleChoiceMultiBlock.jsx, /src/components/testBuilder/blocks/MatchingFeaturesBlock.jsx, /src/components/testBuilder/blocks/MatchingHeadingBlock.jsx, /src/components/testBuilder/blocks/TFNGBlock.jsx, /src/components/testBuilder/blocks/SentenceCompletionBlock.jsx, /src/components/testBuilder/blocks/ShortAnswerBlock.jsx, /src/components/testBuilder/blocks/NoteCompletionBlock.jsx, /src/components/testBuilder/blocks/ImageNoteFormBlock.jsx, /src/components/testBuilder/blocks/SummaryCompletionBlock.jsx, /src/components/testBuilder/blocks/SpeakingInterviewBlock.jsx, /src/components/testBuilder/blocks/SpeakingCueCardBlock.jsx, /src/components/testBuilder/blocks/WritingTaskBlock.jsx
-16:49:14 [vite] (client) hmr update /src/components/question/SummaryCompletionQuestion.jsx
-16:49:32 [vite] (client) hmr update /src/components/question/SummaryCompletionSelectQuestion.jsx
-16:49:38 [vite] (client) hmr update /src/pages/IeltsListeningTest.jsx
-16:50:10 [vite] (client) hmr update /src/styles/ieltsTest.css
-16:51:10 [vite] (client) hmr update /src/pages/IeltsListeningTest.jsx
-16:51:23 [vite] (client) hmr update /src/components/question/DropdownGroupQuestion.jsx
-16:51:34 [vite] (client) hmr update /src/styles/ieltsTest.css
-16:51:40 [vite] (client) hmr update /src/components/question/DragDropGroupQuestion.jsx
-16:51:47 [vite] (client) hmr update /src/components/question/MatchingFillQuestion.jsx
-16:51:58 [vite] (client) hmr update /src/components/testBuilder/blocks/ShortAnswerBlock.jsx
-16:52:00 [vite] (client) hmr update /src/pages/IeltsListeningTest.jsx, /src/pages/ExamLibrary.jsx
-16:54:08 [vite] (client) hmr update /src/styles/ieltsTest.css
-16:54:48 [vite] (client) hmr update /src/pages/IeltsListeningTest.jsx, /src/pages/ExamLibrary.jsx
-16:56:44 [vite] (client) hmr update /src/styles/ieltsTest.css
-16:57:40 [vite] (client) hmr update /src/styles/ieltsTest.css
-16:57:41 [vite] (client) hmr update /src/components/question/DragDropGroupQuestion.jsx
-16:57:41 [vite] (client) hmr update /src/components/question/DropdownGroupQuestion.jsx
-16:57:41 [vite] (client) hmr update /src/pages/IeltsListeningTest.jsx, /src/components/question/DragDropGroupQuestion.jsx, /src/components/question/SummaryCompletionQuestion.jsx, /src/components/question/SummaryCompletionSelectQuestion.jsx, /src/components/question/DropdownGroupQuestion.jsx
-16:57:41 [vite] (client) hmr update /src/pages/TestBuilder.jsx, /src/pages/lms/LmsTeacherTests.jsx, /src/components/shuffle/ShuffleTestModal.jsx
-16:57:41 [vite] (client) hmr update /src/pages/IeltsListeningTest.jsx, /src/components/question/QuestionRenderer.jsx, /src/pages/ExamLibrary.jsx, /src/components/question/FillInBlankQuestion.jsx, /src/components/question/MultipleChoiceQuestion.jsx, /src/components/question/TFNGQuestion.jsx, /src/components/question/DragDropGroupQuestion.jsx, /src/components/question/SummaryCompletionQuestion.jsx, /src/components/question/SummaryCompletionSelectQuestion.jsx, /src/components/question/DropdownGroupQuestion.jsx, /src/components/question/MatchingFillQuestion.jsx, /src/components/testBuilder/ExamCanvas.jsx, /src/components/testBuilder/PreviewModal.jsx, /src/components/testBuilder/PropertiesPanel.jsx, /src/components/testBuilder/SharedOptionsDropdownBlock.jsx, /src/components/testBuilder/blocks/AudioBlock.jsx, /src/components/testBuilder/blocks/ImageBlock.jsx, /src/components/testBuilder/blocks/PassageBlock.jsx, /src/components/testBuilder/blocks/shared/ImageUploadZone.jsx, /src/components/testBuilder/blocks/DragMatchingBlock.jsx, /src/components/testBuilder/blocks/MultipleChoiceBlock.jsx, /src/components/testBuilder/blocks/MultipleChoiceMultiBlock.jsx, /src/components/testBuilder/blocks/MatchingFeaturesBlock.jsx, /src/components/testBuilder/blocks/MatchingHeadingBlock.jsx, /src/components/testBuilder/blocks/TFNGBlock.jsx, /src/components/testBuilder/blocks/SentenceCompletionBlock.jsx, /src/components/testBuilder/blocks/ShortAnswerBlock.jsx, /src/components/testBuilder/blocks/NoteCompletionBlock.jsx, /src/components/testBuilder/blocks/ImageNoteFormBlock.jsx, /src/components/testBuilder/blocks/SummaryCompletionBlock.jsx, /src/components/testBuilder/blocks/SpeakingInterviewBlock.jsx, /src/components/testBuilder/blocks/SpeakingCueCardBlock.jsx, /src/components/testBuilder/blocks/WritingTaskBlock.jsx, /src/components/common/RichInput.jsx, /src/components/testBuilder/blocks/SummaryCompletionSelectBlock.jsx, /src/components/testBuilder/blocks/shared/RichBlankEditor.jsx
-16:57:41 [vite] (client) hmr update /src/components/question/SummaryCompletionQuestion.jsx
-16:57:41 [vite] (client) hmr update /src/components/question/SummaryCompletionSelectQuestion.jsx
-16:57:41 [vite] (client) hmr update /src/pages/IeltsListeningTest.jsx
-16:57:41 [vite] (client) hmr update /src/components/question/MatchingFillQuestion.jsx
-16:57:42 [vite] (client) hmr update /src/pages/IeltsListeningTest.jsx, /src/pages/ExamLibrary.jsx
-16:59:25 [vite] (client) hmr update /src/components/testBuilder/blocks/ImageNoteFormBlock.jsx
-16:59:31 [vite] (client) hmr update /src/pages/TestBuilder.jsx, /src/pages/lms/LmsTeacherTests.jsx, /src/components/shuffle/ShuffleTestModal.jsx
-16:59:38 [vite] (client) hmr update /src/pages/IeltsListeningTest.jsx, /src/pages/ExamLibrary.jsx
-16:59:38 [vite] (client) hmr update /src/styles/ieltsTest.css
-17:03:54 [vite] (client) hmr update /src/pages/IeltsListeningTest.jsx
-17:04:30 [vite] (client) hmr update /src/styles/ieltsTest.css
-17:04:33 [vite] (client) hmr update /src/pages/IeltsListeningTest.jsx, /src/pages/ExamLibrary.jsx
-17:04:39 [vite] (client) hmr update /src/components/question/QuestionRenderer.jsx
-17:04:44 [vite] (client) hmr update /src/styles/ieltsTest.css
-17:07:29 [vite] (client) hmr update /src/styles/ieltsTest.css
-17:09:32 [vite] (client) hmr update /src/pages/IeltsListeningTest.jsx, /src/pages/ExamLibrary.jsx
-17:09:32 [vite] (client) hmr update /src/components/testBuilder/blocks/ImageNoteFormBlock.jsx
-17:09:32 [vite] (client) hmr update /src/pages/TestBuilder.jsx, /src/pages/lms/LmsTeacherTests.jsx, /src/components/shuffle/ShuffleTestModal.jsx
-17:09:32 [vite] (client) hmr update /src/components/question/QuestionRenderer.jsx
-17:10:24 [vite] (client) hmr update /src/styles/ieltsTest.css
-17:10:31 [vite] (client) hmr update /src/styles/ieltsTest.css
-17:10:37 [vite] (client) hmr update /src/styles/ieltsTest.css
-17:11:49 [vite] (client) hmr update /src/components/testBuilder/blocks/NoteCompletionBlock.jsx
-17:12:04 [vite] (client) hmr update /src/components/testBuilder/blocks/ImageNoteFormBlock.jsx
-17:12:17 [vite] (client) hmr update /src/components/testBuilder/blocks/ImageBlock.jsx
-17:13:48 [vite] (client) hmr update /src/pages/IeltsListeningTest.jsx
-17:13:55 [vite] (client) hmr update /src/pages/IeltsListeningTest.jsx
-17:14:39 [vite] (client) hmr update /src/pages/IeltsListeningTest.jsx
-17:14:42 [vite] (client) hmr update /src/components/testBuilder/blocks/DragMatchingBlock.jsx
-17:17:04 [vite] (client) hmr update /src/components/testBuilder/blocks/DragMatchingBlock.jsx
-17:17:20 [vite] (client) hmr update /src/pages/lms/LmsTeacherTests.jsx
-17:17:55 [vite] (client) hmr update /src/styles/ieltsTest.css
-17:18:15 [vite] (client) hmr update /src/components/testBuilder/blocks/MultipleChoiceBlock.jsx
-17:18:27 [vite] (client) hmr update /src/components/testBuilder/blocks/MultipleChoiceMultiBlock.jsx
-17:18:36 [vite] (client) hmr update /src/styles/ieltsTest.css
-17:19:49 [vite] (client) hmr update /src/App.jsx
-17:21:07 [vite] (client) hmr update /src/pages/lms/LmsTeacherTests.jsx
-17:21:07 [vite] (client) hmr update /src/App.jsx
-17:22:12 [vite] (client) hmr update /src/styles/ieltsTest.css
-17:24:00 [vite] (client) hmr update /src/styles/ieltsTest.css
-17:26:16 [vite] (client) hmr update /src/styles/ieltsTest.css
-17:26:25 [vite] (client) hmr update /src/styles/ieltsTest.css
-17:27:07 [vite] (client) hmr update /src/styles/ieltsTest.css
-17:27:18 [vite] (client) hmr update /src/styles/ieltsTest.css
-17:27:52 [vite] (client) hmr update /src/styles/ieltsTest.css
-17:28:02 [vite] (client) hmr update /src/components/question/MatchingFillQuestion.jsx
-17:29:37 [vite] (client) hmr update /src/components/testBuilder/blocks/shared/RichBlankEditor.jsx
-17:29:45 [vite] (client) hmr update /src/pages/TestBuilder.jsx, /src/pages/lms/LmsTeacherTests.jsx, /src/components/shuffle/ShuffleTestModal.jsx
-17:31:11 [vite] (client) hmr update /src/styles/ieltsTest.css
-17:31:53 [vite] (client) hmr update /src/styles/ieltsTest.css
+20:19:10 [vite] Internal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] Error:[0m Unexpected token
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/TestBuilder.jsx:106:18 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m106 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249mr[0m[38;5;249me[0m[38;5;249mt[0m[38;5;249mu[0m[38;5;249mr[0m[38;5;249mn[0m[38;5;249m [0m(
+ [38;5;240m    │[0m                  ┬  
+ [38;5;240m    │[0m                  ╰── 
+[38;5;246m─────╯[0m
+
+  Plugin: vite:oxc
+  File: /home/hv/DuAn/DAVictory/frontend/src/pages/TestBuilder.jsx
+      at transformWithOxc (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:3970:19)
+      at TransformPluginContext.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:4046:26)
+      at EnvironmentPluginContainer.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:29893:51)
+      at async loadAndTransform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:24542:26)
+20:19:58 [vite] Internal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] Error:[0m Unexpected token
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/TestBuilder.jsx:106:18 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m106 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249mr[0m[38;5;249me[0m[38;5;249mt[0m[38;5;249mu[0m[38;5;249mr[0m[38;5;249mn[0m[38;5;249m [0m(
+ [38;5;240m    │[0m                  ┬  
+ [38;5;240m    │[0m                  ╰── 
+[38;5;246m─────╯[0m
+
+  Plugin: vite:oxc
+  File: /home/hv/DuAn/DAVictory/frontend/src/pages/TestBuilder.jsx
+      at transformWithOxc (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:3970:19)
+      at TransformPluginContext.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:4046:26)
+      at EnvironmentPluginContainer.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:29893:51)
+      at async loadAndTransform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:24542:26)
+      at async viteTransformMiddleware (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:25356:20)
+20:20:12 [vite] Internal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] Error:[0m Unexpected token
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/TestBuilder.jsx:106:18 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m106 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249mr[0m[38;5;249me[0m[38;5;249mt[0m[38;5;249mu[0m[38;5;249mr[0m[38;5;249mn[0m[38;5;249m [0m(
+ [38;5;240m    │[0m                  ┬  
+ [38;5;240m    │[0m                  ╰── 
+[38;5;246m─────╯[0m
+
+  Plugin: vite:oxc
+  File: /home/hv/DuAn/DAVictory/frontend/src/pages/TestBuilder.jsx
+      at transformWithOxc (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:3970:19)
+      at TransformPluginContext.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:4046:26)
+      at EnvironmentPluginContainer.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:29893:51)
+      at async loadAndTransform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:24542:26)
+      at async viteTransformMiddleware (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:25356:20)
+20:20:28 [vite] Internal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] Error:[0m Unexpected token
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/TestBuilder.jsx:106:18 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m106 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249mr[0m[38;5;249me[0m[38;5;249mt[0m[38;5;249mu[0m[38;5;249mr[0m[38;5;249mn[0m[38;5;249m [0m(
+ [38;5;240m    │[0m                  ┬  
+ [38;5;240m    │[0m                  ╰── 
+[38;5;246m─────╯[0m
+
+  Plugin: vite:oxc
+  File: /home/hv/DuAn/DAVictory/frontend/src/pages/TestBuilder.jsx
+      at transformWithOxc (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:3970:19)
+      at TransformPluginContext.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:4046:26)
+      at EnvironmentPluginContainer.transform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:29893:51)
+      at async loadAndTransform (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:24542:26)
+      at async viteTransformMiddleware (file:///home/hv/DuAn/DAVictory/frontend/node_modules/vite/dist/node/chunks/node.js:25356:20)
+20:22:06 [vite] (client) hmr update /src/pages/TestBuilder.jsx
+20:24:34 [vite] (client) hmr update /src/pages/TestBuilder.jsx
+20:25:13 [vite] (client) hmr update /src/styles/lms.css
+20:25:13 [vite] (client) hmr update /src/pages/lms/LmsTeacherTests.jsx
+20:25:13 [vite] (client) hmr update /src/pages/TestBuilder.jsx
+20:25:47 [vite] (client) hmr update /src/styles/ieltsTest.css
+20:25:51 [vite] (client) hmr update /src/styles/ieltsTest.css
+20:26:08 [vite] (client) hmr update /src/pages/TestBuilder.jsx
+20:26:20 [vite] (client) hmr update /src/pages/TestBuilder.jsx
+20:27:16 [vite] (client) hmr update /src/components/testBuilder/PreviewModal.jsx

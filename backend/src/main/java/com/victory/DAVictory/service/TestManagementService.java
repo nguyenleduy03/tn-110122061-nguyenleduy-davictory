@@ -81,6 +81,28 @@ public class TestManagementService {
     }
 
     @Transactional
+    public Test updateTestStatus(Long testId, TestStatus newStatus, Long reviewedByUserId,
+                                 String currentUsername, boolean isAdmin) {
+        Test test = getTestById(testId);
+
+        if (test.getStatus() == TestStatus.DELETED && !canRestoreDeletedTest(test, currentUsername, isAdmin)) {
+            throw new RuntimeException("Chỉ người tạo hoặc admin mới có thể khôi phục đề thi đã xóa");
+        }
+
+        if (newStatus == TestStatus.PUBLISHED) {
+            test.setPublishedAt(LocalDateTime.now());
+            if (reviewedByUserId != null) {
+                User reviewer = userRepository.findById(reviewedByUserId)
+                        .orElseThrow(() -> new RuntimeException("Không tìm thấy reviewer"));
+                test.setReviewedBy(reviewer);
+                test.setReviewedAt(LocalDateTime.now());
+            }
+        }
+        test.setStatus(newStatus);
+        return testRepository.save(test);
+    }
+
+    @Transactional
     public Test updateTest(Long testId, String title, String description, TestType testType,
                            Boolean isFullTest, Integer durationMinutes, String targetBand) {
         Test test = getTestById(testId);
@@ -100,12 +122,33 @@ public class TestManagementService {
         testRepository.save(test);
     }
 
+    @Transactional
+    public Test restoreTest(Long testId, String currentUsername, boolean isAdmin) {
+        Test test = getTestById(testId);
+        if (test.getStatus() != TestStatus.DELETED) {
+            throw new RuntimeException("Đề thi này không nằm trong thùng rác");
+        }
+        if (!canRestoreDeletedTest(test, currentUsername, isAdmin)) {
+            throw new RuntimeException("Chỉ người tạo hoặc admin mới có thể khôi phục đề thi đã xóa");
+        }
+        test.setStatus(TestStatus.DRAFT);
+        return testRepository.save(test);
+    }
+
     public List<Test> getTestsByCreator(Long userId) {
         return testRepository.findByCreatedById(userId);
     }
 
     public List<Test> getAllTests() {
         return testRepository.findAll();
+    }
+
+    private boolean canRestoreDeletedTest(Test test, String currentUsername, boolean isAdmin) {
+        if (isAdmin) return true;
+        if (test.getCreatedBy() == null || currentUsername == null || currentUsername.isBlank()) return false;
+        User currentUser = userRepository.findByUsername(currentUsername)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng hiện tại"));
+        return test.getCreatedBy().getId() != null && test.getCreatedBy().getId().equals(currentUser.getId());
     }
 
     // ===== TEST SESSION =====

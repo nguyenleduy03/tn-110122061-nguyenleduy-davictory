@@ -3,15 +3,35 @@ import { API_CONFIG } from '../config/api';
 
 const API_BASE_URL = API_CONFIG.BASE_URL;
 
+const getStoredUser = () => {
+  const userJson = localStorage.getItem('user');
+  if (!userJson) return null;
+
+  try {
+    return JSON.parse(userJson);
+  } catch {
+    return null;
+  }
+};
+
 const getAuthHeaders = () => {
   const token = localStorage.getItem('authToken');
   return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
-const getDriveUploadConfig = async (mediaType, module, testTitle, testId) => {
+const getDriveUploadConfig = async (mediaType, module, testTitle, testId, extraPath = {}) => {
   try {
     const response = await axios.get(`${API_BASE_URL}/files/drive-config`, {
-      params: { mediaType, module, testTitle, testId },
+      params: {
+        mediaType,
+        module,
+        testTitle,
+        testId,
+        classCode: extraPath.classCode,
+        testCode: extraPath.testCode,
+        skillName: extraPath.skillName,
+        studentCode: extraPath.studentCode,
+      },
       headers: getAuthHeaders(),
     });
     return response.data;
@@ -55,7 +75,7 @@ const uploadToGoogleDriveWithProgress = (file, accessToken, onProgress) => new P
 const uploadDirectToGoogleDrive = async (file, mediaType, module, testTitle, testId, options = {}) => {
   const onProgress = options.onProgress;
   onProgress?.(5, 'Đang lấy cấu hình Google Drive...');
-  const { accessToken, rootFolderId, folderPath } = await getDriveUploadConfig(mediaType, module, testTitle, testId);
+  const { accessToken, rootFolderId, folderPath } = await getDriveUploadConfig(mediaType, module, testTitle, testId, options);
   const fileName = file.name || `upload-${Date.now()}`;
 
   const sanitizeSegment = (value) => String(value || '')
@@ -184,7 +204,62 @@ export const fileApi = {
    * Upload audio cho Speaking
    */
   uploadSpeakingAudio: async (file, testTitle, testId, options = {}) => {
-    return fileApi.uploadFile(file, 'AUDIO', 'SPEAKING', testTitle, testId, options);
+    const storedUser = getStoredUser();
+    const classCode = options.classCode
+      || storedUser?.classCode
+      || storedUser?.class?.code
+      || storedUser?.clazz?.code
+      || storedUser?.currentClass?.code
+      || storedUser?.activeClass?.code
+      || storedUser?.classes?.[0]?.code
+      || storedUser?.classes?.[0]?.classCode
+      || 'GENERAL';
+    const studentCode = options.studentCode
+      || storedUser?.studentCode
+      || storedUser?.candidateCode
+      || storedUser?.code
+      || storedUser?.id
+      || storedUser?.username
+      || 'UNKNOWN_STUDENT';
+
+    return fileApi.uploadFile(file, 'AUDIO', 'SPEAKING', testTitle, testId, {
+      ...options,
+      classCode,
+      skillName: options.skillName || 'SPEAKING',
+      testCode: options.testCode || testTitle || (testId != null ? `TEST_${testId}` : null),
+      studentCode,
+    });
+  },
+
+  /**
+   * Upload tài liệu cho Writing
+   */
+  uploadWritingDocument: async (file, testTitle, testId, options = {}) => {
+    const storedUser = getStoredUser();
+    const classCode = options.classCode
+      || storedUser?.classCode
+      || storedUser?.class?.code
+      || storedUser?.clazz?.code
+      || storedUser?.currentClass?.code
+      || storedUser?.activeClass?.code
+      || storedUser?.classes?.[0]?.code
+      || storedUser?.classes?.[0]?.classCode
+      || 'GENERAL';
+    const studentCode = options.studentCode
+      || storedUser?.studentCode
+      || storedUser?.candidateCode
+      || storedUser?.code
+      || storedUser?.id
+      || storedUser?.username
+      || 'UNKNOWN_STUDENT';
+
+    return fileApi.uploadFile(file, 'DOCUMENT', 'WRITING', testTitle, testId, {
+      ...options,
+      classCode,
+      skillName: options.skillName || 'WRITING',
+      testCode: options.testCode || testTitle || (testId != null ? `TEST_${testId}` : null),
+      studentCode,
+    });
   },
 
   /**

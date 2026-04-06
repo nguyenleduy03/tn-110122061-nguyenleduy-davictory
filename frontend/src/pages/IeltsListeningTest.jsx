@@ -66,6 +66,17 @@ const isComponentManagedDropdownGroup = (groupType) => {
 
     return normalized === 'mcq_dropdown_group'
         || normalized === 'shared_options_dropdown'
+        || normalized === 'short_answer_group'
+        || normalized === 'short_answer'
+        || normalized === 'drag_drop'
+        || normalized === 'drag_and_drop'
+        || normalized === 'drag_and_drop_group'
+        || normalized === 'matching_heading'
+        || normalized === 'matching_para'
+        || normalized === 'matching_info'
+        || normalized === 'matching_features'
+        || normalized === 'flow_chart'
+        || normalized === 'image_drag_drop'
         || normalized === 'note_completion'
         || normalized === 'summary_completion'
         || normalized === 'summary_completion_select';
@@ -86,6 +97,7 @@ const resolvePlayableMediaUrl = (url) => {
 
 const IeltsListeningTest = () => {
     const [testData, setTestData] = useState(null);
+    const [previewRefreshTick, setPreviewRefreshTick] = useState(0);
     const [answers, setAnswers] = useState({});
     const [showGuestForm, setShowGuestForm] = useState(false);
     const [guestInfo, setGuestInfo] = useState(null);
@@ -143,6 +155,21 @@ const IeltsListeningTest = () => {
         isFullTest,
         queryString,
     }), [testId, mode, isFullTest, queryString]);
+
+    useEffect(() => {
+        const handlePreviewRefresh = (event) => {
+            if (event.origin !== window.location.origin) return;
+            const payload = event.data;
+            if (!payload || payload.type !== 'DAVICTORY_PREVIEW_REFRESH') return;
+            if (String(payload.testId) !== String(testId)) return;
+            const skill = String(payload.skillType || '').toUpperCase();
+            if (skill && skill !== 'LISTENING') return;
+            setPreviewRefreshTick((prev) => prev + 1);
+        };
+
+        window.addEventListener('message', handlePreviewRefresh);
+        return () => window.removeEventListener('message', handlePreviewRefresh);
+    }, [testId]);
     const highlightStorageKey = useMemo(() => {
         if (!testId) return null;
         return `ieltsHighlights_listening_${testId}`;
@@ -534,7 +561,7 @@ const IeltsListeningTest = () => {
                 : `Không thể tải bài thi: ${err.message}`);
             setLoading(false);
         });
-    }, [testId, isReview, mode, isFullTest, selectedPracticeParts, startPartNumber, durationOverrideMinutes, noTimeLimit, setCurrentPartIndex, isGuest, guestInfo, attemptId, highlightStorageKey]);
+    }, [testId, isReview, mode, isFullTest, selectedPracticeParts, startPartNumber, durationOverrideMinutes, noTimeLimit, setCurrentPartIndex, isGuest, guestInfo, attemptId, highlightStorageKey, previewRefreshTick]);
 
     useEffect(() => {
         if (!isFullTest || isReview || !partCount || !testId) return undefined;
@@ -826,6 +853,16 @@ const IeltsListeningTest = () => {
         }
     }, [activeQuestion]);
 
+    const hasMeaningfulAnswer = (value) => {
+        if (Array.isArray(value)) {
+            return value.some((item) => String(item || '').trim() !== '');
+        }
+
+        return typeof value === 'string'
+            ? value.trim() !== ''
+            : !!value;
+    };
+
     const handleAnswerChange = (questionId, value) => {
         setAnswers((prev) => ({ ...prev, [questionId]: value }));
     };
@@ -982,13 +1019,13 @@ const IeltsListeningTest = () => {
     const getAnsweredCount = (partIndex) => {
         if (!testData) return 0;
         const p = testData.parts[partIndex];
-        const flatQs = p.questions?.flatMap(q => q.subQuestions ? q.subQuestions : q) || [];
+        const flatQs = (p.questions?.flatMap(q => q.subQuestions ? q.subQuestions : q) || []).filter((question) => !question?.isSample);
         let count = 0;
         flatQs.forEach(q => {
             const ans = answers[q.id];
             const isAnswered = q.selectCount
                 ? (Array.isArray(ans) && ans.length >= q.selectCount)
-                : (typeof ans === 'string' ? ans.trim() !== '' : Array.isArray(ans) ? ans.length > 0 : !!ans);
+                : hasMeaningfulAnswer(ans);
             if (isAnswered) count += (q.numberRange ? q.numberRange.length : 1);
         });
         return count;
@@ -997,7 +1034,7 @@ const IeltsListeningTest = () => {
     const getTotalCount = (partIndex) => {
         if (!testData) return 0;
         const p = testData.parts[partIndex];
-        const flatQs = p.questions?.flatMap(q => q.subQuestions ? q.subQuestions : q) || [];
+        const flatQs = (p.questions?.flatMap(q => q.subQuestions ? q.subQuestions : q) || []).filter((question) => !question?.isSample);
         return flatQs.reduce((sum, q) => sum + (q.numberRange ? q.numberRange.length : 1), 0);
     };
 
@@ -1095,7 +1132,7 @@ const IeltsListeningTest = () => {
                     style={{
                         width: '100%',
                         minWidth: 0,
-                        padding: '16px clamp(16px, 2.5vw, 40px) 80px',
+                        padding: '16px var(--ielts-content-horizontal-padding) 80px',
                         margin: '0',
                     }}
                 >
@@ -1230,7 +1267,7 @@ const IeltsListeningTest = () => {
                         const isActivePart = currentPartIndex === index;
                         const answeredCount = getAnsweredCount(index);
                         const totalCount = getTotalCount(index);
-                        const flatQuestions = p.questions?.flatMap(q => q.subQuestions ? q.subQuestions : q) || [];
+                        const flatQuestions = (p.questions?.flatMap(q => q.subQuestions ? q.subQuestions : q) || []).filter((question) => !question?.isSample);
                         const partHasBookmarked = !isReview && flatQuestions.some((q) => {
                             const nums = q.numberRange || [q.number];
                             return nums.some((n) => bookmarks[n]);
@@ -1266,7 +1303,7 @@ const IeltsListeningTest = () => {
                                             const ans = answers[q.id];
                                             const isAnswered = q.selectCount
                                                 ? (Array.isArray(ans) && ans.length >= q.selectCount)
-                                                : (typeof ans === "string" ? ans.trim() !== "" : Array.isArray(ans) ? ans.length > 0 : !!ans);
+                                                : hasMeaningfulAnswer(ans);
                                             const isActive = nums.includes(activeQuestion);
                                             const hasBookmarked = !isReview && nums.some(n => bookmarks[n]);
 

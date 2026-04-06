@@ -306,10 +306,16 @@ const RichBlankEditor = ({
         onKeyUp={() => { renumber(); onChange(saveValue()); }}
         onPaste={(e) => {
           e.preventDefault();
-          let html = e.clipboardData.getData('text/html') || e.clipboardData.getData('text/plain');
+          const pastedHtml = e.clipboardData.getData('text/html');
+          const pastedText = e.clipboardData.getData('text/plain');
+          let html = pastedHtml || pastedText;
           // Tự động chuyển ký hiệu thành [blank]
           html = html.replace(/_{3,}|\.{3,}|-{3,}/g, '[blank]');
-          const cleaned = sanitizeRichPasteHtml(html);
+          const cleaned = pastedHtml
+            ? sanitizeRichPasteHtml(html)
+            : (preWrap
+                ? esc(String(pastedText || '')).replace(/\r\n?/g, '\n').replace(/\n/g, '<br>')
+                : sanitizeRichPasteHtml(html));
           const aligned = preserveBlockAlignment(cleaned);
           const enhanced = promoteHeadingLikeFirstLine(aligned);
           // Convert [blank] thành chip HTML

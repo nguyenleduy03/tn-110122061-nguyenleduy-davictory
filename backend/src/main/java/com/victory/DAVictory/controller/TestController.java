@@ -40,7 +40,9 @@ public class TestController {
             Authentication authentication) {
         try {
             TestStatus newStatus = TestStatus.valueOf(status.toUpperCase());
-            Test updatedTest = testManagementService.updateTestStatus(testId, newStatus, null);
+            String currentUsername = authentication != null ? authentication.getName() : null;
+            boolean isAdmin = hasRole(authentication, "ADMIN");
+            Test updatedTest = testManagementService.updateTestStatus(testId, newStatus, null, currentUsername, isAdmin);
             
             // Trả về Map thay vì entity để tránh infinite recursion
             return ResponseEntity.ok(Map.of(
@@ -54,6 +56,28 @@ public class TestController {
             return ResponseEntity.badRequest().body(Map.of("error", "Trạng thái không hợp lệ: " + status));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", "Không thể cập nhật trạng thái: " + e.getMessage()));
+        }
+    }
+
+    @PutMapping("/{testId}/restore")
+    @PreAuthorize("hasAnyRole('TEACHER', 'MANAGER', 'ADMIN')")
+    public ResponseEntity<?> restoreTest(
+            @PathVariable Long testId,
+            Authentication authentication) {
+        try {
+            String currentUsername = authentication != null ? authentication.getName() : null;
+            boolean isAdmin = hasRole(authentication, "ADMIN");
+            Test restoredTest = testManagementService.restoreTest(testId, currentUsername, isAdmin);
+
+            return ResponseEntity.ok(Map.of(
+                "id", restoredTest.getId(),
+                "title", restoredTest.getTitle(),
+                "status", restoredTest.getStatus().toString(),
+                "updatedAt", restoredTest.getUpdatedAt(),
+                "publishedAt", restoredTest.getPublishedAt() != null ? restoredTest.getPublishedAt() : ""
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
@@ -173,20 +197,38 @@ public class TestController {
         }
     }
 
+    private boolean hasRole(Authentication authentication, String role) {
+        if (authentication == null) return false;
+        String target = "ROLE_" + role;
+        for (var authority : authentication.getAuthorities()) {
+            if (target.equals(authority.getAuthority())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     @GetMapping("/my-tests")
     @PreAuthorize("hasAnyRole('TEACHER', 'MANAGER', 'ADMIN')")
-    public ResponseEntity<?> getMyTests(Authentication authentication) {
+    public ResponseEntity<?> getMyTests(Authentication authentication,
+                                       @RequestParam(required = false) TestStatus status) {
         try {
             String username = authentication.getName();
             
             String sql = "SELECT t.id, t.title, t.description, t.test_type, t.status, " +
                         "t.duration_minutes, t.target_band, t.created_at " +
+                        ", u.username AS createdByUsername " +
                         "FROM tests t " +
-                        "JOIN users u ON t.created_by = u.id " +
-                        "WHERE u.username = ? " +
-                        "ORDER BY t.created_at DESC";
-            
-            List<Map<String, Object>> tests = jdbcTemplate.queryForList(sql, username);
+                        "JOIN users u ON t.created_by = u.id ";
+
+            List<Map<String, Object>> tests;
+            if (status != null) {
+                sql += "WHERE u.username = ? AND t.status = ? ORDER BY t.created_at DESC";
+                tests = jdbcTemplate.queryForList(sql, username, status.name());
+            } else {
+                sql += "WHERE u.username = ? AND t.status <> 'DELETED' ORDER BY t.created_at DESC";
+                tests = jdbcTemplate.queryForList(sql, username);
+            }
             return ResponseEntity.ok(tests);
             
         } catch (Exception e) {

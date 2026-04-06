@@ -7,7 +7,9 @@ import SummaryCompletionQuestion from './SummaryCompletionQuestion';
 import SummaryCompletionSelectQuestion from './SummaryCompletionSelectQuestion';
 import DropdownGroupQuestion from './DropdownGroupQuestion';
 import MatchingFillQuestion from './MatchingFillQuestion';
+import ShortAnswerGroupQuestion from './ShortAnswerGroupQuestion';
 import { formatTextWithWhitespace } from '../../utils/textFormatters';
+import { resolveDrivePreviewUrl } from '../../utils/mediaUrl';
 import BookmarkToggle from '../common/BookmarkToggle';
 
 const normalizeQuestionType = (rawType) => {
@@ -44,9 +46,21 @@ const normalizeQuestionType = (rawType) => {
         case 'mcq_dropdown_group':
         case 'shared_options_dropdown':
             return 'mcq_dropdown_group';
+        case 'short_answer_group':
+        case 'short_answer':
+            return 'short-answer-group';
         default:
             return normalized;
     }
+};
+
+const resolveImageWidthPercent = (value, fallback = 100) => {
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    if (typeof value === 'string') {
+        const parsed = Number.parseFloat(value.replace('%', '').trim());
+        if (Number.isFinite(parsed)) return parsed;
+    }
+    return fallback;
 };
 
 const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answer, handleAnswerChange, inputRefs, bookmarks, toggleBookmark, isReview }) => {
@@ -168,21 +182,38 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
         );
     }
 
+    if (normalizedType === 'short-answer-group') {
+        return (
+            <ShortAnswerGroupQuestion
+                q={q}
+                activeQuestion={activeQuestion}
+                setActiveQuestion={setActiveQuestion}
+                answers={answers || {}}
+                handleAnswerChange={handleAnswerChange}
+                inputRefs={inputRefs}
+                bookmarks={bookmarks}
+                toggleBookmark={toggleBookmark}
+                isReview={isReview}
+            />
+        );
+    }
+
     if (normalizedType === 'summary-completion' || normalizedType === 'note-completion') {
         const shouldRenderStandaloneImage = q.imageUrl && !q.imagePosition;
+        const configuredImageWidth = resolveImageWidthPercent(q.imageWidth);
         return (
             <>
                 {shouldRenderStandaloneImage && (
                     <div style={{ marginBottom: 16, textAlign: 'center' }}>
-                        <img 
-                            src={q.imageUrl} 
-                            alt="Question diagram" 
-                            style={{ 
-                                maxWidth: `${q.imageWidth || 100}%`, 
+                        <img
+                            src={resolveDrivePreviewUrl(q.imageUrl)}
+                            alt="Question diagram"
+                            style={{
+                                maxWidth: `${configuredImageWidth}%`,
                                 height: 'auto',
                                 borderRadius: 4,
                                 boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                            }} 
+                            }}
                         />
                     </div>
                 )}

@@ -35,7 +35,7 @@ public class Test {
     private TestType testType; // ACADEMIC, GENERAL
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     private TestStatus status; // DRAFT, REVIEWING, PUBLISHED, ARCHIVED, DELETED
 
     @Column(nullable = false)

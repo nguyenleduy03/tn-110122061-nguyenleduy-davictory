@@ -7,7 +7,13 @@ import { authApi } from '../../services/authApi';
 import QuestionRenderer from '../../components/question/QuestionRenderer';
 import { formatTextWithWhitespace } from '../../utils/textFormatters';
 import { calculateExamBand, calculateWritingBandFromCriteria, formatBand } from '../../utils/ieltsScoring';
+import '../../styles/lms.css';
+import '../../styles/lmsGradeSubmission.css';
 import '../../styles/ieltsTest.css';
+
+const normalizeSkillToken = (value) => String(value || '').trim().toUpperCase();
+const isWritingSkill = (value) => normalizeSkillToken(value).includes('WRITING');
+const isSpeakingSkill = (value) => normalizeSkillToken(value).includes('SPEAKING');
 
 export default function LmsGradeSubmission() {
   const { type, id } = useParams();
@@ -20,7 +26,7 @@ export default function LmsGradeSubmission() {
   const [activeQuestion, setActiveQuestion] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [writingSource, setWritingSource] = useState('writing');
+  const [writingSource, setWritingSource] = useState('none');
   const [forceWritingMode, setForceWritingMode] = useState(type === 'writing');
   const [gradeHistory, setGradeHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -31,7 +37,10 @@ export default function LmsGradeSubmission() {
     taskAchievement: '',
     coherenceCohesion: '',
     lexicalResource: '',
-    grammaticalRange: ''
+    grammaticalRange: '',
+    fluencyCoherence: '',
+    grammaticalRangeAccuracy: '',
+    pronunciation: ''
   });
 
   const normalizeDecimalInputText = (rawValue) => String(rawValue ?? '').replace(/,/g, '.');
@@ -46,6 +55,31 @@ export default function LmsGradeSubmission() {
     if (Math.abs((numeric * 2) - Math.round(numeric * 2)) > 1e-9) return '';
 
     return Number.isInteger(numeric) ? String(numeric) : numeric.toFixed(1);
+  };
+
+  const createWritingGradingState = () => ({
+    feedback: '',
+    taskAchievement: '',
+    coherenceCohesion: '',
+    lexicalResource: '',
+    grammaticalRange: '',
+    fluencyCoherence: '',
+    grammaticalRangeAccuracy: '',
+    pronunciation: ''
+  });
+
+  const createSpeakingGradingState = (source = {}) => {
+    const score = source?.score || source?.speakingScore || {};
+    return {
+      feedback: '',
+      taskAchievement: '',
+      coherenceCohesion: '',
+      lexicalResource: normalizeIeltsBandValue(score?.lexicalResource ?? source?.lexicalResource ?? ''),
+      grammaticalRange: '',
+      fluencyCoherence: normalizeIeltsBandValue(score?.fluencyCoherence ?? source?.fluencyCoherence ?? ''),
+      grammaticalRangeAccuracy: normalizeIeltsBandValue(score?.grammaticalRangeAccuracy ?? source?.grammaticalRangeAccuracy ?? ''),
+      pronunciation: normalizeIeltsBandValue(score?.pronunciation ?? source?.pronunciation ?? '')
+    };
   };
 
   const isValidIeltsBandPartial = (rawValue) => {
@@ -240,11 +274,67 @@ export default function LmsGradeSubmission() {
     return '';
   };
 
-  const buildWritingLikeFromExamAttempt = (attempt) => {
+  const isLikelyDrivePreviewUrl = (value) => {
+    const raw = String(value || '').trim();
+    if (!raw) return false;
+    return /(\/api\/files\/preview\/|https?:\/\/.*\/api\/files\/preview\/)/i.test(raw);
+  };
+
+  const normalizeTextFromDriveFile = (content) => {
+    const text = String(content || '').replace(/\r\n/g, '\n').trim();
+    if (!text) return '';
+
+    const splitMarker = '\n\n';
+    const markerIndex = text.indexOf(splitMarker);
+    if (markerIndex > -1) {
+      const essayBody = text.slice(markerIndex + splitMarker.length).trim();
+      if (essayBody) return essayBody;
+    }
+
+    return text;
+  };
+
+  const loadWritingTextFromDriveUrls = async (answers = []) => {
+    const urls = [];
+    const seen = new Set();
+
+    answers.forEach((answer) => {
+      [answer?.selectedOptionLabel, answer?.textAnswer]
+        .map((value) => String(value || '').trim())
+        .forEach((candidate) => {
+          if (!isLikelyDrivePreviewUrl(candidate) || seen.has(candidate)) return;
+          seen.add(candidate);
+          urls.push(candidate);
+        });
+    });
+
+    if (!urls.length) return '';
+
+    const chunks = [];
+    for (const url of urls) {
+      try {
+        const response = await fetch(url);
+        if (!response.ok) continue;
+        const text = normalizeTextFromDriveFile(await response.text());
+        if (text) chunks.push(text);
+      } catch {
+        // Ignore unreadable files and fallback to DB text.
+      }
+    }
+
+    return chunks.join('\n\n').trim();
+  };
+
+  const buildWritingLikeFromExamAttempt = async (attempt) => {
     const answers = Array.isArray(attempt?.answers) ? attempt.answers : [];
-    const submissionText = answers
+    const fallbackSubmissionText = answers
       .map((a) => String(a?.textAnswer || '').trim())
-      .find(Boolean) || '';
+      .filter((text) => text && !isLikelyDrivePreviewUrl(text))
+      .join('\n\n')
+      .trim();
+
+    const driveSubmissionText = await loadWritingTextFromDriveUrls(answers);
+    const submissionText = driveSubmissionText || fallbackSubmissionText;
 
     const derivedWordCount = submissionText
       ? submissionText.split(/\s+/).filter(Boolean).length
@@ -387,40 +477,46 @@ export default function LmsGradeSubmission() {
           setWritingSource('writing');
           setForceWritingMode(true);
           if (data.overallBandScore) {
-            setGrading({
-              feedback: data.overallFeedback || '',
-              taskAchievement: '',
-              coherenceCohesion: '',
-              lexicalResource: '',
-              grammaticalRange: ''
-            });
+            setGrading(createWritingGradingState());
           }
           return;
         }
 
         if (effectiveSource === 'exam') {
           const data = await teacherApi.getExamAttemptDetail(id);
-          const skill = String(data?.skillType || data?.examType || '').toUpperCase();
-          if (skill === 'WRITING') {
-            const mapped = buildWritingLikeFromExamAttempt(data);
+          const skill = String(data?.skillType || data?.examType || '');
+          if (isWritingSkill(skill)) {
+            const mapped = await buildWritingLikeFromExamAttempt(data);
             setSubmission(mapped);
             setWritingSource('exam');
             setForceWritingMode(true);
             if (mapped.overallBandScore !== null && mapped.overallBandScore !== undefined) {
-              setGrading({
-                feedback: mapped.overallFeedback || '',
-                taskAchievement: '',
-                coherenceCohesion: '',
-                lexicalResource: '',
-                grammaticalRange: ''
-              });
+              setGrading(createWritingGradingState());
             }
           } else {
-            setSubmission(data);
-            if (data?.testId && data?.skillType) {
-              const reviewSession = await ieltsApi.getTestSession(data.testId, data.skillType);
+            let loadedSubmission = data;
+            if (isSpeakingSkill(skill)) {
+              try {
+                const speakingAttempt = await teacherApi.getSpeakingAttempt(id);
+                loadedSubmission = {
+                  ...data,
+                  ...speakingAttempt,
+                  score: speakingAttempt?.score || data?.score,
+                  feedback: speakingAttempt?.feedback || data?.feedback || '',
+                };
+                setGrading(createSpeakingGradingState(loadedSubmission));
+              } catch (speakingError) {
+                console.warn('Cannot load speaking attempt grading details:', speakingError);
+              }
+            }
+
+            setForceWritingMode(false);
+            setWritingSource('none');
+            setSubmission(loadedSubmission);
+            if (loadedSubmission?.testId && loadedSubmission?.skillType) {
+              const reviewSession = await ieltsApi.getTestSession(loadedSubmission.testId, loadedSubmission.skillType);
               setExamReviewSession(reviewSession);
-              setReviewAnswers(buildReviewAnswers(data.answers || [], reviewSession));
+              setReviewAnswers(buildReviewAnswers(loadedSubmission.answers || [], reviewSession));
             }
           }
           return;
@@ -432,47 +528,53 @@ export default function LmsGradeSubmission() {
             setSubmission(data);
             setWritingSource('writing');
             if (data.overallBandScore) {
-              setGrading({
-                feedback: data.overallFeedback || '',
-                taskAchievement: '',
-                coherenceCohesion: '',
-                lexicalResource: '',
-                grammaticalRange: ''
-              });
+              setGrading(createWritingGradingState());
             }
           } catch {
             const examData = await teacherApi.getExamAttemptDetail(id);
-            const skill = String(examData?.skillType || examData?.examType || '').toUpperCase();
-            if (skill !== 'WRITING') {
+            const skill = String(examData?.skillType || examData?.examType || '');
+            if (!isWritingSkill(skill)) {
               throw new Error('Submission is not WRITING');
             }
 
-            const mapped = buildWritingLikeFromExamAttempt(examData);
+            const mapped = await buildWritingLikeFromExamAttempt(examData);
             setSubmission(mapped);
             setWritingSource('exam');
             if (mapped.overallBandScore !== null && mapped.overallBandScore !== undefined) {
-              setGrading({
-                feedback: mapped.overallFeedback || '',
-                taskAchievement: '',
-                coherenceCohesion: '',
-                lexicalResource: '',
-                grammaticalRange: ''
-              });
+              setGrading(createWritingGradingState());
             }
           }
         } else {
           const data = await teacherApi.getExamAttemptDetail(id);
-          const skill = String(data?.skillType || data?.examType || '').toUpperCase();
-          if (skill === 'WRITING') {
-            const mapped = buildWritingLikeFromExamAttempt(data);
+          const skill = String(data?.skillType || data?.examType || '');
+          if (isWritingSkill(skill)) {
+            const mapped = await buildWritingLikeFromExamAttempt(data);
             setSubmission(mapped);
             setWritingSource('exam');
             setForceWritingMode(true);
           } else {
-            setSubmission(data);
+            let loadedSubmission = data;
+            if (isSpeakingSkill(skill)) {
+              try {
+                const speakingAttempt = await teacherApi.getSpeakingAttempt(id);
+                loadedSubmission = {
+                  ...data,
+                  ...speakingAttempt,
+                  score: speakingAttempt?.score || data?.score,
+                  feedback: speakingAttempt?.feedback || data?.feedback || '',
+                };
+                setGrading(createSpeakingGradingState(loadedSubmission));
+              } catch (speakingError) {
+                console.warn('Cannot load speaking attempt grading details:', speakingError);
+              }
+            }
+
+            setForceWritingMode(false);
+            setWritingSource('none');
+            setSubmission(loadedSubmission);
           }
 
-          if (skill !== 'WRITING' && data?.testId && data?.skillType) {
+          if (!isWritingSkill(skill) && data?.testId && data?.skillType) {
             const reviewSession = await ieltsApi.getTestSession(data.testId, data.skillType);
             setExamReviewSession(reviewSession);
 
@@ -491,6 +593,33 @@ export default function LmsGradeSubmission() {
 
   const handleSubmitGrade = async () => {
     try {
+      const currentSkillType = String(submission?.skillType || submission?.examType || '');
+      const isSpeakingSubmission = !forceWritingMode && isSpeakingSkill(currentSkillType);
+
+      if (isSpeakingSubmission) {
+        const fluencyCoherence = parseValidBandForRubric(grading.fluencyCoherence);
+        const lexicalResource = parseValidBandForRubric(grading.lexicalResource);
+        const grammaticalRangeAccuracy = parseValidBandForRubric(grading.grammaticalRangeAccuracy);
+        const pronunciation = parseValidBandForRubric(grading.pronunciation);
+
+        if ([fluencyCoherence, lexicalResource, grammaticalRangeAccuracy, pronunciation].some((value) => value === null)) {
+          alert('Vui lòng nhập đủ 4 tiêu chí Speaking (0.0 - 9.0, bước 0.5).');
+          return;
+        }
+
+        await teacherApi.gradeSpeakingAttempt(id, {
+          fluencyCoherence,
+          lexicalResource,
+          grammaticalRangeAccuracy,
+          pronunciation,
+          feedback: grading.feedback,
+        });
+
+        alert('Đã chấm bài thành công!');
+        navigate(-1);
+        return;
+      }
+
       const computedBand = calculateWritingBandFromCriteria({
         taskAchievement: grading.taskAchievement,
         coherenceCohesion: grading.coherenceCohesion,
@@ -626,11 +755,12 @@ export default function LmsGradeSubmission() {
     }
 
     const skill = String(submission?.skillType || submission?.examType || '').toUpperCase();
-    const shouldLoadHistory = forceWritingMode
+    const shouldUseExamHistory = writingSource === 'exam' || type === 'exam' || isSpeakingSkill(skill);
+    const shouldLoadHistory = shouldUseExamHistory
+      || forceWritingMode
       || type === 'writing'
       || writingSource === 'writing'
-      || writingSource === 'exam'
-      || skill === 'WRITING';
+      || isWritingSkill(skill);
 
     if (!shouldLoadHistory) {
       setHistoryLoading(false);
@@ -667,11 +797,12 @@ export default function LmsGradeSubmission() {
           gradedByFullName: firstNonBlankText(submission?.gradedByFullName, currentUser?.fullName, currentUser?.username) || null,
         };
 
-        if (writingSource === 'exam') {
-          const attemptId = submission?.sourceExamAttemptId || id;
+        if (shouldUseExamHistory) {
+          const attemptId = submission?.sourceExamAttemptId || id || submission?.id;
           rawHistory = await withTimeout(teacherApi.getExamAttemptGradeHistory(attemptId));
         } else {
-          rawHistory = await withTimeout(teacherApi.getWritingGradeHistory(id));
+          const writingSubmissionId = submission?.id || id;
+          rawHistory = await withTimeout(teacherApi.getWritingGradeHistory(writingSubmissionId));
         }
 
         if (timeoutId) {
@@ -794,16 +925,18 @@ export default function LmsGradeSubmission() {
 
     return (
       <>
-        <div className="review-score-banner" style={{ marginBottom: 16 }}>
-          <div className="review-score-main">
-            Score: {Number.isFinite(submission?.totalCorrect) ? submission.totalCorrect : 0}
-            {' / '}
-            {getTotalQuestionCount()}
+        {!isSpeaking && (
+          <div className="review-score-banner" style={{ marginBottom: 16 }}>
+            <div className="review-score-main">
+              Score: {Number.isFinite(submission?.totalCorrect) ? submission.totalCorrect : 0}
+              {' / '}
+              {getTotalQuestionCount()}
+            </div>
+            <div className="review-score-sub">
+              Band score: {formatBand(displayExamBand)} / 9.0
+            </div>
           </div>
-          <div className="review-score-sub">
-            Band score: {formatBand(displayExamBand)} / 9.0
-          </div>
-        </div>
+        )}
 
         {examReviewSession.parts.map((part, partIndex) => (
           <div
@@ -901,8 +1034,11 @@ export default function LmsGradeSubmission() {
     );
   }
 
-  const isWriting = forceWritingMode || String(submission?.skillType || submission?.examType || '').toUpperCase() === 'WRITING';
-  const examType = submission.skillType || submission.examType || 'EXAM';
+  const resolvedSkillType = String(submission?.skillType || submission?.examType || '');
+  const resolvedSkillToken = normalizeSkillToken(resolvedSkillType);
+  const isWriting = forceWritingMode || isWritingSkill(resolvedSkillType);
+  const examType = resolvedSkillToken || 'EXAM';
+  const isSpeaking = !isWriting && isSpeakingSkill(resolvedSkillType);
   const computedWritingBand = calculateWritingBandFromCriteria({
     taskAchievement: grading.taskAchievement,
     coherenceCohesion: grading.coherenceCohesion,
@@ -919,12 +1055,40 @@ export default function LmsGradeSubmission() {
   const finalWritingBand = hasInvalidRubricField ? null : computedWritingBand;
   const hasExistingWritingBand = submission?.overallBandScore != null || submission?.bandScore != null;
   const canSaveWritingGrade = isWriting && (finalWritingBand !== null || hasExistingWritingBand);
-  const isSubmissionGraded = isWriting && (
+  const isWritingSubmissionGraded = isWriting && (
     String(submission?.status || '').toUpperCase() === 'GRADED'
     || submission?.overallBandScore != null
     || submission?.bandScore != null
   );
-  const writingActionLabel = isSubmissionGraded ? 'Sửa điểm' : 'Chấm bài';
+  const writingActionLabel = isWritingSubmissionGraded ? 'Sửa điểm' : 'Chấm bài';
+
+  const speakingRubricFieldStatus = {
+    fluencyCoherence: parseValidBandForRubric(grading.fluencyCoherence) !== null,
+    lexicalResource: parseValidBandForRubric(grading.lexicalResource) !== null,
+    grammaticalRangeAccuracy: parseValidBandForRubric(grading.grammaticalRangeAccuracy) !== null,
+    pronunciation: parseValidBandForRubric(grading.pronunciation) !== null,
+  };
+  const hasInvalidSpeakingRubricField = Object.values(speakingRubricFieldStatus).some((isValid) => !isValid);
+  const parsedSpeakingScores = {
+    fluencyCoherence: parseValidBandForRubric(grading.fluencyCoherence),
+    lexicalResource: parseValidBandForRubric(grading.lexicalResource),
+    grammaticalRangeAccuracy: parseValidBandForRubric(grading.grammaticalRangeAccuracy),
+    pronunciation: parseValidBandForRubric(grading.pronunciation),
+  };
+  const speakingBandPreview = hasInvalidSpeakingRubricField
+    ? null
+    : (Object.values(parsedSpeakingScores).reduce((sum, value) => sum + value, 0) / 4);
+  const hasExistingSpeakingBand = submission?.bandScore != null;
+  const canSaveSpeakingGrade = isSpeaking && !hasInvalidSpeakingRubricField;
+  const isSpeakingSubmissionGraded = isSpeaking && (
+    String(submission?.status || '').toUpperCase() === 'GRADED'
+    || hasExistingSpeakingBand
+    || Object.values(parsedSpeakingScores).some((value) => value !== null)
+  );
+  const speakingActionLabel = isSpeakingSubmissionGraded ? 'Sửa điểm' : 'Chấm bài';
+  const gradeActionLabel = isWriting ? writingActionLabel : speakingActionLabel;
+  const canSubmitGrade = isWriting ? canSaveWritingGrade : (isSpeaking ? canSaveSpeakingGrade : false);
+
   const calculatedExamBand = calculateExamBand({
     skillType: examType,
     totalCorrect: submission.totalCorrect,
@@ -935,8 +1099,100 @@ export default function LmsGradeSubmission() {
     : null;
   const submissionDurationSeconds = submission?.timeSpentSeconds ?? submission?.timeTakenSeconds ?? inferredDurationSeconds;
 
+  const normalizeQuestionKey = (value) => {
+    const raw = String(value ?? '').trim();
+    if (!raw) return '';
+    const match = raw.match(/^q?(\d+)$/i);
+    return match ? match[1] : raw;
+  };
+
+  const questionIdToPartLabelMap = (() => {
+    const map = new Map();
+    const parts = examReviewSession?.parts || [];
+
+    parts.forEach((part, partIndex) => {
+      const partNumber = Number(part?.partNumber);
+      const resolvedPartNumber = Number.isFinite(partNumber) && partNumber > 0
+        ? partNumber
+        : (partIndex + 1);
+      const partLabel = `Part ${resolvedPartNumber}`;
+
+      (part?.questions || []).forEach((question) => {
+        const key = normalizeQuestionKey(question?.id);
+        if (key) {
+          map.set(key, partLabel);
+        }
+      });
+    });
+
+    return map;
+  })();
+
+  const isLikelyAudioUrl = (value) => {
+    const raw = String(value || '').trim();
+    return /^(https?:\/\/|blob:|data:audio\/|\/)/i.test(raw);
+  };
+
+  const speakingRecordings = (() => {
+    const records = [];
+    const seen = new Set();
+    const urlToPartLabel = new Map();
+    let fallbackPartCounter = 1;
+
+    const resolvePartLabel = (normalizedUrl, preferredLabel) => {
+      if (urlToPartLabel.has(normalizedUrl)) {
+        return urlToPartLabel.get(normalizedUrl);
+      }
+
+      const nextLabel = preferredLabel || `Part ${fallbackPartCounter}`;
+      urlToPartLabel.set(normalizedUrl, nextLabel);
+
+      const matchedPart = String(nextLabel).match(/^Part\s+(\d+)$/i);
+      if (matchedPart) {
+        const partNo = Number(matchedPart[1]);
+        if (Number.isFinite(partNo) && partNo >= fallbackPartCounter) {
+          fallbackPartCounter = partNo + 1;
+        }
+      } else if (!preferredLabel) {
+        fallbackPartCounter += 1;
+      }
+
+      return nextLabel;
+    };
+
+    const pushRecord = (url, preferredLabel) => {
+      const normalizedUrl = String(url || '').trim();
+      if (!normalizedUrl || seen.has(normalizedUrl)) return;
+      if (!isLikelyAudioUrl(normalizedUrl)) return;
+
+      const label = resolvePartLabel(normalizedUrl, preferredLabel);
+      seen.add(normalizedUrl);
+      records.push({ label, url: normalizedUrl });
+    };
+
+    (submission?.answers || []).forEach((answer, index) => {
+      const questionKey = normalizeQuestionKey(answer?.questionId || index + 1);
+      const partLabel = questionIdToPartLabelMap.get(questionKey) || null;
+      pushRecord(answer?.audioUrl, partLabel);
+      pushRecord(answer?.textAnswer, partLabel);
+      pushRecord(answer?.selectedOptionLabel, partLabel);
+    });
+
+    if (Array.isArray(submission?.audioUrls)) {
+      submission.audioUrls.forEach((url, index) => {
+        pushRecord(url, `Part ${index + 1}`);
+      });
+    }
+
+    if (submission?.audioUrl) {
+      pushRecord(submission.audioUrl, null);
+    }
+
+    return records;
+  })();
+
   const renderGradeHistorySection = () => {
-    if (!isWriting) return null;
+    if (!isWriting && !isSpeaking) return null;
 
     return (
       <div style={{
@@ -1039,16 +1295,20 @@ export default function LmsGradeSubmission() {
               <ArrowLeft size={14} /> Quay lại
             </button>
             <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>
-              {isWriting ? 'Chấm bài Writing' : `Chi tiết chấm bài ${examType}`}
+              {isWriting
+                ? 'Chấm bài Writing'
+                : isSpeaking
+                  ? 'Chấm bài Speaking'
+                  : `Chi tiết chấm bài ${examType}`}
             </h2>
           </div>
-          {isWriting ? (
+          {(isWriting || isSpeaking) ? (
             <button
               className="lms-cta"
               onClick={handleSubmitGrade}
-              disabled={!canSaveWritingGrade}
+              disabled={!canSubmitGrade}
             >
-              <Save size={14} /> {writingActionLabel}
+              <Save size={14} /> {gradeActionLabel}
             </button>
           ) : (
             <span className="lms-pill success">
@@ -1060,7 +1320,7 @@ export default function LmsGradeSubmission() {
       </div>
 
       <div style={{ maxWidth: 1400, margin: '0 auto', padding: 24 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: isWriting ? '1fr 400px' : '1fr', gap: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: (isWriting || isSpeaking) ? '1fr 400px' : '1fr', gap: 24 }}>
           <div>
             <div style={{
               background: 'white',
@@ -1178,6 +1438,93 @@ export default function LmsGradeSubmission() {
 
                 {renderGradeHistorySection()}
               </>
+            ) : isSpeaking ? (
+              <>
+                <div style={{
+                  background: 'white',
+                  borderRadius: 12,
+                  padding: 24,
+                  marginBottom: 20,
+                  border: '1px solid #e5e7eb'
+                }}>
+                  <h3 style={{
+                    margin: '0 0 16px 0',
+                    fontSize: 18,
+                    fontWeight: 600,
+                    color: '#1f2937',
+                    borderBottom: '2px solid #3b82f6',
+                    paddingBottom: 12
+                  }}>
+                    Đề bài: {submission.testTitle || submission.examTitle || 'Speaking Test'}
+                  </h3>
+                  <div style={{
+                    padding: 16,
+                    background: '#fef3c7',
+                    borderRadius: 8,
+                    border: '1px solid #fbbf24',
+                    fontSize: 14,
+                    lineHeight: 1.6
+                  }}>
+                    <p style={{ margin: 0, fontStyle: 'italic', color: '#92400e' }}>
+                      Bài nói được chấm theo rubric IELTS Speaking.
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{
+                  background: 'white',
+                  borderRadius: 12,
+                  padding: 24,
+                  border: '1px solid #e5e7eb',
+                  marginBottom: 20
+                }}>
+                  <h3 style={{
+                    margin: '0 0 16px 0',
+                    fontSize: 18,
+                    fontWeight: 600,
+                    color: '#1f2937',
+                    borderBottom: '2px solid #10b981',
+                    paddingBottom: 12
+                  }}>
+                    Bài nộp của học viên
+                  </h3>
+
+                  <div style={{ display: 'grid', gap: 12 }}>
+                    {speakingRecordings.length > 0 ? (
+                      speakingRecordings.map((record, index) => (
+                        <div
+                          key={`${record.url}-${index}`}
+                          style={{
+                            background: '#f9fafb',
+                            border: '1px solid #e5e7eb',
+                            borderRadius: 8,
+                            padding: 12
+                          }}
+                        >
+                          <div style={{ fontSize: 13, color: '#475569', marginBottom: 8, fontWeight: 600 }}>
+                            {record.label}
+                          </div>
+                          <audio controls src={record.url} style={{ width: '100%' }} />
+                        </div>
+                      ))
+                    ) : (
+                      <div style={{
+                        padding: 16,
+                        borderRadius: 8,
+                        background: '#f9fafb',
+                        border: '1px dashed #cbd5e1',
+                        color: '#64748b',
+                        fontSize: 14
+                      }}>
+                        Chưa có file thu âm để phát lại.
+                      </div>
+                    )}
+
+                  </div>
+                </div>
+
+                {renderGradeHistorySection()}
+              </>
             ) : (
               <>
                 <div style={{
@@ -1262,13 +1609,16 @@ export default function LmsGradeSubmission() {
           </div>
 
           {isWriting && (
-            <div style={{ position: 'sticky', top: 90, height: 'fit-content' }}>
+            <div style={{ position: 'sticky', top: 90, alignSelf: 'start' }}>
               <div style={{
                 background: 'white',
                 borderRadius: 12,
                 padding: 24,
                 border: '1px solid #e5e7eb',
-                boxShadow: '0 4px 6px rgba(0,0,0,0.05)'
+                boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
+                maxHeight: 'calc(100vh - 110px)',
+                overflowY: 'auto',
+                scrollbarGutter: 'stable'
               }}>
                 <h3 style={{
                   margin: '0 0 20px 0',
@@ -1441,9 +1791,193 @@ export default function LmsGradeSubmission() {
               </div>
             </div>
           )}
+
+          {isSpeaking && (
+            <div style={{ position: 'sticky', top: 90, alignSelf: 'start' }}>
+              <div style={{
+                background: 'white',
+                borderRadius: 12,
+                padding: 24,
+                border: '1px solid #e5e7eb',
+                boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
+                maxHeight: 'calc(100vh - 110px)',
+                overflowY: 'auto',
+                scrollbarGutter: 'stable'
+              }}>
+                <h3 style={{
+                  margin: '0 0 20px 0',
+                  fontSize: 18,
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8
+                }}>
+                  <Award size={20} style={{ color: '#f59e0b' }} />
+                  Chấm điểm
+                </h3>
+
+                <div style={{ marginBottom: 20 }}>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 10, color: '#374151' }}>
+                    Chấm theo rubric IELTS Speaking (mỗi tiêu chí 0.0 - 9.0)
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      maxLength={3}
+                      lang="en"
+                      autoComplete="off"
+                      spellCheck={false}
+                      value={grading.fluencyCoherence}
+                      onChange={handleBandFieldChange('fluencyCoherence')}
+                      onFocus={handleBandFieldFocus}
+                      onKeyDown={handleBandFieldKeyDown}
+                      onBeforeInput={handleBandFieldBeforeInput}
+                      onPaste={handleBandFieldPaste('fluencyCoherence')}
+                      onBlur={handleBandFieldBlur('fluencyCoherence')}
+                      placeholder="Fluency & Coherence"
+                      style={{ width: '100%', padding: '10px 12px', border: speakingRubricFieldStatus.fluencyCoherence ? '1px solid #e5e7eb' : '1px solid #ef4444', borderRadius: 8, imeMode: 'disabled' }}
+                    />
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      maxLength={3}
+                      lang="en"
+                      autoComplete="off"
+                      spellCheck={false}
+                      value={grading.lexicalResource}
+                      onChange={handleBandFieldChange('lexicalResource')}
+                      onFocus={handleBandFieldFocus}
+                      onKeyDown={handleBandFieldKeyDown}
+                      onBeforeInput={handleBandFieldBeforeInput}
+                      onPaste={handleBandFieldPaste('lexicalResource')}
+                      onBlur={handleBandFieldBlur('lexicalResource')}
+                      placeholder="Lexical Resource"
+                      style={{ width: '100%', padding: '10px 12px', border: speakingRubricFieldStatus.lexicalResource ? '1px solid #e5e7eb' : '1px solid #ef4444', borderRadius: 8, imeMode: 'disabled' }}
+                    />
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      maxLength={3}
+                      lang="en"
+                      autoComplete="off"
+                      spellCheck={false}
+                      value={grading.grammaticalRangeAccuracy}
+                      onChange={handleBandFieldChange('grammaticalRangeAccuracy')}
+                      onFocus={handleBandFieldFocus}
+                      onKeyDown={handleBandFieldKeyDown}
+                      onBeforeInput={handleBandFieldBeforeInput}
+                      onPaste={handleBandFieldPaste('grammaticalRangeAccuracy')}
+                      onBlur={handleBandFieldBlur('grammaticalRangeAccuracy')}
+                      placeholder="Grammatical Range"
+                      style={{ width: '100%', padding: '10px 12px', border: speakingRubricFieldStatus.grammaticalRangeAccuracy ? '1px solid #e5e7eb' : '1px solid #ef4444', borderRadius: 8, imeMode: 'disabled' }}
+                    />
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      maxLength={3}
+                      lang="en"
+                      autoComplete="off"
+                      spellCheck={false}
+                      value={grading.pronunciation}
+                      onChange={handleBandFieldChange('pronunciation')}
+                      onFocus={handleBandFieldFocus}
+                      onKeyDown={handleBandFieldKeyDown}
+                      onBeforeInput={handleBandFieldBeforeInput}
+                      onPaste={handleBandFieldPaste('pronunciation')}
+                      onBlur={handleBandFieldBlur('pronunciation')}
+                      placeholder="Pronunciation"
+                      style={{ width: '100%', padding: '10px 12px', border: speakingRubricFieldStatus.pronunciation ? '1px solid #e5e7eb' : '1px solid #ef4444', borderRadius: 8, imeMode: 'disabled' }}
+                    />
+                  </div>
+                  <div style={{ marginTop: 10, fontSize: 13, color: '#0f766e', fontWeight: 600 }}>
+                    Band dự kiến lưu (tự tính từ 4 tiêu chí): {speakingBandPreview !== null ? formatBand(speakingBandPreview) : 'Chưa đủ tiêu chí'}
+                  </div>
+                  {hasInvalidSpeakingRubricField && (
+                    <div style={{ marginTop: 4, fontSize: 12, color: '#b91c1c' }}>
+                      Vui lòng nhập đủ 4 tiêu chí hợp lệ (0.0 - 9.0, bước 0.5).
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ marginBottom: 20 }}>
+                  <label style={{
+                    display: 'block',
+                    fontSize: 14,
+                    fontWeight: 600,
+                    marginBottom: 8,
+                    color: '#374151'
+                  }}>
+                    Nhận xét chung
+                  </label>
+                  <textarea
+                    value={grading.feedback}
+                    onChange={(e) => setGrading((prev) => ({ ...prev, feedback: e.target.value }))}
+                    onKeyDown={handleFeedbackKeyDown}
+                    onBeforeInput={handleFeedbackBeforeInput}
+                    rows={8}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      border: '2px solid #e5e7eb',
+                      borderRadius: 8,
+                      fontSize: 14,
+                      lineHeight: 1.6,
+                      resize: 'vertical',
+                      fontFamily: 'inherit'
+                    }}
+                    placeholder="Nhập nhận xét về bài nói của học viên..."
+                  />
+                </div>
+
+                <div style={{
+                  padding: 16,
+                  background: '#f0f9ff',
+                  borderRadius: 8,
+                  border: '1px solid #bfdbfe',
+                  marginBottom: 20
+                }}>
+                  <h4 style={{ margin: '0 0 12px 0', fontSize: 13, fontWeight: 600, color: '#1e40af' }}>
+                    Tiêu chí chấm IELTS Speaking
+                  </h4>
+                  <ul style={{ margin: 0, paddingLeft: 20, fontSize: 12, color: '#1e40af', lineHeight: 1.8 }}>
+                    <li>Fluency & Coherence (25%)</li>
+                    <li>Lexical Resource (25%)</li>
+                    <li>Grammatical Range & Accuracy (25%)</li>
+                    <li>Pronunciation (25%)</li>
+                  </ul>
+                </div>
+
+                <div style={{
+                  padding: 12,
+                  background: submission.status === 'GRADED' ? '#d1fae5' : '#fef3c7',
+                  borderRadius: 8,
+                  marginBottom: 20,
+                  textAlign: 'center'
+                }}>
+                  <span style={{
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: submission.status === 'GRADED' ? '#065f46' : '#92400e'
+                  }}>
+                    {submission.status === 'GRADED' ? 'Đã chấm' : 'Chờ chấm'}
+                  </span>
+                </div>
+
+                <button
+                  className="lms-cta"
+                  onClick={handleSubmitGrade}
+                  disabled={!canSaveSpeakingGrade}
+                  style={{ width: '100%', justifyContent: 'center', padding: '14px' }}
+                >
+                  <Save size={16} /> {speakingActionLabel}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
-        {!isWriting && (
+        {!isWriting && !isSpeaking && (
           <div style={{
             marginTop: 18,
             background: '#fff',

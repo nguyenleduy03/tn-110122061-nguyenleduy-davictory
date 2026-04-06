@@ -4,6 +4,15 @@ import { isQuestionMetaLabel } from '../../utils/questionLabelUtils';
 import BookmarkToggle from '../common/BookmarkToggle';
 import { resolveDrivePreviewUrl } from '../../utils/mediaUrl';
 
+const resolveImageWidthPercent = (value, fallback = 100) => {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string') {
+    const parsed = Number.parseFloat(value.replace('%', '').trim());
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return fallback;
+};
+
 const DropdownGroupQuestion = ({
   q,
   activeQuestion,
@@ -77,6 +86,7 @@ const DropdownGroupQuestion = ({
   const instructionText = (!hasMeaningfulText(instructionRaw) || isQuestionMetaLabel(instructionRaw)) ? '' : instructionRaw;
   const optionsTableTitleText = (!hasMeaningfulText(optionsTableTitleRaw) || isQuestionMetaLabel(optionsTableTitleRaw)) ? '' : optionsTableTitleRaw;
   const questionTitleText = (!hasMeaningfulText(questionTitleRaw) || isQuestionMetaLabel(questionTitleRaw)) ? '' : questionTitleRaw;
+  const configuredImageWidth = resolveImageWidthPercent(group.imageWidth);
   const showOptionsLegend = options.length > 0 && !group.hideOptionsTable;
   const layoutRef = React.useRef(null);
   const [floatingBookmarkTop, setFloatingBookmarkTop] = React.useState(null);
@@ -143,7 +153,7 @@ const DropdownGroupQuestion = ({
         )}
 
       {group.imageUrl && (
-        <div className="mcq-dropdown-group-image" style={{ width: `${group.imageWidth || 100}%` }}>
+        <div className="mcq-dropdown-group-image" style={{ width: `${configuredImageWidth}%` }}>
           <img
             src={resolveDrivePreviewUrl(group.imageUrl)}
             alt="Question illustration"

@@ -33,6 +33,7 @@ public class QuestionGroupRequest {
         private String questionTypeCode;    // MCQ, TFNG, FILL_BLANK, MATCHING...
         private Long questionTypeId;        // Hoặc truyền ID trực tiếp
         private Integer questionNumber;     // Số thứ tự trong đề (1-40)
+        private String questionSection;     // top | image | bottom cho IMAGE_NOTE_FORM
         private String questionText;        // Nội dung câu hỏi
         private String blankContext;        // Câu chứa chỗ trống
         private String imageUrl;
@@ -56,6 +57,7 @@ public class QuestionGroupRequest {
         private String answerText;              // Đáp án chính
         private String alternativeAnswers;      // JSON: ["colour","color"]
         private Boolean isCaseSensitive;
+        private Boolean isSample;               // Đáp án mẫu (hiển thị nhưng không tính điểm)
         private Integer blankIndex;             // Vị trí ô trống (1, 2, 3...)
         private String wordLimit;               // "ONE WORD ONLY", "NO MORE THAN TWO WORDS"
     }

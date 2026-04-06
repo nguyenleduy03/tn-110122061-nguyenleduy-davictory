@@ -9,7 +9,7 @@ export default function DebugAssignments() {
     const test = async () => {
       try {
         // 1. Check current user
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        const user = authApi.getStoredUser() || {};
         console.log('Current user:', user);
 
         // 2. Check classes

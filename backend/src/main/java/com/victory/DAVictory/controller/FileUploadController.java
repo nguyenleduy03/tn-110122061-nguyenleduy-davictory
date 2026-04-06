@@ -32,10 +32,25 @@ public class FileUploadController {
             @RequestParam("module") String module,
             @RequestParam(value = "testTitle", required = false) String testTitle,
             @RequestParam(value = "testId", required = false) Long testId,
+            @RequestParam(value = "classCode", required = false) String classCode,
+            @RequestParam(value = "testCode", required = false) String testCode,
+            @RequestParam(value = "skillName", required = false) String skillName,
+            @RequestParam(value = "studentCode", required = false) String studentCode,
             @AuthenticationPrincipal User user) {
         try {
             String resolvedTitle = resolveTestTitle(testId, testTitle);
-            MediaFile mediaFile = fileUploadService.uploadFile(file, mediaType, module, resolvedTitle, user);
+            String resolvedTestCode = resolveTestCode(testId, testCode, resolvedTitle);
+            String resolvedStudentCode = resolveStudentCode(studentCode, user);
+            MediaFile mediaFile = fileUploadService.uploadFile(
+                    file,
+                    mediaType,
+                    module,
+                    resolvedTitle,
+                    classCode,
+                    resolvedTestCode,
+                    skillName,
+                    resolvedStudentCode,
+                    user);
             
             Map<String, Object> response = new HashMap<>();
             response.put("id", mediaFile.getId());
@@ -54,11 +69,23 @@ public class FileUploadController {
             @RequestParam("mediaType") MediaType mediaType,
             @RequestParam("module") String module,
             @RequestParam(value = "testTitle", required = false) String testTitle,
-            @RequestParam(value = "testId", required = false) Long testId) {
+            @RequestParam(value = "testId", required = false) Long testId,
+            @RequestParam(value = "classCode", required = false) String classCode,
+            @RequestParam(value = "testCode", required = false) String testCode,
+            @RequestParam(value = "skillName", required = false) String skillName,
+            @RequestParam(value = "studentCode", required = false) String studentCode) {
         try {
             String accessToken = driveService.getAccessToken();
             String resolvedTitle = resolveTestTitle(testId, testTitle);
-            String folderPath = fileUploadService.buildFolderPath(resolvedTitle, module, mediaType);
+            String resolvedTestCode = resolveTestCode(testId, testCode, resolvedTitle);
+            String folderPath = fileUploadService.buildFolderPath(
+                    classCode,
+                    resolvedTestCode,
+                    skillName,
+                    studentCode,
+                    resolvedTitle,
+                    module,
+                    mediaType);
 
             Map<String, Object> response = new HashMap<>();
             response.put("accessToken", accessToken);
@@ -79,6 +106,33 @@ public class FileUploadController {
             }
         }
         return fallbackTitle;
+    }
+
+    private String resolveTestCode(Long testId, String explicitTestCode, String fallbackTitle) {
+        if (explicitTestCode != null && !explicitTestCode.isBlank()) {
+            return explicitTestCode.trim();
+        }
+        if (fallbackTitle != null && !fallbackTitle.isBlank()) {
+            return fallbackTitle.trim();
+        }
+        if (testId != null) {
+            return "TEST_" + testId;
+        }
+        return null;
+    }
+
+    private String resolveStudentCode(String explicitStudentCode, User user) {
+        if (explicitStudentCode != null && !explicitStudentCode.isBlank()) {
+            return explicitStudentCode.trim();
+        }
+        if (user == null) {
+            return null;
+        }
+        if (user.getStudentProfile() != null && user.getStudentProfile().getStudentCode() != null
+                && !user.getStudentProfile().getStudentCode().isBlank()) {
+            return user.getStudentProfile().getStudentCode().trim();
+        }
+        return user.getUsername();
     }
 
     @GetMapping("/preview/{fileId}")

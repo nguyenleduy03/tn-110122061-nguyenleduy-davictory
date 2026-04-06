@@ -26,12 +26,12 @@ const BulkAnswerImport = ({ questions, onImport }) => {
 
   if (!show) {
     return (
-      <button 
-        className="exam-add-btn" 
+      <button
+        className="exam-add-btn"
         onClick={() => setShow(true)}
         style={{ fontSize: 12, marginBottom: 8 }}
       >
-        📋 Import hàng loạt đáp án
+        📋
       </button>
     );
   }
@@ -46,25 +46,25 @@ const BulkAnswerImport = ({ questions, onImport }) => {
         onChange={(e) => setText(e.target.value)}
         rows={Math.min(questions.length, 10)}
         placeholder={`Ví dụ:\nwater\n1|one\ntemperature\n...`}
-        style={{ 
-          width: '100%', 
-          padding: 8, 
-          border: '1px solid #cbd5e1', 
-          borderRadius: 3, 
+        style={{
+          width: '100%',
+          padding: 8,
+          border: '1px solid #cbd5e1',
+          borderRadius: 3,
           fontSize: 12,
           fontFamily: 'monospace'
         }}
       />
       <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
-        <button 
-          className="exam-add-btn" 
+        <button
+          className="exam-add-btn"
           onClick={handleImport}
           style={{ fontSize: 12 }}
         >
           ✓ Import {text.split('\n').filter(l => l.trim()).length} đáp án
         </button>
-        <button 
-          className="exam-add-btn" 
+        <button
+          className="exam-add-btn"
           onClick={() => { setShow(false); setText(''); }}
           style={{ fontSize: 12, background: '#94a3b8' }}
         >
@@ -151,7 +151,7 @@ const QuestionItem = ({ question, selected, onClick, onUpdate, onDelete }) => {
           <div className="exam-q-options">
             {(question.options ?? []).map((opt, i) => (
               <div key={i} className="exam-q-option">
-                <input type="radio" readOnly checked={false} onChange={() => {}} />
+                <input type="radio" readOnly checked={false} onChange={() => { }} />
                 <RichInput
                   style={{ flex: 1 }}
                   value={opt.optionText || ''}
@@ -185,7 +185,7 @@ const QuestionItem = ({ question, selected, onClick, onUpdate, onDelete }) => {
             <div className="exam-q-options">
               {(question.options ?? []).map((opt, i) => (
                 <div key={i} className="exam-q-option">
-                  <input type="checkbox" readOnly checked={false} onChange={() => {}} />
+                  <input type="checkbox" readOnly checked={false} onChange={() => { }} />
                   <RichInput
                     style={{ flex: 1 }}
                     value={opt.optionText || ''}
@@ -220,7 +220,7 @@ const QuestionItem = ({ question, selected, onClick, onUpdate, onDelete }) => {
           <div className="exam-q-options">
             {['TRUE', 'FALSE', 'NOT GIVEN'].map((v) => (
               <div key={v} className="exam-q-option">
-                <input type="radio" readOnly checked={false} onChange={() => {}} />
+                <input type="radio" readOnly checked={false} onChange={() => { }} />
                 <span style={{ fontSize: 14, minWidth: 80 }}>{v}</span>
                 <input type="checkbox" className="exam-q-option-correct"
                   checked={question.answerText === v} title="Đáp án đúng"
@@ -452,6 +452,11 @@ function MapLabellingBlock({ group, onUpdate, onDelete, onSelect, selected, drag
             placeholder="Tiêu đề ngân từ (VD: Cookery room, Games room...)"
             onChange={(e) => onUpdate(group.id, { rightTitle: e.target.value })} />
         </div>
+        <BulkAnswerImport questions={[]} onImport={(lines) => {
+          const nonEmpty = options.filter(o => toPlainText(o.text).trim());
+          const imported = lines.map((text, i) => ({ id: Date.now() + i, text }));
+          onUpdate(group.id, { optionBank: [...nonEmpty, ...imported] });
+        }} />
         <div className="exam-dm-bank">
           {options.map((o, i) => (
             <div key={i} className="exam-dm-option">
@@ -477,6 +482,17 @@ function MapLabellingBlock({ group, onUpdate, onDelete, onSelect, selected, drag
       {questions.length > 0 && options.length > 0 && (
         <div className="exam-ml-answer-section" onClick={(e) => e.stopPropagation()}>
           <div className="exam-ml-answer-title">🔑 Đáp án đúng cho từng ô</div>
+          <BulkAnswerImport questions={questions} onImport={(answers) => {
+            const sorted = [...questions].sort((a, b) => a.questionNumber - b.questionNumber);
+            answers.forEach((ans, idx) => {
+              if (sorted[idx]) {
+                const matchingOption = options.find(o => toPlainText(o.text).toLowerCase().trim() === ans.toLowerCase().trim());
+                if (matchingOption) {
+                  onUpdateQuestion(group.id, sorted[idx].id, { answerText: matchingOption.text });
+                }
+              }
+            });
+          }} />
           {questions.map((q) => {
             const usedByOthers = new Set(
               questions.filter((other) => other.id !== q.id && other.answerText).map((other) => other.answerText)
@@ -549,9 +565,9 @@ function syncTcQuestions(cols, rows, currentQs, fromQ) {
 function TcCellEditor({ value, onChange, startQNum }) {
   const editorRef = useRef(null);
   const [dragOver, setDragOver] = useState(false);
-  const startQRef  = useRef(startQNum);
+  const startQRef = useRef(startQNum);
 
-  const esc = (s) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
   const toHTML = (text, firstNum) => {
     if (!text) return '';
@@ -559,8 +575,8 @@ function TcCellEditor({ value, onChange, startQNum }) {
     return esc(text).replace(/\[blank\]/gi, () => {
       n++;
       return `<span class="rbe-blank rbe-blank-indigo" contenteditable="false" data-blank="true">`
-           + `<span class="rbe-blank-num">${n}</span>`
-           + `<button class="rbe-blank-del" data-del="true" type="button">×</button></span>`;
+        + `<span class="rbe-blank-num">${n}</span>`
+        + `<button class="rbe-blank-del" data-del="true" type="button">×</button></span>`;
     });
   };
 
@@ -691,10 +707,10 @@ function TcCellEditor({ value, onChange, startQNum }) {
 
 function TableCompletionBlock({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps,
   onUpdateQuestion, selectedQuestionId }) {
-  const columns   = group.columns   ?? [{ id: 'c0', header: '' }, { id: 'c1', header: 'Cột 1' }, { id: 'c2', header: 'Cột 2' }];
+  const columns = group.columns ?? [{ id: 'c0', header: '' }, { id: 'c1', header: 'Cột 1' }, { id: 'c2', header: 'Cột 2' }];
   const tableRows = group.tableRows ?? [];
   const questions = group.questions ?? [];
-  const fromQ     = group.fromQuestion ?? 1;
+  const fromQ = group.fromQuestion ?? 1;
   const [showPasteArea, setShowPasteArea] = React.useState(false);
   const pasteAreaRef = React.useRef(null);
   const [selectedCells, setSelectedCells] = React.useState(new Set());
@@ -780,7 +796,7 @@ function TableCompletionBlock({ group, onUpdate, onDelete, onSelect, selected, d
   const handleCopy = (e) => {
     if (selectedCells.size === 0) return;
     e.preventDefault();
-    
+
     const cellsArray = Array.from(selectedCells).map(key => {
       const [rowId, colId] = key.split('-');
       const row = tableRows.find(r => r.id === rowId);
@@ -789,8 +805,8 @@ function TableCompletionBlock({ group, onUpdate, onDelete, onSelect, selected, d
 
     const rowIds = [...new Set(cellsArray.map(c => c.rowId))];
     const colIds = [...new Set(cellsArray.map(c => c.colId))];
-    
-    const data = rowIds.map(rowId => 
+
+    const data = rowIds.map(rowId =>
       colIds.map(colId => {
         const cell = cellsArray.find(c => c.rowId === rowId && c.colId === colId);
         return cell?.value ?? '';
@@ -805,10 +821,10 @@ function TableCompletionBlock({ group, onUpdate, onDelete, onSelect, selected, d
     if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
     if (selectedCells.size === 0) return;
     e.preventDefault();
-    
+
     const text = e.clipboardData.getData('text/plain');
     const rows = text.split('\n').map(row => row.split('\t'));
-    
+
     const firstCell = Array.from(selectedCells)[0];
     const [startRowId, startColId] = firstCell.split('-');
     const startRowIdx = tableRows.findIndex(r => r.id === startRowId);
@@ -818,11 +834,11 @@ function TableCompletionBlock({ group, onUpdate, onDelete, onSelect, selected, d
     rows.forEach((row, ri) => {
       const targetRowIdx = startRowIdx + ri;
       if (targetRowIdx >= newRows.length) return;
-      
+
       row.forEach((value, ci) => {
         const targetColIdx = startColIdx + ci;
         if (targetColIdx >= columns.length) return;
-        
+
         const rowId = newRows[targetRowIdx].id;
         const colId = columns[targetColIdx].id;
         newRows[targetRowIdx] = {
@@ -854,12 +870,12 @@ function TableCompletionBlock({ group, onUpdate, onDelete, onSelect, selected, d
   const handlePasteData = (e) => {
     // Handle paste event to get both plain text and HTML
     let text = '';
-    
+
     if (e && e.clipboardData) {
       // From paste event
       const htmlData = e.clipboardData.getData('text/html');
       const plainData = e.clipboardData.getData('text/plain');
-      
+
       // Try to parse HTML table from Word/Excel
       if (htmlData && htmlData.includes('<table')) {
         const parsed = parseHtmlTable(htmlData);
@@ -870,13 +886,13 @@ function TableCompletionBlock({ group, onUpdate, onDelete, onSelect, selected, d
           return;
         }
       }
-      
+
       text = plainData;
     } else {
       // From button click
       text = pasteAreaRef.current?.value?.trim();
     }
-    
+
     if (!text) {
       alert('Vui lòng paste dữ liệu từ Excel/Sheets/Word vào ô bên dưới');
       return;
@@ -889,8 +905,8 @@ function TableCompletionBlock({ group, onUpdate, onDelete, onSelect, selected, d
     // Detect separator (tab or comma)
     const firstLine = lines[0];
     const separator = firstLine.includes('\t') ? '\t' : ',';
-    
-    const rows = lines.map(line => 
+
+    const rows = lines.map(line =>
       line.split(separator).map(cell => cell.trim())
     );
 
@@ -906,7 +922,7 @@ function TableCompletionBlock({ group, onUpdate, onDelete, onSelect, selected, d
 
       const rows = [];
       const trs = table.querySelectorAll('tr');
-      
+
       trs.forEach(tr => {
         const cells = [];
         tr.querySelectorAll('td, th').forEach(cell => {
@@ -1002,8 +1018,8 @@ function TableCompletionBlock({ group, onUpdate, onDelete, onSelect, selected, d
 
       {/* Paste from Excel/Sheets/Word */}
       <div style={{ marginTop: 8, marginBottom: 8 }} onClick={(e) => e.stopPropagation()}>
-        <button 
-          className="exam-add-btn" 
+        <button
+          className="exam-add-btn"
           onClick={() => setShowPasteArea(!showPasteArea)}
           style={{ fontSize: 12 }}
         >
@@ -1019,26 +1035,26 @@ function TableCompletionBlock({ group, onUpdate, onDelete, onSelect, selected, d
               rows={6}
               placeholder="Paste dữ liệu ở đây (Ctrl+V)..."
               onPaste={handlePasteData}
-              style={{ 
-                width: '100%', 
-                padding: 8, 
-                border: '1px solid #cbd5e1', 
-                borderRadius: 3, 
+              style={{
+                width: '100%',
+                padding: 8,
+                border: '1px solid #cbd5e1',
+                borderRadius: 3,
                 fontSize: 12,
                 fontFamily: 'monospace'
               }}
             />
             <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
-              <button 
-                className="exam-add-btn" 
+              <button
+                className="exam-add-btn"
                 onClick={() => handlePasteData()}
                 style={{ fontSize: 12 }}
               >
                 ✓ Import dữ liệu
               </button>
-              <button 
-                className="exam-add-btn" 
-                onClick={() => { setShowPasteArea(false); if(pasteAreaRef.current) pasteAreaRef.current.value = ''; }}
+              <button
+                className="exam-add-btn"
+                onClick={() => { setShowPasteArea(false); if (pasteAreaRef.current) pasteAreaRef.current.value = ''; }}
                 style={{ fontSize: 12, background: '#94a3b8' }}
               >
                 Hủy
@@ -1084,8 +1100,8 @@ function TableCompletionBlock({ group, onUpdate, onDelete, onSelect, selected, d
                   const cellKey = `${row.id}-${col.id}`;
                   const isSelected = selectedCells.has(cellKey);
                   return (
-                    <td 
-                      key={col.id} 
+                    <td
+                      key={col.id}
                       className={`exam-tc-cell${ci === 0 ? ' exam-tc-row-label-cell' : ''}${isSelected ? ' exam-tc-cell-selected' : ''}`}
                       onMouseDown={(e) => handleCellMouseDown(row.id, col.id, e)}
                       onMouseEnter={() => handleCellMouseEnter(row.id, col.id)}
@@ -1167,7 +1183,7 @@ function TableCompletionBlock({ group, onUpdate, onDelete, onSelect, selected, d
             // Xóa câu rỗng trước khi import
             const nonEmptyQuestions = questions.filter(q => q.answerText?.trim());
             let finalQuestions = [...nonEmptyQuestions];
-            
+
             // Update hoặc tạo mới
             answers.forEach((ans, idx) => {
               if (finalQuestions[idx]) {
@@ -1182,7 +1198,7 @@ function TableCompletionBlock({ group, onUpdate, onDelete, onSelect, selected, d
                 });
               }
             });
-            
+
             onUpdate(group.id, { questions: finalQuestions });
           }} />
           {questions.map((q) => (

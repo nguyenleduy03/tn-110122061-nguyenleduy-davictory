@@ -6,7 +6,7 @@
  */
 import React, { useState, useMemo } from 'react';
 import { Volume2, Headphones, BookOpen, PenLine, Mic, Clock, FileText, X } from 'lucide-react';
-import { normalizeRichHtml, stripInlineStyles } from '../../utils/textFormatters';
+import { normalizeRichHtml, preserveBlockLineBreaks, stripInlineStyles } from '../../utils/textFormatters';
 import DropdownGroupQuestion from '../question/DropdownGroupQuestion';
 
 // ─── Constants ───────────────────────────────────────────────────────────
@@ -28,7 +28,8 @@ export const SESSION_META = {
 export const formatPreviewText = (text) => {
   if (!text) return '';
   const normalized = normalizeRichHtml(text);
-  return stripInlineStyles(normalized)
+  const withPreservedBreaks = preserveBlockLineBreaks(normalized);
+  return stripInlineStyles(withPreservedBreaks)
     .replace(/(?:<br\s*\/?>(?:\s|&nbsp;)*){3,}/gi, '<br/><br/>')
     .replace(/^(?:<br\s*\/?>(?:\s|&nbsp;)*)+/i, '')
     .replace(/(?:<br\s*\/?>(?:\s|&nbsp;)*)+$/i, '');
@@ -92,7 +93,7 @@ const renderPreviewDomNodeWithTokens = (node, keyPrefix, blankState, renderToken
   return React.createElement(tagName, props, children.length ? children : undefined);
 };
 
-const renderCompletionPreviewHtml = (value, renderToken) => {
+const renderCompletionPreviewHtml = (value, renderToken, blankState = { cursor: 0 }) => {
   const normalized = formatPreviewText(value || '');
   if (!normalized) return null;
 
@@ -106,7 +107,6 @@ const renderCompletionPreviewHtml = (value, renderToken) => {
     const root = doc.body.firstElementChild;
     if (!root) return null;
 
-    const blankState = { cursor: 0 };
     return Array.from(root.childNodes || []).flatMap((node, idx) => {
       const renderedNode = renderPreviewDomNodeWithTokens(node, `completion-node-${idx}`, blankState, renderToken);
       if (Array.isArray(renderedNode)) {
@@ -189,14 +189,14 @@ export const parseSummaryPreview = (text, questions, activeQ, onSetActive) => {
   });
 };
 
-export const parseNotePreview = (text, questions, activeQ, onSetActive, answers, onAnswer) => {
-  return renderCompletionPreviewHtml(text, (tokenValue, key, blankState) => {
+export const parseNotePreview = (text, questions, activeQ, onSetActive, answers, onAnswer, blankState = { cursor: 0 }) => {
+  return renderCompletionPreviewHtml(text, (tokenValue, key, sharedBlankState) => {
     const token = String(tokenValue || '').toLowerCase();
     const numeric = Number(tokenValue);
 
     const q = token === 'blank' || Number.isNaN(numeric)
-      ? questions[blankState.cursor++]
-      : questions.find((item) => Number(item?.questionNumber) === numeric) || questions[blankState.cursor++];
+      ? questions[sharedBlankState.cursor++]
+      : questions.find((item) => Number(item?.questionNumber) === numeric) || questions[sharedBlankState.cursor++];
     const num = q?.questionNumber ?? (Number.isFinite(numeric) ? numeric : blankState.cursor);
     const isActive = activeQ === num;
 
@@ -211,7 +211,7 @@ export const parseNotePreview = (text, questions, activeQ, onSetActive, answers,
         onClick={(e) => e.stopPropagation()}
       />
     );
-  });
+  }, blankState);
 };
 
 // ─── Question Renderers ────────────────────────────────────────────────
@@ -614,6 +614,7 @@ export const ImageNoteFormGroup = ({ group, activeQ, onSetActive }) => {
   const pinBoxWidth = group.pinBoxWidth || 60;
   const topNoteText = group.topNoteText ?? (group.imagePosition === 'bottom' ? '' : (group.noteText || ''));
   const bottomNoteText = group.bottomNoteText ?? (group.imagePosition === 'bottom' ? (group.noteText || '') : '');
+  const sharedBlankState = { cursor: 0 };
 
   const imageSection = group.imageUrl && (
     <div style={{ marginBottom: 20 }}>
@@ -689,13 +690,13 @@ export const ImageNoteFormGroup = ({ group, activeQ, onSetActive }) => {
 
       {imagePosition === 'top' && topNoteText && (
         <div className="pv-note-text">
-          {parseNotePreview(topNoteText, questions, activeQ, onSetActive, answers, handleAnswer)}
+          {parseNotePreview(topNoteText, questions, activeQ, onSetActive, answers, handleAnswer, sharedBlankState)}
         </div>
       )}
 
       {imagePosition === 'middle' && topNoteText && (
         <div className="pv-note-text">
-          {parseNotePreview(topNoteText, questions, activeQ, onSetActive, answers, handleAnswer)}
+          {parseNotePreview(topNoteText, questions, activeQ, onSetActive, answers, handleAnswer, sharedBlankState)}
         </div>
       )}
 
@@ -703,13 +704,13 @@ export const ImageNoteFormGroup = ({ group, activeQ, onSetActive }) => {
 
       {imagePosition === 'middle' && bottomNoteText && (
         <div className="pv-note-text">
-          {parseNotePreview(bottomNoteText, questions, activeQ, onSetActive, answers, handleAnswer)}
+          {parseNotePreview(bottomNoteText, questions, activeQ, onSetActive, answers, handleAnswer, sharedBlankState)}
         </div>
       )}
 
       {imagePosition === 'bottom' && bottomNoteText && (
         <div className="pv-note-text">
-          {parseNotePreview(bottomNoteText, questions, activeQ, onSetActive, answers, handleAnswer)}
+          {parseNotePreview(bottomNoteText, questions, activeQ, onSetActive, answers, handleAnswer, sharedBlankState)}
         </div>
       )}
 

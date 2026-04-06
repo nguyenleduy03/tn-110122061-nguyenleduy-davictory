@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import {
-  Home, Eye, Save, Send, Settings, Shuffle, List,
+  Home, Eye, Save, Send, Settings, Shuffle, List, CheckCircle2,
   Bold, Italic, Underline, Strikethrough,
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
   ListOrdered, Undo2, Redo2, Eraser, Subscript, Superscript,
@@ -12,24 +12,25 @@ import {
 const STATUS_LABELS = {
   DRAFT: 'Nháp',
   REVIEWING: 'Đang kiểm duyệt',
+  TEST_EXAM: 'Test Exam',
   PUBLISHED: 'Đã xuất bản',
   ARCHIVED: 'Lưu trữ',
 };
 
 const SKILL_OPTIONS = [
   { key: 'LISTENING', label: 'Listening' },
-  { key: 'READING',   label: 'Reading'   },
-  { key: 'WRITING',   label: 'Writing'   },
-  { key: 'SPEAKING',  label: 'Speaking'  },
+  { key: 'READING', label: 'Reading' },
+  { key: 'WRITING', label: 'Writing' },
+  { key: 'SPEAKING', label: 'Speaking' },
 ];
 
 const FONT_FAMILIES = [
-  { val: 'Arial',           label: 'Arial'           },
+  { val: 'Arial', label: 'Arial' },
   { val: 'Times New Roman', label: 'Times New Roman' },
-  { val: 'Courier New',     label: 'Courier New'     },
-  { val: 'Georgia',         label: 'Georgia'         },
-  { val: 'Verdana',         label: 'Verdana'         },
-  { val: 'Calibri',         label: 'Calibri'         },
+  { val: 'Courier New', label: 'Courier New' },
+  { val: 'Georgia', label: 'Georgia' },
+  { val: 'Verdana', label: 'Verdana' },
+  { val: 'Calibri', label: 'Calibri' },
 ];
 
 const MIN_FONT_SIZE = 8;
@@ -71,10 +72,18 @@ const BuilderHeader = ({
   const [customFontSize, setCustomFontSize] = useState(String(DEFAULT_FONT_SIZE));
   const [sizeMenuOpen, setSizeMenuOpen] = useState(false);
   const [sizeMenuStyle, setSizeMenuStyle] = useState(null);
+  const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
+  const [settingsMenuStyle, setSettingsMenuStyle] = useState(null);
+  const [savedMenuOpen, setSavedMenuOpen] = useState(false);
+  const [savedMenuStyle, setSavedMenuStyle] = useState(null);
   const lastRangeRef = useRef(null);
   const lastContentEditableRef = useRef(null);
   const sizePickerRef = useRef(null);
   const sizeMenuRef = useRef(null);
+  const settingsBtnRef = useRef(null);
+  const settingsMenuRef = useRef(null);
+  const savedMenuBtnRef = useRef(null);
+  const savedMenuRef = useRef(null);
 
   const resolveTextAlign = (node, editableEl) => {
     const seen = [];
@@ -156,7 +165,7 @@ const BuilderHeader = ({
         const editableEl = (activeEl && activeEl.isContentEditable)
           ? activeEl
           : anchorEl?.closest?.('[contenteditable="true"]')
-            || document.querySelector('[contenteditable="true"]');
+          || document.querySelector('[contenteditable="true"]');
 
         const states = {
           bold: document.queryCommandState('bold'),
@@ -171,7 +180,7 @@ const BuilderHeader = ({
           justifyCenter: false,
           justifyRight: false,
         };
-        
+
         // Check CSS alignment for the selected block rather than only the root editable.
         if (editableEl) {
           const blockEl = anchorEl?.closest?.('p,div,section,article,header,footer,blockquote,figure,figcaption,h1,h2,h3,h4,h5,h6,li') || editableEl;
@@ -181,7 +190,7 @@ const BuilderHeader = ({
           states.justifyCenter = textAlign === 'center';
           states.justifyRight = textAlign === 'right' || textAlign === 'end';
         }
-        
+
         setActiveFormats(states);
         if (editableEl?.isContentEditable) {
           lastContentEditableRef.current = editableEl;
@@ -202,7 +211,7 @@ const BuilderHeader = ({
             lastRangeRef.current = range.cloneRange();
           }
         }
-      } catch (_) {}
+      } catch (_) { }
     };
     document.addEventListener('selectionchange', update);
     return () => document.removeEventListener('selectionchange', update);
@@ -220,13 +229,25 @@ const BuilderHeader = ({
     const onPointerDown = (e) => {
       const insidePicker = sizePickerRef.current?.contains(e.target);
       const insideMenu = sizeMenuRef.current?.contains(e.target);
+      const insideSettingsButton = settingsBtnRef.current?.contains(e.target);
+      const insideSettingsMenu = settingsMenuRef.current?.contains(e.target);
+      const insideSavedButton = savedMenuBtnRef.current?.contains(e.target);
+      const insideSavedMenu = savedMenuRef.current?.contains(e.target);
       if (!insidePicker && !insideMenu) {
         setSizeMenuOpen(false);
+      }
+      if (!insideSettingsButton && !insideSettingsMenu) {
+        setSettingsMenuOpen(false);
+      }
+      if (!insideSavedButton && !insideSavedMenu) {
+        setSavedMenuOpen(false);
       }
     };
 
     const onKeyDown = (e) => {
       if (e.key === 'Escape') setSizeMenuOpen(false);
+      if (e.key === 'Escape') setSettingsMenuOpen(false);
+      if (e.key === 'Escape') setSavedMenuOpen(false);
     };
 
     document.addEventListener('focusin', onFocusIn);
@@ -266,6 +287,62 @@ const BuilderHeader = ({
       window.removeEventListener('scroll', updateSizeMenuPosition, true);
     };
   }, [sizeMenuOpen]);
+
+  useEffect(() => {
+    if (!settingsMenuOpen) return undefined;
+
+    const updateSettingsMenuPosition = () => {
+      const rect = settingsBtnRef.current?.getBoundingClientRect();
+      if (!rect || typeof window === 'undefined') return;
+
+      const menuWidth = 252;
+      const left = Math.min(Math.max(8, rect.right - menuWidth), window.innerWidth - menuWidth - 8);
+      const top = rect.bottom + 4;
+
+      setSettingsMenuStyle({
+        position: 'fixed',
+        top: `${top}px`,
+        left: `${left}px`,
+        minWidth: `${menuWidth}px`,
+      });
+    };
+
+    updateSettingsMenuPosition();
+    window.addEventListener('resize', updateSettingsMenuPosition);
+    window.addEventListener('scroll', updateSettingsMenuPosition, true);
+    return () => {
+      window.removeEventListener('resize', updateSettingsMenuPosition);
+      window.removeEventListener('scroll', updateSettingsMenuPosition, true);
+    };
+  }, [settingsMenuOpen]);
+
+  useEffect(() => {
+    if (!savedMenuOpen) return undefined;
+
+    const updateSavedMenuPosition = () => {
+      const rect = savedMenuBtnRef.current?.getBoundingClientRect();
+      if (!rect || typeof window === 'undefined') return;
+
+      const menuWidth = 208;
+      const left = Math.min(Math.max(8, rect.right - menuWidth), window.innerWidth - menuWidth - 8);
+      const top = rect.bottom + 4;
+
+      setSavedMenuStyle({
+        position: 'fixed',
+        top: `${top}px`,
+        left: `${left}px`,
+        minWidth: `${menuWidth}px`,
+      });
+    };
+
+    updateSavedMenuPosition();
+    window.addEventListener('resize', updateSavedMenuPosition);
+    window.addEventListener('scroll', updateSavedMenuPosition, true);
+    return () => {
+      window.removeEventListener('resize', updateSavedMenuPosition);
+      window.removeEventListener('scroll', updateSavedMenuPosition, true);
+    };
+  }, [savedMenuOpen]);
 
   // For select dropdowns that steal focus: restore selection then exec
   // IMPORTANT: Không dùng document.querySelector('[contenteditable]') vì có nhiều editable trên trang.
@@ -484,19 +561,92 @@ const BuilderHeader = ({
     );
   };
 
+  const renderSettingsMenu = () => {
+    if (!settingsMenuOpen || !settingsMenuStyle || typeof document === 'undefined') return null;
+
+    return createPortal(
+      <div ref={settingsMenuRef} className="tb-settings-menu" style={settingsMenuStyle} onMouseDown={(e) => e.stopPropagation()}>
+        <div className="tb-settings-menu-row">
+          <span className="tb-settings-menu-label">Loại đề</span>
+          <select
+            className="tb-select tb-settings-menu-select"
+            value={test.testType}
+            onChange={(e) => onTestChange({ testType: e.target.value })}
+          >
+            <option value="ACADEMIC">Academic</option>
+            <option value="GENERAL">General Training</option>
+          </select>
+        </div>
+        <div className="tb-settings-menu-row">
+          <span className="tb-settings-menu-label">Logo</span>
+          <select
+            className="tb-select tb-settings-menu-select"
+            value={test.seriesLabel || 'IELTS'}
+            onChange={(e) => onTestChange({ seriesLabel: e.target.value })}
+          >
+            <option value="IELTS">IELTS</option>
+            <option value="Cambridge">Cambridge</option>
+          </select>
+        </div>
+        <div className="tb-settings-menu-row">
+          <span className="tb-settings-menu-label">Dạng đề</span>
+          <select
+            className="tb-select tb-settings-menu-select"
+            value={test.isFullTest ? 'FULL' : (test.singleSkill || 'LISTENING')}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (val === 'FULL') onSkillModeChange({ isFullTest: true, singleSkill: null });
+              else onSkillModeChange({ isFullTest: false, singleSkill: val });
+            }}
+          >
+            <option value="FULL">Full Test</option>
+            {SKILL_OPTIONS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
+          </select>
+        </div>
+      </div>,
+      document.body,
+    );
+  };
+
+  const renderSavedMenu = () => {
+    if (!savedTestId || !savedMenuOpen || !savedMenuStyle || typeof document === 'undefined') return null;
+
+    return createPortal(
+      <div ref={savedMenuRef} className="tb-saved-menu" style={savedMenuStyle} onMouseDown={(e) => e.stopPropagation()}>
+        <div className="tb-saved-menu-head">ID {savedTestId}</div>
+        <Link
+          to="/lms/teacher/assignments/new"
+          state={{ testId: savedTestId, testTitle: test.title }}
+          className="tb-saved-menu-item"
+          onClick={() => setSavedMenuOpen(false)}
+        >
+          Tạo BT
+        </Link>
+        <Link
+          to={`/teacher/assignments/create?testId=${savedTestId}`}
+          className="tb-saved-menu-item"
+          onClick={() => setSavedMenuOpen(false)}
+        >
+          Lưu BT
+        </Link>
+      </div>,
+      document.body,
+    );
+  };
+
   // For buttons: preventDefault keeps focus in the contentEditable
   const btn = (cmd, val = null) => (e) => {
     e.preventDefault();
 
     const editableEl = getTargetEditable();
-    
+
     if (!editableEl) {
       console.warn('No editable element found');
       return;
     }
-    
+
     editableEl.focus();
-    
+
     // Restore the highlighted range before applying formatting so the
     // command affects the selected instruction text, not the caret only.
     try {
@@ -526,354 +676,314 @@ const BuilderHeader = ({
 
   return (
     <>
-    <header className="tb-header">
+      <header className="tb-header">
 
-      {/* ══════════════ ROW 1 — Title / Document bar ══════════════ */}
-      <div className="tb-titlebar">
-        <div className="tb-header-left">
-          <Link to="/lms/teacher/tests" className="tb-back-btn" title="Danh sách đề thi"><List size={16} /></Link>
-          <Link to="/" className="tb-back-btn" title="Trang chủ"><Home size={16} /></Link>
-          <div className="tb-divider" />
-          <input
-            className="tb-title-input"
-            placeholder="Nhập tiêu đề đề thi..."
-            value={test.title}
-            onChange={(e) => onTestChange({ title: e.target.value })}
-            maxLength={255}
-          />
-          <span className={`tb-status-badge tb-status-${test.status?.toLowerCase()}`}>
-            {STATUS_LABELS[test.status] ?? test.status}
-          </span>
-        </div>
-
-        <div className="tb-header-center">
-          <div className="tb-toolbar-group">
-            <select className="tb-select" value={test.testType}
-              onChange={(e) => onTestChange({ testType: e.target.value })}>
-              <option value="ACADEMIC">Academic</option>
-              <option value="GENERAL">General Training</option>
-            </select>
-            <select
-              className="tb-select"
-              value={test.seriesLabel || 'IELTS'}
-              onChange={(e) => onTestChange({ seriesLabel: e.target.value })}
-              title="Đổi logo đề thi"
-              style={{ minWidth: 112 }}
-            >
-              <option value="IELTS">IELTS</option>
-              <option value="Cambridge">Cambridge</option>
-            </select>
-            <select className="tb-select"
-              value={test.isFullTest ? 'FULL' : (test.singleSkill || 'LISTENING')}
-              onChange={(e) => {
-                const val = e.target.value;
-                if (val === 'FULL') onSkillModeChange({ isFullTest: true, singleSkill: null });
-                else onSkillModeChange({ isFullTest: false, singleSkill: val });
-              }}>
-              <option value="FULL">Full Test</option>
-              {SKILL_OPTIONS.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
-            </select>
+        {/* ══════════════ ROW 1 — Title / Document bar ══════════════ */}
+        <div className="tb-titlebar">
+          <div className="tb-header-left">
+            <Link to="/lms/teacher/tests" className="tb-back-btn" title="Danh sách đề thi"><List size={16} /></Link>
+            <Link to="/" className="tb-back-btn" title="Trang chủ"><Home size={16} /></Link>
+            <div className="tb-divider" />
+            <input
+              className="tb-title-input"
+              placeholder="Nhập tiêu đề đề thi..."
+              value={test.title}
+              onChange={(e) => onTestChange({ title: e.target.value })}
+              maxLength={255}
+            />
+            <span className={`tb-status-badge tb-status-${test.status?.toLowerCase()}`}>
+              {STATUS_LABELS[test.status] ?? test.status}
+            </span>
           </div>
-        </div>
 
-        <div className="tb-header-right">
-          {savedTestId && (
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: 8, 
-              padding: '6px 12px', 
-              background: '#f0fdf4', 
-              borderRadius: 6,
-              border: '1px solid #86efac',
-              fontSize: 13
-            }}>
-              <span style={{ color: '#15803d', fontWeight: 600 }}>ID: {savedTestId}</span>
-              <Link 
-                to="/lms/teacher/assignments/new"
-                state={{ testId: savedTestId, testTitle: test.title }}
-                style={{ 
-                  padding: '4px 10px', 
-                  background: '#16a34a', 
-                  color: 'white', 
-                  borderRadius: 4, 
-                  textDecoration: 'none',
-                  fontSize: 12,
-                  fontWeight: 500
-                }}
-              >
-                📝 Tạo bài tập
-              </Link>
+          <div className="tb-header-center" />
+
+          <div className="tb-header-right">
+            <div className="tb-toolbar-group tb-action-group tb-save-group">
+              {!autoSaveEnabled && (
+                <button className="tb-tool-btn tb-tool-btn-primary tb-tool-btn-compact" onClick={onSave} disabled={saving} title="Lưu đề thi">
+                  <Save size={15} /><span className="tb-btn-text">{saving ? 'Đang lưu...' : 'Lưu'}</span>
+                </button>
+              )}
+              {savedTestId && (
+                <button
+                  ref={savedMenuBtnRef}
+                  type="button"
+                  className={`tb-tool-btn tb-tool-btn-secondary tb-tool-btn-compact tb-saved-menu-btn ${savedMenuOpen ? 'tb-tool-btn-active' : ''}`}
+                  title="Đề đã lưu"
+                  onClick={() => setSavedMenuOpen((open) => !open)}
+                >
+                  <List size={15} />
+                  <span className="tb-btn-text">ID {savedTestId}</span>
+                </button>
+              )}
+              {onToggleAutoSave && (
+                <button
+                  className={`tb-tool-btn tb-tool-btn-compact tb-auto-save-btn ${autoSaveEnabled ? 'tb-tool-btn-active' : ''}`}
+                  onClick={onToggleAutoSave}
+                  title={autoSaveEnabled ? 'Tắt tự động lưu' : 'Bật tự động lưu'}
+                >
+                  <Save size={15} style={{ opacity: autoSaveEnabled ? 1 : 0.5 }} />
+                  <span className="tb-auto-save-label">Tự động</span>
+                  {autoSaveEnabled && (
+                    saving ? (
+                      <span className="tb-auto-save-state is-saving">Đang lưu...</span>
+                    ) : saveMessage && saveMessage.includes('thành công') ? (
+                      <span className="tb-auto-save-state is-success" title={saveMessage} aria-label={saveMessage}>
+                        <CheckCircle2 size={13} />
+                      </span>
+                    ) : null
+                  )}
+                  <span className={`tb-auto-dot ${autoSaveEnabled ? 'is-on' : ''}`} />
+                </button>
+              )}
             </div>
-          )}
-          
-          <div className="tb-toolbar-group tb-action-group">
-            <button className="tb-tool-btn tb-tool-btn-primary" onClick={onSave} disabled={saving} title="Lưu đề thi">
-              <Save size={15} /><span>{saving ? 'Đang lưu...' : 'Lưu'}</span>
-            </button>
-            {savedTestId && (
-              <Link 
-                to={`/teacher/assignments/create?testId=${savedTestId}`}
-                className="tb-tool-btn tb-tool-btn-secondary"
-                title="Lưu làm bài tập mẫu"
-              >
-                <List size={15} /><span>Lưu BT</span>
-              </Link>
-            )}
-            {onToggleAutoSave && (
-              <button 
-                className={`tb-tool-btn ${autoSaveEnabled ? 'tb-tool-btn-active' : ''}`}
-                onClick={onToggleAutoSave}
-                title={autoSaveEnabled ? 'Tắt tự động lưu' : 'Bật tự động lưu'}
-                style={{ 
-                  background: autoSaveEnabled ? '#dcfce7' : 'transparent',
-                  color: autoSaveEnabled ? '#15803d' : '#6b7280',
-                  border: autoSaveEnabled ? '1px solid #86efac' : '1px solid #e5e7eb'
-                }}
-              >
-                <Save size={15} style={{ opacity: autoSaveEnabled ? 1 : 0.5 }} />
-                <span>Tự động</span>
+
+            <div className="tb-toolbar-group tb-action-group">
+              {test.status === 'DRAFT' && (
+                <button className="tb-tool-btn tb-tool-btn-success" onClick={onSubmitReview} title="Gửi kiểm duyệt">
+                  <Send size={15} /><span>Gửi duyệt</span>
+                </button>
+              )}
+              <button ref={settingsBtnRef} className={`tb-tool-btn tb-tool-btn-icon ${settingsMenuOpen ? 'tb-tool-btn-active' : ''}`} title="Cài đặt đề thi" aria-label="Cài đặt đề thi" onClick={() => setSettingsMenuOpen((open) => !open)}>
+                <Settings size={15} />
               </button>
-            )}
-          </div>
-
-          <div className="tb-toolbar-group tb-action-group">
-            {test.status === 'DRAFT' && (
-              <button className="tb-tool-btn tb-tool-btn-success" onClick={onSubmitReview} title="Gửi kiểm duyệt">
-                <Send size={15} /><span>Gửi duyệt</span>
-              </button>
-            )}
-            <button className="tb-tool-btn tb-tool-btn-icon" title="Cài đặt đề thi" aria-label="Cài đặt đề thi">
-              <Settings size={15} />
-            </button>
-          </div>
-
-          <div className="tb-toolbar-group tb-action-group">
-            <button className="tb-tool-btn" onClick={onShuffle} disabled={shuffling} title="Trộn đề ngẫu nhiên">
-              <Shuffle size={15} /><span>{shuffling ? 'Đang trộn...' : 'Trộn đề'}</span>
-            </button>
-            <button 
-              className="tb-tool-btn" 
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onPreviewToggle();
-              }}
-              title="Xem trước đề thi"
-              type="button"
-            >
-              <Eye size={15} /><span>{previewMode ? 'Đóng xem trước' : 'Xem trước'}</span>
-            </button>
-          </div>
-
-          {saveMessage && (
-            <div className={`tb-save-status ${saveMessage.includes('Lỗi') ? 'tb-save-error' : 'tb-save-success'}`}>
-              {saveMessage}
             </div>
-          )}
-        </div>
-      </div>
 
-      {/* ══════════════ ROW 2 — Formatting Ribbon ══════════════ */}
-      {showFormatToolbar && (
-      <div className="tb-ribbon" style={{ position: 'relative' }}>
-
-        {/* ── Lịch sử ── */}
-        <div className="tb-rgroup">
-          <div className="tb-rgroup-btns">
-            <button className="tb-rbn-btn" onMouseDown={btn('undo')} title="Hoàn tác (Ctrl+Z)"><Undo2 size={14} /></button>
-            <button className="tb-rbn-btn" onMouseDown={btn('redo')} title="Làm lại (Ctrl+Y)"><Redo2 size={14} /></button>
-          </div>
-          <span className="tb-rgroup-lbl">Lịch sử</span>
-        </div>
-
-        <div className="tb-rsep" />
-
-        {/* ── Phông chữ ── */}
-        <div className="tb-rgroup">
-          <div className="tb-rgroup-btns">
-            <select className="tb-rbn-select" style={{ width: 126 }} title="Font chữ"
-              onMouseDown={captureCurrentSelection}
-              onFocus={captureCurrentSelection}
-              onChange={(e) => restoreAndExec('fontName', e.target.value)}>
-              {FONT_FAMILIES.map(f => <option key={f.val} value={f.val}>{f.label}</option>)}
-            </select>
-            <div className="tb-size-picker" ref={sizePickerRef}>
-              <input
-                className="tb-rbn-select tb-rbn-size-input tb-size-picker-input"
-                type="text"
-                min={8}
-                max={96}
-                inputMode="numeric"
-                value={customFontSize}
-                placeholder="16"
-                onChange={(e) => setCustomFontSize(extractIntegerText(e.target.value))}
-                onMouseDown={(e) => {
-                  // Capture selection TRƯỚC khi input nhận focus (trước khi selection bị clear)
-                  captureCurrentSelection();
-                  e.stopPropagation();
-                }}
-                onClick={(e) => e.stopPropagation()}
-                onWheel={(e) => {
-                  e.preventDefault();
-                  const direction = e.deltaY > 0 ? -2 : 2;
-                  const current = Number.parseInt(normalizeEvenFontSize(customFontSize), 10);
-                  const fallback = Number.isFinite(current) ? current : DEFAULT_FONT_SIZE;
-                  const next = Math.max(MIN_FONT_SIZE, Math.min(MAX_FONT_SIZE, fallback + direction));
-                  const evenNext = next % 2 === 0 ? next : next + 1;
-                  const normalized = String(Math.min(MAX_FONT_SIZE, evenNext));
-                  setCustomFontSize(normalized);
-                  applyCustomFontSize(normalized);
-                }}
-                onBlur={() => {
-                  const next = normalizeEvenFontSize(customFontSize);
-                  setCustomFontSize(next);
-                  applyCustomFontSize(next);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    const next = normalizeEvenFontSize(customFontSize);
-                    setCustomFontSize(next);
-                    applyCustomFontSize(next);
-                  }
-                }}
-                title="Cỡ chữ (cuộn chuột hoặc nhập số)"
-              />
+            <div className="tb-toolbar-group tb-action-group">
+              <button className="tb-tool-btn" onClick={onShuffle} disabled={shuffling} title="Trộn đề ngẫu nhiên">
+                <Shuffle size={15} /><span>{shuffling ? 'Đang trộn...' : 'Trộn đề'}</span>
+              </button>
               <button
-                type="button"
-                className="tb-size-picker-toggle"
-                title="Chọn cỡ chữ mặc định"
-                aria-label="Chọn cỡ chữ mặc định"
-                onMouseDown={(e) => {
+                className="tb-tool-btn"
+                onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-
-                  // Lưu selection hiện tại trước khi mở menu.
-                  // Phải lưu cả lastContentEditableRef nếu selection không nằm trong editable.
-                  const sel = window.getSelection();
-                  if (sel?.rangeCount) {
-                    const r = sel.getRangeAt(0);
-                    const anchor = r.commonAncestorContainer;
-                    const anchorEl = anchor?.nodeType === 1 ? anchor : anchor?.parentElement;
-                    const insideEditable = anchorEl?.closest?.('[contenteditable="true"]');
-                    if (insideEditable) {
-                      // Capture cả lastContentEditableRef để getTargetEditable() trả về đúng
-                      lastContentEditableRef.current = insideEditable;
-                      lastRangeRef.current = r.cloneRange();
-                    } else if (lastRangeRef.current) {
-                      // Giữ nguyên lastRangeRef đã có từ trước
-                    }
-                  }
-
-                  setSizeMenuOpen((open) => !open);
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  onPreviewToggle({
+                    origin: {
+                      x: rect.left + rect.width / 2,
+                      y: rect.top + rect.height / 2,
+                    },
+                  });
                 }}
+                title="Xem trước đề thi"
+                type="button"
               >
-                <ChevronDown size={12} />
+                <Eye size={15} /><span>{previewMode ? 'Đóng xem trước' : 'Xem trước'}</span>
               </button>
-
-              {renderSizeMenu()}
             </div>
+
+            {saveMessage && !autoSaveEnabled && (
+              <div className={`tb-save-status ${saveMessage.includes('Lỗi') ? 'tb-save-error' : 'tb-save-success'}`}>
+                {saveMessage}
+              </div>
+            )}
           </div>
-          <span className="tb-rgroup-lbl">Phông chữ</span>
+        </div>
+        {renderSavedMenu()}
+        {renderSettingsMenu()}
+
+        {/* ══════════════ ROW 2 — Formatting Ribbon ══════════════ */}
+        {showFormatToolbar && (
+          <div className="tb-ribbon" style={{ position: 'relative' }}>
+
+            {/* ── Lịch sử ── */}
+            <div className="tb-rgroup">
+              <div className="tb-rgroup-btns">
+                <button className="tb-rbn-btn" onMouseDown={btn('undo')} title="Hoàn tác (Ctrl+Z)"><Undo2 size={14} /></button>
+                <button className="tb-rbn-btn" onMouseDown={btn('redo')} title="Làm lại (Ctrl+Y)"><Redo2 size={14} /></button>
+              </div>
+              <span className="tb-rgroup-lbl">Lịch sử</span>
+            </div>
+
+            <div className="tb-rsep" />
+
+            {/* ── Phông chữ ── */}
+            <div className="tb-rgroup">
+              <div className="tb-rgroup-btns">
+                <select className="tb-rbn-select" style={{ width: 126 }} title="Font chữ"
+                  onMouseDown={captureCurrentSelection}
+                  onFocus={captureCurrentSelection}
+                  onChange={(e) => restoreAndExec('fontName', e.target.value)}>
+                  {FONT_FAMILIES.map(f => <option key={f.val} value={f.val}>{f.label}</option>)}
+                </select>
+                <div className="tb-size-picker" ref={sizePickerRef}>
+                  <input
+                    className="tb-rbn-select tb-rbn-size-input tb-size-picker-input"
+                    type="text"
+                    min={8}
+                    max={96}
+                    inputMode="numeric"
+                    value={customFontSize}
+                    placeholder="16"
+                    onChange={(e) => setCustomFontSize(extractIntegerText(e.target.value))}
+                    onMouseDown={(e) => {
+                      // Capture selection TRƯỚC khi input nhận focus (trước khi selection bị clear)
+                      captureCurrentSelection();
+                      e.stopPropagation();
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    onWheel={(e) => {
+                      e.preventDefault();
+                      const direction = e.deltaY > 0 ? -2 : 2;
+                      const current = Number.parseInt(normalizeEvenFontSize(customFontSize), 10);
+                      const fallback = Number.isFinite(current) ? current : DEFAULT_FONT_SIZE;
+                      const next = Math.max(MIN_FONT_SIZE, Math.min(MAX_FONT_SIZE, fallback + direction));
+                      const evenNext = next % 2 === 0 ? next : next + 1;
+                      const normalized = String(Math.min(MAX_FONT_SIZE, evenNext));
+                      setCustomFontSize(normalized);
+                      applyCustomFontSize(normalized);
+                    }}
+                    onBlur={() => {
+                      const next = normalizeEvenFontSize(customFontSize);
+                      setCustomFontSize(next);
+                      applyCustomFontSize(next);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const next = normalizeEvenFontSize(customFontSize);
+                        setCustomFontSize(next);
+                        applyCustomFontSize(next);
+                      }
+                    }}
+                    title="Cỡ chữ (cuộn chuột hoặc nhập số)"
+                  />
+                  <button
+                    type="button"
+                    className="tb-size-picker-toggle"
+                    title="Chọn cỡ chữ mặc định"
+                    aria-label="Chọn cỡ chữ mặc định"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+
+                      // Lưu selection hiện tại trước khi mở menu.
+                      // Phải lưu cả lastContentEditableRef nếu selection không nằm trong editable.
+                      const sel = window.getSelection();
+                      if (sel?.rangeCount) {
+                        const r = sel.getRangeAt(0);
+                        const anchor = r.commonAncestorContainer;
+                        const anchorEl = anchor?.nodeType === 1 ? anchor : anchor?.parentElement;
+                        const insideEditable = anchorEl?.closest?.('[contenteditable="true"]');
+                        if (insideEditable) {
+                          // Capture cả lastContentEditableRef để getTargetEditable() trả về đúng
+                          lastContentEditableRef.current = insideEditable;
+                          lastRangeRef.current = r.cloneRange();
+                        } else if (lastRangeRef.current) {
+                          // Giữ nguyên lastRangeRef đã có từ trước
+                        }
+                      }
+
+                      setSizeMenuOpen((open) => !open);
+                    }}
+                  >
+                    <ChevronDown size={12} />
+                  </button>
+
+                  {renderSizeMenu()}
+                </div>
+              </div>
+              <span className="tb-rgroup-lbl">Phông chữ</span>
+            </div>
+
+            <div className="tb-rsep" />
+
+            {/* ── Định dạng chữ ── */}
+            <div className="tb-rgroup">
+              <div className="tb-rgroup-btns">
+                <button className={rbnCls('bold')} onMouseDown={btn('bold')} title="In đậm (Ctrl+B)">      <Bold size={14} /></button>
+                <button className={rbnCls('italic')} onMouseDown={btn('italic')} title="In nghiêng (Ctrl+I)">  <Italic size={14} /></button>
+                <button className={rbnCls('underline')} onMouseDown={btn('underline')} title="Gạch chân (Ctrl+U)">  <Underline size={14} /></button>
+                <button className={rbnCls('strikeThrough')} onMouseDown={btn('strikeThrough')} title="Gạch ngang">       <Strikethrough size={14} /></button>
+                <span className="tb-rsep-mini" />
+                <button className={rbnCls('superscript')} onMouseDown={btn('superscript')} title="Chỉ số trên">         <Superscript size={14} /></button>
+                <button className={rbnCls('subscript')} onMouseDown={btn('subscript')} title="Chỉ số dưới">         <Subscript size={14} /></button>
+              </div>
+              <span className="tb-rgroup-lbl">Chữ</span>
+            </div>
+
+            <div className="tb-rsep" />
+
+            {/* ── Màu sắc ── */}
+            <div className="tb-rgroup">
+              <div className="tb-rgroup-btns">
+                <label className="tb-rbn-color-lbl" title="Màu chữ">
+                  <span className="tb-rbn-color-icon">A</span>
+                  <input type="color" className="tb-rbn-color-input" defaultValue="#000000"
+                    onInput={(e) => document.execCommand('foreColor', false, e.target.value)} />
+                </label>
+                <label className="tb-rbn-color-lbl" title="Màu nền chữ">
+                  <span className="tb-rbn-color-icon tb-rbn-hl">▣</span>
+                  <input type="color" className="tb-rbn-color-input" defaultValue="#ffff00"
+                    onInput={(e) => document.execCommand('hiliteColor', false, e.target.value)} />
+                </label>
+                <button className="tb-rbn-btn" onMouseDown={btn('removeFormat')} title="Xóa toàn bộ định dạng">
+                  <Eraser size={14} />
+                </button>
+              </div>
+              <span className="tb-rgroup-lbl">Màu sắc</span>
+            </div>
+
+            <div className="tb-rsep" />
+
+            {/* ── Đoạn văn ── */}
+            <div className="tb-rgroup">
+              <div className="tb-rgroup-btns">
+                <button className={rbnCls('justifyLeft')} onMouseDown={btn('justifyLeft')} title="Căn trái">       <AlignLeft size={14} /></button>
+                <button className={rbnCls('justifyCenter')} onMouseDown={btn('justifyCenter')} title="Căn giữa">       <AlignCenter size={14} /></button>
+                <button className={rbnCls('justifyRight')} onMouseDown={btn('justifyRight')} title="Căn phải">       <AlignRight size={14} /></button>
+                <button className="tb-rbn-btn" onMouseDown={btn('justifyFull')} title="Căn đều 2 bên"> <AlignJustify size={14} /></button>
+                <span className="tb-rsep-mini" />
+                <button className={rbnCls('insertUnorderedList')} onMouseDown={btn('insertUnorderedList')} title="Danh sách gạch đầu dòng">
+                  <List size={14} />
+                </button>
+                <button className={rbnCls('insertOrderedList')} onMouseDown={btn('insertOrderedList')} title="Danh sách có số thứ tự">
+                  <ListOrdered size={14} />
+                </button>
+                <span className="tb-rsep-mini" />
+                <button className="tb-rbn-btn" onMouseDown={btn('outdent')} title="Giảm thụt lề" style={{ fontSize: 13, fontWeight: 700 }}>⇤</button>
+                <button className="tb-rbn-btn" onMouseDown={btn('indent')} title="Tăng thụt lề" style={{ fontSize: 13, fontWeight: 700 }}>⇥</button>
+              </div>
+              <span className="tb-rgroup-lbl">Đoạn văn</span>
+            </div>
+
+            <div className="tb-rsep" />
+
+            {/* ── Kiểu chữ (Heading) ── */}
+            <div className="tb-rgroup">
+              <div className="tb-rgroup-btns">
+                <select className="tb-rbn-select" style={{ width: 138 }} title="Kiểu văn bản"
+                  onMouseDown={captureCurrentSelection}
+                  onFocus={captureCurrentSelection}
+                  onChange={(e) => restoreAndExec('formatBlock', e.target.value)}>
+                  <option value="p">Văn bản thường</option>
+                  <option value="h1">Tiêu đề 1</option>
+                  <option value="h2">Tiêu đề 2</option>
+                  <option value="h3">Tiêu đề 3</option>
+                  <option value="blockquote">Trích dẫn</option>
+                  <option value="pre">Code</option>
+                </select>
+              </div>
+              <span className="tb-rgroup-lbl">Kiểu chữ</span>
+            </div>
+
+          </div>
+        )}
+
+        {/* Nút mũi tên ở giữa */}
+        <div className="tb-ribbon-toggle-wrap">
+          <button
+            className="tb-ribbon-toggle-btn"
+            onClick={onToggleFormatToolbar}
+            title={showFormatToolbar ? 'Ẩn thanh công cụ' : 'Hiện thanh công cụ'}
+          >
+            {showFormatToolbar ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+          </button>
         </div>
 
-        <div className="tb-rsep" />
-
-        {/* ── Định dạng chữ ── */}
-        <div className="tb-rgroup">
-          <div className="tb-rgroup-btns">
-            <button className={rbnCls('bold')}        onMouseDown={btn('bold')}        title="In đậm (Ctrl+B)">      <Bold size={14} /></button>
-            <button className={rbnCls('italic')}      onMouseDown={btn('italic')}      title="In nghiêng (Ctrl+I)">  <Italic size={14} /></button>
-            <button className={rbnCls('underline')}   onMouseDown={btn('underline')}   title="Gạch chân (Ctrl+U)">  <Underline size={14} /></button>
-            <button className={rbnCls('strikeThrough')} onMouseDown={btn('strikeThrough')} title="Gạch ngang">       <Strikethrough size={14} /></button>
-            <span className="tb-rsep-mini" />
-            <button className={rbnCls('superscript')} onMouseDown={btn('superscript')} title="Chỉ số trên">         <Superscript size={14} /></button>
-            <button className={rbnCls('subscript')}   onMouseDown={btn('subscript')}   title="Chỉ số dưới">         <Subscript size={14} /></button>
-          </div>
-          <span className="tb-rgroup-lbl">Chữ</span>
-        </div>
-
-        <div className="tb-rsep" />
-
-        {/* ── Màu sắc ── */}
-        <div className="tb-rgroup">
-          <div className="tb-rgroup-btns">
-            <label className="tb-rbn-color-lbl" title="Màu chữ">
-              <span className="tb-rbn-color-icon">A</span>
-              <input type="color" className="tb-rbn-color-input" defaultValue="#000000"
-                onInput={(e) => document.execCommand('foreColor', false, e.target.value)} />
-            </label>
-            <label className="tb-rbn-color-lbl" title="Màu nền chữ">
-              <span className="tb-rbn-color-icon tb-rbn-hl">▣</span>
-              <input type="color" className="tb-rbn-color-input" defaultValue="#ffff00"
-                onInput={(e) => document.execCommand('hiliteColor', false, e.target.value)} />
-            </label>
-            <button className="tb-rbn-btn" onMouseDown={btn('removeFormat')} title="Xóa toàn bộ định dạng">
-              <Eraser size={14} />
-            </button>
-          </div>
-          <span className="tb-rgroup-lbl">Màu sắc</span>
-        </div>
-
-        <div className="tb-rsep" />
-
-        {/* ── Đoạn văn ── */}
-        <div className="tb-rgroup">
-          <div className="tb-rgroup-btns">
-            <button className={rbnCls('justifyLeft')}   onMouseDown={btn('justifyLeft')}   title="Căn trái">       <AlignLeft size={14} /></button>
-            <button className={rbnCls('justifyCenter')} onMouseDown={btn('justifyCenter')} title="Căn giữa">       <AlignCenter size={14} /></button>
-            <button className={rbnCls('justifyRight')}  onMouseDown={btn('justifyRight')}  title="Căn phải">       <AlignRight size={14} /></button>
-            <button className="tb-rbn-btn"               onMouseDown={btn('justifyFull')}   title="Căn đều 2 bên"> <AlignJustify size={14} /></button>
-            <span className="tb-rsep-mini" />
-            <button className={rbnCls('insertUnorderedList')} onMouseDown={btn('insertUnorderedList')} title="Danh sách gạch đầu dòng">
-              <List size={14} />
-            </button>
-            <button className={rbnCls('insertOrderedList')} onMouseDown={btn('insertOrderedList')} title="Danh sách có số thứ tự">
-              <ListOrdered size={14} />
-            </button>
-            <span className="tb-rsep-mini" />
-            <button className="tb-rbn-btn" onMouseDown={btn('outdent')} title="Giảm thụt lề" style={{ fontSize: 13, fontWeight: 700 }}>⇤</button>
-            <button className="tb-rbn-btn" onMouseDown={btn('indent')}  title="Tăng thụt lề" style={{ fontSize: 13, fontWeight: 700 }}>⇥</button>
-          </div>
-          <span className="tb-rgroup-lbl">Đoạn văn</span>
-        </div>
-
-        <div className="tb-rsep" />
-
-        {/* ── Kiểu chữ (Heading) ── */}
-        <div className="tb-rgroup">
-          <div className="tb-rgroup-btns">
-            <select className="tb-rbn-select" style={{ width: 138 }} title="Kiểu văn bản"
-              onMouseDown={captureCurrentSelection}
-              onFocus={captureCurrentSelection}
-              onChange={(e) => restoreAndExec('formatBlock', e.target.value)}>
-              <option value="p">Văn bản thường</option>
-              <option value="h1">Tiêu đề 1</option>
-              <option value="h2">Tiêu đề 2</option>
-              <option value="h3">Tiêu đề 3</option>
-              <option value="blockquote">Trích dẫn</option>
-              <option value="pre">Code</option>
-            </select>
-          </div>
-          <span className="tb-rgroup-lbl">Kiểu chữ</span>
-        </div>
-
-      </div>
-      )}
-
-      {/* Nút mũi tên ở giữa */}
-      <div className="tb-ribbon-toggle-wrap">
-        <button
-          className="tb-ribbon-toggle-btn"
-          onClick={onToggleFormatToolbar}
-          title={showFormatToolbar ? 'Ẩn thanh công cụ' : 'Hiện thanh công cụ'}
-        >
-          {showFormatToolbar ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-        </button>
-      </div>
-
-    </header>
+      </header>
 
     </>
   );

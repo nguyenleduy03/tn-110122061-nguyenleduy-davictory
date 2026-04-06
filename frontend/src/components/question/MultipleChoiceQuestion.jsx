@@ -21,6 +21,8 @@ const MultipleChoiceQuestion = ({ q, activeQuestion, setActiveQuestion, answer, 
     const isActive = nums.includes(activeQuestion);
     const isMultiple = q.allowMultipleAnswers;
     const selectCount = q.selectCount || 0;
+    const isRange = nums.length > 1;
+    const numberLabel = isRange ? `${nums[0]}-${nums[nums.length - 1]}` : String(q.number);
     const selectedAnswers = isMultiple ? (Array.isArray(answer) ? answer : []) : answer;
     const isFull = isMultiple && selectCount > 0 && selectedAnswers.length >= selectCount;
     const hasGroupInstruction = isMultiple && q.groupInstruction;
@@ -67,7 +69,7 @@ const MultipleChoiceQuestion = ({ q, activeQuestion, setActiveQuestion, answer, 
                         />
                     )}
                     <div className="tfng-question-content">
-                        <span className="tfng-number">{q.number}</span>
+                        <span className="tfng-number">{numberLabel}</span>
                         <span className="tfng-question-text" dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(q.text) || '' }} />
                     </div>
                 </div>
@@ -138,7 +140,7 @@ const MultipleChoiceQuestion = ({ q, activeQuestion, setActiveQuestion, answer, 
                     />
                 )}
                 <div className="tfng-question-content">
-                    <span className="tfng-number">{q.number}</span>
+                    <span className="tfng-number">{numberLabel}</span>
                     <span className="tfng-question-text" dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(q.text) || '' }} />
                 </div>
             </div>

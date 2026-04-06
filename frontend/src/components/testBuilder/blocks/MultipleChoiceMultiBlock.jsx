@@ -11,7 +11,7 @@ const MultipleChoiceMultiBlock = ({ group, onUpdate, onDelete, onSelect, selecte
   onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onAddQuestion, selectedQuestionId }) => {
   const questions = group.questions ?? [];
   const [importStates, setImportStates] = useState({});
-  
+
   // Initialize options on mount if missing
   useEffect(() => {
     questions.forEach(q => {
@@ -31,11 +31,11 @@ const MultipleChoiceMultiBlock = ({ group, onUpdate, onDelete, onSelect, selecte
   const handleImportOptions = (q, text) => {
     const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
     if (lines.length === 0) return;
-    
+
     // Xóa option rỗng (không có optionText)
     const existingOpts = (q.options || []).filter(o => o.optionText?.trim());
     const startIdx = existingOpts.length;
-    
+
     const imported = lines.map((optText, i) => ({
       id: Date.now() + i,
       optionLabel: String.fromCharCode(65 + startIdx + i),
@@ -46,12 +46,12 @@ const MultipleChoiceMultiBlock = ({ group, onUpdate, onDelete, onSelect, selecte
     onUpdateQuestion(group.id, q.id, { options: [...existingOpts, ...imported] });
     setImportStates(prev => ({ ...prev, [q.id]: false }));
   };
-  
+
   return (
     <div className={`exam-group${selected ? ' selected' : ''}`}
       onClick={(e) => { e.stopPropagation(); onSelect(group); }}>
       <GroupToolbar group={group} dragHandleProps={dragHandleProps} onDelete={onDelete} />
-      
+
       <div className="exam-q-range-header">
         Questions {group.fromQuestion ?? questions[0]?.questionNumber ?? '?'}
         {(() => {
@@ -62,7 +62,7 @@ const MultipleChoiceMultiBlock = ({ group, onUpdate, onDelete, onSelect, selecte
           return (last && last !== first) ? `–${last}` : '';
         })()}
       </div>
-      
+
       {/* Instructions field */}
       <div style={{ marginBottom: 12 }} onClick={(e) => e.stopPropagation()}>
         <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4, color: '#555' }}>
@@ -79,7 +79,7 @@ const MultipleChoiceMultiBlock = ({ group, onUpdate, onDelete, onSelect, selecte
           />
         </div>
       </div>
-      
+
       <div contentEditable suppressContentEditableWarning className="exam-mc-context"
         data-placeholder="Ngữ cảnh chung (nếu có)..."
         onMouseDown={(e) => e.stopPropagation()}
@@ -89,7 +89,7 @@ const MultipleChoiceMultiBlock = ({ group, onUpdate, onDelete, onSelect, selecte
         onBlur={(e) => onUpdate(group.id, { title: serializeContentEditableHtml(e.currentTarget) })}
         dangerouslySetInnerHTML={{ __html: group.title || '' }}
       />
-      
+
       {questions.map((q) => {
         const opts = (q.options && q.options.length > 0) ? q.options : ['A', 'B', 'C', 'D', 'E'].map((label, i) => ({
           id: Date.now() + i,
@@ -123,15 +123,15 @@ const MultipleChoiceMultiBlock = ({ group, onUpdate, onDelete, onSelect, selecte
                       <div className="exam-mc-opt-image-cell">
                         <ImageUploadZone
                           imageUrl={opt.optionImageUrl}
-                          onImageChange={(url) => { 
-                            const next = [...opts]; 
-                            next[i] = { ...next[i], optionImageUrl: url }; 
-                            onUpdateQuestion(group.id, q.id, { options: next }); 
+                          onImageChange={(url) => {
+                            const next = [...opts];
+                            next[i] = { ...next[i], optionImageUrl: url };
+                            onUpdateQuestion(group.id, q.id, { options: next });
                           }}
-                          onImageDelete={() => { 
-                            const next = [...opts]; 
-                            next[i] = { ...next[i], optionImageUrl: '' }; 
-                            onUpdateQuestion(group.id, q.id, { options: next }); 
+                          onImageDelete={() => {
+                            const next = [...opts];
+                            next[i] = { ...next[i], optionImageUrl: '' };
+                            onUpdateQuestion(group.id, q.id, { options: next });
                           }}
                           placeholder={`URL ảnh cho ${String.fromCharCode(65 + i)}...`}
                           module={module}
@@ -172,10 +172,10 @@ const MultipleChoiceMultiBlock = ({ group, onUpdate, onDelete, onSelect, selecte
               })}
               <div style={{ display: 'flex', gap: 4 }}>
                 <button className="exam-add-btn" style={{ padding: '3px 10px', fontSize: 11, marginTop: 4, flex: 1 }}
-                  onClick={(e) => { 
-                    e.stopPropagation(); 
+                  onClick={(e) => {
+                    e.stopPropagation();
                     const nextLabel = String.fromCharCode(65 + opts.length);
-                    onUpdateQuestion(group.id, q.id, { options: [...opts, { id: Date.now(), optionLabel: nextLabel, optionText: '', isCorrect: false, orderIndex: opts.length }] }); 
+                    onUpdateQuestion(group.id, q.id, { options: [...opts, { id: Date.now(), optionLabel: nextLabel, optionText: '', isCorrect: false, orderIndex: opts.length }] });
                   }}>
                   <Plus size={10} /> Thêm lựa chọn
                 </button>

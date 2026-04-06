@@ -16,6 +16,8 @@ public interface TestRepository extends JpaRepository<Test, Long>, JpaSpecificat
 
     List<Test> findByStatus(TestStatus status);
 
+    List<Test> findByStatusNot(TestStatus status);
+
     List<Test> findByTestType(TestType testType);
 
     List<Test> findByTestTypeAndStatus(TestType testType, TestStatus status);

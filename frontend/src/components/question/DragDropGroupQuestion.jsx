@@ -12,6 +12,15 @@ const normalizeGroupType = (rawType) => String(rawType || '')
     .replace(/\s+/g, '_')
     .replace(/-/g, '_');
 
+const resolveImageWidthPercent = (value, fallback = 100) => {
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    if (typeof value === 'string') {
+        const parsed = Number.parseFloat(value.replace('%', '').trim());
+        if (Number.isFinite(parsed)) return parsed;
+    }
+    return fallback;
+};
+
 const parseFlowNodeText = (text) => {
     const segments = (text ?? '').split(/\[blank\]/gi);
     const result = [];
@@ -145,9 +154,7 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
         const containerRect = container.getBoundingClientRect();
         const gapRect = activeGap.getBoundingClientRect();
         const rawTop = gapRect.top - containerRect.top;
-        const maxTop = Math.max(0, container.clientHeight - 24);
-        const clampedTop = Math.max(0, Math.min(rawTop, maxTop));
-        setHeadingOptionsBookmarkTop(clampedTop);
+        setHeadingOptionsBookmarkTop(rawTop);
     }, [activeHeadingSubQ, isMatchingHeading, isReview]);
 
     React.useLayoutEffect(() => {
@@ -157,18 +164,11 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
     React.useEffect(() => {
         if (typeof window === 'undefined') return undefined;
 
-        const handleReposition = () => syncHeadingOptionsBookmarkPosition();
-        window.addEventListener('resize', handleReposition);
-
-        const passageSection = document.querySelector('.passage-section');
-        const questionsSection = matchingHeadingContainerRef.current?.closest('.questions-section');
-        passageSection?.addEventListener('scroll', handleReposition);
-        questionsSection?.addEventListener('scroll', handleReposition);
+        const handleResize = () => syncHeadingOptionsBookmarkPosition();
+        window.addEventListener('resize', handleResize);
 
         return () => {
-            window.removeEventListener('resize', handleReposition);
-            passageSection?.removeEventListener('scroll', handleReposition);
-            questionsSection?.removeEventListener('scroll', handleReposition);
+            window.removeEventListener('resize', handleResize);
         };
     }, [syncHeadingOptionsBookmarkPosition]);
 
@@ -328,7 +328,10 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
     const rowHeight = isMatchingHeading ? 52 : 48;
     const titleHeight = (isMatchingHeading || isMatchingInfo) ? 44 : 0;
     const fixedBankHeight = Math.max(180, bankOptions.length * rowHeight + titleHeight + 16);
-    const dropZoneWidth = isMatchingInfo ? `${fixedBankWidth}px` : '150px';
+    const responsiveInfoWidth = Math.max(220, Math.min(720, fixedBankWidth));
+    const dropZoneWidth = isMatchingInfo
+        ? `clamp(160px, 34vw, ${responsiveInfoWidth}px)`
+        : '150px';
 
     // Gather all currently used options to highlight or disable them
     const usedOptions = (q.subQuestions || []).map(subQ => answers[subQ.id]).filter(Boolean);
@@ -388,13 +391,20 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                         ? normalizeBlankTokens(subQ.text || '').replace(/\[blank\]/gi, '').trim()
                         : (subQ.text || '');
 
-                    const inlineDropStyle = hasInlineBlank && hasDisplayAnswer
-                        ? { width: `clamp(88px, ${Math.max(8, displayAnswer.length + 2)}ch, 360px)` }
+                    const answerCharWidth = Math.max(8, displayAnswer.length + 2);
+                    const filledDropStyle = hasDisplayAnswer
+                        ? {
+                            width: hasInlineBlank
+                                ? `clamp(88px, ${answerCharWidth}ch, 360px)`
+                                : (isMatchingInfo
+                                    ? `clamp(120px, ${answerCharWidth}ch, ${responsiveInfoWidth}px)`
+                                    : `clamp(150px, ${answerCharWidth}ch, 520px)`),
+                        }
                         : undefined;
-                    const fixedInfoStyle = isMatchingInfo
+                    const fixedInfoStyle = (!hasDisplayAnswer && isMatchingInfo)
                         ? { width: dropZoneWidth }
                         : undefined;
-                    const dropZoneStyle = inlineDropStyle || fixedInfoStyle;
+                    const dropZoneStyle = filledDropStyle || fixedInfoStyle;
 
                     const dropZoneNode = (
                         <div
@@ -590,7 +600,7 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
             : '';
         const heading = q.heading || fallbackHeading;
         const instruction = q.instruction || '';
-        const imageWidth = Number.isFinite(Number(q.imageWidth)) ? Number(q.imageWidth) + 45 : 100;
+        const imageWidth = resolveImageWidthPercent(q.imageWidth);
         const pinBoxWidth = Number.isFinite(Number(q.pinBoxWidth)) ? Number(q.pinBoxWidth) : 60;
         const constrainHalfPage = Boolean(q.constrainHalfPage);
         const allowReuse = (typeof q.allowOptionReuse === 'boolean') ? q.allowOptionReuse : true;
@@ -624,6 +634,11 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                                     : String(answer || '');
                                 const hasAnswer = displayAnswer.trim() !== '';
                                 const isActive = activeQuestion === subQ.number;
+                                const basePinWidth = Math.max(56, Number(pinBoxWidth) || 60);
+                                const answerCharWidth = Math.max(8, displayAnswer.length + 2);
+                                const resolvedPinWidth = hasAnswer
+                                    ? `clamp(${basePinWidth}px, ${answerCharWidth}ch, 320px)`
+                                    : `${basePinWidth}px`;
 
                                 return (
                                     <div
@@ -634,10 +649,12 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                                         onDrop={isReview ? undefined : (e) => handleDrop(e, subQ.id)}
                                         onDragOver={isReview ? undefined : handleDragOver}
                                         style={{
-                                            top: subQ.top || '50%',
-                                            left: subQ.left || '50%',
-                                            width: `${pinBoxWidth}px`,
-                                            minWidth: `${pinBoxWidth}px`
+                                            top: `${subQ.pinY ?? 50}%`,
+                                            left: `${subQ.pinX ?? 50}%`,
+                                            width: resolvedPinWidth,
+                                            minWidth: `${basePinWidth}px`,
+                                            maxWidth: hasAnswer ? '320px' : `${basePinWidth}px`,
+                                            justifyContent: hasAnswer ? 'flex-start' : 'center'
                                         }}
                                     >
                                         {!hasAnswer && (

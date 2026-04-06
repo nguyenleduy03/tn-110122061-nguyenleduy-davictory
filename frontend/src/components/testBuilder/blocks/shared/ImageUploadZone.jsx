@@ -47,7 +47,7 @@ const ImageUploadZone = ({
   // Xử lý paste ảnh từ clipboard
   const handlePaste = async (e) => {
     if (disabled) return;
-    
+
     const items = e.clipboardData?.items;
     if (!items) return;
 
@@ -68,7 +68,7 @@ const ImageUploadZone = ({
     if (disabled) return;
     e.preventDefault();
     e.stopPropagation();
-    
+
     // Kiểm tra có file ảnh không
     if (e.dataTransfer?.types?.includes('Files')) {
       setIsDragging(true);
@@ -85,7 +85,7 @@ const ImageUploadZone = ({
     if (disabled) return;
     e.preventDefault();
     e.stopPropagation();
-    
+
     // Chỉ clear khi rời khỏi drop zone, không phải children
     if (e.currentTarget === dropZoneRef.current) {
       setIsDragging(false);
@@ -142,7 +142,7 @@ const ImageUploadZone = ({
           style={{ display: 'none' }}
           disabled={disabled || isProcessing}
         />
-        
+
         {imageUrl && showPreview && (
           <div className="image-preview-compact">
             <img src={resolveDrivePreviewUrl(imageUrl)} alt="Preview" />

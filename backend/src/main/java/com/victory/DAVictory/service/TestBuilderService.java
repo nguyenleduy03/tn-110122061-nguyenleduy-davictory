@@ -58,6 +58,7 @@ public class TestBuilderService {
     private final AttemptAnswerRepository attemptAnswerRepository;
     private final QuestionTypeRepository questionTypeRepository;
     private final DriveAssetRenameService driveAssetRenameService;
+    private final GoogleDriveOAuth2Service driveService;
 
     // ═══════════════════════════════════════════════════════════════
     //  1. LƯU TOÀN BỘ ĐỀ THI (Save Full Test)
@@ -517,8 +518,8 @@ public class TestBuilderService {
     // ═══════════════════════════════════════════════════════════════
 
     @Transactional(readOnly = true)
-    public List<TestFullResponse> getAllTests() {
-        List<Test> tests = testRepository.findAll();
+    public List<TestFullResponse> getActiveTests() {
+        List<Test> tests = testRepository.findByStatusNot(TestStatus.DELETED);
         return tests.stream().map(this::mapTestSummary).toList();
     }
 
@@ -541,8 +542,10 @@ public class TestBuilderService {
         Test test = testRepository.findById(testId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đề thi"));
 
+        System.out.println("🗑️ Permanent delete requested for test ID=" + testId + ", title=" + test.getTitle());
         List<Long> questionGroupIds = testQuestionGroupRepository.findQuestionGroupIdsByTestId(testId);
 
+        System.out.println("🗑️ Removing related rows for test ID=" + testId);
         assignmentRepository.deleteByTestId(testId);
         examAttemptRepository.deleteByTestId(testId);
         testStatisticRepository.deleteByTestId(testId);
@@ -550,8 +553,18 @@ public class TestBuilderService {
         fullTestProgressRepository.deleteByTestId(testId);
         guestExamAttemptRepository.deleteByTestId(testId);
 
+        System.out.println("🗑️ Deleting test row ID=" + testId);
         testRepository.delete(test);
 
+        try {
+            String driveFolderPath = buildTestFolderPath(test.getTitle());
+            System.out.println("🗑️ Deleting Drive folder path: " + driveFolderPath);
+            driveService.deleteFolderByPath(driveFolderPath);
+        } catch (Exception e) {
+            System.err.println("⚠️ Không thể xóa thư mục Drive của đề thi ID=" + testId + ": " + e.getMessage());
+        }
+
+        System.out.println("🗑️ Cleaning unused question groups for test ID=" + testId);
         for (Long groupId : questionGroupIds) {
             if (testQuestionGroupRepository.findByQuestionGroupId(groupId).isEmpty()
                     && !hasAttemptAnswersForGroup(groupId)) {
@@ -567,6 +580,8 @@ public class TestBuilderService {
                 questionGroupRepository.deleteById(groupId);
             }
         }
+
+        System.out.println("✅ Permanent delete completed for test ID=" + testId);
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -585,6 +600,20 @@ public class TestBuilderService {
     private boolean hasAttemptAnswersForGroup(Long groupId) {
         if (groupId == null) return false;
         return attemptAnswerRepository.existsByQuestionQuestionGroupId(groupId);
+    }
+
+    private String buildTestFolderPath(String testTitle) {
+        if (testTitle == null || testTitle.isBlank()) {
+            return null;
+        }
+        return "exam/" + normalizeFolderSegment(testTitle);
+    }
+
+    private String normalizeFolderSegment(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim().replaceAll("[\\\\/:*?\"<>|]", "_").replaceAll("\\s+", "_");
     }
 
     private QuestionGroup createQuestionGroupFromSave(Part part, TestSaveRequest.GroupSave gs) {
@@ -674,6 +703,7 @@ public class TestBuilderService {
                 ans.setAnswerText(as.getAnswerText() != null ? as.getAnswerText() : "");
                 ans.setAlternativeAnswers(as.getAlternativeAnswers());
                 ans.setIsCaseSensitive(as.getIsCaseSensitive() != null ? as.getIsCaseSensitive() : false);
+                ans.setIsSample(as.getIsSample() != null ? as.getIsSample() : false);
                 ans.setBlankIndex(as.getBlankIndex() != null ? as.getBlankIndex() : 1);
                 ans.setWordLimit(as.getWordLimit());
                 Answer saved = answerRepository.save(ans);
@@ -693,6 +723,7 @@ public class TestBuilderService {
             qr.setId(q.getId());
             qr.setQuestionNumber(q.getQuestionNumber());
             qr.setQuestionCount(q.getQuestionCount());
+            qr.setQuestionSection(q.getQuestionSection());
             qr.setGroupInstruction(q.getGroupInstruction());
             qr.setQuestionText(q.getQuestionText());
             qr.setBlankContext(q.getBlankContext());
@@ -729,6 +760,7 @@ public class TestBuilderService {
                 ar.setAnswerText(ans.getAnswerText());
                 ar.setAlternativeAnswers(ans.getAlternativeAnswers());
                 ar.setIsCaseSensitive(ans.getIsCaseSensitive());
+                ar.setIsSample(ans.getIsSample());
                 ar.setBlankIndex(ans.getBlankIndex());
                 ar.setWordLimit(ans.getWordLimit());
                 return ar;
@@ -763,6 +795,7 @@ public class TestBuilderService {
         q.setQuestionGroup(qg);
         q.setQuestionNumber(qs.getQuestionNumber());
         q.setQuestionCount(qs.getQuestionCount() != null ? qs.getQuestionCount() : 1);
+        q.setQuestionSection(qs.getQuestionSection());
         q.setGroupInstruction(qs.getGroupInstruction());
         q.setQuestionText(qs.getQuestionText());
         q.setBlankContext(qs.getBlankContext());

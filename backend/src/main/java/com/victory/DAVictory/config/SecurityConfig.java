@@ -46,6 +46,7 @@ public class SecurityConfig {
                                 "/api/auth/**",
                                 "/api/drive/**",
                                 "/api/guest/**",
+                            "/api/public/test-share/validate",
                                 "/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
@@ -93,7 +94,13 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/tests/**")
                         .hasAnyRole("STUDENT", "TEACHER", "MANAGER", "ADMIN")
 
+                        // ===== TEST SHARE LINKS =====
+                        .requestMatchers(HttpMethod.POST, "/api/test-share/**")
+                        .hasAnyRole("TEACHER", "MANAGER", "ADMIN")
+
                         // ===== TEST BUILDER =====
+                        // Link công khai cho guest: chỉ đọc dữ liệu full test (controller tự chặn đề chưa publish)
+                        .requestMatchers(HttpMethod.GET, "/api/test-builder/*/full").permitAll()
                         // Cho phép STUDENT tải đề thi để làm bài (chỉ GET)
                         .requestMatchers(HttpMethod.GET, "/api/test-builder/**")
                         .hasAnyRole("STUDENT", "TEACHER", "MANAGER", "ADMIN")

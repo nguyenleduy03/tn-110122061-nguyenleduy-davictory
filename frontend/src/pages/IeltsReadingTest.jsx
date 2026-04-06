@@ -4,6 +4,7 @@ import { useSearchParams, useNavigate, useParams } from "react-router-dom";
 import "../styles/ieltsTest.css";
 import TestHeader from "../components/common/TestHeader";
 import QuestionRenderer from "../components/question/QuestionRenderer";
+import GuestInfoForm from "../components/common/GuestInfoForm";
 import { useDividerResize } from "../hooks/useDividerResize";
 import { useTestNavigation } from "../hooks/useTestNavigation";
 import { ieltsApi } from "../services/ieltsApi";
@@ -68,6 +69,17 @@ const isComponentManagedDropdownGroup = (groupType) => {
 
     return normalized === 'mcq_dropdown_group'
         || normalized === 'shared_options_dropdown'
+        || normalized === 'short_answer_group'
+        || normalized === 'short_answer'
+        || normalized === 'drag_drop'
+        || normalized === 'drag_and_drop'
+        || normalized === 'drag_and_drop_group'
+        || normalized === 'matching_heading'
+        || normalized === 'matching_para'
+        || normalized === 'matching_info'
+        || normalized === 'matching_features'
+        || normalized === 'flow_chart'
+        || normalized === 'image_drag_drop'
         || normalized === 'note_completion'
         || normalized === 'summary_completion'
         || normalized === 'summary_completion_select';
@@ -83,7 +95,7 @@ const HeadingGap = ({ qId, number, answer, correctAnswer, handleAnswerChange, is
         const sourceQId = e.dataTransfer.getData('sourceQId');
 
         // Defensive check for qId
-        const activeQId = qId || (number ? `q${number}` : null);
+        const activeQId = qId || null;
 
         console.log(`[HeadingGap] Attempting drop. TargetQId: ${activeQId}, Option: ${option}, Source: ${sourceQId}`);
 
@@ -113,8 +125,12 @@ const HeadingGap = ({ qId, number, answer, correctAnswer, handleAnswerChange, is
     const isFilled = displayAnswer.trim() !== '';
 
     return (
-        <div id={`question-${number}`}
-            onClick={(e) => { e.stopPropagation(); if (!isReview) setActiveQuestion(Number(number)); }}
+        <div id={number != null ? `question-${number}` : undefined}
+            onClick={(e) => {
+                e.stopPropagation();
+                const parsedNumber = Number(number);
+                if (!isReview && Number.isFinite(parsedNumber)) setActiveQuestion(parsedNumber);
+            }}
             className={`heading-gap-zone ${isFilled ? 'heading-gap-filled' : ''} ${isActive && !isFilled ? 'heading-gap-active' : ''} ${!isReview && bookmarks?.[number] ? 'heading-gap-bookmarked' : ''} ${isReview ? (answer?.trim() === correctAnswer?.trim() ? 'review-correct' : 'review-wrong') : ''}`}
             onDragOver={handleDragOver}
             onDrop={isReview ? undefined : handleDrop}
@@ -142,8 +158,23 @@ const PassageContentStatic = React.memo(({ content }) => {
 
 const PassageRenderer = ({ part, answers, handleAnswerChange, activeQuestion, setActiveQuestion, bookmarks, toggleBookmark, isReview, testData }) => {
     const [gaps, setGaps] = React.useState([]);
-    const startQuestionNumber = part.fromQuestion || 1;
     const containerRef = React.useRef(null);
+    const questionNumberById = React.useMemo(() => {
+        const result = new Map();
+        (testData?.parts || []).forEach((p) => {
+            (p.questions || []).forEach((q) => {
+                if (q?.id != null && q?.number != null) {
+                    result.set(String(q.id), Number(q.number));
+                }
+                (q?.subQuestions || []).forEach((sq) => {
+                    if (sq?.id != null && sq?.number != null) {
+                        result.set(String(sq.id), Number(sq.number));
+                    }
+                });
+            });
+        });
+        return result;
+    }, [testData]);
 
     useLayoutEffect(() => {
         if (!containerRef.current) return undefined;
@@ -187,7 +218,11 @@ const PassageRenderer = ({ part, answers, handleAnswerChange, activeQuestion, se
             {gaps.map((node, i) => {
                 const qId = node.getAttribute('data-id');
                 const numAttr = node.getAttribute('data-number');
-                const number = numAttr ? parseInt(numAttr, 10) : (startQuestionNumber + i);
+                const numberFromAttr = numAttr ? Number.parseInt(numAttr, 10) : null;
+                const numberFromData = qId ? questionNumberById.get(String(qId)) : null;
+                const number = Number.isFinite(numberFromAttr)
+                    ? numberFromAttr
+                    : (Number.isFinite(numberFromData) ? numberFromData : null);
 
                 let correctAnswer = null;
                 if (isReview && testData?.parts) {
@@ -211,7 +246,7 @@ const PassageRenderer = ({ part, answers, handleAnswerChange, activeQuestion, se
                         answer={answers[qId]}
                         correctAnswer={correctAnswer}
                         handleAnswerChange={handleAnswerChange}
-                        isActive={activeQuestion == number}
+                        isActive={number != null && activeQuestion == number}
                         setActiveQuestion={setActiveQuestion}
                         bookmarks={bookmarks}
                         isReview={isReview}
@@ -225,12 +260,17 @@ const PassageRenderer = ({ part, answers, handleAnswerChange, activeQuestion, se
 
 const IeltsReadingTest = () => {
     const [testData, setTestData] = useState(null);
+    const [previewRefreshTick, setPreviewRefreshTick] = useState(0);
     const [answers, setAnswers] = useState({});
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [bookmarks, setBookmarks] = useState({});
     const [scoreInfo, setScoreInfo] = useState(null);
     const [startTime] = useState(() => Date.now());
+    const [showGuestForm, setShowGuestForm] = useState(false);
+    const [guestInfo, setGuestInfo] = useState(null);
+    const [isGuest, setIsGuest] = useState(false);
+    const [attemptId, setAttemptId] = useState(null);
 
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
@@ -238,6 +278,7 @@ const IeltsReadingTest = () => {
     const { notes, addNote, deleteNote } = useNotes('reading', testId);
     const [isNotesOpen, setIsNotesOpen] = useState(false);
     const isFullTest = searchParams.get('fullTest') === 'true';
+    const isGuestLink = searchParams.get('guest') === '1';
     const mode = searchParams.get('mode') || 'practice';
     const assignmentId = searchParams.get('assignment');
     const isReview = searchParams.get('review') === 'true';
@@ -275,10 +316,43 @@ const IeltsReadingTest = () => {
     });
 
     useEffect(() => {
+        const handlePreviewRefresh = (event) => {
+            if (event.origin !== window.location.origin) return;
+            const payload = event.data;
+            if (!payload || payload.type !== 'DAVICTORY_PREVIEW_REFRESH') return;
+            if (String(payload.testId) !== String(testId)) return;
+            const skill = String(payload.skillType || '').toUpperCase();
+            if (skill && skill !== 'READING') return;
+            setPreviewRefreshTick((prev) => prev + 1);
+        };
+
+        window.addEventListener('message', handlePreviewRefresh);
+        return () => window.removeEventListener('message', handlePreviewRefresh);
+    }, [testId]);
+
+    useEffect(() => {
         const submittedRedirect = getSubmittedRedirect(timerPersistKey);
         if (!submittedRedirect) return;
         navigate(submittedRedirect, { replace: true });
     }, [timerPersistKey, navigate]);
+
+    useEffect(() => {
+        if (isReview || !isGuestLink) return;
+
+        const savedGuestInfo = sessionStorage.getItem('guestExamInfo');
+        if (savedGuestInfo) {
+            try {
+                const info = JSON.parse(savedGuestInfo);
+                setGuestInfo(info);
+                setIsGuest(true);
+                return;
+            } catch {
+                sessionStorage.removeItem('guestExamInfo');
+            }
+        }
+
+        setShowGuestForm(true);
+    }, [isReview, isGuestLink]);
 
     const toggleBookmark = (num) => {
         setBookmarks(prev => ({ ...prev, [num]: !prev[num] }));
@@ -388,7 +462,20 @@ const IeltsReadingTest = () => {
                 : `Không thể tải bài thi: ${err.message}`);
             setLoading(false);
         });
-    }, [testId, isReview, mode, isFullTest, selectedPracticeParts, startPartNumber, durationOverrideMinutes, noTimeLimit, setCurrentPartIndex, highlightStorageKey]);
+    }, [testId, isReview, mode, isFullTest, selectedPracticeParts, startPartNumber, durationOverrideMinutes, noTimeLimit, setCurrentPartIndex, highlightStorageKey, previewRefreshTick]);
+
+    useEffect(() => {
+        if (!isGuest || !guestInfo || attemptId || !testId || !testData || isReview) return;
+
+        ieltsApi.startGuestAttempt(guestInfo, testId, 'READING')
+            .then((attempt) => {
+                setAttemptId(attempt.id);
+            })
+            .catch((err) => {
+                console.error('Failed to start guest attempt:', err);
+                setError(`Không thể bắt đầu bài thi khách: ${err.message}`);
+            });
+    }, [isGuest, guestInfo, attemptId, testId, testData, isReview]);
 
     useEffect(() => {
         if (!isFullTest || isReview || !testData || !testId) return undefined;
@@ -580,6 +667,16 @@ const IeltsReadingTest = () => {
         }
     }, [activeQuestion]);
 
+    const hasMeaningfulAnswer = (value) => {
+        if (Array.isArray(value)) {
+            return value.some((item) => String(item || '').trim() !== '');
+        }
+
+        return typeof value === 'string'
+            ? value.trim() !== ''
+            : !!value;
+    };
+
     const handleAnswerChange = (questionId, value) => {
         setAnswers((prev) => ({ ...prev, [questionId]: value }));
     };
@@ -625,11 +722,28 @@ const IeltsReadingTest = () => {
     };
 
     const submitTest = async () => {
+        if (isGuest && !attemptId) {
+            setError('Lỗi: Không tìm thấy ID bài thi. Vui lòng tải lại trang và thử lại.');
+            return;
+        }
+
         const timeSpentSeconds = Math.floor((Date.now() - startTime) / 1000);
         sessionStorage.setItem('lastAnswers_reading', JSON.stringify(answers));
 
         // Submit bài thi bình thường
-        const resp = await ieltsApi.submitAnswers(testId, 'READING', answers, timeSpentSeconds, testData);
+        const resp = isGuest
+            ? await ieltsApi.submitGuestAttempt(
+                attemptId,
+                timeSpentSeconds,
+                Object.entries(answers).map(([qId, ans]) => ({
+                    questionId: parseInt(qId, 10),
+                    textAnswer: typeof ans === 'string' ? ans : null,
+                    selectedOptionLabel: typeof ans === 'string' ? ans : null,
+                    matchingAnswer: Array.isArray(ans) ? JSON.stringify(ans) : null,
+                    isFlagged: bookmarks[qId] || false,
+                }))
+            )
+            : await ieltsApi.submitAnswers(testId, 'READING', answers, timeSpentSeconds, testData);
 
         if (resp) {
             sessionStorage.setItem('lastScore_reading', JSON.stringify(resp));
@@ -668,13 +782,13 @@ const IeltsReadingTest = () => {
     const getAnsweredCount = (partIndex) => {
         if (!testData) return 0;
         const p = testData.parts[partIndex];
-        const flatQs = p.questions.flatMap(q => q.subQuestions ? q.subQuestions : q);
+        const flatQs = p.questions.flatMap(q => q.subQuestions ? q.subQuestions : q).filter((question) => !question?.isSample);
         let count = 0;
         flatQs.forEach(q => {
             const ans = answers[q.id];
             const isAnswered = q.selectCount
                 ? (Array.isArray(ans) && ans.length >= q.selectCount)
-                : (typeof ans === 'string' ? ans.trim() !== '' : Array.isArray(ans) ? ans.length > 0 : !!ans);
+                : hasMeaningfulAnswer(ans);
             if (isAnswered) count += (q.numberRange ? q.numberRange.length : 1);
         });
         return count;
@@ -683,7 +797,7 @@ const IeltsReadingTest = () => {
     const getTotalCount = (partIndex) => {
         if (!testData) return 0;
         const p = testData.parts[partIndex];
-        const flatQs = p.questions.flatMap(q => q.subQuestions ? q.subQuestions : q);
+        const flatQs = p.questions.flatMap(q => q.subQuestions ? q.subQuestions : q).filter((question) => !question?.isSample);
         return flatQs.reduce((sum, q) => sum + (q.numberRange ? q.numberRange.length : 1), 0);
     };
 
@@ -700,6 +814,17 @@ const IeltsReadingTest = () => {
             <button onClick={() => navigate('/exam-library')} style={{ marginTop: '16px', padding: '8px 20px', borderRadius: '6px', border: 'none', background: '#1e3a8a', color: '#fff', cursor: 'pointer' }}>← Quay lại thư viện</button>
         </div>
     );
+    if (showGuestForm) {
+        return <GuestInfoForm
+            onSubmit={(data) => {
+                setGuestInfo(data);
+                sessionStorage.setItem('guestExamInfo', JSON.stringify(data));
+                setIsGuest(true);
+                setShowGuestForm(false);
+            }}
+            onCancel={() => navigate(-1)}
+        />;
+    }
     if (!testData || !part) return null;
 
     const fillInBlankQuestions = part.questions.filter(q => q.type === 'fill-in-the-blank');
@@ -941,7 +1066,7 @@ const IeltsReadingTest = () => {
                         const isActivePart = currentPartIndex === index;
                         const answeredCount = getAnsweredCount(index);
                         const totalCount = getTotalCount(index);
-                        const flatQuestions = p.questions?.flatMap(q => q.subQuestions ? q.subQuestions : q) || [];
+                        const flatQuestions = (p.questions?.flatMap(q => q.subQuestions ? q.subQuestions : q) || []).filter((question) => !question?.isSample);
                         const partHasBookmarked = !isReview && flatQuestions.some((q) => {
                             const nums = q.numberRange || [q.number];
                             return nums.some((n) => bookmarks[n]);
@@ -977,7 +1102,7 @@ const IeltsReadingTest = () => {
                                             const ans = answers[q.id];
                                             const isAnswered = q.selectCount
                                                 ? (Array.isArray(ans) && ans.length >= q.selectCount)
-                                                : (typeof ans === "string" ? ans.trim() !== "" : Array.isArray(ans) ? ans.length > 0 : !!ans);
+                                                : hasMeaningfulAnswer(ans);
                                             const isActive = nums.includes(activeQuestion);
                                             const hasBookmarked = !isReview && nums.some(n => bookmarks[n]);
 

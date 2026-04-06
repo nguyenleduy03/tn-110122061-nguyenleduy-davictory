@@ -13,12 +13,23 @@ const TestFooter = ({
 }) => {
     if (!testData || !testData.parts) return null;
 
+    const hasMeaningfulAnswer = (value) => {
+        if (Array.isArray(value)) {
+            return value.some((item) => String(item || '').trim() !== '');
+        }
+
+        return typeof value === 'string'
+            ? value.trim() !== ''
+            : !!value;
+    };
+
     return (
         <footer className="ielts-footer">
             <div className="footer-content">
                 {testData.parts.map((p, index) => {
                     const isActivePart = currentPartIndex === index;
                     const answeredCount = getAnsweredCount ? getAnsweredCount(index) : 0;
+                    const questionItems = (p.questions || []).filter((question) => !question?.isSample);
 
                     return (
                         <div
@@ -33,11 +44,10 @@ const TestFooter = ({
                                 <div className="question-numbers">
                                     {p.questions.map((q) => {
                                         const num = q.number;
-                                        const isAnswered = answers =>
-                                            answers && answers[q.id] && answers[q.id].trim() !== "";
+                                        const isAnswered = hasMeaningfulAnswer(answers?.[q.id]);
 
                                         const isActive = activeQuestion === num;
-                                        const answeredState = isAnswered(answers);
+                                        const answeredState = isAnswered;
 
                                         return (
                                             <div
@@ -68,7 +78,7 @@ const TestFooter = ({
                             ) : (
                                 <div className="part-status-container">
                                     <span className="part-status">
-                                        {answeredCount} of {p.questions.length}
+                                        {answeredCount} of {questionItems.length}
                                     </span>
                                 </div>
                             )}

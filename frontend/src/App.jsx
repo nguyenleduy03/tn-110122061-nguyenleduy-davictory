@@ -36,6 +36,7 @@ const ManagerOperations = lazy(() => import('./pages/ManagerOperations'))
 const ManagerReports = lazy(() => import('./pages/ManagerReports'))
 const MyDashboard = lazy(() => import('./pages/MyDashboard'))
 const TestComplete = lazy(() => import('./pages/TestComplete'))
+const ShareLinkStatusPage = lazy(() => import('./pages/ShareLinkStatusPage'))
 const DashboardHistory = lazy(() => import('./pages/DashboardHistory'))
 const DashboardProfile = lazy(() => import('./pages/DashboardProfile'))
 const DashboardSettings = lazy(() => import('./pages/DashboardSettings'))
@@ -54,7 +55,19 @@ const TestApiPage = lazy(() => import('./pages/TestApiPage'))
 function App() {
   return (
     <Router>
-      <Suspense fallback={null}>
+      <Suspense fallback={(
+        <div style={appLoadingStyle}>
+          <div style={appLoadingCardStyle}>
+            <div style={appLoadingSpinnerStyle} />
+            <div style={{ marginTop: 14, fontSize: 15, fontWeight: 700, color: '#0f172a' }}>
+              Đang tải trang...
+            </div>
+            <div style={{ marginTop: 6, fontSize: 13, color: '#64748b' }}>
+              Vui lòng chờ trong giây lát.
+            </div>
+          </div>
+        </div>
+      )}>
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/test-api" element={<TestApiPage />} />
@@ -69,7 +82,8 @@ function App() {
           <Route path="/test/writing/:id" element={<ProtectedRoute><IeltsWritingTest /></ProtectedRoute>} />
           <Route path="/test/speaking" element={<ProtectedRoute><IeltsSpeakingTest /></ProtectedRoute>} />
           <Route path="/test/speaking/:id" element={<ProtectedRoute><IeltsSpeakingTest /></ProtectedRoute>} />
-          <Route path="/test/complete" element={<ProtectedRoute><TestComplete /></ProtectedRoute>} />
+          <Route path="/test/complete" element={<TestComplete />} />
+          <Route path="/share-link-expired" element={<ShareLinkStatusPage />} />
 
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
@@ -129,3 +143,31 @@ function App() {
 }
 
 export default App
+
+const appLoadingStyle = {
+  minHeight: '100vh',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  background: 'linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%)',
+};
+
+const appLoadingCardStyle = {
+  minWidth: 240,
+  padding: '24px 28px',
+  borderRadius: 20,
+  background: '#fff',
+  border: '1px solid #e2e8f0',
+  boxShadow: '0 20px 60px rgba(15, 23, 42, 0.12)',
+  textAlign: 'center',
+};
+
+const appLoadingSpinnerStyle = {
+  width: 36,
+  height: 36,
+  borderRadius: '50%',
+  border: '3px solid #dbeafe',
+  borderTopColor: '#2563eb',
+  margin: '0 auto',
+  animation: 'spin 0.9s linear infinite',
+};
