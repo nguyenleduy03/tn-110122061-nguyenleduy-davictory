@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import {
-  Home, Eye, Save, Send, Settings, Shuffle, List, CheckCircle2,
+  Home, Eye, Save, Send, Settings, Shuffle, List, CheckCircle2, Loader2,
   Bold, Italic, Underline, Strikethrough,
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
   ListOrdered, Undo2, Redo2, Eraser, Subscript, Superscript,
@@ -726,15 +726,19 @@ const BuilderHeader = ({
                   <Save size={15} style={{ opacity: autoSaveEnabled ? 1 : 0.5 }} />
                   <span className="tb-auto-save-label">Tự động</span>
                   {autoSaveEnabled && (
-                    saving ? (
-                      <span className="tb-auto-save-state is-saving">Đang lưu...</span>
-                    ) : saveMessage && saveMessage.includes('thành công') ? (
-                      <span className="tb-auto-save-state is-success" title={saveMessage} aria-label={saveMessage}>
-                        <CheckCircle2 size={13} />
-                      </span>
-                    ) : null
+                    <span className="tb-auto-indicator">
+                      <span className={`tb-auto-dot ${autoSaveEnabled ? 'is-on' : ''}`} />
+                      {saving ? (
+                        <span className="tb-auto-save-state is-saving" title="Đang lưu..." aria-label="Đang lưu...">
+                          <Loader2 size={13} className="tb-auto-save-spinner" aria-hidden="true" />
+                        </span>
+                      ) : saveMessage && saveMessage.includes('thành công') ? (
+                        <span className="tb-auto-save-state is-success" title={saveMessage} aria-label={saveMessage}>
+                          <CheckCircle2 size={13} />
+                        </span>
+                      ) : null}
+                    </span>
                   )}
-                  <span className={`tb-auto-dot ${autoSaveEnabled ? 'is-on' : ''}`} />
                 </button>
               )}
             </div>

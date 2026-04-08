@@ -1,15 +1,16 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
 import { testBuilderApi } from '../../services/testBuilderApi';
+import { authApi, clearAuthSession } from '../../services/authApi';
 
 /**
  * Bảo vệ route: nếu chưa đăng nhập (không có authToken) → redirect /login
  * Sau khi login xong sẽ redirect lại trang ban đầu (via state.from)
  */
 export default function ProtectedRoute({ children }) {
-  const token = localStorage.getItem('authToken');
+  const isAuthenticated = authApi.isAuthenticated();
   const location = useLocation();
-  const [shareCheckState, setShareCheckState] = useState(token ? 'allowed' : 'checking');
+  const [shareCheckState, setShareCheckState] = useState(isAuthenticated ? 'allowed' : 'checking');
 
   const guestShare = useMemo(() => {
     const isTestRoute = location.pathname.startsWith('/test/');
@@ -35,7 +36,7 @@ export default function ProtectedRoute({ children }) {
   useEffect(() => {
     let active = true;
 
-    if (token) {
+    if (isAuthenticated) {
       setShareCheckState('allowed');
       return undefined;
     }
@@ -59,9 +60,15 @@ export default function ProtectedRoute({ children }) {
     return () => {
       active = false;
     };
-  }, [token, guestShare]);
+  }, [isAuthenticated, guestShare]);
 
-  if (token) {
+  useEffect(() => {
+    if (!isAuthenticated) {
+      clearAuthSession();
+    }
+  }, [isAuthenticated]);
+
+  if (isAuthenticated) {
     return children;
   }
 

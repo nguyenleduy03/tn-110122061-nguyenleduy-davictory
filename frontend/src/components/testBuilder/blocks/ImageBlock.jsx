@@ -6,11 +6,14 @@ import RichBlankEditor from './shared/RichBlankEditor';
 import ImageUploadZone from './shared/ImageUploadZone';
 import { resolveDrivePreviewUrl } from '../../../utils/mediaUrl';
 import { toRoman, loadImageFile, toPlainText, countBlankTokens, getNextQuestionNumber, isImagePinQuestion, isNoteBlankQuestion, getQuestionWeight } from './shared/blockHelpers';
+import { getLockedImageQuestionLayout, getLockedImageFrameStyle, getLockedImageStyle } from '../../../utils/imageQuestionLayout';
+import { useTabIndent } from '../../../hooks/useTabIndent';
 
 // Bulk Answer Import Component
 const BulkAnswerImport = ({ questions, onImport }) => {
   const [show, setShow] = useState(false);
   const [text, setText] = useState('');
+  const { handleKeyDown } = useTabIndent();
 
   const handleImport = () => {
     const lines = text.split('\n').map(l => l.trim()).filter(l => l);
@@ -44,6 +47,7 @@ const BulkAnswerImport = ({ questions, onImport }) => {
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
+        onKeyDown={handleKeyDown}
         rows={Math.min(questions.length, 10)}
         placeholder={`Ví dụ:\nwater\n1|one\ntemperature\n...`}
         style={{
@@ -270,8 +274,11 @@ function MapLabellingBlock({ group, onUpdate, onDelete, onSelect, selected, drag
   const imageWrapRef = useRef(null);
   const dragRef = useRef(null); // { qId, origX, origY, startCX, startCY }
   const [livePin, setLivePin] = useState(null); // { qId, x, y } during drag
+  const lockedLayout = getLockedImageQuestionLayout('MAP_LABELLING');
   const questions = group.questions ?? [];
   const options = group.optionBank ?? [];
+  const imageMaxHeight = lockedLayout.imageMaxHeight;
+  const pinBoxWidth = group.pinBoxWidth || 60;
 
   const getImageRect = () => imageWrapRef.current?.getBoundingClientRect() || null;
 
@@ -305,6 +312,10 @@ function MapLabellingBlock({ group, onUpdate, onDelete, onSelect, selected, drag
   }, [group.id, onUpdateQuestion]);
 
   const addPin = (e) => {
+    if (typeof e.button === 'number' && e.button !== 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+
     if (!group.imageUrl) return;
     if (dragRef.current) return; // ignore click after drag
     const rect = getImageRect();
@@ -367,17 +378,9 @@ function MapLabellingBlock({ group, onUpdate, onDelete, onSelect, selected, drag
       {/* Size controls */}
       <div style={{ display: 'flex', gap: 12, marginTop: 8, marginBottom: 8 }} onClick={(e) => e.stopPropagation()}>
         <div style={{ flex: 1 }}>
-          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4, color: '#555' }}>
-            Kích thước ảnh: {group.imageWidth ?? 100}%
-          </label>
-          <input
-            type="range"
-            min="30"
-            max="100"
-            style={{ width: '100%' }}
-            value={group.imageWidth ?? 100}
-            onChange={(e) => onUpdate(group.id, { imageWidth: Number(e.target.value) })}
-          />
+          <div style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4, color: '#555' }}>
+            Chiều cao ảnh cố định: {imageMaxHeight}px
+          </div>
         </div>
         <div style={{ flex: 1 }}>
           <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4, color: '#555' }}>
@@ -397,25 +400,40 @@ function MapLabellingBlock({ group, onUpdate, onDelete, onSelect, selected, drag
       {/* Image canvas */}
       <div ref={containerRef} className="exam-ml-container"
         style={{ cursor: group.imageUrl ? 'crosshair' : 'default' }}
-        onClick={addPin}>
+        onMouseDown={addPin}>
         {group.imageUrl ? (
-          <div ref={imageWrapRef} style={{ position: 'relative', width: `${group.imageWidth ?? 100}%`, margin: '0 auto' }}>
+          <div ref={imageWrapRef} style={{ ...getLockedImageFrameStyle('MAP_LABELLING') }}>
             <img src={resolveDrivePreviewUrl(group.imageUrl)} alt="map" draggable={false}
-              style={{ display: 'block', width: '100%', height: 'auto', pointerEvents: 'none' }} />
+              style={{ ...getLockedImageStyle('MAP_LABELLING'), pointerEvents: 'none' }} />
             {questions.map((q) => {
               const x = livePin?.qId === q.id ? livePin.x : (q.pinX ?? 10);
               const y = livePin?.qId === q.id ? livePin.y : (q.pinY ?? 10);
+              const pinWidth = Math.max(56, Number(pinBoxWidth) || 60);
               return (
                 <div key={q.id}
                   className={`exam-ml-pin${selectedQuestionId === q.id ? ' selected' : ''}`}
-                  style={{ left: `${x}%`, top: `${y}%`, minWidth: `${group.pinBoxWidth ?? 60}px` }}
+                  style={{
+                    left: `${x}%`,
+                    top: `${y}%`,
+                    width: `${pinWidth}px`,
+                    minWidth: `${pinWidth}px`,
+                    maxWidth: `${pinWidth}px`,
+                    height: '26px',
+                    minHeight: '26px',
+                    padding: '0 7px',
+                    overflow: 'hidden',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    boxSizing: 'border-box',
+                  }}
                   onMouseDown={(e) => {
                     e.stopPropagation();
                     e.preventDefault();
                     dragRef.current = { qId: q.id, origX: q.pinX ?? 10, origY: q.pinY ?? 10, startCX: e.clientX, startCY: e.clientY };
                   }}
                   onClick={(e) => e.stopPropagation()}>
-                  <span className="exam-ml-pin-num">{q.questionNumber}</span>
+                  <span className="exam-ml-pin-num" style={{ minWidth: 20, textAlign: 'center', flexShrink: 0 }}>{q.questionNumber}</span>
                   <button className="exam-ml-pin-del"
                     onMouseDown={(e) => e.stopPropagation()}
                     onClick={(e) => { e.stopPropagation(); onDeleteQuestion(group.id, q.id); }}>×</button>

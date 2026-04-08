@@ -354,7 +354,7 @@ const TestBuilder = () => {
       }
     }
     const endQ = startQ + 9; // Mặc định 10 câu
-    
+
     const newPart = {
       id: nextId(),
       name: `Part ${parts.length + 1}`,
@@ -622,24 +622,24 @@ const TestBuilder = () => {
             questions: [makeQ(1, 'FILL_IN_BLANK')],
           };
 
-        case 'MAP_LABELLING':
+        case 'MAP_LABELLING': {
           return {
             title: `Map Labelling ${groupIdx}`,
             imageUrl: '',
-            imageWidth: 100, pinBoxWidth: 60,
+            pinBoxWidth: 60,
             constrainHalfPage: false,
             allowOptionReuse: true, // Mặc định cho phép dùng lại thẻ
             fromQuestion: null, toQuestion: null,
             optionBank: [],
             questions: [],
           };
+        }
 
-        case 'IMAGE_NOTE_FORM':
+        case 'IMAGE_NOTE_FORM': {
           return {
             title: `Image + Note Form ${groupIdx}`,
             imageUrl: '',                    // Link ảnh
             imagePosition: 'middle',         // 'top' | 'middle' | 'bottom'
-            imageWidth: 100,                 // Độ rộng ảnh (%)
             pinBoxWidth: 60,                 // Độ rộng ô pin
             noteText: '',                    // Nội dung form/note có chỗ trống (legacy/combined)
             topNoteText: '',                 // Đoạn văn phía trên ảnh
@@ -648,6 +648,7 @@ const TestBuilder = () => {
             toQuestion: startQuestionNumber,
             questions: [],                   // KHÔNG tạo sẵn câu hỏi
           };
+        }
 
         case 'WRITING_TASK':
           return {
@@ -880,11 +881,11 @@ const TestBuilder = () => {
         if (p.id !== partId) return p;
         const updatedGroups = p.questionGroups.map((g) => {
           if (g.id !== groupId) return g;
-          
+
           const updatedQuestions = g.questions.map((q) => {
             if (q.id !== questionId) return q;
             const updated = { ...q, ...updates };
-            
+
             // Nếu là MMCQ và update options, tự động tính chooseCount từ số đáp án đúng
             if (g.contentType === 'MULTIPLE_CHOICE_MULTI' && 'options' in updates) {
               const correctCount = (updates.options || []).filter(opt => opt.isCorrect).length;
@@ -892,13 +893,13 @@ const TestBuilder = () => {
                 updated.questionCount = correctCount;
               }
             }
-            
+
             return updated;
           });
-          
+
           return { ...g, questions: updatedQuestions };
         });
-        
+
         // Tính lại question numbers nếu questionCount thay đổi
         return 'questionCount' in updates || ('options' in updates)
           ? { ...p, questionGroups: recalculateQuestionNumbers(updatedGroups) }

@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { X, Award } from 'lucide-react';
+import { useTabIndent } from '../../hooks/useTabIndent';
 
 export default function GradeModal({ submission, assignment, onSubmit, onClose }) {
+  const { handleKeyDown } = useTabIndent();
   const [formData, setFormData] = useState({
     score: submission.score || '',
     feedback: submission.feedback || ''
@@ -154,6 +156,7 @@ export default function GradeModal({ submission, assignment, onSubmit, onClose }
             <textarea
               value={formData.feedback}
               onChange={(e) => setFormData({ ...formData, feedback: e.target.value })}
+              onKeyDown={handleKeyDown}
               rows={6}
               placeholder="Nhận xét chi tiết cho học sinh..."
               style={{ width: '100%', padding: '10px 12px', borderRadius: 6, border: '1px solid #d1d5db', resize: 'vertical' }}

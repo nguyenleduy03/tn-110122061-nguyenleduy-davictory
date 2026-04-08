@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { X, HelpCircle } from 'lucide-react';
+import { useTabIndent } from '../../hooks/useTabIndent';
 
 export default function AssignmentForm({ assignment, classes, tests, onSubmit, onClose }) {
+  const { handleKeyDown } = useTabIndent();
   const [formData, setFormData] = useState({
     classId: '',
     title: '',
@@ -199,6 +201,7 @@ export default function AssignmentForm({ assignment, classes, tests, onSubmit, o
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              onKeyDown={handleKeyDown}
               rows={4}
               placeholder={isTestType ? "Hướng dẫn làm bài..." : "Yêu cầu chi tiết cho bài tập..."}
               style={{ width: '100%', padding: '10px 12px', borderRadius: 6, border: '1px solid #d1d5db', resize: 'vertical' }}

@@ -1,17 +1,9 @@
 import React from 'react';
-import { applyDbFormattingMarkers } from '../../utils/textFormatters';
+import { applyDbFormattingMarkers, normalizeCompletionInstructionHtml } from '../../utils/textFormatters';
 import { isQuestionMetaLabel } from '../../utils/questionLabelUtils';
 import BookmarkToggle from '../common/BookmarkToggle';
 import { resolveDrivePreviewUrl } from '../../utils/mediaUrl';
-
-const resolveImageWidthPercent = (value, fallback = 100) => {
-    if (typeof value === 'number' && Number.isFinite(value)) return value;
-    if (typeof value === 'string') {
-        const parsed = Number.parseFloat(value.replace('%', '').trim());
-        if (Number.isFinite(parsed)) return parsed;
-    }
-    return fallback;
-};
+import { isImagePinQuestion } from '../../utils/imageNoteForm';
 
 const resolvePinBoxWidthPx = (value, fallback = 60) => {
     if (typeof value === 'number' && Number.isFinite(value)) return value;
@@ -22,11 +14,96 @@ const resolvePinBoxWidthPx = (value, fallback = 60) => {
     return fallback;
 };
 
+const resolvePinPositionPercent = (value, fallback = '50%') => {
+    if (value == null) return fallback;
+    if (typeof value === 'number' && Number.isFinite(value)) return `${value}%`;
+    if (typeof value === 'string') {
+        const trimmed = value.trim();
+        if (!trimmed) return fallback;
+        if (trimmed.endsWith('%') || trimmed.endsWith('px')) return trimmed;
+
+        const parsed = Number.parseFloat(trimmed);
+        if (Number.isFinite(parsed)) return `${parsed}%`;
+    }
+    return fallback;
+};
+
+const RuntimeImageNotePinBox = ({
+    id,
+    number,
+    left,
+    top,
+    value,
+    active = false,
+    bookmarked = false,
+    isReview = false,
+    isCorrect = true,
+    boxWidth = 60,
+    readOnly = false,
+    onActivate,
+    onChange,
+    inputRef,
+}) => {
+    const [draftValue, setDraftValue] = React.useState(String(value ?? ''));
+
+    React.useEffect(() => {
+        setDraftValue(String(value ?? ''));
+    }, [value]);
+
+    const hasValue = draftValue.trim().length > 0;
+    const classNames = [
+        'summary-image-note-runtime-pin',
+        active ? 'is-active' : '',
+        bookmarked ? 'is-bookmarked' : '',
+        isReview ? (isCorrect ? 'is-review-correct' : 'is-review-wrong') : '',
+        readOnly ? 'is-readonly' : '',
+        hasValue ? 'has-value' : '',
+    ].filter(Boolean).join(' ');
+
+    return (
+        <div
+            id={id}
+            className={classNames}
+            onClick={() => { onActivate?.(); }}
+            style={{
+                left,
+                top,
+                width: `${boxWidth}px`,
+                minWidth: `${boxWidth}px`,
+            }}
+        >
+            <input
+                ref={inputRef}
+                type="text"
+                value={draftValue}
+                onChange={(event) => {
+                    setDraftValue(event.target.value);
+                    onChange?.(event);
+                }}
+                onClick={(e) => { e.stopPropagation(); if (!readOnly) onActivate?.(); }}
+                onFocus={() => { if (!readOnly) onActivate?.(); }}
+                readOnly={readOnly}
+                spellCheck="false"
+                autoComplete="off"
+                placeholder=""
+                className="summary-image-note-runtime-input"
+            />
+            <span
+                aria-hidden="true"
+                className="summary-image-note-runtime-number"
+            >
+                {number}
+            </span>
+        </div>
+    );
+};
+
 const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answers, handleAnswerChange, inputRefs, bookmarks, toggleBookmark, isReview }) => {
     const opts = q.validationOptions || {};
     const summaryTextRef = React.useRef(null);
     const [activeBookmarkTop, setActiveBookmarkTop] = React.useState(null);
     const summarySubQuestions = q.subQuestions || [];
+
     const activeSummarySubQ = React.useMemo(() => {
         const activeNumber = Number(activeQuestion);
         if (!Number.isFinite(activeNumber)) return null;
@@ -50,7 +127,6 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
         let text = String(value || '').trim();
         if (!text) return '';
 
-        // Some legacy payloads include wrapper fragments like rubricContent_xxx">...
         if (/rubricContent_/i.test(text) && text.includes('>')) {
             text = text.slice(text.indexOf('>') + 1).trim();
         }
@@ -67,8 +143,18 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
     const title = isQuestionMetaLabel(titleText) ? '' : titleText;
     const instructionsText = explicitInstructions;
     const imagePinSubQuestions = summarySubQuestions
-        .filter((subQ) => subQ?.top != null || subQ?.left != null)
+        .filter((subQ) => subQ?.pinX != null || subQ?.pinY != null || subQ?.top != null || subQ?.left != null)
         .sort((a, b) => Number(a?.number || 0) - Number(b?.number || 0));
+    const noteSubQuestions = summarySubQuestions
+        .filter((subQ) => !isImagePinQuestion(subQ))
+        .sort((a, b) => Number(a?.questionNumber ?? a?.number ?? 0) - Number(b?.questionNumber ?? b?.number ?? 0));
+    const topNoteQuestions = summarySubQuestions
+        .filter((subQ) => subQ?.questionSection === 'top')
+        .sort((a, b) => Number(a?.questionNumber ?? a?.number ?? 0) - Number(b?.questionNumber ?? b?.number ?? 0));
+    const bottomNoteQuestions = summarySubQuestions
+        .filter((subQ) => subQ?.questionSection === 'bottom')
+        .sort((a, b) => Number(a?.questionNumber ?? a?.number ?? 0) - Number(b?.questionNumber ?? b?.number ?? 0));
+    const hasSectionedNoteQuestions = topNoteQuestions.length > 0 || bottomNoteQuestions.length > 0;
     const isImageNoteForm = Boolean(q?.imageUrl && q?.imagePosition && (q?.topNoteText !== undefined || q?.bottomNoteText !== undefined || imagePinSubQuestions.length > 0));
 
     const syncBookmarkPosition = React.useCallback(() => {
@@ -109,12 +195,9 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
     const formatInlineHtml = (value) => {
         if (typeof value !== 'string') return value || '';
 
-        const withMarkers = applyDbFormattingMarkers(value)
+        return normalizeCompletionInstructionHtml(value)
             .replace(/\u00A0/g, ' ')
             .replace(/\\t|\/t|\t/g, '    ');
-
-        // Preserve line breaks from builder content for both plain text and rich HTML.
-        return withMarkers.replace(/\\n|\r?\n/g, '<br/>');
     };
 
     const toReactStyleObject = (rawStyle) => {
@@ -143,17 +226,12 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
 
     const normalizeBlankTokens = (text) => {
         let s = applyDbFormattingMarkers(String(text || ''));
-        // Some legacy payloads accidentally append serialized empty JSON at the end.
         s = s.replace(/\s*(?:<p>\s*)?\{\s*"noteText"\s*:\s*""\s*,\s*"title"\s*:\s*""\s*\}(?:\s*<\/p>)?\s*$/gi, '');
         s = s.replace(/\s*(?:<p>\s*)?\{\s*"noteText"\s*:\s*""\s*,\s*"title"\s*:\s*""\s*,\s*"instructions"\s*:\s*""\s*\}(?:\s*<\/p>)?\s*$/gi, '');
-        // Replace editor blank chips with [blank]
         s = s.replace(/<span[^>]*data-blank=["']true["'][^>]*>[\s\S]*?<\/span>/gi, '[blank]');
-        // Remove legacy blank-chip controls that leaked into stored HTML.
         s = s.replace(/<button[^>]*data-del=["']true["'][^>]*>[\s\S]*?<\/button>/gi, '');
         s = s.replace(/<span[^>]*class=["'][^"']*rbe-blank-(?:num|del)[^"']*["'][^>]*>[\s\S]*?<\/span>/gi, '');
-        // Legacy parser bug sometimes left the delete marker "×" right after blank.
         s = s.replace(/(\[(?:blank|\d+)\])\s*[x×]\s+/gi, '$1 ');
-        // Normalize token form
         s = s.replace(/\[\s*blank\s*\]/gi, '[blank]');
         return s;
     };
@@ -204,7 +282,6 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
                 const styleObj = toReactStyleObject(attr.value);
                 if (styleObj) {
                     if (!shouldPreserveTypographyOverride) {
-                        // Plain text should follow runtime typography defaults.
                         delete styleObj.fontSize;
                         delete styleObj.fontFamily;
                         delete styleObj.font;
@@ -228,18 +305,21 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
     const resolveTokenTarget = (tokenValue, blankState) => {
         const token = String(tokenValue || '').toLowerCase();
         const numeric = Number(tokenValue);
+        const questionList = Array.isArray(blankState?.questions) && blankState.questions.length > 0
+            ? blankState.questions
+            : summarySubQuestions;
 
         if (token === 'blank' || Number.isNaN(numeric)) {
             const seqIndex = blankState.cursor;
-            const subQ = q.subQuestions?.[seqIndex] || null;
+            const subQ = questionList[seqIndex] || null;
             blankState.cursor += 1;
-            const qNum = subQ?.number ?? null;
+            const qNum = subQ?.questionNumber ?? subQ?.number ?? null;
             const qId = subQ?.id ?? null;
             return { subQ, qNum, qId };
         }
 
-        const subQ = q.subQuestions?.find((sq) => Number(sq.number) === numeric) || null;
-        const qNum = subQ?.number ?? (Number.isFinite(numeric) ? numeric : null);
+        const subQ = questionList.find((sq) => Number(sq.questionNumber ?? sq.number) === numeric) || questionList[blankState.cursor++] || null;
+        const qNum = subQ?.questionNumber ?? subQ?.number ?? (Number.isFinite(numeric) ? numeric : null);
         const qId = subQ?.id ?? null;
         return { subQ, qNum, qId };
     };
@@ -372,19 +452,23 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
 
     const renderImageNoteForm = () => {
         const imagePosition = q?.imagePosition || 'middle';
-        const imageWidth = resolveImageWidthPercent(q?.imageWidth);
         const pinBoxWidth = resolvePinBoxWidthPx(q?.pinBoxWidth, 60);
         const topText = q?.topNoteText ?? '';
         const bottomText = q?.bottomNoteText ?? '';
-        const sharedBlankState = { cursor: 0 };
+        const combinedText = [topText, bottomText].filter(Boolean).join('\n\n');
+        const renderNoteText = (text, keyPrefix, questionList) => {
+            const blankState = { cursor: 0, questions: questionList };
+            return text ? renderRichText(text, keyPrefix, blankState) : null;
+        };
+
         const renderImage = () => (
-            <div style={{ margin: '16px auto', textAlign: 'center' }}>
+            <div className="summary-completion-image-note-wrap">
                 {q?.imageUrl ? (
-                    <div style={{ position: 'relative', width: `${imageWidth}%`, margin: '0 auto' }}>
+                    <div className="summary-completion-image-frame">
                         <img
                             src={resolveDrivePreviewUrl(q.imageUrl)}
                             alt="Question diagram"
-                            style={{ display: 'block', width: '100%', height: 'auto', borderRadius: 4, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
+                            className="summary-completion-image"
                         />
                         {imagePinSubQuestions.map((subQ) => {
                             const answer = answers?.[subQ.id] || '';
@@ -394,35 +478,29 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
                                 : String(answer || '');
                             const isActive = activeQuestion === subQ.number;
                             const isBookmarked = Boolean(bookmarks?.[subQ.number]);
-                            // Builder pin content footprint is wider than the slider minimum,
-                            // so keep runtime pin width near builder visual center.
-                            const boxWidth = Math.min(480, Math.max(80, pinBoxWidth));
+                            const boxWidth = Math.max(56, pinBoxWidth);
+                            const left = resolvePinPositionPercent(subQ?.pinX ?? subQ?.left);
+                            const top = resolvePinPositionPercent(subQ?.pinY ?? subQ?.top);
 
                             return (
-                                <input
+                                <RuntimeImageNotePinBox
                                     key={subQ.id}
                                     id={`question-${subQ.number}`}
-                                    ref={(el) => { if (inputRefs?.current) inputRefs.current[subQ.number] = el; }}
-                                    type="text"
-                                    className={`inline-input summary-input summary-image-pin ${isReview ? (isCorrect ? 'review-correct' : 'review-wrong') : ''}`}
-                                    placeholder={String(subQ.number)}
+                                    number={subQ.number}
+                                    left={left}
+                                    top={top}
                                     value={displayAnswer}
-                                    onChange={(e) => { if (!isReview) handleAnswerChange?.(subQ.id, e.target.value); }}
-                                    onClick={() => { if (!isReview) setActiveQuestion?.(subQ.number); }}
-                                    onFocus={() => { if (!isReview) setActiveQuestion?.(subQ.number); }}
+                                    active={isActive}
+                                    bookmarked={isBookmarked}
+                                    isReview={isReview}
+                                    isCorrect={isCorrect}
+                                    boxWidth={boxWidth}
                                     readOnly={isReview}
-                                    style={{
-                                        position: 'absolute',
-                                        left: subQ.left || '50%',
-                                        top: subQ.top || '50%',
-                                        width: `${boxWidth}px`,
-                                        minWidth: `${boxWidth}px`,
-                                        maxWidth: `${boxWidth}px`,
-                                        boxSizing: 'border-box',
-                                        borderColor: isBookmarked ? '#fea706' : (isActive ? '#5b9bd5' : undefined),
-                                        boxShadow: isBookmarked
-                                            ? '0 0 0 1px rgba(254, 167, 6, 0.35)'
-                                            : (isActive ? '0 0 0 1px #5b9bd5' : undefined),
+                                    onActivate={() => { if (!isReview) setActiveQuestion?.(subQ.number); }}
+                                    onChange={(e) => { if (!isReview) handleAnswerChange?.(subQ.id, e.target.value); }}
+                                    inputRef={(el) => {
+                                        if (!inputRefs?.current) return;
+                                        inputRefs.current[subQ.number] = el;
                                     }}
                                 />
                             );
@@ -432,11 +510,39 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
             </div>
         );
 
+        if (hasSectionedNoteQuestions) {
+            if (imagePosition === 'top') {
+                return (
+                    <>
+                        {renderImage()}
+                        {combinedText && <>{renderNoteText(combinedText, 'summary-note', noteSubQuestions)}</>}
+                    </>
+                );
+            }
+
+            if (imagePosition === 'bottom') {
+                return (
+                    <>
+                        {combinedText && <>{renderNoteText(combinedText, 'summary-note', noteSubQuestions)}</>}
+                        {renderImage()}
+                    </>
+                );
+            }
+
+            return (
+                <>
+                    {topText && <>{renderNoteText(topText, 'summary-top', topNoteQuestions)}</>}
+                    {renderImage()}
+                    {bottomText && <>{renderNoteText(bottomText, 'summary-bottom', bottomNoteQuestions)}</>}
+                </>
+            );
+        }
+
         if (imagePosition === 'top') {
             return (
                 <>
                     {renderImage()}
-                    {topText && <>{renderRichText(topText, 'summary-top', sharedBlankState)}</>}
+                    {topText && <>{renderRichText(topText, 'summary-top', { cursor: 0 })}</>}
                 </>
             );
         }
@@ -444,8 +550,8 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
         if (imagePosition === 'bottom') {
             return (
                 <>
-                    {topText && <>{renderRichText(topText, 'summary-top', sharedBlankState)}</>}
-                    {bottomText && <>{renderRichText(bottomText, 'summary-bottom', sharedBlankState)}</>}
+                    {topText && <>{renderRichText(topText, 'summary-top', { cursor: 0 })}</>}
+                    {bottomText && <>{renderRichText(bottomText, 'summary-bottom', { cursor: 0 })}</>}
                     {renderImage()}
                 </>
             );
@@ -453,9 +559,9 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
 
         return (
             <>
-                {topText && <>{renderRichText(topText, 'summary-top', sharedBlankState)}</>}
+                {topText && <>{renderRichText(topText, 'summary-top', { cursor: 0 })}</>}
                 {renderImage()}
-                {bottomText && <>{renderRichText(bottomText, 'summary-bottom', sharedBlankState)}</>}
+                {bottomText && <>{renderRichText(bottomText, 'summary-bottom', { cursor: 0 })}</>}
             </>
         );
     };

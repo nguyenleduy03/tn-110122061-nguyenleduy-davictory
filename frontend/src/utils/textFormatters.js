@@ -95,6 +95,14 @@ export const normalizeRichHtml = (text) => {
 };
 
 /**
+ * Normalize completion instruction HTML for inline rendering.
+ */
+export const normalizeCompletionInstructionHtml = (text) => {
+  if (typeof text !== 'string') return text || '';
+  return normalizeRichHtml(text);
+};
+
+/**
  * Keep visual line breaks when block wrappers are later flattened.
  * Useful before calling stripInlineStyles(), which may unwrap div/p tags.
  */

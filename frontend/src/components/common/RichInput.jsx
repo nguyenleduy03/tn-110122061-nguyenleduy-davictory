@@ -79,8 +79,8 @@ const RichInput = ({ value, onChange, placeholder, style, multiline, className, 
           const cleaned = pastedHtml
             ? sanitizeRichPasteHtml(pastedHtml)
             : (multiline
-                ? escapeHtml(pastedText).replace(/\r\n?/g, '\n').replace(/\n/g, '<br/>')
-                : sanitizeRichPasteHtml(pastedText));
+              ? escapeHtml(pastedText).replace(/\r\n?/g, '\n').replace(/\n/g, '<br/>')
+              : sanitizeRichPasteHtml(pastedText));
           document.execCommand('insertHTML', false, cleaned);
           onChange(serializeContentEditableHtml(ref.current));
         }}

@@ -5,9 +5,11 @@ import RichInput from '../../common/RichInput';
 import RichBlankEditor from './shared/RichBlankEditor';
 import { toRoman, loadImageFile, toPlainText, countBlankTokens, getNextQuestionNumber, isImagePinQuestion, isNoteBlankQuestion, getQuestionWeight } from './shared/blockHelpers';
 import { stripInlineStyles } from '../../../utils/textFormatters';
+import { useTabIndent } from '../../../hooks/useTabIndent';
 
 const DragMatchingBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps,
   onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onAddQuestion, selectedQuestionId }) => {
+  const { handleKeyDown } = useTabIndent();
   const options = group.optionBank ?? [];
   const questions = group.questions ?? [];
   
@@ -142,6 +144,7 @@ const DragMatchingBlock = ({ group, onUpdate, onDelete, onSelect, selected, drag
             <div className="exam-import-modal" onClick={(e) => e.stopPropagation()}>
               <textarea
                 autoFocus
+                onKeyDown={handleKeyDown}
                 placeholder="Nhập mỗi câu hỏi trên một dòng..."
                 rows={8}
                 style={{ width: '100%', padding: 8, fontSize: 13 }}
@@ -207,6 +210,7 @@ const DragMatchingBlock = ({ group, onUpdate, onDelete, onSelect, selected, drag
               <div className="exam-import-modal" onClick={(e) => e.stopPropagation()}>
                 <textarea
                   autoFocus
+                  onKeyDown={handleKeyDown}
                   placeholder="Nhập mỗi lựa chọn trên một dòng..."
                   rows={8}
                   style={{ width: '100%', padding: 8, fontSize: 13 }}

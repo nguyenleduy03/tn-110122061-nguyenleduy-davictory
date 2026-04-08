@@ -91,6 +91,24 @@ public class TestBuilderController {
     }
 
     /**
+     * POST /api/test-builder/fix-timestamps
+     * Fix NULL timestamps cho các test cũ (ADMIN only).
+     */
+    @PostMapping("/fix-timestamps")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> fixTimestamps() {
+        try {
+            int updated = testBuilderService.fixNullTimestamps();
+            return ResponseEntity.ok(Map.of(
+                "message", "Đã cập nhật timestamps",
+                "updatedCount", updated
+            ));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
      * GET /api/test-builder
      * GET /api/test-builder?status=DRAFT
      * Lấy danh sách đề thi (tùy chọn lọc theo status).

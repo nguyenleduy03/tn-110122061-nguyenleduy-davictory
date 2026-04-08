@@ -17,6 +17,7 @@ const IframePreviewModal = ({
 }) => {
   const [phase, setPhase] = React.useState('enter');
   const iframeRef = React.useRef(null);
+  const hasInitialLoadRef = React.useRef(false);
 
   const postRefreshMessage = React.useCallback(() => {
     const frameWindow = iframeRef.current?.contentWindow;
@@ -97,7 +98,14 @@ const IframePreviewModal = ({
           className="iframe-preview-frame"
           title="Preview Test"
           sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
-          onLoad={postRefreshMessage}
+          onLoad={() => {
+            if (!hasInitialLoadRef.current) {
+              hasInitialLoadRef.current = true;
+              return;
+            }
+
+            postRefreshMessage();
+          }}
         />
       </div>
     </div>

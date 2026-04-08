@@ -3,6 +3,7 @@ import React, { Suspense, lazy } from 'react'
 import ProtectedRoute from './components/common/ProtectedRoute'
 import RoleBasedRoute from './components/common/RoleBasedRoute'
 import ErrorBoundary from './components/common/ErrorBoundary'
+import { useTokenExpiry } from './hooks/useTokenExpiry'
 import './App.css'
 
 const HomePage = lazy(() => import('./pages/HomePage'))
@@ -52,23 +53,23 @@ const SubmitAssignment = lazy(() => import('./pages/student/SubmitAssignment'))
 const AssignmentResult = lazy(() => import('./pages/student/AssignmentResult'))
 const TestApiPage = lazy(() => import('./pages/TestApiPage'))
 
-function App() {
+function AppContent() {
+  useTokenExpiry();
   return (
-    <Router>
-      <Suspense fallback={(
-        <div style={appLoadingStyle}>
-          <div style={appLoadingCardStyle}>
-            <div style={appLoadingSpinnerStyle} />
-            <div style={{ marginTop: 14, fontSize: 15, fontWeight: 700, color: '#0f172a' }}>
-              Đang tải trang...
-            </div>
-            <div style={{ marginTop: 6, fontSize: 13, color: '#64748b' }}>
-              Vui lòng chờ trong giây lát.
-            </div>
+    <Suspense fallback={(
+      <div style={appLoadingStyle}>
+        <div style={appLoadingCardStyle}>
+          <div style={appLoadingSpinnerStyle} />
+          <div style={{ marginTop: 14, fontSize: 15, fontWeight: 700, color: '#0f172a' }}>
+            Đang tải trang...
+          </div>
+          <div style={{ marginTop: 6, fontSize: 13, color: '#64748b' }}>
+            Vui lòng chờ trong giây lát.
           </div>
         </div>
-      )}>
-        <Routes>
+      </div>
+    )}>
+      <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/test-api" element={<TestApiPage />} />
           <Route path="/exam-library" element={<ExamLibrary />} />
@@ -138,6 +139,13 @@ function App() {
           <Route path="/teacher/grade/assignment/:submissionId" element={<RoleBasedRoute requiredRole="TEACHER"><GradeAssignment /></RoleBasedRoute>} />
         </Routes>
       </Suspense>
+  )
+}
+
+function App() {
+  return (
+    <Router>
+      <AppContent />
     </Router>
   )
 }

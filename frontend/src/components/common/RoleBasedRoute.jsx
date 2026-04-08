@@ -16,10 +16,10 @@ function normalizeRoles(roles) {
 }
 
 export default function RoleBasedRoute({ children, requiredRole, allowHigher = true }) {
-    const token = localStorage.getItem('authToken');
+    const isAuthenticated = authApi.isAuthenticated();
     const location = useLocation();
 
-    if (!token) {
+    if (!isAuthenticated) {
         return <Navigate to="/login" state={{ from: location }} replace />;
     }
 

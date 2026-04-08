@@ -18,6 +18,7 @@ import { createPortal } from 'react-dom';
 import { Plus, X, Clock, TimerReset, Check, Eye, Headphones, BookOpen, PenLine, Mic, Volume2, FileText } from 'lucide-react';
 import { normalizeRichHtml, preserveBlockLineBreaks, stripInlineStyles } from '../../utils/textFormatters';
 import { resolveDrivePreviewUrl } from '../../utils/mediaUrl';
+import { getLockedImageQuestionLayout } from '../../utils/imageQuestionLayout';
 import SharedOptionsDropdownBlock from './SharedOptionsDropdownBlock';
 
 // Series logo mapping (mirrors TestHeader.jsx)
@@ -638,6 +639,7 @@ const PreviewContent = ({ test, sessions, sessionDurations, activeSkill, onSetAc
     const allOptions = (group.optionBank ?? []).map((o, i) => ({ id: i, text: o.text || String(o) }));
     const [answers, setAnswers] = React.useState({});
     const [dragId, setDragId] = React.useState(null);
+    const lockedLayout = getLockedImageQuestionLayout('MAP_LABELLING');
     const placed = new Set(Object.values(answers).filter(Boolean).map(v => v.id));
     const bankChips = allOptions.filter(o => !placed.has(o.id));
 
@@ -656,10 +658,10 @@ const PreviewContent = ({ test, sessions, sessionDurations, activeSkill, onSetAc
         <QuestionRange group={group} />
         {group.instructions && <div className="pv-group-instructions" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.instructions) }} />}
         <div className="pv-ml-layout">
-          <div className="pv-ml-image-wrapper">
+          <div className="pv-ml-image-wrapper" style={{ textAlign: 'center' }}>
             {group.imageUrl ? (
-              <div style={{ position: 'relative', width: `${group.imageWidth ?? 100}%`, margin: '0 auto' }}>
-                <img src={resolveDrivePreviewUrl(group.imageUrl)} alt="map" draggable={false} style={{ display: 'block', width: '100%', height: 'auto' }} />
+              <div style={{ position: 'relative', display: 'inline-block', maxWidth: '100%', maxHeight: `${lockedLayout.imageMaxHeight}px` }}>
+                <img src={resolveDrivePreviewUrl(group.imageUrl)} alt="map" draggable={false} style={{ display: 'block', width: 'auto', height: 'auto', maxWidth: '100%', maxHeight: `${lockedLayout.imageMaxHeight}px` }} />
                 {questions.map(q => {
                   const filled = answers[q.questionNumber] ?? null;
                   return (
@@ -838,10 +840,10 @@ const PreviewContent = ({ test, sessions, sessionDurations, activeSkill, onSetAc
         {activePart && (
           <div className="pv-instruction-bar" style={{ flexShrink: 0 }}>
             <strong>{activePart.name}</strong>
-            {activePart.instructions && (
+            {(activePart.instructions || activePart.instruction) && (
               <span
                 className="pv-instruction-text"
-                dangerouslySetInnerHTML={{ __html: ` — ${formatPreviewText(activePart.instructions)}` }}
+                dangerouslySetInnerHTML={{ __html: ` — ${formatPreviewText(activePart.instructions || activePart.instruction)}` }}
               />
             )}
             <span className="pv-instruction-meta">
@@ -862,10 +864,10 @@ const PreviewContent = ({ test, sessions, sessionDurations, activeSkill, onSetAc
               <div key={part.id} className="pv-part-section">
                 <div className="pv-part-banner">
                   <span className="pv-part-banner-name">{part.name}</span>
-                  {part.instructions && (
+                  {(part.instructions || part.instruction) && (
                     <span
                       className="pv-part-banner-inst"
-                      dangerouslySetInnerHTML={{ __html: formatPreviewText(part.instructions) }}
+                      dangerouslySetInnerHTML={{ __html: formatPreviewText(part.instructions || part.instruction) }}
                     />
                   )}
                 </div>

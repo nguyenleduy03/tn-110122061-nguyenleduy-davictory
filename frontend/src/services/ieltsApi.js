@@ -587,6 +587,8 @@ async function transformGroup(baseUrl, group) {
       columns,
       tableRows,
       subQuestions,
+      instructions: formatTextWithWhitespace(group.instructions || ''),
+      groupInstruction: formatTextWithWhitespace(group.instructions || ''),
       validationOptions: group.validationOptions || null,
     }];
   }
@@ -642,9 +644,11 @@ async function transformGroup(baseUrl, group) {
       return {
         id,
         number: num,
+        questionNumber: num,
         correctAnswer,
         top: q?.pinY !== null && q?.pinY !== undefined ? `${q.pinY}%` : null,
         left: q?.pinX !== null && q?.pinX !== undefined ? `${q.pinX}%` : null,
+        questionSection: q?.questionSection || null,
         questionMode: q?.questionMode || (q?.pinX !== null && q?.pinX !== undefined ? 'image-pin' : 'note-blank'),
       };
     });
@@ -687,6 +691,8 @@ async function transformGroup(baseUrl, group) {
       questionTypeCode: typeCode,
       title: group.title || '',
       text: summaryText,
+      instructions: formatTextWithWhitespace(group.instructions || ''),
+      groupInstruction: formatTextWithWhitespace(group.instructions || ''),
       subQuestions,
       validationOptions: group.validationOptions || null,
     }];
@@ -696,7 +702,7 @@ async function transformGroup(baseUrl, group) {
   if (feType === 'summary-completion-select') {
     let summaryText = group.passageText || group.title || '';
     let optionBank = group.optionBank || [];
-    let instructions = '';
+    let instructions = formatTextWithWhitespace(group.instructions || '');
     let allowOptionReuse = group.allowOptionReuse !== false;
 
     // Parse passageText if it's JSON
@@ -704,7 +710,7 @@ async function transformGroup(baseUrl, group) {
       try {
         const parsed = JSON.parse(summaryText);
         summaryText = parsed.noteText || parsed.text || '';
-        instructions = parsed.instructions || '';
+        instructions = parsed.instructions || instructions;
         if (parsed.optionBank && Array.isArray(parsed.optionBank)) {
           optionBank = parsed.optionBank;
         }
@@ -733,6 +739,7 @@ async function transformGroup(baseUrl, group) {
       title: group.title || '',
       text: summaryText,
       instructions,
+      groupInstruction: instructions,
       subQuestions,
       optionBank,
       allowOptionReuse,
@@ -838,12 +845,16 @@ async function transformGroup(baseUrl, group) {
       const correctAnswer = (q.answers || [])[0]?.answerText
         || (q.options || []).find(o => o.isCorrect)?.optionText
         || '';
+      const pinX = q?.pinX !== null && q?.pinX !== undefined ? Number(q.pinX) : null;
+      const pinY = q?.pinY !== null && q?.pinY !== undefined ? Number(q.pinY) : null;
       return {
         id: `q${q.id}`,
         number: num,
         text: q.questionText || '',
-        top: q.pinY !== null && q.pinY !== undefined ? `${q.pinY}%` : '50%',
-        left: q.pinX !== null && q.pinX !== undefined ? `${q.pinX}%` : '50%',
+        pinX,
+        pinY,
+        top: pinY !== null ? `${pinY}%` : '50%',
+        left: pinX !== null ? `${pinX}%` : '50%',
         correctAnswer,
       };
     });
@@ -1065,6 +1076,22 @@ export const ieltsApi = {
     const baseUrl = API_CONFIG.BASE_URL;
     const targetMode = mode.toUpperCase();
 
+    const isStructuredInstructionHtml = (value) => /<br\s*\/?\s*>|<\/(?:p|div|ul|ol|li|h[1-6])>|[\r\n]/i.test(String(value || ''));
+
+    const pickBetterInstruction = (currentValue, candidateValue) => {
+      const current = String(currentValue || '').trim();
+      const candidate = String(candidateValue || '').trim();
+      if (!candidate) return current;
+      if (!current) return candidate;
+
+      const currentStructured = isStructuredInstructionHtml(current);
+      const candidateStructured = isStructuredInstructionHtml(candidate);
+
+      if (candidateStructured && !currentStructured) return candidate;
+      if (candidate.length > current.length && candidateStructured === currentStructured) return candidate;
+      return current;
+    };
+
     // 1. Lấy toàn bộ đề thi từ test-builder (có structure đầy đủ)
     const testData = await apiFetch(`${baseUrl}/test-builder/${testId}/full`);
 
@@ -1125,9 +1152,10 @@ export const ieltsApi = {
           if (groupType === 'READING_PASSAGE' && group.title && !mergedPassageTitle) {
             mergedPassageTitle = group.title;
           }
-          if (group.instructions && !mergedInstructions) {
-            mergedInstructions = formatTextWithWhitespace(group.instructions);
-          }
+          mergedInstructions = pickBetterInstruction(
+            mergedInstructions,
+            formatTextWithWhitespace(group.instructions || group.instruction || '')
+          );
           if (group.audioUrl && !mergedAudioUrl) {
             mergedAudioUrl = group.audioUrl;
             mergedAudioPlayCount = Number.isFinite(Number(group.audioPlayCount)) && Number(group.audioPlayCount) > 0
@@ -1285,6 +1313,9 @@ export const ieltsApi = {
           }
         }
 
+        const partInstructions = formatTextWithWhitespace(part.instructions || part.instruction || '');
+        const resolvedInstructions = partInstructions || mergedInstructions;
+
         const partObj = {
           id: `part-${part.testPartId || part.id}`,
           partNumber: part.orderIndex || index + 1,
@@ -1293,8 +1324,8 @@ export const ieltsApi = {
           title: part.name || `Part ${part.orderIndex || index + 1}`,
 
           // Extracted metadata
-          instruction: part.instructions || mergedInstructions || (targetMode === 'WRITING' ? 'No task specified.' : 'Listen and answer questions.'),
-          instructions: part.instructions || mergedInstructions,
+          instruction: resolvedInstructions || (targetMode === 'WRITING' ? 'No task specified.' : 'Listen and answer questions.'),
+          instructions: resolvedInstructions,
           passageTitle: mergedPassageTitle,
           passageContent: mergedPassageContent,
           questionsLabel: mergedPassageTitle || 'Questions',

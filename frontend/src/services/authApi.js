@@ -2,6 +2,7 @@ import axios from 'axios';
 import { API_CONFIG } from '../config/api';
 
 const API_BASE_URL = API_CONFIG.BASE_URL;
+const AUTH_STORAGE_KEYS = ['authToken', 'refreshToken', 'tokenExpiry', 'user'];
 
 // Tạo axios instance với config mặc định
 const apiClient = axios.create({
@@ -17,10 +18,69 @@ const normalizeRoles = (roles) => {
   return roleArray.map((r) => (typeof r === 'string' ? r : (r?.name || r?.roleName || r?.authority || String(r))));
 };
 
+const decodeJwtPayload = (token) => {
+  if (!token) return null;
+
+  try {
+    const base64Url = token.split('.')[1];
+    if (!base64Url) return null;
+
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const payload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((char) => `%${(`00${char.charCodeAt(0).toString(16)}`).slice(-2)}`)
+        .join('')
+    );
+
+    return JSON.parse(payload);
+  } catch (error) {
+    console.warn('[authApi] Failed to decode JWT payload:', error);
+    return null;
+  }
+};
+
+const getTokenExpiryMs = (token) => {
+  const payload = decodeJwtPayload(token);
+  if (payload?.exp) {
+    return payload.exp * 1000;
+  }
+
+  const storedExpiry = Number.parseInt(localStorage.getItem('tokenExpiry') || '', 10);
+  return Number.isFinite(storedExpiry) ? storedExpiry : null;
+};
+
+const clearAuthSession = () => {
+  AUTH_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key));
+};
+
+const redirectToLogin = () => {
+  if (window.location.pathname !== '/login') {
+    window.location.href = '/login';
+  }
+};
+
+const isTokenExpired = (token) => {
+  const expiryMs = getTokenExpiryMs(token);
+  if (expiryMs === null) {
+    return true;
+  }
+
+  return Date.now() >= expiryMs;
+};
+
 // Interceptor để tự động thêm token vào mỗi request
 apiClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('authToken');
+    
+    // Kiểm tra token hết hạn trước khi gửi request
+    if (token && isTokenExpired(token)) {
+      clearAuthSession();
+      redirectToLogin();
+      return Promise.reject(new Error('Token expired'));
+    }
+    
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -37,12 +97,8 @@ apiClient.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       // Token hết hạn hoặc không hợp lệ
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('user');
-      // Chỉ redirect nếu không phải đang ở trang login
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login';
-      }
+      clearAuthSession();
+      redirectToLogin();
     }
     return Promise.reject(error);
   }
@@ -65,7 +121,9 @@ export const authApi = {
 
     // Lưu token và user info vào localStorage
     if (accessToken) {
+      const tokenExpiry = getTokenExpiryMs(accessToken) || (Date.now() + 86400000);
       localStorage.setItem('authToken', accessToken);
+      localStorage.setItem('tokenExpiry', String(tokenExpiry));
     }
     if (user) {
       localStorage.setItem('user', JSON.stringify(user));
@@ -79,8 +137,7 @@ export const authApi = {
     try {
       await apiClient.post('/auth/logout');
     } finally {
-      localStorage.removeItem('authToken');
-      localStorage.removeItem('user');
+      clearAuthSession();
     }
   },
 
@@ -92,7 +149,16 @@ export const authApi = {
 
   // Kiểm tra đã đăng nhập chưa
   isAuthenticated: () => {
-    return !!localStorage.getItem('authToken');
+    const token = localStorage.getItem('authToken');
+    
+    if (!token) return false;
+    
+    if (isTokenExpired(token)) {
+      clearAuthSession();
+      return false;
+    }
+    
+    return true;
   },
 
   // Lấy user từ localStorage
@@ -230,6 +296,9 @@ export const authApi = {
     });
     return response.data;
   },
+
+  clearAuthSession,
+  getTokenExpiryMs,
 
   // Khôi phục user đã xóa
   restoreUser: async (userId) => {
@@ -371,4 +440,10 @@ VIC009998,Trần Thị,Bình,VIC009998@gmail.com,@VIC009998,VIC260312IE45A`;
     const response = await apiClient.delete(url, config);
     return response;
   },
+};
+
+export {
+  clearAuthSession,
+  getTokenExpiryMs,
+  isTokenExpired,
 };

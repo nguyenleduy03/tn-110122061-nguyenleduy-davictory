@@ -216,8 +216,9 @@ public class TestController {
             String username = authentication.getName();
             
             String sql = "SELECT t.id, t.title, t.description, t.test_type, t.status, " +
-                        "t.duration_minutes, t.target_band, t.created_at " +
-                        ", u.username AS createdByUsername " +
+                        "t.duration_minutes, t.target_band, t.is_full_test, " +
+                        "t.created_at, t.updated_at, " +
+                        "u.username AS createdByUsername " +
                         "FROM tests t " +
                         "JOIN users u ON t.created_by = u.id ";
 

@@ -17,6 +17,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -516,6 +517,31 @@ public class TestBuilderService {
     // ═══════════════════════════════════════════════════════════════
     //  5. LẤY DANH SÁCH ĐỀ THI
     // ═══════════════════════════════════════════════════════════════
+
+    @Transactional
+    public int fixNullTimestamps() {
+        List<Test> tests = testRepository.findAll();
+        int count = 0;
+        LocalDateTime now = LocalDateTime.now();
+        
+        for (Test test : tests) {
+            boolean updated = false;
+            if (test.getCreatedAt() == null) {
+                test.setCreatedAt(now);
+                updated = true;
+            }
+            if (test.getUpdatedAt() == null) {
+                test.setUpdatedAt(now);
+                updated = true;
+            }
+            if (updated) {
+                testRepository.save(test);
+                count++;
+            }
+        }
+        
+        return count;
+    }
 
     @Transactional(readOnly = true)
     public List<TestFullResponse> getActiveTests() {

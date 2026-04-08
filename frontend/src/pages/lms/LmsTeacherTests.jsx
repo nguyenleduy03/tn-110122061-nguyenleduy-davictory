@@ -74,19 +74,36 @@ const TYPE_LABELS = {
 };
 
 const formatDate = (value) => {
-  if (!value) return '—';
-  return new Date(value).toLocaleDateString('vi-VN', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
+  if (!value) return 'Chưa rõ';
+  try {
+    const date = new Date(value);
+    if (isNaN(date.getTime())) return 'Chưa rõ';
+    return date.toLocaleDateString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+  } catch {
+    return 'Chưa rõ';
+  }
 };
 
 const normalizeTests = (payload) => {
-  if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload?.content)) return payload.content;
-  if (Array.isArray(payload?.data)) return payload.data;
-  return [];
+  let tests = [];
+  if (Array.isArray(payload)) tests = payload;
+  else if (Array.isArray(payload?.content)) tests = payload.content;
+  else if (Array.isArray(payload?.data)) tests = payload.data;
+  
+  // Map snake_case to camelCase for API compatibility
+  return tests.map(test => ({
+    ...test,
+    createdAt: test.createdAt || test.created_at,
+    updatedAt: test.updatedAt || test.updated_at,
+    testType: test.testType || test.test_type,
+    isFullTest: test.isFullTest ?? test.is_full_test,
+    durationMinutes: test.durationMinutes ?? test.duration_minutes,
+    targetBand: test.targetBand || test.target_band,
+  }));
 };
 
 const parseDateValue = (value) => {
@@ -173,7 +190,6 @@ export default function LmsTeacherTests() {
   const canRestoreTest = (test) => isAdmin || String(test?.createdByUsername || '') === String(currentUser?.username || '');
   const openTrashView = () => setStatusFilter('DELETED');
   const clearStatusView = () => setStatusFilter('');
-  const shouldShowTest = (test) => statusFilter === 'DELETED' || test?.status !== 'DELETED';
 
   // Fetch teachers for filter (disabled - requires MANAGER/ADMIN role)
   // useEffect(() => {
@@ -203,11 +219,11 @@ export default function LmsTeacherTests() {
     try {
       if (!isAdmin) {
         const mine = await testBuilderApi.getMyTests(statusFilter || undefined);
-        setTests(normalizeTests(mine).filter(shouldShowTest));
+        setTests(normalizeTests(mine));
         setPagination({
           currentPage: 0,
           totalPages: 1,
-          totalElements: normalizeTests(mine).filter(shouldShowTest).length,
+          totalElements: normalizeTests(mine).length,
           pageSize: 20,
         });
         return;
@@ -217,15 +233,15 @@ export default function LmsTeacherTests() {
       const filter = {
         search: search.trim() || undefined,
         testType: typeFilter || undefined,
-        status: statusFilter || undefined,
+        status: statusFilter || null, // Gửi null thay vì undefined để backend hiểu "tất cả"
         skillType: skillFilter || undefined,
         targetBand: bandFilter || undefined,
         isFullTest: isFullTestFilter === '' ? undefined : isFullTestFilter === 'true',
         minDuration: minDuration ? parseInt(minDuration) : undefined,
         maxDuration: maxDuration ? parseInt(maxDuration) : undefined,
         createdById: createdById ? parseInt(createdById) : undefined,
-        createdFrom: createdFrom ? new Date(createdFrom).toISOString() : undefined,
-        createdTo: createdTo ? new Date(createdTo + 'T23:59:59').toISOString() : undefined,
+        createdFrom: createdFrom ? new Date(createdFrom + 'T00:00:00').toISOString() : undefined,
+        createdTo: createdTo ? new Date(createdTo + 'T23:59:59.999').toISOString() : undefined,
         page: pagination.currentPage,
         size: pagination.pageSize,
       };
@@ -245,7 +261,7 @@ export default function LmsTeacherTests() {
         const response = await testBuilderApi.filterTests(filter);
         console.log('✅ Filter response:', response);
         
-        setTests(normalizeTests(response).filter(shouldShowTest));
+        setTests(normalizeTests(response));
         setPagination({
           currentPage: response.currentPage || 0,
           totalPages: response.totalPages || 0,
@@ -256,11 +272,11 @@ export default function LmsTeacherTests() {
         // Fallback to old API if filter fails
         console.warn('⚠️ Filter API failed, using getAllTests fallback:', filterErr);
         const payload = await testBuilderApi.getAllTests(statusFilter);
-        setTests(normalizeTests(payload).filter(shouldShowTest));
+        setTests(normalizeTests(payload));
         setPagination({
           currentPage: 0,
           totalPages: 1,
-          totalElements: normalizeTests(payload).filter(shouldShowTest).length,
+          totalElements: normalizeTests(payload).length,
           pageSize: 20,
         });
       }
@@ -273,40 +289,46 @@ export default function LmsTeacherTests() {
   };
 
   useEffect(() => {
+    // Reset về trang đầu khi thay đổi filter
+    setPagination(prev => ({ ...prev, currentPage: 0 }));
+  }, [search, statusFilter, typeFilter, skillFilter, bandFilter, isFullTestFilter, minDuration, maxDuration, createdById, createdFrom, createdTo, createdSort, updatedSort]);
+
+  useEffect(() => {
     const timer = setTimeout(() => {
       fetchTests();
-    }, search ? 500 : 0); // Debounce 500ms cho search
+    }, search ? 300 : 0); // Debounce 300ms cho search
 
     return () => clearTimeout(timer);
   }, [search, statusFilter, typeFilter, skillFilter, bandFilter, isFullTestFilter, minDuration, maxDuration, createdById, createdFrom, createdTo, createdSort, updatedSort, pagination.currentPage]);
 
   const filteredTests = useMemo(() => {
-    // If using fallback API, apply client-side filtering
-    if (pagination.totalPages === 1 && tests.length > 0) {
-      const q = search.trim().toLowerCase();
-      return tests.filter((t) => {
-        if (!shouldShowTest(t)) return false;
-        if (typeFilter && t?.testType !== typeFilter) return false;
-        if (statusFilter && t?.status !== statusFilter) return false;
-        if (!q) return true;
-        const title = (t?.title || '').toLowerCase();
-        const type = (TYPE_LABELS[t?.testType] || t?.testType || '').toLowerCase();
-        return title.includes(q) || type.includes(q);
-      }).sort((a, b) => {
-        const aDate = parseDateValue(updatedSort ? a?.updatedAt : a?.createdAt);
-        const bDate = parseDateValue(updatedSort ? b?.updatedAt : b?.createdAt);
-        if (!aDate || !bDate) return 0;
-        const sortMode = updatedSort || createdSort;
-        if (sortMode === 'newest') return bDate.getTime() - aDate.getTime();
-        if (sortMode === 'oldest') return aDate.getTime() - bDate.getTime();
-        return 0;
-      });
+    // Nếu dùng API filter (có pagination), không cần filter lại ở client
+    if (pagination.totalPages > 1 || (pagination.totalPages === 1 && pagination.totalElements > 0)) {
+      return tests;
     }
-    return tests.filter(shouldShowTest);
-  }, [tests, search, typeFilter, updatedSort, createdSort, pagination.totalPages, statusFilter]);
 
-  const visibleDeletedCount = tests.length - tests.filter(shouldShowTest).length;
-  const displayedTotalElements = Math.max(0, (pagination.totalElements || 0) - visibleDeletedCount);
+    // Fallback: filter ở client khi dùng API cũ
+    const q = search.trim().toLowerCase();
+    return tests.filter((t) => {
+      if (typeFilter && t?.testType !== typeFilter) return false;
+      if (statusFilter && t?.status !== statusFilter) return false;
+      if (!q) return true;
+      const title = (t?.title || '').toLowerCase();
+      const type = (TYPE_LABELS[t?.testType] || t?.testType || '').toLowerCase();
+      return title.includes(q) || type.includes(q);
+    }).sort((a, b) => {
+      const aDate = parseDateValue(updatedSort ? a?.updatedAt : a?.createdAt);
+      const bDate = parseDateValue(updatedSort ? b?.updatedAt : b?.createdAt);
+      if (!aDate || !bDate) return 0;
+      const sortMode = updatedSort || createdSort;
+      if (sortMode === 'newest') return bDate.getTime() - aDate.getTime();
+      if (sortMode === 'oldest') return aDate.getTime() - bDate.getTime();
+      return 0;
+    });
+  }, [tests, search, typeFilter, statusFilter, updatedSort, createdSort, pagination.totalPages, pagination.totalElements]);
+
+  const visibleDeletedCount = 0; // Backend đã xử lý việc ẩn/hiện DELETED
+  const displayedTotalElements = pagination.totalElements || 0;
   const dashboardStats = {
     total: tests.length,
     published: tests.filter((test) => test.status === 'PUBLISHED').length,
@@ -320,6 +342,13 @@ export default function LmsTeacherTests() {
     setStatusFilter('');
     setTypeFilter('');
     setSkillFilter('');
+    setBandFilter('');
+    setIsFullTestFilter('');
+    setMinDuration('');
+    setMaxDuration('');
+    setCreatedFrom('');
+    setCreatedTo('');
+    setCreatedById('');
     setCreatedSort('');
     setUpdatedSort('');
     setPagination(prev => ({ ...prev, currentPage: 0 }));
@@ -1155,13 +1184,13 @@ const heroTitleStyle = {
   fontSize: 26,
   fontWeight: 800,
   letterSpacing: '-0.02em',
-  color: '#fff',
+  color: '#0f172a',
 };
 
 const heroSubtitleStyle = {
   margin: 0,
   maxWidth: 640,
-  color: 'rgba(255, 255, 255, 0.84)',
+  color: '#475569',
   fontSize: 14,
   lineHeight: 1.65,
 };

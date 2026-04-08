@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Plus, Volume2, Image, ChevronUp, ChevronDown } from 'lucide-react';
+import { X, Volume2, Image, ChevronUp, ChevronDown } from 'lucide-react';
 import GroupToolbar from './shared/GroupToolbar';
 import RichInput from '../../common/RichInput';
 import RichBlankEditor from './shared/RichBlankEditor';
@@ -7,6 +7,9 @@ import ImageUploadZone from './shared/ImageUploadZone';
 import { serializeContentEditableHtml } from '../../../utils/textFormatters';
 import { resolveDrivePreviewUrl } from '../../../utils/mediaUrl';
 import { toRoman, loadImageFile, toPlainText, getNextQuestionNumber, getPartQuestionStartNumber, getQuestionWeight } from './shared/blockHelpers';
+import { getLockedImageQuestionLayout, getLockedImageFrameStyle, getLockedImageStyle } from '../../../utils/imageQuestionLayout';
+import { useTabIndent } from '../../../hooks/useTabIndent';
+import ImageNotePinBox from '../../common/ImageNotePinBox';
 import {
   IMAGE_NOTE_SECTIONS,
   countBlankTokens,
@@ -36,8 +39,8 @@ const BulkAnswerImport = ({ questions, onImport }) => {
 
   if (!show) {
     return (
-      <button 
-        className="exam-add-btn" 
+      <button
+        className="exam-add-btn"
         onClick={() => setShow(true)}
         style={{ fontSize: 12, marginBottom: 8 }}
       >
@@ -56,25 +59,25 @@ const BulkAnswerImport = ({ questions, onImport }) => {
         onChange={(e) => setText(e.target.value)}
         rows={Math.min(questions.length, 10)}
         placeholder={`Ví dụ:\nwater\n1|one\ntemperature\n...`}
-        style={{ 
-          width: '100%', 
-          padding: 8, 
-          border: '1px solid #cbd5e1', 
-          borderRadius: 3, 
+        style={{
+          width: '100%',
+          padding: 8,
+          border: '1px solid #cbd5e1',
+          borderRadius: 3,
           fontSize: 12,
           fontFamily: 'monospace'
         }}
       />
       <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
-        <button 
-          className="exam-add-btn" 
+        <button
+          className="exam-add-btn"
           onClick={handleImport}
           style={{ fontSize: 12 }}
         >
           ✓ Import {text.split('\n').filter(l => l.trim()).length} đáp án
         </button>
-        <button 
-          className="exam-add-btn" 
+        <button
+          className="exam-add-btn"
           onClick={() => { setShow(false); setText(''); }}
           style={{ fontSize: 12, background: '#94a3b8' }}
         >
@@ -85,18 +88,19 @@ const BulkAnswerImport = ({ questions, onImport }) => {
   );
 };
 
-const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelect, selected, dragHandleProps, testTitle, testId, module = 'READING', onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onAddQuestion, selectedQuestionId }) => {
+const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelect, selected, dragHandleProps, testTitle, testId, module = 'READING', onSelectQuestion, onUpdateQuestion, onDeleteQuestion, selectedQuestionId }) => {
   const containerRef = useRef(null);
   const imageWrapRef = useRef(null);
   const dragRef = useRef(null);
   const [livePin, setLivePin] = useState(null);
   const imagePosition = group.imagePosition || 'middle';
-  const imageWidth = group.imageWidth || 100;
+  const imageHeight = getLockedImageQuestionLayout('IMAGE_NOTE_FORM').imageMaxHeight;
   const pinBoxWidth = group.pinBoxWidth || 60;
   const questions = group.questions ?? [];
   const topNoteText = group.topNoteText ?? (group.imagePosition === 'bottom' ? '' : (group.noteText || ''));
   const bottomNoteText = group.bottomNoteText ?? (group.imagePosition === 'bottom' ? (group.noteText || '') : '');
   const baseNumber = getPartQuestionStartNumber(group, allGroups);
+  const topBlankCountRef = useRef(countBlankTokens(topNoteText));
 
   const orderedQuestions = getImageNoteFormOrderedQuestions(group);
   const displayNumberById = getImageNoteFormDisplayNumberMap({ ...group, fromQuestion: baseNumber });
@@ -172,15 +176,19 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
   }, [group.id, onUpdateQuestion]);
 
   const addPin = (e) => {
+    if (typeof e.button === 'number' && e.button !== 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+
     if (!group.imageUrl) return;
     if (dragRef.current) return;
     const rect = getImageRect();
     if (!rect) return;
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
-    
+
     const maxQuestionNumber = getNextQuestionNumber(questions) - 1;
-    
+
     const newQ = {
       id: Date.now(),
       groupId: group.id,
@@ -274,24 +282,31 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
     };
   };
 
-  const applySectionedNoteChanges = ({ nextTopCount, nextBottomCount }) => {
+  const applySectionedNoteChanges = ({ nextTopCount, nextBottomCount, changedSection = null }) => {
     const { top, image, bottom } = getSectionBuckets();
+    const previousTopCount = topBlankCountRef.current ?? 0;
+    const shouldTrimImagePins = changedSection === 'top' && nextTopCount < previousTopCount;
+    const nextImage = shouldTrimImagePins
+      ? image.slice(0, Math.max(0, image.length - (previousTopCount - nextTopCount)))
+      : image;
+
+    topBlankCountRef.current = nextTopCount;
     let nextQuestions;
 
     if (imagePosition === 'top') {
       nextQuestions = [
         ...resizeSectionQuestions(top, nextTopCount, IMAGE_NOTE_SECTIONS.TOP),
-        ...image,
+        ...nextImage,
       ];
     } else if (imagePosition === 'bottom') {
       nextQuestions = [
-        ...image,
+        ...nextImage,
         ...resizeSectionQuestions(bottom, nextBottomCount, IMAGE_NOTE_SECTIONS.BOTTOM),
       ];
     } else {
       nextQuestions = [
         ...resizeSectionQuestions(top, nextTopCount, IMAGE_NOTE_SECTIONS.TOP),
-        ...image,
+        ...nextImage,
         ...resizeSectionQuestions(bottom, nextBottomCount, IMAGE_NOTE_SECTIONS.BOTTOM),
       ];
     }
@@ -318,7 +333,7 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
   };
 
   const imageSection = (
-    <div style={{ marginBottom: 16 }}>
+    <div style={{ marginBottom: 16, textAlign: 'center' }}>
       <ImageUploadZone
         imageUrl={group.imageUrl}
         onImageChange={(url) => onUpdate(group.id, { imageUrl: url })}
@@ -344,69 +359,59 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
           <input type="radio" checked={imagePosition === 'bottom'} onChange={() => onUpdate(group.id, { imagePosition: 'bottom' })} />
           Ảnh dưới
         </label>
-        <label style={{ marginLeft: 'auto' }}>
-          Rộng ảnh: <strong>{imageWidth}%</strong>
-          <input type="range" min={50} max={100} value={imageWidth} 
-            onChange={(e) => onUpdate(group.id, { imageWidth: Number(e.target.value) })}
-            style={{ marginLeft: 4, width: 80 }} />
-        </label>
+        <div style={{ marginLeft: 'auto', color: '#475569' }}>
+          Chiều cao ảnh cố định: <strong>{imageHeight}px</strong>
+        </div>
         <label>
           Cỡ ô: <strong>{pinBoxWidth}px</strong>
-          <input type="range" min={30} max={120} value={pinBoxWidth} 
+          <input type="range" min={30} max={120} value={pinBoxWidth}
             onChange={(e) => onUpdate(group.id, { pinBoxWidth: Number(e.target.value) })}
             style={{ marginLeft: 4, width: 80 }} />
         </label>
       </div>
-      
+
       {/* Image canvas with pins */}
       <div ref={containerRef} className="exam-ml-container"
         style={{ cursor: group.imageUrl ? 'default' : 'default' }}>
         {group.imageUrl ? (
           <div ref={imageWrapRef}
-            style={{ position: 'relative', width: `${imageWidth}%`, margin: '0 auto', cursor: 'crosshair' }}
-            onClick={addPin}>
+            style={{ ...getLockedImageFrameStyle('IMAGE_NOTE_FORM'), cursor: 'crosshair', userSelect: 'none', WebkitUserSelect: 'none' }}
+            onDoubleClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              addPin(e);
+            }}>
             <img src={resolveDrivePreviewUrl(group.imageUrl)} alt="Question" draggable={false}
-              style={{ display: 'block', width: '100%', height: 'auto', pointerEvents: 'none' }} />
+              style={{ ...getLockedImageStyle('IMAGE_NOTE_FORM'), pointerEvents: 'none', userSelect: 'none', WebkitUserSelect: 'none' }}
+              onDragStart={(e) => e.preventDefault()} />
             {questions.filter(isImagePinQuestion).map((q) => {
               const displayNumber = displayNumberById.get(q.id) ?? q.questionNumber;
               const x = livePin?.qId === q.id ? livePin.x : (q.pinX ?? 10);
               const y = livePin?.qId === q.id ? livePin.y : (q.pinY ?? 10);
+              const boxWidth = Math.max(56, pinBoxWidth);
               return (
-                <div key={q.id}
-                  style={{
-                    position: 'absolute',
-                    left: `${x}%`,
-                    top: `${y}%`,
-                    minWidth: `${pinBoxWidth}px`,
-                    background: selectedQuestionId === q.id ? '#3b82f6' : '#fff',
-                    color: selectedQuestionId === q.id ? '#fff' : '#000',
-                    border: '2px solid #3b82f6',
-                    borderRadius: 4,
-                    padding: '4px 8px',
-                    fontSize: 13,
-                    fontWeight: 'bold',
-                    cursor: 'move',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                  }}
+                <ImageNotePinBox
+                  key={q.id}
+                  id={`question-${q.questionNumber}`}
+                  number={displayNumber}
+                  left={`${x}%`}
+                  top={`${y}%`}
+                  value=""
+                  active={selectedQuestionId === q.id}
+                  boxWidth={boxWidth}
+                  blankWidth={Math.max(26, boxWidth - 68)}
+                  readOnly
+                  questionText={q.questionText || ''}
+                  showQuestionText={Boolean(q.questionText)}
+                  showDeleteButton
+                  onActivate={() => onSelectQuestion(q)}
                   onMouseDown={(e) => {
                     e.stopPropagation();
                     e.preventDefault();
                     dragRef.current = { qId: q.id, origX: q.pinX ?? 10, origY: q.pinY ?? 10, startCX: e.clientX, startCY: e.clientY };
                   }}
-                  onClick={(e) => { e.stopPropagation(); onSelectQuestion(q); }}>
-                  <span style={{ minWidth: 20, textAlign: 'center' }}>{displayNumber}</span>
-                  {q.questionText && (
-                    <span style={{ fontSize: 12, fontWeight: 'normal' }}>{q.questionText}:</span>
-                  )}
-                  <span style={{ fontSize: 12, fontWeight: 'normal' }}>____</span>
-                  <button
-                    style={{ marginLeft: 'auto', background: 'transparent', border: 'none', color: 'inherit', cursor: 'pointer', fontSize: 16, lineHeight: 1 }}
-                    onMouseDown={(e) => e.stopPropagation()}
-                    onClick={(e) => { e.stopPropagation(); onDeleteQuestion(group.id, q.id); }}>×</button>
-                </div>
+                  onDelete={() => onDeleteQuestion(group.id, q.id)}
+                />
               );
             })}
           </div>
@@ -418,7 +423,7 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
       </div>
       {group.imageUrl && (
         <div className="exam-ml-hint" style={{ textAlign: 'center' }}>
-          ↑ Nhấn vào ảnh để thêm ô · Kéo ô để di chuyển · × để xóa
+          ↑ Nhấp đúp vào ảnh để thêm ô · Kéo ô để di chuyển · × để xóa
         </div>
       )}
     </div>
@@ -467,8 +472,8 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
         onMouseDown={(e) => e.stopPropagation()}
         onMouseUp={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
-          onInput={(e) => onUpdate(group.id, { title: serializeContentEditableHtml(e.currentTarget) })}
-          onBlur={(e) => onUpdate(group.id, { title: serializeContentEditableHtml(e.currentTarget) })}
+        onInput={(e) => onUpdate(group.id, { title: serializeContentEditableHtml(e.currentTarget) })}
+        onBlur={(e) => onUpdate(group.id, { title: serializeContentEditableHtml(e.currentTarget) })}
         data-placeholder="Tiêu đề (VD: House Plan)"
         dangerouslySetInnerHTML={{ __html: group.title || '' }}
       />
@@ -483,6 +488,7 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
             applySectionedNoteChanges({
               nextTopCount: countBlankTokens(text),
               nextBottomCount: 0,
+              changedSection: 'top',
             });
           }, 100);
         },
@@ -499,6 +505,7 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
             applySectionedNoteChanges({
               nextTopCount: countBlankTokens(text),
               nextBottomCount: countBlankTokens(bottomNoteText),
+              changedSection: 'top',
             });
           }, 100);
         },
@@ -517,6 +524,7 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
             applySectionedNoteChanges({
               nextTopCount: countBlankTokens(topNoteText),
               nextBottomCount: countBlankTokens(text),
+              changedSection: 'bottom',
             });
           }, 100);
         },
@@ -533,6 +541,7 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
             applySectionedNoteChanges({
               nextTopCount: 0,
               nextBottomCount: countBlankTokens(text),
+              changedSection: 'bottom',
             });
           }, 100);
         },
@@ -557,40 +566,29 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
             💡 Dùng | để tách nhiều đáp án đúng (vd: 1|one)
           </div>
           <BulkAnswerImport questions={questions} onImport={(answers) => {
-            // Xóa câu rỗng trước khi import
-            const nonEmptyQuestions = orderedQuestions.filter(q => q.answerText?.trim());
-            let finalQuestions = [...nonEmptyQuestions];
-            
-            // Update hoặc tạo mới
-            answers.forEach((ans, idx) => {
-              if (finalQuestions[idx]) {
-                finalQuestions[idx] = { ...finalQuestions[idx], answerText: ans };
-              } else {
-                finalQuestions.push({
-                  id: Date.now() + idx,
-                  questionNumber: baseNumber + idx,
-                  answerText: ans,
-                  pinX: 10,
-                  pinY: 10
-                });
+            // Chỉ điền đáp án vào các câu đã có, không tạo mới, không xóa câu rỗng
+            const updatedQuestions = orderedQuestions.map((q, idx) => {
+              if (idx < answers.length) {
+                return { ...q, answerText: answers[idx] };
               }
+              return q; // Giữ nguyên câu không có đáp án tương ứng
             });
-            
-            onUpdate(group.id, { questions: finalQuestions });
+
+            onUpdate(group.id, { questions: updatedQuestions });
           }} />
           {(() => {
             return orderedQuestions.map((q) => (
               (() => {
                 const displayNumber = displayNumberById.get(q.id) ?? q.questionNumber;
                 return (
-              <div key={q.id} className="exam-ml-answer-row">
-                <span className="exam-ml-answer-num">Câu {displayNumber}</span>
-                <input
-                  style={{ flex: 1, padding: '4px 8px', border: '1px solid #e2e8f0', borderRadius: 4, fontSize: 13 }}
-                  value={q.answerText ?? ''}
-                  placeholder="Đáp án đúng (vd: 1|one)..."
-                  onChange={(e) => onUpdateQuestion(group.id, q.id, { answerText: e.target.value })} />
-              </div>
+                  <div key={q.id} className="exam-ml-answer-row">
+                    <span className="exam-ml-answer-num">Câu {displayNumber}</span>
+                    <input
+                      style={{ flex: 1, padding: '4px 8px', border: '1px solid #e2e8f0', borderRadius: 4, fontSize: 13 }}
+                      value={q.answerText ?? ''}
+                      placeholder="Đáp án đúng (vd: 1|one)..."
+                      onChange={(e) => onUpdateQuestion(group.id, q.id, { answerText: e.target.value })} />
+                  </div>
                 );
               })()
             ));
@@ -598,9 +596,6 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
         </div>
       )}
 
-      <button className="exam-add-btn" onClick={(e) => { e.stopPropagation(); onAddQuestion(group); }}>
-        <Plus size={12} /> Thêm ô trống (cho note text)
-      </button>
     </div>
   );
 };

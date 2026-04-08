@@ -7,7 +7,10 @@
 import React, { useState, useMemo } from 'react';
 import { Volume2, Headphones, BookOpen, PenLine, Mic, Clock, FileText, X } from 'lucide-react';
 import { normalizeRichHtml, preserveBlockLineBreaks, stripInlineStyles } from '../../utils/textFormatters';
+import { getLockedImageQuestionLayout, getLockedImageFrameStyle, getLockedImageStyle } from '../../utils/imageQuestionLayout';
+import ImageNotePinBox from '../common/ImageNotePinBox';
 import DropdownGroupQuestion from '../question/DropdownGroupQuestion';
+import { IMAGE_NOTE_SECTIONS, isImagePinQuestion } from '../../utils/imageNoteForm';
 
 // ─── Constants ───────────────────────────────────────────────────────────
 
@@ -193,11 +196,14 @@ export const parseNotePreview = (text, questions, activeQ, onSetActive, answers,
   return renderCompletionPreviewHtml(text, (tokenValue, key, sharedBlankState) => {
     const token = String(tokenValue || '').toLowerCase();
     const numeric = Number(tokenValue);
+    const questionList = Array.isArray(sharedBlankState?.questions) && sharedBlankState.questions.length > 0
+      ? sharedBlankState.questions
+      : questions;
 
     const q = token === 'blank' || Number.isNaN(numeric)
-      ? questions[sharedBlankState.cursor++]
-      : questions.find((item) => Number(item?.questionNumber) === numeric) || questions[sharedBlankState.cursor++];
-    const num = q?.questionNumber ?? (Number.isFinite(numeric) ? numeric : blankState.cursor);
+      ? questionList[sharedBlankState.cursor++]
+      : questionList.find((item) => Number(item?.questionNumber ?? item?.number) === numeric) || questionList[sharedBlankState.cursor++];
+    const num = q?.questionNumber ?? q?.number ?? (Number.isFinite(numeric) ? numeric : blankState.cursor);
     const isActive = activeQ === num;
 
     return (
@@ -610,70 +616,46 @@ export const ImageNoteFormGroup = ({ group, activeQ, onSetActive }) => {
   const [answers, setAnswers] = useState({});
   const handleAnswer = (num, val) => setAnswers((prev) => ({ ...prev, [num]: val }));
   const imagePosition = group.imagePosition || 'middle';
-  const imageWidth = group.imageWidth || 100;
   const pinBoxWidth = group.pinBoxWidth || 60;
   const topNoteText = group.topNoteText ?? (group.imagePosition === 'bottom' ? '' : (group.noteText || ''));
   const bottomNoteText = group.bottomNoteText ?? (group.imagePosition === 'bottom' ? (group.noteText || '') : '');
-  const sharedBlankState = { cursor: 0 };
+  const imagePinQuestions = questions.filter(isImagePinQuestion)
+    .sort((a, b) => Number(a?.questionNumber ?? a?.number ?? 0) - Number(b?.questionNumber ?? b?.number ?? 0));
+  const noteQuestions = questions.filter((q) => !isImagePinQuestion(q))
+    .sort((a, b) => Number(a?.questionNumber ?? a?.number ?? 0) - Number(b?.questionNumber ?? b?.number ?? 0));
+  const topQuestions = questions.filter((q) => q?.questionSection === IMAGE_NOTE_SECTIONS.TOP)
+    .sort((a, b) => Number(a?.questionNumber ?? a?.number ?? 0) - Number(b?.questionNumber ?? b?.number ?? 0));
+  const bottomQuestions = questions.filter((q) => q?.questionSection === IMAGE_NOTE_SECTIONS.BOTTOM)
+    .sort((a, b) => Number(a?.questionNumber ?? a?.number ?? 0) - Number(b?.questionNumber ?? b?.number ?? 0));
+  const hasSectionedNotes = topQuestions.length > 0 || bottomQuestions.length > 0;
+  const combinedText = [topNoteText, bottomNoteText].filter(Boolean).join('\n\n');
 
   const imageSection = group.imageUrl && (
     <div style={{ marginBottom: 20 }}>
-      <div style={{ position: 'relative', width: `${imageWidth}%`, margin: '0 auto' }}>
-        <img src={group.imageUrl} alt="Question" style={{ width: '100%', height: 'auto', display: 'block' }} />
-        {questions.filter(q => q.pinX !== undefined).map((q) => {
-          const active = activeQ === q.questionNumber;
-          const userAnswer = answers[q.questionNumber] || '';
-          return (
-            <div key={q.id}
-              style={{
-                position: 'absolute',
-                left: `${q.pinX}%`,
-                top: `${q.pinY}%`,
-                minWidth: `${pinBoxWidth}px`,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                background: '#fff',
-                padding: '4px 8px',
-                borderRadius: 4,
-                border: active ? '2px solid #3b82f6' : '1px solid #cbd5e1',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-              }}
-              onClick={(e) => { e.stopPropagation(); onSetActive(q.questionNumber); }}>
-              <span style={{
-                background: active ? '#3b82f6' : '#64748b',
-                color: '#fff',
-                borderRadius: 3,
-                padding: '2px 6px',
-                fontSize: 12,
-                fontWeight: 'bold',
-                minWidth: 24,
-                textAlign: 'center'
-              }}>
-                {q.questionNumber}
-              </span>
-              {q.questionText && (
-                <span style={{ fontSize: 13, color: '#1e293b', whiteSpace: 'nowrap' }}>{q.questionText}:</span>
-              )}
-              <input
-                type="text"
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ ...getLockedImageFrameStyle('IMAGE_NOTE_FORM') }}>
+          <img src={group.imageUrl} alt="Question" style={{ ...getLockedImageStyle('IMAGE_NOTE_FORM') }} />
+          {imagePinQuestions.map((q) => {
+            const active = activeQ === q.questionNumber;
+            const userAnswer = answers[q.questionNumber] || '';
+            const boxWidth = Math.max(56, pinBoxWidth);
+            return (
+              <ImageNotePinBox
+                key={q.id}
+                id={`question-${q.questionNumber}`}
+                number={q.questionNumber}
+                left={`${q.pinX}%`}
+                top={`${q.pinY}%`}
                 value={userAnswer}
+                active={active}
+                boxWidth={boxWidth}
+                blankWidth={Math.max(26, boxWidth - 68)}
+                onActivate={() => onSetActive(q.questionNumber)}
                 onChange={(e) => { e.stopPropagation(); handleAnswer(q.questionNumber, e.target.value); }}
-                onClick={(e) => { e.stopPropagation(); onSetActive(q.questionNumber); }}
-                placeholder="..."
-                style={{
-                  width: `${Math.max(60, pinBoxWidth - 60)}px`,
-                  padding: '3px 6px',
-                  border: 'none',
-                  borderBottom: active ? '2px solid #3b82f6' : '1px solid #cbd5e1',
-                  fontSize: 13,
-                  background: 'transparent',
-                  outline: 'none'
-                }}
               />
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -686,35 +668,70 @@ export const ImageNoteFormGroup = ({ group, activeQ, onSetActive }) => {
       )}
       {group.title && <div className="pv-summary-title" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.title) }} />}
 
-      {imagePosition === 'top' && imageSection}
+      {hasSectionedNotes ? (
+        <>
+          {imagePosition === 'top' && imageSection}
+          {imagePosition === 'top' && combinedText && (
+            <div className="pv-note-text">
+              {parseNotePreview(combinedText, noteQuestions, activeQ, onSetActive, answers, handleAnswer, { cursor: 0, questions: noteQuestions })}
+            </div>
+          )}
 
-      {imagePosition === 'top' && topNoteText && (
-        <div className="pv-note-text">
-          {parseNotePreview(topNoteText, questions, activeQ, onSetActive, answers, handleAnswer, sharedBlankState)}
-        </div>
+          {imagePosition === 'middle' && topNoteText && (
+            <div className="pv-note-text">
+              {parseNotePreview(topNoteText, topQuestions, activeQ, onSetActive, answers, handleAnswer, { cursor: 0, questions: topQuestions })}
+            </div>
+          )}
+
+          {imagePosition === 'middle' && imageSection}
+
+          {imagePosition === 'middle' && bottomNoteText && (
+            <div className="pv-note-text">
+              {parseNotePreview(bottomNoteText, bottomQuestions, activeQ, onSetActive, answers, handleAnswer, { cursor: 0, questions: bottomQuestions })}
+            </div>
+          )}
+
+          {imagePosition === 'bottom' && combinedText && (
+            <div className="pv-note-text">
+              {parseNotePreview(combinedText, noteQuestions, activeQ, onSetActive, answers, handleAnswer, { cursor: 0, questions: noteQuestions })}
+            </div>
+          )}
+
+          {imagePosition === 'bottom' && imageSection}
+        </>
+      ) : (
+        <>
+          {imagePosition === 'top' && imageSection}
+
+          {imagePosition === 'top' && topNoteText && (
+            <div className="pv-note-text">
+              {parseNotePreview(topNoteText, questions, activeQ, onSetActive, answers, handleAnswer)}
+            </div>
+          )}
+
+          {imagePosition === 'middle' && topNoteText && (
+            <div className="pv-note-text">
+              {parseNotePreview(topNoteText, questions, activeQ, onSetActive, answers, handleAnswer)}
+            </div>
+          )}
+
+          {imagePosition === 'middle' && imageSection}
+
+          {imagePosition === 'middle' && bottomNoteText && (
+            <div className="pv-note-text">
+              {parseNotePreview(bottomNoteText, questions, activeQ, onSetActive, answers, handleAnswer)}
+            </div>
+          )}
+
+          {imagePosition === 'bottom' && bottomNoteText && (
+            <div className="pv-note-text">
+              {parseNotePreview(bottomNoteText, questions, activeQ, onSetActive, answers, handleAnswer)}
+            </div>
+          )}
+
+          {imagePosition === 'bottom' && imageSection}
+        </>
       )}
-
-      {imagePosition === 'middle' && topNoteText && (
-        <div className="pv-note-text">
-          {parseNotePreview(topNoteText, questions, activeQ, onSetActive, answers, handleAnswer, sharedBlankState)}
-        </div>
-      )}
-
-      {imagePosition === 'middle' && imageSection}
-
-      {imagePosition === 'middle' && bottomNoteText && (
-        <div className="pv-note-text">
-          {parseNotePreview(bottomNoteText, questions, activeQ, onSetActive, answers, handleAnswer, sharedBlankState)}
-        </div>
-      )}
-
-      {imagePosition === 'bottom' && bottomNoteText && (
-        <div className="pv-note-text">
-          {parseNotePreview(bottomNoteText, questions, activeQ, onSetActive, answers, handleAnswer, sharedBlankState)}
-        </div>
-      )}
-
-      {imagePosition === 'bottom' && imageSection}
     </div>
   );
 };
@@ -749,7 +766,7 @@ export const DragMatchingGroup = ({ group, activeQ, onSetActive }) => {
   return (
     <div className="pv-group-block" onClick={(e) => e.stopPropagation()}>
       <QuestionRange group={group} />
-      {group.instructions && <div className="pv-group-instructions" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.instructions) }} />}
+      {(group.instructions || group.instruction || group.groupInstruction) && <div className="pv-group-instructions" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.instructions || group.instruction || group.groupInstruction) }} />}
       <div className="pv-dm-layout">
         <div className="pv-dm-left">
           {group.leftTitle && <div className="pv-dm-col-header" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.leftTitle) }} />}
@@ -822,6 +839,7 @@ export const MapLabellingGroup = ({ group, activeQ, onSetActive }) => {
   const [answers, setAnswers] = useState({});
   const [dragId, setDragId] = useState(null);
   const [dragOver, setDragOver] = useState(null);
+  const lockedLayout = getLockedImageQuestionLayout('MAP_LABELLING');
 
   const placed = new Set(Object.values(answers).filter(Boolean).map((v) => v.id));
   const bankChips = allOptions.filter((o) => !placed.has(o.id));
@@ -842,18 +860,30 @@ export const MapLabellingGroup = ({ group, activeQ, onSetActive }) => {
       {group.instructions && <div className="pv-group-instructions" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.instructions) }} />}
       {showTitle && <div className="pv-summary-title" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.title) }} />}
       <div className="pv-ml-layout">
-        <div className="pv-ml-image-wrapper">
+        <div className="pv-ml-image-wrapper" style={{ textAlign: 'center' }}>
           {group.imageUrl ? (
-            <div style={{ position: 'relative', width: `${group.imageWidth ?? 100}%`, margin: '0 auto' }}>
-              <img src={group.imageUrl} alt="map" draggable={false} style={{ display: 'block', width: '100%', height: 'auto' }} />
+            <div style={{ ...getLockedImageFrameStyle('MAP_LABELLING'), maxHeight: `${lockedLayout.imageMaxHeight}px` }}>
+              <img src={group.imageUrl} alt="map" draggable={false} style={{ ...getLockedImageStyle('MAP_LABELLING') }} />
               {questions.map((q) => {
                 const filled = answers[q.questionNumber] ?? null;
                 const isOver = dragOver === q.questionNumber;
                 const active = activeQ === q.questionNumber;
+                const basePinWidth = Math.max(56, Number(group.pinBoxWidth) || 60);
                 return (
                   <div key={q.id}
                     className={`pv-ml-pin${filled ? ' filled' : ''}${isOver ? ' drag-over' : ''}${active ? ' active' : ''}`}
-                    style={{ left: `${q.pinX ?? 10}%`, top: `${q.pinY ?? 10}%`, minWidth: `${group.pinBoxWidth ?? 60}px` }}
+                    style={{
+                      left: `${q.pinX ?? 10}%`,
+                      top: `${q.pinY ?? 10}%`,
+                      width: `${basePinWidth}px`,
+                      minWidth: `${basePinWidth}px`,
+                      maxWidth: `${basePinWidth}px`,
+                      height: '26px',
+                      minHeight: '26px',
+                      padding: '0 10px',
+                      overflow: 'hidden',
+                      justifyContent: 'flex-start',
+                    }}
                     onDragOver={(e) => { e.preventDefault(); setDragOver(q.questionNumber); }}
                     onDragLeave={() => setDragOver(null)}
                     onDrop={(e) => {
@@ -1412,8 +1442,8 @@ export const MatchingFeaturesGroup = ({ group, activeQ, onSetActive }) => {
   return (
     <div className="pv-group-block" onClick={(e) => e.stopPropagation()}>
       <QuestionRange group={group} />
-      {group.instructions && (
-        <div className="pv-group-instructions" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.instructions) }} />
+      {(group.instructions || group.instruction || group.groupInstruction) && (
+        <div className="pv-group-instructions" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.instructions || group.instruction || group.groupInstruction) }} />
       )}
 
       {categories.length > 0 && (

@@ -3,9 +3,11 @@ import { X, Plus } from 'lucide-react';
 import GroupToolbar from './shared/GroupToolbar';
 import RichInput from '../../common/RichInput';
 import RichBlankEditor from './shared/RichBlankEditor';
+import { useTabIndent } from '../../../hooks/useTabIndent';
 
 const MatchingFillBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps,
   onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onAddQuestion, selectedQuestionId }) => {
+  const { handleKeyDown } = useTabIndent();
   const questions = group.questions ?? [];
 
   return (
@@ -69,6 +71,7 @@ const MatchingFillBlock = ({ group, onUpdate, onDelete, onSelect, selected, drag
               value={q.answerText || ''}
               placeholder="VD:&#10;answer 1&#10;answer 2&#10;answer 3"
               onChange={(e) => onUpdateQuestion(group.id, q.id, { answerText: e.target.value })}
+              onKeyDown={handleKeyDown}
               onClick={(e) => e.stopPropagation()}
             />
           </div>

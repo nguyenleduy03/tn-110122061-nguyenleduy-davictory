@@ -5,9 +5,11 @@ import RichInput from '../../common/RichInput';
 import RichBlankEditor from './shared/RichBlankEditor';
 import { serializeContentEditableHtml } from '../../../utils/textFormatters';
 import { toRoman, loadImageFile, toPlainText, countBlankTokens, getNextQuestionNumber, isImagePinQuestion, isNoteBlankQuestion, getQuestionWeight, getPartQuestionStartNumber } from './shared/blockHelpers';
+import { useTabIndent } from '../../../hooks/useTabIndent';
 
 // Bulk Answer Import Component
 const BulkAnswerImport = ({ questions, onImport }) => {
+  const { handleKeyDown } = useTabIndent();
   const [show, setShow] = useState(false);
   const [text, setText] = useState('');
 
@@ -43,6 +45,7 @@ const BulkAnswerImport = ({ questions, onImport }) => {
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
+        onKeyDown={handleKeyDown}
         rows={Math.min(questions.length, 10)}
         placeholder={`Ví dụ:\nwater\n1|one\ntemperature\n...`}
         style={{

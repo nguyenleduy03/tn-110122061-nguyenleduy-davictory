@@ -36,6 +36,18 @@ const normalizeGroupInstructionText = (value) => {
         .join('\n');
 };
 
+const renderInstructionHtml = (value) => {
+    const raw = String(value || '');
+    if (!raw) return '';
+
+    const hasHtml = /<\/?[a-z][\s\S]*>/i.test(raw) || /&(?:nbsp|amp|lt|gt|quot|#39|#\d+|#x[0-9a-f]+);/i.test(raw);
+    if (hasHtml) {
+        return raw.replace(/\r\n?/g, '\n').replace(/\n/g, '<br/>');
+    }
+
+    return formatTextWithWhitespace(raw);
+};
+
 const resolveInstructionValue = (value) => {
     if (typeof value === 'string') return value;
     if (value && typeof value === 'object') {
@@ -54,7 +66,7 @@ const buildGroupInstructionText = (question) => {
         return instructionParts.join('\n');
     }
 
-    return resolveInstructionValue(question?.groupInstruction);
+    return resolveInstructionValue(question?.instructions || question?.groupInstruction || question?.instruction);
 };
 
 const isComponentManagedDropdownGroup = (groupType) => {
@@ -1108,8 +1120,8 @@ const IeltsListeningTest = () => {
 
             <div className="instruction-bar">
                 <div className="instruction-bar-title" dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(part.title || '') }} />
-                {part.instructions && (
-                    <div className="instruction-bar-content" dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(part.instructions) }} />
+                {(part.instructions || part.instruction) && (
+                    <div className="instruction-bar-content" dangerouslySetInnerHTML={{ __html: renderInstructionHtml(part.instructions || part.instruction) }} />
                 )}
                 {isReview && scoreInfo && (
                     <div className="review-score-banner">
@@ -1169,10 +1181,12 @@ const IeltsListeningTest = () => {
                         }
                         return questionGroups.map((group, gi) => {
                             const shouldSuppressGroupInstruction = isComponentManagedDropdownGroup(group.type);
-                            const groupInstructionRaw = shouldSuppressGroupInstruction
+                            const groupInstructionSource = shouldSuppressGroupInstruction
                                 ? ''
-                                : normalizeGroupInstructionText(group.instructions);
+                                : (group.instructions || group.instruction || '');
+                            const groupInstructionRaw = normalizeGroupInstructionText(groupInstructionSource);
                             const groupInstruction = isQuestionMetaLabel(groupInstructionRaw) ? '' : groupInstructionRaw;
+                            const groupInstructionHtml = renderInstructionHtml(groupInstructionSource);
 
                             return (
                                 <div key={gi} className="question-group-block">
@@ -1198,7 +1212,7 @@ const IeltsListeningTest = () => {
                                     })()}
 
                                     {groupInstruction && (
-                                        <div className="mcq-group-instruction" dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(groupInstruction) }} />
+                                        <div className="mcq-group-instruction" dangerouslySetInnerHTML={{ __html: groupInstructionHtml }} />
                                     )}
 
                                     {group.questions.map(q => {

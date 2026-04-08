@@ -3,6 +3,7 @@ import { formatTextWithWhitespace } from '../../utils/textFormatters';
 import { isQuestionMetaLabel } from '../../utils/questionLabelUtils';
 import { resolveDrivePreviewUrl } from '../../utils/mediaUrl';
 import BookmarkToggle from '../common/BookmarkToggle';
+import { getLockedImageQuestionLayout, getLockedImageFrameStyle, getLockedImageStyle } from '../../utils/imageQuestionLayout';
 
 const formatAndClean = (text) => formatTextWithWhitespace(text);
 
@@ -19,6 +20,16 @@ const resolveImageWidthPercent = (value, fallback = 100) => {
         if (Number.isFinite(parsed)) return parsed;
     }
     return fallback;
+};
+
+const resolvePinCoordinate = (primaryValue, fallbackValue = 50) => {
+    const candidate = primaryValue ?? fallbackValue;
+    if (typeof candidate === 'number' && Number.isFinite(candidate)) return candidate;
+    if (typeof candidate === 'string') {
+        const parsed = Number.parseFloat(candidate.replace('%', '').trim());
+        if (Number.isFinite(parsed)) return parsed;
+    }
+    return fallbackValue;
 };
 
 const parseFlowNodeText = (text) => {
@@ -600,7 +611,7 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
             : '';
         const heading = q.heading || fallbackHeading;
         const instruction = q.instruction || '';
-        const imageWidth = resolveImageWidthPercent(q.imageWidth);
+        const imageHeight = getLockedImageQuestionLayout('MAP_LABELLING').imageMaxHeight;
         const pinBoxWidth = Number.isFinite(Number(q.pinBoxWidth)) ? Number(q.pinBoxWidth) : 60;
         const constrainHalfPage = Boolean(q.constrainHalfPage);
         const allowReuse = (typeof q.allowOptionReuse === 'boolean') ? q.allowOptionReuse : true;
@@ -609,13 +620,13 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
             <div className="image-drag-drop-container" ref={imageDragDropContainerRef}>
                 <div className="image-drag-drop-body">
                     <div className={`image-area${constrainHalfPage ? ' half-page' : ''}`}>
-                        <div style={{ position: 'relative', width: `${imageWidth}%`, margin: '0 auto' }}>
+                        <div style={{ ...getLockedImageFrameStyle('MAP_LABELLING'), maxHeight: `${imageHeight}px` }}>
                             {q.imageUrl ? (
                                 <img
                                     src={resolveDrivePreviewUrl(q.imageUrl)}
                                     alt="Map"
                                     className="idd-map-image"
-                                    style={{ width: '100%', display: 'block' }}
+                                    style={{ ...getLockedImageStyle('MAP_LABELLING') }}
                                     onLoad={syncImageBookmarkPosition}
                                 />
                             ) : (
@@ -634,11 +645,9 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                                     : String(answer || '');
                                 const hasAnswer = displayAnswer.trim() !== '';
                                 const isActive = activeQuestion === subQ.number;
+                                const pinX = resolvePinCoordinate(subQ.pinX ?? subQ.left, 50);
+                                const pinY = resolvePinCoordinate(subQ.pinY ?? subQ.top, 50);
                                 const basePinWidth = Math.max(56, Number(pinBoxWidth) || 60);
-                                const answerCharWidth = Math.max(8, displayAnswer.length + 2);
-                                const resolvedPinWidth = hasAnswer
-                                    ? `clamp(${basePinWidth}px, ${answerCharWidth}ch, 320px)`
-                                    : `${basePinWidth}px`;
 
                                 return (
                                     <div
@@ -649,12 +658,16 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                                         onDrop={isReview ? undefined : (e) => handleDrop(e, subQ.id)}
                                         onDragOver={isReview ? undefined : handleDragOver}
                                         style={{
-                                            top: `${subQ.pinY ?? 50}%`,
-                                            left: `${subQ.pinX ?? 50}%`,
-                                            width: resolvedPinWidth,
+                                            top: `${pinY}%`,
+                                            left: `${pinX}%`,
+                                            width: `${basePinWidth}px`,
                                             minWidth: `${basePinWidth}px`,
-                                            maxWidth: hasAnswer ? '320px' : `${basePinWidth}px`,
-                                            justifyContent: hasAnswer ? 'flex-start' : 'center'
+                                            maxWidth: `${basePinWidth}px`,
+                                            height: '26px',
+                                            minHeight: '26px',
+                                            padding: '0 10px',
+                                            overflow: 'hidden',
+                                            justifyContent: 'flex-start'
                                         }}
                                     >
                                         {!hasAnswer && (

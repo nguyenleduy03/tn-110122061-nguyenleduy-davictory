@@ -6,9 +6,11 @@ import RichBlankEditor from './shared/RichBlankEditor';
 import ImageUploadZone from './shared/ImageUploadZone';
 import { serializeContentEditableHtml } from '../../../utils/textFormatters';
 import { toRoman, loadImageFile, toPlainText, countBlankTokens, getNextQuestionNumber, isImagePinQuestion, isNoteBlankQuestion, getQuestionWeight } from './shared/blockHelpers';
+import { useTabIndent } from '../../../hooks/useTabIndent';
 
 const MultipleChoiceMultiBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps, testTitle, testId, module = 'READING',
   onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onAddQuestion, selectedQuestionId }) => {
+  const { handleKeyDown } = useTabIndent();
   const questions = group.questions ?? [];
   const [importStates, setImportStates] = useState({});
 
@@ -191,6 +193,7 @@ const MultipleChoiceMultiBlock = ({ group, onUpdate, onDelete, onSelect, selecte
                     rows={4}
                     placeholder="Option A&#10;Option B&#10;Option C&#10;Option D&#10;Option E"
                     style={{ width: '100%', padding: 6, fontSize: 11, fontFamily: 'monospace', border: '1px solid #cbd5e1', borderRadius: 3 }}
+                    onKeyDown={handleKeyDown}
                     onPaste={(e) => {
                       e.preventDefault();
                       const text = e.clipboardData.getData('text');

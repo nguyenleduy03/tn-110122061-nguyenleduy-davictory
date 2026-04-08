@@ -8,16 +8,16 @@ const AdminHeader = () => {
   const navigate = useNavigate();
   const user = authApi.getStoredUser();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (confirm('Bạn có chắc muốn đăng xuất?')) {
-      authApi.logout();
+      await authApi.logout();
       navigate('/login');
     }
   };
 
-  const handleSwitchAccount = () => {
+  const handleSwitchAccount = async () => {
     if (confirm('Bạn có muốn đăng nhập tài khoản khác?')) {
-      authApi.logout();
+      await authApi.logout();
       navigate('/login');
     }
   };

@@ -200,20 +200,14 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
 
     if (normalizedType === 'summary-completion' || normalizedType === 'note-completion') {
         const shouldRenderStandaloneImage = q.imageUrl && !q.imagePosition;
-        const configuredImageWidth = resolveImageWidthPercent(q.imageWidth);
         return (
             <>
                 {shouldRenderStandaloneImage && (
-                    <div style={{ marginBottom: 16, textAlign: 'center' }}>
+                    <div className="summary-completion-image-standalone-wrap">
                         <img
                             src={resolveDrivePreviewUrl(q.imageUrl)}
                             alt="Question diagram"
-                            style={{
-                                maxWidth: `${configuredImageWidth}%`,
-                                height: 'auto',
-                                borderRadius: 4,
-                                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                            }}
+                            className="summary-completion-image"
                         />
                     </div>
                 )}
