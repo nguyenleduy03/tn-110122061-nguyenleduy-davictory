@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { FilePlus, Pencil, Search, AlertCircle, Loader2, RefreshCw, Shuffle, Copy, Trash2, MoreVertical, Link as LinkIcon, FileText } from 'lucide-react';
+import { FilePlus, Pencil, Search, AlertCircle, Loader2, RefreshCw, Shuffle, Copy, Trash2, MoreVertical, Link as LinkIcon, FileText, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import LmsLayout from '../../components/lms/LmsLayout';
 import ShuffleTestModal from '../../components/shuffle/ShuffleTestModal';
 import PublicShareLinkModal from '../../components/common/PublicShareLinkModal';
+import VersionHistoryModal from '../../components/common/VersionHistoryModal';
 import { testBuilderApi } from '../../services/testBuilderApi';
 import { API_CONFIG } from '../../config/api';
 import { authApi } from '../../services/authApi';
@@ -176,6 +177,7 @@ export default function LmsTeacherTests() {
   const [shareData, setShareData] = useState(null);
   const [shareLoading, setShareLoading] = useState(false);
   const [shareError, setShareError] = useState('');
+  const [versionModalTest, setVersionModalTest] = useState(null);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const actionMenuRef = useRef(null);
   const [pagination, setPagination] = useState({
@@ -1027,6 +1029,18 @@ export default function LmsTeacherTests() {
                                     role="menuitem"
                                     onClick={() => {
                                       setOpenActionMenuId(null);
+                                      setVersionModalTest(test);
+                                    }}
+                                  >
+                                    <Clock size={14} /> Versions
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    className="lms-tests-action-item"
+                                    role="menuitem"
+                                    onClick={() => {
+                                      setOpenActionMenuId(null);
                                       handleDuplicateTest(test);
                                     }}
                                     disabled={actionLoadingId === test.id}
@@ -1141,6 +1155,12 @@ export default function LmsTeacherTests() {
         skillLabel={shareModalSkill}
         testStatus={shareModalStatus}
       />
+
+      <VersionHistoryModal
+        testId={versionModalTest?.id}
+        isOpen={!!versionModalTest}
+        onClose={() => setVersionModalTest(null)}
+      />
       </div>
     </LmsLayout>
   );
@@ -1184,13 +1204,13 @@ const heroTitleStyle = {
   fontSize: 26,
   fontWeight: 800,
   letterSpacing: '-0.02em',
-  color: '#0f172a',
+  color: '#ffffff',
 };
 
 const heroSubtitleStyle = {
   margin: 0,
   maxWidth: 640,
-  color: '#475569',
+  color: 'rgba(255,255,255,0.82)',
   fontSize: 14,
   lineHeight: 1.65,
 };
@@ -1208,9 +1228,9 @@ const heroChipStyle = {
   gap: 6,
   padding: '8px 12px',
   borderRadius: 999,
-  background: 'rgba(255,255,255,0.12)',
-  border: '1px solid rgba(255,255,255,0.16)',
-  color: '#f8fbff',
+  background: 'rgba(255,255,255,0.14)',
+  border: '1px solid rgba(255,255,255,0.2)',
+  color: '#ffffff',
   fontSize: 12,
   fontWeight: 700,
 };
@@ -1228,7 +1248,7 @@ const heroQuickPanelStyle = {
   marginTop: 8,
   padding: 12,
   borderRadius: 16,
-  background: 'rgba(255,255,255,0.08)',
+  background: 'rgba(15,23,42,0.16)',
   border: '1px solid rgba(255,255,255,0.14)',
   backdropFilter: 'blur(6px)',
 };
@@ -1251,7 +1271,7 @@ const heroQuickLabelStyle = {
 
 const heroQuickSubLabelStyle = {
   fontSize: 12,
-  color: 'rgba(255,255,255,0.72)',
+  color: 'rgba(255,255,255,0.76)',
 };
 
 const heroQuickGridStyle = {
@@ -1294,7 +1314,8 @@ const primaryCtaStyle = {
   textDecoration: 'none',
   fontSize: 14,
   fontWeight: 700,
-  boxShadow: '0 10px 24px rgba(37, 99, 235, 0.18)',
+  boxShadow: '0 12px 28px rgba(37, 99, 235, 0.24)',
+  border: '1px solid rgba(255,255,255,0.12)',
   minHeight: 44,
 };
 
@@ -1317,9 +1338,9 @@ const statusPillStyle = (active, color, bg, borderColor) => ({
 const panelStyle = {
   padding: 16,
   borderRadius: 22,
-  background: '#fff',
-  border: '1px solid #e2e8f0',
-  boxShadow: '0 12px 32px rgba(15, 23, 42, 0.06)',
+  background: 'linear-gradient(180deg, #ffffff 0%, #f8fbff 100%)',
+  border: '1px solid #dbeafe',
+  boxShadow: '0 14px 34px rgba(15, 23, 42, 0.07)',
   marginBottom: 16,
 };
 
@@ -1332,7 +1353,7 @@ const panelHeaderStyle = {
 };
 
 const heroInsightStyle = {
-  background: '#fff',
+  background: 'linear-gradient(180deg, #ffffff 0%, #f8fbff 100%)',
   borderRadius: 24,
   border: '1px solid #dbeafe',
   boxShadow: '0 18px 50px rgba(37, 99, 235, 0.08)',
@@ -1353,8 +1374,8 @@ const insightItemStyle = {
   gap: 4,
   padding: '12px 14px',
   borderRadius: 16,
-  background: '#f8fafc',
-  border: '1px solid #e2e8f0',
+  background: '#f8fbff',
+  border: '1px solid #e0ecff',
 };
 
 const insightLabelStyle = {
@@ -1368,12 +1389,13 @@ const insightLabelStyle = {
 const insightValueStyle = {
   fontSize: 14,
   color: '#0f172a',
+  lineHeight: 1.45,
 };
 
 const heroNoteStyle = {
   padding: '12px 14px',
   borderRadius: 16,
-  background: '#eff6ff',
+  background: 'linear-gradient(180deg, #eff6ff 0%, #eaf2ff 100%)',
   color: '#1d4ed8',
   fontSize: 13,
   lineHeight: 1.5,
@@ -1422,22 +1444,22 @@ const searchWrapStyle = {
 const searchInputStyle = {
   width: '100%',
   padding: '12px 12px 12px 34px',
-  border: '1px solid #dbe3ef',
+  border: '1px solid #cfe0ff',
   borderRadius: 14,
   fontSize: 13.5,
   outline: 'none',
   boxSizing: 'border-box',
   color: '#0f172a',
-  background: '#f8fafc',
+  background: '#ffffff',
 };
 
 const selectStyle = {
   padding: '12px 34px 12px 14px',
-  border: '1px solid #dbe3ef',
+  border: '1px solid #cfe0ff',
   borderRadius: 14,
   fontSize: 13.5,
   color: '#0f172a',
-  background: '#f8fafc',
+  background: '#ffffff',
   appearance: 'none',
   cursor: 'pointer',
   outline: 'none',
@@ -1468,8 +1490,8 @@ const loadingStyle = {
 const emptyStateStyle = {
   textAlign: 'center',
   padding: '72px 24px',
-  background: '#fff',
+  background: 'linear-gradient(180deg, #ffffff 0%, #f8fbff 100%)',
   borderRadius: 22,
-  border: '1px dashed #cbd5e1',
-  boxShadow: '0 12px 32px rgba(15, 23, 42, 0.04)',
+  border: '1px dashed #cfe0ff',
+  boxShadow: '0 12px 32px rgba(15, 23, 42, 0.05)',
 };

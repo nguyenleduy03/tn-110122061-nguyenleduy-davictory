@@ -1,6 +1,7 @@
 import React from 'react';
 import { isQuestionMetaLabel } from '../../utils/questionLabelUtils';
-import { formatTextWithWhitespace } from '../../utils/textFormatters';
+import { formatTextWithWhitespace, formatQuestionInstructionHtml, composeQuestionInstructionHtml } from '../../utils/textFormatters';
+import { getAdaptiveInputWidthStyle } from '../../utils/adaptiveInputWidth';
 import BookmarkToggle from '../common/BookmarkToggle';
 
 const normalizeComparableText = (htmlValue) => String(htmlValue || '')
@@ -35,8 +36,8 @@ const ShortAnswerGroupQuestion = ({
     const subQuestions = Array.isArray(q?.subQuestions) ? [...q.subQuestions] : [];
     const validationOptions = q?.validationOptions || {};
 
-    const titleHtml = formatTextWithWhitespace(q?.title || '');
-    const instructionHtml = formatTextWithWhitespace(q?.groupInstruction || '');
+    const titleHtml = formatQuestionInstructionHtml(q?.title || '');
+    const instructionHtml = formatQuestionInstructionHtml(q?.groupInstruction || '');
 
     const hasRawTitle = titleHtml && !isQuestionMetaLabel(titleHtml);
     const hasRawInstruction = instructionHtml && !isQuestionMetaLabel(instructionHtml);
@@ -133,24 +134,24 @@ const ShortAnswerGroupQuestion = ({
     const firstPromptHtml = groupedQuestions[0]?.promptHtml || '';
     const firstPromptNormalized = normalizeComparableText(firstPromptHtml);
 
+    const shouldRenderTitle = Boolean(hasRawTitle)
+        && !isTitleInstructionDuplicate
+        && !isLikelyDuplicateText(normalizedTitle, firstPromptNormalized);
+
     const shouldRenderInstruction = Boolean(hasRawInstruction)
         && !isLikelyDuplicateText(normalizedInstruction, firstPromptNormalized);
 
-    const shouldRenderTitle = Boolean(hasRawTitle)
-        && !hasRawInstruction
-        && !isTitleInstructionDuplicate
-        && !isLikelyDuplicateText(normalizedTitle, firstPromptNormalized);
+    const headerInstructionHtml = composeQuestionInstructionHtml(
+        shouldRenderTitle ? titleHtml : '',
+        shouldRenderInstruction ? instructionHtml : '',
+    );
 
     if (!subQuestions.length) return null;
 
     return (
         <div className="short-answer-group-container">
-            {shouldRenderTitle && (
-                <div className="short-answer-title" dangerouslySetInnerHTML={{ __html: titleHtml }} />
-            )}
-
-            {shouldRenderInstruction && (
-                <div className="short-answer-instruction" dangerouslySetInnerHTML={{ __html: instructionHtml }} />
+            {headerInstructionHtml && (
+                <div className="short-answer-instruction" dangerouslySetInnerHTML={{ __html: headerInstructionHtml }} />
             )}
 
             <ul className="short-answer-question-list">
@@ -184,6 +185,7 @@ const ShortAnswerGroupQuestion = ({
                                 const displayAnswer = isSample
                                     ? rowCorrectAnswer
                                     : (isReview && !isCorrect ? getReviewAnswer(rowCorrectAnswer) : currentAnswer);
+                                const adaptiveInputStyle = getAdaptiveInputWidthStyle(displayAnswer);
                                 const isActive = displayNumber != null && activeQuestion === displayNumber;
                                 const isBookmarked = displayNumber != null ? Boolean(bookmarks?.[displayNumber]) : false;
 
@@ -233,6 +235,7 @@ const ShortAnswerGroupQuestion = ({
                                                         }}
                                                         type="text"
                                                         className={`inline-input short-answer-input ${isReview && !isSample ? (isCorrect ? 'review-correct' : 'review-wrong') : ''}`}
+                                                        style={adaptiveInputStyle}
                                                         placeholder={displayNumber != null ? String(displayNumber) : ''}
                                                         value={displayAnswer}
                                                         onChange={(event) => {

@@ -1,5 +1,6 @@
 import React from 'react';
 import { formatTextWithWhitespace } from '../../utils/textFormatters';
+import { getAdaptiveInputCssVars } from '../../utils/adaptiveInputWidth';
 import BookmarkToggle from '../common/BookmarkToggle';
 
 const formatAndClean = (text) => formatTextWithWhitespace(text);
@@ -65,6 +66,7 @@ const MatchingFillQuestion = ({ q, activeQuestion, setActiveQuestion, answers, h
         const showCorrect = isReview && !isCorrect;
         const inlineBlankParts = extractInlineBlankParts(subQ.text || '');
         const hasInlineBlank = !!inlineBlankParts;
+        const inlineInputStyle = getAdaptiveInputCssVars(answer, { maxPx: 400 });
 
         return (
           <div
@@ -89,6 +91,7 @@ const MatchingFillQuestion = ({ q, activeQuestion, setActiveQuestion, answers, h
                     <input
                       type="text"
                       className={`fill-blank-input inline ${isReview ? (isCorrect ? 'review-correct' : 'review-wrong') : ''} ${Boolean(bookmarks?.[subQ.number]) ? 'bookmarked-answer-input' : ''}`}
+                      style={inlineInputStyle}
                       value={answer}
                       onChange={(e) => !isReview && handleAnswerChange(subQ.id, e.target.value)}
                       placeholder={isReview ? '' : '...'}

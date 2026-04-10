@@ -1,5 +1,6 @@
 import React from 'react';
 import { formatTextWithWhitespace } from '../../utils/textFormatters';
+import { getAdaptiveInputWidthStyle } from '../../utils/adaptiveInputWidth';
 import BookmarkToggle from '../common/BookmarkToggle';
 
 const FillInBlankQuestion = ({ q, activeQuestion, setActiveQuestion, answer, handleAnswerChange, inputRefs, bookmarks, toggleBookmark, isReview }) => {
@@ -31,6 +32,7 @@ const FillInBlankQuestion = ({ q, activeQuestion, setActiveQuestion, answer, han
     const displayAnswer = (isReview && !isCorrect)
         ? String(q.correctAnswer || '').split('|')[0]
         : String(answer || '');
+    const adaptiveInputStyle = getAdaptiveInputWidthStyle(displayAnswer);
 
     if (parts.length < 2) return <li id={`question-${q.number}`} className="fill-in-blank-item" onClick={() => setActiveQuestion?.(q.number)}>{!isReview && isActive && <BookmarkToggle className="question-bookmark" active={Boolean(bookmarks?.[q.number])} onToggle={() => toggleBookmark?.(q.number)} />}{q.text}</li>;
 
@@ -52,6 +54,7 @@ const FillInBlankQuestion = ({ q, activeQuestion, setActiveQuestion, answer, han
                     ref={(el) => { if (inputRefs?.current) inputRefs.current[q.number] = el; }}
                     type="text"
                     className={`inline-input ${isReview ? (isCorrect ? 'review-correct' : 'review-wrong') : ''}`}
+                    style={adaptiveInputStyle}
                     placeholder={q.questionNumber || q.number}
                     value={displayAnswer}
                     onChange={(e) => { if (!isReview) handleAnswerChange?.(q.id, e.target.value); }}

@@ -67,6 +67,9 @@ const BuilderHeader = ({
   previewMode,
   onPreviewToggle,
   activeSkill,
+  onOpenVersionHistory,
+  hasUnsavedChanges,
+  onNavigate,
 }) => {
   const [activeFormats, setActiveFormats] = useState({});
   const [customFontSize, setCustomFontSize] = useState(String(DEFAULT_FONT_SIZE));
@@ -681,8 +684,22 @@ const BuilderHeader = ({
         {/* ══════════════ ROW 1 — Title / Document bar ══════════════ */}
         <div className="tb-titlebar">
           <div className="tb-header-left">
-            <Link to="/lms/teacher/tests" className="tb-back-btn" title="Danh sách đề thi"><List size={16} /></Link>
-            <Link to="/" className="tb-back-btn" title="Trang chủ"><Home size={16} /></Link>
+            <button 
+              onClick={() => onNavigate?.('/lms/teacher/tests')}
+              className="tb-back-btn" 
+              title="Danh sách đề thi"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+            >
+              <List size={16} />
+            </button>
+            <button 
+              onClick={() => onNavigate?.('/')}
+              className="tb-back-btn" 
+              title="Trang chủ"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+            >
+              <Home size={16} />
+            </button>
             <div className="tb-divider" />
             <input
               className="tb-title-input"
@@ -715,6 +732,17 @@ const BuilderHeader = ({
                 >
                   <List size={15} />
                   <span className="tb-btn-text">ID {savedTestId}</span>
+                </button>
+              )}
+              {onOpenVersionHistory && savedTestId && (
+                <button
+                  type="button"
+                  className="tb-tool-btn tb-tool-btn-secondary tb-tool-btn-compact"
+                  onClick={onOpenVersionHistory}
+                  title="Lịch sử phiên bản"
+                >
+                  <List size={15} />
+                  <span className="tb-btn-text">Phiên bản</span>
                 </button>
               )}
               {onToggleAutoSave && (

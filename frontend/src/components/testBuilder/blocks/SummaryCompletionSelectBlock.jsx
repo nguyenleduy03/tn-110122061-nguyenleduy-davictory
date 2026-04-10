@@ -1,13 +1,84 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, Plus } from 'lucide-react';
 import GroupToolbar from './shared/GroupToolbar';
 import RichInput from '../../common/RichInput';
 import RichBlankEditor from './shared/RichBlankEditor';
+import { countBlankTokens } from './shared/blockHelpers';
 import { stripInlineStyles, serializeContentEditableHtml } from '../../../utils/textFormatters';
+import { useTabIndent } from '../../../hooks/useTabIndent';
+
+const BulkAnswerImport = ({ questions, onImport }) => {
+  const [show, setShow] = useState(false);
+  const [text, setText] = useState('');
+  const { handleKeyDown } = useTabIndent();
+
+  const handleImport = () => {
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+    if (lines.length === 0) {
+      alert('Vui lòng nhập đáp án (mỗi dòng 1 đáp án)');
+      return;
+    }
+    onImport(lines);
+    setText('');
+    setShow(false);
+    alert(`Đã import ${lines.length} đáp án`);
+  };
+
+  if (!show) {
+    return (
+      <button
+        className="exam-add-btn"
+        onClick={() => setShow(true)}
+        style={{ fontSize: 12, marginBottom: 8 }}
+      >
+        📋
+      </button>
+    );
+  }
+
+  return (
+    <div style={{ marginBottom: 12, padding: 10, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 4 }}>
+      <div style={{ fontSize: 12, color: '#64748b', marginBottom: 6 }}>
+        Paste đáp án (mỗi dòng 1 đáp án, theo thứ tự câu hỏi):
+      </div>
+      <textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onKeyDown={handleKeyDown}
+        rows={Math.min(questions.length, 10)}
+        placeholder={`Ví dụ:\nwater\n1|one\ntemperature\n...`}
+        style={{
+          width: '100%',
+          padding: 8,
+          border: '1px solid #cbd5e1',
+          borderRadius: 3,
+          fontSize: 12,
+          fontFamily: 'monospace'
+        }}
+      />
+      <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+        <button
+          className="exam-add-btn"
+          onClick={handleImport}
+          style={{ fontSize: 12 }}
+        >
+          ✓ Import {text.split('\n').filter(l => l.trim()).length} đáp án
+        </button>
+        <button
+          className="exam-add-btn"
+          onClick={() => { setShow(false); setText(''); }}
+          style={{ fontSize: 12, background: '#94a3b8' }}
+        >
+          Hủy
+        </button>
+      </div>
+    </div>
+  );
+};
 
 const SummaryCompletionSelectBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps, onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onAddQuestion, selectedQuestionId }) => {
   const options = group.optionBank ?? [];
-  
+
   // Clean options on mount if they have HTML comments
   useEffect(() => {
     const needsCleaning = options.some(o => o.text && o.text.includes('<!--'));
@@ -23,20 +94,21 @@ const SummaryCompletionSelectBlock = ({ group, onUpdate, onDelete, onSelect, sel
   // Auto-sync questions with blank count
   useEffect(() => {
     const noteText = group.noteText || '';
-    const blankCount = (noteText.match(/\[blank\]/gi) || []).length;
+    const blankCount = countBlankTokens(noteText);
     const currentQuestions = group.questions || [];
-    
+    const baseNumber = Number(group.fromQuestion) || 1;
+
     if (blankCount !== currentQuestions.length) {
       const newQuestions = Array.from({ length: blankCount }, (_, i) => {
         return currentQuestions[i] || {
           id: Date.now() + i,
-          questionNumber: (group.fromQuestion || 1) + i,
+          questionNumber: baseNumber + i,
           answerText: ''
         };
       });
       onUpdate(group.id, { questions: newQuestions });
     }
-  }, [group.noteText]);
+  }, [group.noteText, group.fromQuestion]);
 
   return (
     <div className={`exam-group${selected ? ' selected' : ''}`} onClick={(e) => { e.stopPropagation(); onSelect(group); }}>
@@ -92,10 +164,18 @@ const SummaryCompletionSelectBlock = ({ group, onUpdate, onDelete, onSelect, sel
             Dùng lại được
           </label>
         </div>
+        <BulkAnswerImport 
+          questions={[]} 
+          onImport={(lines) => {
+            const nonEmpty = options.filter(o => (o.text?.replace(/<[^>]*>/g, '') || '').trim());
+            const imported = lines.map((text, i) => ({ id: Date.now() + i, text }));
+            onUpdate(group.id, { optionBank: [...nonEmpty, ...imported] });
+          }} 
+        />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {options.map((o, i) => (
             <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              <RichInput 
+              <RichInput
                 style={{ flex: 1, fontSize: 13 }}
                 value={o.text || ''}
                 placeholder={`Từ/cụm từ ${i + 1}...`}
@@ -105,14 +185,14 @@ const SummaryCompletionSelectBlock = ({ group, onUpdate, onDelete, onSelect, sel
                   onUpdate(group.id, { optionBank: n });
                 }}
               />
-              <button 
+              <button
                 style={{ padding: '4px 8px', background: '#dc2626', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 14 }}
                 onClick={(e) => { e.stopPropagation(); onUpdate(group.id, { optionBank: options.filter((_, j) => j !== i) }); }}>
                 ×
               </button>
             </div>
           ))}
-          <button 
+          <button
             style={{ padding: '6px 12px', background: '#f59e0b', color: 'white', border: 'none', borderRadius: 4, cursor: 'pointer', fontSize: 12, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 4 }}
             onClick={(e) => { e.stopPropagation(); onUpdate(group.id, { optionBank: [...options, { id: Date.now(), text: '' }] }); }}>
             <Plus size={12} /> Thêm từ
@@ -128,6 +208,24 @@ const SummaryCompletionSelectBlock = ({ group, onUpdate, onDelete, onSelect, sel
         <input className="exam-q-range-input" value={group.toQuestion ?? ''} placeholder="10" onChange={(e) => onUpdate(group.id, { toQuestion: e.target.value ? Number(e.target.value) : null })} onClick={(e) => e.stopPropagation()} />
       </div>
 
+      {/* Bulk import answers */}
+      <BulkAnswerImport 
+        questions={group.questions || []} 
+        onImport={(lines) => {
+          const questions = group.questions || [];
+          lines.forEach((ans, idx) => {
+            if (questions[idx]) {
+              const matchingOption = options.find(o => 
+                (o.text?.replace(/<[^>]*>/g, '') || '').toLowerCase().trim() === ans.toLowerCase().trim()
+              );
+              if (matchingOption) {
+                onUpdateQuestion(group.id, questions[idx].id, { answerText: matchingOption.text });
+              }
+            }
+          });
+        }} 
+      />
+
       {/* Questions with dropdown answers */}
       {(group.questions ?? []).map((q, idx) => (
         <div key={q.id} className={`exam-question${selectedQuestionId === q.id ? ' selected' : ''}`}
@@ -137,7 +235,7 @@ const SummaryCompletionSelectBlock = ({ group, onUpdate, onDelete, onSelect, sel
             <div style={{ fontSize: 12, color: '#64748b', marginBottom: 4 }}>
               Đáp án đúng cho ô trống {idx + 1}:
             </div>
-            <select 
+            <select
               className="exam-heading-select"
               style={{ display: 'block', width: '100%' }}
               value={q.answerText || ''}
@@ -149,7 +247,7 @@ const SummaryCompletionSelectBlock = ({ group, onUpdate, onDelete, onSelect, sel
           </div>
         </div>
       ))}
-      
+
       <div style={{ fontSize: 12, color: '#64748b', marginTop: 8, fontStyle: 'italic' }}>
         💡 Số ô nhập đáp án tự động cập nhật theo số [blank] trong nội dung
       </div>

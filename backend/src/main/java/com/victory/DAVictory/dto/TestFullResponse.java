@@ -99,6 +99,7 @@ public class TestFullResponse {
         private Long id;
         private String optionLabel;
         private String optionText;
+        private String imageUrl;
         private Boolean isCorrect;
         private Integer orderIndex;
     }

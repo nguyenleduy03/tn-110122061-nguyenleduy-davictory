@@ -127,6 +127,7 @@
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/entity/TestSetting.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/entity/TestShareLink.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/entity/TestStatistic.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/entity/TestVersion.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/entity/TopicCategory.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/entity/User.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/entity/UserActivityLog.java
@@ -191,6 +192,7 @@
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/repository/TestSettingRepository.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/repository/TestShareLinkRepository.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/repository/TestStatisticRepository.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/repository/TestVersionRepository.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/repository/TopicCategoryRepository.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/repository/UserActivityLogRepository.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/repository/UserRepository.java

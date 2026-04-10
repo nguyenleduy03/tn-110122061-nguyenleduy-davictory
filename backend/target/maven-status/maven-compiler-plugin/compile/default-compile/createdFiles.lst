@@ -99,6 +99,7 @@ com/victory/DAVictory/controller/GoogleDriveAuthController.class
 com/victory/DAVictory/dto/QuestionGroupRequest.class
 com/victory/DAVictory/dto/GuestExamResponse.class
 com/victory/DAVictory/entity/ExamAttempt.class
+com/victory/DAVictory/entity/TestVersion.class
 com/victory/DAVictory/repository/QuestionTypeRepository.class
 com/victory/DAVictory/service/QuestionBankService.class
 com/victory/DAVictory/entity/QuestionStatistic.class
@@ -183,6 +184,7 @@ com/victory/DAVictory/repository/RoleRepository.class
 com/victory/DAVictory/entity/PassageContent.class
 com/victory/DAVictory/repository/WritingScoringCriteriaRepository.class
 com/victory/DAVictory/entity/TestPart.class
+com/victory/DAVictory/repository/TestVersionRepository.class
 com/victory/DAVictory/entity/UserActivityLog.class
 com/victory/DAVictory/dto/TestSaveRequest.class
 com/victory/DAVictory/entity/Test.class

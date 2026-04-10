@@ -52,6 +52,7 @@ const AssignmentDetail = lazy(() => import('./pages/student/AssignmentDetail'))
 const SubmitAssignment = lazy(() => import('./pages/student/SubmitAssignment'))
 const AssignmentResult = lazy(() => import('./pages/student/AssignmentResult'))
 const TestApiPage = lazy(() => import('./pages/TestApiPage'))
+const TestBuilderV2 = lazy(() => import('./pages/TestBuilderV2'))
 
 function AppContent() {
   useTokenExpiry();
@@ -110,6 +111,10 @@ function AppContent() {
           <Route path="/teacher/tests" element={<Navigate to="/lms/teacher/tests" replace />} />
           <Route path="/teacher/tests/new" element={<RoleBasedRoute requiredRole="TEACHER"><TestBuilder /></RoleBasedRoute>} />
           <Route path="/teacher/tests/:id/edit" element={<RoleBasedRoute requiredRole="TEACHER"><TestBuilder /></RoleBasedRoute>} />
+          
+          {/* TestBuilderV2 - New version with Quill editor */}
+          <Route path="/teacher/tests-v2/new" element={<RoleBasedRoute requiredRole="TEACHER"><TestBuilderV2 /></RoleBasedRoute>} />
+          <Route path="/teacher/tests-v2/:id/edit" element={<RoleBasedRoute requiredRole="TEACHER"><TestBuilderV2 /></RoleBasedRoute>} />
 
           <Route path="/lms/teacher" element={<RoleBasedRoute requiredRole="TEACHER"><LmsTeacherDashboard /></RoleBasedRoute>} />
           <Route path="/lms/teacher/classes" element={<RoleBasedRoute requiredRole="TEACHER"><LmsTeacherClasses /></RoleBasedRoute>} />

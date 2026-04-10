@@ -12,10 +12,14 @@ const DragMatchingBlock = ({ group, onUpdate, onDelete, onSelect, selected, drag
   const { handleKeyDown } = useTabIndent();
   const options = group.optionBank ?? [];
   const questions = group.questions ?? [];
-  
+  const allowOptionReuse = group.allowOptionReuse !== false;
+  const optionCount = options.filter((opt) => toPlainText(opt?.text || '').trim()).length;
+  const dragSlotCount = questions.length;
+  const autoKeepUsedOptionSlots = optionCount > dragSlotCount;
+
   const [showImportOptions, setShowImportOptions] = React.useState(false);
   const [showImportQuestions, setShowImportQuestions] = React.useState(false);
-  
+
   // Clean options on mount if they have HTML comments
   useEffect(() => {
     const needsCleaning = options.some(o => o.text && o.text.includes('<!--'));
@@ -31,10 +35,10 @@ const DragMatchingBlock = ({ group, onUpdate, onDelete, onSelect, selected, drag
   const handleImportOptions = (text) => {
     const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
     if (lines.length === 0) return;
-    
+
     // Xóa option rỗng (không có text)
     const nonEmptyOptions = options.filter(o => o.text?.trim());
-    
+
     const imported = lines.map((label, i) => ({
       id: `opt-${Date.now()}-${i}`,
       text: label
@@ -46,10 +50,10 @@ const DragMatchingBlock = ({ group, onUpdate, onDelete, onSelect, selected, drag
   const handleImportQuestions = (text) => {
     const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
     if (lines.length === 0) return;
-    
+
     // Xóa câu rỗng (không có questionText)
     const nonEmptyQuestions = questions.filter(q => q.questionText?.trim());
-    
+
     const startNum = nonEmptyQuestions.length > 0
       ? Math.max(...nonEmptyQuestions.map(q => q.questionNumber || 0)) + 1
       : (group.fromQuestion || 1);
@@ -80,6 +84,21 @@ const DragMatchingBlock = ({ group, onUpdate, onDelete, onSelect, selected, drag
           placeholder="Match each statement with the correct person, A, B or C."
           onChange={(html) => onUpdate(group.id, { instructions: html })}
         />
+
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginTop: 8, fontSize: 12, color: '#374151' }}>
+          <input
+            type="checkbox"
+            checked={allowOptionReuse}
+            onChange={(e) => onUpdate(group.id, { allowOptionReuse: e.target.checked })}
+            onClick={(e) => e.stopPropagation()}
+          />
+          Cho phép dùng lại đáp án trong lúc làm bài
+        </label>
+        <div style={{ marginTop: 4, fontSize: 11, color: autoKeepUsedOptionSlots ? '#047857' : '#6b7280' }}>
+          {autoKeepUsedOptionSlots
+            ? `Đang tự động giữ slot trống và ẩn đáp án đã dùng vì số đáp án > số ô kéo-thả (${optionCount}/${dragSlotCount}).`
+            : `Hiệu ứng giữ slot trống chỉ kích hoạt khi số đáp án > số ô kéo-thả (${optionCount}/${dragSlotCount}).`}
+        </div>
       </div>
 
       {/* Two-column layout */}
@@ -139,7 +158,7 @@ const DragMatchingBlock = ({ group, onUpdate, onDelete, onSelect, selected, drag
               📋
             </button>
           </div>
-          
+
           {showImportQuestions && (
             <div className="exam-import-modal" onClick={(e) => e.stopPropagation()}>
               <textarea
@@ -205,7 +224,7 @@ const DragMatchingBlock = ({ group, onUpdate, onDelete, onSelect, selected, drag
                 📋
               </button>
             </div>
-            
+
             {showImportOptions && (
               <div className="exam-import-modal" onClick={(e) => e.stopPropagation()}>
                 <textarea

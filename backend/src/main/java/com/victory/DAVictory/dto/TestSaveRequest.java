@@ -20,6 +20,7 @@ public class TestSaveRequest {
     private Integer durationMinutes;
     private String targetBand;
     private Long createdByUserId;
+    private Boolean createVersion; // true = tạo version mới (khi thoát editor)
     private List<SessionSave> sessions;
 
     @Data
@@ -83,6 +84,7 @@ public class TestSaveRequest {
     public static class OptionSave {
         private String optionLabel;
         private String optionText;
+        private String imageUrl;
         private Boolean isCorrect;
         private Integer orderIndex;
     }

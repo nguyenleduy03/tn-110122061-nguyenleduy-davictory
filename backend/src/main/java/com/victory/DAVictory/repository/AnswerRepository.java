@@ -19,7 +19,7 @@ public interface AnswerRepository extends JpaRepository<Answer, Long> {
     @Transactional
     @Modifying
     @Query("DELETE FROM Answer a WHERE a.question.questionGroup.id = :groupId")
-    void deleteByQuestionGroupId(@Param("groupId") Long groupId);
+    int deleteByQuestionGroupId(@Param("groupId") Long groupId);
 
     Optional<Answer> findByQuestionIdAndBlankIndex(Long questionId, Integer blankIndex);
 }

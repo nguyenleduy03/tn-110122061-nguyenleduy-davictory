@@ -16,10 +16,12 @@ import { CSS } from '@dnd-kit/utilities';
 import { useDroppable } from '@dnd-kit/core';
 import { createPortal } from 'react-dom';
 import { Plus, X, Clock, TimerReset, Check, Eye, Headphones, BookOpen, PenLine, Mic, Volume2, FileText } from 'lucide-react';
-import { normalizeRichHtml, preserveBlockLineBreaks, stripInlineStyles } from '../../utils/textFormatters';
+import { formatTextWithWhitespace, normalizeRichHtml, preserveBlockLineBreaks, stripInlineStyles } from '../../utils/textFormatters';
+import { renderHtmlWithTokenPlaceholders } from '../../utils/htmlTokenRenderer';
 import { resolveDrivePreviewUrl } from '../../utils/mediaUrl';
-import { getLockedImageQuestionLayout } from '../../utils/imageQuestionLayout';
+import { getLockedImageQuestionLayout, resolveImageWidthPercent } from '../../utils/imageQuestionLayout';
 import SharedOptionsDropdownBlock from './SharedOptionsDropdownBlock';
+import { useDividerResize } from '../../hooks/useDividerResize';
 
 // Series logo mapping (mirrors TestHeader.jsx)
 const SERIES_LOGO_SRC = {
@@ -152,20 +154,30 @@ const PreviewContent = ({ test, sessions, sessionDurations, activeSkill, onSetAc
         <div className="pv-opts">
           {opts.length === 0
             ? <em className="pv-empty">Chưa có lựa chọn</em>
-            : opts.map((o) => (
-              <label key={o.id} className="pv-opt">
-                <input type={multiple ? 'checkbox' : 'radio'} name={`pv-q-${q.id}`} disabled />
-                <span className="pv-opt-key">{o.optionLabel}</span>
-                <span className="pv-opt-text">
-                  {o.optionMode === 'image' && o.optionImageUrl
-                    ? <img src={resolveDrivePreviewUrl(o.optionImageUrl)} alt={o.optionLabel} style={{ maxWidth: 140, maxHeight: 90, borderRadius: 4, display: 'block' }} />
-                    : (o.optionText
-                      ? <span dangerouslySetInnerHTML={{ __html: formatPreviewText(o.optionText) }} />
-                      : <em className="pv-empty">...</em>)
-                  }
-                </span>
-              </label>
-            ))
+            : opts.map((o) => {
+              const optionImageUrl = String(o.optionImageUrl || o.imageUrl || '').trim();
+              const plainOptionText = String(o.optionText || '')
+                .replace(/<[^>]*>/g, ' ')
+                .replace(/&nbsp;/gi, ' ')
+                .trim();
+              const shouldFallbackToImage = Boolean(optionImageUrl) && (!o.optionMode || plainOptionText === '');
+              const isImageOption = o.optionMode === 'image' || shouldFallbackToImage;
+
+              return (
+                <label key={o.id} className="pv-opt">
+                  <input type={multiple ? 'checkbox' : 'radio'} name={`pv-q-${q.id}`} disabled />
+                  <span className="pv-opt-key">{o.optionLabel}</span>
+                  <span className="pv-opt-text">
+                    {isImageOption && optionImageUrl
+                      ? <img src={resolveDrivePreviewUrl(optionImageUrl)} alt={o.optionLabel} style={{ maxWidth: 140, maxHeight: 90, borderRadius: 4, display: 'block' }} />
+                      : (o.optionText
+                        ? <span dangerouslySetInnerHTML={{ __html: formatPreviewText(o.optionText) }} />
+                        : <em className="pv-empty">...</em>)
+                    }
+                  </span>
+                </label>
+              );
+            })
           }
         </div>
       </div>
@@ -640,6 +652,7 @@ const PreviewContent = ({ test, sessions, sessionDurations, activeSkill, onSetAc
     const [answers, setAnswers] = React.useState({});
     const [dragId, setDragId] = React.useState(null);
     const lockedLayout = getLockedImageQuestionLayout('MAP_LABELLING');
+    const imageWidth = resolveImageWidthPercent(group.imageWidth, lockedLayout.defaultImageWidth ?? 100);
     const placed = new Set(Object.values(answers).filter(Boolean).map(v => v.id));
     const bankChips = allOptions.filter(o => !placed.has(o.id));
 
@@ -660,13 +673,13 @@ const PreviewContent = ({ test, sessions, sessionDurations, activeSkill, onSetAc
         <div className="pv-ml-layout">
           <div className="pv-ml-image-wrapper" style={{ textAlign: 'center' }}>
             {group.imageUrl ? (
-              <div style={{ position: 'relative', display: 'inline-block', maxWidth: '100%', maxHeight: `${lockedLayout.imageMaxHeight}px` }}>
-                <img src={resolveDrivePreviewUrl(group.imageUrl)} alt="map" draggable={false} style={{ display: 'block', width: 'auto', height: 'auto', maxWidth: '100%', maxHeight: `${lockedLayout.imageMaxHeight}px` }} />
+              <div style={{ position: 'relative', display: 'inline-block', width: `${imageWidth}%`, maxWidth: '100%' }}>
+                <img src={resolveDrivePreviewUrl(group.imageUrl)} alt="map" draggable={false} style={{ display: 'block', width: '100%', height: 'auto', maxWidth: '100%', maxHeight: 'none' }} />
                 {questions.map(q => {
                   const filled = answers[q.questionNumber] ?? null;
                   return (
                     <div key={q.id}
-                      style={{ position: 'absolute', left: `${q.pinX ?? 10}%`, top: `${q.pinY ?? 10}%`, minWidth: `${group.pinBoxWidth ?? 60}px`, background: '#fff', padding: '4px 8px', borderRadius: 4, border: '1px solid #cbd5e1', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', cursor: 'pointer' }}
+                      style={{ position: 'absolute', left: `${q.pinX ?? 10}%`, top: `${q.pinY ?? 10}%`, minWidth: '120px', background: '#fff', padding: '4px 8px', borderRadius: 4, border: '1px solid #cbd5e1', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', cursor: 'pointer' }}
                       onDragOver={(e) => { e.preventDefault(); }}
                       onDrop={(e) => { e.preventDefault(); const id = Number(e.dataTransfer.getData('text/x-dm')); const chip = allOptions.find(o => o.id === id); if (chip) placeChip(q.questionNumber, chip); }}
                       onClick={() => { if (filled) setAnswers(prev => ({ ...prev, [q.questionNumber]: null })); else goToQ(q.questionNumber); }}
@@ -717,36 +730,49 @@ const PreviewContent = ({ test, sessions, sessionDurations, activeSkill, onSetAc
       }
       return map;
     }, [tableRows, columns, questions]);
-    const parseBold = (text) => text.split(/\*\*(.*?)\*\*/).map((chunk, i) => i % 2 === 1 ? <strong key={i}>{chunk}</strong> : chunk);
+    const getBlankOffset = (rowId, colId) => {
+      const rowOrder = tableRows.map((r) => r.id);
+      const colOrder = columns.map((c) => c.id);
+      const curRow = rowOrder.indexOf(rowId);
+      const curCol = colOrder.indexOf(colId);
+      let count = 0;
+
+      for (const b of blankMap) {
+        const bRow = rowOrder.indexOf(b.rowId);
+        const bCol = colOrder.indexOf(b.colId);
+        if (bRow < curRow || (bRow === curRow && bCol < curCol)) count += 1;
+      }
+
+      return count;
+    };
+
     const renderCell = (cellText, rowId, colId) => {
-      const parts = (cellText ?? '').split('[blank]');
-      let localIdx = blankMap.filter(b => {
-        const colOrder = columns.map(c => c.id);
-        const rowOrder = tableRows.map(r => r.id);
-        const bColIdx = colOrder.indexOf(b.colId);
-        const bRowIdx = rowOrder.indexOf(b.rowId);
-        const curColIdx = colOrder.indexOf(colId);
-        const curRowIdx = rowOrder.indexOf(rowId);
-        return bRowIdx < curRowIdx || (bRowIdx === curRowIdx && bColIdx < curColIdx);
-      }).length;
-      return parts.map((part, i) => {
-        const entry = blankMap[localIdx + i - 1] ?? null;
-        return (
-          <React.Fragment key={i}>
-            {parseBold(part)}
-            {i < parts.length - 1 && (() => {
-              const info = blankMap[localIdx + i];
-              if (!info) return null;
-              const qNum = info.qNum;
-              return (
-                <input key={`tc-blank-${qNum}`} className="pv-tc-blank" value={answers[qNum] ?? ''}
-                  onChange={(e) => { setAnswers(p => ({ ...p, [qNum]: e.target.value })); goToQ(qNum); }}
-                  placeholder={String(qNum)} disabled />
-              );
-            })()}
-          </React.Fragment>
-        );
-      });
+      let blankIndex = getBlankOffset(rowId, colId);
+      return renderHtmlWithTokenPlaceholders(
+        cellText ?? '',
+        () => {
+          const info = blankMap[blankIndex];
+          blankIndex += 1;
+          if (!info) return null;
+          const qNum = info.qNum;
+          return (
+            <input
+              key={`tc-blank-${qNum}`}
+              className="pv-tc-blank"
+              value={answers[qNum] ?? ''}
+              onChange={(e) => { setAnswers((p) => ({ ...p, [qNum]: e.target.value })); goToQ(qNum); }}
+              onClick={() => goToQ(qNum)}
+              placeholder={String(qNum)}
+              disabled
+            />
+          );
+        },
+        {
+          normalizeHtml: (value) => formatTextWithWhitespace(value || ''),
+          tokenRegex: /\[\s*blank\s*\]/gi,
+          keyPrefix: `tc-${rowId}-${colId}`,
+        }
+      );
     };
     return (
       <div className="pv-group-block">
@@ -1109,7 +1135,7 @@ const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUp
       onUpdateQuestion={onUpdateQuestion} onDeleteQuestion={onDeleteQuestion} onAddQuestion={onAddQuestion}
       selectedQuestionId={selectedQuestionId} />;
   }
-  if (ct === 'DRAG_MATCHING') {
+  if (['DRAG_MATCHING', 'FILL_BLANK_DRAG', 'SENTENCE_COMPLETION_DRAG', 'SUMMARY_COMPLETION_DRAG', 'NOTE_COMPLETION_DRAG'].includes(ct)) {
     return <DragMatchingBlock group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
       onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps}
       onSelectQuestion={(q) => onSelectQuestion(q, group.id)}
@@ -1247,7 +1273,7 @@ const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUp
   );
 };
 
-const PartView = ({ skill, part, selection, onSelectGroup, onSelectQuestion, onUpdateGroup, onUpdateQuestion, onDeleteGroup, onDeleteQuestion, onAddQuestion, onAddGroup, onMoveGroupUp, onMoveGroupDown, isDropOver, isPassagePaneOver, isPassagePaneLocked, isMHLocked, test, testId }) => {
+const PartView = ({ skill, part, selection, onSelectGroup, onSelectQuestion, onUpdateGroup, onUpdateQuestion, onDeleteGroup, onDeleteQuestion, onAddQuestion, onAddGroup, onMoveGroupUp, onMoveGroupDown, isDropOver, isPassagePaneOver, isPassagePaneLocked, isMHLocked, test, testId, leftWidth, containerRef, handleDragStart }) => {
   const groups = part.questionGroups ?? [];
 
   const renderGroup = (group) => (
@@ -1280,9 +1306,13 @@ const PartView = ({ skill, part, selection, onSelectGroup, onSelectQuestion, onU
     const passages = groups.filter((g) => g.contentType === 'READING_PASSAGE');
     const qGroups = groups.filter((g) => g.contentType !== 'READING_PASSAGE');
     return (
-      <div className="exam-split">
+      <div
+        className="exam-split"
+        ref={containerRef}
+        style={{ gridTemplateColumns: `${leftWidth}% 12px minmax(0, 1fr)` }}
+      >
         {/* LEFT: passage texts only */}
-        <div className={`exam-pane passage${isPassagePaneLocked ? ' pane-locked' : ''}`}>
+        <div className={`exam-pane passage${isPassagePaneLocked ? ' pane-locked' : ''}`} style={{ minWidth: 0 }}>
           {isPassagePaneLocked && (
             <div className="exam-pane-lock-overlay">Chỉ nhận <strong>Đoạn văn</strong></div>
           )}
@@ -1297,9 +1327,19 @@ const PartView = ({ skill, part, selection, onSelectGroup, onSelectQuestion, onU
             paneType="passage-pane"
           />
         </div>
-        <div className="exam-pane-divider" />
+        <div
+          className="exam-pane-divider"
+          onMouseDown={(e) => {
+            e.preventDefault();
+            handleDragStart();
+          }}
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Điều chỉnh độ rộng hai cột"
+          tabIndex={0}
+        />
         {/* RIGHT: question groups */}
-        <div className={`exam-pane questions${isMHLocked ? ' pane-locked' : ''}`}>
+        <div className={`exam-pane questions${isMHLocked ? ' pane-locked' : ''}`} style={{ minWidth: 0 }}>
           {isMHLocked && (
             <div className="exam-pane-lock-overlay">Cần bật <strong>chế độ đa đoạn</strong> ở Đoạn văn trước</div>
           )}
@@ -1479,6 +1519,7 @@ const ExamCanvas = ({
   const currentDuration = Number.isFinite(sessionDuration) ? sessionDuration : skillDefaultDuration;
   const resolvedLogoSrc = SERIES_LOGO_SRC[seriesLabel] || SERIES_LOGO_SRC.IELTS;
   const resolvedLogoAlt = seriesLabel || 'IELTS';
+  const { leftWidth, containerRef, handleDragStart } = useDividerResize(50);
 
   const handleSetPartTime = () => {
     setDraftTimeValue(String(currentDuration));
@@ -1688,7 +1729,10 @@ const ExamCanvas = ({
                 isPassagePaneLocked={isPassagePaneLocked}
                 isMHLocked={isMHLocked}
                 test={test}
-                testId={testId} />
+                testId={testId}
+                leftWidth={leftWidth}
+                containerRef={containerRef}
+                handleDragStart={handleDragStart} />
             </div>
           </div>
         </div>

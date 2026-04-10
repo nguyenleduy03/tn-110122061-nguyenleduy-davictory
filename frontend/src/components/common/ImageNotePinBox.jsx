@@ -59,8 +59,9 @@ const ImageNotePinBox = ({
         position: 'absolute',
         left,
         top,
-        transform: 'translate(-50%, -50%)',
+        width: `${boxWidth}px`,
         minWidth: `${boxWidth}px`,
+        maxWidth: `${boxWidth}px`,
         display: 'flex',
         alignItems: 'center',
         gap: '6px',
@@ -75,6 +76,7 @@ const ImageNotePinBox = ({
         whiteSpace: 'nowrap',
         boxSizing: 'border-box',
         boxShadow: outerBoxShadow,
+        overflow: 'hidden',
         cursor: onMouseDown ? 'move' : 'default',
       }}
     >

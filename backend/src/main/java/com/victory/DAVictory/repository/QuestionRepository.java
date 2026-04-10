@@ -31,5 +31,5 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
     @Transactional
     @Modifying
     @Query("DELETE FROM Question q WHERE q.questionGroup.id = :groupId")
-    void deleteByQuestionGroupId(@Param("groupId") Long groupId);
+    int deleteByQuestionGroupId(@Param("groupId") Long groupId);
 }

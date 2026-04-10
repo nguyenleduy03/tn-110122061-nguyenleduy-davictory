@@ -9,7 +9,7 @@ import { toRoman, loadImageFile, toPlainText, countBlankTokens, getNextQuestionN
 const SummaryCompletionBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps, onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onAddQuestion, selectedQuestionId }) => (
   <div className={`exam-group${selected ? ' selected' : ''}`} onClick={(e) => { e.stopPropagation(); onSelect(group); }}>
     <GroupToolbar group={group} dragHandleProps={dragHandleProps} onDelete={onDelete} />
-    
+
     {/* Instructions field */}
     <div style={{ marginBottom: 12 }} onClick={(e) => e.stopPropagation()}>
       <label style={{ display: 'block', fontSize: 13, fontWeight: 600, marginBottom: 4, color: '#555' }}>
@@ -73,7 +73,7 @@ function FcCellEditor({ value, onChange, startQNum }) {
   const [dragOver, setDragOver] = useState(false);
   const startQRef = useRef(startQNum);
 
-  const esc = (s) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
   const toHTML = (text, firstNum) => {
     if (!text) return '';
@@ -81,8 +81,8 @@ function FcCellEditor({ value, onChange, startQNum }) {
     return esc(text).replace(/\[blank\]/gi, () => {
       n++;
       return `<span class="rbe-blank rbe-blank-indigo" contenteditable="false" data-blank="true">`
-           + `<span class="rbe-blank-num">${n}</span>`
-           + `<button class="rbe-blank-del" data-del="true" type="button">×</button></span>`;
+        + `<span class="rbe-blank-num">${n}</span>`
+        + `<button class="rbe-blank-del" data-del="true" type="button">×</button></span>`;
     });
   };
 
@@ -160,7 +160,7 @@ function FcCellEditor({ value, onChange, startQNum }) {
         <div className="rbe-drag-chip" draggable
           title="Kéo vào ô"
           onDragStart={(e) => {
-            e.dataTransfer.setData('text/x-rbe','1');
+            e.dataTransfer.setData('text/x-rbe', '1');
             e.dataTransfer.effectAllowed = 'copy';
           }}>▣</div>
         <button type="button" className="exam-tc-blank-btn" onClick={insertAtCaret} title="Chèn ô tại con trỏ">+□</button>
@@ -212,8 +212,12 @@ function FcCellEditor({ value, onChange, startQNum }) {
 function FlowChartBlock({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps, onUpdateQuestion, selectedQuestionId }) {
   const flowNodes = group.flowNodes ?? [];
   const questions = group.questions ?? [];
-  const options   = group.optionBank ?? [];
-  const fromQ     = group.fromQuestion ?? 1;
+  const options = group.optionBank ?? [];
+  const fromQ = group.fromQuestion ?? 1;
+  const allowOptionReuse = group.allowOptionReuse !== false;
+  const optionCount = options.filter((opt) => toPlainText(opt?.text || '').trim()).length;
+  const dragSlotCount = questions.length;
+  const autoKeepUsedOptionSlots = optionCount > dragSlotCount;
 
   const syncAndSave = (nodes, qOverride) => {
     const newQs = qOverride ?? syncFcQuestions(nodes, questions, fromQ);
@@ -258,6 +262,20 @@ function FlowChartBlock({ group, onUpdate, onDelete, onSelect, selected, dragHan
           placeholder="Complete the flow-chart below. Choose NO MORE THAN TWO WORDS from the passage for each answer."
           onChange={(html) => onUpdate(group.id, { instructions: html })}
         />
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginTop: 8, fontSize: 12, color: '#374151' }}>
+          <input
+            type="checkbox"
+            checked={allowOptionReuse}
+            onChange={(e) => onUpdate(group.id, { allowOptionReuse: e.target.checked })}
+            onClick={(e) => e.stopPropagation()}
+          />
+          Cho phép dùng lại đáp án trong lúc làm bài
+        </label>
+        <div style={{ marginTop: 4, fontSize: 11, color: autoKeepUsedOptionSlots ? '#047857' : '#6b7280' }}>
+          {autoKeepUsedOptionSlots
+            ? `Đang tự động giữ slot trống và ẩn đáp án đã dùng vì số đáp án > số ô kéo-thả (${optionCount}/${dragSlotCount}).`
+            : `Hiệu ứng giữ slot trống chỉ kích hoạt khi số đáp án > số ô kéo-thả (${optionCount}/${dragSlotCount}).`}
+        </div>
       </div>
 
       {/* Chart title */}

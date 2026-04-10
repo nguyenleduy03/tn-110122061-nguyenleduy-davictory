@@ -1,5 +1,6 @@
 import React from 'react';
 import { applyDbFormattingMarkers } from '../../utils/textFormatters';
+import { formatQuestionInstructionHtml } from '../../utils/textFormatters';
 import { isQuestionMetaLabel } from '../../utils/questionLabelUtils';
 import BookmarkToggle from '../common/BookmarkToggle';
 
@@ -52,7 +53,10 @@ const SummaryCompletionSelectQuestion = ({ q, activeQuestion, setActiveQuestion,
     const payloadFromNoteText = parseEmbeddedQuestionPayload(questionData?.noteText);
     const payloadFromText = payloadFromNoteText || parseEmbeddedQuestionPayload(questionData?.text);
 
-    const options = (questionData.optionBank || []).map(resolveText).filter(Boolean);
+    const options = (questionData.optionBank || [])
+        .map(resolveText)
+        .map((value) => String(value || '').trim())
+        .filter(Boolean);
     const explicitInstructions = cleanInstructionText(payloadFromText?.instructions || questionData.instructions || '');
     const titleText = cleanInstructionText(questionData.title || payloadFromText?.title || '');
     const title = isQuestionMetaLabel(titleText) ? '' : titleText;
@@ -69,6 +73,10 @@ const SummaryCompletionSelectQuestion = ({ q, activeQuestion, setActiveQuestion,
         return summarySubQuestions.find((sq) => Number(sq.number) === activeNumber) || null;
     }, [activeQuestion, summarySubQuestions]);
     const allowOptionReuse = questionData.allowOptionReuse !== false;
+    const forceSingleUseForExtraBank = !isReview && options.length > summarySubQuestions.length;
+    const shouldDisallowReuse = forceSingleUseForExtraBank || !allowOptionReuse;
+    // Keep placeholder slots whenever consumed options are hidden so bank width stays stable.
+    const keepUsedOptionSlots = shouldDisallowReuse;
 
     const [isDragOverBank, setIsDragOverBank] = React.useState(false);
 
@@ -108,13 +116,7 @@ const SummaryCompletionSelectQuestion = ({ q, activeQuestion, setActiveQuestion,
     }, [syncBookmarkPosition]);
 
     const formatInlineHtml = (value) => {
-        if (typeof value !== 'string') return value || '';
-
-        const withMarkers = applyDbFormattingMarkers(value)
-            .replace(/\u00A0/g, ' ')
-            .replace(/\\t|\/t|\t/g, '    ');
-
-        return withMarkers.replace(/\\n|\r?\n/g, '<br/>');
+        return formatQuestionInstructionHtml(String(value || ''));
     };
 
     const toReactStyleObject = (rawStyle) => {
@@ -245,9 +247,9 @@ const SummaryCompletionSelectQuestion = ({ q, activeQuestion, setActiveQuestion,
         const isCorrect = answer === subQ?.correctAnswer;
         const displayAnswer = (isReview && !isCorrect) ? subQ?.correctAnswer : answer;
         const hasDisplayAnswer = String(displayAnswer || '').trim() !== '';
-        const answerCharWidth = Math.max(8, String(displayAnswer || '').length + 2);
+        const answerCharWidth = Math.max(8, String(displayAnswer || '').length + 1);
         const dynamicWidth = hasDisplayAnswer
-            ? `clamp(96px, ${answerCharWidth}ch, 420px)`
+            ? `clamp(var(--answer-input-width), ${answerCharWidth}ch, 420px)`
             : 'var(--answer-input-width)';
 
         return (
@@ -269,7 +271,7 @@ const SummaryCompletionSelectQuestion = ({ q, activeQuestion, setActiveQuestion,
                     style={{
                         cursor: isReview ? 'default' : 'pointer',
                         width: dynamicWidth,
-                        minWidth: hasDisplayAnswer ? '96px' : 'var(--answer-input-width)',
+                        minWidth: 'var(--answer-input-width)',
                         maxWidth: hasDisplayAnswer ? '420px' : 'var(--answer-input-width)',
                         justifyContent: hasDisplayAnswer ? 'flex-start' : 'center',
                     }}
@@ -286,7 +288,7 @@ const SummaryCompletionSelectQuestion = ({ q, activeQuestion, setActiveQuestion,
                             {displayAnswer}
                         </span>
                     ) : (
-                        <span style={{ color: '#9ca3af' }}>{qNum ?? ''}</span>
+                        <span className="summary-select-drop-number">{qNum ?? ''}</span>
                     )}
                 </span>
             </span>
@@ -386,10 +388,11 @@ const SummaryCompletionSelectQuestion = ({ q, activeQuestion, setActiveQuestion,
     };
 
     // Track used options
-    const usedOptions = new Set();
-    if (!allowOptionReuse) {
-        Object.values(answers || {}).filter(Boolean).forEach(ans => usedOptions.add(ans));
-    }
+    const usedOptions = new Set(
+        summarySubQuestions
+            .map((subQ) => String(answers?.[subQ.id] || '').trim())
+            .filter(Boolean)
+    );
 
     const renderParagraph = () => {
         if (!noteText) return null;
@@ -441,20 +444,22 @@ const SummaryCompletionSelectQuestion = ({ q, activeQuestion, setActiveQuestion,
                 onDrop={handleBankDrop}
             >
                 <div className="summary-bank-options">
-                    {options.map((o, i) => {
-                        const optionText = resolveText(o);
-                        const isUsed = !allowOptionReuse && usedOptions.has(optionText);
-
-                        if (isUsed && !isReview) return null;
+                    {options.map((optionText, i) => {
+                        const isUsed = shouldDisallowReuse && usedOptions.has(optionText);
+                        const shouldHideUsedOption = isUsed && !isReview;
+                        if (shouldHideUsedOption && !keepUsedOptionSlots) return null;
+                        const isEmptySlot = shouldHideUsedOption && keepUsedOptionSlots;
 
                         return (
                             <div
                                 key={i}
-                                className={`summary-bank-chip ${isUsed ? 'used' : ''}`}
-                                draggable={!isReview}
-                                onDragStart={(e) => handleDragStart(e, o)}
+                                className={`summary-bank-chip ${isUsed ? 'used' : ''} ${isEmptySlot ? 'summary-bank-chip-slot-empty' : ''}`}
+                                draggable={!isReview && !isEmptySlot}
+                                onDragStart={(e) => {
+                                    if (!isReview && !isEmptySlot) handleDragStart(e, optionText);
+                                }}
                             >
-                                {optionText}
+                                {isEmptySlot ? '\u00A0' : optionText}
                             </div>
                         );
                     })}

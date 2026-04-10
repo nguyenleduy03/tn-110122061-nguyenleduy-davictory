@@ -159,6 +159,33 @@ public class TestBuilderController {
         }
     }
 
+    /**
+     * GET /api/test-builder/{id}/versions
+     * Lấy lịch sử versions của đề thi.
+     */
+    @GetMapping("/{id}/versions")
+    @PreAuthorize("hasAnyRole('TEACHER', 'MANAGER', 'ADMIN')")
+    public ResponseEntity<?> getTestVersions(@PathVariable Long id) {
+        try {
+            List<Map<String, Object>> versions = testBuilderService.getTestVersions(id);
+            return ResponseEntity.ok(versions);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/{id}/versions/{versionNumber}/snapshot")
+    @PreAuthorize("hasAnyRole('TEACHER', 'MANAGER', 'ADMIN')")
+    public ResponseEntity<?> getVersionSnapshot(@PathVariable Long id, @PathVariable Integer versionNumber) {
+        try {
+            String snapshot = testBuilderService.getVersionSnapshot(id, versionNumber);
+            if (snapshot == null) return ResponseEntity.badRequest().body(Map.of("error", "Phiên bản này chưa có snapshot"));
+            return ResponseEntity.ok().contentType(org.springframework.http.MediaType.APPLICATION_JSON).body(snapshot);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     private boolean isStudentOnly(Authentication authentication) {
         if (authentication == null) return false;
         boolean isStudent = hasRole(authentication, "STUDENT");

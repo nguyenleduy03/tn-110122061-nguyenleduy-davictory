@@ -7,9 +7,10 @@ import ImageUploadZone from './shared/ImageUploadZone';
 import { serializeContentEditableHtml } from '../../../utils/textFormatters';
 import { resolveDrivePreviewUrl } from '../../../utils/mediaUrl';
 import { toRoman, loadImageFile, toPlainText, getNextQuestionNumber, getPartQuestionStartNumber, getQuestionWeight } from './shared/blockHelpers';
-import { getLockedImageQuestionLayout, getLockedImageFrameStyle, getLockedImageStyle } from '../../../utils/imageQuestionLayout';
+import { getLockedImageFrameStyle, getLockedImageStyle, clampImagePinPercent } from '../../../utils/imageQuestionLayout';
 import { useTabIndent } from '../../../hooks/useTabIndent';
 import ImageNotePinBox from '../../common/ImageNotePinBox';
+import { calculatePinPosition, normalizePinPosition } from '../../../utils/pinPositionHelper';
 import {
   IMAGE_NOTE_SECTIONS,
   countBlankTokens,
@@ -94,8 +95,8 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
   const dragRef = useRef(null);
   const [livePin, setLivePin] = useState(null);
   const imagePosition = group.imagePosition || 'middle';
-  const imageHeight = getLockedImageQuestionLayout('IMAGE_NOTE_FORM').imageMaxHeight;
-  const pinBoxWidth = group.pinBoxWidth || 60;
+  const imageWidth = 70;
+  const pinBoxWidth = 120;
   const questions = group.questions ?? [];
   const topNoteText = group.topNoteText ?? (group.imagePosition === 'bottom' ? '' : (group.noteText || ''));
   const bottomNoteText = group.bottomNoteText ?? (group.imagePosition === 'bottom' ? (group.noteText || '') : '');
@@ -152,8 +153,10 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
       const { origX, origY, startCX, startCY } = dragRef.current;
       const rect = getImageRect();
       if (!rect) return;
-      const newX = Math.max(0, Math.min(92, origX + (e.clientX - startCX) / rect.width * 100));
-      const newY = Math.max(0, Math.min(92, origY + (e.clientY - startCY) / rect.height * 100));
+      const deltaX = (e.clientX - startCX) / rect.width * 100;
+      const deltaY = (e.clientY - startCY) / rect.height * 100;
+      const newX = Math.max(0, Math.min(100 - (pinBoxWidth / rect.width) * 100, origX + deltaX));
+      const newY = Math.max(0, Math.min(100 - (26 / rect.height) * 100, origY + deltaY));
       setLivePin({ qId: dragRef.current.qId, x: newX, y: newY });
     };
     const onUp = (e) => {
@@ -161,8 +164,10 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
       const { qId, origX, origY, startCX, startCY } = dragRef.current;
       const rect = getImageRect();
       if (!rect) return;
-      const newX = Math.max(0, Math.min(92, origX + (e.clientX - startCX) / rect.width * 100));
-      const newY = Math.max(0, Math.min(92, origY + (e.clientY - startCY) / rect.height * 100));
+      const deltaX = (e.clientX - startCX) / rect.width * 100;
+      const deltaY = (e.clientY - startCY) / rect.height * 100;
+      const newX = Math.max(0, Math.min(100 - (pinBoxWidth / rect.width) * 100, origX + deltaX));
+      const newY = Math.max(0, Math.min(100 - (26 / rect.height) * 100, origY + deltaY));
       onUpdateQuestion(group.id, qId, { pinX: newX, pinY: newY });
       dragRef.current = null;
       setLivePin(null);
@@ -173,7 +178,7 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onUp);
     };
-  }, [group.id, onUpdateQuestion]);
+  }, [group.id, onUpdateQuestion, pinBoxWidth]);
 
   const addPin = (e) => {
     if (typeof e.button === 'number' && e.button !== 0) return;
@@ -184,8 +189,9 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
     if (dragRef.current) return;
     const rect = getImageRect();
     if (!rect) return;
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    
+    // Use accurate position calculation
+    const { x, y } = calculatePinPosition(e.clientX, e.clientY, rect, pinBoxWidth, 26);
 
     const maxQuestionNumber = getNextQuestionNumber(questions) - 1;
 
@@ -195,8 +201,8 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
       questionNumber: maxQuestionNumber + 1,
       questionText: '',
       answerText: '',
-      pinX: Math.max(0, Math.min(92, x)),
-      pinY: Math.max(0, Math.min(92, y)),
+      pinX: x,
+      pinY: y,
       questionMode: 'image-pin',
       questionSection: IMAGE_NOTE_SECTIONS.IMAGE,
       questionType: { typeName: 'FILL_IN_BLANK' },
@@ -359,15 +365,11 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
           <input type="radio" checked={imagePosition === 'bottom'} onChange={() => onUpdate(group.id, { imagePosition: 'bottom' })} />
           Ảnh dưới
         </label>
-        <div style={{ marginLeft: 'auto', color: '#475569' }}>
-          Chiều cao ảnh cố định: <strong>{imageHeight}px</strong>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, color: '#475569' }}>
+          <strong>Ảnh cố định: 90%</strong>
+          <span>·</span>
+          <strong>Cỡ ô cố định: {pinBoxWidth}px</strong>
         </div>
-        <label>
-          Cỡ ô: <strong>{pinBoxWidth}px</strong>
-          <input type="range" min={30} max={120} value={pinBoxWidth}
-            onChange={(e) => onUpdate(group.id, { pinBoxWidth: Number(e.target.value) })}
-            style={{ marginLeft: 4, width: 80 }} />
-        </label>
       </div>
 
       {/* Image canvas with pins */}
@@ -375,7 +377,7 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
         style={{ cursor: group.imageUrl ? 'default' : 'default' }}>
         {group.imageUrl ? (
           <div ref={imageWrapRef}
-            style={{ ...getLockedImageFrameStyle('IMAGE_NOTE_FORM'), cursor: 'crosshair', userSelect: 'none', WebkitUserSelect: 'none' }}
+            style={{ ...getLockedImageFrameStyle('IMAGE_NOTE_FORM', imageWidth), cursor: 'crosshair', userSelect: 'none', WebkitUserSelect: 'none' }}
             onDoubleClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -386,9 +388,10 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
               onDragStart={(e) => e.preventDefault()} />
             {questions.filter(isImagePinQuestion).map((q) => {
               const displayNumber = displayNumberById.get(q.id) ?? q.questionNumber;
-              const x = livePin?.qId === q.id ? livePin.x : (q.pinX ?? 10);
-              const y = livePin?.qId === q.id ? livePin.y : (q.pinY ?? 10);
-              const boxWidth = Math.max(56, pinBoxWidth);
+              const normalizedQ = normalizePinPosition(q);
+              const x = livePin?.qId === q.id ? livePin.x : normalizedQ.pinX;
+              const y = livePin?.qId === q.id ? livePin.y : normalizedQ.pinY;
+              
               return (
                 <ImageNotePinBox
                   key={q.id}
@@ -398,8 +401,8 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
                   top={`${y}%`}
                   value=""
                   active={selectedQuestionId === q.id}
-                  boxWidth={boxWidth}
-                  blankWidth={Math.max(26, boxWidth - 68)}
+                  boxWidth={pinBoxWidth}
+                  blankWidth={Math.max(26, pinBoxWidth - 68)}
                   readOnly
                   questionText={q.questionText || ''}
                   showQuestionText={Boolean(q.questionText)}
@@ -408,7 +411,7 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
                   onMouseDown={(e) => {
                     e.stopPropagation();
                     e.preventDefault();
-                    dragRef.current = { qId: q.id, origX: q.pinX ?? 10, origY: q.pinY ?? 10, startCX: e.clientX, startCY: e.clientY };
+                    dragRef.current = { qId: q.id, origX: normalizedQ.pinX, origY: normalizedQ.pinY, startCX: e.clientX, startCY: e.clientY };
                   }}
                   onDelete={() => onDeleteQuestion(group.id, q.id)}
                 />

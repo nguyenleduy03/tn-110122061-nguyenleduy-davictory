@@ -18,7 +18,7 @@ public interface QuestionOptionRepository extends JpaRepository<QuestionOption, 
     @Transactional
     @Modifying
     @Query("DELETE FROM QuestionOption qo WHERE qo.question.questionGroup.id = :groupId")
-    void deleteByQuestionGroupId(@Param("groupId") Long groupId);
+    int deleteByQuestionGroupId(@Param("groupId") Long groupId);
 
     List<QuestionOption> findByQuestionIdAndIsCorrectTrue(Long questionId);
 }

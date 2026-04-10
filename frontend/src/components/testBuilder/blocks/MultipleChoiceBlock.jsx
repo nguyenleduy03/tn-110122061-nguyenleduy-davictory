@@ -159,8 +159,14 @@ const MultipleChoiceBlock = ({ group, onUpdate, onDelete, onSelect, selected, dr
 
             <div className="exam-mc-options">
               {opts.map((opt, i) => {
-                const isImg = opt.optionMode === 'image';
                 const label = opt.optionLabel || String.fromCharCode(65 + i);
+                const optionImageUrl = String(opt.optionImageUrl || opt.imageUrl || '').trim();
+                const plainOptionText = String(opt.optionText || '')
+                  .replace(/<[^>]*>/g, ' ')
+                  .replace(/&nbsp;/gi, ' ')
+                  .trim();
+                const shouldFallbackToImage = Boolean(optionImageUrl) && (!opt.optionMode || plainOptionText === '');
+                const isImg = opt.optionMode === 'image' || shouldFallbackToImage;
 
                 return (
                   <div key={opt.id || `opt-${i}`}
@@ -171,9 +177,9 @@ const MultipleChoiceBlock = ({ group, onUpdate, onDelete, onSelect, selected, dr
                     {isImg ? (
                       <div className="exam-mc-opt-image-cell">
                         <ImageUploadZone
-                          imageUrl={opt.optionImageUrl}
-                          onImageChange={(url) => handleUpdateOption(q, i, { optionImageUrl: url })}
-                          onImageDelete={() => handleUpdateOption(q, i, { optionImageUrl: '' })}
+                          imageUrl={optionImageUrl}
+                          onImageChange={(url) => handleUpdateOption(q, i, { optionImageUrl: url, imageUrl: url, optionMode: 'image' })}
+                          onImageDelete={() => handleUpdateOption(q, i, { optionImageUrl: '', imageUrl: '' })}
                           placeholder={`URL ảnh cho ${label}...`}
                           module={module}
                           assetLabel="MCQ_OPTION"

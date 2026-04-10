@@ -115,13 +115,32 @@ function resolveImageWidthPercent(value, fallback = 100) {
   return fallback;
 }
 
-function resolvePinBoxWidthPx(value, fallback = 60) {
+function resolvePinBoxWidthPx(value, fallback = 120) {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
   if (typeof value === 'string') {
     const parsed = Number.parseFloat(value.replace('px', '').trim());
     if (Number.isFinite(parsed)) return parsed;
   }
   return fallback;
+}
+
+function resolvePinPercent(value) {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string') {
+    const parsed = Number.parseFloat(value.replace('%', '').trim());
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return null;
+}
+
+function countCompletionBlankTokens(text = '') {
+  const value = String(text || '');
+  if (!value) return 0;
+
+  const tokenMatches = value.match(/\[\s*(?:blank|\d+)\s*\]|\(ô trống\)/gi) || [];
+  const richBlankMatches = value.match(/data-blank=["']true["']/gi) || [];
+
+  return Math.max(tokenMatches.length, richBlankMatches.length);
 }
 
 function resolveDbQuestionNumber(question) {
@@ -219,6 +238,8 @@ async function transformGroup(baseUrl, group) {
   } else if (contentType === 'MATCHING_HEADING' || contentType === 'MATCHING_HEADINGS' || contentType === 'MATCHING_PARA') {
     feType = 'matching_heading';
   } else if (contentType === 'DRAG_MATCHING') {
+    feType = 'drag_drop_group';
+  } else if (contentType === 'FILL_BLANK_DRAG' || contentType === 'SENTENCE_COMPLETION_DRAG' || contentType === 'SUMMARY_COMPLETION_DRAG' || contentType === 'NOTE_COMPLETION_DRAG') {
     feType = 'drag_drop_group';
   } else if (contentType === 'MATCHING' || contentType === 'MATCHING_INFO') {
     feType = 'matching_info';
@@ -522,11 +543,32 @@ async function transformGroup(baseUrl, group) {
         numberRange = Array.from({ length: questionCount }, (_, i) => num + i);
       }
 
-      const optionsList = (q.options || []).length > 0
-        ? q.options.map(o => o.optionText || o.optionLabel || '')
-        : (feType === 'tfng' ? ['TRUE', 'FALSE', 'NOT GIVEN']
-          : feType === 'ynng' ? ['YES', 'NO', 'NOT GIVEN']
-            : []);
+      let optionsList = [];
+      if (feType === 'multiple-choice') {
+        optionsList = (q.options || []).map((o, idx) => {
+          const optionLabel = String(o?.optionLabel || String.fromCharCode(65 + idx));
+          const optionText = String(o?.optionText || '');
+          const imageUrl = String(o?.imageUrl || '').trim();
+          const plainOptionText = optionText
+            .replace(/<[^>]*>/g, ' ')
+            .replace(/&nbsp;/gi, ' ')
+            .trim();
+
+          return {
+            optionLabel,
+            optionText,
+            imageUrl,
+            optionMode: imageUrl && !plainOptionText ? 'image' : 'text',
+            value: optionText || optionLabel,
+          };
+        });
+      } else {
+        optionsList = (q.options || []).length > 0
+          ? q.options.map(o => o.optionText || o.optionLabel || '')
+          : (feType === 'tfng' ? ['TRUE', 'FALSE', 'NOT GIVEN']
+            : feType === 'ynng' ? ['YES', 'NO', 'NOT GIVEN']
+              : []);
+      }
 
       let correctAnswer = null;
       if (isMultiSelect) {
@@ -603,7 +645,8 @@ async function transformGroup(baseUrl, group) {
     let imagePosition = null;
     let topNoteText = '';
     let bottomNoteText = '';
-    let pinBoxWidth = resolvePinBoxWidthPx(group.pinBoxWidth, 60);
+    let pinBoxWidth = resolvePinBoxWidthPx(group.pinBoxWidth, 120);
+    const imageNotePinCoordinateMap = new Map();
 
     if (contentType === 'IMAGE_NOTE_FORM' && group.passageText) {
       try {
@@ -615,6 +658,17 @@ async function transformGroup(baseUrl, group) {
         imagePosition = parsed.imagePosition || 'top';
         imageWidth = resolveImageWidthPercent(parsed.imageWidth, imageWidth);
         pinBoxWidth = resolvePinBoxWidthPx(parsed.pinBoxWidth, pinBoxWidth);
+
+        if (Array.isArray(parsed.pinCoordinates)) {
+          parsed.pinCoordinates.forEach((entry) => {
+            const questionNumber = Number(entry?.questionNumber);
+            const pinX = resolvePinPercent(entry?.pinX);
+            const pinY = resolvePinPercent(entry?.pinY);
+
+            if (!Number.isFinite(questionNumber) || pinX === null || pinY === null) return;
+            imageNotePinCoordinateMap.set(questionNumber, { pinX, pinY });
+          });
+        }
 
         const imageHtml = imageUrl
           ? `<div class="image-note-form-image" style="margin: 16px auto; text-align: center;"><img src="${imageUrl}" alt="Question diagram" style="max-width: ${imageWidth}%; height: auto; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" /></div>`
@@ -639,6 +693,11 @@ async function transformGroup(baseUrl, group) {
     const subQuestions = Array.from({ length: totalBlanks }, (_, idx) => {
       const q = orderedQuestions[idx] || null;
       const num = q ? resolveDbQuestionNumber(q) : null;
+      const mappedPin = Number.isFinite(num)
+        ? imageNotePinCoordinateMap.get(num)
+        : null;
+      const pinX = resolvePinPercent(mappedPin?.pinX ?? q?.pinX);
+      const pinY = resolvePinPercent(mappedPin?.pinY ?? q?.pinY);
       const correctAnswer = q ? ((q.answers || [])[0]?.answerText || '') : '';
       const id = q ? `q${q.id}` : `tmp-note-${group.questionGroupId || group.id}-${idx + 1}`;
       return {
@@ -646,10 +705,12 @@ async function transformGroup(baseUrl, group) {
         number: num,
         questionNumber: num,
         correctAnswer,
-        top: q?.pinY !== null && q?.pinY !== undefined ? `${q.pinY}%` : null,
-        left: q?.pinX !== null && q?.pinX !== undefined ? `${q.pinX}%` : null,
+        pinX,
+        pinY,
+        top: pinY !== null ? `${pinY}%` : null,
+        left: pinX !== null ? `${pinX}%` : null,
         questionSection: q?.questionSection || null,
-        questionMode: q?.questionMode || (q?.pinX !== null && q?.pinX !== undefined ? 'image-pin' : 'note-blank'),
+        questionMode: q?.questionMode || (pinX !== null && pinY !== null ? 'image-pin' : 'note-blank'),
       };
     });
 
@@ -675,11 +736,13 @@ async function transformGroup(baseUrl, group) {
   if (feType === 'summary-completion') {
     const summaryText = group.passageText || group.title || '';
 
-    const blankCount = (summaryText.match(/\[blank\]/gi) || []).length;
+    const blankCount = countCompletionBlankTokens(summaryText);
+    const fallbackStartNumber = Number.isFinite(Number(group.fromQuestion)) ? Number(group.fromQuestion) : 1;
     const totalBlanks = Math.max(blankCount, questions.length);
     const subQuestions = Array.from({ length: totalBlanks }, (_, idx) => {
       const q = questions[idx] || null;
-      const num = q ? resolveDbQuestionNumber(q) : null;
+      const numFromQuestion = q ? resolveDbQuestionNumber(q) : null;
+      const num = Number.isFinite(numFromQuestion) ? numFromQuestion : (fallbackStartNumber + idx);
       const correctAnswer = q ? ((q.answers || [])[0]?.answerText || '') : '';
       const id = q ? `q${q.id}` : `tmp-summary-${group.questionGroupId || group.id}-${idx + 1}`;
       return { id, number: num, correctAnswer };
@@ -722,11 +785,13 @@ async function transformGroup(baseUrl, group) {
       }
     }
 
-    const blankCount = (summaryText.match(/\[blank\]/gi) || []).length;
+    const blankCount = countCompletionBlankTokens(summaryText);
+    const fallbackStartNumber = Number.isFinite(Number(group.fromQuestion)) ? Number(group.fromQuestion) : 1;
     const totalBlanks = Math.max(blankCount, questions.length);
     const subQuestions = Array.from({ length: totalBlanks }, (_, idx) => {
       const q = questions[idx] || null;
-      const num = q ? resolveDbQuestionNumber(q) : null;
+      const numFromQuestion = q ? resolveDbQuestionNumber(q) : null;
+      const num = Number.isFinite(numFromQuestion) ? numFromQuestion : (fallbackStartNumber + idx);
       const correctAnswer = q ? ((q.answers || [])[0]?.answerText || '') : '';
       const id = q ? `q${q.id}` : `tmp-summary-select-${group.questionGroupId || group.id}-${idx + 1}`;
       return { id, number: num, correctAnswer };
@@ -878,7 +943,7 @@ async function transformGroup(baseUrl, group) {
       rightTitle: formatTextWithWhitespace(parsedMapMeta.rightTitle || ''),
       imageUrl: group.imageUrl || null,
       imageWidth: resolveImageWidthPercent(parsedMapMeta.imageWidth),
-      pinBoxWidth: resolvePinBoxWidthPx(parsedMapMeta.pinBoxWidth, 60),
+      pinBoxWidth: resolvePinBoxWidthPx(parsedMapMeta.pinBoxWidth, 120),
       constrainHalfPage: Boolean(parsedMapMeta.constrainHalfPage),
       allowOptionReuse: (typeof parsedMapMeta.allowOptionReuse === 'boolean') ? parsedMapMeta.allowOptionReuse : true,
       bankOptions,
@@ -926,6 +991,9 @@ async function transformGroup(baseUrl, group) {
       if (bankOptions.length === 0) {
         bankOptions = normalizeBank(parsedBank?.optionBank || group.optionBank || []);
       }
+      if (bankOptions.length === 0) {
+        bankOptions = normalizeBank((questions[0]?.options || []).map((opt) => opt?.optionText || opt?.optionLabel || ''));
+      }
     }
 
     const subQuestions = questions.map((q) => {
@@ -946,7 +1014,10 @@ async function transformGroup(baseUrl, group) {
     return [{
       id: `group-${group.questionGroupId || group.id}`,
       type: feType,
+      sourceContentType: contentType,
       questionTypeCode: typeCode,
+      fromQuestion: Number.isFinite(Number(group.fromQuestion)) ? Number(group.fromQuestion) : null,
+      toQuestion: Number.isFinite(Number(group.toQuestion)) ? Number(group.toQuestion) : null,
       leftHeader: formatTextWithWhitespace(parsedBank?.leftTitle || group.leftTitle || 'Questions'),
       rightHeader: formatTextWithWhitespace(parsedBank?.rightTitle || group.rightTitle || 'Options'),
       allowOptionReuse: (typeof parsedBank?.allowOptionReuse === 'boolean') ? parsedBank.allowOptionReuse : true,

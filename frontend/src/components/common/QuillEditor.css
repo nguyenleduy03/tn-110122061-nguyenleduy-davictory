@@ -1,0 +1,181 @@
+.custom-toolbar {
+  border: 1px solid #d1d5db;
+  border-bottom: 1px solid #9ca3af;
+  background: linear-gradient(to bottom, #ffffff, #f3f4f6);
+  padding: 10px 12px;
+  border-radius: 6px 6px 0 0;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.custom-toolbar .toolbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
+.custom-toolbar .ql-formats {
+  display: inline-flex;
+  gap: 2px;
+  padding: 0 6px;
+  border-right: 1px solid #d1d5db;
+  align-items: center;
+}
+
+.custom-toolbar .ql-formats:last-child {
+  border-right: none;
+}
+
+.custom-toolbar button {
+  width: 32px !important;
+  height: 28px !important;
+  padding: 4px !important;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: transparent;
+  font-weight: 600;
+  font-size: 13px;
+  transition: all 0.15s;
+}
+
+.custom-toolbar button:hover {
+  background: #e5e7eb;
+  border-color: #d1d5db;
+}
+
+.custom-toolbar button.ql-active {
+  background: #dbeafe;
+  border-color: #3b82f6;
+  color: #1e40af;
+}
+
+.custom-toolbar select {
+  height: 28px;
+  border-radius: 3px;
+  border: 1px solid #d1d5db;
+  padding: 0 24px 0 8px;
+  background: white;
+  font-size: 13px;
+  min-width: 100px;
+}
+
+.custom-toolbar .ql-lineheight {
+  min-width: 80px;
+}
+
+.custom-toolbar select:hover {
+  border-color: #9ca3af;
+}
+
+.custom-toolbar select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.ql-picker.ql-background .ql-picker-label::before,
+.ql-picker.ql-background .ql-picker-item::before {
+  content: '🎨';
+}
+
+.ql-picker.ql-background .ql-picker-item[data-value="#ffeb3b"]::before { background: #ffeb3b; }
+.ql-picker.ql-background .ql-picker-item[data-value="#4caf50"]::before { background: #4caf50; }
+.ql-picker.ql-background .ql-picker-item[data-value="#2196f3"]::before { background: #2196f3; }
+.ql-picker.ql-background .ql-picker-item[data-value="#ff9800"]::before { background: #ff9800; }
+.ql-picker.ql-background .ql-picker-item[data-value="#e91e63"]::before { background: #e91e63; }
+.ql-picker.ql-background .ql-picker-item[data-value="#9c27b0"]::before { background: #9c27b0; }
+.ql-picker.ql-background .ql-picker-item[data-value="#00bcd4"]::before { background: #00bcd4; }
+.ql-picker.ql-background .ql-picker-item[data-value="#8bc34a"]::before { background: #8bc34a; }
+.ql-picker.ql-background .ql-picker-item[data-value="#ffc107"]::before { background: #ffc107; }
+.ql-picker.ql-background .ql-picker-item[data-value="#f44336"]::before { background: #f44336; }
+
+.quill {
+  border: 1px solid #d1d5db;
+  border-radius: 0 0 6px 6px;
+  background: white;
+}
+
+.ql-container {
+  border: none !important;
+  font-size: 14px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.ql-editor {
+  min-height: 150px;
+  padding: 16px;
+  line-height: 1.6;
+}
+
+.ql-editor.ql-blank::before {
+  color: #9ca3af;
+  font-style: normal;
+}
+
+.ql-better-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.ql-better-table td,
+.ql-better-table th {
+  border: 1px solid #d1d5db;
+  padding: 8px 12px;
+  min-width: 50px;
+}
+
+.ql-editor .katex {
+  font-size: 1.1em;
+}
+
+.ql-editor hr {
+  border: none;
+  border-top: 2px solid #d1d5db;
+  margin: 16px 0;
+}
+
+.ql-editor h1 { font-size: 2em; font-weight: 700; margin: 0.67em 0; }
+.ql-editor h2 { font-size: 1.5em; font-weight: 600; margin: 0.75em 0; }
+.ql-editor h3 { font-size: 1.25em; font-weight: 600; margin: 0.83em 0; }
+.ql-editor h4 { font-size: 1.1em; font-weight: 600; margin: 1em 0; }
+.ql-editor h5 { font-size: 1em; font-weight: 600; margin: 1.17em 0; }
+.ql-editor h6 { font-size: 0.9em; font-weight: 600; margin: 1.33em 0; }
+
+.ql-editor blockquote {
+  border-left: 4px solid #3b82f6;
+  padding-left: 16px;
+  margin: 16px 0;
+  color: #4b5563;
+}
+
+.ql-editor code {
+  background: #f3f4f6;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: 'Courier New', monospace;
+}
+
+.ql-editor pre {
+  background: #1f2937;
+  color: #f3f4f6;
+  padding: 12px;
+  border-radius: 6px;
+  overflow-x: auto;
+}
+
+.editor-stats {
+  display: flex;
+  gap: 12px;
+  padding: 8px 16px;
+  background: #f9fafb;
+  border: 1px solid #d1d5db;
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  font-size: 13px;
+  color: #6b7280;
+  align-items: center;
+}
+
+.editor-stats span {
+  font-weight: 500;
+}

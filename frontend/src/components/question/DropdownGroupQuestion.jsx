@@ -1,5 +1,5 @@
 import React from 'react';
-import { formatTextWithWhitespace } from '../../utils/textFormatters';
+import { formatTextWithWhitespace, composeQuestionInstructionHtml } from '../../utils/textFormatters';
 import { isQuestionMetaLabel } from '../../utils/questionLabelUtils';
 import BookmarkToggle from '../common/BookmarkToggle';
 import { resolveDrivePreviewUrl } from '../../utils/mediaUrl';
@@ -23,6 +23,21 @@ const DropdownGroupQuestion = ({
   toggleBookmark,
   isReview,
 }) => {
+  const normalizeComparableText = (htmlValue) => String(htmlValue || '')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/\s*([.,!?;:])\s*/g, '$1')
+    .trim()
+    .toLowerCase();
+
+  const isLikelyDuplicateText = (leftValue, rightValue) => {
+    if (!leftValue || !rightValue) return false;
+    return leftValue === rightValue
+      || leftValue.includes(rightValue)
+      || rightValue.includes(leftValue);
+  };
+
   const resolveText = (value) => {
     if (typeof value === 'string') return value;
     if (value && typeof value === 'object') {
@@ -71,21 +86,31 @@ const DropdownGroupQuestion = ({
   console.log('DropdownGroupQuestion imageWidth:', group.imageWidth, 'imageUrl:', group.imageUrl);
 
   const headingRaw = sanitizeInstructionHtml(group.heading || group.title || '');
-  const instructionParts = [group.mainInstruction, group.subInstruction]
-    .map(resolveText)
-    .map(sanitizeInstructionHtml)
-    .map((item) => String(item || '').trim())
-    .filter(Boolean)
-    .filter((item) => hasMeaningfulText(item))
-    .filter((item) => !isQuestionMetaLabel(item));
-  const instructionRaw = instructionParts.length ? '' : sanitizeInstructionHtml(group.instruction || '');
   const optionsTableTitleRaw = sanitizeInstructionHtml(group.optionsTableTitle || '');
   const questionTitleRaw = sanitizeInstructionHtml(group.questionTitle || '');
 
   const headingText = (!hasMeaningfulText(headingRaw) || isQuestionMetaLabel(headingRaw)) ? '' : headingRaw;
-  const instructionText = (!hasMeaningfulText(instructionRaw) || isQuestionMetaLabel(instructionRaw)) ? '' : instructionRaw;
+  const splitInstructionHtml = composeQuestionInstructionHtml(
+    group.mainInstruction,
+    group.subInstruction,
+  );
+  const combinedInstructionHtml = composeQuestionInstructionHtml(
+    group.instruction,
+    group.instructions,
+  );
+  const instructionHtml = splitInstructionHtml || combinedInstructionHtml;
   const optionsTableTitleText = (!hasMeaningfulText(optionsTableTitleRaw) || isQuestionMetaLabel(optionsTableTitleRaw)) ? '' : optionsTableTitleRaw;
-  const questionTitleText = (!hasMeaningfulText(questionTitleRaw) || isQuestionMetaLabel(questionTitleRaw)) ? '' : questionTitleRaw;
+  const questionTitleComparable = normalizeComparableText(questionTitleRaw);
+  const headingComparable = normalizeComparableText(headingText);
+  const instructionComparable = normalizeComparableText(instructionHtml);
+  const questionTitleText = (!hasMeaningfulText(questionTitleRaw) || isQuestionMetaLabel(questionTitleRaw))
+    ? ''
+    : (
+      isLikelyDuplicateText(questionTitleComparable, headingComparable)
+        || isLikelyDuplicateText(questionTitleComparable, instructionComparable)
+        ? ''
+        : questionTitleRaw
+    );
   const configuredImageWidth = resolveImageWidthPercent(group.imageWidth);
   const showOptionsLegend = options.length > 0 && !group.hideOptionsTable;
   const layoutRef = React.useRef(null);
@@ -137,20 +162,12 @@ const DropdownGroupQuestion = ({
           dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(headingText) }}
         />
       )}
-      {instructionParts.length > 0
-        ? instructionParts.map((instructionPart, idx) => (
-          <div
-            key={`dropdown-instruction-${idx}`}
-            className="question-instruction"
-            dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(instructionPart) }}
-          />
-        ))
-        : instructionText && (
-          <div
-            className="question-instruction"
-            dangerouslySetInnerHTML={{ __html: formatTextWithWhitespace(instructionText) }}
-          />
-        )}
+      {instructionHtml && (
+        <div
+          className="question-instruction"
+          dangerouslySetInnerHTML={{ __html: instructionHtml }}
+        />
+      )}
 
       {group.imageUrl && (
         <div className="mcq-dropdown-group-image" style={{ width: `${configuredImageWidth}%` }}>

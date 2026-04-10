@@ -5,8 +5,9 @@ import RichInput from '../../common/RichInput';
 import RichBlankEditor from './shared/RichBlankEditor';
 import ImageUploadZone from './shared/ImageUploadZone';
 import { resolveDrivePreviewUrl } from '../../../utils/mediaUrl';
+import { sanitizeRichPasteHtml, serializeContentEditableHtml } from '../../../utils/textFormatters';
 import { toRoman, loadImageFile, toPlainText, countBlankTokens, getNextQuestionNumber, isImagePinQuestion, isNoteBlankQuestion, getQuestionWeight } from './shared/blockHelpers';
-import { getLockedImageQuestionLayout, getLockedImageFrameStyle, getLockedImageStyle } from '../../../utils/imageQuestionLayout';
+import { getLockedImageQuestionLayout, getLockedImageFrameStyle, getLockedImageStyle, resolveImageWidthPercent, clampImagePinPercent } from '../../../utils/imageQuestionLayout';
 import { useTabIndent } from '../../../hooks/useTabIndent';
 
 // Bulk Answer Import Component
@@ -277,8 +278,11 @@ function MapLabellingBlock({ group, onUpdate, onDelete, onSelect, selected, drag
   const lockedLayout = getLockedImageQuestionLayout('MAP_LABELLING');
   const questions = group.questions ?? [];
   const options = group.optionBank ?? [];
-  const imageMaxHeight = lockedLayout.imageMaxHeight;
-  const pinBoxWidth = group.pinBoxWidth || 60;
+  const allowOptionReuse = group.allowOptionReuse !== false;
+  const optionCount = options.filter((opt) => toPlainText(opt?.text || '').trim()).length;
+  const dragSlotCount = questions.length;
+  const autoKeepUsedOptionSlots = optionCount > dragSlotCount;
+  const imageWidth = resolveImageWidthPercent(group.imageWidth, lockedLayout.defaultImageWidth ?? 100);
 
   const getImageRect = () => imageWrapRef.current?.getBoundingClientRect() || null;
 
@@ -288,8 +292,8 @@ function MapLabellingBlock({ group, onUpdate, onDelete, onSelect, selected, drag
       const { origX, origY, startCX, startCY } = dragRef.current;
       const rect = getImageRect();
       if (!rect) return;
-      const newX = Math.max(0, Math.min(92, origX + (e.clientX - startCX) / rect.width * 100));
-      const newY = Math.max(0, Math.min(92, origY + (e.clientY - startCY) / rect.height * 100));
+      const newX = clampImagePinPercent(origX + (e.clientX - startCX) / rect.width * 100, rect.width, 120);
+      const newY = clampImagePinPercent(origY + (e.clientY - startCY) / rect.height * 100, rect.height, 26);
       setLivePin({ qId: dragRef.current.qId, x: newX, y: newY });
     };
     const onUp = (e) => {
@@ -297,8 +301,8 @@ function MapLabellingBlock({ group, onUpdate, onDelete, onSelect, selected, drag
       const { qId, origX, origY, startCX, startCY } = dragRef.current;
       const rect = getImageRect();
       if (!rect) return;
-      const newX = Math.max(0, Math.min(92, origX + (e.clientX - startCX) / rect.width * 100));
-      const newY = Math.max(0, Math.min(92, origY + (e.clientY - startCY) / rect.height * 100));
+      const newX = clampImagePinPercent(origX + (e.clientX - startCX) / rect.width * 100, rect.width, 120);
+      const newY = clampImagePinPercent(origY + (e.clientY - startCY) / rect.height * 100, rect.height, 26);
       onUpdateQuestion(group.id, qId, { pinX: newX, pinY: newY });
       dragRef.current = null;
       setLivePin(null);
@@ -328,8 +332,8 @@ function MapLabellingBlock({ group, onUpdate, onDelete, onSelect, selected, drag
       questionNumber: questions.length + 1,
       questionText: '',
       answerText: '',
-      pinX: Math.max(0, Math.min(92, x)),
-      pinY: Math.max(0, Math.min(92, y)),
+      pinX: clampImagePinPercent(x, rect.width, 120),
+      pinY: clampImagePinPercent(y, rect.height, 26),
       questionType: { typeName: 'FILL_IN_BLANK' },
     };
     onUpdate(group.id, { questions: [...questions, newQ] });
@@ -357,6 +361,20 @@ function MapLabellingBlock({ group, onUpdate, onDelete, onSelect, selected, drag
           onChange={(html) => onUpdate(group.id, { instructions: html })}
           placeholder="VD: Label the map. Choose the correct answer and move it into the gap."
         />
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginTop: 8, fontSize: 12, color: '#374151' }}>
+          <input
+            type="checkbox"
+            checked={allowOptionReuse}
+            onChange={(e) => onUpdate(group.id, { allowOptionReuse: e.target.checked })}
+            onClick={(e) => e.stopPropagation()}
+          />
+          Cho phép dùng lại đáp án trong lúc làm bài
+        </label>
+        <div style={{ marginTop: 4, fontSize: 11, color: autoKeepUsedOptionSlots ? '#047857' : '#6b7280' }}>
+          {autoKeepUsedOptionSlots
+            ? `Đang tự động giữ slot trống và ẩn đáp án đã dùng vì số đáp án > số ô kéo-thả (${optionCount}/${dragSlotCount}).`
+            : `Hiệu ứng giữ slot trống chỉ kích hoạt khi số đáp án > số ô kéo-thả (${optionCount}/${dragSlotCount}).`}
+        </div>
       </div>
 
       {/* Upload controls */}
@@ -378,22 +396,23 @@ function MapLabellingBlock({ group, onUpdate, onDelete, onSelect, selected, drag
       {/* Size controls */}
       <div style={{ display: 'flex', gap: 12, marginTop: 8, marginBottom: 8 }} onClick={(e) => e.stopPropagation()}>
         <div style={{ flex: 1 }}>
-          <div style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4, color: '#555' }}>
-            Chiều cao ảnh cố định: {imageMaxHeight}px
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, fontWeight: 600, marginBottom: 4, color: '#555' }}>
+            <span>Chiều rộng ảnh</span>
+            <input
+              type="range"
+              min="30"
+              max="100"
+              value={imageWidth}
+              onChange={(e) => onUpdate(group.id, { imageWidth: Number(e.target.value) })}
+              style={{ flex: 1 }}
+            />
+            <strong>{imageWidth}%</strong>
           </div>
         </div>
         <div style={{ flex: 1 }}>
           <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4, color: '#555' }}>
-            Kích thước ô: {group.pinBoxWidth ?? 60}px
+            Kích thước ô cố định: 120px
           </label>
-          <input
-            type="range"
-            min="40"
-            max="120"
-            style={{ width: '100%' }}
-            value={group.pinBoxWidth ?? 60}
-            onChange={(e) => onUpdate(group.id, { pinBoxWidth: Number(e.target.value) })}
-          />
         </div>
       </div>
 
@@ -402,13 +421,19 @@ function MapLabellingBlock({ group, onUpdate, onDelete, onSelect, selected, drag
         style={{ cursor: group.imageUrl ? 'crosshair' : 'default' }}
         onMouseDown={addPin}>
         {group.imageUrl ? (
-          <div ref={imageWrapRef} style={{ ...getLockedImageFrameStyle('MAP_LABELLING') }}>
+          <div ref={imageWrapRef} style={{ ...getLockedImageFrameStyle('MAP_LABELLING', imageWidth) }}>
             <img src={resolveDrivePreviewUrl(group.imageUrl)} alt="map" draggable={false}
               style={{ ...getLockedImageStyle('MAP_LABELLING'), pointerEvents: 'none' }} />
             {questions.map((q) => {
               const x = livePin?.qId === q.id ? livePin.x : (q.pinX ?? 10);
               const y = livePin?.qId === q.id ? livePin.y : (q.pinY ?? 10);
-              const pinWidth = Math.max(56, Number(pinBoxWidth) || 60);
+              const pinWidth = 120;
+              
+              // Debug log for position consistency
+              if (process.env.NODE_ENV === 'development') {
+                console.log(`MapPin ${q.questionNumber}: stored(${q.pinX}, ${q.pinY}) -> display(${x}, ${y})`);
+              }
+              
               return (
                 <div key={q.id}
                   className={`exam-ml-pin${selectedQuestionId === q.id ? ' selected' : ''}`}
@@ -543,7 +568,7 @@ function MapLabellingBlock({ group, onUpdate, onDelete, onSelect, selected, drag
 
 // ---- Table Completion Block ----
 // Each cell uses TcCellEditor: contentEditable with drag/click-at-cursor to insert
-// globally-numbered blank chips.  Data model unchanged: cells store "[blank]" text.
+// globally-numbered blank chips. Cells preserve rich HTML and keep "[blank]" tokens.
 
 // ---- Flow-chart helpers ----
 function syncFcQuestions(nodes, currentQs, fromQ) {
@@ -587,26 +612,36 @@ function TcCellEditor({ value, onChange, startQNum }) {
 
   const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
+  const createChipHtml = (num) => (
+    `<span class="rbe-blank rbe-blank-indigo" contenteditable="false" data-blank="true">`
+    + `<span class="rbe-blank-num">${num}</span>`
+    + `<button class="rbe-blank-del" data-del="true" type="button">×</button></span>`
+  );
+
   const toHTML = (text, firstNum) => {
-    if (!text) return '';
+    const raw = String(text || '');
+    if (!raw) return '';
     let n = firstNum - 1;
-    return esc(text).replace(/\[blank\]/gi, () => {
+    if (raw.includes('<')) {
+      return raw.replace(/\[blank\]/gi, () => {
+        n++;
+        return createChipHtml(n);
+      });
+    }
+    return esc(raw).replace(/\n/g, '<br/>').replace(/\[blank\]/gi, () => {
       n++;
-      return `<span class="rbe-blank rbe-blank-indigo" contenteditable="false" data-blank="true">`
-        + `<span class="rbe-blank-num">${n}</span>`
-        + `<button class="rbe-blank-del" data-del="true" type="button">×</button></span>`;
+      return createChipHtml(n);
     });
   };
 
   const toText = (el) => {
-    let out = '';
-    for (const node of el.childNodes) {
-      if (node.nodeType === 3) out += node.textContent;
-      else if (node.nodeName === 'BR') out += '\n';
-      else if (node.dataset?.blank === 'true') out += '[blank]';
-      else out += toText(node);
-    }
-    return out;
+    if (!el) return '';
+    const clone = el.cloneNode(true);
+    clone.querySelectorAll('[data-blank="true"]').forEach((node) => {
+      node.replaceWith(document.createTextNode('[blank]'));
+    });
+    clone.querySelectorAll('[data-del="true"], .rbe-blank-del, .rbe-blank-num').forEach((node) => node.remove());
+    return serializeContentEditableHtml(clone);
   };
 
   const renumber = () => {
@@ -679,7 +714,9 @@ function TcCellEditor({ value, onChange, startQNum }) {
         onInput={() => { renumber(); onChange(toText(editorRef.current)); }}
         onPaste={(e) => {
           e.preventDefault();
-          let text = e.clipboardData.getData('text/plain');
+          const pastedHtml = e.clipboardData.getData('text/html');
+          const pastedText = e.clipboardData.getData('text/plain');
+          let text = pastedHtml ? sanitizeRichPasteHtml(pastedHtml) : sanitizeRichPasteHtml(pastedText);
           // Tự động chuyển ký hiệu thành [blank]
           text = text.replace(/_{3,}|\.{3,}|-{3,}/g, '[blank]');
           // Convert thành HTML với chip
@@ -744,7 +781,15 @@ function TableCompletionBlock({ group, onUpdate, onDelete, onSelect, selected, d
     const newRows = tableRows.map((r) =>
       r.id === rowId ? { ...r, cells: { ...r.cells, [colId]: val } } : r
     );
-    syncAndSave(columns, newRows);
+
+    const oldBlankCount = (tableRows.find(r => r.id === rowId)?.cells?.[colId] ?? '').match(/\[blank\]/g)?.length ?? 0;
+    const newBlankCount = (val ?? '').match(/\[blank\]/g)?.length ?? 0;
+
+    if (oldBlankCount !== newBlankCount) {
+      syncAndSave(columns, newRows);
+    } else {
+      onUpdate(group.id, { tableRows: newRows, questions });
+    }
   };
 
   const addColumn = () => {
@@ -772,7 +817,8 @@ function TableCompletionBlock({ group, onUpdate, onDelete, onSelect, selected, d
   };
 
   const setColHeader = (colId, val) => {
-    onUpdate(group.id, { columns: columns.map((c) => c.id === colId ? { ...c, header: val } : c) });
+    const newCols = columns.map((c) => c.id === colId ? { ...c, header: val } : c);
+    onUpdate(group.id, { columns: newCols, questions });
   };
 
   const handleCellMouseDown = (rowId, colId, e) => {
@@ -848,6 +894,14 @@ function TableCompletionBlock({ group, onUpdate, onDelete, onSelect, selected, d
     const startRowIdx = tableRows.findIndex(r => r.id === startRowId);
     const startColIdx = columns.findIndex(c => c.id === startColId);
 
+    // Đếm số blank trước khi paste
+    let oldBlankCount = 0;
+    tableRows.forEach(row => {
+      Object.values(row.cells || {}).forEach(cell => {
+        oldBlankCount += (cell ?? '').match(/\[blank\]/g)?.length ?? 0;
+      });
+    });
+
     const newRows = [...tableRows];
     rows.forEach((row, ri) => {
       const targetRowIdx = startRowIdx + ri;
@@ -866,7 +920,20 @@ function TableCompletionBlock({ group, onUpdate, onDelete, onSelect, selected, d
       });
     });
 
-    syncAndSave(columns, newRows);
+    // Đếm số blank sau khi paste
+    let newBlankCount = 0;
+    newRows.forEach(row => {
+      Object.values(row.cells || {}).forEach(cell => {
+        newBlankCount += (cell ?? '').match(/\[blank\]/g)?.length ?? 0;
+      });
+    });
+
+    // Chỉ sync lại questions nếu số lượng blank thay đổi
+    if (oldBlankCount !== newBlankCount) {
+      syncAndSave(columns, newRows);
+    } else {
+      onUpdate(group.id, { tableRows: newRows, questions });
+    }
     setSelectedCells(new Set());
   };
 
@@ -1019,7 +1086,7 @@ function TableCompletionBlock({ group, onUpdate, onDelete, onSelect, selected, d
           rows={2}
           value={group.instructions || ''}
           placeholder="Complete the table. Write ONE WORD ONLY for each answer."
-          onChange={(html) => onUpdate(group.id, { instructions: html })}
+          onChange={(html) => onUpdate(group.id, { instructions: html, questions })}
         />
       </div>
 
@@ -1030,7 +1097,7 @@ function TableCompletionBlock({ group, onUpdate, onDelete, onSelect, selected, d
           style={{ width: '100%', fontWeight: 700, textAlign: 'center', fontSize: 13 }}
           value={group.tableTitle ?? ''}
           placeholder="Tiêu đề bảng (VD: Research findings)"
-          onChange={(e) => onUpdate(group.id, { tableTitle: e.target.value })}
+          onChange={(e) => onUpdate(group.id, { tableTitle: e.target.value, questions })}
         />
       </div>
 
@@ -1150,15 +1217,15 @@ function TableCompletionBlock({ group, onUpdate, onDelete, onSelect, selected, d
         <div style={{ fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 6 }}>Tùy chọn chấm điểm:</div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, cursor: 'pointer' }}>
-            <input type="checkbox" checked={group.ignoreCase !== false} onChange={(e) => onUpdate(group.id, { ignoreCase: e.target.checked })} />
+            <input type="checkbox" checked={group.ignoreCase !== false} onChange={(e) => onUpdate(group.id, { ignoreCase: e.target.checked, questions })} />
             <span>Bỏ qua hoa/thường</span>
           </label>
           <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, cursor: 'pointer' }}>
-            <input type="checkbox" checked={group.ignoreSpaces || false} onChange={(e) => onUpdate(group.id, { ignoreSpaces: e.target.checked })} />
+            <input type="checkbox" checked={group.ignoreSpaces || false} onChange={(e) => onUpdate(group.id, { ignoreSpaces: e.target.checked, questions })} />
             <span>Bỏ qua khoảng trắng</span>
           </label>
           <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, cursor: 'pointer' }}>
-            <input type="checkbox" checked={group.ignorePunctuation || false} onChange={(e) => onUpdate(group.id, { ignorePunctuation: e.target.checked })} />
+            <input type="checkbox" checked={group.ignorePunctuation || false} onChange={(e) => onUpdate(group.id, { ignorePunctuation: e.target.checked, questions })} />
             <span>Bỏ qua dấu câu</span>
           </label>
         </div>
@@ -1167,7 +1234,7 @@ function TableCompletionBlock({ group, onUpdate, onDelete, onSelect, selected, d
             type="text"
             placeholder="Ký tự bỏ qua khác (vd: -_)"
             value={group.ignoreChars || ''}
-            onChange={(e) => onUpdate(group.id, { ignoreChars: e.target.value })}
+            onChange={(e) => onUpdate(group.id, { ignoreChars: e.target.value, questions })}
             style={{ width: '100%', padding: '4px 8px', border: '1px solid #cbd5e1', borderRadius: 3, fontSize: 12 }}
           />
         </div>
@@ -1198,26 +1265,13 @@ function TableCompletionBlock({ group, onUpdate, onDelete, onSelect, selected, d
             💡 Dùng | để tách nhiều đáp án đúng (vd: 1|one)
           </div>
           <BulkAnswerImport questions={questions} onImport={(answers) => {
-            // Xóa câu rỗng trước khi import
-            const nonEmptyQuestions = questions.filter(q => q.answerText?.trim());
-            let finalQuestions = [...nonEmptyQuestions];
+            // Map answers vào đúng vị trí questions
+            const updatedQuestions = questions.map((q, idx) => ({
+              ...q,
+              answerText: answers[idx] || q.answerText || ''
+            }));
 
-            // Update hoặc tạo mới
-            answers.forEach((ans, idx) => {
-              if (finalQuestions[idx]) {
-                finalQuestions[idx] = { ...finalQuestions[idx], answerText: ans };
-              } else {
-                finalQuestions.push({
-                  id: Date.now() + idx,
-                  questionNumber: (group.fromQuestion || 1) + idx,
-                  answerText: ans,
-                  pinX: 10 + (idx % 3) * 20,
-                  pinY: 10 + Math.floor(idx / 3) * 20
-                });
-              }
-            });
-
-            onUpdate(group.id, { questions: finalQuestions });
+            onUpdate(group.id, { questions: updatedQuestions });
           }} />
           {questions.map((q) => (
             <div key={q.id} className="exam-ml-answer-row">
@@ -1226,7 +1280,10 @@ function TableCompletionBlock({ group, onUpdate, onDelete, onSelect, selected, d
                 style={{ flex: 1, padding: '4px 8px', border: '1px solid #e2e8f0', borderRadius: 4, fontSize: 13 }}
                 value={q.answerText ?? ''}
                 placeholder="Đáp án đúng (vd: 1|one)..."
-                onChange={(e) => onUpdateQuestion(group.id, q.id, { answerText: e.target.value })} />
+                onChange={(e) => {
+                  console.log('🔵 Answer changed:', { qId: q.id, newValue: e.target.value });
+                  onUpdateQuestion(group.id, q.id, { answerText: e.target.value });
+                }} />
             </div>
           ))}
         </div>

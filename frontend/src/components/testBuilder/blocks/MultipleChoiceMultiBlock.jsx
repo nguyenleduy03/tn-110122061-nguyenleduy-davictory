@@ -117,22 +117,28 @@ const MultipleChoiceMultiBlock = ({ group, onUpdate, onDelete, onSelect, selecte
             </div>
             <div className="exam-mc-options">
               {opts.map((opt, i) => {
-                const isImg = opt.optionMode === 'image';
+                const optionImageUrl = String(opt.optionImageUrl || opt.imageUrl || '').trim();
+                const plainOptionText = String(opt.optionText || '')
+                  .replace(/<[^>]*>/g, ' ')
+                  .replace(/&nbsp;/gi, ' ')
+                  .trim();
+                const shouldFallbackToImage = Boolean(optionImageUrl) && (!opt.optionMode || plainOptionText === '');
+                const isImg = opt.optionMode === 'image' || shouldFallbackToImage;
                 return (
                   <div key={opt.id || i} className={`exam-mc-opt${opt.isCorrect ? ' correct' : ''}${isImg ? ' exam-mc-opt-img-row' : ''}`}>
                     <span className="exam-mc-opt-label">{String.fromCharCode(65 + i)}</span>
                     {isImg ? (
                       <div className="exam-mc-opt-image-cell">
                         <ImageUploadZone
-                          imageUrl={opt.optionImageUrl}
+                          imageUrl={optionImageUrl}
                           onImageChange={(url) => {
                             const next = [...opts];
-                            next[i] = { ...next[i], optionImageUrl: url };
+                            next[i] = { ...next[i], optionImageUrl: url, imageUrl: url, optionMode: 'image' };
                             onUpdateQuestion(group.id, q.id, { options: next });
                           }}
                           onImageDelete={() => {
                             const next = [...opts];
-                            next[i] = { ...next[i], optionImageUrl: '' };
+                            next[i] = { ...next[i], optionImageUrl: '', imageUrl: '' };
                             onUpdateQuestion(group.id, q.id, { options: next });
                           }}
                           placeholder={`URL ảnh cho ${String.fromCharCode(65 + i)}...`}

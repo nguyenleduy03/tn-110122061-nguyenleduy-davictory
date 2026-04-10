@@ -7,10 +7,13 @@
 import React, { useState, useMemo } from 'react';
 import { Volume2, Headphones, BookOpen, PenLine, Mic, Clock, FileText, X } from 'lucide-react';
 import { normalizeRichHtml, preserveBlockLineBreaks, stripInlineStyles } from '../../utils/textFormatters';
-import { getLockedImageQuestionLayout, getLockedImageFrameStyle, getLockedImageStyle } from '../../utils/imageQuestionLayout';
+import { renderHtmlWithTokenPlaceholders } from '../../utils/htmlTokenRenderer';
+import { resolveDrivePreviewUrl } from '../../utils/mediaUrl';
+import { getLockedImageQuestionLayout, getLockedImageFrameStyle, getLockedImageStyle, resolveImageWidthPercent } from '../../utils/imageQuestionLayout';
 import ImageNotePinBox from '../common/ImageNotePinBox';
 import DropdownGroupQuestion from '../question/DropdownGroupQuestion';
 import { IMAGE_NOTE_SECTIONS, isImagePinQuestion } from '../../utils/imageNoteForm';
+import { resolvePinPositionPercent } from '../../utils/pinPositionHelper';
 
 // ─── Constants ───────────────────────────────────────────────────────────
 
@@ -263,20 +266,30 @@ const MCQQuestion = ({ q, multiple, active, onSetActive }) => {
       <div className="pv-opts">
         {opts.length === 0
           ? <em className="pv-empty">Chưa có lựa chọn</em>
-          : opts.map((o) => (
-            <label key={o.id} className="pv-opt">
-              <input type={multiple ? 'checkbox' : 'radio'} name={`q${q.id}`} disabled />
-              <span className="pv-opt-key">{o.optionLabel}</span>
-              <span className="pv-opt-text">
-                {o.optionMode === 'image' && o.optionImageUrl
-                  ? <img src={o.optionImageUrl} alt={o.optionLabel} style={{ maxWidth: 140, maxHeight: 90, borderRadius: 4, display: 'block' }} />
-                  : (o.optionText
-                    ? <span dangerouslySetInnerHTML={{ __html: formatPreviewText(o.optionText) }} />
-                    : <em className="pv-empty">...</em>)
-                }
-              </span>
-            </label>
-          ))
+          : opts.map((o) => {
+            const optionImageUrl = String(o.optionImageUrl || o.imageUrl || '').trim();
+            const plainOptionText = String(o.optionText || '')
+              .replace(/<[^>]*>/g, ' ')
+              .replace(/&nbsp;/gi, ' ')
+              .trim();
+            const shouldFallbackToImage = Boolean(optionImageUrl) && (!o.optionMode || plainOptionText === '');
+            const isImageOption = o.optionMode === 'image' || shouldFallbackToImage;
+
+            return (
+              <label key={o.id} className="pv-opt">
+                <input type={multiple ? 'checkbox' : 'radio'} name={`q${q.id}`} disabled />
+                <span className="pv-opt-key">{o.optionLabel}</span>
+                <span className="pv-opt-text">
+                  {isImageOption && optionImageUrl
+                    ? <img src={resolveDrivePreviewUrl(optionImageUrl)} alt={o.optionLabel} style={{ maxWidth: 140, maxHeight: 90, borderRadius: 4, display: 'block' }} />
+                    : (o.optionText
+                      ? <span dangerouslySetInnerHTML={{ __html: formatPreviewText(o.optionText) }} />
+                      : <em className="pv-empty">...</em>)
+                  }
+                </span>
+              </label>
+            );
+          })
         }
       </div>
     </div>
@@ -611,12 +624,26 @@ export const SummaryCompletionSelectGroup = ({ group, activeQ, onSetActive }) =>
 };
 
 // Image Note Form Group
+// Helper function to resolve pin position (same as runtime)
+const resolvePinPositionPercent = (value, fallback = '50%') => {
+  if (value == null) return fallback;
+  if (typeof value === 'number' && Number.isFinite(value)) return `${value}%`;
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return fallback;
+    if (trimmed.endsWith('%') || trimmed.endsWith('px')) return trimmed;
+    const parsed = Number.parseFloat(trimmed);
+    if (Number.isFinite(parsed)) return `${parsed}%`;
+  }
+  return fallback;
+};
+
 export const ImageNoteFormGroup = ({ group, activeQ, onSetActive }) => {
   const questions = group.questions ?? [];
   const [answers, setAnswers] = useState({});
   const handleAnswer = (num, val) => setAnswers((prev) => ({ ...prev, [num]: val }));
   const imagePosition = group.imagePosition || 'middle';
-  const pinBoxWidth = group.pinBoxWidth || 60;
+  const pinBoxWidth = 120;
   const topNoteText = group.topNoteText ?? (group.imagePosition === 'bottom' ? '' : (group.noteText || ''));
   const bottomNoteText = group.bottomNoteText ?? (group.imagePosition === 'bottom' ? (group.noteText || '') : '');
   const imagePinQuestions = questions.filter(isImagePinQuestion)
@@ -632,30 +659,29 @@ export const ImageNoteFormGroup = ({ group, activeQ, onSetActive }) => {
 
   const imageSection = group.imageUrl && (
     <div style={{ marginBottom: 20 }}>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ ...getLockedImageFrameStyle('IMAGE_NOTE_FORM') }}>
-          <img src={group.imageUrl} alt="Question" style={{ ...getLockedImageStyle('IMAGE_NOTE_FORM') }} />
-          {imagePinQuestions.map((q) => {
-            const active = activeQ === q.questionNumber;
-            const userAnswer = answers[q.questionNumber] || '';
-            const boxWidth = Math.max(56, pinBoxWidth);
-            return (
-              <ImageNotePinBox
-                key={q.id}
-                id={`question-${q.questionNumber}`}
-                number={q.questionNumber}
-                left={`${q.pinX}%`}
-                top={`${q.pinY}%`}
-                value={userAnswer}
-                active={active}
-                boxWidth={boxWidth}
-                blankWidth={Math.max(26, boxWidth - 68)}
-                onActivate={() => onSetActive(q.questionNumber)}
-                onChange={(e) => { e.stopPropagation(); handleAnswer(q.questionNumber, e.target.value); }}
-              />
-            );
-          })}
-        </div>
+      <div style={{ ...getLockedImageFrameStyle('IMAGE_NOTE_FORM', 70) }}>
+        <img src={group.imageUrl} alt="Question" style={{ ...getLockedImageStyle('IMAGE_NOTE_FORM') }} />
+        {imagePinQuestions.map((q) => {
+          const active = activeQ === q.questionNumber;
+          const userAnswer = answers[q.questionNumber] || '';
+          const left = resolvePinPositionPercent(q?.pinX ?? q?.left);
+          const top = resolvePinPositionPercent(q?.pinY ?? q?.top);
+          return (
+            <ImageNotePinBox
+              key={q.id}
+              id={`question-${q.questionNumber}`}
+              number={q.questionNumber}
+              left={left}
+              top={top}
+              value={userAnswer}
+              active={active}
+              boxWidth={pinBoxWidth}
+              blankWidth={Math.max(26, pinBoxWidth - 68)}
+              onActivate={() => onSetActive(q.questionNumber)}
+              onChange={(e) => { e.stopPropagation(); handleAnswer(q.questionNumber, e.target.value); }}
+            />
+          );
+        })}
       </div>
     </div>
   );
@@ -840,6 +866,7 @@ export const MapLabellingGroup = ({ group, activeQ, onSetActive }) => {
   const [dragId, setDragId] = useState(null);
   const [dragOver, setDragOver] = useState(null);
   const lockedLayout = getLockedImageQuestionLayout('MAP_LABELLING');
+  const imageWidth = resolveImageWidthPercent(group.imageWidth, lockedLayout.defaultImageWidth ?? 100);
 
   const placed = new Set(Object.values(answers).filter(Boolean).map((v) => v.id));
   const bankChips = allOptions.filter((o) => !placed.has(o.id));
@@ -862,13 +889,13 @@ export const MapLabellingGroup = ({ group, activeQ, onSetActive }) => {
       <div className="pv-ml-layout">
         <div className="pv-ml-image-wrapper" style={{ textAlign: 'center' }}>
           {group.imageUrl ? (
-            <div style={{ ...getLockedImageFrameStyle('MAP_LABELLING'), maxHeight: `${lockedLayout.imageMaxHeight}px` }}>
+            <div style={{ ...getLockedImageFrameStyle('MAP_LABELLING', imageWidth) }}>
               <img src={group.imageUrl} alt="map" draggable={false} style={{ ...getLockedImageStyle('MAP_LABELLING') }} />
               {questions.map((q) => {
                 const filled = answers[q.questionNumber] ?? null;
                 const isOver = dragOver === q.questionNumber;
                 const active = activeQ === q.questionNumber;
-                const basePinWidth = Math.max(56, Number(group.pinBoxWidth) || 60);
+                const basePinWidth = 120;
                 return (
                   <div key={q.id}
                     className={`pv-ml-pin${filled ? ' filled' : ''}${isOver ? ' drag-over' : ''}${active ? ' active' : ''}`}
@@ -961,47 +988,49 @@ export const TableCompletionGroup = ({ group, activeQ, onSetActive }) => {
     return map;
   }, [tableRows, columns, questions]);
 
-  const parseBold = (text) =>
-    text.split(/\*\*(.*?)\*\*/).map((chunk, i) =>
-      i % 2 === 1 ? <strong key={i}>{chunk}</strong> : chunk
-    );
+  const getBlankOffset = (rowId, colId) => {
+    const rowOrder = tableRows.map((r) => r.id);
+    const colOrder = columns.map((c) => c.id);
+    const curRow = rowOrder.indexOf(rowId);
+    const curCol = colOrder.indexOf(colId);
+    let count = 0;
+
+    for (const b of blankMap) {
+      const bRow = rowOrder.indexOf(b.rowId);
+      const bCol = colOrder.indexOf(b.colId);
+      if (bRow < curRow || (bRow === curRow && bCol < curCol)) count += 1;
+    }
+
+    return count;
+  };
 
   const renderCell = (cellText, rowId, colId) => {
-    const parts = (cellText ?? '').split('[blank]');
-    let localIdx = blankMap.filter((b) => {
-      const colOrder = columns.map((c) => c.id);
-      const rowOrder = tableRows.map((r) => r.id);
-      const bColIdx = colOrder.indexOf(b.colId);
-      const bRowIdx = rowOrder.indexOf(b.rowId);
-      const curColIdx = colOrder.indexOf(colId);
-      const curRowIdx = rowOrder.indexOf(rowId);
-      return bRowIdx < curRowIdx || (bRowIdx === curRowIdx && bColIdx < curColIdx);
-    }).length;
-
-    return parts.map((part, i) => {
-      const entry = blankMap[localIdx + i - 1] ?? null;
-      return (
-        <React.Fragment key={i}>
-          {parseBold(part)}
-          {i < parts.length - 1 && (() => {
-            const info = blankMap[localIdx + i];
-            if (!info) return null;
-            const qNum = info.qNum;
-            const isActive = activeQ === qNum;
-            return (
-              <input
-                key={`tc-blank-${qNum}`}
-                className={`pv-tc-blank${isActive ? ' active' : ''}`}
-                value={answers[qNum] ?? ''}
-                onChange={(e) => { setAnswers((p) => ({ ...p, [qNum]: e.target.value })); onSetActive(qNum); }}
-                onClick={() => onSetActive(qNum)}
-                placeholder={String(qNum)}
-              />
-            );
-          })()}
-        </React.Fragment>
-      );
-    });
+    let blankIndex = getBlankOffset(rowId, colId);
+    return renderHtmlWithTokenPlaceholders(
+      cellText ?? '',
+      () => {
+        const info = blankMap[blankIndex];
+        blankIndex += 1;
+        if (!info) return null;
+        const qNum = info.qNum;
+        const isActive = activeQ === qNum;
+        return (
+          <input
+            key={`tc-blank-${qNum}`}
+            className={`pv-tc-blank${isActive ? ' active' : ''}`}
+            value={answers[qNum] ?? ''}
+            onChange={(e) => { setAnswers((p) => ({ ...p, [qNum]: e.target.value })); onSetActive(qNum); }}
+            onClick={() => onSetActive(qNum)}
+            placeholder={String(qNum)}
+          />
+        );
+      },
+      {
+        normalizeHtml: (value) => formatPreviewText(value || ''),
+        tokenRegex: /\[\s*blank\s*\]/gi,
+        keyPrefix: `pv-tc-${rowId}-${colId}`,
+      }
+    );
   };
 
   return (
@@ -1524,7 +1553,7 @@ export const renderGroup = (group, activeQ, onSetActive, extraProps = {}) => {
   if (ct === 'READING_PASSAGE') return null;
   if (ct === 'AUDIO_TRANSCRIPT') return <AudioGroup {...props} />;
   if (ct === 'MATCHING_HEADING') return <MatchingHeadingGroup {...props} />;
-  if (ct === 'DRAG_MATCHING') return <DragMatchingGroup {...props} />;
+  if (['DRAG_MATCHING', 'FILL_BLANK_DRAG', 'SENTENCE_COMPLETION_DRAG', 'SUMMARY_COMPLETION_DRAG', 'NOTE_COMPLETION_DRAG'].includes(ct)) return <DragMatchingGroup {...props} />;
   if (ct === 'MATCHING_FEATURES') return <MatchingFeaturesGroup {...props} />;
   if (ct === 'TABLE_COMPLETION') return <TableCompletionGroup {...props} />;
   if (ct === 'MAP_LABELLING') return <MapLabellingGroup {...props} />;

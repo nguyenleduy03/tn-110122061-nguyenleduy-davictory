@@ -1,3 +1,5 @@
+import { isQuestionMetaLabel } from './questionLabelUtils';
+
 /**
  * Decode HTML entities if text was stored as escaped HTML.
  * Example: "&lt;b&gt;Hello&lt;/b&gt;" -> "<b>Hello</b>"
@@ -100,6 +102,56 @@ export const normalizeRichHtml = (text) => {
 export const normalizeCompletionInstructionHtml = (text) => {
   if (typeof text !== 'string') return text || '';
   return normalizeRichHtml(text);
+};
+
+const normalizeInstructionSignature = (value) => decodeHtmlEntities(String(value || ''))
+  .replace(/<br\s*\/?>(?![^<]*>)/gi, ' ')
+  .replace(/<br\s*\/?>(?=\s*<)/gi, ' ')
+  .replace(/<\/(?:p|div|section|article|header|footer|blockquote|figure|figcaption|h[1-6]|li|ul|ol)>/gi, ' ')
+  .replace(/<[^>]*>/g, ' ') // strip remaining tags for duplicate detection
+  .replace(/\u00A0|&nbsp;|&#160;/gi, ' ')
+  .replace(/\s+/g, ' ')
+  .trim()
+  .toLowerCase();
+
+/**
+ * Format a single question instruction fragment using the shared HTML pipeline.
+ */
+export const formatQuestionInstructionHtml = (text) => {
+  if (typeof text !== 'string') return text || '';
+  return normalizeCompletionInstructionHtml(text).trim();
+};
+
+/**
+ * Combine multiple instruction-like fragments into one formatted HTML block.
+ * Duplicate fragments are removed after normalization so only one block renders.
+ */
+export const composeQuestionInstructionHtml = (...parts) => {
+  const seen = new Set();
+  const htmlParts = [];
+
+  const pushPart = (part) => {
+    if (Array.isArray(part)) {
+      part.forEach(pushPart);
+      return;
+    }
+
+    const raw = typeof part === 'string'
+      ? part
+      : String(part?.html ?? part?.text ?? part?.value ?? part?.instruction ?? '');
+    const text = String(raw || '').trim();
+    if (!text) return;
+    if (isQuestionMetaLabel(text)) return;
+
+    const signature = normalizeInstructionSignature(text);
+    if (!signature || seen.has(signature)) return;
+
+    seen.add(signature);
+    htmlParts.push(formatQuestionInstructionHtml(text));
+  };
+
+  parts.forEach(pushPart);
+  return htmlParts.join('<br/>');
 };
 
 /**
@@ -372,7 +424,7 @@ export const sanitizeRichPasteHtml = (html) => {
           return `<a href="${escapeHtml(href)}">${content}</a>`;
         }
         case 'li':
-          return `${content}<br/>`;
+          return `<li>${content}</li>`;
         case 'p':
         case 'div':
         case 'section':
@@ -401,7 +453,7 @@ export const sanitizeRichPasteHtml = (html) => {
           return content;
         case 'ul':
         case 'ol':
-          return content;
+          return `<${tag}>${content}</${tag}>`;
         default:
           return content;
       }

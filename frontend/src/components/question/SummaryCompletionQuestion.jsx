@@ -1,32 +1,11 @@
 import React from 'react';
-import { applyDbFormattingMarkers, normalizeCompletionInstructionHtml } from '../../utils/textFormatters';
+import { applyDbFormattingMarkers, formatQuestionInstructionHtml } from '../../utils/textFormatters';
 import { isQuestionMetaLabel } from '../../utils/questionLabelUtils';
 import BookmarkToggle from '../common/BookmarkToggle';
 import { resolveDrivePreviewUrl } from '../../utils/mediaUrl';
 import { isImagePinQuestion } from '../../utils/imageNoteForm';
-
-const resolvePinBoxWidthPx = (value, fallback = 60) => {
-    if (typeof value === 'number' && Number.isFinite(value)) return value;
-    if (typeof value === 'string') {
-        const parsed = Number.parseFloat(value.replace('px', '').trim());
-        if (Number.isFinite(parsed)) return parsed;
-    }
-    return fallback;
-};
-
-const resolvePinPositionPercent = (value, fallback = '50%') => {
-    if (value == null) return fallback;
-    if (typeof value === 'number' && Number.isFinite(value)) return `${value}%`;
-    if (typeof value === 'string') {
-        const trimmed = value.trim();
-        if (!trimmed) return fallback;
-        if (trimmed.endsWith('%') || trimmed.endsWith('px')) return trimmed;
-
-        const parsed = Number.parseFloat(trimmed);
-        if (Number.isFinite(parsed)) return `${parsed}%`;
-    }
-    return fallback;
-};
+import { getAdaptiveInputWidthStyle } from '../../utils/adaptiveInputWidth';
+import { normalizePinPosition } from '../../utils/pinPositionHelper';
 
 const RuntimeImageNotePinBox = ({
     id,
@@ -70,6 +49,7 @@ const RuntimeImageNotePinBox = ({
                 top,
                 width: `${boxWidth}px`,
                 minWidth: `${boxWidth}px`,
+                maxWidth: `${boxWidth}px`,
             }}
         >
             <input
@@ -101,6 +81,7 @@ const RuntimeImageNotePinBox = ({
 const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answers, handleAnswerChange, inputRefs, bookmarks, toggleBookmark, isReview }) => {
     const opts = q.validationOptions || {};
     const summaryTextRef = React.useRef(null);
+    const imageFrameRef = React.useRef(null);
     const [activeBookmarkTop, setActiveBookmarkTop] = React.useState(null);
     const summarySubQuestions = q.subQuestions || [];
 
@@ -145,6 +126,7 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
     const imagePinSubQuestions = summarySubQuestions
         .filter((subQ) => subQ?.pinX != null || subQ?.pinY != null || subQ?.top != null || subQ?.left != null)
         .sort((a, b) => Number(a?.number || 0) - Number(b?.number || 0));
+    const pinBoxWidth = 120;
     const noteSubQuestions = summarySubQuestions
         .filter((subQ) => !isImagePinQuestion(subQ))
         .sort((a, b) => Number(a?.questionNumber ?? a?.number ?? 0) - Number(b?.questionNumber ?? b?.number ?? 0));
@@ -193,11 +175,7 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
     }, [syncBookmarkPosition]);
 
     const formatInlineHtml = (value) => {
-        if (typeof value !== 'string') return value || '';
-
-        return normalizeCompletionInstructionHtml(value)
-            .replace(/\u00A0/g, ' ')
-            .replace(/\\t|\/t|\t/g, '    ');
+        return formatQuestionInstructionHtml(String(value || ''));
     };
 
     const toReactStyleObject = (rawStyle) => {
@@ -332,6 +310,7 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
         const displayAnswer = (isReview && !isCorrect)
             ? String(subQ?.correctAnswer || '').split('|')[0]
             : String(answer || '');
+        const adaptiveInputStyle = getAdaptiveInputWidthStyle(displayAnswer);
 
         return (
             <span
@@ -347,6 +326,7 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
                     }}
                     type="text"
                     className={`inline-input summary-input ${isReview ? (isCorrect ? 'review-correct' : 'review-wrong') : ''}`}
+                    style={adaptiveInputStyle}
                     placeholder={qNum != null ? qNum.toString() : ''}
                     value={displayAnswer}
                     onChange={(e) => {
@@ -452,10 +432,11 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
 
     const renderImageNoteForm = () => {
         const imagePosition = q?.imagePosition || 'middle';
-        const pinBoxWidth = resolvePinBoxWidthPx(q?.pinBoxWidth, 60);
+        const imageWidth = 70;
         const topText = q?.topNoteText ?? '';
         const bottomText = q?.bottomNoteText ?? '';
         const combinedText = [topText, bottomText].filter(Boolean).join('\n\n');
+
         const renderNoteText = (text, keyPrefix, questionList) => {
             const blankState = { cursor: 0, questions: questionList };
             return text ? renderRichText(text, keyPrefix, blankState) : null;
@@ -464,13 +445,14 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
         const renderImage = () => (
             <div className="summary-completion-image-note-wrap">
                 {q?.imageUrl ? (
-                    <div className="summary-completion-image-frame">
+                    <div ref={imageFrameRef} className="summary-completion-image-frame" style={{ width: `${imageWidth}%`, maxWidth: '100%', margin: '0 auto' }}>
                         <img
                             src={resolveDrivePreviewUrl(q.imageUrl)}
                             alt="Question diagram"
                             className="summary-completion-image"
                         />
                         {imagePinSubQuestions.map((subQ) => {
+                            const normalizedSubQ = normalizePinPosition(subQ);
                             const answer = answers?.[subQ.id] || '';
                             const isCorrect = checkAnswer(answer, subQ?.correctAnswer);
                             const displayAnswer = (isReview && !isCorrect)
@@ -478,9 +460,8 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
                                 : String(answer || '');
                             const isActive = activeQuestion === subQ.number;
                             const isBookmarked = Boolean(bookmarks?.[subQ.number]);
-                            const boxWidth = Math.max(56, pinBoxWidth);
-                            const left = resolvePinPositionPercent(subQ?.pinX ?? subQ?.left);
-                            const top = resolvePinPositionPercent(subQ?.pinY ?? subQ?.top);
+                            const left = `${normalizedSubQ.pinX}%`;
+                            const top = `${normalizedSubQ.pinY}%`;
 
                             return (
                                 <RuntimeImageNotePinBox
@@ -494,7 +475,7 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
                                     bookmarked={isBookmarked}
                                     isReview={isReview}
                                     isCorrect={isCorrect}
-                                    boxWidth={boxWidth}
+                                    boxWidth={pinBoxWidth}
                                     readOnly={isReview}
                                     onActivate={() => { if (!isReview) setActiveQuestion?.(subQ.number); }}
                                     onChange={(e) => { if (!isReview) handleAnswerChange?.(subQ.id, e.target.value); }}

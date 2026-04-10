@@ -60,6 +60,7 @@ public class TestBuilderService {
     private final QuestionTypeRepository questionTypeRepository;
     private final DriveAssetRenameService driveAssetRenameService;
     private final GoogleDriveOAuth2Service driveService;
+    private final TestVersionRepository testVersionRepository;
 
     // ═══════════════════════════════════════════════════════════════
     //  1. LƯU TOÀN BỘ ĐỀ THI (Save Full Test)
@@ -167,19 +168,14 @@ public class TestBuilderService {
                                 QuestionGroup qg;
 
                                 if (gs.getExistingGroupId() != null) {
-                                    // Kiểm tra group có tồn tại không
                                     var existingGroup = questionGroupRepository.findById(gs.getExistingGroupId());
-                                    
+
                                     if (existingGroup.isPresent()) {
-                                        // Group tồn tại - nếu đã có lịch sử làm bài thì version hóa group mới
-                                        // để tránh vi phạm FK attempt_answers -> questions.
                                         qg = existingGroup.get();
 
                                         if (hasAttemptAnswersForGroup(qg.getId())) {
-                                            // Có attempt lịch sử: tạo group mới để giữ nguyên dữ liệu cũ
                                             qg = createQuestionGroupFromSave(part, gs);
                                         } else {
-                                            // Không có attempt lịch sử: cập nhật group cũ và thay toàn bộ questions
                                             if (gs.getTitle() != null) qg.setTitle(truncateTitle(gs.getTitle()));
                                             if (gs.getInstructions() != null) qg.setInstructions(gs.getInstructions());
                                             if (gs.getPassageText() != null) qg.setPassageText(gs.getPassageText());
@@ -194,22 +190,17 @@ public class TestBuilderService {
                                             if (gs.getHideOptionsTable() != null) qg.setHideOptionsTable(gs.getHideOptionsTable());
                                             qg = questionGroupRepository.save(qg);
 
-                                            // Xóa cứng theo thứ tự đúng để tránh FK constraint
-                                            System.out.println("🗑️ Deleting old questions for group: " + qg.getId());
                                             answerRepository.deleteByQuestionGroupId(qg.getId());
                                             questionOptionRepository.deleteByQuestionGroupId(qg.getId());
                                             questionRepository.deleteByQuestionGroupId(qg.getId());
-                                            System.out.println("✅ Deleted old questions, now creating new ones");
                                         }
 
                                         saveQuestionsForGroup(qg, gs.getQuestions());
                                     } else {
-                                        // Group không tồn tại - Tự động tạo mới
                                         qg = createQuestionGroupFromSave(part, gs);
                                         saveQuestionsForGroup(qg, gs.getQuestions());
                                     }
                                 } else {
-                                    // Không có existingGroupId - Tạo group hoàn toàn mới
                                     qg = createQuestionGroupFromSave(part, gs);
                                     saveQuestionsForGroup(qg, gs.getQuestions());
                                 }
@@ -234,6 +225,30 @@ public class TestBuilderService {
                 && req.getTitle() != null
                 && !previousTitle.equals(req.getTitle())) {
             driveAssetRenameService.renameAssetsForTestTitleChange(req, previousTitle, req.getTitle());
+        }
+
+        // ─── Tạo version mới chỉ khi thoát editor (createVersion=true) ───
+        if (Boolean.TRUE.equals(req.getCreateVersion())) {
+            int nextVersion = testVersionRepository.findMaxVersionNumber(test.getId()) + 1;
+            int qCount = countQuestionsForTest(test.getId());
+            TestVersion tv = new TestVersion();
+            tv.setTest(test);
+            tv.setVersionNumber(nextVersion);
+            tv.setQuestionCount(qCount);
+            if (req.getCreatedByUserId() != null) {
+                userRepository.findById(req.getCreatedByUserId()).ifPresent(tv::setCreatedBy);
+            }
+            // Lưu snapshot JSON để có thể khôi phục sau
+            try {
+                TestFullResponse snapshot = loadFullTest(test.getId());
+                tv.setSnapshotJson(new com.fasterxml.jackson.databind.ObjectMapper()
+                        .findAndRegisterModules()
+                        .writeValueAsString(snapshot));
+            } catch (Exception e) {
+                System.err.println("⚠️ Không thể lưu snapshot: " + e.getMessage());
+            }
+            testVersionRepository.save(tv);
+            System.out.println("✅ Created version " + nextVersion + " for test " + test.getId() + " (" + qCount + " questions)");
         }
 
         return loadFullTest(test.getId());
@@ -709,6 +724,7 @@ public class TestBuilderService {
             opt.setQuestion(question);
             opt.setOptionLabel(os.getOptionLabel());
             opt.setOptionText(os.getOptionText() != null ? os.getOptionText() : "");
+            opt.setImageUrl(os.getImageUrl());
             opt.setIsCorrect(os.getIsCorrect() != null ? os.getIsCorrect() : false);
             opt.setOrderIndex(os.getOrderIndex() != null ? os.getOrderIndex() : 0);
             questionOptionRepository.save(opt);
@@ -717,11 +733,11 @@ public class TestBuilderService {
 
     private void saveAnswers(Question question, List<TestSaveRequest.AnswerSave> answers) {
         if (answers == null) return;
-        System.out.println("💾 Saving " + answers.size() + " answers for question: " + question.getQuestionText());
+        System.out.println("💾 Saving " + answers.size() + " answers for question ID: " + question.getId() + ", text: " + question.getQuestionText());
         
         for (int i = 0; i < answers.size(); i++) {
             TestSaveRequest.AnswerSave as = answers.get(i);
-            System.out.println("📝 Answer " + (i+1) + ": '" + as.getAnswerText() + "'");
+            System.out.println("📝 Answer " + (i+1) + " INPUT: '" + as.getAnswerText() + "' (length: " + (as.getAnswerText() != null ? as.getAnswerText().length() : 0) + ")");
             
             try {
                 Answer ans = new Answer();
@@ -733,7 +749,7 @@ public class TestBuilderService {
                 ans.setBlankIndex(as.getBlankIndex() != null ? as.getBlankIndex() : 1);
                 ans.setWordLimit(as.getWordLimit());
                 Answer saved = answerRepository.save(ans);
-                System.out.println("✅ Saved answer " + (i+1) + " with ID: " + saved.getId());
+                System.out.println("✅ Saved answer " + (i+1) + " with ID: " + saved.getId() + ", text: '" + saved.getAnswerText() + "' (length: " + saved.getAnswerText().length() + ")");
             } catch (Exception e) {
                 System.err.println("❌ Error saving answer " + (i+1) + ": " + e.getMessage());
                 e.printStackTrace();
@@ -772,6 +788,7 @@ public class TestBuilderService {
                 or.setId(opt.getId());
                 or.setOptionLabel(opt.getOptionLabel());
                 or.setOptionText(opt.getOptionText());
+                or.setImageUrl(opt.getImageUrl());
                 or.setIsCorrect(opt.getIsCorrect());
                 or.setOrderIndex(opt.getOrderIndex());
                 return or;
@@ -835,5 +852,46 @@ public class TestBuilderService {
         q.setQuestionType(qt);
         
         return questionRepository.save(q);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  VERSION HISTORY
+    // ═══════════════════════════════════════════════════════════════
+
+    /**
+     * Lấy lịch sử versions của đề thi từ bảng test_versions.
+     */
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getTestVersions(Long testId) {
+        testRepository.findById(testId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy đề thi ID=" + testId));
+
+        List<TestVersion> versions = testVersionRepository.findByTestIdOrderByVersionNumberDesc(testId);
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (TestVersion v : versions) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("versionNumber", v.getVersionNumber());
+            map.put("createdAt", v.getCreatedAt());
+            map.put("createdBy", v.getCreatedBy() != null ? v.getCreatedBy().getFullName() : null);
+            map.put("questionCount", v.getQuestionCount());
+            map.put("hasSnapshot", v.getSnapshotJson() != null);
+            result.add(map);
+        }
+        return result;
+    }
+
+    private int countQuestionsForTest(Long testId) {
+        return (int) testQuestionGroupRepository.findQuestionGroupIdsByTestId(testId).stream()
+                .mapToLong(groupId -> questionRepository.countByQuestionGroupId(groupId))
+                .sum();
+    }
+
+    @Transactional(readOnly = true)
+    public String getVersionSnapshot(Long testId, Integer versionNumber) {
+        return testVersionRepository.findByTestIdOrderByVersionNumberDesc(testId).stream()
+                .filter(v -> v.getVersionNumber().equals(versionNumber))
+                .findFirst()
+                .map(TestVersion::getSnapshotJson)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy phiên bản " + versionNumber));
     }
 }

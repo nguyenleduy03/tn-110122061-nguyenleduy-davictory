@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import PublicShareLinkModal from '../components/common/PublicShareLinkModal';
+import VersionHistoryModal from '../components/common/VersionHistoryModal';
 import { testBuilderApi } from '../services/testBuilderApi';
 import { authApi } from '../services/authApi';
 
@@ -169,6 +170,7 @@ export default function TeacherTests() {
   const [shareData, setShareData] = useState(null);
   const [shareLoading, setShareLoading] = useState(false);
   const [shareError, setShareError] = useState('');
+  const [versionModalTest, setVersionModalTest] = useState(null);
 
   const fetchTests = useCallback(async () => {
     if (!hasPermission) { setLoading(false); return; }
@@ -508,6 +510,7 @@ export default function TeacherTests() {
                 onEdit={() => navigate(`/teacher/tests/${test.id}/edit`)}
                 onDelete={() => setDeleteTarget(test)}
                 onCreatePublicLink={() => handleCreatePublicLink(test)}
+                onVersions={() => setVersionModalTest(test)}
                 onRestore={() => handleRestore(test)}
                 canRestore={canRestoreTest(test)}
                 actionLoading={actionLoadingId === test.id}
@@ -545,6 +548,12 @@ export default function TeacherTests() {
         testStatus={shareModalStatus}
       />
 
+      <VersionHistoryModal
+        testId={versionModalTest?.id}
+        isOpen={!!versionModalTest}
+        onClose={() => setVersionModalTest(null)}
+      />
+
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       .share-badge { display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:700; }
       `}</style>
@@ -553,7 +562,7 @@ export default function TeacherTests() {
 }
 
 /* ── TestRow ── */
-function TestRow({ test, onEdit, onDelete, onCreatePublicLink, onRestore, canRestore, actionLoading }) {
+function TestRow({ test, onEdit, onDelete, onCreatePublicLink, onVersions, onRestore, canRestore, actionLoading }) {
   const [hovered, setHovered] = useState(false);
 
   return (
@@ -629,6 +638,13 @@ function TestRow({ test, onEdit, onDelete, onCreatePublicLink, onRestore, canRes
               onClick={onEdit}
               color="#2563eb"
               bgHover="#eff6ff"
+            />
+            <ActionBtn
+              icon={<Clock size={14} />}
+              label="Versions"
+              onClick={onVersions}
+              color="#7c3aed"
+              bgHover="#f3e8ff"
             />
             <ActionBtn
               icon={<LinkIcon size={14} />}

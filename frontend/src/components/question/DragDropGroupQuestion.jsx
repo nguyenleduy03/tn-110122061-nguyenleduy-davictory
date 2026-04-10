@@ -1,9 +1,10 @@
 import React from 'react';
-import { formatTextWithWhitespace } from '../../utils/textFormatters';
+import { formatTextWithWhitespace, composeQuestionInstructionHtml } from '../../utils/textFormatters';
 import { isQuestionMetaLabel } from '../../utils/questionLabelUtils';
 import { resolveDrivePreviewUrl } from '../../utils/mediaUrl';
 import BookmarkToggle from '../common/BookmarkToggle';
 import { getLockedImageQuestionLayout, getLockedImageFrameStyle, getLockedImageStyle } from '../../utils/imageQuestionLayout';
+import { normalizePinPosition } from '../../utils/pinPositionHelper';
 
 const formatAndClean = (text) => formatTextWithWhitespace(text);
 
@@ -121,7 +122,22 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
     const isMatchingFeatures = questionType === 'matching_features';
     const isFlowChart = questionType === 'flow_chart';
     const isImageDragDrop = questionType === 'image_drag_drop';
+    const sourceContentType = normalizeGroupType(q?.sourceContentType || q?.contentType);
+    const questionTypeCode = String(q?.questionTypeCode || '').trim().toUpperCase();
+    const isDragCompletionSubtype =
+        ['fill_blank_drag', 'sentence_completion_drag', 'summary_completion_drag', 'note_completion_drag'].includes(sourceContentType)
+        || (!sourceContentType && ['FILL_BLANK', 'SENTENCE_COMPLETION', 'SUMMARY_COMPLETION', 'NOTE_COMPLETION'].includes(questionTypeCode));
     const previewBankOptions = (q.bankOptions || []).map(resolveText).filter(Boolean);
+
+    const resolveDisplayNumber = React.useCallback((subQ, index) => {
+        const direct = Number(subQ?.number);
+        if (Number.isFinite(direct)) return direct;
+
+        const startNumber = Number(q?.fromQuestion);
+        if (Number.isFinite(startNumber)) return startNumber + index;
+
+        return index + 1;
+    }, [q?.fromQuestion]);
 
     // Debug matching_info
     if (isMatchingInfo) {
@@ -234,8 +250,10 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
         if (!isMatchingInfo) return null;
         const activeNumber = Number(activeQuestion);
         if (!Number.isFinite(activeNumber)) return null;
-        return (q.subQuestions || []).find((sq) => Number(sq.number) === activeNumber) || null;
-    }, [activeQuestion, isMatchingInfo, q.subQuestions]);
+        return (q.subQuestions || [])
+            .map((sq, idx) => ({ ...sq, displayNumber: resolveDisplayNumber(sq, idx) }))
+            .find((sq) => Number(sq.displayNumber) === activeNumber) || null;
+    }, [activeQuestion, isMatchingInfo, q.subQuestions, resolveDisplayNumber]);
 
     const syncDdBookmarkPosition = React.useCallback(() => {
         if (!isMatchingInfo || isReview || !activeMatchingSubQ) {
@@ -249,7 +267,7 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
             return;
         }
 
-        const activeNode = container.querySelector(`#question-${activeMatchingSubQ.number}`);
+        const activeNode = container.querySelector(`#question-${activeMatchingSubQ.displayNumber}`);
         if (!activeNode) {
             setDdBookmarkTop(null);
             return;
@@ -334,6 +352,9 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
     const allowOptionReuse = (typeof q.allowOptionReuse === 'boolean')
         ? q.allowOptionReuse
         : true;
+    const forceSingleUseForExtraBank = !isReview && bankOptions.length > totalDropZones;
+    const keepUsedOptionSlots = forceSingleUseForExtraBank;
+    const shouldDisallowReuse = forceSingleUseForExtraBank || !allowOptionReuse;
     const maxOptionChars = Math.max(0, ...bankOptions.map(opt => String(opt).length));
     const fixedBankWidth = Math.max(220, Math.min(720, Math.ceil(maxOptionChars * 8 + 30)));
     const rowHeight = isMatchingHeading ? 52 : 48;
@@ -363,18 +384,22 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
             <div className="options-bank">
                 {bankOptions.map((opt, idx) => {
                     const isUsed = usedOptions.includes(opt);
-                    if (isUsed && !isReview && !allowOptionReuse) return null;
+                    const shouldHideUsedOption = isUsed && !isReview && shouldDisallowReuse;
+                    if (shouldHideUsedOption && !keepUsedOptionSlots) return null;
+                    const isEmptySlot = shouldHideUsedOption && keepUsedOptionSlots;
                     return (
                         <div
                             key={idx}
-                            draggable={!isReview}
-                            onDragStart={(e) => { if (!isReview) handleDragStart(e, opt, null); }}
-                            className={`bank-option ${isUsed ? 'used' : ''} ${isMatchingHeading ? 'bank-option-heading' : ''}`}
+                            draggable={!isReview && !isEmptySlot}
+                            onDragStart={(e) => {
+                                if (!isReview && !isEmptySlot) handleDragStart(e, opt, null);
+                            }}
+                            className={`bank-option ${isUsed ? 'used' : ''} ${isMatchingHeading ? 'bank-option-heading' : ''} ${isEmptySlot ? 'bank-option-slot-empty' : ''}`}
                             style={{
                                 width: isMatchingInfo ? dropZoneWidth : undefined
                             }}
                         >
-                            {opt}
+                            {isEmptySlot ? '\u00A0' : opt}
                         </div>
                     );
                 })}
@@ -386,8 +411,9 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
         <div className={`dd-sub-questions ${isMatchingInfo ? 'dd-info-padded' : ''}`}>
             {isMatchingInfo && <h4 className="bank-section-title info-title" dangerouslySetInnerHTML={{ __html: q.leftHeader || 'Questions' }} />}
             <div className="dd-questions-list">
-                {(q.subQuestions || []).map((subQ) => {
-                    const isActive = activeQuestion === subQ.number;
+                {(q.subQuestions || []).map((subQ, subQIdx) => {
+                    const displayNumber = resolveDisplayNumber(subQ, subQIdx);
+                    const isActive = activeQuestion === displayNumber;
                     const answer = resolveText(answers[subQ.id]);
                     const normalizedAnswer = String(answer || '').trim().toLowerCase();
                     const normalizedCorrect = String(subQ.correctAnswer || '').trim().toLowerCase();
@@ -402,7 +428,7 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                         ? normalizeBlankTokens(subQ.text || '').replace(/\[blank\]/gi, '').trim()
                         : (subQ.text || '');
 
-                    const answerCharWidth = Math.max(8, displayAnswer.length + 2);
+                    const answerCharWidth = Math.max(8, displayAnswer.length + 1);
                     const filledDropStyle = hasDisplayAnswer
                         ? {
                             width: hasInlineBlank
@@ -426,7 +452,7 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                                 if (isReview || !hasDisplayAnswer) return;
                                 handleDragStart(e, displayAnswer, subQ.id);
                             }}
-                            className={`dd-drop-zone ${isMatchingInfo ? 'dd-drop-info' : ''} ${hasInlineBlank ? 'dd-drop-inline' : ''} ${hasDisplayAnswer ? 'dd-drop-filled' : ''} ${isActive && !hasDisplayAnswer ? 'dd-drop-active' : ''} ${Boolean(bookmarks?.[subQ.number]) ? 'dd-drop-bookmarked' : ''} ${isReview ? (isCorrect ? 'review-correct' : 'review-wrong') : ''} relative-pos`}
+                            className={`dd-drop-zone ${isMatchingInfo ? 'dd-drop-info' : ''} ${isDragCompletionSubtype ? 'dd-drop-completion' : ''} ${hasInlineBlank ? 'dd-drop-inline' : ''} ${hasDisplayAnswer ? 'dd-drop-filled' : ''} ${isActive && !hasDisplayAnswer ? 'dd-drop-active' : ''} ${Boolean(bookmarks?.[displayNumber]) ? 'dd-drop-bookmarked' : ''} ${isReview ? (isCorrect ? 'review-correct' : 'review-wrong') : ''} relative-pos`}
                             style={dropZoneStyle}
                         >
                             {hasDisplayAnswer ? (
@@ -436,7 +462,7 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                             ) : (
                                 isMatchingInfo ? (
                                     <div className="dd-drop-number">
-                                        {subQ.number}
+                                        {displayNumber}
                                     </div>
                                 ) : (
                                     <span className="dd-drop-placeholder">Drop here</span>
@@ -448,9 +474,9 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                     return (
                         <div
                             key={subQ.id}
-                            id={`question-${subQ.number}`}
+                            id={`question-${displayNumber}`}
                             className={`dd-question-row ${isMatchingInfo ? 'dd-row-info' : 'dd-row-default'}`}
-                            onClick={() => setActiveQuestion?.(subQ.number)}
+                            onClick={() => setActiveQuestion?.(displayNumber)}
                         >
                             {isMatchingInfo && infoText ? (
                                 <div className={`dd-info-text ${hasInlineBlank ? 'dd-info-inline' : ''}`}>
@@ -468,7 +494,7 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
 
                             <div className="dd-default-meta">
                                 {!isMatchingInfo && <div className="dd-default-label">
-                                    <span className="dd-question-num">{subQ.number}</span>
+                                    <span className="dd-question-num">{displayNumber}</span>
                                 </div>}
                                 {!isMatchingInfo && (
                                     hasInlineBlank ? (
@@ -513,8 +539,16 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
             return { node, parts };
         });
 
-        const usedAnswers = Object.values(answers || {}).filter(Boolean);
+        const usedAnswers = new Set(
+            subQuestions
+                .map((subQ) => String(resolveText(answers?.[subQ.id]) || '').trim())
+                .filter(Boolean)
+        );
         const allowReuse = (typeof q.allowOptionReuse === 'boolean') ? q.allowOptionReuse : true;
+        const flowBankOptions = (q.bankOptions || []).filter(Boolean);
+        const forceSingleUseForExtraFlowBank = !isReview && flowBankOptions.length > subQuestions.length;
+        const keepFlowBankSlots = forceSingleUseForExtraFlowBank;
+        const shouldDisallowFlowReuse = forceSingleUseForExtraFlowBank || !allowReuse;
 
         return (
             <div className="fc-container" ref={flowChartContainerRef}>
@@ -573,16 +607,21 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
 
                     <div className="fc-bank" onDragOver={handleDragOver} onDrop={handleBankDrop}>
                         {bankTitle && <div className="fc-bank-title">{bankTitle}</div>}
-                        {(q.bankOptions ?? []).map((opt, i) => {
-                            if (usedAnswers.includes(opt) && !allowReuse) return null;
+                        {flowBankOptions.map((opt, i) => {
+                            const isUsed = usedAnswers.has(String(opt || '').trim());
+                            const shouldHideUsedOption = isUsed && !isReview && shouldDisallowFlowReuse;
+                            if (shouldHideUsedOption && !keepFlowBankSlots) return null;
+                            const isEmptySlot = shouldHideUsedOption && keepFlowBankSlots;
                             return (
                                 <div
                                     key={i}
-                                    className="fc-bank-chip"
-                                    draggable={!isReview}
-                                    onDragStart={(e) => { if (!isReview) handleDragStart(e, opt); }}
+                                    className={`fc-bank-chip ${isEmptySlot ? 'fc-bank-chip-slot-empty' : ''}`}
+                                    draggable={!isReview && !isEmptySlot}
+                                    onDragStart={(e) => {
+                                        if (!isReview && !isEmptySlot) handleDragStart(e, opt);
+                                    }}
                                 >
-                                    {opt}
+                                    {isEmptySlot ? '\u00A0' : opt}
                                 </div>
                             );
                         })}
@@ -601,8 +640,12 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
     };
 
     const renderImageDragDrop = () => {
-        const usedOptions = Object.values(answers || {}).filter(Boolean);
         const subQuestions = q.subQuestions || [];
+        const usedOptions = new Set(
+            subQuestions
+                .map((subQ) => String(resolveText(answers?.[subQ.id]) || '').trim())
+                .filter(Boolean)
+        );
         const numbers = subQuestions.map((subQ) => subQ.number).filter((n) => Number.isFinite(n));
         const minNum = numbers.length ? Math.min(...numbers) : null;
         const maxNum = numbers.length ? Math.max(...numbers) : null;
@@ -610,17 +653,32 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
             ? (minNum === maxNum ? `Question ${minNum}` : `Questions ${minNum}–${maxNum}`)
             : '';
         const heading = q.heading || fallbackHeading;
-        const instruction = q.instruction || '';
-        const imageHeight = getLockedImageQuestionLayout('MAP_LABELLING').imageMaxHeight;
-        const pinBoxWidth = Number.isFinite(Number(q.pinBoxWidth)) ? Number(q.pinBoxWidth) : 60;
+        const instructionHtml = composeQuestionInstructionHtml(
+            q.instruction,
+            q.instructions,
+            q.mainInstruction,
+            q.subInstruction,
+            q.title,
+        );
+        const imageWidth = resolveImageWidthPercent(q.imageWidth, getLockedImageQuestionLayout('MAP_LABELLING').defaultImageWidth ?? 100);
         const constrainHalfPage = Boolean(q.constrainHalfPage);
         const allowReuse = (typeof q.allowOptionReuse === 'boolean') ? q.allowOptionReuse : true;
+        const imageBankOptions = (q.bankOptions || []).filter(Boolean);
+        const forceSingleUseForExtraImageBank = !isReview && imageBankOptions.length > subQuestions.length;
+        const keepImageBankSlots = forceSingleUseForExtraImageBank;
+        const shouldDisallowImageReuse = forceSingleUseForExtraImageBank || !allowReuse;
 
         return (
             <div className="image-drag-drop-container" ref={imageDragDropContainerRef}>
+                {instructionHtml && (
+                    <div
+                        className="question-instruction image-drag-drop-instruction"
+                        dangerouslySetInnerHTML={{ __html: instructionHtml }}
+                    />
+                )}
                 <div className="image-drag-drop-body">
                     <div className={`image-area${constrainHalfPage ? ' half-page' : ''}`}>
-                        <div style={{ ...getLockedImageFrameStyle('MAP_LABELLING'), maxHeight: `${imageHeight}px` }}>
+                        <div style={{ ...getLockedImageFrameStyle('MAP_LABELLING', imageWidth) }}>
                             {q.imageUrl ? (
                                 <img
                                     src={resolveDrivePreviewUrl(q.imageUrl)}
@@ -645,9 +703,15 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                                     : String(answer || '');
                                 const hasAnswer = displayAnswer.trim() !== '';
                                 const isActive = activeQuestion === subQ.number;
-                                const pinX = resolvePinCoordinate(subQ.pinX ?? subQ.left, 50);
-                                const pinY = resolvePinCoordinate(subQ.pinY ?? subQ.top, 50);
-                                const basePinWidth = Math.max(56, Number(pinBoxWidth) || 60);
+                                const normalizedSubQ = normalizePinPosition(subQ);
+                                const pinX = normalizedSubQ.pinX;
+                                const pinY = normalizedSubQ.pinY;
+                                const basePinWidth = 120;
+
+                                // Debug log for position consistency
+                                if (process.env.NODE_ENV === 'development') {
+                                    console.log(`RuntimeMapPin ${subQ.number}: stored(${subQ.pinX}, ${subQ.pinY}) -> resolved(${pinX}, ${pinY})`);
+                                }
 
                                 return (
                                     <div
@@ -697,18 +761,22 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                             <div className="dd-bank-title" dangerouslySetInnerHTML={{ __html: formatAndClean(q.rightTitle) }} />
                         )}
                         <div className="bank-options-list">
-                            {(q.bankOptions || []).map((opt, idx) => {
-                                const isUsed = usedOptions.includes(opt);
-                                if (isUsed && !allowReuse) return null;
+                            {imageBankOptions.map((opt, idx) => {
+                                const isUsed = usedOptions.has(String(opt || '').trim());
+                                const shouldHideUsedOption = isUsed && !isReview && shouldDisallowImageReuse;
+                                if (shouldHideUsedOption && !keepImageBankSlots) return null;
+                                const isEmptySlot = shouldHideUsedOption && keepImageBankSlots;
 
                                 return (
                                     <div
                                         key={idx}
-                                        className="bank-option-item"
-                                        draggable={!isReview}
-                                        onDragStart={(e) => { if (!isReview) handleDragStart(e, opt); }}
+                                        className={`bank-option-item ${isEmptySlot ? 'bank-option-item-slot-empty' : ''}`}
+                                        draggable={!isReview && !isEmptySlot}
+                                        onDragStart={(e) => {
+                                            if (!isReview && !isEmptySlot) handleDragStart(e, opt);
+                                        }}
                                     >
-                                        {opt}
+                                        {isEmptySlot ? '\u00A0' : opt}
                                     </div>
                                 );
                             })}
@@ -938,8 +1006,8 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                     <BookmarkToggle
                         className="question-bookmark matching-info-floating-bookmark"
                         style={{ top: `${ddBookmarkTop}px` }}
-                        active={Boolean(bookmarks?.[activeMatchingSubQ.number])}
-                        onToggle={() => toggleBookmark?.(activeMatchingSubQ.number)}
+                        active={Boolean(bookmarks?.[activeMatchingSubQ.displayNumber])}
+                        onToggle={() => toggleBookmark?.(activeMatchingSubQ.displayNumber)}
                     />
                 )}
             </div>

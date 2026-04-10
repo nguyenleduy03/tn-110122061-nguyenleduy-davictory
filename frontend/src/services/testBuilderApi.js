@@ -377,8 +377,8 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
                 return [];
               };
 
-              // Đặc biệt xử lý DRAG_MATCHING, MATCHING_FEATURES, SUMMARY_COMPLETION_SELECT - luôn tạo answer cho mọi câu hỏi
-              if (group.contentType === 'DRAG_MATCHING' || group.contentType === 'MATCHING_FEATURES' || group.contentType === 'SUMMARY_COMPLETION_SELECT') {
+              // Đặc biệt xử lý DRAG_MATCHING, MATCHING_FEATURES, SUMMARY_COMPLETION_SELECT, TABLE_COMPLETION - luôn tạo answer cho mọi câu hỏi
+              if (group.contentType === 'DRAG_MATCHING' || group.contentType === 'MATCHING_FEATURES' || group.contentType === 'SUMMARY_COMPLETION_SELECT' || group.contentType === 'TABLE_COMPLETION') {
                 const existingAnswer = q.answers?.[0];
                 answers = [{
                   answerText: q.answerText || '', // Có thể rỗng
@@ -580,6 +580,10 @@ function normalizeImageNoteFormGroup(group) {
   return { ...group, questions: normalizedQuestions };
 }
 
+function isDragCompletionContentType(ct) {
+  return ['FILL_BLANK_DRAG', 'SENTENCE_COMPLETION_DRAG', 'SUMMARY_COMPLETION_DRAG', 'NOTE_COMPLETION_DRAG'].includes(ct);
+}
+
 // ─── Serialize nội dung group thành passageText (JSON) ───────────
 
 function serializeGroupContent(group, part) {
@@ -640,7 +644,7 @@ function serializeGroupContent(group, part) {
     return JSON.stringify({ headingBank: group.headingBank, allowOptionReuse });
   }
   // Drag matching: lưu option bank
-  if (ct === 'DRAG_MATCHING') {
+  if (ct === 'DRAG_MATCHING' || isDragCompletionContentType(ct)) {
     return JSON.stringify({
       leftTitle: group.leftTitle,
       rightTitle: group.rightTitle,
@@ -870,14 +874,24 @@ export function parseLoadedTest(data) {
             const isMCQ = mappedType === 'MULTIPLE_CHOICE' || mappedType === 'MULTIPLE_CHOICE_MULTIPLE';
 
             // Ensure MCQ questions always have options
-            let options = (qResp.options || []).map(opt => ({
-              id: nextId++,
-              optionLabel: opt.optionLabel,
-              optionText: opt.optionText,
-              optionImageUrl: opt.imageUrl || null,
-              isCorrect: opt.isCorrect,
-              orderIndex: opt.orderIndex,
-            }));
+            let options = (qResp.options || []).map(opt => {
+              const optionImageUrl = String(opt.imageUrl || '').trim();
+              const plainOptionText = String(opt.optionText || '')
+                .replace(/<[^>]*>/g, ' ')
+                .replace(/&nbsp;/gi, ' ')
+                .trim();
+              const inferredMode = optionImageUrl && !plainOptionText ? 'image' : 'text';
+
+              return {
+                id: nextId++,
+                optionLabel: opt.optionLabel,
+                optionText: opt.optionText,
+                optionImageUrl: optionImageUrl || null,
+                optionMode: opt.optionMode || inferredMode,
+                isCorrect: opt.isCorrect,
+                orderIndex: opt.orderIndex,
+              };
+            });
 
             // If MCQ but no options from backend, create defaults
             if (isMCQ && options.length === 0) {
@@ -1072,7 +1086,7 @@ function deserializeGroupContent(contentType, passageText) {
       const extra = parsed.readingPassage ? { _embeddedPassage: parsed.readingPassage } : {};
       return { headingBank: parsed.headingBank || [], allowOptionReuse: (typeof parsed.allowOptionReuse === 'boolean') ? parsed.allowOptionReuse : true, ...extra };
     }
-    if (contentType === 'DRAG_MATCHING') {
+    if (contentType === 'DRAG_MATCHING' || isDragCompletionContentType(contentType)) {
       const parsed = JSON.parse(passageText);
       return { leftTitle: parsed.leftTitle, rightTitle: parsed.rightTitle, optionBank: parsed.optionBank || [], allowOptionReuse: (typeof parsed.allowOptionReuse === 'boolean') ? parsed.allowOptionReuse : true };
     }

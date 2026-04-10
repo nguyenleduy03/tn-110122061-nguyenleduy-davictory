@@ -5,27 +5,27 @@ import { toPlainText } from './blocks/shared/blockHelpers';
 
 const CONTENT_TYPES = [
   'READING_PASSAGE', 'AUDIO_TRANSCRIPT', 'STANDALONE',
-  'DIAGRAM', 'MAP', 'MAP_LABELLING', 'TABLE', 'TABLE_COMPLETION', 'MATCHING_HEADING', 'DRAG_MATCHING', 'SUMMARY_COMPLETION', 'SUMMARY_COMPLETION_SELECT', 'NOTE_COMPLETION', 'FLOW_CHART', 'WRITING_TASK',
+  'DIAGRAM', 'MAP', 'MAP_LABELLING', 'TABLE', 'TABLE_COMPLETION', 'MATCHING_HEADING', 'DRAG_MATCHING', 'FILL_BLANK_DRAG', 'SENTENCE_COMPLETION_DRAG', 'SUMMARY_COMPLETION_DRAG', 'NOTE_COMPLETION_DRAG', 'SUMMARY_COMPLETION', 'SUMMARY_COMPLETION_SELECT', 'NOTE_COMPLETION', 'FLOW_CHART', 'WRITING_TASK',
   'SPEAKING_INTERVIEW', 'SPEAKING_CUECARD', 'SPEAKING_PART1', 'SPEAKING_PART2', 'SPEAKING_PART3',
   'CUSTOM',
 ];
 const QUESTION_TYPES = [
-  { value: 'MULTIPLE_CHOICE',          label: 'Multiple Choice (1 đáp án)' },
+  { value: 'MULTIPLE_CHOICE', label: 'Multiple Choice (1 đáp án)' },
   { value: 'MULTIPLE_CHOICE_MULTIPLE', label: 'Multiple Choice (nhiều đáp án)' },
-  { value: 'FILL_IN_BLANK',            label: 'Fill in the Blank' },
-  { value: 'TRUE_FALSE_NG',            label: 'True / False / Not Given' },
-  { value: 'MATCHING_HEADINGS',        label: 'Matching Headings' },
-  { value: 'MATCHING_INFO',            label: 'Matching Information' },
-  { value: 'SHORT_ANSWER',             label: 'Short Answer' },
-  { value: 'NOTE_COMPLETION',          label: 'Note Completion' },
+  { value: 'FILL_IN_BLANK', label: 'Fill in the Blank' },
+  { value: 'TRUE_FALSE_NG', label: 'True / False / Not Given' },
+  { value: 'MATCHING_HEADINGS', label: 'Matching Headings' },
+  { value: 'MATCHING_INFO', label: 'Matching Information' },
+  { value: 'SHORT_ANSWER', label: 'Short Answer' },
+  { value: 'NOTE_COMPLETION', label: 'Note Completion' },
   // Biến thể: Matching → Fill-in
-  { value: 'MATCHING_FILLABLE',        label: 'Matching (Fill-in)' },
+  { value: 'MATCHING_FILLABLE', label: 'Matching (Fill-in)' },
   { value: 'MATCHING_HEADINGS_FILLABLE', label: 'Matching Headings (Fill-in)' },
   // Biến thể: Fill-in → Drag-drop
-  { value: 'FILL_BLANK_DRAG',          label: 'Fill in the Blank (Drag-drop)' },
+  { value: 'FILL_BLANK_DRAG', label: 'Fill in the Blank (Drag-drop)' },
   { value: 'SENTENCE_COMPLETION_DRAG', label: 'Sentence Completion (Drag-drop)' },
-  { value: 'SUMMARY_COMPLETION_DRAG',  label: 'Summary Completion (Drag-drop)' },
-  { value: 'NOTE_COMPLETION_DRAG',     label: 'Note Completion (Drag-drop)' },
+  { value: 'SUMMARY_COMPLETION_DRAG', label: 'Summary Completion (Drag-drop)' },
+  { value: 'NOTE_COMPLETION_DRAG', label: 'Note Completion (Drag-drop)' },
 ];
 
 // ---- Sub-panel: Part properties ----
@@ -125,9 +125,9 @@ const GroupPanel = ({ group, onChange, onDelete }) => (
       </div>
     )}
 
-    {(group.contentType === 'DRAG_MATCHING') && (
+    {(['DRAG_MATCHING', 'FILL_BLANK_DRAG', 'SENTENCE_COMPLETION_DRAG', 'SUMMARY_COMPLETION_DRAG', 'NOTE_COMPLETION_DRAG'].includes(group.contentType)) && (
       <div className="tb-field">
-        <label className="tb-label">ℹ️ Drag Matching</label>
+        <label className="tb-label">ℹ️ Drag-drop Completion</label>
         <div style={{ fontSize: 12, color: '#6b7280', padding: '6px 10px', background: '#f0fdf4', borderRadius: 6, border: '1px solid #86efac' }}>
           Cột trái: thêm mục (người/nơi). Cột phải: thêm lựa chọn vào ngân từ. Chọn đáp án đúng cho từng mục.
         </div>
@@ -175,9 +175,9 @@ const GroupPanel = ({ group, onChange, onDelete }) => (
         <div style={{ fontSize: 12, color: '#6b7280', padding: '6px 10px', background: '#fefce8', borderRadius: 6, border: '1px solid #fde68a' }}>
           <div>Nhập nội dung ghi chú vào canvas trực tiếp. Dùng <code>[blank]</code> để đánh dấu ô trống.</div>
           <div style={{ marginTop: '8px', padding: '6px', background: '#fff3cd', borderRadius: 4, border: '1px solid #ffeaa7' }}>
-            <strong>Chú thích số thứ tự:</strong><br/>
-            • Vị trí trong đoạn văn: 1, 2, 3, 4, 5...<br/>
-            • Số câu hỏi thực tế: Sẽ tiếp tục từ group trước<br/>
+            <strong>Chú thích số thứ tự:</strong><br />
+            • Vị trí trong đoạn văn: 1, 2, 3, 4, 5...<br />
+            • Số câu hỏi thực tế: Sẽ tiếp tục từ group trước<br />
             • Học viên điền đáp án theo số câu hỏi thực tế
           </div>
         </div>
@@ -193,7 +193,7 @@ const GroupPanel = ({ group, onChange, onDelete }) => (
       </div>
     )}
 
-    {(['DRAG_MATCHING', 'FLOW_CHART', 'MAP_LABELLING', 'MATCHING_HEADING'].includes(group.contentType)) && (
+    {(['DRAG_MATCHING', 'FILL_BLANK_DRAG', 'SENTENCE_COMPLETION_DRAG', 'SUMMARY_COMPLETION_DRAG', 'NOTE_COMPLETION_DRAG', 'FLOW_CHART', 'MAP_LABELLING', 'MATCHING_HEADING'].includes(group.contentType)) && (
       <div className="tb-field">
         <label className="tb-label">Kéo thả: dùng lại thẻ</label>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 10px', border: '1px solid #e5e7eb', borderRadius: 8, background: '#fff' }}>
@@ -351,28 +351,28 @@ const QuestionPanel = ({ question, onChange, onDelete }) => {
       <div className="tb-panel-section-title">Câu hỏi</div>
 
       {!isSharedDropdown && (
-      <div className="tb-field">
-        <label className="tb-label">Loại câu hỏi</label>
-        <select
-          className="tb-select"
-          value={qtype}
-          onChange={(e) =>
-            onChange({ questionType: { typeName: e.target.value } })
-          }
-        >
-          {QUESTION_TYPES.map((qt) => (
-            <option key={qt.value} value={qt.value}>{qt.label}</option>
-          ))}
-        </select>
-      </div>
+        <div className="tb-field">
+          <label className="tb-label">Loại câu hỏi</label>
+          <select
+            className="tb-select"
+            value={qtype}
+            onChange={(e) =>
+              onChange({ questionType: { typeName: e.target.value } })
+            }
+          >
+            {QUESTION_TYPES.map((qt) => (
+              <option key={qt.value} value={qt.value}>{qt.label}</option>
+            ))}
+          </select>
+        </div>
       )}
       {isSharedDropdown && (
-      <div className="tb-field">
-        <label className="tb-label">Loại</label>
-        <div className="tb-input" style={{ background: '#f8fafc', color: '#64748b', cursor: 'default' }}>
-          Dropdown chung (một chữ A/B/C…)
+        <div className="tb-field">
+          <label className="tb-label">Loại</label>
+          <div className="tb-input" style={{ background: '#f8fafc', color: '#64748b', cursor: 'default' }}>
+            Dropdown chung (một chữ A/B/C…)
+          </div>
         </div>
-      </div>
       )}
 
       <div className="tb-field">
@@ -446,7 +446,7 @@ const QuestionPanel = ({ question, onChange, onDelete }) => {
         <>
           <div className="tb-field">
             <label className="tb-label">Instruction chung</label>
-            <input className="tb-input" 
+            <input className="tb-input"
               value={question.groupInstruction ?? 'Choose TWO correct answers.'}
               onChange={(e) => onChange({ groupInstruction: e.target.value })}
               placeholder="Choose TWO correct answers." />

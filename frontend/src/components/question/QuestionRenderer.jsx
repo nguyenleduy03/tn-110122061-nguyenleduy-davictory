@@ -9,7 +9,9 @@ import DropdownGroupQuestion from './DropdownGroupQuestion';
 import MatchingFillQuestion from './MatchingFillQuestion';
 import ShortAnswerGroupQuestion from './ShortAnswerGroupQuestion';
 import { formatTextWithWhitespace } from '../../utils/textFormatters';
+import { renderHtmlWithTokenPlaceholders } from '../../utils/htmlTokenRenderer';
 import { resolveDrivePreviewUrl } from '../../utils/mediaUrl';
+import { getAdaptiveInputWidthStyle } from '../../utils/adaptiveInputWidth';
 import BookmarkToggle from '../common/BookmarkToggle';
 
 const normalizeQuestionType = (rawType) => {
@@ -41,6 +43,10 @@ const normalizeQuestionType = (rawType) => {
         case 'drag_and_drop':
         case 'drag_and_drop_group':
         case 'drag_drop_group':
+        case 'fill_blank_drag':
+        case 'sentence_completion_drag':
+        case 'summary_completion_drag':
+        case 'note_completion_drag':
         case 'draganddropgroup':
             return 'drag_drop_group';
         case 'mcq_dropdown_group':
@@ -361,6 +367,7 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
             const displayValue = (isReview && !isCorrect)
                 ? String(subQ.correctAnswer || '').split('|')[0]
                 : String(currentValue || '');
+            const adaptiveInputStyle = getAdaptiveInputWidthStyle(displayValue);
 
             return (
                 <span
@@ -372,6 +379,7 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
                         ref={(el) => { if (inputRefs?.current) inputRefs.current[subQ.id] = el; }}
                         type="text"
                         className={`inline-input tc-inline-input ${isReview ? (isCorrect ? 'review-correct' : 'review-wrong') : ''}`}
+                        style={adaptiveInputStyle}
                         placeholder={String(subQ.number || '')}
                         value={displayValue}
                         onClick={() => setActiveQuestion?.(subQ.number)}
@@ -384,18 +392,20 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
         };
 
         const renderCell = (cellText, rowId, colId) => {
-            const parts = normalizeBlankTokens(cellText).split('[blank]');
-            const offset = getBlankOffset(rowId, colId);
-
-            return parts.map((part, i) => {
-                const info = blankMap[offset + i];
-                return (
-                    <React.Fragment key={`${rowId}-${colId}-${i}`}>
-                        {renderFormattedText(part)}
-                        {i < parts.length - 1 && renderBlankInput(info)}
-                    </React.Fragment>
-                );
-            });
+            let blankIndex = getBlankOffset(rowId, colId);
+            return renderHtmlWithTokenPlaceholders(
+                normalizeBlankTokens(cellText),
+                () => {
+                    const info = blankMap[blankIndex];
+                    blankIndex += 1;
+                    return renderBlankInput(info);
+                },
+                {
+                    normalizeHtml: (value) => formatTextWithWhitespace(value || ''),
+                    tokenRegex: /\[\s*blank\s*\]/gi,
+                    keyPrefix: `tc-${rowId}-${colId}`,
+                }
+            );
         };
 
         // Fallback nếu dữ liệu bảng chưa có cấu trúc
@@ -413,11 +423,13 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
                                     const displayValue = (isReview && !isCorrect)
                                         ? String(subQ.correctAnswer || '').split('|')[0]
                                         : String(rawValue || '');
+                                    const adaptiveInputStyle = getAdaptiveInputWidthStyle(displayValue);
                                     return (
                                         <input
                                             ref={(el) => { if (inputRefs?.current) inputRefs.current[subQ.id] = el; }}
                                             type="text"
                                             className={`inline-input ${isReview ? (isCorrect ? 'review-correct' : 'review-wrong') : ''}`}
+                                            style={adaptiveInputStyle}
                                             placeholder={`Q${subQ.number}`}
                                             value={displayValue}
                                             onClick={() => setActiveQuestion?.(subQ.number)}

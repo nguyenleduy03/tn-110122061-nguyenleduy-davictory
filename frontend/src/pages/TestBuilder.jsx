@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useBeforeUnload } from 'react-router-dom';
 import {
   DndContext,
   DragOverlay,
@@ -22,6 +22,7 @@ import ExamCanvas from '../components/testBuilder/ExamCanvas';
 import IframePreviewModal from '../components/testBuilder/IframePreviewModal';
 import PropertiesPanel from '../components/testBuilder/PropertiesPanel';
 import ErrorBoundary from '../components/common/ErrorBoundary';
+import VersionHistoryModal from '../components/common/VersionHistoryModal';
 import { testBuilderApi, buildSavePayload, parseLoadedTest } from '../services/testBuilderApi';
 import { authApi } from '../services/authApi';
 import '../styles/testBuilder.css';
@@ -220,7 +221,14 @@ const TestBuilder = () => {
   const [leftSidebarCollapsed, setLeftSidebarCollapsed] = useState(false);
   const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false);
   const lastAutoSaveSnapshotRef = useRef(JSON.stringify({ test, sessions }));
+  const hasChangedSinceEntryRef = useRef(false); // true khi user thay đổi kể từ lúc vào editor
   const autoSaveTimerRef = useRef(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [showExitWarning, setShowExitWarning] = useState(false);
+  const [showVersionHistory, setShowVersionHistory] = useState(false);
+  const pendingNavigationRef = useRef(null);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   useEffect(() => {
     try {
@@ -229,6 +237,25 @@ const TestBuilder = () => {
       // Ignore storage errors
     }
   }, [autoSaveEnabled]);
+
+  // Theo dõi thay đổi
+  useEffect(() => {
+    if (isInitialLoad) return;
+    const currentSnapshot = JSON.stringify({ test, sessions });
+    const hasChanges = currentSnapshot !== lastAutoSaveSnapshotRef.current;
+    setHasUnsavedChanges(hasChanges);
+    if (hasChanges) hasChangedSinceEntryRef.current = true;
+  }, [test, sessions, isInitialLoad]);
+
+  // Chặn navigation khi có thay đổi chưa lưu
+  useBeforeUnload(
+    useCallback((e) => {
+      if (hasUnsavedChanges && !saving) {
+        e.preventDefault();
+        return (e.returnValue = '');
+      }
+    }, [hasUnsavedChanges, saving])
+  );
 
   // ─── Fetch backend structure + load existing test on mount ───
   useEffect(() => {
@@ -266,7 +293,16 @@ const TestBuilder = () => {
           });
           setSessionDurations(loadedTest.sessionDurations || DEFAULT_SESSION_DURATIONS);
           setSavedTestId(testId);
-          lastAutoSaveSnapshotRef.current = JSON.stringify({ test: nextTest, sessions: nextSessions });
+          // Set snapshot và bật tracking sau khi load xong
+          setTimeout(() => {
+            const snap = JSON.stringify({ test: nextTest, sessions: nextSessions });
+            lastAutoSaveSnapshotRef.current = snap;
+            hasChangedSinceEntryRef.current = false;
+            setIsInitialLoad(false);
+          }, 100);
+        } else {
+          hasChangedSinceEntryRef.current = false;
+          setIsInitialLoad(false);
         }
       } catch (err) {
         console.error('Không thể tải cấu trúc bài thi:', err);
@@ -567,8 +603,20 @@ const TestBuilder = () => {
           };
 
         case 'DRAG_MATCHING':
+        case 'FILL_BLANK_DRAG':
+        case 'SENTENCE_COMPLETION_DRAG':
+        case 'SUMMARY_COMPLETION_DRAG':
+        case 'NOTE_COMPLETION_DRAG':
           return {
-            title: `Drag Matching ${groupIdx}`,
+            title: (contentType === 'DRAG_MATCHING')
+              ? `Drag Matching ${groupIdx}`
+              : (contentType === 'FILL_BLANK_DRAG')
+                ? `Fill Blank (Drag) ${groupIdx}`
+                : (contentType === 'SENTENCE_COMPLETION_DRAG')
+                  ? `Sentence (Drag) ${groupIdx}`
+                  : (contentType === 'SUMMARY_COMPLETION_DRAG')
+                    ? `Summary (Drag) ${groupIdx}`
+                    : `Note (Drag) ${groupIdx}`,
             leftTitle: '', rightTitle: '',
             allowOptionReuse: true, // Mặc định cho phép dùng lại thẻ
             fromQuestion: null, toQuestion: null,
@@ -747,13 +795,23 @@ const TestBuilder = () => {
   };
 
   const updateGroup = (partId, groupId, updates) => {
+    console.log('updateGroup called:', { partId, groupId, updates });
+    if (updates.questions) {
+      console.log('📋 Questions being updated:', updates.questions.map(q => ({
+        id: q.id,
+        qNum: q.questionNumber,
+        answerText: q.answerText
+      })));
+    }
+
+    // Update parts state
     setParts((prev) =>
       prev.map((p) => {
         if (p.id !== partId) return p;
         const updatedGroups = p.questionGroups.map((g) => {
           if (g.id !== groupId) return g;
           const updated = { ...g, ...updates };
-          // Nếu là Multiple Choice (nhiều) và chooseCount thay đổi, cập nhật questionCount cho tất cả câu hỏi
+          console.log('Group updated:', { oldQuestions: g.questions, newQuestions: updated.questions });
           if (updated.contentType === 'MULTIPLE_CHOICE_MULTI' && 'chooseCount' in updates) {
             updated.questions = (updated.questions || []).map(q => ({
               ...q,
@@ -765,6 +823,23 @@ const TestBuilder = () => {
         return { ...p, questionGroups: recalculateQuestionNumbers(updatedGroups) };
       })
     );
+
+    // QUAN TRỌNG: Cũng update sessions state
+    setSessions((prev) => {
+      const updated = { ...prev };
+      for (const [skillKey, parts] of Object.entries(updated)) {
+        updated[skillKey] = parts.map(p => {
+          if (p.id !== partId) return p;
+          const updatedGroups = (p.questionGroups || []).map(g => {
+            if (g.id !== groupId) return g;
+            return { ...g, ...updates };
+          });
+          return { ...p, questionGroups: updatedGroups };
+        });
+      }
+      return updated;
+    });
+
     if (selection?.type === 'group' && selection.data.id === groupId) {
       setSelection((s) => ({ ...s, data: { ...s.data, ...updates } }));
     }
@@ -1166,11 +1241,12 @@ const TestBuilder = () => {
 
   // ------------ Save ------------
 
-  const handleSave = useCallback(async () => {
+  const handleSave = useCallback(async (options = {}) => {
+    const { createVersion = false } = options;
+
     setSaving(true);
     setSaveMessage('');
     try {
-      // Lấy cấu trúc nếu chưa có
       let struct = structure;
       if (!struct) {
         struct = await testBuilderApi.getStructure(test.testType);
@@ -1180,28 +1256,43 @@ const TestBuilder = () => {
       const user = authApi.getStoredUser();
       const userId = user?.id || 1;
 
-      const payload = buildSavePayload(test, sessions, struct, userId, savedTestId, sessionDurations);
+      // Đợi để React flush tất cả state updates
+      const latestSessions = await new Promise(resolve => {
+        setTimeout(() => {
+          setSessions(prev => {
+            console.log('💾 Getting sessions for save:', prev);
+            resolve(prev);
+            return prev;
+          });
+        }, 100);
+      });
+
+      const payload = buildSavePayload(test, latestSessions, struct, userId, savedTestId, sessionDurations, createVersion);
       const result = await testBuilderApi.saveFullTest(payload);
 
       setSavedTestId(result.id);
-      lastAutoSaveSnapshotRef.current = JSON.stringify({ test, sessions });
-      setSaveMessage('Đã lưu đề thi thành công!');
+      lastAutoSaveSnapshotRef.current = JSON.stringify({ test, sessions: latestSessions });
+      setHasUnsavedChanges(false);
+      setSaveMessage('Đã lưu thành công!');
 
-      // Chuyển đến trang chỉnh sửa đề vừa lưu
-      navigate(`/teacher/tests/${result.id}/edit`, { replace: true });
+      if (!savedTestId) {
+        navigate(`/teacher/tests/${result.id}/edit`, { replace: true });
+      }
 
       setTimeout(() => setSaveMessage(''), 3000);
+      return result;
     } catch (err) {
       console.error('Lỗi lưu đề thi:', err);
       if (err.response?.status === 403) {
-        setSaveMessage('Bạn không có quyền lưu đề thi. Cần đăng nhập tài khoản có quyền TEACHER/MANAGER/ADMIN.');
+        setSaveMessage('Bạn không có quyền lưu đề thi.');
       } else {
-        setSaveMessage('Lỗi khi lưu đề thi: ' + (err.response?.data?.error || err.message));
+        setSaveMessage('Lỗi khi lưu: ' + (err.response?.data?.error || err.message));
       }
+      throw err;
     } finally {
       setSaving(false);
     }
-  }, [sessions, savedTestId, structure, test, navigate]);
+  }, [savedTestId, structure, test, navigate, sessionDurations]);
 
   useEffect(() => {
     if (!autoSaveEnabled || roleError || saving || hasActiveMediaUpload(sessions)) return undefined;
@@ -1211,7 +1302,7 @@ const TestBuilder = () => {
 
     clearTimeout(autoSaveTimerRef.current);
     autoSaveTimerRef.current = setTimeout(() => {
-      handleSave();
+      handleSave({}); // auto-save: không tạo version
     }, 1200);
 
     return () => clearTimeout(autoSaveTimerRef.current);
@@ -1318,7 +1409,7 @@ const TestBuilder = () => {
         <BuilderHeader
           test={test}
           onTestChange={updateTest}
-          onSave={handleSave}
+          onSave={() => handleSave({})}
           onPreview={() => setPreviewMode(true)}
           onSubmitReview={handleSubmitReview}
           saving={saving}
@@ -1335,6 +1426,16 @@ const TestBuilder = () => {
           previewMode={previewMode}
           onPreviewToggle={() => setPreviewMode((prev) => !prev)}
           activeSkill={activeSkill}
+          hasUnsavedChanges={hasUnsavedChanges}
+          onOpenVersionHistory={savedTestId ? () => setShowVersionHistory(true) : undefined}
+          onNavigate={(path) => {
+            if (hasChangedSinceEntryRef.current) {
+              pendingNavigationRef.current = path;
+              setShowExitConfirm(true);
+            } else {
+              navigate(path);
+            }
+          }}
         />
 
         {leftSidebarCollapsed && (
@@ -1515,6 +1616,81 @@ const TestBuilder = () => {
             isVisible={previewMode}
             onClose={() => setPreviewMode(false)}
           />
+        )}
+
+        <VersionHistoryModal
+          testId={savedTestId}
+          isOpen={showVersionHistory}
+          onClose={() => setShowVersionHistory(false)}
+          onRestoreVersion={(snapshotData, versionNumber) => {
+            const { test: restoredTest, sessions: restoredSessions } = parseLoadedTest(snapshotData);
+            setTest(prev => ({ ...prev, ...restoredTest }));
+            setSessions(prev => {
+              const merged = { ...prev };
+              for (const [skill, parts] of Object.entries(restoredSessions)) {
+                if (parts.length > 0) merged[skill] = parts;
+              }
+              return merged;
+            });
+            hasChangedSinceEntryRef.current = true;
+            setSaveMessage(`Đã tải phiên bản ${versionNumber}. Nhấn Lưu để áp dụng.`);
+            setTimeout(() => setSaveMessage(''), 4000);
+          }}
+        />
+
+        {showExitConfirm && (
+          <div style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center',
+            justifyContent: 'center', zIndex: 10000
+          }}>
+            <div style={{
+              background: '#fff', borderRadius: 12, padding: 32, maxWidth: 480,
+              boxShadow: '0 8px 32px rgba(0,0,0,0.2)'
+            }}>
+              <h3 style={{ marginBottom: 16, fontSize: 20, color: '#1f2937' }}>
+                Lưu phiên bản mới?
+              </h3>
+              <p style={{ marginBottom: 24, color: '#6b7280', lineHeight: 1.6 }}>
+                Bạn đã thực hiện thay đổi. Lưu phiên bản mới để có thể khôi phục sau này?
+              </p>
+              <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+                <button
+                  onClick={() => {
+                    setShowExitConfirm(false);
+                    const path = pendingNavigationRef.current;
+                    pendingNavigationRef.current = null;
+                    if (path) navigate(path);
+                  }}
+                  style={{
+                    padding: '10px 20px', border: '1px solid #d1d5db',
+                    background: '#fff', borderRadius: 8, cursor: 'pointer', fontSize: 15
+                  }}
+                >
+                  Không lưu
+                </button>
+                <button
+                  onClick={async () => {
+                    setShowExitConfirm(false);
+                    const path = pendingNavigationRef.current;
+                    pendingNavigationRef.current = null;
+                    try {
+                      await handleSave({ createVersion: true });
+                      hasChangedSinceEntryRef.current = false;
+                    } catch (_) { }
+                    if (path) navigate(path);
+                  }}
+                  disabled={saving}
+                  style={{
+                    padding: '10px 20px', border: 'none', background: '#3b82f6',
+                    color: '#fff', borderRadius: 8, cursor: 'pointer', fontSize: 15, fontWeight: 500
+                  }}
+                >
+                  {saving ? 'Đang lưu...' : 'Lưu phiên bản mới'}
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </ErrorBoundary>
