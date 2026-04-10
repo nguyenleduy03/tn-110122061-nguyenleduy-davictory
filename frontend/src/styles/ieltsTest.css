@@ -2447,6 +2447,130 @@
     text-align: left;
 }
 
+.drag-drop-group.sentence-completion-drag {
+    position: relative;
+    padding-right: var(--ielts-bookmark-gutter);
+}
+
+.drag-drop-group.sentence-completion-drag .sentence-completion-drag-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+    align-items: flex-start;
+}
+
+.drag-drop-group.sentence-completion-drag .sentence-completion-drag-left {
+    min-width: 0;
+    padding-left: var(--ielts-question-inline-gap);
+    box-sizing: border-box;
+}
+
+.drag-drop-group.sentence-completion-drag .sentence-completion-drag-right {
+    min-width: 0;
+    width: fit-content;
+    max-width: 100%;
+}
+
+.drag-drop-group.sentence-completion-drag .sentence-completion-bank-wrap {
+    width: fit-content;
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.drag-drop-group.sentence-completion-drag .sentence-completion-bank-title {
+    margin: 0;
+}
+
+.drag-drop-group.sentence-completion-drag .bank-section.bank-drop-target.sentence-completion-bank-frame {
+    width: var(--dd-bank-fixed-width, 320px);
+    min-width: var(--dd-bank-fixed-width, 320px);
+    max-width: 100%;
+    min-height: 0;
+    height: auto;
+    margin-bottom: 0;
+    background: #fff;
+    padding: 10px 12px;
+    box-sizing: border-box;
+}
+
+.drag-drop-group.sentence-completion-drag .dd-sub-questions {
+    padding-right: 0;
+}
+
+.drag-drop-group.sentence-completion-drag .dd-default-label {
+    display: none;
+}
+
+.drag-drop-group.sentence-completion-drag .dd-default-meta {
+    width: 100%;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: baseline;
+}
+
+.drag-drop-group.sentence-completion-drag .dd-question-row.dd-row-default {
+    padding: 4px 0;
+}
+
+.drag-drop-group.sentence-completion-drag .dd-question-text {
+    flex: 0 1 auto;
+    display: inline;
+}
+
+.drag-drop-group.sentence-completion-drag .dd-drop-zone.dd-drop-inline {
+    min-width: 140px;
+    min-height: 25px;
+    height: 25px;
+    padding: 0 10px;
+    border: 1.5px dashed #9aa3b2;
+    font-size: var(--ielts-question-content-font-size);
+    line-height: var(--ielts-question-content-line-height);
+    align-self: baseline;
+}
+
+.drag-drop-group.sentence-completion-drag .dd-drop-zone.dd-drop-inline.dd-drop-filled {
+    width: fit-content;
+    max-width: 100%;
+    min-height: 30px;
+    height: auto;
+    border: 1.5px solid #3498db;
+    box-shadow: none;
+    font-size: var(--ielts-question-content-font-size);
+    line-height: var(--ielts-question-content-line-height);
+}
+
+.drag-drop-group.sentence-completion-drag .dd-drop-zone.dd-drop-inline .dd-drop-answer {
+    font-size: inherit;
+    line-height: inherit;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+}
+
+.drag-drop-group.sentence-completion-drag .bank-section.bank-drop-target .options-bank {
+    width: fit-content;
+    max-width: 100%;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    gap: 6px;
+    margin-bottom: 0;
+}
+
+.drag-drop-group.sentence-completion-drag .bank-option {
+    width: fit-content !important;
+    max-width: 100%;
+    min-height: 25px;
+    height: auto !important;
+    white-space: normal;
+    align-self: flex-start;
+    margin-right: 0;
+    margin-bottom: 0;
+}
+
 @media (max-width: 1024px) {
     .drag-drop-group.matching-info .matching-info-layout {
         grid-template-columns: minmax(0, 1fr);
@@ -2459,6 +2583,10 @@
 
     .drag-drop-group.matching-info .dd-info-bank-col {
         order: 2;
+    }
+
+    .drag-drop-group.sentence-completion-drag .sentence-completion-drag-right {
+        width: 100%;
     }
 }
 
@@ -2747,6 +2875,14 @@
     justify-content: flex-start;
     width: 100%;
     white-space: nowrap;
+}
+
+/* Prevent passage-wide pre-wrap rules from forcing heading answers onto multiple lines. */
+.passage-content .heading-gap-answer,
+.passage-content .heading-gap-answer span {
+    white-space: nowrap !important;
+    overflow-wrap: normal !important;
+    word-break: normal !important;
 }
 
 /* Đảm bảo flex/gap cho vùng chứa các bank option (dùng wrap để nhiều option rớt dòng an toàn) */
@@ -4727,6 +4863,10 @@
     line-height: 1.5;
 }
 
+.reading-page .summary-completion-container {
+    line-height: 1.1;
+}
+
 .summary-instructions {
     font-size: var(--ielts-question-instruction-font-size);
     font-weight: 400;
@@ -4742,11 +4882,28 @@
     font-weight: 400;
 }
 
+.reading-page .summary-title {
+    margin-bottom: 1.5em !important;
+}
+
 .summary-text {
     font-size: var(--ielts-question-content-font-size);
     line-height: var(--ielts-question-content-line-height);
     white-space: normal;
     font-family: inherit;
+}
+
+.reading-page .summary-text {
+    line-height: 1.1;
+}
+
+.reading-page .summary-lead-line {
+    display: block;
+    margin: 0 0 1.25em 0;
+}
+
+.reading-page .summary-text> :first-child {
+    margin-bottom: 1.5em !important;
 }
 
 .summary-title :is(p, div, blockquote):not([style]):not([class]),
@@ -4760,6 +4917,10 @@
     margin: 0;
     font-size: var(--ielts-question-content-font-size);
     line-height: var(--ielts-question-content-line-height);
+}
+
+.reading-page .summary-text :is(p, div, blockquote):not([style]):not([class]) {
+    line-height: 1;
 }
 
 .summary-title :is(h1, h2, h3, h4, h5, h6):not([style]):not([class]),
@@ -4783,10 +4944,24 @@
     margin-top: 0.22em;
 }
 
+.reading-page .summary-text> :is(p, div, h1, h2, h3, h4, h5, h6, blockquote, ul, ol, section, article)+ :is(p, div, h1, h2, h3, h4, h5, h6, blockquote, ul, ol, section, article) {
+    margin-top: 0.02em;
+}
+
 .summary-text li>p,
 .summary-text li>div {
     display: block;
     margin: 0;
+}
+
+.reading-page .summary-text li {
+    margin-bottom: 0.02em;
+    line-height: 1.1;
+}
+
+.reading-page .summary-text li>p,
+.reading-page .summary-text li>div {
+    line-height: 1.1;
 }
 
 .summary-text li>p,
@@ -4840,6 +5015,10 @@
     padding: 0;
 }
 
+.reading-page .summary-completion-image-note-wrap {
+    line-height: 1.1;
+}
+
 .summary-completion-image-standalone-wrap {
     text-align: center;
     margin: 0;
@@ -4862,7 +5041,6 @@
     height: auto;
     max-width: 100%;
     max-height: none;
-    vertical-align: top;
     margin: 0;
     padding: 0;
 }
@@ -6318,9 +6496,25 @@ body.text-size-xlarge .options-fs-overlay {
 }
 
 .tc-row-label {
-    font-weight: 600;
     white-space: nowrap;
     background: #f9fafb;
+}
+
+.table-completion-container .tc-cell :is(ul, ol) {
+    margin: 0;
+    padding-left: 1.25em;
+}
+
+.table-completion-container .tc-cell li {
+    margin: 0;
+    padding: 0;
+    line-height: 1.4;
+}
+
+.table-completion-container .tc-cell li>p,
+.table-completion-container .tc-cell li>div {
+    margin: 0;
+    line-height: 1.4;
 }
 
 .tc-inline-input {
@@ -6618,11 +6812,11 @@ body.text-size-xlarge .options-fs-overlay {
 
 .short-answer-group-container {
     margin-bottom: 0;
-    padding: var(--ielts-question-block-padding-y) 0;
+    padding: 0;
 }
 
 .short-answer-instruction {
-    margin: 0 0 var(--ielts-question-header-gap);
+    margin: 0 0 var(--ielts-question-item-gap);
     font-size: var(--ielts-question-instruction-font-size);
     line-height: var(--ielts-question-instruction-line-height);
     color: #111;
@@ -6645,8 +6839,8 @@ body.text-size-xlarge .options-fs-overlay {
 .short-answer-item {
     display: flex;
     align-items: flex-start;
-    gap: 6px;
-    line-height: var(--ielts-question-content-line-height);
+    gap: 2px;
+    line-height: 1.8;
 }
 
 .short-answer-item-sample .short-answer-number,
@@ -6666,8 +6860,8 @@ body.text-size-xlarge .options-fs-overlay {
 .short-answer-prefix {
     display: inline-flex;
     align-items: baseline;
-    gap: 4px;
-    min-width: 1.1em;
+    gap: 0;
+    min-width: 0.7em;
     font-weight: 700;
     flex-shrink: 0;
 }
@@ -6686,7 +6880,7 @@ body.text-size-xlarge .options-fs-overlay {
     display: inline-flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: var(--ielts-question-inline-gap);
+    gap: 2px;
     min-width: 0;
     flex: 1;
 }
@@ -6694,7 +6888,7 @@ body.text-size-xlarge .options-fs-overlay {
 .short-answer-text {
     min-width: 0;
     font-size: var(--ielts-question-content-font-size);
-    line-height: var(--ielts-question-content-line-height);
+    line-height: 1.55;
 }
 
 .short-answer-answer-wrap {
@@ -6702,7 +6896,7 @@ body.text-size-xlarge .options-fs-overlay {
 }
 
 .short-answer-answer-wrap .short-answer-input {
-    min-width: 110px;
+    min-width: 88px;
 }
 
 .short-answer-sample-input {
@@ -6790,7 +6984,7 @@ body.text-size-xlarge .options-fs-overlay {
 .reading-page .flow-floating-bookmark,
 .reading-page .table-floating-bookmark,
 .reading-page .mcq-dropdown-floating-bookmark {
-    right: -24px;
+    right: -17px;
 }
 
 .reading-page .fc-blank>.question-bookmark {
@@ -6854,34 +7048,45 @@ body.text-size-xlarge .options-fs-overlay {
 .short-answer-question-list {
     display: flex;
     flex-direction: column;
-    gap: var(--ielts-question-item-gap);
+    gap: 8px;
+}
+
+.short-answer-group-container .short-answer-question-list>.short-answer-question-block,
+.short-answer-group-container .short-answer-row-list>.short-answer-row {
+    padding-left: 0;
+    padding-bottom: 0;
+    margin-bottom: 0;
 }
 
 .short-answer-question-block {
     display: flex;
     flex-direction: column;
-    gap: var(--ielts-question-item-gap);
+    gap: 6px;
 }
 
 .short-answer-question-prompt {
     font-size: var(--ielts-question-content-font-size);
-    line-height: var(--ielts-question-content-line-height);
+    line-height: 1.55;
     color: #0f172a;
 }
 
 .short-answer-row-list {
     display: flex;
     flex-direction: column;
-    gap: var(--ielts-question-item-gap);
+    gap: 6px;
 }
 
 .short-answer-row {
     display: flex;
-    align-items: flex-start;
-    gap: 6px;
-    line-height: var(--ielts-question-content-line-height);
+    align-items: center;
+    gap: 2px;
+    line-height: 1.55;
     position: relative;
     padding-right: var(--ielts-bookmark-gutter);
+}
+
+.short-answer-row+.short-answer-row {
+    margin-top: 0;
 }
 
 .short-answer-row>.question-bookmark {
@@ -6896,9 +7101,10 @@ body.text-size-xlarge .options-fs-overlay {
     display: inline-flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: var(--ielts-question-inline-gap);
+    gap: 2px;
     min-width: 0;
     flex: 1;
+    line-height: 1.55;
 }
 
 /* ─── MCQ shared dropdown (Listening) ─── */
@@ -6910,7 +7116,7 @@ body.text-size-xlarge .options-fs-overlay {
 .short-answer-sample-text {
     min-width: 0;
     font-size: var(--ielts-question-content-font-size);
-    line-height: var(--ielts-question-content-line-height);
+    line-height: 1.35;
 }
 
 .short-answer-input::placeholder {
@@ -6960,15 +7166,15 @@ body.text-size-xlarge .options-fs-overlay {
 }
 
 .mcq-dropdown-layout.has-legend {
-    grid-template-columns: fit-content(var(--ielts-mcq-option-max-width)) max-content;
-    width: min(100%, var(--ielts-mcq-option-max-width));
-    max-width: var(--ielts-mcq-option-max-width);
-    justify-content: space-between;
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 360px);
+    width: 100%;
+    max-width: 100%;
+    justify-content: stretch;
 }
 
 .mcq-dropdown-layout.has-legend .mcq-dropdown-questions-col {
     justify-self: start;
-    width: fit-content;
+    width: 100%;
     max-width: 100%;
 }
 
@@ -6978,7 +7184,7 @@ body.text-size-xlarge .options-fs-overlay {
 
 .mcq-dropdown-layout.no-legend .mcq-dropdown-questions-col {
     justify-self: start;
-    width: fit-content;
+    width: 100%;
     max-width: 100%;
 }
 
@@ -7169,7 +7375,7 @@ body.text-size-xlarge .options-fs-overlay {
     --ielts-dropdown-select-width: 56px;
     --ielts-dropdown-question-column-width: clamp(170px, 48vw, 420px);
     gap: var(--ielts-question-item-gap);
-    width: fit-content;
+    width: 100%;
     max-width: 100%;
 }
 
@@ -7280,6 +7486,7 @@ body.text-size-xlarge .options-fs-overlay {
     background: #fff;
     justify-self: end;
     align-self: center;
+    min-width: 0;
 }
 
 .mcq-dropdown-select.review-correct {
@@ -7306,6 +7513,7 @@ body.text-size-xlarge .options-fs-overlay {
 @media (max-width: 1024px) {
     .mcq-dropdown-layout.has-legend {
         grid-template-columns: 1fr;
+        width: 100%;
     }
 
     .mcq-dropdown-layout.has-legend .mcq-dropdown-legend-wrap {

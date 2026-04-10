@@ -178,6 +178,24 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
         return formatQuestionInstructionHtml(String(value || ''));
     };
 
+    const wrapLeadingInlineContent = (html) => {
+        if (typeof html !== 'string') return html || '';
+
+        const trimmedHtml = html.trim();
+        if (!trimmedHtml) return html;
+
+        const firstBlockTagMatch = trimmedHtml.match(/<(?:p|div|ul|ol|h[1-6]|blockquote|section|article|table|figure|figcaption|hr)\b/i);
+        if (!firstBlockTagMatch || firstBlockTagMatch.index == null || firstBlockTagMatch.index <= 0) {
+            return html;
+        }
+
+        const leadContent = trimmedHtml.slice(0, firstBlockTagMatch.index).trim();
+        const trailingContent = trimmedHtml.slice(firstBlockTagMatch.index).trimStart();
+        if (!leadContent || !trailingContent) return html;
+
+        return `<div class="summary-lead-line">${leadContent}</div>${trailingContent}`;
+    };
+
     const toReactStyleObject = (rawStyle) => {
         if (typeof rawStyle !== 'string') return undefined;
 
@@ -410,7 +428,7 @@ const SummaryCompletionQuestion = ({ q, activeQuestion, setActiveQuestion, answe
         if (!text) return null;
 
         const normalizedText = normalizeBlankTokens(text);
-        const htmlText = formatInlineHtml(normalizedText);
+        const htmlText = wrapLeadingInlineContent(formatInlineHtml(normalizedText));
 
         if (typeof DOMParser === 'undefined') {
             return <span dangerouslySetInnerHTML={{ __html: htmlText }} />;

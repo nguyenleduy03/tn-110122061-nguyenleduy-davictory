@@ -103,6 +103,26 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
   const baseNumber = getPartQuestionStartNumber(group, allGroups);
   const topBlankCountRef = useRef(countBlankTokens(topNoteText));
 
+  // Auto-migrate legacy pin positions on load
+  useEffect(() => {
+    const imagePinQuestions = questions.filter(isImagePinQuestion);
+    const needsMigration = imagePinQuestions.some(q => 
+      q.left !== undefined || q.top !== undefined || 
+      !Number.isFinite(q.pinX) || !Number.isFinite(q.pinY)
+    );
+    
+    if (needsMigration) {
+      const migratedQuestions = questions.map(q => {
+        if (isImagePinQuestion(q)) {
+          return normalizePinPosition(q);
+        }
+        return q;
+      });
+      
+      onUpdate(group.id, { questions: migratedQuestions });
+    }
+  }, [questions, group.id, onUpdate]);
+
   const orderedQuestions = getImageNoteFormOrderedQuestions(group);
   const displayNumberById = getImageNoteFormDisplayNumberMap({ ...group, fromQuestion: baseNumber });
 

@@ -9,6 +9,7 @@ import { sanitizeRichPasteHtml, serializeContentEditableHtml } from '../../../ut
 import { toRoman, loadImageFile, toPlainText, countBlankTokens, getNextQuestionNumber, isImagePinQuestion, isNoteBlankQuestion, getQuestionWeight } from './shared/blockHelpers';
 import { getLockedImageQuestionLayout, getLockedImageFrameStyle, getLockedImageStyle, resolveImageWidthPercent, clampImagePinPercent } from '../../../utils/imageQuestionLayout';
 import { useTabIndent } from '../../../hooks/useTabIndent';
+import { normalizePinPosition } from '../../../utils/pinPositionHelper';
 
 // Bulk Answer Import Component
 const BulkAnswerImport = ({ questions, onImport }) => {
@@ -286,6 +287,19 @@ function MapLabellingBlock({ group, onUpdate, onDelete, onSelect, selected, drag
 
   const getImageRect = () => imageWrapRef.current?.getBoundingClientRect() || null;
 
+  // Auto-migrate legacy pin positions on load
+  useEffect(() => {
+    const needsMigration = questions.some(q => 
+      q.left !== undefined || q.top !== undefined || 
+      !Number.isFinite(q.pinX) || !Number.isFinite(q.pinY)
+    );
+    
+    if (needsMigration) {
+      const migratedQuestions = questions.map(normalizePinPosition);
+      onUpdate(group.id, { questions: migratedQuestions });
+    }
+  }, [questions, group.id, onUpdate]);
+
   useEffect(() => {
     const onMove = (e) => {
       if (!dragRef.current) return;
@@ -425,14 +439,10 @@ function MapLabellingBlock({ group, onUpdate, onDelete, onSelect, selected, drag
             <img src={resolveDrivePreviewUrl(group.imageUrl)} alt="map" draggable={false}
               style={{ ...getLockedImageStyle('MAP_LABELLING'), pointerEvents: 'none' }} />
             {questions.map((q) => {
-              const x = livePin?.qId === q.id ? livePin.x : (q.pinX ?? 10);
-              const y = livePin?.qId === q.id ? livePin.y : (q.pinY ?? 10);
+              const normalizedQ = normalizePinPosition(q);
+              const x = livePin?.qId === q.id ? livePin.x : normalizedQ.pinX;
+              const y = livePin?.qId === q.id ? livePin.y : normalizedQ.pinY;
               const pinWidth = 120;
-              
-              // Debug log for position consistency
-              if (process.env.NODE_ENV === 'development') {
-                console.log(`MapPin ${q.questionNumber}: stored(${q.pinX}, ${q.pinY}) -> display(${x}, ${y})`);
-              }
               
               return (
                 <div key={q.id}
@@ -1153,8 +1163,49 @@ function TableCompletionBlock({ group, onUpdate, onDelete, onSelect, selected, d
       </div>
 
       {/* Table */}
-      <div style={{ fontSize: 11, color: '#64748b', marginBottom: 6, fontStyle: 'italic' }}>
-        💡 Nhập nội dung vào ô. Dùng <code>___</code>, <code>...</code> hoặc <code>----</code> để tạo ô trống (hoặc gõ <code>[blank]</code>)
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6 }}>
+        <button 
+          className="exam-add-btn" 
+          style={{ padding: '4px 10px', fontSize: 12, background: '#6366f1', color: 'white' }}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={(e) => { 
+            e.stopPropagation(); 
+            const focused = document.activeElement;
+            if (focused?.classList?.contains('tc-cell-editor')) {
+              focused.focus();
+              const sel = window.getSelection();
+              if (sel?.rangeCount && focused.contains(sel.getRangeAt(0).commonAncestorContainer)) {
+                const range = sel.getRangeAt(0);
+                range.deleteContents();
+                const span = document.createElement('span');
+                span.className = 'rbe-blank rbe-blank-indigo';
+                span.contentEditable = 'false';
+                span.dataset.blank = 'true';
+                const num = document.createElement('span');
+                num.className = 'rbe-blank-num';
+                num.textContent = '?';
+                const btn = document.createElement('button');
+                btn.className = 'rbe-blank-del';
+                btn.dataset.del = 'true';
+                btn.type = 'button';
+                btn.textContent = '×';
+                span.appendChild(num);
+                span.appendChild(btn);
+                range.insertNode(span);
+                const nr = document.createRange();
+                nr.setStartAfter(span);
+                nr.collapse(true);
+                sel.removeAllRanges();
+                sel.addRange(nr);
+                focused.dispatchEvent(new Event('input', { bubbles: true }));
+              }
+            }
+          }}>
+          + Chèn ô trống
+        </button>
+        <div style={{ fontSize: 11, color: '#64748b', fontStyle: 'italic' }}>
+          💡 Nhập nội dung vào ô. Dùng <code>___</code>, <code>...</code> hoặc <code>----</code> để tạo ô trống
+        </div>
       </div>
       <div className="exam-tc-scroll" onClick={(e) => e.stopPropagation()}>
         <table className="exam-tc-table">

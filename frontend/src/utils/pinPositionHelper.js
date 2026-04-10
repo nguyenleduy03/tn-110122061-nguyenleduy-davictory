@@ -1,18 +1,13 @@
-// Normalize pin position data (migrate old left/top to pinX/pinY)
+// Force normalize all pin positions (handle all legacy formats)
 export const normalizePinPosition = (question) => {
   if (!question) return question;
   
-  // If already has pinX/pinY, use them
-  if (question.pinX != null && question.pinY != null) {
-    return question;
-  }
-  
-  // Migrate from old left/top format
   let pinX = question.pinX;
   let pinY = question.pinY;
   
+  // Handle legacy left/top values
   if (pinX == null && question.left != null) {
-    const leftStr = String(question.left).replace('%', '').trim();
+    const leftStr = String(question.left).replace('%', '').replace('px', '').trim();
     const leftNum = Number.parseFloat(leftStr);
     if (Number.isFinite(leftNum)) {
       pinX = leftNum;
@@ -20,17 +15,28 @@ export const normalizePinPosition = (question) => {
   }
   
   if (pinY == null && question.top != null) {
-    const topStr = String(question.top).replace('%', '').trim();
+    const topStr = String(question.top).replace('%', '').replace('px', '').trim();
     const topNum = Number.parseFloat(topStr);
     if (Number.isFinite(topNum)) {
       pinY = topNum;
     }
   }
   
+  // Ensure valid numbers
+  if (!Number.isFinite(pinX)) pinX = 50;
+  if (!Number.isFinite(pinY)) pinY = 50;
+  
+  // Clamp to valid range
+  pinX = Math.max(0, Math.min(100, pinX));
+  pinY = Math.max(0, Math.min(100, pinY));
+  
   return {
     ...question,
-    pinX: pinX ?? 50,
-    pinY: pinY ?? 50
+    pinX,
+    pinY,
+    // Clear legacy fields
+    left: undefined,
+    top: undefined
   };
 };
 

@@ -32,7 +32,7 @@ const SharedOptionsDropdownBlock = ({
   module = 'READING',
 }) => {
   const questions = group.questions ?? [];
-  const sharedOptions = group.sharedOptions?.length ? group.sharedOptions : defaultSharedOptions();
+  const sharedOptions = group.sharedOptions ?? [];
 
   const syncSharedOptions = (next) => {
     onUpdate(group.id, { sharedOptions: next });
@@ -78,9 +78,16 @@ const SharedOptionsDropdownBlock = ({
   const handleImportQuestions = (text) => {
     const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
     if (lines.length === 0) return;
-    const startNum = questions.length > 0 
-      ? Math.max(...questions.map(q => q.questionNumber || 0)) + 1
-      : (group.fromQuestion || 1);
+    
+    // Tính số câu bắt đầu: nếu đã có câu thì tiếp tục, nếu chưa thì dùng fromQuestion của group
+    let startNum;
+    if (questions.length > 0) {
+      startNum = Math.max(...questions.map(q => q.questionNumber || 0)) + 1;
+    } else {
+      // Nếu chưa có câu nào, dùng fromQuestion của group (đã được set từ TestBuilder)
+      startNum = group.fromQuestion || 1;
+    }
+    
     const imported = lines.map((qText, i) => ({
       id: `q-${Date.now()}-${i}`,
       questionNumber: startNum + i,
@@ -88,7 +95,14 @@ const SharedOptionsDropdownBlock = ({
       answerText: '',
       answers: [{ blankIndex: 1, isCaseSensitive: false, answerText: '' }]
     }));
-    onUpdate(group.id, { questions: [...questions, ...imported] });
+    const allQuestions = [...questions, ...imported];
+    const newFromQuestion = allQuestions.length > 0 ? Math.min(...allQuestions.map(q => q.questionNumber)) : null;
+    const newToQuestion = allQuestions.length > 0 ? Math.max(...allQuestions.map(q => q.questionNumber)) : null;
+    onUpdate(group.id, { 
+      questions: allQuestions,
+      fromQuestion: newFromQuestion,
+      toQuestion: newToQuestion
+    });
     setShowImportQuestions(false);
   };
 

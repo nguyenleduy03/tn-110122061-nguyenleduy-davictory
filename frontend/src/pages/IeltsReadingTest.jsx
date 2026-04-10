@@ -859,7 +859,12 @@ const IeltsReadingTest = () => {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             if (ctx) {
-                ctx.font = '700 15px Arial';
+                const rootStyle = window.getComputedStyle(document.documentElement);
+                const bodyStyle = window.getComputedStyle(document.body || document.documentElement);
+                const fontSize = rootStyle.getPropertyValue('--answer-input-font-size').trim() || bodyStyle.fontSize || '15px';
+                const fontStyle = bodyStyle.fontStyle || 'normal';
+                const fontFamily = bodyStyle.fontFamily || 'sans-serif';
+                ctx.font = `${fontStyle} 700 ${fontSize} ${fontFamily}`;
                 longestWidth = matchingHeadingOptions.reduce(
                     (max, option) => Math.max(max, ctx.measureText(option).width),
                     0
@@ -868,11 +873,13 @@ const IeltsReadingTest = () => {
         }
 
         if (longestWidth === 0) {
-            longestWidth = matchingHeadingOptions.reduce((max, option) => Math.max(max, option.length * 8.5), 0);
+            longestWidth = matchingHeadingOptions.reduce((max, option) => Math.max(max, option.length * 9), 0);
         }
 
-        const paddedWidth = Math.ceil(longestWidth + 28);
-        return Math.max(220, Math.min(720, paddedWidth));
+        const zoneHorizontalChrome = 30; // 14px left + 14px right padding + borders.
+        const safetyBuffer = 10;
+        const paddedWidth = Math.ceil(longestWidth + zoneHorizontalChrome + safetyBuffer);
+        return Math.max(220, Math.min(900, paddedWidth));
     })();
 
     // Group consecutive questions by type, allowMultipleAnswers AND groupInstruction

@@ -951,23 +951,6 @@
   cursor: row-resize !important;
 }
 
-.tb-hover-zone {
-  position: fixed;
-  top: 0;
-  bottom: 0;
-  width: 30px;
-  z-index: 140;
-  cursor: pointer;
-}
-
-.tb-hover-zone-left {
-  left: 0;
-}
-
-.tb-hover-zone-right {
-  right: 0;
-}
-
 .tb-panel-toggle {
   position: absolute;
   top: 50%;
@@ -991,15 +974,15 @@
   box-shadow: 0 2px 8px rgba(37, 99, 235, 0.12);
 }
 
-.tb-sidebar .tb-panel-toggle-left {
-  right: -12px;
-}
-
 .tb-panel-toggle:hover {
   opacity: 1;
   border-color: #93c5fd;
   color: #2563eb;
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.18);
+}
+
+.tb-sidebar .tb-panel-toggle-left {
+  right: -12px;
 }
 
 .tb-sidebar.collapsed .tb-panel-toggle-left {

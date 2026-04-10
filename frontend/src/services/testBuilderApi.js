@@ -322,7 +322,14 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
               const contentTypeOverride = ['WRITING_TASK', 'SPEAKING_INTERVIEW', 'SPEAKING_CUECARD', 'SHARED_OPTIONS_DROPDOWN'].includes(group.contentType)
                 ? group.contentType
                 : null;
-              const typeCode = mapQuestionTypeCode(contentTypeOverride || q.questionType?.typeName || group.contentType || 'FILL_IN_BLANK');
+              
+              // Xử lý TRUE_FALSE_NG với isYesNo
+              let questionTypeName = contentTypeOverride || q.questionType?.typeName || group.contentType || 'FILL_IN_BLANK';
+              if (group.contentType === 'TRUE_FALSE_NG' && group.isYesNo) {
+                questionTypeName = 'YES_NO_NG';
+              }
+              
+              const typeCode = mapQuestionTypeCode(questionTypeName);
               const isTextAnswer = isTextAnswerType(typeCode);
 
               // Debug type mapping
@@ -684,6 +691,12 @@ function serializeGroupContent(group, part) {
   if (ct === 'AUDIO_TRANSCRIPT') {
     return group.passageText || '';
   }
+  // TRUE_FALSE_NG: lưu isYesNo
+  if (ct === 'TRUE_FALSE_NG') {
+    return JSON.stringify({
+      isYesNo: group.isYesNo || false,
+    });
+  }
   // Writing task
   if (ct === 'WRITING_TASK') {
     return JSON.stringify({
@@ -1007,6 +1020,14 @@ export function parseLoadedTest(data) {
     sessions[skillKey] = parts;
   }
 
+  if (!test.isFullTest && !test.singleSkill) {
+    const skillOrder = ['LISTENING', 'READING', 'WRITING', 'SPEAKING'];
+    const loadedSkill = skillOrder.find((skillKey) => (sessions[skillKey] || []).length > 0);
+    if (loadedSkill) {
+      test.singleSkill = loadedSkill;
+    }
+  }
+
   return { test, sessions, testId: data.id };
 }
 
@@ -1122,6 +1143,12 @@ function deserializeGroupContent(contentType, passageText) {
         taskInstruction: parsed.taskInstruction || '',
         minWords: parsed.minWords ?? 150,
         recommendedMinutes: parsed.recommendedMinutes ?? 20,
+      };
+    }
+    if (contentType === 'TRUE_FALSE_NG') {
+      const parsed = JSON.parse(passageText);
+      return {
+        isYesNo: parsed.isYesNo || false,
       };
     }
     if (contentType === 'SPEAKING_INTERVIEW') {

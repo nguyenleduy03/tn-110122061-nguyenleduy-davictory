@@ -311,13 +311,6 @@ const TestBuilder = () => {
     init();
   }, [editTestId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Luôn đồng bộ tab đang mở với chế độ 1 kỹ năng sau khi load/đổi kiểu đề
-  useEffect(() => {
-    if (!test.isFullTest && test.singleSkill && activeSkill !== test.singleSkill) {
-      setActiveSkill(test.singleSkill);
-    }
-  }, [test.isFullTest, test.singleSkill, activeSkill]);
-
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 6 },
@@ -346,6 +339,21 @@ const TestBuilder = () => {
     }
     return null;
   }, [parts]);
+
+  function getFirstLoadedSkill(sessionMap) {
+    const skillOrder = ['LISTENING', 'READING', 'WRITING', 'SPEAKING'];
+    return skillOrder.find((skillKey) => (sessionMap?.[skillKey] || []).some((part) => (part.questionGroups || []).length > 0)) || null;
+  }
+
+  // Luôn đồng bộ tab đang mở với chế độ 1 kỹ năng sau khi load/đổi kiểu đề
+  useEffect(() => {
+    if (!test.isFullTest) {
+      const resolvedSkill = test.singleSkill || getFirstLoadedSkill(sessions) || 'LISTENING';
+      if (resolvedSkill && activeSkill !== resolvedSkill) {
+        setActiveSkill(resolvedSkill);
+      }
+    }
+  }, [test.isFullTest, test.singleSkill, sessions, activeSkill]);
 
   // Skills hiển thị dựa trên chế độ Full/Single
   const enabledSkills = test.isFullTest
@@ -497,19 +505,8 @@ const TestBuilder = () => {
           return {
             title: `Match Headings ${groupIdx}`,
             fromQuestion: null, toQuestion: null,
-            headingBank: [
-              { id: nextId(), text: '' },
-              { id: nextId(), text: '' },
-              { id: nextId(), text: '' },
-              { id: nextId(), text: '' },
-              { id: nextId(), text: '' },
-            ],
-            questions: [
-              makeQ(1, 'FILL_IN_BLANK', { questionText: 'Section A' }),
-              makeQ(2, 'FILL_IN_BLANK', { questionText: 'Section B' }),
-              makeQ(3, 'FILL_IN_BLANK', { questionText: 'Section C' }),
-              makeQ(4, 'FILL_IN_BLANK', { questionText: 'Section D' }),
-            ],
+            headingBank: [],
+            questions: [],
           };
 
         case 'MULTIPLE_CHOICE_GROUP':
@@ -557,11 +554,7 @@ const TestBuilder = () => {
           return {
             title: '',
             fromQuestion: null, toQuestion: null,
-            questions: [
-              makeQ(1, 'TRUE_FALSE_NG'),
-              makeQ(2, 'TRUE_FALSE_NG'),
-              makeQ(3, 'TRUE_FALSE_NG'),
-            ],
+            questions: [],
           };
 
         case 'SENTENCE_COMPLETION':
@@ -1437,24 +1430,6 @@ const TestBuilder = () => {
             }
           }}
         />
-
-        {leftSidebarCollapsed && (
-          <div
-            className="tb-hover-zone tb-hover-zone-left"
-            onMouseEnter={() => setLeftSidebarCollapsed(false)}
-            title="Hiện thanh thành phần"
-            aria-hidden="true"
-          />
-        )}
-
-        {rightPanelCollapsed && (
-          <div
-            className="tb-hover-zone tb-hover-zone-right"
-            onMouseEnter={() => setRightPanelCollapsed(false)}
-            title="Hiện bảng thuộc tính"
-            aria-hidden="true"
-          />
-        )}
 
         <div className="tb-workspace" style={{ position: 'relative' }}>
           <ErrorBoundary>

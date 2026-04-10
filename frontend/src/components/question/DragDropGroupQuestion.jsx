@@ -43,6 +43,48 @@ const parseFlowNodeText = (text) => {
     return result;
 };
 
+const measureTextWidth = (text, font) => {
+    if (typeof document === 'undefined') return 0;
+
+    const canvas = measureTextWidth._canvas || (measureTextWidth._canvas = document.createElement('canvas'));
+    const context = canvas.getContext('2d');
+    if (!context) return 0;
+
+    context.font = font;
+    return context.measureText(String(text || '')).width;
+};
+
+const resolveSentenceCompletionBankWidth = (options, fallbackChars) => {
+    const fallbackWidth = Math.max(260, Math.min(900, Math.ceil((fallbackChars * 8) + 48)));
+
+    if (typeof window === 'undefined' || typeof document === 'undefined') return fallbackWidth;
+
+    const normalizedOptions = (options || [])
+        .map((option) => String(option || '').trim())
+        .filter(Boolean);
+    if (normalizedOptions.length === 0) return fallbackWidth;
+
+    const rootStyle = window.getComputedStyle(document.documentElement);
+    const bodyStyle = window.getComputedStyle(document.body || document.documentElement);
+    const fontSize = rootStyle.getPropertyValue('--answer-input-font-size').trim() || bodyStyle.fontSize || '15px';
+    const fontWeight = bodyStyle.fontWeight || '400';
+    const fontStyle = bodyStyle.fontStyle || 'normal';
+    const fontFamily = bodyStyle.fontFamily || 'sans-serif';
+    const font = `${fontStyle} ${fontWeight} ${fontSize} ${fontFamily}`;
+
+    const measuredTextWidth = Math.max(
+        ...normalizedOptions.map((option) => measureTextWidth(option, font))
+    );
+
+    // Keep one-line options by accounting for option-chip chrome + bank frame padding.
+    const optionHorizontalChrome = 14; // 6px left + 6px right padding + 1px borders.
+    const frameHorizontalPadding = 24; // 12px left + 12px right in sentence-completion-bank-frame.
+    const safetyBuffer = 12;
+    const requiredFrameWidth = measuredTextWidth + optionHorizontalChrome + frameHorizontalPadding + safetyBuffer;
+
+    return Math.max(260, Math.min(900, Math.ceil(requiredFrameWidth)));
+};
+
 const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuestion, answers, handleAnswerChange, bookmarks, toggleBookmark, isReview }) => {
     const resolveText = (value) => {
         if (typeof value === 'string') return value;
@@ -118,12 +160,13 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
     };
 
     const isMatchingHeading = questionType === 'matching_heading';
-    const isMatchingInfo = questionType === 'matching_info' || questionType === 'drag_drop_group';
+    const sourceContentType = normalizeGroupType(q?.sourceContentType || q?.contentType);
+    const questionTypeCode = String(q?.questionTypeCode || '').trim().toUpperCase();
+    const isSentenceCompletionDrag = sourceContentType === 'sentence_completion_drag';
+    const isMatchingInfo = questionType === 'matching_info' || (questionType === 'drag_drop_group' && !isSentenceCompletionDrag);
     const isMatchingFeatures = questionType === 'matching_features';
     const isFlowChart = questionType === 'flow_chart';
     const isImageDragDrop = questionType === 'image_drag_drop';
-    const sourceContentType = normalizeGroupType(q?.sourceContentType || q?.contentType);
-    const questionTypeCode = String(q?.questionTypeCode || '').trim().toUpperCase();
     const isDragCompletionSubtype =
         ['fill_blank_drag', 'sentence_completion_drag', 'summary_completion_drag', 'note_completion_drag'].includes(sourceContentType)
         || (!sourceContentType && ['FILL_BLANK', 'SENTENCE_COMPLETION', 'SUMMARY_COMPLETION', 'NOTE_COMPLETION'].includes(questionTypeCode));
@@ -290,6 +333,52 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
         return () => window.removeEventListener('resize', handleResize);
     }, [syncDdBookmarkPosition]);
 
+    const sentenceCompletionContainerRef = React.useRef(null);
+    const [sentenceBookmarkTop, setSentenceBookmarkTop] = React.useState(null);
+    const activeSentenceSubQ = React.useMemo(() => {
+        if (!isSentenceCompletionDrag) return null;
+        const activeNumber = Number(activeQuestion);
+        if (!Number.isFinite(activeNumber)) return null;
+        return (q.subQuestions || [])
+            .map((sq, idx) => ({ ...sq, displayNumber: resolveDisplayNumber(sq, idx) }))
+            .find((sq) => Number(sq.displayNumber) === activeNumber) || null;
+    }, [activeQuestion, isSentenceCompletionDrag, q.subQuestions, resolveDisplayNumber]);
+
+    const syncSentenceBookmarkPosition = React.useCallback(() => {
+        if (!isSentenceCompletionDrag || isReview || !activeSentenceSubQ) {
+            setSentenceBookmarkTop(null);
+            return;
+        }
+
+        const container = sentenceCompletionContainerRef.current;
+        if (!container) {
+            setSentenceBookmarkTop(null);
+            return;
+        }
+
+        const activeNode = container.querySelector(`#question-${activeSentenceSubQ.displayNumber}`);
+        if (!activeNode) {
+            setSentenceBookmarkTop(null);
+            return;
+        }
+
+        const containerRect = container.getBoundingClientRect();
+        const activeRect = activeNode.getBoundingClientRect();
+        const top = activeRect.top - containerRect.top;
+        setSentenceBookmarkTop(top);
+    }, [activeSentenceSubQ, isSentenceCompletionDrag, isReview]);
+
+    React.useLayoutEffect(() => {
+        syncSentenceBookmarkPosition();
+    }, [syncSentenceBookmarkPosition, answers]);
+
+    React.useEffect(() => {
+        if (typeof window === 'undefined') return undefined;
+        const handleResize = () => syncSentenceBookmarkPosition();
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, [syncSentenceBookmarkPosition]);
+
     const flowChartContainerRef = React.useRef(null);
     const [flowBookmarkTop, setFlowBookmarkTop] = React.useState(null);
     const activeFlowSubQ = React.useMemo(() => {
@@ -356,8 +445,10 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
     const keepUsedOptionSlots = forceSingleUseForExtraBank;
     const shouldDisallowReuse = forceSingleUseForExtraBank || !allowOptionReuse;
     const maxOptionChars = Math.max(0, ...bankOptions.map(opt => String(opt).length));
-    const fixedBankWidth = Math.max(220, Math.min(720, Math.ceil(maxOptionChars * 8 + 30)));
-    const rowHeight = isMatchingHeading ? 52 : 48;
+    const fixedBankWidth = isSentenceCompletionDrag
+        ? resolveSentenceCompletionBankWidth(bankOptions, maxOptionChars)
+        : Math.max(220, Math.min(720, Math.ceil(maxOptionChars * 8 + 30)));
+    const rowHeight = isMatchingHeading ? 52 : (isSentenceCompletionDrag ? 36 : 48);
     const titleHeight = (isMatchingHeading || isMatchingInfo) ? 44 : 0;
     const fixedBankHeight = Math.max(180, bankOptions.length * rowHeight + titleHeight + 16);
     const responsiveInfoWidth = Math.max(220, Math.min(720, fixedBankWidth));
@@ -369,42 +460,86 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
     const usedOptions = (q.subQuestions || []).map(subQ => answers[subQ.id]).filter(Boolean);
 
     const renderBank = () => (
-        <div className={`bank-section ${isMatchingHeading ? 'bank-heading' : ''} ${(isMatchingHeading || isMatchingInfo) ? 'bank-drop-target' : ''}`}
-            onDragOver={handleDragOver}
-            onDrop={handleBankDrop}
-            style={(isMatchingHeading || isMatchingInfo)
-                ? {
-                    '--dd-bank-fixed-width': `${fixedBankWidth}px`,
-                    '--dd-bank-fixed-height': `${fixedBankHeight}px`
-                }
-                : undefined}
-        >
-            {isMatchingHeading && <h4 className="bank-section-title">List of Headings</h4>}
-            {isMatchingInfo && <h4 className="bank-section-title info-title" dangerouslySetInnerHTML={{ __html: q.rightHeader || 'Options' }} />}
-            <div className="options-bank">
-                {bankOptions.map((opt, idx) => {
-                    const isUsed = usedOptions.includes(opt);
-                    const shouldHideUsedOption = isUsed && !isReview && shouldDisallowReuse;
-                    if (shouldHideUsedOption && !keepUsedOptionSlots) return null;
-                    const isEmptySlot = shouldHideUsedOption && keepUsedOptionSlots;
-                    return (
-                        <div
-                            key={idx}
-                            draggable={!isReview && !isEmptySlot}
-                            onDragStart={(e) => {
-                                if (!isReview && !isEmptySlot) handleDragStart(e, opt, null);
-                            }}
-                            className={`bank-option ${isUsed ? 'used' : ''} ${isMatchingHeading ? 'bank-option-heading' : ''} ${isEmptySlot ? 'bank-option-slot-empty' : ''}`}
-                            style={{
-                                width: isMatchingInfo ? dropZoneWidth : undefined
-                            }}
-                        >
-                            {isEmptySlot ? '\u00A0' : opt}
-                        </div>
-                    );
-                })}
+        isSentenceCompletionDrag ? (
+            <div className="sentence-completion-bank-wrap">
+                {(q.rightHeader || q.rightTitle || 'Options') && (
+                    <h4
+                        className="bank-section-title info-title sentence-completion-bank-title"
+                        dangerouslySetInnerHTML={{ __html: q.rightHeader || q.rightTitle || 'Options' }}
+                    />
+                )}
+                <div
+                    className="bank-section bank-drop-target sentence-completion-bank-frame"
+                    onDragOver={handleDragOver}
+                    onDrop={handleBankDrop}
+                    style={{
+                        '--dd-bank-fixed-width': `${fixedBankWidth}px`,
+                        '--dd-bank-fixed-height': `${fixedBankHeight}px`
+                    }}
+                >
+                    <div className="options-bank">
+                        {bankOptions.map((opt, idx) => {
+                            const isUsed = usedOptions.includes(opt);
+                            const shouldHideUsedOption = isUsed && !isReview && shouldDisallowReuse;
+                            if (shouldHideUsedOption && !keepUsedOptionSlots) return null;
+                            const isEmptySlot = shouldHideUsedOption && keepUsedOptionSlots;
+                            return (
+                                <div
+                                    key={idx}
+                                    draggable={!isReview && !isEmptySlot}
+                                    onDragStart={(e) => {
+                                        if (!isReview && !isEmptySlot) handleDragStart(e, opt, null);
+                                    }}
+                                    className={`bank-option ${isUsed ? 'used' : ''} ${isMatchingHeading ? 'bank-option-heading' : ''} ${isEmptySlot ? 'bank-option-slot-empty' : ''}`}
+                                    style={{
+                                        width: isMatchingInfo ? dropZoneWidth : undefined
+                                    }}
+                                >
+                                    {isEmptySlot ? '\u00A0' : opt}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
             </div>
-        </div>
+        ) : (
+            <div className={`bank-section ${isMatchingHeading ? 'bank-heading' : ''} ${(isMatchingHeading || isMatchingInfo || isSentenceCompletionDrag) ? 'bank-drop-target' : ''}`}
+                onDragOver={handleDragOver}
+                onDrop={handleBankDrop}
+                style={(isMatchingHeading || isMatchingInfo || isSentenceCompletionDrag)
+                    ? {
+                        '--dd-bank-fixed-width': `${fixedBankWidth}px`,
+                        '--dd-bank-fixed-height': `${fixedBankHeight}px`
+                    }
+                    : undefined}
+            >
+                {isMatchingHeading && <h4 className="bank-section-title">List of Headings</h4>}
+                {(isMatchingInfo || isSentenceCompletionDrag) && <h4 className="bank-section-title info-title" dangerouslySetInnerHTML={{ __html: q.rightHeader || q.rightTitle || 'Options' }} />}
+                <div className="options-bank">
+                    {bankOptions.map((opt, idx) => {
+                        const isUsed = usedOptions.includes(opt);
+                        const shouldHideUsedOption = isUsed && !isReview && shouldDisallowReuse;
+                        if (shouldHideUsedOption && !keepUsedOptionSlots) return null;
+                        const isEmptySlot = shouldHideUsedOption && keepUsedOptionSlots;
+                        return (
+                            <div
+                                key={idx}
+                                draggable={!isReview && !isEmptySlot}
+                                onDragStart={(e) => {
+                                    if (!isReview && !isEmptySlot) handleDragStart(e, opt, null);
+                                }}
+                                className={`bank-option ${isUsed ? 'used' : ''} ${isMatchingHeading ? 'bank-option-heading' : ''} ${isEmptySlot ? 'bank-option-slot-empty' : ''}`}
+                                style={{
+                                    width: isMatchingInfo ? dropZoneWidth : undefined
+                                }}
+                            >
+                                {isEmptySlot ? '\u00A0' : opt}
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        )
     );
 
     const renderQuestions = () => (
@@ -430,13 +565,13 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
 
                     const answerCharWidth = Math.max(8, displayAnswer.length + 1);
                     const filledDropStyle = hasDisplayAnswer
-                        ? {
-                            width: hasInlineBlank
-                                ? `clamp(88px, ${answerCharWidth}ch, 360px)`
-                                : (isMatchingInfo
-                                    ? `clamp(120px, ${answerCharWidth}ch, ${responsiveInfoWidth}px)`
-                                    : `clamp(150px, ${answerCharWidth}ch, 520px)`),
-                        }
+                        ? (hasInlineBlank
+                            ? { width: `clamp(88px, ${answerCharWidth}ch, 360px)` }
+                            : (isMatchingInfo
+                                ? { width: `clamp(120px, ${answerCharWidth}ch, ${responsiveInfoWidth}px)` }
+                                : (isSentenceCompletionDrag
+                                    ? undefined
+                                    : { width: `clamp(150px, ${answerCharWidth}ch, 520px)` })))
                         : undefined;
                     const fixedInfoStyle = (!hasDisplayAnswer && isMatchingInfo)
                         ? { width: dropZoneWidth }
@@ -452,7 +587,7 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                                 if (isReview || !hasDisplayAnswer) return;
                                 handleDragStart(e, displayAnswer, subQ.id);
                             }}
-                            className={`dd-drop-zone ${isMatchingInfo ? 'dd-drop-info' : ''} ${isDragCompletionSubtype ? 'dd-drop-completion' : ''} ${hasInlineBlank ? 'dd-drop-inline' : ''} ${hasDisplayAnswer ? 'dd-drop-filled' : ''} ${isActive && !hasDisplayAnswer ? 'dd-drop-active' : ''} ${Boolean(bookmarks?.[displayNumber]) ? 'dd-drop-bookmarked' : ''} ${isReview ? (isCorrect ? 'review-correct' : 'review-wrong') : ''} relative-pos`}
+                            className={`dd-drop-zone ${isMatchingInfo ? 'dd-drop-info' : ''} ${isDragCompletionSubtype ? 'dd-drop-completion' : ''} ${hasInlineBlank || isSentenceCompletionDrag ? 'dd-drop-inline' : ''} ${hasDisplayAnswer ? 'dd-drop-filled' : ''} ${isActive && !hasDisplayAnswer ? 'dd-drop-active' : ''} ${Boolean(bookmarks?.[displayNumber]) ? 'dd-drop-bookmarked' : ''} ${isReview ? (isCorrect ? 'review-correct' : 'review-wrong') : ''} relative-pos`}
                             style={dropZoneStyle}
                         >
                             {hasDisplayAnswer ? (
@@ -460,7 +595,7 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
                                     {displayAnswer}
                                 </span>
                             ) : (
-                                isMatchingInfo ? (
+                                isMatchingInfo || isSentenceCompletionDrag ? (
                                     <div className="dd-drop-number">
                                         {displayNumber}
                                     </div>
@@ -970,6 +1105,47 @@ const DragDropGroupQuestion = ({ q, resolvedType, activeQuestion, setActiveQuest
 
     if (isMatchingFeatures) {
         return renderMatchingFeatures();
+    }
+
+    if (isSentenceCompletionDrag) {
+        const instructionHtml = composeQuestionInstructionHtml(
+            q.instruction,
+            q.instructions,
+            q.mainInstruction,
+            q.subInstruction,
+            q.title,
+        );
+
+        return (
+            <div className="drag-drop-group sentence-completion-drag" ref={sentenceCompletionContainerRef}>
+                <div className="sentence-completion-drag-layout">
+                    <div className="sentence-completion-drag-left">
+                        {instructionHtml && (
+                            <div
+                                className="question-instruction sentence-completion-drag-instruction"
+                                dangerouslySetInnerHTML={{ __html: instructionHtml }}
+                            />
+                        )}
+                        {(q.leftHeader || q.leftTitle) && (
+                            <h4 className="bank-section-title info-title" dangerouslySetInnerHTML={{ __html: formatAndClean(q.leftHeader || q.leftTitle || 'Sentences') }} />
+                        )}
+                        {renderQuestions()}
+                    </div>
+
+                    <div className="sentence-completion-drag-right">
+                        {renderBank()}
+                    </div>
+                </div>
+                {!isReview && activeSentenceSubQ && sentenceBookmarkTop !== null && (
+                    <BookmarkToggle
+                        className="question-bookmark matching-info-floating-bookmark"
+                        style={{ top: `${sentenceBookmarkTop}px` }}
+                        active={Boolean(bookmarks?.[activeSentenceSubQ.displayNumber])}
+                        onToggle={() => toggleBookmark?.(activeSentenceSubQ.displayNumber)}
+                    />
+                )}
+            </div>
+        );
     }
 
     if (isMatchingHeading) {

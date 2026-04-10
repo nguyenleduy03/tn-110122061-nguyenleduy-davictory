@@ -9,6 +9,38 @@ import { toRoman, loadImageFile, toPlainText, countBlankTokens, getNextQuestionN
 const TFNGBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps,
   onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onAddQuestion, selectedQuestionId }) => {
   const questions = group.questions ?? [];
+  const [showImport, setShowImport] = useState(false);
+  const [importText, setImportText] = useState('');
+  const isYesNo = group.isYesNo || false;
+  const options = isYesNo ? ['YES', 'NO', 'NOT GIVEN'] : ['TRUE', 'FALSE', 'NOT GIVEN'];
+
+  const handleImport = () => {
+    const lines = importText.split('\n').map(l => l.trim()).filter(Boolean);
+    if (lines.length === 0) {
+      alert('Vui lòng nhập câu hỏi (mỗi dòng 1 câu)');
+      return;
+    }
+    const baseNum = questions.length > 0 ? Math.max(...questions.map(q => q.questionNumber || 0)) + 1 : (group.fromQuestion || 1);
+    const imported = lines.map((text, i) => ({
+      id: `q-${Date.now()}-${i}`,
+      questionNumber: baseNum + i,
+      questionText: text,
+      answerText: '',
+      questionType: { typeName: 'TRUE_FALSE_NG' }
+    }));
+    const allQuestions = [...questions, ...imported];
+    const newFromQuestion = allQuestions.length > 0 ? Math.min(...allQuestions.map(q => q.questionNumber)) : null;
+    const newToQuestion = allQuestions.length > 0 ? Math.max(...allQuestions.map(q => q.questionNumber)) : null;
+    onUpdate(group.id, { 
+      questions: allQuestions,
+      fromQuestion: newFromQuestion,
+      toQuestion: newToQuestion
+    });
+    setImportText('');
+    setShowImport(false);
+    alert(`Đã import ${lines.length} câu hỏi`);
+  };
+
   return (
     <div className={`exam-group${selected ? ' selected' : ''}`}
       onClick={(e) => { e.stopPropagation(); onSelect(group); }}>
@@ -37,6 +69,21 @@ const TFNGBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandlePr
         onBlur={(e) => onUpdate(group.id, { title: serializeContentEditableHtml(e.currentTarget) })}
         dangerouslySetInnerHTML={{ __html: group.title || '' }}
       />
+      
+      {/* Toggle YES/NO or TRUE/FALSE */}
+      <div style={{ marginBottom: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
+        <label style={{ fontSize: 12, color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+          onClick={(e) => e.stopPropagation()}>
+          <input 
+            type="checkbox" 
+            checked={isYesNo}
+            onChange={(e) => onUpdate(group.id, { isYesNo: e.target.checked })}
+            onClick={(e) => e.stopPropagation()}
+          />
+          Dùng YES / NO / NOT GIVEN
+        </label>
+      </div>
+      
       <div className="exam-q-range-header">
         Câu&nbsp;
         <input className="exam-q-range-input" value={group.fromQuestion ?? ''} placeholder="1"
@@ -65,7 +112,7 @@ const TFNGBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandlePr
           </div>
           {/* TRUE / FALSE / NOT GIVEN radio buttons */}
           <div className="exam-tfng-options">
-            {['TRUE', 'FALSE', 'NOT GIVEN'].map((v) => (
+            {options.map((v) => (
               <label key={v} className={`exam-tfng-opt${q.answerText === v ? ' correct' : ''}`}
                 onClick={(e) => e.stopPropagation()}>
                 <input type="radio"
@@ -81,6 +128,50 @@ const TFNGBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandlePr
       <button className="exam-add-btn" onClick={(e) => { e.stopPropagation(); onAddQuestion(group); }}>
         <Plus size={12} /> Thêm câu hỏi
       </button>
+      <button className="exam-add-btn" style={{ marginLeft: 8, background: '#6366f1', color: 'white' }}
+        onClick={(e) => { e.stopPropagation(); setShowImport(!showImport); }}>
+        📋 Import câu hỏi
+      </button>
+
+      {showImport && (
+        <div style={{ marginTop: 12, padding: 10, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 4 }} onClick={(e) => e.stopPropagation()}>
+          <div style={{ fontSize: 12, color: '#64748b', marginBottom: 6 }}>
+            Paste câu hỏi (mỗi dòng 1 câu):
+          </div>
+          <textarea
+            value={importText}
+            onChange={(e) => setImportText(e.target.value)}
+            rows={10}
+            placeholder="The writer believes that the current system is effective.
+Research shows that people prefer traditional methods.
+The government has implemented new policies."
+            style={{
+              width: '100%',
+              padding: 8,
+              border: '1px solid #cbd5e1',
+              borderRadius: 3,
+              fontSize: 12,
+              fontFamily: 'inherit'
+            }}
+          />
+          <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+            <button
+              className="exam-add-btn"
+              onClick={handleImport}
+              style={{ fontSize: 12 }}
+            >
+              ✓ Import {importText.split('\n').filter(l => l.trim()).length} câu
+            </button>
+            <button
+              className="exam-add-btn"
+              onClick={() => { setShowImport(false); setImportText(''); }}
+              style={{ fontSize: 12, background: '#94a3b8' }}
+            >
+              Hủy
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

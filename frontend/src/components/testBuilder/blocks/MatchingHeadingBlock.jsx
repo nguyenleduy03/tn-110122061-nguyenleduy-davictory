@@ -10,6 +10,48 @@ const MatchingHeadingBlock = ({ group, onUpdate, onDelete, onSelect, selected, d
   passageParagraphs }) => {
   const headings = group.headingBank ?? [];
   const questions = group.questions ?? [];
+  const [showImportHeadings, setShowImportHeadings] = useState(false);
+  const [importHeadingsText, setImportHeadingsText] = useState('');
+  const [showImportAnswers, setShowImportAnswers] = useState(false);
+  const [importAnswersText, setImportAnswersText] = useState('');
+
+  const handleImportHeadings = () => {
+    const lines = importHeadingsText.split('\n').map(l => l.trim()).filter(Boolean);
+    if (lines.length === 0) {
+      alert('Vui lòng nhập headings (mỗi dòng 1 heading)');
+      return;
+    }
+    // Xóa các heading rỗng trước khi import
+    const nonEmptyHeadings = headings.filter(h => (h.text?.replace(/<[^>]*>/g, '') || '').trim());
+    const imported = lines.map((text, i) => ({ id: `h-${Date.now()}-${i}`, text }));
+    onUpdate(group.id, { headingBank: [...nonEmptyHeadings, ...imported] });
+    setImportHeadingsText('');
+    setShowImportHeadings(false);
+    alert(`Đã import ${lines.length} headings`);
+  };
+
+  const handleImportAnswers = () => {
+    const lines = importAnswersText.split('\n').map(l => l.trim()).filter(Boolean);
+    if (lines.length === 0) {
+      alert('Vui lòng nhập đáp án (mỗi dòng 1 đáp án)');
+      return;
+    }
+    if (hasSyncedPassage && syncedSections) {
+      lines.forEach((ans, idx) => {
+        if (syncedSections[idx]) {
+          const matchingHeading = headings.find(h => 
+            (h.text?.replace(/<[^>]*>/g, '') || '').toLowerCase().trim() === ans.toLowerCase().trim()
+          );
+          if (matchingHeading) {
+            updateSyncedAnswer(syncedSections[idx], matchingHeading.text);
+          }
+        }
+      });
+    }
+    setImportAnswersText('');
+    setShowImportAnswers(false);
+    alert(`Đã import ${lines.length} đáp án`);
+  };
 
   // If passageParagraphs are available, derive sections from them (synced).
   // Each paragraph becomes one section row. We match existing answers by paragraph label.
@@ -129,6 +171,42 @@ const MatchingHeadingBlock = ({ group, onUpdate, onDelete, onSelect, selected, d
           }}>
           <Plus size={11} /> Thêm heading
         </button>
+        <button className="exam-add-btn" style={{ marginTop: 6, marginLeft: 8, background: '#6366f1', color: 'white' }}
+          onClick={(e) => { e.stopPropagation(); setShowImportHeadings(!showImportHeadings); }}>
+          📋 Import headings
+        </button>
+        
+        {showImportHeadings && (
+          <div style={{ marginTop: 12, padding: 10, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 4 }}>
+            <div style={{ fontSize: 12, color: '#64748b', marginBottom: 6 }}>
+              Paste headings (mỗi dòng 1 heading):
+            </div>
+            <textarea
+              value={importHeadingsText}
+              onChange={(e) => setImportHeadingsText(e.target.value)}
+              rows={8}
+              placeholder="How a concept from one field was applied in another
+The role of governments in addressing the problem
+A comparison of two different approaches"
+              style={{
+                width: '100%',
+                padding: 8,
+                border: '1px solid #cbd5e1',
+                borderRadius: 3,
+                fontSize: 12,
+                fontFamily: 'inherit'
+              }}
+            />
+            <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+              <button className="exam-add-btn" onClick={handleImportHeadings} style={{ fontSize: 12 }}>
+                ✓ Import {importHeadingsText.split('\n').filter(l => l.trim()).length} headings
+              </button>
+              <button className="exam-add-btn" onClick={() => { setShowImportHeadings(false); setImportHeadingsText(''); }} style={{ fontSize: 12, background: '#94a3b8' }}>
+                Hủy
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── PHẦN 2: Sections — synced from passage OR manual ── */}
@@ -198,6 +276,48 @@ const MatchingHeadingBlock = ({ group, onUpdate, onDelete, onSelect, selected, d
               <div style={{ color: '#9ca3af', fontSize: 12, padding: '6px 0' }}>
                 (Passage chưa có đoạn nào)
               </div>
+            )}
+            
+            {/* Import answers button */}
+            {passageParagraphs.length > 0 && (
+              <>
+                <button className="exam-add-btn" style={{ marginTop: 8, background: '#6366f1', color: 'white' }}
+                  onClick={(e) => { e.stopPropagation(); setShowImportAnswers(!showImportAnswers); }}>
+                  📋 Import đáp án
+                </button>
+                
+                {showImportAnswers && (
+                  <div style={{ marginTop: 12, padding: 10, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 4 }}>
+                    <div style={{ fontSize: 12, color: '#64748b', marginBottom: 6 }}>
+                      Paste đáp án (mỗi dòng 1 đáp án, theo thứ tự section):
+                    </div>
+                    <textarea
+                      value={importAnswersText}
+                      onChange={(e) => setImportAnswersText(e.target.value)}
+                      rows={Math.min(passageParagraphs.length, 8)}
+                      placeholder="How a concept from one field was applied in another
+The role of governments in addressing the problem
+A comparison of two different approaches"
+                      style={{
+                        width: '100%',
+                        padding: 8,
+                        border: '1px solid #cbd5e1',
+                        borderRadius: 3,
+                        fontSize: 12,
+                        fontFamily: 'inherit'
+                      }}
+                    />
+                    <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+                      <button className="exam-add-btn" onClick={handleImportAnswers} style={{ fontSize: 12 }}>
+                        ✓ Import {importAnswersText.split('\n').filter(l => l.trim()).length} đáp án
+                      </button>
+                      <button className="exam-add-btn" onClick={() => { setShowImportAnswers(false); setImportAnswersText(''); }} style={{ fontSize: 12, background: '#94a3b8' }}>
+                        Hủy
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </>
         ) : (

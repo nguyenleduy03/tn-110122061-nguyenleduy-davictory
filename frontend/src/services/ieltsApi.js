@@ -1018,7 +1018,7 @@ async function transformGroup(baseUrl, group) {
       questionTypeCode: typeCode,
       fromQuestion: Number.isFinite(Number(group.fromQuestion)) ? Number(group.fromQuestion) : null,
       toQuestion: Number.isFinite(Number(group.toQuestion)) ? Number(group.toQuestion) : null,
-      leftHeader: formatTextWithWhitespace(parsedBank?.leftTitle || group.leftTitle || 'Questions'),
+      leftHeader: formatTextWithWhitespace(parsedBank?.leftTitle || group.leftTitle || (contentType === 'SENTENCE_COMPLETION_DRAG' ? 'Sentences' : 'Questions')),
       rightHeader: formatTextWithWhitespace(parsedBank?.rightTitle || group.rightTitle || 'Options'),
       allowOptionReuse: (typeof parsedBank?.allowOptionReuse === 'boolean') ? parsedBank.allowOptionReuse : true,
       bankOptions,

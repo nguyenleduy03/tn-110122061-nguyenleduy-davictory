@@ -98,7 +98,8 @@ const SummaryCompletionSelectBlock = ({ group, onUpdate, onDelete, onSelect, sel
     const currentQuestions = group.questions || [];
     const baseNumber = Number(group.fromQuestion) || 1;
 
-    if (blankCount !== currentQuestions.length) {
+    // Chỉ sync khi có blank, không tạo câu rỗng khi mới kéo vào
+    if (blankCount > 0 && blankCount !== currentQuestions.length) {
       const newQuestions = Array.from({ length: blankCount }, (_, i) => {
         return currentQuestions[i] || {
           id: Date.now() + i,

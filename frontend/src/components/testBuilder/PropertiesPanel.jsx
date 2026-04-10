@@ -598,15 +598,17 @@ const PropertiesPanel = ({ selection, onChange, onDelete, collapsed = false, onT
 
   return (
     <aside className={`tb-panel${collapsed ? ' collapsed' : ''}`}>
-      <button
-        type="button"
-        className="tb-panel-toggle tb-panel-toggle-right"
-        onClick={onToggleCollapsed}
-        title={collapsed ? 'Hiện bảng thuộc tính' : 'Ẩn bảng thuộc tính'}
-        aria-label={collapsed ? 'Hiện bảng thuộc tính' : 'Ẩn bảng thuộc tính'}
-      >
-        {collapsed ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
-      </button>
+      <div className="tb-panel-actions tb-panel-actions-right">
+        <button
+          type="button"
+          className="tb-panel-toggle tb-panel-toggle-right"
+          onClick={onToggleCollapsed}
+          title={collapsed ? 'Hiện bảng thuộc tính' : 'Ẩn bảng thuộc tính'}
+          aria-label={collapsed ? 'Hiện bảng thuộc tính' : 'Ẩn bảng thuộc tính'}
+        >
+          {collapsed ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
+        </button>
+      </div>
 
       <div className="tb-panel-header">
         <div>

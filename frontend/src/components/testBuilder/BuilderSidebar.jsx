@@ -274,15 +274,17 @@ const BuilderSidebar = ({
 
   return (
     <aside className={`tb-sidebar${collapsed ? ' collapsed' : ''}`}>
-      <button
-        type="button"
-        className="tb-panel-toggle tb-panel-toggle-left"
-        onClick={onToggleCollapsed}
-        title={collapsed ? 'Hiện thanh thành phần' : 'Ẩn thanh thành phần'}
-        aria-label={collapsed ? 'Hiện thanh thành phần' : 'Ẩn thanh thành phần'}
-      >
-        {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
-      </button>
+      <div className="tb-panel-actions tb-panel-actions-left">
+        <button
+          type="button"
+          className="tb-panel-toggle tb-panel-toggle-left"
+          onClick={onToggleCollapsed}
+          title={collapsed ? 'Hiện thanh thành phần' : 'Ẩn thanh thành phần'}
+          aria-label={collapsed ? 'Hiện thanh thành phần' : 'Ẩn thanh thành phần'}
+        >
+          {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+        </button>
+      </div>
 
       {/* Skill tabs */}
       <div className="tb-skill-tabs">

@@ -9,6 +9,8 @@ import { toRoman, loadImageFile, toPlainText, countBlankTokens, getNextQuestionN
 const PassageBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps, mhHeadings = [], mhAnswersByLabel = {}, testTitle, testId, module = 'READING' }) => {
   const [draggingOverPara, setDraggingOverPara] = useState(null);
   const [pendingImagePara, setPendingImagePara] = useState(null);
+  const [showImport, setShowImport] = useState(false);
+  const [importText, setImportText] = useState('');
   const fileInputRefs = useRef({});
 
   const isMulti = !!group.multiParagraph;
@@ -22,6 +24,27 @@ const PassageBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandl
   const updateParagraphs = (newParas) => {
     const labeled = newParas.map((p, i) => ({ ...p, label: PARA_LABELS[i] ?? String(i + 1) }));
     onUpdate(group.id, { paragraphs: labeled, passageText: labeled.map((p) => p.text).join('\n\n') });
+  };
+
+  const handleImport = () => {
+    const blocks = importText.split(/\n\s*\n/).filter(t => t.trim());
+    if (blocks.length === 0) {
+      alert('Vui lòng nhập nội dung (các đoạn cách nhau 1 dòng trống)');
+      return;
+    }
+    const imported = blocks.map((text, i) => ({
+      id: `${group.id}-p${Date.now()}-${i}`,
+      label: PARA_LABELS[i] ?? String(i + 1),
+      text: text.trim()
+    }));
+    onUpdate(group.id, { 
+      multiParagraph: true, 
+      paragraphs: imported, 
+      passageText: imported.map(p => p.text).join('\n\n') 
+    });
+    setImportText('');
+    setShowImport(false);
+    alert(`Đã import ${blocks.length} đoạn`);
   };
 
   const enableMulti = () => {
@@ -221,7 +244,54 @@ const PassageBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandl
             <Plus size={12} /> Thêm đoạn
           </button>
         )}
+        <button className="exam-add-btn" style={{ background: '#6366f1', color: 'white' }}
+          onClick={(e) => { e.stopPropagation(); setShowImport(!showImport); }}>
+          📋 Import đoạn
+        </button>
       </div>
+
+      {/* Import area */}
+      {showImport && (
+        <div style={{ marginTop: 12, padding: 10, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 4 }} onClick={(e) => e.stopPropagation()}>
+          <div style={{ fontSize: 12, color: '#64748b', marginBottom: 6 }}>
+            Paste nội dung (các đoạn cách nhau 1 dòng trống):
+          </div>
+          <textarea
+            value={importText}
+            onChange={(e) => setImportText(e.target.value)}
+            rows={10}
+            placeholder="Đoạn 1 nội dung...
+
+Đoạn 2 nội dung...
+
+Đoạn 3 nội dung..."
+            style={{
+              width: '100%',
+              padding: 8,
+              border: '1px solid #cbd5e1',
+              borderRadius: 3,
+              fontSize: 12,
+              fontFamily: 'inherit'
+            }}
+          />
+          <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+            <button
+              className="exam-add-btn"
+              onClick={handleImport}
+              style={{ fontSize: 12 }}
+            >
+              ✓ Import {importText.split(/\n\s*\n/).filter(t => t.trim()).length} đoạn
+            </button>
+            <button
+              className="exam-add-btn"
+              onClick={() => { setShowImport(false); setImportText(''); }}
+              style={{ fontSize: 12, background: '#94a3b8' }}
+            >
+              Hủy
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
