@@ -1,0 +1,476 @@
+@startuml Tích hợp Google Drive API
+title Sơ đồ tích hợp Google Drive API - Upload file media
+
+actor "Giáo viên" as Teacher
+participant "React\nFrontend" as Frontend
+participant "FileUploadController" as Controller
+participant "FileUploadService" as Service
+participant "GoogleDriveService" as DriveService
+participant "Google Drive API" as DriveAPI
+database "MySQL" as DB
+
+== Upload file audio cho Listening ==
+
+Teacher -> Frontend: Chọn file audio (MP3)
+activate Frontend
+
+Frontend -> Frontend: Validate file\n(type, size < 50MB)
+
+Frontend -> Controller: POST /api/files/upload\nMultipartFile + metadata
+activate Controller
+
+Controller -> Service: uploadFile(file, type, testId)
+activate Service
+
+Service -> Service: Generate unique filename\nfilename = "listening_part1_" + UUID
+
+Service -> DriveService: uploadToDrive(file, filename, folderId)
+activate DriveService
+
+DriveService -> DriveAPI: OAuth2 Authentication
+activate DriveAPI
+DriveAPI --> DriveService: Access Token
+deactivate DriveAPI
+
+DriveService -> DriveAPI: Create file metadata\n{name, parents, mimeType}
+activate DriveAPI
+DriveAPI --> DriveService: File ID
+deactivate DriveAPI
+
+DriveService -> DriveAPI: Upload file content
+activate DriveAPI
+DriveAPI --> DriveService: Upload success
+deactivate DriveAPI
+
+DriveService -> DriveAPI: Set permission\n{type: "anyone", role: "reader"}
+activate DriveAPI
+DriveAPI --> DriveService: Permission set
+deactivate DriveAPI
+
+DriveService -> DriveAPI: Get file URL
+activate DriveAPI
+DriveAPI --> DriveService: webContentLink
+deactivate DriveAPI
+
+DriveService --> Service: File URL
+deactivate DriveService
+
+Service -> DB: INSERT INTO media_file\n(filename, url, type, size)
+activate DB
+DB --> Service: media_file_id
+deactivate DB
+
+Service -> DB: UPDATE question_group\nSET audio_url = ?
+activate DB
+DB --> Service: Success
+deactivate DB
+
+Service --> Controller: {fileId, url, filename}
+deactivate Service
+
+Controller --> Frontend: 200 OK\n{url, message}
+deactivate Controller
+
+Frontend --> Teacher: Hiển thị thông báo thành công\nPreview audio player
+deactivate Frontend
+
+@enduml
+
+@startuml Tích hợp Gmail SMTP
+title Sơ đồ tích hợp Gmail SMTP - Gửi email thông báo
+
+participant "ExamAttemptService" as ExamService
+participant "EmailService" as EmailService
+participant "Thymeleaf\nTemplate Engine" as Template
+participant "JavaMailSender" as MailSender
+participant "Gmail SMTP\nServer" as SMTP
+actor "Học viên" as Student
+
+== Gửi email kết quả thi ==
+
+ExamService -> ExamService: submitAttempt()\nChấm điểm xong
+
+ExamService -> EmailService: sendExamResultEmail(user, attempt)
+activate EmailService
+
+EmailService -> EmailService: Prepare email data\n{userName, testTitle, bandScore, correctCount}
+
+EmailService -> Template: process("exam-result.html", data)
+activate Template
+Template -> Template: Render HTML template\nwith user data
+Template --> EmailService: HTML content
+deactivate Template
+
+EmailService -> MailSender: createMimeMessage()
+activate MailSender
+MailSender --> EmailService: MimeMessage
+deactivate MailSender
+
+EmailService -> EmailService: Set email properties:\n- To: user.email\n- Subject: "Kết quả thi IELTS"\n- Content: HTML\n- Encoding: UTF-8
+
+EmailService -> MailSender: send(message)
+activate MailSender
+
+MailSender -> SMTP: Connect to smtp.gmail.com:587
+activate SMTP
+SMTP --> MailSender: Connection established
+deactivate SMTP
+
+MailSender -> SMTP: STARTTLS (Enable encryption)
+activate SMTP
+SMTP --> MailSender: TLS enabled
+deactivate SMTP
+
+MailSender -> SMTP: AUTH LOGIN\n(username, app password)
+activate SMTP
+SMTP --> MailSender: Authentication success
+deactivate SMTP
+
+MailSender -> SMTP: MAIL FROM: davictory.ielts@gmail.com
+activate SMTP
+SMTP --> MailSender: OK
+deactivate SMTP
+
+MailSender -> SMTP: RCPT TO: user@email.com
+activate SMTP
+SMTP --> MailSender: OK
+deactivate SMTP
+
+MailSender -> SMTP: DATA (email content)
+activate SMTP
+SMTP --> MailSender: OK
+deactivate SMTP
+
+MailSender -> SMTP: QUIT
+activate SMTP
+SMTP --> MailSender: Goodbye
+deactivate SMTP
+
+MailSender --> EmailService: Email sent successfully
+deactivate MailSender
+
+EmailService -> EmailService: Log success:\n"Email sent to user@email.com"
+
+EmailService --> ExamService: Success
+deactivate EmailService
+
+note over SMTP, Student
+  Gmail SMTP server xử lý
+  và gửi email đến hộp thư
+  của học viên
+end note
+
+SMTP -> Student: Email delivered
+
+Student -> Student: Mở email\nXem kết quả thi
+
+@enduml
+
+@startuml Luồng xử lý file media
+title Luồng xử lý file media trong hệ thống
+
+|Frontend|
+start
+:Giáo viên chọn file;
+
+if (Validate file?) then (OK)
+  :Upload file lên Backend;
+  
+  |Backend|
+  :Nhận file từ request;
+  
+  :Generate unique filename;
+  
+  :Upload lên Google Drive;
+  
+  |Google Drive|
+  :Lưu file;
+  :Generate URL;
+  
+  |Backend|
+  :Lưu URL vào database;
+  
+  :Trả URL về Frontend;
+  
+  |Frontend|
+  :Hiển thị preview;
+  :Lưu URL vào form;
+  
+else (Lỗi)
+  :Hiển thị lỗi;
+  stop
+endif
+
+:Giáo viên lưu đề thi;
+
+|Backend|
+:Lưu đề thi với URL media;
+
+|Database|
+:Lưu vào question_group\nhoặc question;
+
+== Khi học viên làm bài ==
+
+|Frontend|
+:Load đề thi;
+
+|Backend|
+:Truy vấn database;
+:Lấy URL media;
+
+|Frontend|
+:Render câu hỏi;
+
+if (Có audio?) then (Có)
+  :Tạo audio player;
+  :Load audio từ Google Drive URL;
+  
+  |Google Drive|
+  :Stream audio file;
+  
+  |Frontend|
+  :Phát audio;
+else (Không)
+endif
+
+if (Có image?) then (Có)
+  :Hiển thị image;
+  :Load từ Google Drive URL;
+  
+  |Google Drive|
+  :Serve image file;
+  
+  |Frontend|
+  :Hiển thị image;
+else (Không)
+endif
+
+stop
+
+@enduml
+
+@startuml Cấu trúc thư mục Google Drive
+title Cấu trúc thư mục lưu trữ trên Google Drive
+
+package "DAVictory Root Folder" {
+    folder "audio" {
+        folder "listening" {
+            folder "part1" {
+                file "listening_part1_uuid1.mp3"
+                file "listening_part1_uuid2.mp3"
+            }
+            folder "part2" {
+                file "listening_part2_uuid1.mp3"
+            }
+            folder "part3" {
+                file "listening_part3_uuid1.mp3"
+            }
+            folder "part4" {
+                file "listening_part4_uuid1.mp3"
+            }
+        }
+        folder "speaking" {
+            file "speaking_recording_uuid1.mp3"
+            file "speaking_recording_uuid2.mp3"
+        }
+    }
+    
+    folder "images" {
+        folder "reading" {
+            file "reading_diagram_uuid1.png"
+            file "reading_chart_uuid2.jpg"
+        }
+        folder "writing" {
+            file "writing_task1_chart_uuid1.png"
+            file "writing_task1_map_uuid2.png"
+        }
+        folder "speaking" {
+            file "speaking_cue_card_uuid1.jpg"
+        }
+    }
+    
+    folder "documents" {
+        folder "sample_answers" {
+            file "writing_task2_sample_uuid1.pdf"
+            file "speaking_part2_sample_uuid2.pdf"
+        }
+        folder "instructions" {
+            file "exam_instructions.pdf"
+        }
+    }
+}
+
+note right of "DAVictory Root Folder"
+  **Quy tắc đặt tên file:**
+  - Format: {type}_{part}_{uuid}.{ext}
+  - UUID đảm bảo tên file unique
+  - Không dùng ký tự đặc biệt
+  - Tất cả chữ thường
+  
+  **Quyền truy cập:**
+  - Public read (anyone with link)
+  - Write chỉ cho service account
+end note
+
+@enduml
+
+@startuml Email Templates
+title Các loại email template trong hệ thống
+
+package "Email Templates" {
+    
+    card "Welcome Email" {
+        [Subject: Chào mừng đến với DAVictory]
+        [Content:
+        - Lời chào mừng
+        - Thông tin tài khoản
+        - Link đăng nhập
+        - Hướng dẫn bắt đầu]
+    }
+    
+    card "Exam Result Email" {
+        [Subject: Kết quả thi IELTS]
+        [Content:
+        - Tên bài thi
+        - Band Score (lớn, nổi bật)
+        - Số câu đúng/sai
+        - Link xem chi tiết
+        - Gợi ý cải thiện]
+    }
+    
+    card "Assignment Notification" {
+        [Subject: Bài tập mới được giao]
+        [Content:
+        - Tên bài tập
+        - Tên lớp học
+        - Hạn nộp
+        - Link làm bài
+        - Lưu ý quan trọng]
+    }
+    
+    card "Grading Notification" {
+        [Subject: Bài làm đã được chấm]
+        [Content:
+        - Tên bài tập
+        - Điểm số
+        - Feedback từ giáo viên
+        - Link xem chi tiết
+        - Khuyến khích]
+    }
+    
+    card "Password Reset" {
+        [Subject: Đặt lại mật khẩu]
+        [Content:
+        - Xác nhận yêu cầu
+        - Link reset (hết hạn sau 1h)
+        - Cảnh báo bảo mật
+        - Liên hệ hỗ trợ]
+    }
+    
+    card "Guest Exam Result" {
+        [Subject: Kết quả thi thử IELTS]
+        [Content:
+        - Band Score
+        - Số câu đúng/sai
+        - Gợi ý đăng ký tài khoản
+        - Ưu đãi cho thành viên
+        - Link đăng ký]
+    }
+}
+
+note bottom of "Email Templates"
+  **Đặc điểm chung:**
+  - Responsive design (mobile-friendly)
+  - Branding (logo, màu sắc)
+  - Call-to-action button rõ ràng
+  - Footer với thông tin liên hệ
+  - Unsubscribe link (nếu cần)
+end note
+
+@enduml
+
+@startuml Xử lý lỗi khi gửi email
+title Cơ chế xử lý lỗi và retry khi gửi email
+
+participant "Service" as Service
+participant "EmailService" as Email
+participant "Gmail SMTP" as SMTP
+database "Email Queue\n(MySQL)" as Queue
+
+Service -> Email: sendEmailAsync(to, subject, content)
+activate Email
+
+Email -> Email: CompletableFuture.runAsync()
+
+Email -> SMTP: Send email
+activate SMTP
+
+alt Email gửi thành công
+    SMTP --> Email: Success
+    deactivate SMTP
+    Email -> Email: Log success
+    
+else Lỗi kết nối
+    SMTP --> Email: MailSendException
+    deactivate SMTP
+    Email -> Email: Log error
+    Email -> Queue: INSERT INTO email_queue\n(to, subject, content, retry_count=0)
+    activate Queue
+    Queue --> Email: Queued
+    deactivate Queue
+    
+else Lỗi authentication
+    SMTP --> Email: AuthenticationFailedException
+    deactivate SMTP
+    Email -> Email: Log critical error
+    Email -> Email: Alert admin
+    
+else Lỗi recipient không tồn tại
+    SMTP --> Email: MailSendException (550)
+    deactivate SMTP
+    Email -> Email: Log invalid recipient
+    Email -> Email: Mark email as failed
+end
+
+deactivate Email
+
+== Retry mechanism (Scheduled job) ==
+
+loop Mỗi 5 phút
+    Email -> Queue: SELECT * FROM email_queue\nWHERE retry_count < 3\nAND next_retry_at <= NOW()
+    activate Queue
+    Queue --> Email: List<EmailQueue>
+    deactivate Queue
+    
+    loop Cho mỗi email trong queue
+        Email -> SMTP: Retry send email
+        activate SMTP
+        
+        alt Thành công
+            SMTP --> Email: Success
+            deactivate SMTP
+            Email -> Queue: DELETE FROM email_queue\nWHERE id = ?
+            activate Queue
+            Queue --> Email: Deleted
+            deactivate Queue
+            
+        else Vẫn lỗi
+            SMTP --> Email: Failed
+            deactivate SMTP
+            Email -> Queue: UPDATE email_queue\nSET retry_count = retry_count + 1,\nnext_retry_at = NOW() + INTERVAL 10 MINUTE
+            activate Queue
+            Queue --> Email: Updated
+            deactivate Queue
+        end
+    end
+end
+
+note over Email, Queue
+  **Retry strategy:**
+  - Retry tối đa 3 lần
+  - Delay giữa các lần retry: 10 phút
+  - Sau 3 lần retry thất bại, đánh dấu failed
+  - Admin được thông báo về email failed
+end note
+
+@enduml

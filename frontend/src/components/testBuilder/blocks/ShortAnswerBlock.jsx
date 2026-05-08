@@ -4,7 +4,7 @@ import GroupToolbar from './shared/GroupToolbar';
 import RichInput from '../../common/RichInput';
 import RichBlankEditor from './shared/RichBlankEditor';
 import { serializeContentEditableHtml } from '../../../utils/textFormatters';
-import { toRoman, loadImageFile, toPlainText, countBlankTokens, getNextQuestionNumber, isImagePinQuestion, isNoteBlankQuestion, getQuestionWeight } from './shared/blockHelpers';
+import { toRoman, loadImageFile, toPlainText, countBlankTokens, getNextQuestionNumber, isImagePinQuestion, isNoteBlankQuestion, getQuestionWeight, calculateQuestionRange } from './shared/blockHelpers';
 import { useTabIndent } from '../../../hooks/useTabIndent';
 
 // Bulk Answer Import Component
@@ -78,7 +78,30 @@ const BulkAnswerImport = ({ questions, onImport }) => {
 };
 
 const ShortAnswerBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps,
+  allGroups = [], partQuestionStartNumber = 1,
   onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onAddQuestion, selectedQuestionId }) => {
+  const questions = group.questions ?? [];
+  const partRange = calculateQuestionRange(group, allGroups);
+  const fromQ = partQuestionStartNumber + Math.max(0, (partRange.fromQuestion ?? 1) - 1);
+  const toQ = questions.length > 0 ? (fromQ + questions.length - 1) : (group.toQuestion ?? fromQ);
+
+  useEffect(() => {
+    const normalizedQuestions = questions.map((q, idx) => ({
+      ...q,
+      questionNumber: fromQ + idx,
+    }));
+    const isRangeChanged = group.fromQuestion !== fromQ || group.toQuestion !== toQ;
+    const isQuestionsChanged = normalizedQuestions.length !== questions.length
+      || normalizedQuestions.some((q, idx) => q.questionNumber !== questions[idx]?.questionNumber);
+
+    if (isRangeChanged || isQuestionsChanged) {
+      onUpdate(group.id, {
+        fromQuestion: fromQ,
+        toQuestion: toQ,
+        questions: normalizedQuestions,
+      });
+    }
+  }, [fromQ, toQ, questions, group.id, group.fromQuestion, group.toQuestion, onUpdate]);
 
   const normalizeAnswers = (q) => {
     const rawAnswers = Array.isArray(q?.answers) && q.answers.length > 0
@@ -204,7 +227,7 @@ const ShortAnswerBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragH
           onChange={(e) => onUpdate(group.id, { toQuestion: e.target.value ? Number(e.target.value) : null })}
           onClick={(e) => e.stopPropagation()} />
       </div>
-      {(group.questions ?? []).map((q) => {
+      {questions.map((q) => {
         const answers = normalizeAnswers(q);
         return (
           <div key={q.id}
@@ -283,6 +306,4 @@ const ShortAnswerBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragH
     </div>
   );
 };
-
-
 export default ShortAnswerBlock;

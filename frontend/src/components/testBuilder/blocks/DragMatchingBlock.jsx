@@ -3,11 +3,11 @@ import { X, Plus, Volume2, Image, ChevronUp, ChevronDown, Upload } from 'lucide-
 import GroupToolbar from './shared/GroupToolbar';
 import RichInput from '../../common/RichInput';
 import RichBlankEditor from './shared/RichBlankEditor';
-import { toRoman, loadImageFile, toPlainText, countBlankTokens, getNextQuestionNumber, isImagePinQuestion, isNoteBlankQuestion, getQuestionWeight } from './shared/blockHelpers';
+import { toRoman, loadImageFile, toPlainText, countBlankTokens, getNextQuestionNumber, isImagePinQuestion, isNoteBlankQuestion, getQuestionWeight, calculateQuestionRange } from './shared/blockHelpers';
 import { stripInlineStyles } from '../../../utils/textFormatters';
 import { useTabIndent } from '../../../hooks/useTabIndent';
 
-const DragMatchingBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps,
+const DragMatchingBlock = ({ group, allGroups = [], partQuestionStartNumber = 1, onUpdate, onDelete, onSelect, selected, dragHandleProps,
   onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onAddQuestion, selectedQuestionId }) => {
   const { handleKeyDown } = useTabIndent();
   const options = group.optionBank ?? [];
@@ -16,6 +16,9 @@ const DragMatchingBlock = ({ group, onUpdate, onDelete, onSelect, selected, drag
   const optionCount = options.filter((opt) => toPlainText(opt?.text || '').trim()).length;
   const dragSlotCount = questions.length;
   const autoKeepUsedOptionSlots = optionCount > dragSlotCount;
+  const partRange = calculateQuestionRange(group, allGroups);
+  const fromQ = partQuestionStartNumber + Math.max(0, (partRange.fromQuestion ?? 1) - 1);
+  const toQ = questions.length > 0 ? (fromQ + questions.length - 1) : (group.toQuestion ?? fromQ);
 
   const [showImportOptions, setShowImportOptions] = React.useState(false);
   const [showImportQuestions, setShowImportQuestions] = React.useState(false);
@@ -31,6 +34,24 @@ const DragMatchingBlock = ({ group, onUpdate, onDelete, onSelect, selected, drag
       onUpdate(group.id, { optionBank: cleaned });
     }
   }, []);
+
+  useEffect(() => {
+    const normalizedQuestions = questions.map((q, idx) => ({
+      ...q,
+      questionNumber: fromQ + idx,
+    }));
+    const isRangeChanged = group.fromQuestion !== fromQ || group.toQuestion !== toQ;
+    const isQuestionsChanged = normalizedQuestions.length !== questions.length
+      || normalizedQuestions.some((q, idx) => q.questionNumber !== questions[idx]?.questionNumber);
+
+    if (isRangeChanged || isQuestionsChanged) {
+      onUpdate(group.id, {
+        fromQuestion: fromQ,
+        toQuestion: toQ,
+        questions: normalizedQuestions,
+      });
+    }
+  }, [fromQ, toQ, questions, group.id, group.fromQuestion, group.toQuestion, onUpdate]);
 
   const handleImportOptions = (text) => {
     const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
@@ -56,7 +77,7 @@ const DragMatchingBlock = ({ group, onUpdate, onDelete, onSelect, selected, drag
 
     const startNum = nonEmptyQuestions.length > 0
       ? Math.max(...nonEmptyQuestions.map(q => q.questionNumber || 0)) + 1
-      : (group.fromQuestion || 1);
+      : fromQ;
     const imported = lines.map((qText, i) => ({
       id: `q-${Date.now()}-${i}`,
       questionNumber: startNum + i,
@@ -64,7 +85,7 @@ const DragMatchingBlock = ({ group, onUpdate, onDelete, onSelect, selected, drag
       answerText: '',
       answers: [{ blankIndex: 1, isCaseSensitive: false, answerText: '' }]
     }));
-    onUpdate(group.id, { questions: [...nonEmptyQuestions, ...imported] });
+    onUpdate(group.id, { questions: [...nonEmptyQuestions, ...imported], fromQuestion: fromQ, toQuestion: fromQ + nonEmptyQuestions.length + imported.length - 1 });
     setShowImportQuestions(false);
   };
   return (
@@ -114,10 +135,10 @@ const DragMatchingBlock = ({ group, onUpdate, onDelete, onSelect, selected, drag
             />
           </div>
           <div className="exam-q-range-header" style={{ marginTop: 6, marginBottom: 8 }}>
-            Questions {group.fromQuestion ?? questions[0]?.questionNumber ?? '?'}
+            Questions {fromQ}
             {(() => {
-              const last = group.toQuestion ?? questions[questions.length - 1]?.questionNumber;
-              const first = group.fromQuestion ?? questions[0]?.questionNumber;
+              const last = toQ;
+              const first = fromQ;
               return (last && last !== first) ? `–${last}` : '';
             })()}
           </div>

@@ -79,6 +79,24 @@ const SummaryCompletionSelectQuestion = ({ q, activeQuestion, setActiveQuestion,
     const keepUsedOptionSlots = shouldDisallowReuse;
 
     const [isDragOverBank, setIsDragOverBank] = React.useState(false);
+    const blankWidthCharsRef = React.useRef({});
+
+    React.useEffect(() => {
+        blankWidthCharsRef.current = {};
+    }, [questionData?.id, noteText, summarySubQuestions.length]);
+
+    const resolveStableBlankWidth = React.useCallback((blankKey, answerText) => {
+        const measuredChars = Math.max(0, String(answerText || '').trim().length + 1);
+        const currentChars = Number(blankWidthCharsRef.current[blankKey] || 0);
+        const nextChars = Math.max(currentChars, measuredChars);
+
+        if (nextChars > 0) {
+            blankWidthCharsRef.current[blankKey] = nextChars;
+            return `clamp(var(--answer-input-width), ${Math.max(8, nextChars)}ch, 420px)`;
+        }
+
+        return 'var(--answer-input-width)';
+    }, []);
 
     const syncBookmarkPosition = React.useCallback(() => {
         if (isReview || !activeSummarySubQ) {
@@ -247,10 +265,8 @@ const SummaryCompletionSelectQuestion = ({ q, activeQuestion, setActiveQuestion,
         const isCorrect = answer === subQ?.correctAnswer;
         const displayAnswer = (isReview && !isCorrect) ? subQ?.correctAnswer : answer;
         const hasDisplayAnswer = String(displayAnswer || '').trim() !== '';
-        const answerCharWidth = Math.max(8, String(displayAnswer || '').length + 1);
-        const dynamicWidth = hasDisplayAnswer
-            ? `clamp(var(--answer-input-width), ${answerCharWidth}ch, 420px)`
-            : 'var(--answer-input-width)';
+        const blankKey = qId != null ? `id-${qId}` : `num-${qNum ?? key}`;
+        const stableWidth = resolveStableBlankWidth(blankKey, hasDisplayAnswer ? displayAnswer : '');
 
         return (
             <span
@@ -270,9 +286,9 @@ const SummaryCompletionSelectQuestion = ({ q, activeQuestion, setActiveQuestion,
                     onClick={() => { if (!isReview && qNum != null) setActiveQuestion?.(qNum); }}
                     style={{
                         cursor: isReview ? 'default' : 'pointer',
-                        width: dynamicWidth,
+                        width: stableWidth,
                         minWidth: 'var(--answer-input-width)',
-                        maxWidth: hasDisplayAnswer ? '420px' : 'var(--answer-input-width)',
+                        maxWidth: '420px',
                         justifyContent: hasDisplayAnswer ? 'flex-start' : 'center',
                     }}
                 >
@@ -281,8 +297,7 @@ const SummaryCompletionSelectQuestion = ({ q, activeQuestion, setActiveQuestion,
                             draggable={!isReview && Boolean(qId)}
                             onDragStart={(e) => { if (!isReview && qId) handleDragStart(e, displayAnswer, qId); }}
                             style={{
-                                cursor: isReview ? 'default' : 'grab',
-                                padding: '2px 4px'
+                                cursor: isReview ? 'default' : 'grab'
                             }}
                         >
                             {displayAnswer}

@@ -4,15 +4,36 @@ import GroupToolbar from './shared/GroupToolbar';
 import RichInput from '../../common/RichInput';
 import RichBlankEditor from './shared/RichBlankEditor';
 import { serializeContentEditableHtml } from '../../../utils/textFormatters';
-import { toRoman, loadImageFile, toPlainText, countBlankTokens, getNextQuestionNumber, isImagePinQuestion, isNoteBlankQuestion, getQuestionWeight } from './shared/blockHelpers';
+import { toRoman, loadImageFile, toPlainText, countBlankTokens, getNextQuestionNumber, isImagePinQuestion, isNoteBlankQuestion, getQuestionWeight, calculateQuestionRange } from './shared/blockHelpers';
 
-const TFNGBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps,
+const TFNGBlock = ({ group, allGroups = [], partQuestionStartNumber = 1, onUpdate, onDelete, onSelect, selected, dragHandleProps,
   onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onAddQuestion, selectedQuestionId }) => {
   const questions = group.questions ?? [];
   const [showImport, setShowImport] = useState(false);
   const [importText, setImportText] = useState('');
   const isYesNo = group.isYesNo || false;
   const options = isYesNo ? ['YES', 'NO', 'NOT GIVEN'] : ['TRUE', 'FALSE', 'NOT GIVEN'];
+  const partRange = calculateQuestionRange(group, allGroups);
+  const fromQ = partQuestionStartNumber + Math.max(0, (partRange.fromQuestion ?? 1) - 1);
+  const toQ = questions.length > 0 ? (fromQ + questions.length - 1) : (group.toQuestion ?? fromQ);
+
+  useEffect(() => {
+    const normalizedQuestions = questions.map((q, idx) => ({
+      ...q,
+      questionNumber: fromQ + idx,
+    }));
+    const isRangeChanged = group.fromQuestion !== fromQ || group.toQuestion !== toQ;
+    const isQuestionsChanged = normalizedQuestions.length !== questions.length
+      || normalizedQuestions.some((q, idx) => q.questionNumber !== questions[idx]?.questionNumber);
+
+    if (isRangeChanged || isQuestionsChanged) {
+      onUpdate(group.id, {
+        fromQuestion: fromQ,
+        toQuestion: toQ,
+        questions: normalizedQuestions,
+      });
+    }
+  }, [fromQ, toQ, questions, group.id, group.fromQuestion, group.toQuestion, onUpdate]);
 
   const handleImport = () => {
     const lines = importText.split('\n').map(l => l.trim()).filter(Boolean);
@@ -20,7 +41,7 @@ const TFNGBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandlePr
       alert('Vui lòng nhập câu hỏi (mỗi dòng 1 câu)');
       return;
     }
-    const baseNum = questions.length > 0 ? Math.max(...questions.map(q => q.questionNumber || 0)) + 1 : (group.fromQuestion || 1);
+    const baseNum = questions.length > 0 ? Math.max(...questions.map(q => q.questionNumber || 0)) + 1 : fromQ;
     const imported = lines.map((text, i) => ({
       id: `q-${Date.now()}-${i}`,
       questionNumber: baseNum + i,
@@ -29,8 +50,8 @@ const TFNGBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandlePr
       questionType: { typeName: 'TRUE_FALSE_NG' }
     }));
     const allQuestions = [...questions, ...imported];
-    const newFromQuestion = allQuestions.length > 0 ? Math.min(...allQuestions.map(q => q.questionNumber)) : null;
-    const newToQuestion = allQuestions.length > 0 ? Math.max(...allQuestions.map(q => q.questionNumber)) : null;
+    const newFromQuestion = allQuestions.length > 0 ? fromQ : null;
+    const newToQuestion = allQuestions.length > 0 ? fromQ + allQuestions.length - 1 : null;
     onUpdate(group.id, { 
       questions: allQuestions,
       fromQuestion: newFromQuestion,
@@ -86,12 +107,12 @@ const TFNGBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandlePr
       
       <div className="exam-q-range-header">
         Câu&nbsp;
-        <input className="exam-q-range-input" value={group.fromQuestion ?? ''} placeholder="1"
-          onChange={(e) => onUpdate(group.id, { fromQuestion: e.target.value ? Number(e.target.value) : null })}
+        <input className="exam-q-range-input" value={fromQ} placeholder="1" readOnly
+          style={{ background: '#f9fafb', color: '#9ca3af' }}
           onClick={(e) => e.stopPropagation()} />
         &nbsp;–&nbsp;
-        <input className="exam-q-range-input" value={group.toQuestion ?? ''} placeholder="7"
-          onChange={(e) => onUpdate(group.id, { toQuestion: e.target.value ? Number(e.target.value) : null })}
+        <input className="exam-q-range-input" value={toQ} placeholder="7" readOnly
+          style={{ background: '#f9fafb', color: '#9ca3af' }}
           onClick={(e) => e.stopPropagation()} />
       </div>
       {questions.map((q) => (

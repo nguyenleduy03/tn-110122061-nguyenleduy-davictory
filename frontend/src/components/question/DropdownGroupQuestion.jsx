@@ -22,6 +22,7 @@ const DropdownGroupQuestion = ({
   bookmarks,
   toggleBookmark,
   isReview,
+  legendPlacement = 'side',
 }) => {
   const normalizeComparableText = (htmlValue) => String(htmlValue || '')
     .replace(/<[^>]*>/g, ' ')
@@ -65,6 +66,15 @@ const DropdownGroupQuestion = ({
 
   const group = q || {};
   const questions = group.subQuestions || group.questions || [];
+  const baseNumber = Number(group.fromQuestion);
+  const resolveDisplayNumber = React.useCallback((question, index) => {
+    if (Number.isFinite(baseNumber)) return baseNumber + index;
+
+    const direct = Number(question?.number ?? question?.questionNumber);
+    if (Number.isFinite(direct)) return direct;
+
+    return index + 1;
+  }, [baseNumber]);
   const options = (group.sharedOptions || []).map((opt, index) => {
     if (!opt || typeof opt !== 'object') {
       return { key: String.fromCharCode(65 + index), label: resolveText(opt), imageUrl: '' };
@@ -113,12 +123,42 @@ const DropdownGroupQuestion = ({
     );
   const configuredImageWidth = resolveImageWidthPercent(group.imageWidth);
   const showOptionsLegend = options.length > 0 && !group.hideOptionsTable;
+  const isLegendBelow = showOptionsLegend && legendPlacement === 'below';
   const layoutRef = React.useRef(null);
   const [floatingBookmarkTop, setFloatingBookmarkTop] = React.useState(null);
+  const [uniformRowHeight, setUniformRowHeight] = React.useState(null);
   const activeQuestionInGroup = questions.some((question) => {
-    const number = question.number ?? question.questionNumber;
+    const number = resolveDisplayNumber(question, questions.indexOf(question));
     return String(number) === String(activeQuestion);
   });
+
+  const syncUniformRowHeight = React.useCallback(() => {
+    if (typeof window === 'undefined' || !layoutRef.current) {
+      setUniformRowHeight(null);
+      return;
+    }
+
+    const rows = Array.from(layoutRef.current.querySelectorAll('.mcq-dropdown-row'));
+    if (!rows.length) {
+      setUniformRowHeight(null);
+      return;
+    }
+
+    const maxHeight = rows.reduce((max, row) => Math.max(max, row.getBoundingClientRect().height), 0);
+    setUniformRowHeight(maxHeight > 0 ? Math.ceil(maxHeight) : null);
+  }, [questions.length, showOptionsLegend, isLegendBelow, questionTitleText, instructionHtml, headingText]);
+
+  React.useLayoutEffect(() => {
+    syncUniformRowHeight();
+
+    if (typeof window === 'undefined') return undefined;
+    const handleResize = () => syncUniformRowHeight();
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [syncUniformRowHeight]);
 
   React.useLayoutEffect(() => {
     if (isReview || !activeQuestionInGroup || !layoutRef.current) {
@@ -179,7 +219,7 @@ const DropdownGroupQuestion = ({
       )}
 
       <div ref={layoutRef} className="mcq-dropdown-shell">
-        <div className={`mcq-dropdown-layout ${showOptionsLegend ? 'has-legend' : 'no-legend'}`}>
+        <div className={`mcq-dropdown-layout ${showOptionsLegend ? 'has-legend' : 'no-legend'} ${isLegendBelow ? 'legend-below' : 'legend-side'}`}>
           <div className="mcq-dropdown-questions-col">
             {questionTitleText && (
               <div
@@ -188,9 +228,12 @@ const DropdownGroupQuestion = ({
               />
             )}
 
-            <div className="mcq-dropdown-list">
-              {questions.map((question) => {
-                const number = question.number ?? question.questionNumber;
+            <div
+              className="mcq-dropdown-list"
+              style={uniformRowHeight ? { '--mcq-dropdown-row-height': `${uniformRowHeight}px` } : undefined}
+            >
+              {questions.map((question, idx) => {
+                const number = resolveDisplayNumber(question, idx);
                 const current = answers?.[question.id] ?? '';
                 const correctKey = question.correctOptionKey ?? question.correctAnswer;
                 const isActive = activeQuestion === number;

@@ -1,0 +1,877 @@
+@startuml User Flow - Học viên làm bài thi
+title User Flow - Học viên làm bài thi IELTS
+
+|Học viên|
+start
+:Đăng nhập hệ thống;
+
+:Xem danh sách đề thi;
+
+:Chọn đề thi muốn làm;
+
+:Xem thông tin đề thi
+(Số câu, thời gian, độ khó);
+
+if (Đã sẵn sàng?) then (Có)
+  :Click "Bắt đầu làm bài";
+  
+  |Hệ thống|
+  :Tạo ExamAttempt;
+  :Khởi tạo câu trả lời;
+  :Bắt đầu đếm ngược;
+  
+  |Học viên|
+  repeat
+    :Đọc câu hỏi;
+    :Chọn/Nhập câu trả lời;
+    :Click "Next" hoặc "Previous";
+    
+    |Hệ thống|
+    :Auto-save mỗi 30s;
+    
+  repeat while (Còn câu hỏi chưa làm?) is (Có)
+  
+  |Học viên|
+  :Review các câu đã làm;
+  
+  if (Muốn sửa câu trả lời?) then (Có)
+    :Quay lại câu hỏi;
+    :Sửa câu trả lời;
+  else (Không)
+  endif
+  
+  :Click "Nộp bài";
+  
+  |Hệ thống|
+  :Lưu tất cả câu trả lời;
+  :Chấm điểm tự động
+  (Listening/Reading);
+  :Tính Band Score;
+  
+  |Học viên|
+  :Xem kết quả;
+  :Xem giải thích đáp án;
+  
+  if (Muốn xem chi tiết?) then (Có)
+    :Xem từng câu đúng/sai;
+    :Xem giải thích chi tiết;
+  else (Không)
+  endif
+  
+  :Lưu kết quả vào lịch sử;
+  
+else (Chưa)
+  :Quay lại danh sách;
+endif
+
+stop
+
+@enduml
+
+@startuml User Flow - Giáo viên tạo đề thi
+title User Flow - Giáo viên tạo đề thi
+
+|Giáo viên|
+start
+:Đăng nhập hệ thống;
+
+:Truy cập Test Builder;
+
+:Click "Tạo đề thi mới";
+
+:Nhập thông tin cơ bản
+- Tiêu đề
+- Mô tả
+- Loại bài thi (Academic/General);
+
+partition "Thêm Session" {
+  :Chọn Session
+  (Listening/Reading/Writing/Speaking);
+  
+  partition "Thêm Part" {
+    :Thêm Part 1, 2, 3...;
+    
+    partition "Thêm Question Group" {
+      :Nhập instructions;
+      
+      if (Session = Listening?) then (Có)
+        :Upload file audio;
+        |Hệ thống|
+        :Upload lên Google Drive;
+        :Lưu URL;
+      elseif (Session = Reading?) then (Có)
+        :Nhập Reading Passage;
+      elseif (Session = Writing?) then (Có)
+        :Nhập Writing Prompt;
+      else (Speaking)
+        :Nhập Speaking Topic;
+      endif
+      
+      |Giáo viên|
+      partition "Thêm Question" {
+        repeat
+          :Chọn loại câu hỏi
+          - Multiple Choice
+          - True/False/Not Given
+          - Matching
+          - Fill in the Blanks
+          - Short Answer
+          - Essay;
+          
+          :Nhập nội dung câu hỏi;
+          
+          if (Có hình ảnh?) then (Có)
+            :Upload hình ảnh;
+          else (Không)
+          endif
+          
+          switch (Loại câu hỏi?)
+          case (Multiple Choice)
+            :Nhập các lựa chọn A, B, C, D;
+            :Đánh dấu đáp án đúng;
+          case (Fill in the Blanks)
+            :Nhập đáp án cho mỗi chỗ trống;
+          case (Short Answer)
+            :Nhập đáp án chấp nhận được;
+          case (Matching)
+            :Nhập các cặp ghép;
+          case (Essay)
+            :Nhập tiêu chí chấm điểm;
+          endswitch
+          
+          :Nhập điểm số cho câu hỏi;
+          
+        repeat while (Còn câu hỏi?) is (Có)
+      }
+    }
+  }
+}
+
+:Preview đề thi;
+
+if (Đề thi OK?) then (Có)
+  :Click "Lưu đề thi";
+  
+  |Hệ thống|
+  :Validate dữ liệu;
+  :Lưu vào database;
+  :Tạo Test ID;
+  
+  |Giáo viên|
+  if (Xuất bản ngay?) then (Có)
+    :Click "Xuất bản";
+    |Hệ thống|
+    :Chuyển status = PUBLISHED;
+    |Giáo viên|
+    :Đề thi có thể sử dụng;
+  else (Không)
+    :Lưu dạng Draft;
+    :Có thể chỉnh sửa sau;
+  endif
+  
+else (Chưa OK)
+  :Quay lại chỉnh sửa;
+endif
+
+stop
+
+@enduml
+
+@startuml User Flow - Giáo viên chấm bài Writing
+title User Flow - Giáo viên chấm bài Writing
+
+|Giáo viên|
+start
+:Đăng nhập hệ thống;
+
+:Truy cập trang chấm bài;
+
+:Xem danh sách bài Writing
+chờ chấm;
+
+if (Có bài chờ chấm?) then (Có)
+  :Chọn một bài Writing;
+  
+  :Xem đề bài (Prompt);
+  
+  :Đọc bài viết của học viên;
+  
+  :Kiểm tra số từ;
+  
+  note right
+    Task 1: Tối thiểu 150 từ
+    Task 2: Tối thiểu 250 từ
+  end note
+  
+  partition "Chấm điểm theo 4 tiêu chí" {
+    :Chấm Task Achievement (0-9)
+    - Trả lời đầy đủ câu hỏi
+    - Ý tưởng rõ ràng;
+    
+    :Chấm Coherence & Cohesion (0-9)
+    - Bố cục logic
+    - Liên kết câu, đoạn;
+    
+    :Chấm Lexical Resource (0-9)
+    - Vốn từ vựng
+    - Sử dụng từ chính xác;
+    
+    :Chấm Grammatical Range & Accuracy (0-9)
+    - Đa dạng cấu trúc ngữ pháp
+    - Độ chính xác;
+  }
+  
+  |Hệ thống|
+  :Tính Band Score trung bình
+  = (TA + CC + LR + GRA) / 4;
+  
+  |Giáo viên|
+  :Nhập feedback chi tiết
+  - Điểm mạnh
+  - Điểm cần cải thiện
+  - Gợi ý;
+  
+  :Click "Lưu điểm";
+  
+  |Hệ thống|
+  :Lưu điểm vào database;
+  :Gửi thông báo cho học viên;
+  :Cập nhật trạng thái = GRADED;
+  
+  |Giáo viên|
+  if (Còn bài chờ chấm?) then (Có)
+    :Chuyển sang bài tiếp theo;
+  else (Không)
+    :Hoàn thành;
+  endif
+  
+else (Không)
+  :Không có bài chờ chấm;
+endif
+
+stop
+
+@enduml
+
+@startuml User Flow - Giáo viên quản lý lớp học
+title User Flow - Giáo viên quản lý lớp học và giao bài tập
+
+|Giáo viên|
+start
+:Đăng nhập hệ thống;
+
+:Truy cập Class Management;
+
+if (Đã có lớp học?) then (Có)
+  :Xem danh sách lớp học;
+  :Chọn một lớp;
+else (Chưa)
+  :Click "Tạo lớp học mới";
+  :Nhập thông tin lớp
+  - Tên lớp
+  - Mô tả
+  - Ngày bắt đầu/kết thúc;
+  
+  |Hệ thống|
+  :Tạo lớp học;
+  :Generate mã lớp duy nhất;
+  
+  |Giáo viên|
+  :Nhận mã lớp;
+endif
+
+:Xem chi tiết lớp học;
+
+partition "Quản lý học viên" {
+  if (Muốn thêm học viên?) then (Có)
+    switch (Phương thức thêm?)
+    case (Nhập thủ công)
+      :Nhập danh sách Student ID;
+    case (Import CSV)
+      :Upload file CSV;
+      |Hệ thống|
+      :Parse CSV;
+      :Validate dữ liệu;
+    case (Mã lớp)
+      :Chia sẻ mã lớp;
+      note right
+        Học viên tự đăng ký
+        bằng mã lớp
+      end note
+    endswitch
+    
+    |Hệ thống|
+    :Thêm học viên vào lớp;
+    :Gửi thông báo;
+  else (Không)
+  endif
+  
+  |Giáo viên|
+  :Xem danh sách học viên;
+  :Xem điểm trung bình từng học viên;
+  
+  if (Muốn xóa học viên?) then (Có)
+    :Chọn học viên;
+    :Click "Xóa khỏi lớp";
+    |Hệ thống|
+    :Xóa khỏi class_student;
+  else (Không)
+  endif
+}
+
+|Giáo viên|
+partition "Giao bài tập (Assignment)" {
+  :Click "Tạo Assignment";
+  
+  :Nhập thông tin Assignment
+  - Tiêu đề
+  - Mô tả
+  - Hạn nộp;
+  
+  :Chọn đề thi từ danh sách;
+  
+  :Click "Giao bài";
+  
+  |Hệ thống|
+  :Tạo Assignment;
+  :Gửi thông báo cho học viên trong lớp;
+  
+  |Giáo viên|
+  :Theo dõi tiến độ làm bài;
+  
+  repeat
+    :Xem danh sách bài nộp;
+    
+    if (Có bài mới nộp?) then (Có)
+      :Xem bài làm của học viên;
+      
+      if (Cần chấm thủ công?) then (Có)
+        :Chấm điểm Writing/Speaking;
+        :Nhập feedback;
+      else (Không)
+        note right
+          Listening/Reading
+          đã tự động chấm
+        end note
+      endif
+      
+      :Lưu điểm;
+    else (Không)
+    endif
+    
+  repeat while (Chưa hết hạn nộp?) is (Có)
+  
+  :Xem thống kê Assignment
+  - Số bài đã nộp
+  - Điểm trung bình
+  - Tỷ lệ hoàn thành;
+}
+
+|Giáo viên|
+partition "Xem thống kê lớp học" {
+  :Click "Thống kê";
+  
+  :Xem tổng quan
+  - Tổng số học viên
+  - Điểm trung bình lớp
+  - Số Assignment đã giao;
+  
+  :Xem biểu đồ phân bố điểm;
+  
+  :Xem bảng xếp hạng học viên;
+  
+  :Xem tiến độ từng học viên;
+  
+  if (Muốn export báo cáo?) then (Có)
+    :Click "Export Excel";
+    |Hệ thống|
+    :Generate file Excel;
+    :Download file;
+  else (Không)
+  endif
+}
+
+stop
+
+@enduml
+
+@startuml User Flow - Học viên xem kết quả và tiến độ
+title User Flow - Học viên xem kết quả và theo dõi tiến độ
+
+|Học viên|
+start
+:Đăng nhập hệ thống;
+
+:Truy cập Dashboard;
+
+:Xem tổng quan
+- Số bài đã làm
+- Điểm trung bình
+- Xu hướng điểm số;
+
+partition "Xem lịch sử thi" {
+  :Click "Lịch sử thi";
+  
+  :Xem danh sách các lần thi
+  - Tên đề thi
+  - Ngày thi
+  - Band Score
+  - Trạng thái;
+  
+  :Chọn một lần thi;
+  
+  :Xem kết quả chi tiết
+  - Band Score tổng
+  - Điểm từng kỹ năng
+  - Số câu đúng/sai
+  - Thời gian làm bài;
+  
+  if (Muốn xem giải thích?) then (Có)
+    :Click "Xem giải thích";
+    
+    repeat
+      :Xem câu hỏi;
+      :Xem câu trả lời của mình;
+      :Xem đáp án đúng;
+      :Đọc giải thích chi tiết;
+      
+      if (Câu trả lời sai?) then (Có)
+        :Highlight lỗi sai;
+        :Xem gợi ý cải thiện;
+      else (Đúng)
+      endif
+      
+    repeat while (Còn câu hỏi?) is (Có)
+    
+  else (Không)
+  endif
+}
+
+partition "Xem Assignment" {
+  :Click "Assignment";
+  
+  :Xem danh sách Assignment
+  - Chưa làm
+  - Đã nộp
+  - Đã chấm điểm;
+  
+  if (Có Assignment chưa làm?) then (Có)
+    :Chọn Assignment;
+    :Xem thông tin
+    - Đề bài
+    - Hạn nộp
+    - Điểm tối đa;
+    
+    if (Muốn làm ngay?) then (Có)
+      :Click "Bắt đầu làm bài";
+      note right
+        Chuyển sang flow
+        "Làm bài thi"
+      end note
+    else (Không)
+      :Đánh dấu để làm sau;
+    endif
+    
+  else (Không)
+  endif
+  
+  if (Có Assignment đã chấm?) then (Có)
+    :Chọn Assignment;
+    :Xem điểm số;
+    :Đọc feedback từ giáo viên;
+    
+    if (Muốn xem lại bài làm?) then (Có)
+      :Xem chi tiết bài làm;
+      :So sánh với đáp án;
+    else (Không)
+    endif
+    
+  else (Không)
+  endif
+}
+
+partition "Theo dõi tiến độ" {
+  :Click "Tiến độ học tập";
+  
+  :Xem biểu đồ điểm số theo thời gian
+  - Listening
+  - Reading
+  - Writing
+  - Speaking;
+  
+  :Xem phân tích điểm mạnh/yếu
+  - Loại câu hỏi nào hay sai
+  - Kỹ năng nào cần cải thiện;
+  
+  :Xem gợi ý lộ trình học tập;
+  
+  if (Muốn đặt mục tiêu?) then (Có)
+    :Nhập mục tiêu Band Score;
+    :Nhập thời gian dự kiến đạt;
+    |Hệ thống|
+    :Tính số bài cần làm mỗi tuần;
+    :Đề xuất lộ trình;
+  else (Không)
+  endif
+}
+
+partition "So sánh với bạn bè" {
+  if (Lớp học có bảng xếp hạng?) then (Có)
+    :Xem bảng xếp hạng lớp;
+    :Xem vị trí của mình;
+    :Xem điểm trung bình lớp;
+    
+    if (Muốn cải thiện?) then (Có)
+      :Xem học viên top đầu;
+      :Xem số bài họ đã làm;
+      :Học hỏi kinh nghiệm;
+    else (Không)
+    endif
+    
+  else (Không)
+  endif
+}
+
+stop
+
+@enduml
+
+@startuml User Flow - Admin quản trị hệ thống
+title User Flow - Admin quản trị hệ thống
+
+|Admin|
+start
+:Đăng nhập với quyền Admin;
+
+:Truy cập Admin Dashboard;
+
+:Xem tổng quan hệ thống
+- Tổng số người dùng
+- Tổng số đề thi
+- Tổng số lượt thi
+- Số lượt thi hôm nay;
+
+partition "Quản lý người dùng" {
+  :Click "Quản lý người dùng";
+  
+  :Xem danh sách người dùng
+  - Học viên
+  - Giáo viên
+  - Admin;
+  
+  :Tìm kiếm/Lọc người dùng;
+  
+  switch (Thao tác?)
+  case (Thêm người dùng)
+    :Click "Thêm mới";
+    :Nhập thông tin
+    - Username
+    - Email
+    - Password
+    - Full name
+    - Role;
+    |Hệ thống|
+    :Tạo tài khoản;
+    :Gửi email thông báo;
+    
+  case (Import hàng loạt)
+    :Upload file CSV;
+    |Hệ thống|
+    :Parse CSV;
+    :Validate dữ liệu;
+    :Tạo tài khoản hàng loạt;
+    :Gửi email cho từng user;
+    
+  case (Chỉnh sửa)
+    :Chọn người dùng;
+    :Sửa thông tin;
+    :Lưu thay đổi;
+    
+  case (Phân quyền)
+    :Chọn người dùng;
+    :Thay đổi Role
+    (STUDENT → TEACHER → ADMIN);
+    |Hệ thống|
+    :Cập nhật quyền;
+    
+  case (Khóa tài khoản)
+    :Chọn người dùng;
+    :Click "Khóa tài khoản";
+    |Hệ thống|
+    :Set is_active = false;
+    :User không thể đăng nhập;
+    
+  case (Xóa)
+    :Chọn người dùng;
+    :Xác nhận xóa;
+    |Hệ thống|
+    :Soft delete (set deleted_at);
+    note right
+      Không xóa vĩnh viễn
+      để giữ lịch sử
+    end note
+  endswitch
+}
+
+|Admin|
+partition "Quản lý đề thi" {
+  :Click "Quản lý đề thi";
+  
+  :Xem danh sách tất cả đề thi
+  - Draft
+  - Published
+  - Archived;
+  
+  :Lọc theo
+  - Giáo viên tạo
+  - Loại bài thi
+  - Trạng thái;
+  
+  switch (Thao tác?)
+  case (Duyệt đề thi)
+    :Xem chi tiết đề thi;
+    :Kiểm tra chất lượng
+    - Câu hỏi rõ ràng
+    - Đáp án chính xác
+    - Media files OK;
+    
+    if (Đề thi đạt chuẩn?) then (Có)
+      :Approve và Publish;
+    else (Không)
+      :Reject và gửi feedback;
+      |Hệ thống|
+      :Gửi thông báo cho giáo viên;
+    endif
+    
+  case (Xóa đề thi)
+    :Chọn đề thi;
+    :Xác nhận xóa;
+    |Hệ thống|
+    :Kiểm tra đã có lượt thi chưa;
+    
+    if (Đã có lượt thi?) then (Có)
+      :Chỉ Archive, không xóa;
+    else (Chưa)
+      :Có thể xóa vĩnh viễn;
+    endif
+    
+  case (Khôi phục)
+    :Chọn đề thi đã xóa;
+    :Click "Khôi phục";
+    |Hệ thống|
+    :Set deleted_at = null;
+  endswitch
+}
+
+|Admin|
+partition "Xem báo cáo và thống kê" {
+  :Click "Báo cáo";
+  
+  :Chọn loại báo cáo
+  - Báo cáo người dùng
+  - Báo cáo đề thi
+  - Báo cáo lượt thi
+  - Báo cáo doanh thu;
+  
+  :Chọn khoảng thời gian
+  - Hôm nay
+  - 7 ngày qua
+  - 30 ngày qua
+  - Tùy chỉnh;
+  
+  |Hệ thống|
+  :Truy vấn database;
+  :Tính toán thống kê;
+  :Generate biểu đồ;
+  
+  |Admin|
+  :Xem báo cáo
+  - Biểu đồ cột
+  - Biểu đồ tròn
+  - Biểu đồ đường
+  - Bảng dữ liệu;
+  
+  if (Muốn export?) then (Có)
+    :Chọn định dạng
+    - Excel
+    - PDF
+    - CSV;
+    |Hệ thống|
+    :Generate file;
+    :Download;
+  else (Không)
+  endif
+}
+
+|Admin|
+partition "Cấu hình hệ thống" {
+  :Click "Cấu hình";
+  
+  switch (Loại cấu hình?)
+  case (Google Drive)
+    :Cấu hình OAuth2
+    - Client ID
+    - Client Secret
+    - Redirect URI;
+    :Test connection;
+    
+  case (Email)
+    :Cấu hình SMTP
+    - Host
+    - Port
+    - Username
+    - Password;
+    :Gửi email test;
+    
+  case (Hệ thống)
+    :Cấu hình
+    - Thời gian làm bài mặc định
+    - Số lần thi thử cho khách
+    - Kích thước file upload tối đa
+    - Số câu hỏi tối đa mỗi đề;
+    
+  case (Bảo mật)
+    :Cấu hình
+    - JWT expiration time
+    - Password policy
+    - Session timeout
+    - Max login attempts;
+  endswitch
+  
+  :Lưu cấu hình;
+  |Hệ thống|
+  :Apply cấu hình mới;
+}
+
+|Admin|
+partition "Xem logs và monitoring" {
+  :Click "System Logs";
+  
+  :Xem logs
+  - Error logs
+  - Access logs
+  - Activity logs;
+  
+  :Lọc theo
+  - Level (ERROR, WARN, INFO)
+  - Thời gian
+  - User
+  - Action;
+  
+  if (Có lỗi nghiêm trọng?) then (Có)
+    :Xem chi tiết lỗi;
+    :Xem stack trace;
+    :Ghi chú để fix;
+  else (Không)
+  endif
+  
+  :Xem system health
+  - CPU usage
+  - Memory usage
+  - Database connections
+  - Response time;
+  
+  if (Có vấn đề hiệu năng?) then (Có)
+    :Alert team;
+    :Khởi động lại service nếu cần;
+  else (Không)
+  endif
+}
+
+stop
+
+@enduml
+
+@startuml User Flow - Khách làm bài thi thử
+title User Flow - Khách làm bài thi thử (Guest Exam)
+
+|Khách|
+start
+:Truy cập website;
+
+:Click "Thi thử miễn phí";
+
+:Xem danh sách đề thi thử;
+
+:Chọn đề thi;
+
+:Xem thông tin đề thi
+- Số câu hỏi
+- Thời gian
+- Kỹ năng;
+
+:Nhập email để nhận kết quả;
+
+|Hệ thống|
+:Kiểm tra số lần thi của email;
+
+if (Đã thi < 3 lần hôm nay?) then (Có)
+  :Cho phép thi;
+  
+  |Khách|
+  :Click "Bắt đầu làm bài";
+  
+  |Hệ thống|
+  :Tạo GuestExamAttempt;
+  :Load câu hỏi;
+  :Bắt đầu timer;
+  
+  |Khách|
+  repeat
+    :Đọc câu hỏi;
+    :Chọn/Nhập câu trả lời;
+    :Click "Next";
+  repeat while (Còn câu hỏi?) is (Có)
+  
+  :Click "Nộp bài";
+  
+  |Hệ thống|
+  :Chấm điểm tự động;
+  :Tính Band Score;
+  :Gửi kết quả qua email;
+  
+  |Khách|
+  :Xem kết quả
+  - Band Score
+  - Số câu đúng/sai;
+  
+  :Xem giải thích đáp án
+  (giới hạn);
+  
+  if (Muốn xem đầy đủ?) then (Có)
+    :Hiển thị form đăng ký;
+    :Khuyến khích đăng ký tài khoản;
+    
+    if (Đăng ký?) then (Có)
+      :Điền form đăng ký;
+      |Hệ thống|
+      :Tạo tài khoản;
+      :Chuyển kết quả thi thử
+      vào tài khoản mới;
+      |Khách|
+      :Trở thành học viên;
+    else (Không)
+      :Kết thúc;
+    endif
+    
+  else (Không)
+    :Kết thúc;
+  endif
+  
+else (Đã hết lượt)
+  :Hiển thị thông báo
+  "Bạn đã hết lượt thi thử hôm nay";
+  
+  :Gợi ý đăng ký tài khoản
+  để thi không giới hạn;
+  
+  if (Muốn đăng ký?) then (Có)
+    :Chuyển đến trang đăng ký;
+  else (Không)
+    :Quay lại trang chủ;
+  endif
+endif
+
+stop
+
+@enduml

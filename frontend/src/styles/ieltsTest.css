@@ -1485,7 +1485,7 @@
     border: 1px solid #333;
     border-radius: 4px;
     padding: 0 10px;
-    height: 16px;
+    height: 20px;
     font-size: var(--answer-input-font-size);
     font-weight: 400;
     outline: none;
@@ -1509,40 +1509,57 @@
     right: 40px;
     display: flex;
     justify-content: flex-end;
-    gap: 2px;
+    gap: 8px;
     pointer-events: none;
     z-index: 100;
 }
 
 .pane-nav-buttons button {
     pointer-events: auto;
-    /* Enable clicks on buttons */
 }
 
 .black-nav-btn {
-    background: #000;
-    color: white;
     border: none;
-    width: 50px;
-    height: 50px;
+    width: 48px;
+    height: 48px;
     display: flex;
     justify-content: center;
     align-items: center;
     cursor: pointer;
-    border-radius: 8px;
-    transition: background-color 0.15s ease;
+    border-radius: var(--spk-radius-sm);
+    color: #fff;
+    background: #c0001c;
+    box-shadow: 0 4px 12px rgba(192, 0, 28, 0.2);
+    transition: all 0.2s ease;
 }
 
-.black-nav-btn:hover {
-    background: #1a1a1a;
+.black-nav-btn:hover:not(:disabled) {
+    background: #a50017;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(192, 0, 28, 0.28);
 }
 
 .black-nav-btn:first-child {
-    background: #54565a;
+    background: #5f6a75;
+    box-shadow: 0 4px 12px rgba(95, 106, 117, 0.18);
 }
 
-.black-nav-btn:first-child:hover {
-    background: #61646a;
+.black-nav-btn:first-child:hover:not(:disabled) {
+    background: #4f5962;
+    box-shadow: 0 6px 16px rgba(95, 106, 117, 0.24);
+}
+
+.black-nav-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.black-nav-btn svg {
+    display: block;
+    width: 20px;
+    height: 20px;
 }
 
 .nav-arrow-fallback {
@@ -1557,12 +1574,13 @@
 
 @media (max-width: 900px) {
     .black-nav-btn {
-        width: 42px;
-        height: 42px;
+        width: 44px;
+        height: 44px;
     }
 
-    .nav-arrow-fallback {
-        font-size: 24px;
+    .black-nav-btn svg {
+        width: 18px;
+        height: 18px;
     }
 }
 
@@ -2039,6 +2057,7 @@
     gap: 7px;
     padding-top: 2px;
     min-height: 40px;
+    background: #eeeeee;
 }
 
 .fc-bank-title {
@@ -2113,23 +2132,33 @@
 }
 
 .passage-section::-webkit-scrollbar,
-.questions-section::-webkit-scrollbar {
+.questions-section::-webkit-scrollbar,
+.writing-task-pane::-webkit-scrollbar {
     width: 16px;
 }
 
 .passage-section::-webkit-scrollbar-track,
-.questions-section::-webkit-scrollbar-track {
+.questions-section::-webkit-scrollbar-track,
+.writing-task-pane::-webkit-scrollbar-track {
     background: transparent;
     border-left: none;
 }
 
-/* User wants perfect block scrollbar like the image */
 .passage-section::-webkit-scrollbar-thumb,
-.questions-section::-webkit-scrollbar-thumb {
-    background-color: #a0a0a0;
-    border: 2px solid white;
-    /* creates the gap effect around thumb */
+.questions-section::-webkit-scrollbar-thumb,
+.writing-task-pane::-webkit-scrollbar-thumb {
+    background-color: rgba(160, 160, 160, 0.35);
     border-radius: 0;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.passage-section.is-scrolling::-webkit-scrollbar-thumb,
+.questions-section.is-scrolling::-webkit-scrollbar-thumb,
+.writing-task-pane.is-scrolling::-webkit-scrollbar-thumb,
+.passage-section::-webkit-scrollbar-thumb:active,
+.questions-section::-webkit-scrollbar-thumb:active,
+.writing-task-pane::-webkit-scrollbar-thumb:active {
+    background-color: #a0a0a0;
 }
 
 /* DRAG DROP BANK OPTIONS */
@@ -2249,10 +2278,9 @@
     min-width: var(--dd-bank-fixed-width, 320px);
     max-width: 100%;
     min-height: var(--dd-bank-fixed-height, 180px);
-    border: none;
-    border-radius: 8px;
-    padding: 0 12px 10px;
-    background: #fff;
+    border-radius: 10px;
+    padding: 10px 14px;
+    background: #eeeeee;
     display: flex;
     flex-direction: column;
     flex-wrap: nowrap;
@@ -2277,28 +2305,30 @@
     align-items: flex-start;
 }
 
-.bank-section.bank-drop-target.bank-heading {
-    background: transparent;
-    padding: 0;
-    min-height: 0;
-    width: fit-content;
-    min-width: 0;
-}
-
-.bank-section.bank-drop-target.bank-heading .options-bank {
-    width: fit-content;
-}
-
+.bank-section.bank-drop-target.bank-heading,
 .drag-drop-group.matching-info .bank-section.bank-drop-target {
     background: transparent;
     padding: 0;
+    border-radius: 0;
     min-height: 0;
+}
+
+.drag-drop-group.matching-info .bank-section.bank-drop-target {
     width: 100%;
     min-width: 0;
 }
 
+.bank-section.bank-drop-target.bank-heading .options-bank,
 .drag-drop-group.matching-info .bank-section.bank-drop-target .options-bank {
-    width: 100%;
+    border-radius: 10px;
+    background: #eeeeee;
+    padding: 10px 12px;
+    box-sizing: border-box;
+    margin-bottom: 0;
+}
+
+.drag-drop-group.matching-info .bank-section.bank-drop-target .options-bank {
+    border: 1px solid #dddddd;
 }
 
 .drag-drop-group.matching-info .bank-option {
@@ -2491,7 +2521,7 @@
     min-height: 0;
     height: auto;
     margin-bottom: 0;
-    background: #fff;
+    background: #eeeeee;
     padding: 10px 12px;
     box-sizing: border-box;
 }
@@ -2843,7 +2873,7 @@
     border: 1px solid #3b82f6;
     background-color: #fff;
     justify-content: flex-start;
-    padding: 6px 14px;
+    padding: 6px 10px;
     font-weight: var(--ielts-inline-emphasis-font-weight);
     color: #111827;
     cursor: grab;
@@ -2874,6 +2904,9 @@
     align-items: center;
     justify-content: flex-start;
     width: 100%;
+    max-width: 100%;
+    padding: 0;
+    box-sizing: border-box;
     white-space: nowrap;
 }
 
@@ -3010,20 +3043,7 @@
     color: #000;
 }
 
-/* Scrollbar for writing panes — synced with passage/questions */
-.writing-task-pane::-webkit-scrollbar {
-    width: 16px;
-}
-
-.writing-task-pane::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.writing-task-pane::-webkit-scrollbar-thumb {
-    background-color: #a0a0a0;
-    border: 2px solid white;
-    border-radius: 0;
-}
+/* Scrollbar for writing pane uses shared styles with passage/questions above */
 
 /* ── Speaking Test ─────────────────────────────────────────────────────────── */
 
@@ -5137,7 +5157,7 @@
 }
 
 .drag-drop-blank {
-    border: 2px dashed #000;
+    border: 1px dashed #bbb;
     border-radius: 4px;
     padding: 0 10px;
     min-height: 25px;
@@ -5188,6 +5208,7 @@
     margin-top: var(--ielts-question-header-gap);
     min-height: 48px;
     padding: 8px;
+    background: #eeeeee;
     display: inline-block;
     width: fit-content;
     max-width: 100%;
@@ -5473,6 +5494,7 @@
     flex: 0 0 230px;
     max-width: 230px;
     padding: 2px 0 0 2px;
+    background: #eeeeee;
 }
 
 .bank-options-list {
@@ -5950,12 +5972,15 @@ body.theme-white-black .bank-section.bank-drop-target {
     border-color: #555;
 }
 
-body.theme-white-black .bank-section.bank-drop-target.bank-heading {
+body.theme-white-black .bank-section.bank-drop-target.bank-heading,
+body.theme-white-black .drag-drop-group.matching-info .bank-section.bank-drop-target {
     background-color: transparent;
 }
 
-body.theme-white-black .drag-drop-group.matching-info .bank-section.bank-drop-target {
-    background-color: transparent;
+body.theme-white-black .bank-section.bank-drop-target.bank-heading .options-bank,
+body.theme-white-black .drag-drop-group.matching-info .bank-section.bank-drop-target .options-bank {
+    background-color: #000;
+    border-color: #555;
 }
 
 body.theme-white-black .dd-drop-zone {
@@ -6089,12 +6114,15 @@ body.theme-yellow-black .bank-section.bank-drop-target {
     border-color: #666;
 }
 
-body.theme-yellow-black .bank-section.bank-drop-target.bank-heading {
+body.theme-yellow-black .bank-section.bank-drop-target.bank-heading,
+body.theme-yellow-black .drag-drop-group.matching-info .bank-section.bank-drop-target {
     background-color: transparent;
 }
 
-body.theme-yellow-black .drag-drop-group.matching-info .bank-section.bank-drop-target {
-    background-color: transparent;
+body.theme-yellow-black .bank-section.bank-drop-target.bank-heading .options-bank,
+body.theme-yellow-black .drag-drop-group.matching-info .bank-section.bank-drop-target .options-bank {
+    background-color: #000;
+    border-color: #666;
 }
 
 body.theme-yellow-black .dd-drop-zone {
@@ -7038,8 +7066,8 @@ body.text-size-xlarge .options-fs-overlay {
     min-width: 1.1em;
 }
 
-.short-answer-question-list,
-.short-answer-row-list {
+.questions-content .short-answer-question-list,
+.questions-content .short-answer-row-list {
     margin: 0;
     padding: 0;
     list-style: none;
@@ -7056,6 +7084,7 @@ body.text-size-xlarge .options-fs-overlay {
     padding-left: 0;
     padding-bottom: 0;
     margin-bottom: 0;
+    line-height: 1.55;
 }
 
 .short-answer-question-block {
@@ -7068,6 +7097,17 @@ body.text-size-xlarge .options-fs-overlay {
     font-size: var(--ielts-question-content-font-size);
     line-height: 1.55;
     color: #0f172a;
+    margin: 0;
+}
+
+.questions-content .short-answer-question-prompt :is(p, div, ul, ol, li) {
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: inherit !important;
+}
+
+.questions-content .short-answer-question-prompt :is(ul, ol) {
+    list-style: none !important;
 }
 
 .short-answer-row-list {
@@ -7083,6 +7123,10 @@ body.text-size-xlarge .options-fs-overlay {
     line-height: 1.55;
     position: relative;
     padding-right: var(--ielts-bookmark-gutter);
+}
+
+.short-answer-row .inline-question {
+    margin: 0 5px;
 }
 
 .short-answer-row+.short-answer-row {
@@ -7166,16 +7210,47 @@ body.text-size-xlarge .options-fs-overlay {
 }
 
 .mcq-dropdown-layout.has-legend {
-    grid-template-columns: minmax(0, 1fr) minmax(220px, 360px);
+    grid-template-columns: fit-content(100%) fit-content(360px);
+    column-gap: 300px;
     width: 100%;
     max-width: 100%;
-    justify-content: stretch;
+    justify-content: start;
+}
+
+.mcq-dropdown-layout.has-legend.legend-below {
+    grid-template-columns: minmax(0, 1fr);
+    column-gap: 0;
+    row-gap: 12px;
+    width: 100%;
+    max-width: 100%;
 }
 
 .mcq-dropdown-layout.has-legend .mcq-dropdown-questions-col {
     justify-self: start;
+    width: fit-content;
+    max-width: 100%;
+}
+
+.mcq-dropdown-layout.has-legend.legend-below .mcq-dropdown-questions-col {
     width: 100%;
     max-width: 100%;
+}
+
+.mcq-dropdown-layout.has-legend.legend-below .mcq-dropdown-list {
+    width: 100%;
+    max-width: 100%;
+    gap: 10px;
+}
+
+.mcq-dropdown-layout.has-legend.legend-below .mcq-dropdown-row {
+    width: 100%;
+    grid-template-columns: auto minmax(0, 1fr) calc(var(--ielts-dropdown-select-width) + 10px);
+}
+
+.mcq-dropdown-layout.has-legend.legend-below .mcq-dropdown-select {
+    align-self: center;
+    margin-top: -5px;
+    transform: translateX(-20px);
 }
 
 .mcq-dropdown-layout.no-legend {
@@ -7206,9 +7281,15 @@ body.text-size-xlarge .options-fs-overlay {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    justify-self: end;
+    justify-self: start;
     width: fit-content;
     max-width: min(100%, 920px);
+}
+
+.mcq-dropdown-layout.has-legend.legend-below .mcq-dropdown-legend-wrap {
+    width: fit-content;
+    max-width: 100%;
+    margin-top: 2px;
 }
 
 .mcq-dropdown-legend {
@@ -7373,9 +7454,9 @@ body.text-size-xlarge .options-fs-overlay {
     display: flex;
     flex-direction: column;
     --ielts-dropdown-select-width: 56px;
-    --ielts-dropdown-question-column-width: clamp(170px, 48vw, 420px);
+    --ielts-dropdown-question-column-width: clamp(120px, 28vw, 280px);
     gap: var(--ielts-question-item-gap);
-    width: 100%;
+    width: fit-content;
     max-width: 100%;
 }
 
@@ -7386,8 +7467,9 @@ body.text-size-xlarge .options-fs-overlay {
     align-items: start;
     justify-content: start;
     position: relative;
-    width: 100%;
+    width: fit-content;
     max-width: 100%;
+    min-height: var(--mcq-dropdown-row-height, auto);
     padding: 2px 0;
 }
 
@@ -7482,11 +7564,13 @@ body.text-size-xlarge .options-fs-overlay {
     border: 1px solid #888;
     border-radius: 4px;
     font-weight: 700;
-    padding: 0 8px;
+    padding: 0 6px;
     background: #fff;
     justify-self: end;
     align-self: center;
     min-width: 0;
+    text-align: center;
+    text-align-last: center;
 }
 
 .mcq-dropdown-select.review-correct {

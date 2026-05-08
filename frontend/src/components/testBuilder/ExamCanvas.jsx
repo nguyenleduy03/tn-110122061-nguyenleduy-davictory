@@ -591,7 +591,14 @@ const PreviewContent = ({ test, sessions, sessionDurations, activeSkill, onSetAc
         {ct === 'SHORT_ANSWER_GROUP' && (
           <div className="pv-mc-instructions">Answer the questions. Write <strong>NO MORE THAN THREE WORDS</strong> for each answer.</div>
         )}
-        {(group.questions ?? []).length === 0
+        {ct === 'SHORT_ANSWER_GROUP'
+          ? ((group.questions ?? []).length === 0
+            ? <em className="pv-empty">Chưa có câu hỏi.</em>
+            : (group.questions ?? []).map((q, idx) => renderQuestion({
+              ...q,
+              questionNumber: Number.isFinite(Number(q.questionNumber)) ? Number(q.questionNumber) : ((Number(group.fromQuestion) || 1) + idx),
+            })))
+          : (group.questions ?? []).length === 0
           ? <em className="pv-empty">Chưa có câu hỏi.</em>
           : (group.questions ?? []).map((q) => renderQuestion(q))
         }
@@ -1042,7 +1049,7 @@ const QuestionList = ({ group, onUpdateGroup, onUpdateQuestion, onDeleteQuestion
   </>
 );
 
-const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUpdateGroup, onUpdateQuestion, onDeleteGroup, onDeleteQuestion, onAddQuestion, onMoveGroupUp, onMoveGroupDown, dragHandleProps, allGroups, testTitle, testId, skill }) => {
+const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUpdateGroup, onUpdateQuestion, onDeleteGroup, onDeleteQuestion, onAddQuestion, onMoveGroupUp, onMoveGroupDown, dragHandleProps, allGroups, partQuestionStartNumber, testTitle, testId, skill }) => {
   const selectedGroupId = selection?.type === 'group' ? selection.data.id : null;
   const selectedQuestionId = selection?.type === 'question' ? selection.data.id : null;
   const isSelected = selectedGroupId === group.id;
@@ -1115,7 +1122,7 @@ const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUp
     );
   }
   if (ct === 'TRUE_FALSE_NG') {
-    return <TFNGBlock group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
+    return <TFNGBlock group={group} allGroups={allGroups} partQuestionStartNumber={partQuestionStartNumber} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
       onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps}
       onSelectQuestion={(q) => onSelectQuestion(q, group.id)}
       onUpdateQuestion={onUpdateQuestion} onDeleteQuestion={onDeleteQuestion} onAddQuestion={onAddQuestion}
@@ -1129,14 +1136,14 @@ const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUp
       selectedQuestionId={selectedQuestionId} />;
   }
   if (ct === 'SHORT_ANSWER_GROUP') {
-    return <ShortAnswerBlock group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
+    return <ShortAnswerBlock group={group} allGroups={allGroups} partQuestionStartNumber={partQuestionStartNumber} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
       onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps}
       onSelectQuestion={(q) => onSelectQuestion(q, group.id)}
       onUpdateQuestion={onUpdateQuestion} onDeleteQuestion={onDeleteQuestion} onAddQuestion={onAddQuestion}
       selectedQuestionId={selectedQuestionId} />;
   }
   if (['DRAG_MATCHING', 'FILL_BLANK_DRAG', 'SENTENCE_COMPLETION_DRAG', 'SUMMARY_COMPLETION_DRAG', 'NOTE_COMPLETION_DRAG'].includes(ct)) {
-    return <DragMatchingBlock group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
+    return <DragMatchingBlock group={group} allGroups={allGroups} partQuestionStartNumber={partQuestionStartNumber} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
       onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps}
       onSelectQuestion={(q) => onSelectQuestion(q, group.id)}
       onUpdateQuestion={onUpdateQuestion} onDeleteQuestion={onDeleteQuestion} onAddQuestion={onAddQuestion}
@@ -1157,7 +1164,7 @@ const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUp
       selectedQuestionId={selectedQuestionId} />;
   }
   if (ct === 'TABLE_COMPLETION') {
-    return <TableCompletionBlock group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
+    return <TableCompletionBlock group={group} partQuestionStartNumber={partQuestionStartNumber} allGroups={allGroups} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
       onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps}
       onUpdateQuestion={onUpdateQuestion}
       selectedQuestionId={selectedQuestionId} />;
@@ -1273,8 +1280,18 @@ const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUp
   );
 };
 
-const PartView = ({ skill, part, selection, onSelectGroup, onSelectQuestion, onUpdateGroup, onUpdateQuestion, onDeleteGroup, onDeleteQuestion, onAddQuestion, onAddGroup, onMoveGroupUp, onMoveGroupDown, isDropOver, isPassagePaneOver, isPassagePaneLocked, isMHLocked, test, testId, leftWidth, containerRef, handleDragStart }) => {
+const PartView = ({ skill, part, allParts = [], selection, onSelectGroup, onSelectQuestion, onUpdateGroup, onUpdateQuestion, onDeleteGroup, onDeleteQuestion, onAddQuestion, onAddGroup, onMoveGroupUp, onMoveGroupDown, isDropOver, isPassagePaneOver, isPassagePaneLocked, isMHLocked, test, testId, leftWidth, containerRef, handleDragStart }) => {
   const groups = part.questionGroups ?? [];
+  const partQuestionStartNumber = useMemo(() => {
+    const partIndex = allParts.findIndex((p) => p.id === part.id);
+    if (partIndex <= 0) return 1;
+    return allParts.slice(0, partIndex).reduce((sum, previousPart) => {
+      return sum + (previousPart.questionGroups ?? []).reduce((qSum, g) => {
+        if (g.contentType === 'AUDIO_TRANSCRIPT') return qSum;
+        return qSum + (g.questions ?? []).reduce((blankSum, q) => blankSum + (q.questionCount || 1), 0);
+      }, 0);
+    }, 0) + 1;
+  }, [allParts, part.id]);
 
   const renderGroup = (group) => (
     <SortableGroupWrapper key={group.id} group={{ ...group, partId: part.id }}>
@@ -1282,6 +1299,7 @@ const PartView = ({ skill, part, selection, onSelectGroup, onSelectQuestion, onU
         <GroupRenderer
           group={{ ...group, partId: part.id }}
           allGroups={groups}
+          partQuestionStartNumber={partQuestionStartNumber}
           selection={selection}
           onSelectGroup={onSelectGroup}
           onSelectQuestion={onSelectQuestion}
@@ -1713,6 +1731,7 @@ const ExamCanvas = ({
               <PartView
                 skill={skill}
                 part={activePart}
+                allParts={parts}
                 selection={selection}
                 onSelectGroup={onSelectGroup}
                 onSelectQuestion={onSelectQuestion}

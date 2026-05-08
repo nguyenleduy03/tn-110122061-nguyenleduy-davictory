@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { resolveDrivePreviewUrl } from "../utils/mediaUrl";
-import { ArrowLeftRight, ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeftRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { useSearchParams, useNavigate, useParams } from "react-router-dom";
 import "../styles/ieltsTest.css";
 import TestHeader from "../components/common/TestHeader";
 import GuestInfoForm from "../components/common/GuestInfoForm";
 import { useDividerResize } from "../hooks/useDividerResize";
+import { useScrollbarActivity } from "../hooks/useScrollbarActivity";
 import TextHighlighter from "../components/common/TextHighlighter";
 import NotesPanel from "../components/common/NotesPanel";
 import { ieltsApi } from "../services/ieltsApi";
@@ -136,6 +137,8 @@ const WritingAnswerPane = ({ partId, minWords, value, onChange, style }) => {
 };
 
 const IeltsWritingTest = () => {
+    useScrollbarActivity();
+
     const [testData, setTestData] = useState(null);
     const [previewRefreshTick, setPreviewRefreshTick] = useState(0);
     const [showGuestForm, setShowGuestForm] = useState(false);
@@ -842,11 +845,11 @@ const IeltsWritingTest = () => {
                 />
 
                 <div className="pane-nav-buttons">
-                    <button className="black-nav-btn" onClick={() => setCurrentPartIndex((i) => Math.max(0, i - 1))} disabled={isFirstPart} style={{ opacity: isFirstPart ? 0.5 : 1 }}>
-                        <span className="nav-arrow-fallback" aria-hidden="true">&#8592;</span>
+                    <button className="black-nav-btn" onClick={() => setCurrentPartIndex((i) => Math.max(0, i - 1))} disabled={isFirstPart} style={{ opacity: isFirstPart ? 0.5 : 1 }} title="Previous part" aria-label="Previous part">
+                        <ChevronLeft size={20} strokeWidth={2.5} />
                     </button>
-                    <button className="black-nav-btn" onClick={() => setCurrentPartIndex((i) => Math.min(parts.length - 1, i + 1))} disabled={isLastPart} style={{ opacity: isLastPart ? 0.5 : 1 }}>
-                        <span className="nav-arrow-fallback" aria-hidden="true">&#8594;</span>
+                    <button className="black-nav-btn" onClick={() => setCurrentPartIndex((i) => Math.min(parts.length - 1, i + 1))} disabled={isLastPart} style={{ opacity: isLastPart ? 0.5 : 1 }} title="Next part" aria-label="Next part">
+                        <ChevronRight size={20} strokeWidth={2.5} />
                     </button>
                 </div>
                 <TextHighlighter

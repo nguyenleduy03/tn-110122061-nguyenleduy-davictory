@@ -9,6 +9,17 @@ const TFNGQuestion = ({ q, activeQuestion, setActiveQuestion, answer, handleAnsw
     const selectedAnswer = answer;
     const displayNumber = nums.length > 1 ? `${nums[0]}–${nums[nums.length - 1]}` : q.number;
 
+    const hasTextSelection = () => {
+        if (typeof window === 'undefined') return false;
+        const selection = window.getSelection?.();
+        return Boolean(selection && !selection.isCollapsed && String(selection.toString() || '').trim());
+    };
+
+    const handleActivate = () => {
+        if (hasTextSelection()) return;
+        setActiveQuestion?.(q.number);
+    };
+
     const handleChange = (opt) => {
         if (!handleAnswerChange || isReview) return;
         handleAnswerChange(q.id, opt);
@@ -18,8 +29,8 @@ const TFNGQuestion = ({ q, activeQuestion, setActiveQuestion, answer, handleAnsw
         <div
             className="tfng-question relative-pos"
             id={`question-${q.number}`}
-            onFocus={() => setActiveQuestion?.(q.number)}
-            onClick={() => setActiveQuestion?.(q.number)}
+            onFocus={handleActivate}
+            onClick={handleActivate}
         >
 
             <div className="tfng-text">

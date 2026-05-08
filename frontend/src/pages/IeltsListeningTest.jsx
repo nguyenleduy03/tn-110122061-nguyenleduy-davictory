@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { Volume2, ArrowLeftRight, Headphones, Play, ArrowLeft, ArrowRight } from "lucide-react";
+import { Volume2, ArrowLeftRight, Headphones, Play, ChevronLeft, ChevronRight } from "lucide-react";
 import { useSearchParams, useNavigate, useParams } from "react-router-dom";
 import "../styles/ieltsTest.css";
 import TestHeader from "../components/common/TestHeader";
 import QuestionRenderer from "../components/question/QuestionRenderer";
 import { useTestNavigation } from "../hooks/useTestNavigation";
+import { useScrollbarActivity } from "../hooks/useScrollbarActivity";
 import { ieltsApi } from "../services/ieltsApi";
 import TextHighlighter from "../components/common/TextHighlighter";
 import NotesPanel from "../components/common/NotesPanel";
@@ -108,6 +109,8 @@ const resolvePlayableMediaUrl = (url) => {
 };
 
 const IeltsListeningTest = () => {
+    useScrollbarActivity();
+
     const [testData, setTestData] = useState(null);
     const [previewRefreshTick, setPreviewRefreshTick] = useState(0);
     const [answers, setAnswers] = useState({});
@@ -1179,6 +1182,18 @@ const IeltsListeningTest = () => {
                             }
                             currentGroup.questions.push(q);
                         }
+                        let displayQuestionCursor = 1;
+
+                        const getDisplayedBlockCount = (question) => {
+                            if (Array.isArray(question?.subQuestions) && question.subQuestions.length > 0) {
+                                return question.subQuestions.length;
+                            }
+                            if (Array.isArray(question?.numberRange) && question.numberRange.length > 0) {
+                                return question.numberRange.length;
+                            }
+                            return 1;
+                        };
+
                         return questionGroups.map((group, gi) => {
                             const shouldSuppressGroupInstruction = isComponentManagedDropdownGroup(group.type);
                             const groupInstructionSource = shouldSuppressGroupInstruction
@@ -1216,11 +1231,20 @@ const IeltsListeningTest = () => {
                                     )}
 
                                     {group.questions.map(q => {
-                                        const questionNumbers = q?.numberRange?.length
-                                            ? q.numberRange
-                                            : q?.subQuestions?.length
-                                                ? q.subQuestions.map((sq) => sq.number).filter((n) => n != null)
-                                                : (q?.number != null ? [q.number] : []);
+                                        const questionCount = getDisplayedBlockCount(q);
+                                        const questionNumbers = Array.from({ length: questionCount }, (_, idx) => displayQuestionCursor + idx);
+                                        const displayQuestion = q?.type === 'shared_options_dropdown'
+                                            ? {
+                                                ...q,
+                                                fromQuestion: questionNumbers[0],
+                                                subQuestions: (q.subQuestions || []).map((sq, idx) => ({
+                                                    ...sq,
+                                                    number: questionNumbers[idx] ?? (questionNumbers[0] + idx),
+                                                })),
+                                            }
+                                            : q;
+
+                                        displayQuestionCursor += questionCount;
 
                                         const hasBookmarkedInBlock = !isReview && questionNumbers.some((n) => Boolean(bookmarks?.[n]));
                                         const isActiveBlock = questionNumbers.includes(activeQuestion);
@@ -1238,7 +1262,7 @@ const IeltsListeningTest = () => {
                                                 data-question-numbers={questionNumbers.length ? questionNumbers.join(' ') : undefined}
                                             >
                                                 <QuestionRenderer
-                                                    q={q}
+                                                    q={displayQuestion}
                                                     activeQuestion={activeQuestion}
                                                     setActiveQuestion={setActiveQuestion}
                                                     answers={answers}
@@ -1257,11 +1281,11 @@ const IeltsListeningTest = () => {
                     })()}
 
                     {audioStarted && <div className="pane-nav-buttons">
-                        <button className="black-nav-btn" onClick={goPrev} disabled={isFirstQuestion} style={{ opacity: isFirstQuestion ? 0.5 : 1 }}>
-                            <span className="nav-arrow-fallback" aria-hidden="true">&#8592;</span>
+                        <button className="black-nav-btn" onClick={goPrev} disabled={isFirstQuestion} style={{ opacity: isFirstQuestion ? 0.5 : 1 }} title="Previous question" aria-label="Previous question">
+                            <ChevronLeft size={20} strokeWidth={2.5} />
                         </button>
-                        <button className="black-nav-btn" onClick={goNext} disabled={isLastQuestion} style={{ opacity: isLastQuestion ? 0.5 : 1 }}>
-                            <span className="nav-arrow-fallback" aria-hidden="true">&#8594;</span>
+                        <button className="black-nav-btn" onClick={goNext} disabled={isLastQuestion} style={{ opacity: isLastQuestion ? 0.5 : 1 }} title="Next question" aria-label="Next question">
+                            <ChevronRight size={20} strokeWidth={2.5} />
                         </button>
                     </div>}
                 </div>

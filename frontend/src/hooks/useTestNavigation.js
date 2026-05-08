@@ -21,6 +21,7 @@ export function useTestNavigation(testData) {
     }, []);
 
     const part = testData?.parts[currentPartIndex];
+    const partId = part?.id ?? null;
 
     const getQuestionNumbers = () => {
         const nums = [];
@@ -37,14 +38,18 @@ export function useTestNavigation(testData) {
         return nums;
     };
 
-    // Auto-focus first question and scroll to top when part changes
+    // Auto-focus first question and scroll to top only when switching to another part.
+    // Do not depend on full `part` object reference, because passage highlight updates
+    // replace part content and would otherwise force an unwanted scroll-to-top.
     useEffect(() => {
         const nums = getQuestionNumbers();
-        if (nums.length > 0) setActiveQuestion(nums[0]);
+        if (nums.length > 0) {
+            setActiveQuestion((prev) => (nums.includes(prev) ? prev : nums[0]));
+        }
         document.querySelector('.passage-section')?.scrollTo(0, 0);
         document.querySelector('.questions-section')?.scrollTo(0, 0);
         document.querySelector('.ielts-main')?.scrollTo(0, 0);
-    }, [currentPartIndex, part]);
+    }, [currentPartIndex, partId]);
 
     const findActiveQuestionElement = (questionNumber) => {
         const byId = document.getElementById(`question-${questionNumber}`);

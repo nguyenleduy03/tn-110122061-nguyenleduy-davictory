@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useMemo } from "react";
-import { Check, ArrowLeft, ArrowRight, ArrowLeftRight } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, ArrowLeftRight } from "lucide-react";
 import { useSearchParams, useNavigate, useParams } from "react-router-dom";
 import "../styles/ieltsTest.css";
 import TestHeader from "../components/common/TestHeader";
@@ -7,6 +7,7 @@ import QuestionRenderer from "../components/question/QuestionRenderer";
 import GuestInfoForm from "../components/common/GuestInfoForm";
 import { useDividerResize } from "../hooks/useDividerResize";
 import { useTestNavigation } from "../hooks/useTestNavigation";
+import { useScrollbarActivity } from "../hooks/useScrollbarActivity";
 import { ieltsApi } from "../services/ieltsApi";
 import TextHighlighter from "../components/common/TextHighlighter";
 import NotesPanel from "../components/common/NotesPanel";
@@ -97,6 +98,71 @@ const isComponentManagedDropdownGroup = (groupType) => {
         || normalized === 'summary_completion_select';
 };
 
+const getPartHighlightCacheKeys = (part, partIndex) => {
+    const keys = [];
+
+    const rawId = String(part?.id ?? '').trim();
+    if (rawId) {
+        // Keep legacy key for backward compatibility with existing saved highlights.
+        keys.push(rawId);
+        keys.push(`id:${rawId}`);
+    }
+
+    const partNo = Number.parseInt(String(part?.partNumber ?? ''), 10);
+    if (Number.isFinite(partNo) && partNo > 0) {
+        keys.push(`part:${partNo}`);
+    }
+
+    keys.push(`idx:${partIndex}`);
+
+    return Array.from(new Set(keys));
+};
+
+const getSavedHighlightHtmlForPart = (savedMap, part, partIndex) => {
+    const keys = getPartHighlightCacheKeys(part, partIndex);
+    for (const key of keys) {
+        const candidate = savedMap?.[key];
+        if (typeof candidate === 'string' && candidate.trim() !== '') {
+            return candidate;
+        }
+    }
+    return null;
+};
+
+const measureHeadingGapTextWidth = (text) => {
+    const content = String(text || '').trim();
+    if (!content) return 0;
+
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+        return content.length * 9;
+    }
+
+    const canvas = measureHeadingGapTextWidth._canvas || (measureHeadingGapTextWidth._canvas = document.createElement('canvas'));
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return content.length * 9;
+
+    const rootStyle = window.getComputedStyle(document.documentElement);
+    const bodyStyle = window.getComputedStyle(document.body || document.documentElement);
+    const fontSize = rootStyle.getPropertyValue('--answer-input-font-size').trim() || bodyStyle.fontSize || '15px';
+    const fontStyle = bodyStyle.fontStyle || 'normal';
+    const fontFamily = bodyStyle.fontFamily || 'sans-serif';
+
+    ctx.font = `${fontStyle} 700 ${fontSize} ${fontFamily}`;
+    return ctx.measureText(content).width;
+};
+
+const resolveHeadingGapWidth = (text, maxWidth = 900) => {
+    const content = String(text || '').trim();
+    if (!content) return 220;
+
+    const measuredTextWidth = measureHeadingGapTextWidth(content);
+    const zoneHorizontalChrome = 30; // 14px left + 14px right + borders.
+    const safetyBuffer = 14; // Keep right inner gap equal to left padding.
+    const desiredWidth = Math.ceil(measuredTextWidth + zoneHorizontalChrome + safetyBuffer);
+
+    return Math.max(220, Math.min(maxWidth, desiredWidth));
+};
+
 const HeadingGap = ({ qId, number, answer, correctAnswer, handleAnswerChange, isActive, setActiveQuestion, bookmarks, toggleBookmark, isReview }) => {
     const handleDragOver = (e) => { if (isReview) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
     const handleDrop = (e) => {
@@ -168,7 +234,7 @@ const PassageContentStatic = React.memo(({ content }) => {
     );
 });
 
-const PassageRenderer = ({ part, answers, handleAnswerChange, activeQuestion, setActiveQuestion, bookmarks, toggleBookmark, isReview, testData }) => {
+const PassageRenderer = ({ part, answers, handleAnswerChange, activeQuestion, setActiveQuestion, bookmarks, toggleBookmark, isReview, testData, matchingHeadingZoneWidth }) => {
     const [gaps, setGaps] = React.useState([]);
     const containerRef = React.useRef(null);
     const questionNumberById = React.useMemo(() => {
@@ -224,6 +290,39 @@ const PassageRenderer = ({ part, answers, handleAnswerChange, activeQuestion, se
         };
     }, [part?.id, part?.passageTitle, part?.passageContent, isReview]);
 
+    useLayoutEffect(() => {
+        if (!gaps.length) return;
+
+        gaps.forEach((node) => {
+            const qId = node.getAttribute('data-id');
+            const currentAnswer = qId ? answers?.[qId] : '';
+
+            let currentCorrectAnswer = '';
+            if (isReview && qId && testData?.parts) {
+                testData.parts.forEach((p) => {
+                    p.questions?.forEach((q) => {
+                        if (q.subQuestions) {
+                            const subQ = q.subQuestions.find((sq) => String(sq.id) === String(qId));
+                            if (subQ?.correctAnswer) currentCorrectAnswer = String(subQ.correctAnswer || '');
+                        } else if (String(q.id) === String(qId) && q.correctAnswer) {
+                            currentCorrectAnswer = String(q.correctAnswer || '');
+                        }
+                    });
+                });
+            }
+
+            const normalizedAnswer = String(currentAnswer || '').trim().toLowerCase();
+            const normalizedCorrect = String(currentCorrectAnswer || '').trim().toLowerCase();
+            const displayAnswer = (isReview && currentCorrectAnswer && normalizedAnswer !== normalizedCorrect)
+                ? currentCorrectAnswer
+                : String(currentAnswer || '');
+
+            const nextWidth = resolveHeadingGapWidth(displayAnswer, matchingHeadingZoneWidth);
+            node.style.width = `${nextWidth}px`;
+            node.style.maxWidth = '100%';
+        });
+    }, [gaps, answers, isReview, testData, matchingHeadingZoneWidth]);
+
     return (
         <div className="passage-renderer-wrapper" ref={containerRef}>
             <PassageContentStatic content={part.passageContent} />
@@ -271,6 +370,8 @@ const PassageRenderer = ({ part, answers, handleAnswerChange, activeQuestion, se
 };
 
 const IeltsReadingTest = () => {
+    useScrollbarActivity();
+
     const [testData, setTestData] = useState(null);
     const [previewRefreshTick, setPreviewRefreshTick] = useState(0);
     const [answers, setAnswers] = useState({});
@@ -437,8 +538,8 @@ const IeltsReadingTest = () => {
                     const savedMap = JSON.parse(sessionStorage.getItem(highlightStorageKey) || '{}');
                     configuredData = {
                         ...configuredData,
-                        parts: configuredData.parts.map((p) => {
-                            const savedHtml = savedMap?.[String(p?.id)];
+                        parts: configuredData.parts.map((p, idx) => {
+                            const savedHtml = getSavedHighlightHtmlForPart(savedMap, p, idx);
                             if (!savedHtml || typeof savedHtml !== 'string') return p;
                             return { ...p, passageContent: savedHtml };
                         }),
@@ -643,6 +744,7 @@ const IeltsReadingTest = () => {
 
             setTestData((prev) => {
                 if (!prev?.parts?.length) return prev;
+                if (prev.parts[currentPartIndex]?.passageContent === nextHtml) return prev;
 
                 const nextParts = prev.parts.map((p, idx) => {
                     if (idx !== currentPartIndex) return p;
@@ -655,11 +757,11 @@ const IeltsReadingTest = () => {
                 if (highlightStorageKey) {
                     try {
                         const currentMap = JSON.parse(sessionStorage.getItem(highlightStorageKey) || '{}');
-                        const partId = nextParts[currentPartIndex]?.id;
-                        if (partId !== undefined && partId !== null) {
-                            currentMap[String(partId)] = nextHtml;
-                            sessionStorage.setItem(highlightStorageKey, JSON.stringify(currentMap));
-                        }
+                        const partKeys = getPartHighlightCacheKeys(nextParts[currentPartIndex], currentPartIndex);
+                        partKeys.forEach((key) => {
+                            currentMap[key] = nextHtml;
+                        });
+                        sessionStorage.setItem(highlightStorageKey, JSON.stringify(currentMap));
                     } catch {
                         // Ignore storage errors and keep in-memory update.
                     }
@@ -853,33 +955,9 @@ const IeltsReadingTest = () => {
 
     const matchingHeadingZoneWidth = (() => {
         if (matchingHeadingOptions.length === 0) return 220;
-        let longestWidth = 0;
-
-        if (typeof document !== 'undefined') {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            if (ctx) {
-                const rootStyle = window.getComputedStyle(document.documentElement);
-                const bodyStyle = window.getComputedStyle(document.body || document.documentElement);
-                const fontSize = rootStyle.getPropertyValue('--answer-input-font-size').trim() || bodyStyle.fontSize || '15px';
-                const fontStyle = bodyStyle.fontStyle || 'normal';
-                const fontFamily = bodyStyle.fontFamily || 'sans-serif';
-                ctx.font = `${fontStyle} 700 ${fontSize} ${fontFamily}`;
-                longestWidth = matchingHeadingOptions.reduce(
-                    (max, option) => Math.max(max, ctx.measureText(option).width),
-                    0
-                );
-            }
-        }
-
-        if (longestWidth === 0) {
-            longestWidth = matchingHeadingOptions.reduce((max, option) => Math.max(max, option.length * 9), 0);
-        }
-
-        const zoneHorizontalChrome = 30; // 14px left + 14px right padding + borders.
-        const safetyBuffer = 10;
-        const paddedWidth = Math.ceil(longestWidth + zoneHorizontalChrome + safetyBuffer);
-        return Math.max(220, Math.min(900, paddedWidth));
+        return matchingHeadingOptions.reduce((max, option) => (
+            Math.max(max, resolveHeadingGapWidth(option, 900))
+        ), 220);
     })();
 
     // Group consecutive questions by type, allowMultipleAnswers AND groupInstruction
@@ -903,6 +981,122 @@ const IeltsReadingTest = () => {
         }
         currentGroup.questions.push(q);
     }
+
+    let displayQuestionCursor = 1;
+    const getDisplayedBlockCount = (question) => {
+        if (Array.isArray(question?.subQuestions) && question.subQuestions.length > 0) {
+            return question.subQuestions.length;
+        }
+        if (Array.isArray(question?.numberRange) && question.numberRange.length > 0) {
+            return question.numberRange.length;
+        }
+        return 1;
+    };
+
+    const renderedQuestionGroups = questionGroups.map((group, gi) => {
+        const shouldSuppressGroupInstruction = isComponentManagedDropdownGroup(group.type);
+        const groupInstructionSource = shouldSuppressGroupInstruction
+            ? ''
+            : (group.instructions || group.instruction || '');
+        const groupInstructionRaw = normalizeGroupInstructionText(groupInstructionSource);
+        const groupInstruction = isQuestionMetaLabel(groupInstructionRaw) ? '' : groupInstructionRaw;
+        const groupInstructionHtml = renderInstructionHtml(groupInstructionSource);
+
+        return (
+            <div key={gi} className="question-group-block">
+                {/* Questions range header */}
+                {(() => {
+                    const allNums = group.questions.flatMap(q => {
+                        // For drag-drop groups, get numbers from subQuestions
+                        if (q?.subQuestions?.length) {
+                            return q.subQuestions.map(sq => sq.number).filter(n => n != null);
+                        }
+                        return q?.numberRange || (q?.number ? [q.number] : []);
+                    }).filter(n => n != null);
+                    if (allNums.length > 0) {
+                        const first = Math.min(...allNums);
+                        const last = Math.max(...allNums);
+                        return (
+                            <div className="question-range-header">
+                                Questions {first}{last !== first ? `–${last}` : ''}
+                            </div>
+                        );
+                    }
+                    return null;
+                })()}
+
+                {/* Group instruction - show once at top */}
+                {groupInstruction && (
+                    <div className="mcq-group-instruction" dangerouslySetInnerHTML={{ __html: groupInstructionHtml }} />
+                )}
+
+                {group.questions.map(q => {
+                    const questionCount = getDisplayedBlockCount(q);
+                    const questionNumbers = Array.from({ length: questionCount }, (_, idx) => displayQuestionCursor + idx);
+                    const displayQuestion = q?.type === 'shared_options_dropdown'
+                        ? {
+                            ...q,
+                            fromQuestion: questionNumbers[0],
+                            subQuestions: (q.subQuestions || []).map((sq, idx) => ({
+                                ...sq,
+                                number: questionNumbers[idx] ?? (questionNumbers[0] + idx),
+                            })),
+                        }
+                        : q;
+
+                    displayQuestionCursor += questionCount;
+
+                    const hasBookmarkedInBlock = !isReview && questionNumbers.some((n) => Boolean(bookmarks?.[n]));
+                    const isActiveBlock = questionNumbers.includes(activeQuestion);
+                    const questionBlockClassName = [
+                        'question-focus-frame',
+                        hasBookmarkedInBlock
+                            ? 'question-focus-bookmarked'
+                            : (isActiveBlock ? 'question-focus-active' : '')
+                    ].filter(Boolean).join(' ');
+
+                    return (
+                        <div
+                            key={q.id}
+                            className={questionBlockClassName}
+                            data-question-numbers={questionNumbers.length ? questionNumbers.join(' ') : undefined}
+                        >
+                            <QuestionRenderer
+                                q={displayQuestion}
+                                activeQuestion={activeQuestion}
+                                setActiveQuestion={setActiveQuestion}
+                                answers={answers}
+                                handleAnswerChange={isReview ? () => { } : handleAnswerChange}
+                                bookmarks={bookmarks}
+                                toggleBookmark={toggleBookmark}
+                                inputRefs={inputRefs}
+                                isReview={isReview}
+                                dropdownLegendPlacement="below"
+                            />
+                        </div>
+                    );
+                })}
+
+                {/* Chú thích cho Fill Blank questions */}
+                {group.type === 'fill-in-the-blank' && group.questions.length > 0 && (
+                    <div style={{
+                        marginTop: '10px',
+                        fontSize: '12px',
+                        color: '#666',
+                        fontStyle: 'italic',
+                        borderTop: '1px solid #eee',
+                        paddingTop: '8px'
+                    }}>
+                        <strong>Chú thích vị trí trong đoạn văn:</strong> {
+                            group.questions.map((q, idx) =>
+                                `Câu ${q.number}(${idx + 1})`
+                            ).join(', ')
+                        }
+                    </div>
+                )}
+            </div>
+        );
+    });
 
     return (
         <div className="ielts-container reading-page">
@@ -960,7 +1154,7 @@ const IeltsReadingTest = () => {
                     )}
                     <PassageRenderer part={part} answers={answers} handleAnswerChange={handleAnswerChange}
                         bookmarks={bookmarks}
-                        toggleBookmark={toggleBookmark} activeQuestion={activeQuestion} setActiveQuestion={setActiveQuestion} isReview={isReview} testData={testData} />
+                        toggleBookmark={toggleBookmark} activeQuestion={activeQuestion} setActiveQuestion={setActiveQuestion} isReview={isReview} testData={testData} matchingHeadingZoneWidth={matchingHeadingZoneWidth} />
                 </div>
 
                 <div className="divider" onMouseDown={handleDragStart}>
@@ -971,113 +1165,26 @@ const IeltsReadingTest = () => {
 
                 <div className="questions-section" id="questions-area" style={{ minWidth: 0, width: '100%' }}>
                     <div className="questions-content" style={{ paddingBottom: '80px' }}>
-                        {questionGroups.map((group, gi) => {
-                            // Get instruction from group
-                            const shouldSuppressGroupInstruction = isComponentManagedDropdownGroup(group.type);
-                            const groupInstructionSource = shouldSuppressGroupInstruction
-                                ? ''
-                                : (group.instructions || group.instruction || '');
-                            const groupInstructionRaw = normalizeGroupInstructionText(groupInstructionSource);
-                            const groupInstruction = isQuestionMetaLabel(groupInstructionRaw) ? '' : groupInstructionRaw;
-                            const groupInstructionHtml = renderInstructionHtml(groupInstructionSource);
-
-                            return (
-                                <div key={gi} className="question-group-block">
-                                    {/* Questions range header */}
-                                    {(() => {
-                                        const allNums = group.questions.flatMap(q => {
-                                            // For drag-drop groups, get numbers from subQuestions
-                                            if (q?.subQuestions?.length) {
-                                                return q.subQuestions.map(sq => sq.number).filter(n => n != null);
-                                            }
-                                            return q?.numberRange || (q?.number ? [q.number] : []);
-                                        }).filter(n => n != null);
-                                        if (allNums.length > 0) {
-                                            const first = Math.min(...allNums);
-                                            const last = Math.max(...allNums);
-                                            return (
-                                                <div className="question-range-header">
-                                                    Questions {first}{last !== first ? `–${last}` : ''}
-                                                </div>
-                                            );
-                                        }
-                                        return null;
-                                    })()}
-
-                                    {/* Group instruction - show once at top */}
-                                    {groupInstruction && (
-                                        <div className="mcq-group-instruction" dangerouslySetInnerHTML={{ __html: groupInstructionHtml }} />
-                                    )}
-
-                                    {group.questions.map(q => {
-                                        const questionNumbers = q?.numberRange?.length
-                                            ? q.numberRange
-                                            : q?.subQuestions?.length
-                                                ? q.subQuestions.map((sq) => sq.number).filter((n) => n != null)
-                                                : (q?.number != null ? [q.number] : []);
-
-                                        const hasBookmarkedInBlock = !isReview && questionNumbers.some((n) => Boolean(bookmarks?.[n]));
-                                        const isActiveBlock = questionNumbers.includes(activeQuestion);
-                                        const questionBlockClassName = [
-                                            'question-focus-frame',
-                                            hasBookmarkedInBlock
-                                                ? 'question-focus-bookmarked'
-                                                : (isActiveBlock ? 'question-focus-active' : '')
-                                        ].filter(Boolean).join(' ');
-
-                                        return (
-                                            <div
-                                                key={q.id}
-                                                className={questionBlockClassName}
-                                                data-question-numbers={questionNumbers.length ? questionNumbers.join(' ') : undefined}
-                                            >
-                                                <QuestionRenderer
-                                                    q={q}
-                                                    activeQuestion={activeQuestion}
-                                                    setActiveQuestion={setActiveQuestion}
-                                                    answers={answers}
-                                                    handleAnswerChange={isReview ? () => { } : handleAnswerChange}
-                                                    bookmarks={bookmarks}
-                                                    toggleBookmark={toggleBookmark}
-                                                    inputRefs={inputRefs}
-                                                    isReview={isReview}
-                                                />
-                                            </div>
-                                        );
-                                    })}
-
-                                    {/* Chú thích cho Fill Blank questions */}
-                                    {group.type === 'fill-in-the-blank' && group.questions.length > 0 && (
-                                        <div style={{
-                                            marginTop: '10px',
-                                            fontSize: '12px',
-                                            color: '#666',
-                                            fontStyle: 'italic',
-                                            borderTop: '1px solid #eee',
-                                            paddingTop: '8px'
-                                        }}>
-                                            <strong>Chú thích vị trí trong đoạn văn:</strong> {
-                                                group.questions.map((q, idx) =>
-                                                    `Câu ${q.number}(${idx + 1})`
-                                                ).join(', ')
-                                            }
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })}
+                        {renderedQuestionGroups}
                     </div>
 
                     <div className="pane-nav-buttons">
-                        <button className="black-nav-btn" onClick={goPrev} disabled={isFirstQuestion} style={{ opacity: isFirstQuestion ? 0.5 : 1 }}>
-                            <span className="nav-arrow-fallback" aria-hidden="true">&#8592;</span>
+                        <button className="black-nav-btn" onClick={goPrev} disabled={isFirstQuestion} style={{ opacity: isFirstQuestion ? 0.5 : 1 }} title="Previous question" aria-label="Previous question">
+                            <ChevronLeft size={20} strokeWidth={2.5} />
                         </button>
-                        <button className="black-nav-btn" onClick={goNext} disabled={isLastQuestion} style={{ opacity: isLastQuestion ? 0.5 : 1 }}>
-                            <span className="nav-arrow-fallback" aria-hidden="true">&#8594;</span>
+                        <button className="black-nav-btn" onClick={goNext} disabled={isLastQuestion} style={{ opacity: isLastQuestion ? 0.5 : 1 }} title="Next question" aria-label="Next question">
+                            <ChevronRight size={20} strokeWidth={2.5} />
                         </button>
                     </div>
                 </div>
-                <TextHighlighter containerRef={containerRef} onHighlightChange={handleHighlightChange} onAddNote={addNote} currentPartIndex={currentPartIndex} />
+                <TextHighlighter
+                    containerRef={containerRef}
+                    onHighlightChange={handleHighlightChange}
+                    onAddNote={addNote}
+                    currentPartIndex={currentPartIndex}
+                    persistenceKey={highlightStorageKey}
+                    currentPart={part}
+                />
             </main>
 
             <footer className="ielts-footer">

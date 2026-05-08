@@ -6,7 +6,7 @@ import RichBlankEditor from './shared/RichBlankEditor';
 import ImageUploadZone from './shared/ImageUploadZone';
 import { resolveDrivePreviewUrl } from '../../../utils/mediaUrl';
 import { sanitizeRichPasteHtml, serializeContentEditableHtml } from '../../../utils/textFormatters';
-import { toRoman, loadImageFile, toPlainText, countBlankTokens, getNextQuestionNumber, isImagePinQuestion, isNoteBlankQuestion, getQuestionWeight } from './shared/blockHelpers';
+import { toRoman, loadImageFile, toPlainText, countBlankTokens, getNextQuestionNumber, isImagePinQuestion, isNoteBlankQuestion, getQuestionWeight, calculateQuestionRange } from './shared/blockHelpers';
 import { getLockedImageQuestionLayout, getLockedImageFrameStyle, getLockedImageStyle, resolveImageWidthPercent, clampImagePinPercent } from '../../../utils/imageQuestionLayout';
 import { useTabIndent } from '../../../hooks/useTabIndent';
 import { normalizePinPosition } from '../../../utils/pinPositionHelper';
@@ -770,12 +770,14 @@ function TcCellEditor({ value, onChange, startQNum }) {
   );
 }
 
-function TableCompletionBlock({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps,
+function TableCompletionBlock({ group, partQuestionStartNumber = 1, allGroups = [], onUpdate, onDelete, onSelect, selected, dragHandleProps,
   onUpdateQuestion, selectedQuestionId }) {
   const columns = group.columns ?? [{ id: 'c0', header: '' }, { id: 'c1', header: 'Cột 1' }, { id: 'c2', header: 'Cột 2' }];
   const tableRows = group.tableRows ?? [];
   const questions = group.questions ?? [];
-  const fromQ = group.fromQuestion ?? 1;
+  const partRange = calculateQuestionRange(group, allGroups);
+  const fromQ = partQuestionStartNumber + Math.max(0, (partRange.fromQuestion ?? 1) - 1);
+  const toQ = questions.length > 0 ? (fromQ + questions.length - 1) : (group.toQuestion ?? fromQ);
   const [showPasteArea, setShowPasteArea] = React.useState(false);
   const pasteAreaRef = React.useRef(null);
   const [selectedCells, setSelectedCells] = React.useState(new Set());
@@ -784,8 +786,24 @@ function TableCompletionBlock({ group, onUpdate, onDelete, onSelect, selected, d
 
   const syncAndSave = (cols, rows, qOverride) => {
     const newQs = qOverride ?? syncTcQuestions(cols, rows, questions, fromQ);
-    onUpdate(group.id, { columns: cols, tableRows: rows, questions: newQs });
+    const nextToQuestion = newQs.length > 0 ? (fromQ + newQs.length - 1) : fromQ;
+    onUpdate(group.id, { columns: cols, tableRows: rows, questions: newQs, fromQuestion: fromQ, toQuestion: nextToQuestion });
   };
+
+  React.useEffect(() => {
+    const normalizedQuestions = syncTcQuestions(columns, tableRows, questions, fromQ);
+    const isRangeChanged = group.fromQuestion !== fromQ || group.toQuestion !== toQ;
+    const isQuestionsChanged = normalizedQuestions.length !== questions.length
+      || normalizedQuestions.some((q, idx) => q.questionNumber !== questions[idx]?.questionNumber);
+
+    if (isRangeChanged || isQuestionsChanged) {
+      onUpdate(group.id, {
+        fromQuestion: fromQ,
+        toQuestion: toQ,
+        questions: normalizedQuestions,
+      });
+    }
+  }, [columns, tableRows, questions, fromQ, toQ, group.id, group.fromQuestion, group.toQuestion, onUpdate]);
 
   const setCell = (rowId, colId, val) => {
     const newRows = tableRows.map((r) =>
@@ -1294,15 +1312,11 @@ function TableCompletionBlock({ group, onUpdate, onDelete, onSelect, selected, d
       {/* Question range */}
       <div className="exam-q-range-header" style={{ marginTop: 10 }} onClick={(e) => e.stopPropagation()}>
         Câu&nbsp;
-        <input className="exam-q-range-input" value={group.fromQuestion ?? ''} placeholder="33"
-          onChange={(e) => {
-            const fq = e.target.value ? Number(e.target.value) : null;
-            const newQs = syncTcQuestions(columns, tableRows, questions, fq);
-            onUpdate(group.id, { fromQuestion: fq, questions: newQs, toQuestion: newQs.length > 0 ? (fq ?? 1) + newQs.length - 1 : group.toQuestion });
-          }}
+        <input className="exam-q-range-input" value={fromQ} placeholder="33"
+          readOnly style={{ background: '#f9fafb', color: '#9ca3af' }}
           onClick={(e) => e.stopPropagation()} />
         &nbsp;–&nbsp;
-        <input className="exam-q-range-input" value={group.toQuestion ?? ''} placeholder="37"
+        <input className="exam-q-range-input" value={toQ} placeholder="37"
           readOnly style={{ background: '#f9fafb', color: '#9ca3af' }}
           onClick={(e) => e.stopPropagation()} />
         <span style={{ fontSize: 11, color: '#9ca3af', marginLeft: 6 }}>(tự động)</span>

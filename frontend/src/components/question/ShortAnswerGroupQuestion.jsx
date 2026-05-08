@@ -22,6 +22,21 @@ const isLikelyDuplicateText = (leftValue, rightValue) => {
         || rightValue.includes(leftValue);
 };
 
+const trimOuterBreaks = (htmlValue) => String(htmlValue || '')
+    // Remove leading/trailing <br> or whitespace created by imported rich text.
+    .replace(/^(?:\s|<br\s*\/?>)+/gi, '')
+    .replace(/(?:\s|<br\s*\/?>)+$/gi, '');
+
+const normalizePromptHtml = (rawText) => {
+    const formatted = trimOuterBreaks(formatTextWithWhitespace(rawText || ''));
+    return String(formatted || '')
+        // Remove empty wrapper blocks at boundaries that can create phantom spacing.
+        .replace(/^(?:<(?:p|div|li)\b[^>]*>\s*<\/(?:p|div|li)>\s*)+/gi, '')
+        .replace(/(?:<(?:p|div|li)\b[^>]*>\s*<\/(?:p|div|li)>\s*)+$/gi, '')
+        .replace(/^(?:\s|<br\s*\/?>)+/gi, '')
+        .replace(/(?:\s|<br\s*\/?>)+$/gi, '');
+};
+
 const ShortAnswerGroupQuestion = ({
     q,
     activeQuestion,
@@ -106,7 +121,7 @@ const ShortAnswerGroupQuestion = ({
     const groupedQuestions = [];
 
     subQuestions.forEach((row, index) => {
-        const promptHtml = formatTextWithWhitespace(row?.text || '');
+        const promptHtml = normalizePromptHtml(row?.text || '');
         const promptKey = normalizeComparableText(promptHtml);
 
         const lastGroup = groupedQuestions[groupedQuestions.length - 1];
@@ -154,9 +169,9 @@ const ShortAnswerGroupQuestion = ({
                 <div className="short-answer-instruction" dangerouslySetInnerHTML={{ __html: headerInstructionHtml }} />
             )}
 
-            <ul className="short-answer-question-list">
+            <div className="short-answer-question-list">
                 {groupedQuestions.map((group, groupIndex) => (
-                    <li key={group.groupKey} className="short-answer-question-block">
+                    <div key={group.groupKey} className="short-answer-question-block">
                         {(() => {
                             const promptNormalized = normalizeComparableText(group.promptHtml);
                             const isPromptDuplicateHeader = Boolean(promptNormalized)
@@ -174,7 +189,7 @@ const ShortAnswerGroupQuestion = ({
                             );
                         })()}
 
-                        <ul className="short-answer-row-list">
+                        <div className="short-answer-row-list">
                             {group.rows.map((row, rowIndex) => {
                                 const displayNumber = resolveDisplayNumber(row, rowIndex);
                                 const isSample = Boolean(row?.isSample);
@@ -192,7 +207,7 @@ const ShortAnswerGroupQuestion = ({
                                 const itemKey = row?.id || `short-answer-${groupIndex}-${rowIndex}`;
 
                                 return (
-                                    <li
+                                    <div
                                         key={itemKey}
                                         id={displayNumber != null ? `question-${displayNumber}` : itemKey}
                                         className={`fill-in-blank-item short-answer-row${isSample ? ' short-answer-row-sample' : ''}`}
@@ -253,13 +268,13 @@ const ShortAnswerGroupQuestion = ({
                                                 </span>
                                             )}
                                         </span>
-                                    </li>
+                                    </div>
                                 );
                             })}
-                        </ul>
-                    </li>
+                        </div>
+                    </div>
                 ))}
-            </ul>
+            </div>
         </div>
     );
 };

@@ -160,16 +160,29 @@ export const QuestionRange = ({ group }) => {
     return q?.numberRange || (q?.questionNumber ? [q.questionNumber] : []);
   }).filter(n => n != null);
 
-  if (allNums.length === 0) return null;
+  if (allNums.length > 0) {
+    const first = Math.min(...allNums);
+    const last = Math.max(...allNums);
 
-  const first = Math.min(...allNums);
-  const last = Math.max(...allNums);
+    return (
+      <div className="pv-questions-range">
+        Questions {first}{last !== first ? `–${last}` : ''}
+      </div>
+    );
+  }
 
-  return (
-    <div className="pv-questions-range">
-      Questions {first}{last !== first ? `–${last}` : ''}
-    </div>
-  );
+  const fromQuestion = Number.isFinite(Number(group.fromQuestion)) ? Number(group.fromQuestion) : null;
+  const toQuestion = Number.isFinite(Number(group.toQuestion)) ? Number(group.toQuestion) : null;
+
+  if (fromQuestion != null) {
+    return (
+      <div className="pv-questions-range">
+        Questions {fromQuestion}{toQuestion != null && toQuestion !== fromQuestion ? `–${toQuestion}` : ''}
+      </div>
+    );
+  }
+
+  return null;
 };
 
 // ─── Parse Helpers ────────────────────────────────────────────────────
@@ -767,6 +780,7 @@ export const DragMatchingGroup = ({ group, activeQ, onSetActive }) => {
   const questions = group.questions ?? [];
   const allOptions = (group.optionBank ?? []).map((o, i) => ({ id: i, text: o.text }));
   const allowReuse = (typeof group.allowOptionReuse === 'boolean') ? group.allowOptionReuse : true;
+  const baseNumber = Number.isFinite(Number(group.fromQuestion)) ? Number(group.fromQuestion) : (Number(questions[0]?.questionNumber) || 1);
 
   const [answers, setAnswers] = useState({});
   const [dragId, setDragId] = useState(null);
@@ -796,13 +810,14 @@ export const DragMatchingGroup = ({ group, activeQ, onSetActive }) => {
       <div className="pv-dm-layout">
         <div className="pv-dm-left">
           {group.leftTitle && <div className="pv-dm-col-header" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.leftTitle) }} />}
-          {questions.map((q) => {
-            const active = activeQ === q.questionNumber;
-            const filled = answers[q.questionNumber];
-            const isOver = dragOver === q.questionNumber;
+          {questions.map((q, idx) => {
+            const qNum = baseNumber + idx;
+            const active = activeQ === qNum;
+            const filled = answers[qNum];
+            const isOver = dragOver === qNum;
             return (
               <div key={q.id} className={`pv-dm-row${active ? ' active' : ''}`}
-                onClick={() => onSetActive(q.questionNumber)}>
+                onClick={() => onSetActive(qNum)}>
                 <span className="pv-dm-item-name">
                   {q.questionText
                     ? <span dangerouslySetInnerHTML={{ __html: formatPreviewText(q.questionText) }} />
@@ -810,21 +825,21 @@ export const DragMatchingGroup = ({ group, activeQ, onSetActive }) => {
                 </span>
                 <div
                   className={`pv-dm-gap${isOver ? ' drag-over' : ''}${filled ? ' filled' : ''}`}
-                  onDragOver={(e) => { e.preventDefault(); setDragOver(q.questionNumber); }}
+                  onDragOver={(e) => { e.preventDefault(); setDragOver(qNum); }}
                   onDragLeave={() => setDragOver(null)}
                   onDrop={(e) => {
                     e.preventDefault();
                     setDragOver(null);
                     const id = Number(e.dataTransfer.getData('text/x-dm'));
                     const chip = allOptions.find((o) => o.id === id);
-                    if (chip) placeChip(q.questionNumber, chip);
+                    if (chip) placeChip(qNum, chip);
                   }}
-                  onClick={(e) => { e.stopPropagation(); if (filled) removeAnswer(q.questionNumber); }}
+                  onClick={(e) => { e.stopPropagation(); if (filled) removeAnswer(qNum); }}
                   title={filled ? 'Click để trả lại' : 'Thả đáp án vào đây'}
                 >
                   {filled
                     ? <span className="pv-dm-gap-filled" dangerouslySetInnerHTML={{ __html: formatPreviewText(filled.text) }} />
-                    : <span className="pv-dm-gap-num">{q.questionNumber}</span>
+                    : <span className="pv-dm-gap-num">{qNum}</span>
                   }
                 </div>
               </div>
@@ -1416,6 +1431,9 @@ export const SentenceCompletionGroup = ({ group, activeQ, onSetActive }) => {
 // Short Answer Group
 export const ShortAnswerGroup = ({ group, activeQ, onSetActive }) => {
   const questions = group.questions ?? [];
+  const fromQuestion = Number.isFinite(Number(questions[0]?.questionNumber))
+    ? Number(questions[0].questionNumber)
+    : (Number.isFinite(Number(group.fromQuestion)) ? Number(group.fromQuestion) : 1);
   return (
     <div className="pv-group-block">
       <QuestionRange group={group} />
@@ -1425,7 +1443,7 @@ export const ShortAnswerGroup = ({ group, activeQ, onSetActive }) => {
       {group.title && <div className="pv-group-instructions" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.title) }} />}
       {questions.length === 0
         ? <em className="pv-empty">Chưa có câu hỏi.</em>
-        : questions.map((q) => renderQuestion(q, activeQ, onSetActive))}
+        : questions.map((q, idx) => renderQuestion({ ...q, questionNumber: Number.isFinite(Number(q.questionNumber)) ? Number(q.questionNumber) : (fromQuestion + idx) }, activeQ, onSetActive))}
     </div>
   );
 };

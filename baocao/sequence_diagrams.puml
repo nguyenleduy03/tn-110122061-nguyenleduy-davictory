@@ -1,0 +1,748 @@
+@startuml Đăng nhập
+title Sơ đồ tuần tự - Đăng nhập
+
+actor "Người dùng" as User
+participant "LoginPage\n(React)" as UI
+participant "AuthController" as Controller
+participant "UserService" as Service
+participant "JwtUtil" as JWT
+database "MySQL" as DB
+
+User -> UI: Nhập username, password
+User -> UI: Click "Đăng nhập"
+activate UI
+
+UI -> Controller: POST /api/auth/login\n{username, password}
+activate Controller
+
+Controller -> Service: authenticate(username, password)
+activate Service
+
+Service -> DB: SELECT * FROM user\nWHERE username = ?
+activate DB
+DB --> Service: User data
+deactivate DB
+
+Service -> Service: BCrypt.checkPassword()
+alt Mật khẩu đúng
+    Service --> Controller: User object
+    deactivate Service
+    
+    Controller -> JWT: generateToken(username)
+    activate JWT
+    JWT --> Controller: JWT token
+    deactivate JWT
+    
+    Controller --> UI: 200 OK\n{token, user}
+    deactivate Controller
+    
+    UI -> UI: localStorage.setItem('token')
+    UI --> User: Chuyển đến Dashboard
+    deactivate UI
+else Mật khẩu sai
+    Service --> Controller: throw BadCredentialsException
+    Controller --> UI: 401 Unauthorized
+    UI --> User: Hiển thị lỗi
+end
+
+@enduml
+
+@startuml Đăng ký
+title Sơ đồ tuần tự - Đăng ký tài khoản
+
+actor "Người dùng" as User
+participant "RegisterPage\n(React)" as UI
+participant "AuthController" as Controller
+participant "UserService" as Service
+database "MySQL" as DB
+
+User -> UI: Nhập thông tin đăng ký
+User -> UI: Click "Đăng ký"
+activate UI
+
+UI -> Controller: POST /api/auth/register\n{username, email, password, fullName}
+activate Controller
+
+Controller -> Service: registerUser(request)
+activate Service
+
+Service -> DB: SELECT * FROM user\nWHERE username = ?
+activate DB
+DB --> Service: null (chưa tồn tại)
+deactivate DB
+
+Service -> Service: BCrypt.hashPassword(password)
+
+Service -> DB: INSERT INTO user\n(username, email, password_hash, full_name)
+activate DB
+DB --> Service: User ID
+deactivate DB
+
+Service -> DB: INSERT INTO user_roles\n(user_id, role_id)\nVALUES (?, STUDENT_ROLE_ID)
+activate DB
+DB --> Service: Success
+deactivate DB
+
+Service --> Controller: User object
+deactivate Service
+
+Controller --> UI: 200 OK\n{message: "Đăng ký thành công"}
+deactivate Controller
+
+UI --> User: Hiển thị thông báo thành công\nChuyển đến trang đăng nhập
+deactivate UI
+
+@enduml
+
+@startuml Tạo đề thi
+title Sơ đồ tuần tự - Tạo đề thi (Test Builder)
+
+actor "Giáo viên" as Teacher
+participant "TestBuilderPage\n(React)" as UI
+participant "TestBuilderController" as Controller
+participant "TestBuilderService" as Service
+participant "GoogleDriveService" as Drive
+database "MySQL" as DB
+
+Teacher -> UI: Nhập thông tin đề thi\n(title, description, test_type)
+Teacher -> UI: Thêm Session (Listening/Reading/Writing/Speaking)
+Teacher -> UI: Thêm Part vào Session
+Teacher -> UI: Tạo Question Group\n(passage, instructions)
+Teacher -> UI: Upload file audio/image
+activate UI
+
+UI -> Drive: Upload file media
+activate Drive
+Drive --> UI: File URL từ Google Drive
+deactivate Drive
+
+Teacher -> UI: Thêm câu hỏi\n(Multiple Choice, Fill Blank, etc.)
+Teacher -> UI: Nhập đáp án đúng
+Teacher -> UI: Click "Lưu đề thi"
+
+UI -> Controller: POST /api/test-builder/save\n{test, sessions, parts, questionGroups, questions}
+activate Controller
+
+Controller -> Service: saveFullTest(request)
+activate Service
+
+Service -> DB: INSERT INTO test\n(title, description, test_type, status)
+activate DB
+DB --> Service: test_id
+deactivate DB
+
+loop Cho mỗi Session
+    Service -> DB: INSERT INTO test_session\n(test_id, session_id, order_index)
+    activate DB
+    DB --> Service: test_session_id
+    deactivate DB
+    
+    loop Cho mỗi Part
+        Service -> DB: INSERT INTO test_part\n(test_session_id, part_id, order_index)
+        activate DB
+        DB --> Service: test_part_id
+        deactivate DB
+        
+        loop Cho mỗi Question Group
+            Service -> DB: INSERT INTO question_group\n(part_id, title, passage_content, audio_url)
+            activate DB
+            DB --> Service: question_group_id
+            deactivate DB
+            
+            loop Cho mỗi Question
+                Service -> DB: INSERT INTO question\n(question_group_id, question_type_id, question_text)
+                activate DB
+                DB --> Service: question_id
+                deactivate DB
+                
+                alt Multiple Choice
+                    Service -> DB: INSERT INTO question_option\n(question_id, option_text, is_correct)
+                    DB --> Service: Success
+                else Fill Blank / Short Answer
+                    Service -> DB: INSERT INTO answer\n(question_id, answer_text)
+                    DB --> Service: Success
+                else Matching
+                    Service -> DB: INSERT INTO matching_pair\n(question_group_id, left_item, right_item)
+                    DB --> Service: Success
+                end
+            end
+        end
+    end
+end
+
+Service --> Controller: Test object với ID
+deactivate Service
+
+Controller --> UI: 200 OK\n{testId, message: "Lưu thành công"}
+deactivate Controller
+
+UI --> Teacher: Hiển thị thông báo thành công\nChuyển đến trang xem đề thi
+deactivate UI
+
+@enduml
+
+@startuml Làm bài thi
+title Sơ đồ tuần tự - Làm bài thi
+
+actor "Học viên" as Student
+participant "ExamPage\n(React)" as UI
+participant "ExamAttemptController" as Controller
+participant "ExamAttemptService" as Service
+database "MySQL" as DB
+
+Student -> UI: Chọn đề thi
+Student -> UI: Click "Bắt đầu làm bài"
+activate UI
+
+UI -> Controller: POST /api/exam-attempt/start\n{userId, testId, sessionId}
+activate Controller
+
+Controller -> Service: startAttempt(request)
+activate Service
+
+Service -> DB: INSERT INTO exam_attempt\n(user_id, test_id, session_id, status, started_at)
+activate DB
+DB --> Service: attempt_id
+deactivate DB
+
+Service -> DB: SELECT * FROM question\nWHERE test_id = ?
+activate DB
+DB --> Service: List<Question>
+deactivate DB
+
+loop Cho mỗi câu hỏi
+    Service -> DB: INSERT INTO attempt_answer\n(exam_attempt_id, question_id, is_answered)
+    activate DB
+    DB --> Service: Success
+    deactivate DB
+end
+
+Service --> Controller: ExamAttempt object
+deactivate Service
+
+Controller --> UI: 200 OK\n{attemptId, questions, timeLimit}
+deactivate Controller
+
+UI --> Student: Hiển thị câu hỏi đầu tiên\nBắt đầu đếm ngược thời gian
+deactivate UI
+
+== Trong quá trình làm bài ==
+
+loop Mỗi 30 giây (Auto-save)
+    UI -> Controller: PUT /api/exam-attempt/{attemptId}/save-progress\n{answers}
+    activate Controller
+    Controller -> Service: saveProgress(attemptId, answers)
+    activate Service
+    Service -> DB: UPDATE attempt_answer\nSET answer_text = ?, selected_option_id = ?\nWHERE id = ?
+    activate DB
+    DB --> Service: Success
+    deactivate DB
+    Service --> Controller: Success
+    deactivate Service
+    Controller --> UI: 200 OK
+    deactivate Controller
+end
+
+== Nộp bài ==
+
+Student -> UI: Click "Nộp bài"
+activate UI
+
+UI -> Controller: POST /api/exam-attempt/{attemptId}/submit\n{answers}
+activate Controller
+
+Controller -> Service: submitAttempt(attemptId, answers)
+activate Service
+
+Service -> DB: UPDATE attempt_answer\nSET answer_text = ?, selected_option_id = ?, is_answered = true
+activate DB
+DB --> Service: Success
+deactivate DB
+
+Service -> Service: gradeAttempt(attemptId)
+
+Service -> DB: SELECT * FROM attempt_answer\nWHERE exam_attempt_id = ?
+activate DB
+DB --> Service: List<AttemptAnswer>
+deactivate DB
+
+loop Cho mỗi câu trả lời
+    Service -> DB: SELECT correct answer
+    activate DB
+    DB --> Service: Correct answer
+    deactivate DB
+    
+    Service -> Service: Compare answer
+    
+    Service -> DB: UPDATE attempt_answer\nSET is_correct = ?, points_earned = ?
+    activate DB
+    DB --> Service: Success
+    deactivate DB
+end
+
+Service -> Service: calculateBandScore(correctCount, totalQuestions)
+
+Service -> DB: UPDATE exam_attempt\nSET status = 'SUBMITTED',\nsubmitted_at = NOW(),\ntotal_score = ?,\nband_score = ?
+activate DB
+DB --> Service: Success
+deactivate DB
+
+Service --> Controller: ExamAttempt với kết quả
+deactivate Service
+
+Controller --> UI: 200 OK\n{bandScore, totalScore, correctCount}
+deactivate Controller
+
+UI --> Student: Hiển thị kết quả\n(Band score, số câu đúng/sai)
+deactivate UI
+
+@enduml
+
+@startuml Chấm bài Writing
+title Sơ đồ tuần tự - Chấm bài Writing
+
+actor "Giáo viên" as Teacher
+participant "WritingGradingPage\n(React)" as UI
+participant "WritingController" as Controller
+participant "WritingService" as Service
+database "MySQL" as DB
+
+Teacher -> UI: Truy cập trang chấm bài Writing
+activate UI
+
+UI -> Controller: GET /api/writing/pending
+activate Controller
+
+Controller -> Service: getPendingSubmissions(teacherId)
+activate Service
+
+Service -> DB: SELECT * FROM student_writing_submission\nWHERE status = 'PENDING'\nAND graded_by_id IS NULL
+activate DB
+DB --> Service: List<WritingSubmission>
+deactivate DB
+
+Service --> Controller: List<WritingSubmission>
+deactivate Service
+
+Controller --> UI: 200 OK\n{submissions}
+deactivate Controller
+
+UI --> Teacher: Hiển thị danh sách bài Writing chờ chấm
+deactivate UI
+
+Teacher -> UI: Click vào một bài Writing
+activate UI
+
+UI -> Controller: GET /api/writing/submission/{submissionId}
+activate Controller
+
+Controller -> Service: getSubmissionDetail(submissionId)
+activate Service
+
+Service -> DB: SELECT * FROM student_writing_submission\nWHERE id = ?
+activate DB
+DB --> Service: WritingSubmission
+deactivate DB
+
+Service -> DB: SELECT * FROM question_group\nWHERE id = ?
+activate DB
+DB --> Service: QuestionGroup (đề bài)
+deactivate DB
+
+Service --> Controller: WritingSubmissionDetail
+deactivate Service
+
+Controller --> UI: 200 OK\n{submission, prompt, content}
+deactivate Controller
+
+UI --> Teacher: Hiển thị đề bài và bài viết của học viên
+deactivate UI
+
+Teacher -> UI: Nhập điểm cho 4 tiêu chí:\n- Task Achievement (0-9)\n- Coherence & Cohesion (0-9)\n- Lexical Resource (0-9)\n- Grammatical Range & Accuracy (0-9)
+Teacher -> UI: Nhập feedback chi tiết
+Teacher -> UI: Click "Lưu điểm"
+activate UI
+
+UI -> Controller: POST /api/writing/grade\n{submissionId, taskAchievement, coherence, lexical, grammar, feedback}
+activate Controller
+
+Controller -> Service: gradeWriting(request)
+activate Service
+
+Service -> Service: avgScore = (taskAchievement + coherence + lexical + grammar) / 4.0
+Service -> Service: bandScore = roundBandScore(avgScore)
+
+Service -> DB: UPDATE student_writing_submission\nSET band_score = ?,\nfeedback = ?,\nstatus = 'GRADED',\ngraded_by_id = ?,\ngraded_at = NOW()
+activate DB
+DB --> Service: Success
+deactivate DB
+
+Service -> DB: INSERT INTO writing_score\n(submission_id, task_achievement, coherence, lexical, grammar)
+activate DB
+DB --> Service: Success
+deactivate DB
+
+Service --> Controller: Success
+deactivate Service
+
+Controller --> UI: 200 OK\n{message: "Chấm điểm thành công"}
+deactivate Controller
+
+UI --> Teacher: Hiển thị thông báo thành công\nChuyển đến bài Writing tiếp theo
+deactivate UI
+
+@enduml
+
+@startuml Quản lý lớp học
+title Sơ đồ tuần tự - Tạo lớp học và thêm học viên
+
+actor "Giáo viên" as Teacher
+participant "ClassManagementPage\n(React)" as UI
+participant "ClassManagementController" as Controller
+participant "ClassService" as Service
+database "MySQL" as DB
+
+Teacher -> UI: Click "Tạo lớp học mới"
+activate UI
+
+Teacher -> UI: Nhập thông tin lớp học\n(name, description, start_date, end_date)
+Teacher -> UI: Click "Tạo lớp"
+
+UI -> Controller: POST /api/classes\n{name, description, startDate, endDate}
+activate Controller
+
+Controller -> Service: createClass(request, teacherId)
+activate Service
+
+Service -> Service: Generate unique class code
+
+Service -> DB: INSERT INTO class\n(code, name, description, start_date, end_date, status)
+activate DB
+DB --> Service: class_id
+deactivate DB
+
+Service -> DB: INSERT INTO class_teacher\n(class_id, user_id, role)\nVALUES (?, ?, 'MAIN_TEACHER')
+activate DB
+DB --> Service: Success
+deactivate DB
+
+Service --> Controller: Class object
+deactivate Service
+
+Controller --> UI: 200 OK\n{classId, code, name}
+deactivate Controller
+
+UI --> Teacher: Hiển thị thông báo thành công\nHiển thị mã lớp
+deactivate UI
+
+== Thêm học viên vào lớp ==
+
+Teacher -> UI: Click "Thêm học viên"
+activate UI
+
+Teacher -> UI: Nhập danh sách student IDs\nhoặc upload CSV
+Teacher -> UI: Click "Thêm"
+
+UI -> Controller: POST /api/classes/{classId}/students\n{studentIds: [1, 2, 3, ...]}
+activate Controller
+
+Controller -> Service: addStudentsToClass(classId, studentIds)
+activate Service
+
+loop Cho mỗi student ID
+    Service -> DB: SELECT * FROM user\nWHERE id = ? AND role = 'STUDENT'
+    activate DB
+    DB --> Service: User
+    deactivate DB
+    
+    Service -> DB: INSERT INTO class_student\n(class_id, user_id, enrolled_at, status)\nVALUES (?, ?, NOW(), 'ACTIVE')
+    activate DB
+    DB --> Service: Success
+    deactivate DB
+end
+
+Service --> Controller: Success
+deactivate Service
+
+Controller --> UI: 200 OK\n{message: "Đã thêm X học viên"}
+deactivate Controller
+
+UI --> Teacher: Hiển thị danh sách học viên trong lớp
+deactivate UI
+
+@enduml
+
+@startuml Giao bài tập Assignment
+title Sơ đồ tuần tự - Tạo và giao Assignment
+
+actor "Giáo viên" as Teacher
+participant "AssignmentPage\n(React)" as UI
+participant "AssignmentController" as Controller
+participant "AssignmentService" as Service
+database "MySQL" as DB
+
+Teacher -> UI: Chọn lớp học
+Teacher -> UI: Click "Tạo Assignment mới"
+activate UI
+
+Teacher -> UI: Nhập thông tin Assignment:\n- Tiêu đề\n- Mô tả\n- Chọn đề thi\n- Hạn nộp (due_date)
+Teacher -> UI: Click "Tạo Assignment"
+
+UI -> Controller: POST /api/assignments\n{classId, testId, title, description, dueDate}
+activate Controller
+
+Controller -> Service: createAssignment(request, teacherId)
+activate Service
+
+Service -> DB: INSERT INTO assignment\n(class_id, test_id, title, description, due_date, created_by_id, status)
+activate DB
+DB --> Service: assignment_id
+deactivate DB
+
+Service -> DB: SELECT * FROM class_student\nWHERE class_id = ?
+activate DB
+DB --> Service: List<ClassStudent>
+deactivate DB
+
+Service --> Controller: Assignment object
+deactivate Service
+
+Controller --> UI: 200 OK\n{assignmentId, message: "Đã tạo Assignment"}
+deactivate Controller
+
+UI --> Teacher: Hiển thị thông báo thành công\nHiển thị Assignment trong danh sách
+deactivate UI
+
+== Học viên làm Assignment ==
+
+actor "Học viên" as Student
+participant "StudentAssignmentPage\n(React)" as StudentUI
+
+Student -> StudentUI: Truy cập trang Assignment
+activate StudentUI
+
+StudentUI -> Controller: GET /api/assignments/my-assignments
+activate Controller
+
+Controller -> Service: getStudentAssignments(studentId)
+activate Service
+
+Service -> DB: SELECT a.* FROM assignment a\nJOIN class_student cs ON a.class_id = cs.class_id\nWHERE cs.user_id = ?
+activate DB
+DB --> Service: List<Assignment>
+deactivate DB
+
+Service --> Controller: List<Assignment>
+deactivate Service
+
+Controller --> StudentUI: 200 OK\n{assignments}
+deactivate Controller
+
+StudentUI --> Student: Hiển thị danh sách Assignment
+deactivate StudentUI
+
+Student -> StudentUI: Click "Làm bài"
+activate StudentUI
+
+StudentUI -> Controller: POST /api/assignments/{assignmentId}/start
+activate Controller
+
+Controller -> Service: startAssignment(assignmentId, studentId)
+activate Service
+
+Service -> Service: Gọi ExamAttemptService.startAttempt()
+
+Service --> Controller: ExamAttempt object
+deactivate Service
+
+Controller --> StudentUI: 200 OK\n{attemptId, questions}
+deactivate Controller
+
+StudentUI --> Student: Chuyển đến trang làm bài thi
+deactivate StudentUI
+
+note over Student, StudentUI: Học viên làm bài như bình thường
+
+Student -> StudentUI: Nộp bài
+activate StudentUI
+
+StudentUI -> Controller: POST /api/assignments/{assignmentId}/submit\n{attemptId, answers}
+activate Controller
+
+Controller -> Service: submitAssignment(assignmentId, studentId, attemptId)
+activate Service
+
+Service -> Service: Gọi ExamAttemptService.submitAttempt()
+
+Service -> DB: INSERT INTO assignment_submission\n(assignment_id, user_id, exam_attempt_id, status, submitted_at)
+activate DB
+DB --> Service: submission_id
+deactivate DB
+
+Service --> Controller: AssignmentSubmission
+deactivate Service
+
+Controller --> StudentUI: 200 OK\n{message: "Đã nộp bài"}
+deactivate Controller
+
+StudentUI --> Student: Hiển thị thông báo thành công
+deactivate StudentUI
+
+@enduml
+
+@startuml Xem thống kê
+title Sơ đồ tuần tự - Xem thống kê và báo cáo
+
+actor "Giáo viên" as Teacher
+participant "StatisticsPage\n(React)" as UI
+participant "ClassManagementController" as Controller
+participant "ClassService" as Service
+database "MySQL" as DB
+
+Teacher -> UI: Chọn lớp học
+Teacher -> UI: Click "Xem thống kê"
+activate UI
+
+UI -> Controller: GET /api/classes/{classId}/statistics
+activate Controller
+
+Controller -> Service: getClassStatistics(classId)
+activate Service
+
+Service -> DB: SELECT COUNT(*) FROM class_student\nWHERE class_id = ?
+activate DB
+DB --> Service: totalStudents
+deactivate DB
+
+Service -> DB: SELECT AVG(ea.band_score)\nFROM exam_attempt ea\nJOIN assignment_submission asub ON ea.id = asub.exam_attempt_id\nJOIN assignment a ON asub.assignment_id = a.id\nWHERE a.class_id = ?
+activate DB
+DB --> Service: averageBandScore
+deactivate DB
+
+Service -> DB: SELECT COUNT(*) FROM assignment\nWHERE class_id = ?
+activate DB
+DB --> Service: totalAssignments
+deactivate DB
+
+Service -> DB: SELECT COUNT(*) FROM assignment_submission asub\nJOIN assignment a ON asub.assignment_id = a.id\nWHERE a.class_id = ? AND asub.status = 'GRADED'
+activate DB
+DB --> Service: completedSubmissions
+deactivate DB
+
+Service -> DB: SELECT u.full_name, AVG(ea.band_score) as avg_score\nFROM user u\nJOIN class_student cs ON u.id = cs.user_id\nLEFT JOIN assignment_submission asub ON u.id = asub.user_id\nLEFT JOIN exam_attempt ea ON asub.exam_attempt_id = ea.id\nWHERE cs.class_id = ?\nGROUP BY u.id
+activate DB
+DB --> Service: List<StudentScore>
+deactivate DB
+
+Service --> Controller: ClassStatistics object
+deactivate Service
+
+Controller --> UI: 200 OK\n{totalStudents, averageScore, assignments, studentScores}
+deactivate Controller
+
+UI --> Teacher: Hiển thị:\n- Tổng số học viên\n- Điểm trung bình lớp\n- Biểu đồ phân bố điểm\n- Bảng xếp hạng học viên\n- Tỷ lệ hoàn thành Assignment
+deactivate UI
+
+@enduml
+
+@startuml Thi thử cho khách
+title Sơ đồ tuần tự - Thi thử cho khách (Guest Exam)
+
+actor "Khách" as Guest
+participant "GuestExamPage\n(React)" as UI
+participant "GuestExamController" as Controller
+participant "GuestExamService" as Service
+database "MySQL" as DB
+
+Guest -> UI: Truy cập trang thi thử
+activate UI
+
+UI -> Controller: GET /api/guest-exam/available-tests
+activate Controller
+
+Controller -> Service: getAvailableGuestTests()
+activate Service
+
+Service -> DB: SELECT * FROM test\nWHERE status = 'PUBLISHED'\nAND is_guest_allowed = true
+activate DB
+DB --> Service: List<Test>
+deactivate DB
+
+Service --> Controller: List<Test>
+deactivate Service
+
+Controller --> UI: 200 OK\n{tests}
+deactivate Controller
+
+UI --> Guest: Hiển thị danh sách đề thi thử
+deactivate UI
+
+Guest -> UI: Chọn đề thi
+Guest -> UI: Nhập email
+Guest -> UI: Click "Bắt đầu làm bài"
+activate UI
+
+UI -> Controller: POST /api/guest-exam/start\n{testId, email}
+activate Controller
+
+Controller -> Service: startGuestExam(testId, email)
+activate Service
+
+Service -> DB: SELECT COUNT(*) FROM guest_exam_attempt\nWHERE email = ? AND test_id = ?\nAND DATE(started_at) = CURDATE()
+activate DB
+DB --> Service: attemptCount
+deactivate DB
+
+alt attemptCount < 3
+    Service -> DB: INSERT INTO guest_exam_attempt\n(test_id, email, status, started_at)
+    activate DB
+    DB --> Service: attempt_id
+    deactivate DB
+    
+    Service -> DB: SELECT * FROM question\nWHERE test_id = ?
+    activate DB
+    DB --> Service: List<Question>
+    deactivate DB
+    
+    Service --> Controller: GuestExamAttempt
+    deactivate Service
+    
+    Controller --> UI: 200 OK\n{attemptId, questions}
+    deactivate Controller
+    
+    UI --> Guest: Hiển thị câu hỏi\nBắt đầu làm bài
+    deactivate UI
+else Đã hết lượt thi
+    Service --> Controller: throw LimitExceededException
+    Controller --> UI: 429 Too Many Requests
+    UI --> Guest: "Bạn đã hết lượt thi thử hôm nay"
+end
+
+== Nộp bài ==
+
+Guest -> UI: Click "Nộp bài"
+activate UI
+
+UI -> Controller: POST /api/guest-exam/{attemptId}/submit\n{answers}
+activate Controller
+
+Controller -> Service: submitGuestExam(attemptId, answers)
+activate Service
+
+Service -> Service: gradeAnswers(answers)
+
+Service -> DB: UPDATE guest_exam_attempt\nSET status = 'SUBMITTED',\nsubmitted_at = NOW(),\nband_score = ?
+activate DB
+DB --> Service: Success
+deactivate DB
+
+Service --> Controller: GuestExamResult
+deactivate Service
+
+Controller --> UI: 200 OK\n{bandScore, correctCount, totalQuestions}
+deactivate Controller
+
+UI --> Guest: Hiển thị kết quả\n(Band score, số câu đúng)\nGửi kết quả qua email
+deactivate UI
+
+@enduml

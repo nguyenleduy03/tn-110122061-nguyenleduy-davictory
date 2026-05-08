@@ -69,7 +69,7 @@ const resolveImageWidthPercent = (value, fallback = 100) => {
     return fallback;
 };
 
-const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answer, handleAnswerChange, inputRefs, bookmarks, toggleBookmark, isReview }) => {
+const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answer, handleAnswerChange, inputRefs, bookmarks, toggleBookmark, isReview, dropdownLegendPlacement }) => {
     if (!q) return null;
     const normalizedType = normalizeQuestionType(q.type);
 
@@ -84,6 +84,7 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
                 bookmarks={bookmarks}
                 toggleBookmark={toggleBookmark}
                 isReview={isReview}
+                legendPlacement={dropdownLegendPlacement}
             />
         );
     }
