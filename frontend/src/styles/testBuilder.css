@@ -3477,7 +3477,7 @@
 
 .exam-dm-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   padding: 5px 4px;
   margin-bottom: 6px;
@@ -3485,6 +3485,7 @@
   border: 1.5px solid transparent;
   transition: border-color 0.1s, background 0.1s;
   cursor: pointer;
+  flex-wrap: wrap;
 }
 
 .exam-dm-row:hover {
@@ -3509,6 +3510,19 @@
   min-width: 0;
 }
 
+.exam-dm-row .rich-input-wrap {
+  flex: 1 1 240px;
+  min-width: 240px;
+}
+
+.exam-dm-row .rich-input-content {
+  width: 100%;
+  min-width: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 .exam-dm-gap {
   display: flex;
   align-items: center;
@@ -3531,6 +3545,11 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+.exam-dm-row .exam-heading-select {
+  flex: 0 0 220px;
+  min-width: 180px;
 }
 
 .exam-dm-option {

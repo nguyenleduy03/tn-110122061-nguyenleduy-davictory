@@ -7,7 +7,7 @@ import React from 'react';
 import { X, Plus, Upload, Image as ImageIcon } from 'lucide-react';
 import RichInput from '../common/RichInput';
 import ImageUploadZone from './blocks/shared/ImageUploadZone';
-import { loadImageFile } from './blocks/shared/blockHelpers';
+import { loadImageFile, calculateQuestionRange } from './blocks/shared/blockHelpers';
 import { resolveDrivePreviewUrl } from '../../utils/mediaUrl';
 
 const defaultSharedOptions = () => [
@@ -30,9 +30,32 @@ const SharedOptionsDropdownBlock = ({
   testTitle,
   testId,
   module = 'READING',
+  allGroups = [],
+  partQuestionStartNumber = 1,
 }) => {
   const questions = group.questions ?? [];
   const sharedOptions = group.sharedOptions ?? [];
+  const partRange = calculateQuestionRange(group, allGroups);
+  const fromQ = partQuestionStartNumber + Math.max(0, (partRange.fromQuestion ?? 1) - 1);
+  const toQ = questions.length > 0 ? (fromQ + questions.length - 1) : (group.toQuestion ?? fromQ);
+
+  React.useEffect(() => {
+    const normalizedQuestions = questions.map((q, idx) => ({
+      ...q,
+      questionNumber: fromQ + idx,
+    }));
+    const isRangeChanged = group.fromQuestion !== fromQ || group.toQuestion !== toQ;
+    const isQuestionsChanged = normalizedQuestions.length !== questions.length
+      || normalizedQuestions.some((q, idx) => q.questionNumber !== questions[idx]?.questionNumber);
+
+    if (isRangeChanged || isQuestionsChanged) {
+      onUpdate(group.id, {
+        fromQuestion: fromQ,
+        toQuestion: toQ,
+        questions: normalizedQuestions,
+      });
+    }
+  }, [fromQ, toQ, questions, group.id, group.fromQuestion, group.toQuestion, onUpdate]);
 
   const syncSharedOptions = (next) => {
     onUpdate(group.id, { sharedOptions: next });
@@ -84,8 +107,8 @@ const SharedOptionsDropdownBlock = ({
     if (questions.length > 0) {
       startNum = Math.max(...questions.map(q => q.questionNumber || 0)) + 1;
     } else {
-      // Nếu chưa có câu nào, dùng fromQuestion của group (đã được set từ TestBuilder)
-      startNum = group.fromQuestion || 1;
+      // Nếu chưa có câu nào, dùng mốc bắt đầu của part hiện tại
+      startNum = fromQ;
     }
     
     const imported = lines.map((qText, i) => ({
@@ -96,8 +119,8 @@ const SharedOptionsDropdownBlock = ({
       answers: [{ blankIndex: 1, isCaseSensitive: false, answerText: '' }]
     }));
     const allQuestions = [...questions, ...imported];
-    const newFromQuestion = allQuestions.length > 0 ? Math.min(...allQuestions.map(q => q.questionNumber)) : null;
-    const newToQuestion = allQuestions.length > 0 ? Math.max(...allQuestions.map(q => q.questionNumber)) : null;
+    const newFromQuestion = allQuestions.length > 0 ? fromQ : null;
+    const newToQuestion = allQuestions.length > 0 ? (fromQ + allQuestions.length - 1) : null;
     onUpdate(group.id, { 
       questions: allQuestions,
       fromQuestion: newFromQuestion,
@@ -226,17 +249,19 @@ const SharedOptionsDropdownBlock = ({
             Câu&nbsp;
             <input
               className="exam-q-range-input"
-              value={group.fromQuestion ?? ''}
+              value={fromQ}
               placeholder="26"
-              onChange={(e) => onUpdate(group.id, { fromQuestion: e.target.value ? Number(e.target.value) : null })}
+              readOnly
+              style={{ background: '#f9fafb', color: '#9ca3af' }}
               onClick={(e) => e.stopPropagation()}
             />
             &nbsp;–&nbsp;
             <input
               className="exam-q-range-input"
-              value={group.toQuestion ?? ''}
+              value={toQ}
               placeholder="30"
-              onChange={(e) => onUpdate(group.id, { toQuestion: e.target.value ? Number(e.target.value) : null })}
+              readOnly
+              style={{ background: '#f9fafb', color: '#9ca3af' }}
               onClick={(e) => e.stopPropagation()}
             />
           </div>
@@ -312,9 +337,10 @@ const SharedOptionsDropdownBlock = ({
               </div>
               {questions.map((q) => {
                 const correct = (q.answerText ?? q.answers?.[0]?.answerText ?? '').trim();
+                const displayNumber = Number.isFinite(Number(q.questionNumber)) ? Number(q.questionNumber) : fromQ;
                 return (
                   <div key={q.id} className="exam-ml-answer-row">
-                    <span className="exam-ml-answer-num">Câu {q.questionNumber ?? '?'}</span>
+                    <span className="exam-ml-answer-num">Câu {displayNumber}</span>
                     <div style={{ flex: 1, display: 'flex', gap: 8, alignItems: 'center' }}>
                       <RichInput
                         value={q.questionText || ''}

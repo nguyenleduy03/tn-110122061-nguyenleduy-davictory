@@ -797,6 +797,21 @@ const TestBuilder = () => {
       })));
     }
 
+    const currentPart = parts.find((p) => p.id === partId);
+    const currentGroup = currentPart?.questionGroups?.find((g) => g.id === groupId);
+    if (!currentGroup) return;
+
+    const nextGroup = { ...currentGroup, ...updates };
+    const sameQuestions = JSON.stringify(currentGroup.questions ?? []) === JSON.stringify(nextGroup.questions ?? []);
+    const sameKeys = Object.keys(updates).every((key) => {
+      if (key === 'questions') return sameQuestions;
+      return currentGroup[key] === nextGroup[key];
+    });
+
+    if (sameKeys) {
+      return;
+    }
+
     // Update parts state
     setParts((prev) =>
       prev.map((p) => {

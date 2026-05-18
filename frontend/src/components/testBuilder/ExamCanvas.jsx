@@ -1118,6 +1118,8 @@ const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUp
         testTitle={testTitle}
         testId={testId}
         module={skill}
+        allGroups={allGroups}
+        partQuestionStartNumber={partQuestionStartNumber}
       />
     );
   }

@@ -915,6 +915,14 @@ const IeltsReadingTest = () => {
         return flatQs.reduce((sum, q) => sum + (q.numberRange ? q.numberRange.length : 1), 0);
     };
 
+    const partQuestionStartNumber = useMemo(() => {
+        if (!testData?.parts?.length) return 1;
+        const priorQuestions = testData.parts
+            .slice(0, currentPartIndex)
+            .reduce((sum, _, idx) => sum + getTotalCount(idx), 0);
+        return priorQuestions + 1;
+    }, [testData, currentPartIndex]);
+
     if (loading) return (
         <div className="test-loading-screen">
             <div className="test-loading-spinner"></div>
@@ -982,7 +990,7 @@ const IeltsReadingTest = () => {
         currentGroup.questions.push(q);
     }
 
-    let displayQuestionCursor = 1;
+    let displayQuestionCursor = partQuestionStartNumber;
     const getDisplayedBlockCount = (question) => {
         if (Array.isArray(question?.subQuestions) && question.subQuestions.length > 0) {
             return question.subQuestions.length;
@@ -1033,7 +1041,8 @@ const IeltsReadingTest = () => {
                 {group.questions.map(q => {
                     const questionCount = getDisplayedBlockCount(q);
                     const questionNumbers = Array.from({ length: questionCount }, (_, idx) => displayQuestionCursor + idx);
-                    const displayQuestion = q?.type === 'shared_options_dropdown'
+                    const isDropdownGroup = isComponentManagedDropdownGroup(q?.type);
+                    const displayQuestion = isDropdownGroup
                         ? {
                             ...q,
                             fromQuestion: questionNumbers[0],

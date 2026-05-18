@@ -40,18 +40,13 @@ const DragMatchingBlock = ({ group, allGroups = [], partQuestionStartNumber = 1,
       ...q,
       questionNumber: fromQ + idx,
     }));
-    const isRangeChanged = group.fromQuestion !== fromQ || group.toQuestion !== toQ;
     const isQuestionsChanged = normalizedQuestions.length !== questions.length
       || normalizedQuestions.some((q, idx) => q.questionNumber !== questions[idx]?.questionNumber);
 
-    if (isRangeChanged || isQuestionsChanged) {
-      onUpdate(group.id, {
-        fromQuestion: fromQ,
-        toQuestion: toQ,
-        questions: normalizedQuestions,
-      });
+    if (isQuestionsChanged) {
+      onUpdate(group.id, { questions: normalizedQuestions });
     }
-  }, [fromQ, toQ, questions, group.id, group.fromQuestion, group.toQuestion, onUpdate]);
+  }, [fromQ, questions, group.id, onUpdate]);
 
   const handleImportOptions = (text) => {
     const lines = text.split('\n').map(l => l.trim()).filter(Boolean);

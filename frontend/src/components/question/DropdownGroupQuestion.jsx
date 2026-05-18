@@ -68,10 +68,10 @@ const DropdownGroupQuestion = ({
   const questions = group.subQuestions || group.questions || [];
   const baseNumber = Number(group.fromQuestion);
   const resolveDisplayNumber = React.useCallback((question, index) => {
-    if (Number.isFinite(baseNumber)) return baseNumber + index;
-
     const direct = Number(question?.number ?? question?.questionNumber);
     if (Number.isFinite(direct)) return direct;
+
+    if (Number.isFinite(baseNumber)) return baseNumber + index;
 
     return index + 1;
   }, [baseNumber]);
