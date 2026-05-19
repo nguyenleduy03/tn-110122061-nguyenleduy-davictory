@@ -6,7 +6,7 @@ import RichBlankEditor from './shared/RichBlankEditor';
 import ImageUploadZone from './shared/ImageUploadZone';
 import { serializeContentEditableHtml } from '../../../utils/textFormatters';
 import { resolveDrivePreviewUrl } from '../../../utils/mediaUrl';
-import { toRoman, loadImageFile, toPlainText, getNextQuestionNumber, getPartQuestionStartNumber, getQuestionWeight } from './shared/blockHelpers';
+import { toRoman, loadImageFile, toPlainText, getNextQuestionNumber, getQuestionWeight, calculateQuestionRange } from './shared/blockHelpers';
 import { getLockedImageFrameStyle, getLockedImageStyle, clampImagePinPercent } from '../../../utils/imageQuestionLayout';
 import { useTabIndent } from '../../../hooks/useTabIndent';
 import ImageNotePinBox from '../../common/ImageNotePinBox';
@@ -89,7 +89,7 @@ const BulkAnswerImport = ({ questions, onImport }) => {
   );
 };
 
-const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelect, selected, dragHandleProps, testTitle, testId, module = 'READING', onSelectQuestion, onUpdateQuestion, onDeleteQuestion, selectedQuestionId }) => {
+const ImageNoteFormBlock = ({ group, allGroups = [], partQuestionStartNumber = 1, onUpdate, onDelete, onSelect, selected, dragHandleProps, testTitle, testId, module = 'READING', onSelectQuestion, onUpdateQuestion, onDeleteQuestion, selectedQuestionId }) => {
   const containerRef = useRef(null);
   const imageWrapRef = useRef(null);
   const dragRef = useRef(null);
@@ -100,7 +100,9 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
   const questions = group.questions ?? [];
   const topNoteText = group.topNoteText ?? (group.imagePosition === 'bottom' ? '' : (group.noteText || ''));
   const bottomNoteText = group.bottomNoteText ?? (group.imagePosition === 'bottom' ? (group.noteText || '') : '');
-  const baseNumber = getPartQuestionStartNumber(group, allGroups);
+  const partRange = calculateQuestionRange(group, allGroups);
+  const fromQ = partQuestionStartNumber + Math.max(0, (partRange.fromQuestion ?? 1) - 1);
+  const toQ = questions.length > 0 ? (fromQ + questions.length - 1) : (group.toQuestion ?? fromQ);
   const topBlankCountRef = useRef(countBlankTokens(topNoteText));
 
   // Auto-migrate legacy pin positions on load
@@ -124,13 +126,14 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
   }, [questions, group.id, onUpdate]);
 
   const orderedQuestions = getImageNoteFormOrderedQuestions(group);
-  const displayNumberById = getImageNoteFormDisplayNumberMap({ ...group, fromQuestion: baseNumber });
+  const displayNumberById = getImageNoteFormDisplayNumberMap({ ...group, fromQuestion: fromQ });
+  const currentQuestionSignature = orderedQuestions.map((q) => `${q.id}:${q.questionNumber ?? ''}:${q.questionSection || ''}`).join('|');
 
   // Helper: Tạo note-blank question mới
   const createNoteBlankQuestion = () => ({
     id: Date.now() + Math.random() * 1000,
     groupId: group.id,
-    questionNumber: getNextQuestionNumber(questions),
+    questionNumber: fromQ + questions.length,
     questionText: '',
     answerText: '',
     questionMode: 'note-blank', // QUAN TRỌNG: Đánh dấu rõ ràng
@@ -145,27 +148,28 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
 
     const reordered = normalizeImageNoteFormQuestions({
       ...group,
-      fromQuestion: baseNumber,
+      fromQuestion: fromQ,
       questions: orderedQuestions.map((q, idx) => ({
         ...q,
-        questionNumber: baseNumber + idx,
+        questionNumber: fromQ + idx,
         orderIndex: idx + 1,
       })),
     }).questions;
 
-    const nextToQuestion = reordered.length > 0 ? baseNumber + reordered.length - 1 : group.toQuestion;
-    const needsReorder = orderedQuestions.some((q, idx) => q.questionNumber !== baseNumber + idx)
-      || reordered.some((q, idx) => q.questionNumber !== baseNumber + idx)
+    const nextToQuestion = reordered.length > 0 ? fromQ + reordered.length - 1 : group.toQuestion;
+    const normalizedSignature = reordered.map((q) => `${q.id}:${q.questionNumber ?? ''}:${q.questionSection || ''}`).join('|');
+    const needsReorder = normalizedSignature !== currentQuestionSignature
+      || group.fromQuestion !== fromQ
       || group.toQuestion !== nextToQuestion;
 
     if (needsReorder) {
       onUpdate(group.id, {
-        fromQuestion: baseNumber,
+        fromQuestion: fromQ,
         questions: reordered,
         toQuestion: nextToQuestion,
       });
     }
-  }, [questions, imagePosition, baseNumber, orderedQuestions, group, onUpdate]);
+  }, [questions, imagePosition, fromQ, orderedQuestions, currentQuestionSignature, group.id, group.fromQuestion, group.toQuestion, onUpdate]);
 
   useEffect(() => {
     const onMove = (e) => {
@@ -213,12 +217,10 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
     // Use accurate position calculation
     const { x, y } = calculatePinPosition(e.clientX, e.clientY, rect, pinBoxWidth, 26);
 
-    const maxQuestionNumber = getNextQuestionNumber(questions) - 1;
-
     const newQ = {
       id: Date.now(),
       groupId: group.id,
-      questionNumber: maxQuestionNumber + 1,
+      questionNumber: fromQ + questions.length,
       questionText: '',
       answerText: '',
       pinX: x,
@@ -227,7 +229,7 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
       questionSection: IMAGE_NOTE_SECTIONS.IMAGE,
       questionType: { typeName: 'FILL_IN_BLANK' },
     };
-    onUpdate(group.id, { fromQuestion: baseNumber, questions: [...questions, newQ] });
+    onUpdate(group.id, { fromQuestion: fromQ, questions: [...questions, newQ], toQuestion: fromQ + questions.length });
   };
 
   const syncNoteText = (nextTopText, nextBottomText) => {
@@ -339,14 +341,14 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
 
     const normalized = normalizeImageNoteFormQuestions({
       ...group,
-      fromQuestion: baseNumber,
+      fromQuestion: fromQ,
       questions: nextQuestions,
     }).questions;
 
     onUpdate(group.id, {
-      fromQuestion: baseNumber,
+      fromQuestion: fromQ,
       questions: normalized,
-      toQuestion: normalized.length > 0 ? baseNumber + normalized.length - 1 : group.toQuestion,
+      toQuestion: normalized.length > 0 ? fromQ + normalized.length - 1 : group.toQuestion,
     });
   };
 
@@ -465,12 +467,12 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
 
   const topEditor = imagePosition === 'top' || imagePosition === 'middle';
   const bottomEditor = imagePosition === 'bottom' || imagePosition === 'middle';
-  const topEditorStart = baseNumber;
+  const topEditorStart = fromQ;
   const topSectionCount = orderedQuestions.filter((q) => q.questionSection === IMAGE_NOTE_SECTIONS.TOP).length;
   const imageSectionCount = orderedQuestions.filter((q) => q.questionSection === IMAGE_NOTE_SECTIONS.IMAGE).length;
   const bottomEditorStart = imagePosition === 'middle'
-    ? baseNumber + topSectionCount + imageSectionCount
-    : baseNumber + imageSectionCount;
+    ? fromQ + topSectionCount + imageSectionCount
+    : fromQ + imageSectionCount;
 
   return (
     <div className={`exam-group${selected ? ' selected' : ''}`} onClick={(e) => { e.stopPropagation(); onSelect(group); }}>
@@ -576,9 +578,9 @@ const ImageNoteFormBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelec
 
       <div className="exam-q-range-header" style={{ marginTop: 12 }}>
         Câu&nbsp;
-        <input className="exam-q-range-input" value={group.fromQuestion ?? ''} placeholder="1" onChange={(e) => onUpdate(group.id, { fromQuestion: e.target.value ? Number(e.target.value) : null })} onClick={(e) => e.stopPropagation()} />
+        <input className="exam-q-range-input" value={fromQ} placeholder="1" readOnly style={{ background: '#f9fafb', color: '#9ca3af' }} onClick={(e) => e.stopPropagation()} />
         &nbsp;–&nbsp;
-        <input className="exam-q-range-input" value={group.toQuestion ?? ''} placeholder="5" onChange={(e) => onUpdate(group.id, { toQuestion: e.target.value ? Number(e.target.value) : null })} onClick={(e) => e.stopPropagation()} />
+        <input className="exam-q-range-input" value={toQ} placeholder="5" readOnly style={{ background: '#f9fafb', color: '#9ca3af' }} onClick={(e) => e.stopPropagation()} />
       </div>
 
       {/* Answer key section */}

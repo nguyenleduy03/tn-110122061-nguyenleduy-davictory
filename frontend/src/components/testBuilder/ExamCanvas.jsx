@@ -1071,14 +1071,14 @@ const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUp
       onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps}
       onSelectQuestion={(q) => onSelectQuestion(q, group.id)}
       onUpdateQuestion={onUpdateQuestion} onDeleteQuestion={onDeleteQuestion} onAddQuestion={onAddQuestion}
-      selectedQuestionId={selectedQuestionId} testId={testId} />;
+      selectedQuestionId={selectedQuestionId} testId={testId} partQuestionStartNumber={partQuestionStartNumber} />;
   }
   if (ct === 'IMAGE_NOTE_FORM') {
     return <ImageNoteFormBlock group={group} allGroups={allGroups} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
       onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps}
       onSelectQuestion={(q) => onSelectQuestion(q, group.id)}
       onUpdateQuestion={onUpdateQuestion} onDeleteQuestion={onDeleteQuestion} onAddQuestion={onAddQuestion}
-      selectedQuestionId={selectedQuestionId} testId={testId} module={skill} />;
+      selectedQuestionId={selectedQuestionId} testId={testId} module={skill} partQuestionStartNumber={partQuestionStartNumber} />;
   }
   if (ct === 'MULTIPLE_CHOICE_GROUP') {
     return <MultipleChoiceBlock group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
@@ -1172,7 +1172,7 @@ const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUp
       selectedQuestionId={selectedQuestionId} />;
   }
   if (ct === 'MAP_LABELLING') {
-    return <MapLabellingBlock group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
+    return <MapLabellingBlock group={group} allGroups={allGroups} partQuestionStartNumber={partQuestionStartNumber} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
       onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps}
       onUpdateQuestion={onUpdateQuestion} onDeleteQuestion={onDeleteQuestion}
       testTitle={testTitle}

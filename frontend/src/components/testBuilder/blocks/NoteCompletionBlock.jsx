@@ -4,7 +4,7 @@ import GroupToolbar from './shared/GroupToolbar';
 import RichInput from '../../common/RichInput';
 import RichBlankEditor from './shared/RichBlankEditor';
 import { serializeContentEditableHtml } from '../../../utils/textFormatters';
-import { toRoman, loadImageFile, toPlainText, countBlankTokens, getNextQuestionNumber, isImagePinQuestion, isNoteBlankQuestion, getQuestionWeight, getPartQuestionStartNumber } from './shared/blockHelpers';
+import { toRoman, loadImageFile, toPlainText, countBlankTokens, getNextQuestionNumber, isImagePinQuestion, isNoteBlankQuestion, getQuestionWeight, calculateQuestionRange } from './shared/blockHelpers';
 import { useTabIndent } from '../../../hooks/useTabIndent';
 
 // Bulk Answer Import Component
@@ -77,8 +77,29 @@ const BulkAnswerImport = ({ questions, onImport }) => {
   );
 };
 
-const NoteCompletionBlock = ({ group, allGroups = [], onUpdate, onDelete, onSelect, selected, dragHandleProps, onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onAddQuestion, selectedQuestionId }) => {
-  const baseNumber = getPartQuestionStartNumber(group, allGroups);
+const NoteCompletionBlock = ({ group, allGroups = [], partQuestionStartNumber = 1, onUpdate, onDelete, onSelect, selected, dragHandleProps, onSelectQuestion, onUpdateQuestion, onDeleteQuestion, onAddQuestion, selectedQuestionId }) => {
+  const partRange = calculateQuestionRange(group, allGroups);
+  const questions = group.questions ?? [];
+  const fromQ = partQuestionStartNumber + Math.max(0, (partRange.fromQuestion ?? 1) - 1);
+  const toQ = questions.length > 0 ? (fromQ + questions.length - 1) : (group.toQuestion ?? fromQ);
+
+  useEffect(() => {
+    const normalizedQuestions = questions.map((q, idx) => ({
+      ...q,
+      questionNumber: fromQ + idx,
+    }));
+    const isRangeChanged = group.fromQuestion !== fromQ || group.toQuestion !== toQ;
+    const isQuestionsChanged = normalizedQuestions.length !== questions.length
+      || normalizedQuestions.some((q, idx) => q.questionNumber !== questions[idx]?.questionNumber);
+
+    if (isRangeChanged || isQuestionsChanged) {
+      onUpdate(group.id, {
+        fromQuestion: fromQ,
+        toQuestion: toQ,
+        questions: normalizedQuestions,
+      });
+    }
+  }, [fromQ, toQ, questions, group.id, group.fromQuestion, group.toQuestion, onUpdate]);
 
   return (
     <div className={`exam-group${selected ? ' selected' : ''}`} onClick={(e) => { e.stopPropagation(); onSelect(group); }}>
@@ -115,7 +136,7 @@ const NoteCompletionBlock = ({ group, allGroups = [], onUpdate, onDelete, onSele
         placeholder={'VD:\nItems:\nDining table:\n  - (ô trống) shape\n  - medium size\n  - (ô trống) old'}
         preWrap
         blankClass="rbe-blank-amber"
-        startNumber={baseNumber}
+        startNumber={fromQ}
       />
 
       {/* Answer validation options */}
@@ -148,9 +169,9 @@ const NoteCompletionBlock = ({ group, allGroups = [], onUpdate, onDelete, onSele
 
       <div className="exam-q-range-header" style={{ marginTop: 12 }}>
         Câu&nbsp;
-        <input className="exam-q-range-input" value={group.fromQuestion ?? ''} placeholder="1" onChange={(e) => onUpdate(group.id, { fromQuestion: e.target.value ? Number(e.target.value) : null })} onClick={(e) => e.stopPropagation()} />
+        <input className="exam-q-range-input" value={fromQ} placeholder="1" readOnly style={{ background: '#f9fafb', color: '#9ca3af' }} onClick={(e) => e.stopPropagation()} />
         &nbsp;–&nbsp;
-        <input className="exam-q-range-input" value={group.toQuestion ?? ''} placeholder="10" onChange={(e) => onUpdate(group.id, { toQuestion: e.target.value ? Number(e.target.value) : null })} onClick={(e) => e.stopPropagation()} />
+        <input className="exam-q-range-input" value={toQ} placeholder="10" readOnly style={{ background: '#f9fafb', color: '#9ca3af' }} onClick={(e) => e.stopPropagation()} />
       </div>
 
       {/* Answer key section */}
@@ -176,7 +197,7 @@ const NoteCompletionBlock = ({ group, allGroups = [], onUpdate, onDelete, onSele
                 // Tạo câu mới
                 finalQuestions.push({
                   id: Date.now() + idx,
-                  questionNumber: (group.fromQuestion || 1) + idx,
+                  questionNumber: fromQ + idx,
                   answerText: ans
                 });
               }

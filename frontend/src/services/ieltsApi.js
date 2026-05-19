@@ -1,5 +1,6 @@
 import { API_CONFIG } from '../config/api';
 import { formatTextWithWhitespace, stripInlineStyles } from '../utils/textFormatters';
+import { normalizeImageNoteFormQuestions } from '../utils/imageNoteForm';
 
 // ─── Helper: auth headers ───────────────────────────────────────────
 function authHeaders() {
@@ -215,6 +216,10 @@ function collectAcceptedAnswers(answerItems = []) {
 async function transformGroup(baseUrl, group) {
   const questions = group.questions || [];
   const contentType = (group.contentType || '').toUpperCase();
+  const normalizedImageNoteGroup = contentType === 'IMAGE_NOTE_FORM'
+    ? normalizeImageNoteFormQuestions({ ...group, questions })
+    : null;
+  const effectiveQuestions = normalizedImageNoteGroup?.questions || questions;
 
   // ─── Determine FE type từ contentType hoặc questionTypeCode ─────────
   let feType = null;
@@ -637,7 +642,7 @@ async function transformGroup(baseUrl, group) {
 
   // ─── NOTE_COMPLETION → 1 group question ────────────────────────────
   if (feType === 'note-completion') {
-    const orderedQuestions = [...questions].sort((a, b) => Number(a?.questionNumber || 0) - Number(b?.questionNumber || 0));
+    const orderedQuestions = [...effectiveQuestions].sort((a, b) => Number(a?.questionNumber || 0) - Number(b?.questionNumber || 0));
     let imageUrl = group.imageUrl || null;
     let imageWidth = resolveImageWidthPercent(group.imageWidth);
     const instructions = formatTextWithWhitespace(group.instructions || '');
@@ -647,6 +652,30 @@ async function transformGroup(baseUrl, group) {
     let bottomNoteText = '';
     let pinBoxWidth = resolvePinBoxWidthPx(group.pinBoxWidth, 120);
     const imageNotePinCoordinateMap = new Map();
+    const baseQuestionNumber = Number.isFinite(Number(group.fromQuestion)) ? Number(group.fromQuestion) : null;
+    const questionNumbers = orderedQuestions
+      .map((q) => Number(q?.questionNumber ?? q?.number))
+      .filter((value) => Number.isFinite(value));
+    const shouldOffsetByBase = baseQuestionNumber != null
+      && questionNumbers.length > 0
+      && Math.min(...questionNumbers) < baseQuestionNumber;
+
+    const resolveDisplayNumber = (question, idx) => {
+      const directNumber = resolveDbQuestionNumber(question);
+      if (Number.isFinite(directNumber) && !shouldOffsetByBase) {
+        return directNumber;
+      }
+
+      if (baseQuestionNumber != null) {
+        return baseQuestionNumber + idx;
+      }
+
+      if (Number.isFinite(directNumber)) {
+        return directNumber;
+      }
+
+      return idx + 1;
+    };
 
     if (contentType === 'IMAGE_NOTE_FORM' && group.passageText) {
       try {
@@ -689,12 +718,15 @@ async function transformGroup(baseUrl, group) {
     }
 
     const blankCount = (noteText.match(/\[blank\]/gi) || []).length;
-    const totalBlanks = Math.max(blankCount, questions.length);
+    const totalBlanks = Math.max(blankCount, orderedQuestions.length);
     const subQuestions = Array.from({ length: totalBlanks }, (_, idx) => {
       const q = orderedQuestions[idx] || null;
-      const num = q ? resolveDbQuestionNumber(q) : null;
-      const mappedPin = Number.isFinite(num)
-        ? imageNotePinCoordinateMap.get(num)
+      const num = resolveDisplayNumber(q, idx);
+      const lookupNumber = shouldOffsetByBase
+        ? (Number.isFinite(resolveDbQuestionNumber(q)) ? resolveDbQuestionNumber(q) : (idx + 1))
+        : num;
+      const mappedPin = Number.isFinite(lookupNumber)
+        ? imageNotePinCoordinateMap.get(lookupNumber)
         : null;
       const pinX = resolvePinPercent(mappedPin?.pinX ?? q?.pinX);
       const pinY = resolvePinPercent(mappedPin?.pinY ?? q?.pinY);

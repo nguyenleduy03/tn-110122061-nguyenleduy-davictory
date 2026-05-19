@@ -43,7 +43,9 @@ public class CorsConfig {
             "http://localhost:80",             // Nginx local
             "http://localhost",                // Nginx local (no port)
             "https://davictory.io.vn",         // Production domain
-            "http://davictory.io.vn"           // Production domain (HTTP)
+            "https://www.davictory.io.vn",     // Production domain (www)
+            "http://davictory.io.vn",          // Production domain (HTTP)
+            "http://www.davictory.io.vn"       // Production domain (www HTTP)
         ));
 
         // Thêm IP public tự động phát hiện

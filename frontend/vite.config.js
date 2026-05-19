@@ -32,7 +32,7 @@ export default defineConfig(async () => {
     server: {
       host: '0.0.0.0',
       port: 5173,
-      allowedHosts: ['davictory.io.vn', 'localhost'],
+      allowedHosts: ['davictory.io.vn', 'www.davictory.io.vn', 'localhost'],
       hmr: {
         protocol: 'wss',
         host: 'davictory.io.vn',

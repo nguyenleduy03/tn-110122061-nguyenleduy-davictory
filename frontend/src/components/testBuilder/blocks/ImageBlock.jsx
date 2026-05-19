@@ -270,7 +270,7 @@ const QuestionItem = ({ question, selected, onClick, onUpdate, onDelete }) => {
 
 // ---- Map Labelling Block ----
 // Teacher uploads image, clicks to place numbered pins, student drags bank chips onto pins.
-function MapLabellingBlock({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps,
+function MapLabellingBlock({ group, allGroups = [], partQuestionStartNumber = 1, onUpdate, onDelete, onSelect, selected, dragHandleProps,
   onUpdateQuestion, onDeleteQuestion, selectedQuestionId, testTitle, testId, module = 'READING' }) {
   const containerRef = useRef(null);
   const imageWrapRef = useRef(null);
@@ -284,6 +284,28 @@ function MapLabellingBlock({ group, onUpdate, onDelete, onSelect, selected, drag
   const dragSlotCount = questions.length;
   const autoKeepUsedOptionSlots = optionCount > dragSlotCount;
   const imageWidth = resolveImageWidthPercent(group.imageWidth, lockedLayout.defaultImageWidth ?? 100);
+  const partRange = calculateQuestionRange(group, allGroups);
+  const fromQ = partQuestionStartNumber + Math.max(0, (partRange.fromQuestion ?? 1) - 1);
+  const toQ = questions.length > 0 ? (fromQ + questions.length - 1) : (group.toQuestion ?? fromQ);
+  const currentQuestionSignature = questions.map((q) => `${q.id}:${q.questionNumber ?? ''}`).join('|');
+
+  useEffect(() => {
+    const normalizedQuestions = questions.map((q, idx) => ({
+      ...q,
+      questionNumber: fromQ + idx,
+    }));
+    const normalizedSignature = normalizedQuestions.map((q) => `${q.id}:${q.questionNumber ?? ''}`).join('|');
+    const isRangeChanged = group.fromQuestion !== fromQ || group.toQuestion !== toQ;
+    const isQuestionsChanged = normalizedSignature !== currentQuestionSignature;
+
+    if (isRangeChanged || isQuestionsChanged) {
+      onUpdate(group.id, {
+        fromQuestion: fromQ,
+        toQuestion: toQ,
+        questions: normalizedQuestions,
+      });
+    }
+  }, [fromQ, toQ, currentQuestionSignature, questions, group.id, group.fromQuestion, group.toQuestion, onUpdate]);
 
   const getImageRect = () => imageWrapRef.current?.getBoundingClientRect() || null;
 
@@ -343,7 +365,7 @@ function MapLabellingBlock({ group, onUpdate, onDelete, onSelect, selected, drag
     const newQ = {
       id: Date.now(),
       groupId: group.id,
-      questionNumber: questions.length + 1,
+      questionNumber: fromQ + questions.length,
       questionText: '',
       answerText: '',
       pinX: clampImagePinPercent(x, rect.width, 120),
@@ -488,12 +510,12 @@ function MapLabellingBlock({ group, onUpdate, onDelete, onSelect, selected, drag
       {/* Question range */}
       <div className="exam-q-range-header" style={{ marginTop: 10 }} onClick={(e) => e.stopPropagation()}>
         Câu&nbsp;
-        <input className="exam-q-range-input" value={group.fromQuestion ?? ''} placeholder="16"
-          onChange={(e) => onUpdate(group.id, { fromQuestion: e.target.value ? Number(e.target.value) : null })}
+        <input className="exam-q-range-input" value={fromQ} placeholder="16" readOnly
+          style={{ background: '#f9fafb', color: '#9ca3af' }}
           onClick={(e) => e.stopPropagation()} />
         &nbsp;–&nbsp;
-        <input className="exam-q-range-input" value={group.toQuestion ?? ''} placeholder="20"
-          onChange={(e) => onUpdate(group.id, { toQuestion: e.target.value ? Number(e.target.value) : null })}
+        <input className="exam-q-range-input" value={toQ} placeholder="20" readOnly
+          style={{ background: '#f9fafb', color: '#9ca3af' }}
           onClick={(e) => e.stopPropagation()} />
       </div>
 
