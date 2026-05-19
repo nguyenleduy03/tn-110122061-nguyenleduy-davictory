@@ -793,25 +793,25 @@ const TestBuilder = () => {
   };
 
   const updateGroup = useCallback((partId, groupId, updates) => {
-    const currentPart = parts.find((p) => p.id === partId);
-    const currentGroup = currentPart?.questionGroups?.find((g) => g.id === groupId);
-    if (!currentGroup) return;
+    setParts((prev) => {
+      const currentPart = prev.find((p) => p.id === partId);
+      const currentGroup = currentPart?.questionGroups?.find((g) => g.id === groupId);
+      if (!currentGroup) return prev;
 
-    // So sánh sâu để tránh update không cần thiết
-    const hasChanges = Object.keys(updates).some((key) => {
-      if (key === 'questions') {
-        return JSON.stringify(currentGroup.questions ?? []) !== JSON.stringify(updates.questions ?? []);
+      // So sánh sâu để tránh update không cần thiết
+      const hasChanges = Object.keys(updates).some((key) => {
+        if (key === 'questions') {
+          return JSON.stringify(currentGroup.questions ?? []) !== JSON.stringify(updates.questions ?? []);
+        }
+        return currentGroup[key] !== updates[key];
+      });
+
+      if (!hasChanges) {
+        return prev;
       }
-      return currentGroup[key] !== updates[key];
-    });
 
-    if (!hasChanges) {
-      return;
-    }
-
-    // Update parts state
-    setParts((prev) =>
-      prev.map((p) => {
+      // Update parts state
+      return prev.map((p) => {
         if (p.id !== partId) return p;
         const updatedGroups = p.questionGroups.map((g) => {
           if (g.id !== groupId) return g;
@@ -825,8 +825,8 @@ const TestBuilder = () => {
           return updated;
         });
         return { ...p, questionGroups: recalculateQuestionNumbers(updatedGroups) };
-      })
-    );
+      });
+    });
 
     // QUAN TRỌNG: Cũng update sessions state
     setSessions((prev) => {
@@ -844,10 +844,13 @@ const TestBuilder = () => {
       return updated;
     });
 
-    if (selection?.type === 'group' && selection.data.id === groupId) {
-      setSelection((s) => ({ ...s, data: { ...s.data, ...updates } }));
-    }
-  }, [parts, selection]);
+    setSelection((s) => {
+      if (s?.type === 'group' && s.data.id === groupId) {
+        return { ...s, data: { ...s.data, ...updates } };
+      }
+      return s;
+    });
+  }, []);
 
   const deleteGroup = (partId, groupId) => {
     setParts((prev) =>
@@ -985,10 +988,14 @@ const TestBuilder = () => {
           : { ...p, questionGroups: updatedGroups };
       })
     );
-    if (selection?.type === 'question' && selection.data.id === questionId) {
-      setSelection((s) => ({ ...s, data: { ...s.data, ...updates } }));
-    }
-  }, [selection]);
+    
+    setSelection((s) => {
+      if (s?.type === 'question' && s.data.id === questionId) {
+        return { ...s, data: { ...s.data, ...updates } };
+      }
+      return s;
+    });
+  }, []);
 
   const deleteQuestion = (partId, groupId, questionId) => {
     setParts((prev) =>
