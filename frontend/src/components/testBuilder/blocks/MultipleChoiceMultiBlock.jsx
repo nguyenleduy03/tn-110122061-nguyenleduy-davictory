@@ -45,7 +45,16 @@ const MultipleChoiceMultiBlock = ({ group, onUpdate, onDelete, onSelect, selecte
       isCorrect: false,
       orderIndex: startIdx + i
     }));
-    onUpdateQuestion(group.id, q.id, { options: [...existingOpts, ...imported] });
+    
+    const newOptions = [...existingOpts, ...imported];
+    console.log('🔍 MultipleChoiceMulti - Import options:', {
+      questionId: q.id,
+      imported: imported.length,
+      total: newOptions.length,
+      options: newOptions
+    });
+    
+    onUpdateQuestion(group.id, q.id, { options: newOptions });
     setImportStates(prev => ({ ...prev, [q.id]: false }));
   };
 

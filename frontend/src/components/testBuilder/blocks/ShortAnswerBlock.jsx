@@ -230,12 +230,12 @@ const ShortAnswerBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragH
       />
       <div className="exam-q-range-header">
         Câu&nbsp;
-        <input className="exam-q-range-input" value={group.fromQuestion ?? ''} placeholder="1"
-          onChange={(e) => onUpdate(group.id, { fromQuestion: e.target.value ? Number(e.target.value) : null })}
+        <input className="exam-q-range-input" value={fromQ} placeholder="1" readOnly
+          style={{ background: '#f9fafb', color: '#9ca3af' }}
           onClick={(e) => e.stopPropagation()} />
         &nbsp;–&nbsp;
-        <input className="exam-q-range-input" value={group.toQuestion ?? ''} placeholder="4"
-          onChange={(e) => onUpdate(group.id, { toQuestion: e.target.value ? Number(e.target.value) : null })}
+        <input className="exam-q-range-input" value={toQ} placeholder="4" readOnly
+          style={{ background: '#f9fafb', color: '#9ca3af' }}
           onClick={(e) => e.stopPropagation()} />
       </div>
       {questions.map((q) => {

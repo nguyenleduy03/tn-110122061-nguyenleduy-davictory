@@ -50,12 +50,23 @@ const nextId = () => ++_nextId;
 // Tính lại fromQuestion và toQuestion cho tất cả groups trong một part
 const getGroupQuestionCount = (group) => {
   if (group?.contentType === 'AUDIO_TRANSCRIPT') return 0;
+  
+  // Matching Heading: đếm theo số paragraphs (nếu có passage)
+  if (group?.contentType === 'MATCHING_HEADING') {
+    // Nếu đã có questions thì đếm questions
+    if (group.questions && group.questions.length > 0) {
+      return group.questions.length;
+    }
+    // Nếu chưa có questions, trả về 0 (sẽ được tính khi có passage)
+    return 0;
+  }
+  
   return (group?.questions ?? []).reduce((sum, q) => sum + (q.questionCount || 1), 0);
 };
 
-const recalculateQuestionNumbers = (groups) => {
-  let runningTotal = 0;
-  return groups.map((g) => {
+const recalculateQuestionNumbers = (groups, partOffset = 0) => {
+  let runningTotal = partOffset;
+  const result = groups.map((g) => {
     const questionCount = getGroupQuestionCount(g);
 
     const fromQuestion = questionCount > 0 ? runningTotal + 1 : null;
@@ -68,12 +79,32 @@ const recalculateQuestionNumbers = (groups) => {
       return g;
     }
 
+    console.log('🔢 Recalculate:', { 
+      groupId: g.id, 
+      contentType: g.contentType,
+      questionCount, 
+      fromQuestion, 
+      toQuestion,
+      partOffset
+    });
+
     return {
       ...g,
       fromQuestion,
       toQuestion,
     };
   });
+  return result;
+};
+
+// Helper: tính số câu từ các part trước partId
+const getPartOffset = (parts, partId) => {
+  const partIndex = parts.findIndex(p => p.id === partId);
+  if (partIndex <= 0) return 0;
+  
+  return parts.slice(0, partIndex).reduce((sum, p) => {
+    return sum + (p.questionGroups ?? []).reduce((gSum, g) => gSum + getGroupQuestionCount(g), 0);
+  }, 0);
 };
 
 const hasActiveMediaUpload = (sessions = {}) => Object.values(sessions).some((parts) => (
@@ -385,11 +416,51 @@ const TestBuilder = () => {
     setSelection(null);
   }, []);
 
-  const setParts = (updater) =>
-    setSessions((prev) => ({
-      ...prev,
-      [activeSkill]: typeof updater === 'function' ? updater(prev[activeSkill]) : updater,
-    }));
+  const setParts = (updater) => {
+    console.log('🔄 setParts called for skill:', activeSkill);
+    setSessions((prev) => {
+      const currentParts = prev[activeSkill] || [];
+      const newParts = typeof updater === 'function' ? updater(currentParts) : updater;
+      
+      // Tính offset từ các session trước activeSkill
+      const skillOrder = ['LISTENING', 'READING', 'WRITING', 'SPEAKING'];
+      const currentSkillIndex = skillOrder.indexOf(activeSkill);
+      
+      let sessionOffset = 0;
+      for (let i = 0; i < currentSkillIndex; i++) {
+        const skillKey = skillOrder[i];
+        const skillParts = prev[skillKey] || [];
+        sessionOffset += skillParts.reduce((sum, p) => {
+          return sum + (p.questionGroups ?? []).reduce((gSum, g) => gSum + getGroupQuestionCount(g), 0);
+        }, 0);
+      }
+      
+      console.log('📊 Session offset for', activeSkill, ':', sessionOffset);
+      
+      // Recalculate question numbers cho tất cả parts với offset đúng
+      const recalculatedParts = newParts.map((part, index) => {
+        const partOffset = sessionOffset + newParts.slice(0, index).reduce((sum, p) => {
+          return sum + (p.questionGroups ?? []).reduce((gSum, g) => gSum + getGroupQuestionCount(g), 0);
+        }, 0);
+        
+        return {
+          ...part,
+          questionGroups: recalculateQuestionNumbers(part.questionGroups, partOffset)
+        };
+      });
+      
+      const updated = {
+        ...prev,
+        [activeSkill]: recalculatedParts,
+      };
+      console.log('✅ Sessions updated:', { 
+        skill: activeSkill, 
+        partsCount: updated[activeSkill]?.length,
+        firstPartGroups: updated[activeSkill]?.[0]?.questionGroups?.length 
+      });
+      return updated;
+    });
+  };
 
   const addPart = () => {
     // Tính toán question range theo quy chuẩn IELTS
@@ -472,10 +543,21 @@ const TestBuilder = () => {
 
     const groupIdx = (part.questionGroups?.length ?? 0) + 1;
 
-    // Tính startQuestionNumber theo toàn bộ câu hỏi đã có trong cùng part
-    const startQuestionNumber = (part.questionGroups ?? []).reduce((sum, g) => {
+    // Tính startQuestionNumber: cộng tất cả câu hỏi từ các part trước + part hiện tại
+    const parts = sessions[activeSkill] || [];
+    const partIndex = parts.findIndex(p => p.id === part.id);
+    
+    // Đếm câu từ các part trước
+    const questionsBeforePart = parts.slice(0, partIndex).reduce((sum, p) => {
+      return sum + (p.questionGroups ?? []).reduce((gSum, g) => gSum + getGroupQuestionCount(g), 0);
+    }, 0);
+    
+    // Đếm câu trong part hiện tại
+    const questionsInCurrentPart = (part.questionGroups ?? []).reduce((sum, g) => {
       return sum + getGroupQuestionCount(g);
-    }, 0) + 1;
+    }, 0);
+    
+    const startQuestionNumber = questionsBeforePart + questionsInCurrentPart + 1;
 
     // ── Helpers ──
     const makeQ = (offset, typeName = 'FILL_IN_BLANK', extra = {}) => ({
@@ -490,8 +572,8 @@ const TestBuilder = () => {
       options: ['A', 'B', 'C', 'D'].map((l, i) => ({ id: nextId(), optionLabel: l, optionText: '', isCorrect: false, orderIndex: i })),
     });
     const makeMMCQ = (num) => makeQ(num, 'MULTIPLE_CHOICE_MULTIPLE', {
-      chooseCount: 2,
-      questionCount: 2,
+      chooseCount: 2,  // Số đáp án đúng cần chọn
+      questionCount: 2,  // Tính 2 câu (tương ứng với 2 đáp án đúng)
       options: ['A', 'B', 'C', 'D', 'E'].map((l, i) => ({ id: nextId(), optionLabel: l, optionText: '', isCorrect: false, orderIndex: i })),
     });
 
@@ -958,36 +1040,60 @@ const TestBuilder = () => {
   };
 
   const updateQuestion = useCallback((partId, groupId, questionId, updates) => {
-    setParts((prev) =>
-      prev.map((p) => {
-        if (p.id !== partId) return p;
-        const updatedGroups = p.questionGroups.map((g) => {
-          if (g.id !== groupId) return g;
+    console.log('🔧 updateQuestion called:', { partId, groupId, questionId, updates });
+    
+    // Tìm skill của part này
+    let targetSkill = activeSkill;
+    for (const [skill, parts] of Object.entries(sessions)) {
+      if (parts.some(p => p.id === partId)) {
+        targetSkill = skill;
+        break;
+      }
+    }
+    console.log('🎯 Target skill:', targetSkill, 'for partId:', partId);
+    
+    setSessions((prev) => {
+      const parts = prev[targetSkill] || [];
+      const partOffset = getPartOffset(parts, partId);
+      
+      return {
+        ...prev,
+        [targetSkill]: parts.map((p) => {
+          if (p.id !== partId) return p;
+          const updatedGroups = p.questionGroups.map((g) => {
+            if (g.id !== groupId) return g;
 
-          const updatedQuestions = g.questions.map((q) => {
-            if (q.id !== questionId) return q;
-            const updated = { ...q, ...updates };
+            const updatedQuestions = g.questions.map((q) => {
+              if (q.id !== questionId) return q;
+              const updated = { ...q, ...updates };
 
-            // Nếu là MMCQ và update options, tự động tính chooseCount từ số đáp án đúng
-            if (g.contentType === 'MULTIPLE_CHOICE_MULTI' && 'options' in updates) {
-              const correctCount = (updates.options || []).filter(opt => opt.isCorrect).length;
-              if (correctCount > 0) {
-                updated.questionCount = correctCount;
+              // Nếu là MMCQ và update options, tự động tính questionCount từ số đáp án đúng
+              if (g.contentType === 'MULTIPLE_CHOICE_MULTI' && 'options' in updates) {
+                const correctCount = (updates.options || []).filter(opt => opt.isCorrect).length;
+                if (correctCount > 0) {
+                  updated.questionCount = correctCount;
+                }
+                console.log('✅ Updated MMCQ options:', {
+                  skill: targetSkill,
+                  optionsCount: updates.options?.length,
+                  correctCount,
+                  questionCount: updated.questionCount
+                });
               }
-            }
 
-            return updated;
+              return updated;
+            });
+
+            return { ...g, questions: updatedQuestions };
           });
 
-          return { ...g, questions: updatedQuestions };
-        });
-
-        // Tính lại question numbers nếu questionCount thay đổi
-        return 'questionCount' in updates || ('options' in updates)
-          ? { ...p, questionGroups: recalculateQuestionNumbers(updatedGroups) }
-          : { ...p, questionGroups: updatedGroups };
-      })
-    );
+          // Tính lại question numbers nếu questionCount thay đổi
+          return 'questionCount' in updates || ('options' in updates)
+            ? { ...p, questionGroups: recalculateQuestionNumbers(updatedGroups, partOffset) }
+            : { ...p, questionGroups: updatedGroups };
+        })
+      };
+    });
     
     setSelection((s) => {
       if (s?.type === 'question' && s.data.id === questionId) {
@@ -995,7 +1101,7 @@ const TestBuilder = () => {
       }
       return s;
     });
-  }, []);
+  }, [activeSkill, sessions]);
 
   const deleteQuestion = (partId, groupId, questionId) => {
     setParts((prev) =>

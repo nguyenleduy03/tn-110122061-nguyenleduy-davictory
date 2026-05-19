@@ -107,11 +107,42 @@ const MatchingHeadingBlock = ({ group, onUpdate, onDelete, onSelect, selected, d
         id: `${group.id}-q-${section.id}`,
         questionText: section.questionText,
         questionNumber: section.questionNumber,
+        questionCount: 1, // Mỗi section = 1 câu
         answerText: newAnswerText,
       };
       onUpdate(group.id, { questions: [...questions, newQ] });
     }
   };
+
+  // Auto-create placeholder questions when passage paragraphs exist
+  useEffect(() => {
+    if (hasSyncedPassage && passageParagraphs && passageParagraphs.length > 0) {
+      const existingQuestionLabels = new Set(
+        questions.map(q => q.questionText?.replace(/^Section\s*/i, '').trim())
+      );
+      
+      const missingQuestions = passageParagraphs
+        .filter(para => {
+          const label = para.label || String.fromCharCode(65 + passageParagraphs.indexOf(para));
+          return !existingQuestionLabels.has(label);
+        })
+        .map((para) => {
+          const label = para.label || String.fromCharCode(65 + passageParagraphs.indexOf(para));
+          return {
+            id: `${group.id}-q-${para.id}`,
+            questionText: `Section ${label}`,
+            questionNumber: 1,
+            questionCount: 1, // Mỗi section = 1 câu (giống TFNG)
+            answerText: '',
+          };
+        });
+      
+      if (missingQuestions.length > 0) {
+        console.log('🔧 Auto-creating', missingQuestions.length, 'questions for Matching Heading');
+        onUpdate(group.id, { questions: [...questions, ...missingQuestions] });
+      }
+    }
+  }, [hasSyncedPassage, passageParagraphs?.length]);
 
   return (
     <div className={`exam-group${selected ? ' selected' : ''}`} onClick={(e) => { e.stopPropagation(); onSelect(group); }}>

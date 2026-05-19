@@ -62,10 +62,23 @@ export const testBuilderApi = {
   saveFullTest: async (payload) => {
     console.log('🔍 DEBUG: Payload gửi lên backend:', JSON.stringify(payload, null, 2));
 
-    // Kiểm tra drag matching questions
+    // Kiểm tra multiple choice multi questions
     payload.sessions?.forEach((session, sIdx) => {
       session.parts?.forEach((part, pIdx) => {
         part.questionGroups?.forEach((group, gIdx) => {
+          if (group.contentType === 'MULTIPLE_CHOICE_MULTI') {
+            console.log(`📋 MULTIPLE_CHOICE_MULTI Group ${gIdx} trong Part ${pIdx}:`, {
+              title: group.title,
+              questionCount: group.questions?.length || 0,
+              questions: group.questions?.map((q, idx) => ({
+                index: idx,
+                questionText: q.questionText,
+                optionsCount: q.options?.length || 0,
+                options: q.options
+              }))
+            });
+          }
+          
           if (group.contentType === 'MATCHING') {
             console.log(`📋 DRAG_MATCHING Group ${gIdx} trong Part ${pIdx}:`, {
               title: group.title,
@@ -905,6 +918,15 @@ export function parseLoadedTest(data) {
                 orderIndex: opt.orderIndex,
               };
             });
+
+            // Debug: Log options for MULTIPLE_CHOICE_MULTI
+            if (contentType === 'MULTIPLE_CHOICE_MULTI') {
+              console.log(`🔍 Load MULTIPLE_CHOICE_MULTI question ${qResp.questionNumber}:`, {
+                backendOptions: qResp.options?.length || 0,
+                mappedOptions: options.length,
+                options: options
+              });
+            }
 
             // If MCQ but no options from backend, create defaults
             if (isMCQ && options.length === 0) {

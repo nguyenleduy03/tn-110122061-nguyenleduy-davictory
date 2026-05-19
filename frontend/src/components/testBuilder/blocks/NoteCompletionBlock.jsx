@@ -83,11 +83,6 @@ const NoteCompletionBlock = ({ group, allGroups = [], partQuestionStartNumber = 
   const fromQ = partQuestionStartNumber + Math.max(0, (partRange.fromQuestion ?? 1) - 1);
   const toQ = questions.length > 0 ? (fromQ + questions.length - 1) : (group.toQuestion ?? fromQ);
 
-  // Tính signature để detect thay đổi thực sự
-    questions.map((q, idx) => `${q.id}:${q.questionNumber ?? ''}`).join('|'),
-    [questions]
-  );
-
   useEffect(() => {
     const isRangeChanged = group.fromQuestion !== fromQ || group.toQuestion !== toQ;
     const hasWrongNumbers = questions.some((q, idx) => q.questionNumber !== fromQ + idx);
@@ -104,6 +99,7 @@ const NoteCompletionBlock = ({ group, allGroups = [], partQuestionStartNumber = 
         questions: normalizedQuestions,
       });
     }
+  }, [fromQ, toQ, questions, group.id, group.fromQuestion, group.toQuestion, onUpdate]);
 
   return (
     <div className={`exam-group${selected ? ' selected' : ''}`} onClick={(e) => { e.stopPropagation(); onSelect(group); }}>
