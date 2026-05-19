@@ -2,40 +2,44 @@
 > frontend@0.0.0 dev
 > vite --host 0.0.0.0
 
-[vite] 🌐 Public IP: 14.160.193.160
-[vite] 🔗 API Base URL: http://14.160.193.160:8080/api
+[vite] 🌐 Public IP: 113.170.158.188
+[vite] 🔗 API Base URL: http://113.170.158.188:8080/api
 
-  VITE v8.0.0-beta.16  ready in 1189 ms
+  VITE v8.0.0-beta.16  ready in 1147 ms
 
   ➜  Local:   http://localhost:5173/
   ➜  Network: http://192.168.1.20:5173/
-20:04:42 [vite] http proxy error: /api/test-structure/sessions?testType=ACADEMIC
+10:09:21 [vite] http proxy error: /api/test-structure/sessions?testType=ACADEMIC
 Error: connect ECONNREFUSED 127.0.0.1:8080
     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1611:16)
-20:04:42 [vite] http proxy error: /api/test-structure/sessions?testType=ACADEMIC
+10:09:21 [vite] http proxy error: /api/test-structure/sessions?testType=ACADEMIC
 Error: connect ECONNREFUSED 127.0.0.1:8080
     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1611:16)
-20:04:46 [vite] http proxy error: /api/writing/teacher/submissions
+10:09:32 [vite] http proxy error: /api/test-structure/sessions?testType=ACADEMIC
 Error: connect ECONNREFUSED 127.0.0.1:8080
     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1611:16)
-20:04:46 [vite] http proxy error: /api/writing/teacher/submissions
+10:09:32 [vite] http proxy error: /api/test-structure/sessions?testType=ACADEMIC
 Error: connect ECONNREFUSED 127.0.0.1:8080
     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1611:16)
-20:04:46 [vite] http proxy error: /api/class-management/my
+10:09:40 [vite] http proxy error: /api/test-structure/sessions?testType=ACADEMIC
 Error: connect ECONNREFUSED 127.0.0.1:8080
     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1611:16)
-20:04:46 [vite] http proxy error: /api/class-management/my
+10:09:40 [vite] http proxy error: /api/test-structure/sessions?testType=ACADEMIC
 Error: connect ECONNREFUSED 127.0.0.1:8080
     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1611:16)
-20:04:46 [vite] http proxy error: /api/exam-attempts
+10:09:46 [vite] http proxy error: /api/test-structure/sessions?testType=ACADEMIC
 Error: connect ECONNREFUSED 127.0.0.1:8080
     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1611:16)
-20:04:47 [vite] http proxy error: /api/exam-attempts
+10:09:46 [vite] http proxy error: /api/test-structure/sessions?testType=ACADEMIC
 Error: connect ECONNREFUSED 127.0.0.1:8080
     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1611:16)
-20:04:47 [vite] http proxy error: /api/test-builder/filter
-Error: connect ECONNREFUSED 127.0.0.1:8080
-    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1611:16)
-20:04:47 [vite] http proxy error: /api/test-builder
-Error: connect ECONNREFUSED 127.0.0.1:8080
-    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1611:16)
+10:11:10 [vite] (client) hmr update /src/pages/TestBuilder.jsx
+10:11:40 [vite] (client) hmr update /src/pages/TestBuilder.jsx
+10:14:01 [vite] (client) hmr update /src/pages/TestBuilder.jsx
+10:14:19 [vite] (client) hmr update /src/pages/TestBuilder.jsx
+10:16:55 [vite] (client) hmr update /src/pages/TestBuilder.jsx
+10:17:07 [vite] (client) hmr update /src/pages/TestBuilder.jsx
+10:18:46 [vite] (client) hmr update /src/components/testBuilder/blocks/ShortAnswerBlock.jsx
+10:18:56 [vite] (client) hmr update /src/components/testBuilder/SharedOptionsDropdownBlock.jsx
+10:19:06 [vite] (client) hmr update /src/components/testBuilder/blocks/TFNGBlock.jsx
+10:19:17 [vite] (client) hmr update /src/components/testBuilder/blocks/NoteCompletionBlock.jsx

@@ -85,6 +85,12 @@ const ShortAnswerBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragH
   const fromQ = partQuestionStartNumber + Math.max(0, (partRange.fromQuestion ?? 1) - 1);
   const toQ = questions.length > 0 ? (fromQ + questions.length - 1) : (group.toQuestion ?? fromQ);
 
+  // Tính signature để detect thay đổi thực sự
+  const questionsSignature = React.useMemo(() => 
+    questions.map((q, idx) => `${q.id}:${q.questionNumber ?? ''}`).join('|'),
+    [questions]
+  );
+
   useEffect(() => {
     // Chỉ update khi range thay đổi hoặc questionNumber sai
     const isRangeChanged = group.fromQuestion !== fromQ || group.toQuestion !== toQ;
@@ -102,7 +108,7 @@ const ShortAnswerBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragH
         questions: normalizedQuestions,
       });
     }
-  }, [fromQ, toQ, questions.length, group.id, group.fromQuestion, group.toQuestion, onUpdate]);
+  }, [fromQ, toQ, questionsSignature, group.id, group.fromQuestion, group.toQuestion, onUpdate]);
 
   const normalizeAnswers = (q) => {
     const rawAnswers = Array.isArray(q?.answers) && q.answers.length > 0

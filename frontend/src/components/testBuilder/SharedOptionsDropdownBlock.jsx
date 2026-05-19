@@ -39,6 +39,12 @@ const SharedOptionsDropdownBlock = ({
   const fromQ = partQuestionStartNumber + Math.max(0, (partRange.fromQuestion ?? 1) - 1);
   const toQ = questions.length > 0 ? (fromQ + questions.length - 1) : (group.toQuestion ?? fromQ);
 
+  // Tính signature để detect thay đổi thực sự
+  const questionsSignature = React.useMemo(() => 
+    questions.map((q, idx) => `${q.id}:${q.questionNumber ?? ''}`).join('|'),
+    [questions]
+  );
+
   React.useEffect(() => {
     const isRangeChanged = group.fromQuestion !== fromQ || group.toQuestion !== toQ;
     const hasWrongNumbers = questions.some((q, idx) => q.questionNumber !== fromQ + idx);
@@ -55,7 +61,7 @@ const SharedOptionsDropdownBlock = ({
         questions: normalizedQuestions,
       });
     }
-  }, [fromQ, toQ, questions.length, group.id, group.fromQuestion, group.toQuestion, onUpdate]);
+  }, [fromQ, toQ, questionsSignature, group.id, group.fromQuestion, group.toQuestion, onUpdate]);
 
   const syncSharedOptions = (next) => {
     onUpdate(group.id, { sharedOptions: next });
