@@ -63,6 +63,11 @@ const recalculateQuestionNumbers = (groups) => {
 
     runningTotal += questionCount;
 
+    // Chỉ tạo object mới nếu fromQuestion/toQuestion thay đổi
+    if (g.fromQuestion === fromQuestion && g.toQuestion === toQuestion) {
+      return g;
+    }
+
     return {
       ...g,
       fromQuestion,
@@ -788,27 +793,19 @@ const TestBuilder = () => {
   };
 
   const updateGroup = (partId, groupId, updates) => {
-    console.log('updateGroup called:', { partId, groupId, updates });
-    if (updates.questions) {
-      console.log('📋 Questions being updated:', updates.questions.map(q => ({
-        id: q.id,
-        qNum: q.questionNumber,
-        answerText: q.answerText
-      })));
-    }
-
     const currentPart = parts.find((p) => p.id === partId);
     const currentGroup = currentPart?.questionGroups?.find((g) => g.id === groupId);
     if (!currentGroup) return;
 
-    const nextGroup = { ...currentGroup, ...updates };
-    const sameQuestions = JSON.stringify(currentGroup.questions ?? []) === JSON.stringify(nextGroup.questions ?? []);
-    const sameKeys = Object.keys(updates).every((key) => {
-      if (key === 'questions') return sameQuestions;
-      return currentGroup[key] === nextGroup[key];
+    // So sánh sâu để tránh update không cần thiết
+    const hasChanges = Object.keys(updates).some((key) => {
+      if (key === 'questions') {
+        return JSON.stringify(currentGroup.questions ?? []) !== JSON.stringify(updates.questions ?? []);
+      }
+      return currentGroup[key] !== updates[key];
     });
 
-    if (sameKeys) {
+    if (!hasChanges) {
       return;
     }
 
@@ -819,7 +816,6 @@ const TestBuilder = () => {
         const updatedGroups = p.questionGroups.map((g) => {
           if (g.id !== groupId) return g;
           const updated = { ...g, ...updates };
-          console.log('Group updated:', { oldQuestions: g.questions, newQuestions: updated.questions });
           if (updated.contentType === 'MULTIPLE_CHOICE_MULTI' && 'chooseCount' in updates) {
             updated.questions = (updated.questions || []).map(q => ({
               ...q,
