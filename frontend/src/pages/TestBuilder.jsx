@@ -792,7 +792,7 @@ const TestBuilder = () => {
     setSelection({ type: 'group', data: newGroup });
   };
 
-  const updateGroup = (partId, groupId, updates) => {
+  const updateGroup = useCallback((partId, groupId, updates) => {
     const currentPart = parts.find((p) => p.id === partId);
     const currentGroup = currentPart?.questionGroups?.find((g) => g.id === groupId);
     if (!currentGroup) return;
@@ -847,7 +847,7 @@ const TestBuilder = () => {
     if (selection?.type === 'group' && selection.data.id === groupId) {
       setSelection((s) => ({ ...s, data: { ...s.data, ...updates } }));
     }
-  };
+  }, [parts, selection]);
 
   const deleteGroup = (partId, groupId) => {
     setParts((prev) =>
@@ -954,7 +954,7 @@ const TestBuilder = () => {
     setSelection({ type: 'question', data: newQ });
   };
 
-  const updateQuestion = (partId, groupId, questionId, updates) => {
+  const updateQuestion = useCallback((partId, groupId, questionId, updates) => {
     setParts((prev) =>
       prev.map((p) => {
         if (p.id !== partId) return p;
@@ -988,7 +988,7 @@ const TestBuilder = () => {
     if (selection?.type === 'question' && selection.data.id === questionId) {
       setSelection((s) => ({ ...s, data: { ...s.data, ...updates } }));
     }
-  };
+  }, [selection]);
 
   const deleteQuestion = (partId, groupId, questionId) => {
     setParts((prev) =>
