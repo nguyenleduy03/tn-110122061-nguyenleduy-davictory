@@ -85,30 +85,34 @@ const ShortAnswerBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragH
   const fromQ = partQuestionStartNumber + Math.max(0, (partRange.fromQuestion ?? 1) - 1);
   const toQ = questions.length > 0 ? (fromQ + questions.length - 1) : (group.toQuestion ?? fromQ);
 
-  // Tính signature để detect thay đổi thực sự
-  const questionsSignature = React.useMemo(() => 
-    questions.map((q, idx) => `${q.id}:${q.questionNumber ?? ''}`).join('|'),
-    [questions]
-  );
-
   useEffect(() => {
     // Chỉ update khi range thay đổi hoặc questionNumber sai
     const isRangeChanged = group.fromQuestion !== fromQ || group.toQuestion !== toQ;
-    const hasWrongNumbers = questions.some((q, idx) => q.questionNumber !== fromQ + idx);
-
-    if (isRangeChanged || hasWrongNumbers) {
-      const normalizedQuestions = questions.map((q, idx) => ({
-        ...q,
-        questionNumber: fromQ + idx,
-      }));
-      
-      onUpdate(group.id, {
-        fromQuestion: fromQ,
-        toQuestion: toQ,
-        questions: normalizedQuestions,
-      });
+    
+    // Check nếu có questionNumber sai - KHÔNG dùng questions.some() vì nó đọc toàn bộ array
+    let hasWrongNumbers = false;
+    for (let i = 0; i < questions.length; i++) {
+      if (questions[i].questionNumber !== fromQ + i) {
+        hasWrongNumbers = true;
+        break;
+      }
     }
-  }, [fromQ, toQ, questionsSignature, group.id, group.fromQuestion, group.toQuestion, onUpdate]);
+
+    if (!isRangeChanged && !hasWrongNumbers) {
+      return; // Không cần update
+    }
+
+    const normalizedQuestions = questions.map((q, idx) => ({
+      ...q,
+      questionNumber: fromQ + idx,
+    }));
+    
+    onUpdate(group.id, {
+      fromQuestion: fromQ,
+      toQuestion: toQ,
+      questions: normalizedQuestions,
+    });
+  }, [fromQ, toQ, questions.length, group.id, group.fromQuestion, group.toQuestion, onUpdate]);
 
   const normalizeAnswers = (q) => {
     const rawAnswers = Array.isArray(q?.answers) && q.answers.length > 0

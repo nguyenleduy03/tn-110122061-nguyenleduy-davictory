@@ -18,7 +18,6 @@ const TFNGBlock = ({ group, allGroups = [], partQuestionStartNumber = 1, onUpdat
   const toQ = questions.length > 0 ? (fromQ + questions.length - 1) : (group.toQuestion ?? fromQ);
 
   // Tính signature để detect thay đổi thực sự
-  const questionsSignature = React.useMemo(() => 
     questions.map((q, idx) => `${q.id}:${q.questionNumber ?? ''}`).join('|'),
     [questions]
   );
@@ -39,7 +38,6 @@ const TFNGBlock = ({ group, allGroups = [], partQuestionStartNumber = 1, onUpdat
         questions: normalizedQuestions,
       });
     }
-  }, [fromQ, toQ, questionsSignature, group.id, group.fromQuestion, group.toQuestion, onUpdate]);
 
   const handleImport = () => {
     const lines = importText.split('\n').map(l => l.trim()).filter(Boolean);

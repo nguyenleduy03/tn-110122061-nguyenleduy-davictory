@@ -84,7 +84,6 @@ const NoteCompletionBlock = ({ group, allGroups = [], partQuestionStartNumber = 
   const toQ = questions.length > 0 ? (fromQ + questions.length - 1) : (group.toQuestion ?? fromQ);
 
   // Tính signature để detect thay đổi thực sự
-  const questionsSignature = React.useMemo(() => 
     questions.map((q, idx) => `${q.id}:${q.questionNumber ?? ''}`).join('|'),
     [questions]
   );
@@ -105,7 +104,6 @@ const NoteCompletionBlock = ({ group, allGroups = [], partQuestionStartNumber = 
         questions: normalizedQuestions,
       });
     }
-  }, [fromQ, toQ, questionsSignature, group.id, group.fromQuestion, group.toQuestion, onUpdate]);
 
   return (
     <div className={`exam-group${selected ? ' selected' : ''}`} onClick={(e) => { e.stopPropagation(); onSelect(group); }}>
