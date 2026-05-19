@@ -18,22 +18,22 @@ const TFNGBlock = ({ group, allGroups = [], partQuestionStartNumber = 1, onUpdat
   const toQ = questions.length > 0 ? (fromQ + questions.length - 1) : (group.toQuestion ?? fromQ);
 
   useEffect(() => {
-    const normalizedQuestions = questions.map((q, idx) => ({
-      ...q,
-      questionNumber: fromQ + idx,
-    }));
     const isRangeChanged = group.fromQuestion !== fromQ || group.toQuestion !== toQ;
-    const isQuestionsChanged = normalizedQuestions.length !== questions.length
-      || normalizedQuestions.some((q, idx) => q.questionNumber !== questions[idx]?.questionNumber);
+    const hasWrongNumbers = questions.some((q, idx) => q.questionNumber !== fromQ + idx);
 
-    if (isRangeChanged || isQuestionsChanged) {
+    if (isRangeChanged || hasWrongNumbers) {
+      const normalizedQuestions = questions.map((q, idx) => ({
+        ...q,
+        questionNumber: fromQ + idx,
+      }));
+      
       onUpdate(group.id, {
         fromQuestion: fromQ,
         toQuestion: toQ,
         questions: normalizedQuestions,
       });
     }
-  }, [fromQ, toQ, questions, group.id, group.fromQuestion, group.toQuestion, onUpdate]);
+  }, [fromQ, toQ, questions.length, group.id, group.fromQuestion, group.toQuestion, onUpdate]);
 
   const handleImport = () => {
     const lines = importText.split('\n').map(l => l.trim()).filter(Boolean);

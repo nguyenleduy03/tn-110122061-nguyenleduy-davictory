@@ -305,7 +305,7 @@ function MapLabellingBlock({ group, allGroups = [], partQuestionStartNumber = 1,
         questions: normalizedQuestions,
       });
     }
-  }, [fromQ, toQ, currentQuestionSignature, questions, group.id, group.fromQuestion, group.toQuestion, onUpdate]);
+  }, [fromQ, toQ, currentQuestionSignature, group.id, group.fromQuestion, group.toQuestion, onUpdate]);
 
   const getImageRect = () => imageWrapRef.current?.getBoundingClientRect() || null;
 

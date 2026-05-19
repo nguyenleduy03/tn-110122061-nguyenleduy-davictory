@@ -169,7 +169,7 @@ const ImageNoteFormBlock = ({ group, allGroups = [], partQuestionStartNumber = 1
         toQuestion: nextToQuestion,
       });
     }
-  }, [questions, imagePosition, fromQ, orderedQuestions, currentQuestionSignature, group.id, group.fromQuestion, group.toQuestion, onUpdate]);
+  }, [questions.length, imagePosition, fromQ, currentQuestionSignature, group.id, group.fromQuestion, group.toQuestion, onUpdate]);
 
   useEffect(() => {
     const onMove = (e) => {
