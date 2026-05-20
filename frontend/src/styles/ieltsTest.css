@@ -4908,13 +4908,13 @@
 
 .summary-text {
     font-size: var(--ielts-question-content-font-size);
-    line-height: var(--ielts-question-content-line-height);
+    /* line-height: var(--ielts-question-content-line-height); */ /* Đã xóa - dùng inline style từ editor */
     white-space: normal;
     font-family: inherit;
 }
 
 .reading-page .summary-text {
-    line-height: 1.1;
+    /* line-height: 1.1; */ /* Đã xóa - dùng inline style từ editor */
 }
 
 .reading-page .summary-lead-line {

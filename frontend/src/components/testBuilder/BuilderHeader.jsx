@@ -73,6 +73,7 @@ const BuilderHeader = ({
 }) => {
   const [activeFormats, setActiveFormats] = useState({});
   const [customFontSize, setCustomFontSize] = useState(String(DEFAULT_FONT_SIZE));
+  const [currentLineHeight, setCurrentLineHeight] = useState('');
   const [sizeMenuOpen, setSizeMenuOpen] = useState(false);
   const [sizeMenuStyle, setSizeMenuStyle] = useState(null);
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
@@ -205,6 +206,11 @@ const BuilderHeader = ({
           if (activeFontSize) {
             setCustomFontSize((prev) => (String(prev) === String(activeFontSize) ? prev : activeFontSize));
           }
+          
+          // Đọc line-height hiện tại
+          const wrapper = editableEl.querySelector('[data-line-height-wrapper]');
+          const lineHeight = wrapper ? wrapper.style.lineHeight : editableEl.style.lineHeight;
+          setCurrentLineHeight(lineHeight || '');
         }
         if (sel?.rangeCount > 0) {
           const range = sel.getRangeAt(0);
@@ -977,6 +983,41 @@ const BuilderHeader = ({
                 <span className="tb-rsep-mini" />
                 <button className="tb-rbn-btn" onMouseDown={btn('outdent')} title="Giảm thụt lề" style={{ fontSize: 13, fontWeight: 700 }}>⇤</button>
                 <button className="tb-rbn-btn" onMouseDown={btn('indent')} title="Tăng thụt lề" style={{ fontSize: 13, fontWeight: 700 }}>⇥</button>
+                <span className="tb-rsep-mini" />
+                <select 
+                  className="tb-rbn-select" 
+                  style={{ width: 70 }} 
+                  title="Khoảng cách dòng"
+                  value={currentLineHeight}
+                  onFocus={captureCurrentSelection}
+                  onChange={(e) => {
+                    const target = getTargetEditable();
+                    if (!target) return;
+                    
+                    const lineHeightValue = e.target.value;
+                    const currentHtml = target.innerHTML;
+                    
+                    // Kiểm tra đã có wrapper chưa
+                    if (target.firstElementChild?.hasAttribute('data-line-height-wrapper')) {
+                      target.firstElementChild.style.lineHeight = lineHeightValue;
+                    } else {
+                      target.innerHTML = `<div data-line-height-wrapper="true" style="line-height: ${lineHeightValue}">${currentHtml}</div>`;
+                    }
+                    
+                    // Update state
+                    setCurrentLineHeight(lineHeightValue);
+                    
+                    // Trigger auto-save
+                    target.dispatchEvent(new Event('input', { bubbles: true }));
+                  }}
+                >
+                  <option value="1.5">1.5</option>
+                  <option value="1.8">1.8</option>
+                  <option value="2.0">2.0</option>
+                  <option value="2.2">2.2</option>
+                  <option value="2.4">2.4</option>
+                  <option value="2.6">2.6</option>
+                </select>
               </div>
               <span className="tb-rgroup-lbl">Đoạn văn</span>
             </div>
