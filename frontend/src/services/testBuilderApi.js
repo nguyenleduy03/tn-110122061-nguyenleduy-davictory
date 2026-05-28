@@ -482,7 +482,7 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
 // TFNG/YNNG: answerText là 'TRUE'/'FALSE'/'NOT GIVEN' cũng lưu vào answers
 function isTextAnswerType(typeCode) {
   return ['FILL_BLANK', 'SHORT_ANSWER', 'SENTENCE_COMPLETION', 'SUMMARY_COMPLETION', 'SUMMARY_COMPLETION_SELECT',
-    'NOTE_COMPLETION', 'FLOW_CHART', 'MAP_DIAGRAM', 'TABLE_FORM', 'MATCHING', 'MATCHING_HEADINGS',
+    'NOTE_COMPLETION', 'FLOW_CHART', 'FLOW_CHART_TEXT', 'MAP_DIAGRAM', 'TABLE_FORM', 'MATCHING', 'MATCHING_HEADINGS',
     'TFNG', 'YNNG', 'MCQ_DROPDOWN'].includes(typeCode);
 }
 
@@ -691,13 +691,21 @@ function serializeGroupContent(group, part) {
     });
   }
   // Flow chart
-  if (ct === 'FLOW_CHART') {
+  if (ct === 'FLOW_CHART' || ct === 'FLOW_CHART_TEXT') {
+    const vo = {};
+    if (group.ignoreCase !== undefined || group.ignoreSpaces || group.ignorePunctuation || group.ignoreChars) {
+      vo.ignoreCase = group.ignoreCase !== false;
+      vo.ignoreSpaces = group.ignoreSpaces || false;
+      vo.ignorePunctuation = group.ignorePunctuation || false;
+      vo.ignoreChars = group.ignoreChars || '';
+    }
     return JSON.stringify({
       title: group.title || '',
       flowNodes: group.flowNodes || [],
-      bankTitle: group.bankTitle || '',
-      optionBank: group.optionBank || [],
-      allowOptionReuse,
+      bankTitle: ct === 'FLOW_CHART_TEXT' ? '' : (group.bankTitle || ''),
+      optionBank: ct === 'FLOW_CHART_TEXT' ? [] : (group.optionBank || []),
+      allowOptionReuse: ct === 'FLOW_CHART_TEXT' ? true : allowOptionReuse,
+      ...(Object.keys(vo).length > 0 && { validationOptions: vo }),
     });
   }
   // Audio transcript: lưu transcript text nếu có
@@ -804,6 +812,7 @@ function mapQuestionTypeCode(typeName) {
     'IMAGE_NOTE_FORM': 'NOTE_COMPLETION',
     // Charts/Maps
     'FLOW_CHART': 'FLOW_CHART',
+    'FLOW_CHART_TEXT': 'FLOW_CHART',
     'MAP_DIAGRAM': 'MAP_DIAGRAM',
     'MAP': 'MAP_DIAGRAM',
     'DIAGRAM': 'MAP_DIAGRAM',
@@ -1149,14 +1158,19 @@ function deserializeGroupContent(contentType, passageText) {
         allowOptionReuse: (typeof parsed.allowOptionReuse === 'boolean') ? parsed.allowOptionReuse : true,
       };
     }
-    if (contentType === 'FLOW_CHART') {
+    if (contentType === 'FLOW_CHART' || contentType === 'FLOW_CHART_TEXT') {
       const parsed = JSON.parse(passageText);
+      const vo = parsed.validationOptions || {};
       return {
         title: parsed.title || '',
         flowNodes: parsed.flowNodes || [],
-        bankTitle: parsed.bankTitle || '',
-        optionBank: parsed.optionBank || [],
-        allowOptionReuse: (typeof parsed.allowOptionReuse === 'boolean') ? parsed.allowOptionReuse : true,
+        bankTitle: contentType === 'FLOW_CHART_TEXT' ? '' : (parsed.bankTitle || ''),
+        optionBank: contentType === 'FLOW_CHART_TEXT' ? [] : (parsed.optionBank || []),
+        allowOptionReuse: contentType === 'FLOW_CHART_TEXT' ? true : ((typeof parsed.allowOptionReuse === 'boolean') ? parsed.allowOptionReuse : true),
+        ignoreCase: vo.ignoreCase !== undefined ? vo.ignoreCase : undefined,
+        ignoreSpaces: vo.ignoreSpaces || false,
+        ignorePunctuation: vo.ignorePunctuation || false,
+        ignoreChars: vo.ignoreChars || '',
       };
     }
     if (contentType === 'WRITING_TASK') {
@@ -1251,6 +1265,7 @@ function mapBackendTypeToFrontend(code) {
     'SUMMARY_COMPLETION_SELECT': 'FILL_IN_BLANK',
     'NOTE_COMPLETION': 'FILL_IN_BLANK',
     'FLOW_CHART': 'FILL_IN_BLANK',
+    'FLOW_CHART_TEXT': 'FILL_IN_BLANK',
     'MAP_DIAGRAM': 'FILL_IN_BLANK',
     'TABLE_FORM': 'FILL_IN_BLANK',
     'LETTER': 'FILL_IN_BLANK',

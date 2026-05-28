@@ -1048,6 +1048,8 @@ export const TableCompletionGroup = ({ group, activeQ, onSetActive }) => {
     );
   };
 
+  const hasTableTitle = (group.tableTitle || '').replace(/<[^>]*>/g, '').trim().length > 0;
+
   return (
     <div className="pv-group-block">
       <QuestionRange group={group} />
@@ -1055,7 +1057,7 @@ export const TableCompletionGroup = ({ group, activeQ, onSetActive }) => {
       {group.title && <div className="pv-summary-title" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.title) }} />}
       <div className="pv-tc-scroll">
         <table className="pv-tc-table">
-          {group.tableTitle && (
+          {hasTableTitle && (
             <thead>
               <tr><th className="pv-tc-title-cell" colSpan={columns.length}>{group.tableTitle}</th></tr>
               <tr>
@@ -1065,7 +1067,7 @@ export const TableCompletionGroup = ({ group, activeQ, onSetActive }) => {
               </tr>
             </thead>
           )}
-          {!group.tableTitle && columns.some((c) => c.header) && (
+          {!hasTableTitle && columns.some((c) => c.header) && (
             <thead>
               <tr>
                 {columns.map((col) => (
@@ -1215,6 +1217,88 @@ export const FlowChartGroup = ({ group, activeQ, onSetActive }) => {
               ))
             }
           </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export const FlowChartTextGroup = ({ group, activeQ, onSetActive }) => {
+  const flowNodes = group.flowNodes ?? [];
+  const questions = group.questions ?? [];
+
+  const [answers, setAnswers] = useState({});
+  const [focusQ, setFocusQ] = useState(null);
+
+  const blanks = [];
+  for (const node of flowNodes) {
+    const n = (node.text ?? '').split(/\[blank\]/gi).length - 1;
+    for (let i = 0; i < n; i++) {
+      blanks.push(questions[blanks.length] ?? null);
+    }
+  }
+
+  const renderNodeText = (nodeText, blankOffset) => {
+    const parts = (nodeText ?? '').split(/\[blank\]/gi);
+    return parts.map((part, i) => {
+      if (i >= parts.length - 1) return <React.Fragment key={`t${i}`}>{part}</React.Fragment>;
+      const subQ = blanks[blankOffset + i];
+      const qNum = subQ?.questionNumber;
+      const val = qNum !== undefined ? answers[qNum] ?? '' : '';
+      const isActive = qNum !== undefined ? activeQ === qNum : false;
+      const isFocused = qNum !== undefined ? focusQ === qNum : false;
+      return (
+        <React.Fragment key={i}>
+          {part}
+          <span
+            className={`pv-fc-text-input ${isActive ? 'pv-fc-text-input-active' : ''} ${isFocused ? 'pv-fc-text-input-focus' : ''}`}
+          >
+            <input
+              type="text"
+              className="pv-fc-text-field"
+              placeholder={String(qNum ?? '')}
+              value={val}
+              onClick={(e) => { e.stopPropagation(); if (qNum !== undefined) onSetActive(qNum); }}
+              onFocus={() => { if (qNum !== undefined) { setFocusQ(qNum); onSetActive(qNum); } }}
+              onBlur={() => setFocusQ(null)}
+              onChange={(e) => {
+                if (qNum === undefined) return;
+                const v = e.target.value;
+                setAnswers((prev) => ({ ...prev, [qNum]: v }));
+              }}
+            />
+          </span>
+        </React.Fragment>
+      );
+    });
+  };
+
+  let blankCursor = 0;
+  const nodesWithOffset = flowNodes.map((node) => {
+    const offset = blankCursor;
+    blankCursor += (node.text ?? '').split(/\[blank\]/gi).length - 1;
+    return { node, offset };
+  });
+
+  return (
+    <div className="pv-group-block" onClick={(e) => e.stopPropagation()}>
+      <QuestionRange group={group} />
+      {group.instructions && <div className="pv-group-instructions" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.instructions) }} />}
+      <div className="pv-fc-layout">
+        <div className="pv-fc-chart">
+          {group.title && <div className="pv-fc-chart-title" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.title) }} />}
+          {nodesWithOffset.map(({ node, offset }, idx) => (
+            <React.Fragment key={node.id ?? idx}>
+              <div className="pv-fc-node">
+                <p className="pv-fc-node-text">
+                  {renderNodeText(node.text, offset)}
+                </p>
+              </div>
+              {idx < nodesWithOffset.length - 1 && (
+                <div className="pv-fc-arrow">↓</div>
+              )}
+            </React.Fragment>
+          ))}
         </div>
       </div>
     </div>
@@ -1580,6 +1664,7 @@ export const renderGroup = (group, activeQ, onSetActive, extraProps = {}) => {
   if (ct === 'NOTE_COMPLETION') return <NoteCompletionGroup {...props} />;
   if (ct === 'IMAGE_NOTE_FORM') return <ImageNoteFormGroup {...props} />;
   if (ct === 'FLOW_CHART') return <FlowChartGroup {...props} />;
+  if (ct === 'FLOW_CHART_TEXT') return <FlowChartTextGroup {...props} />;
   if (ct === 'WRITING_TASK') return <WritingTaskGroup key={group.id} group={group} />;
   if (ct === 'SPEAKING_INTERVIEW') return <SpeakingInterviewGroup key={group.id} group={group} />;
   if (ct === 'SPEAKING_CUECARD') return <SpeakingCueCardGroup key={group.id} group={group} />;

@@ -3,6 +3,7 @@ import FillInBlankQuestion from './FillInBlankQuestion';
 import MultipleChoiceQuestion from './MultipleChoiceQuestion';
 import TFNGQuestion from './TFNGQuestion';
 import DragDropGroupQuestion from './DragDropGroupQuestion';
+import FlowChartTextQuestion from './FlowChartTextQuestion';
 import SummaryCompletionQuestion from './SummaryCompletionQuestion';
 import SummaryCompletionSelectQuestion from './SummaryCompletionSelectQuestion';
 import DropdownGroupQuestion from './DropdownGroupQuestion';
@@ -149,6 +150,22 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
                 customOptions={['YES', 'NO', 'NOT GIVEN']}
             />
         );
+    }
+
+    if (normalizedType === 'flow_chart_text') {
+      return (
+        <FlowChartTextQuestion
+          q={q}
+          activeQuestion={activeQuestion}
+          setActiveQuestion={setActiveQuestion}
+          answers={answers || {}}
+          handleAnswerChange={handleAnswerChange}
+          inputRefs={inputRefs}
+          bookmarks={bookmarks}
+          toggleBookmark={toggleBookmark}
+          isReview={isReview}
+        />
+      );
     }
 
     if (
@@ -455,13 +472,15 @@ const QuestionRenderer = ({ q, activeQuestion, setActiveQuestion, answers, answe
             );
         }
 
+        const hasTableTitle = (q.tableTitle || '').replace(/<[^>]*>/g, '').trim().length > 0;
+
         return (
             <div className="table-completion-container" ref={tableContainerRef}>
                 <div className="tc-table-wrap">
                     <table className="tc-table">
-                        {(q.tableTitle || columns.some((c) => c.header)) && (
+                        {(hasTableTitle || columns.some((c) => c.header)) && (
                             <thead>
-                                {q.tableTitle && (
+                                {hasTableTitle && (
                                     <tr>
                                         <th className="tc-title-cell" colSpan={columns.length}>{q.tableTitle}</th>
                                     </tr>

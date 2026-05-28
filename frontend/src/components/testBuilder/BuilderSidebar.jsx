@@ -48,6 +48,7 @@ const PALETTE_ITEMS = [
   { type: 'group', contentType: 'DRAG_MATCHING',        label: 'Drag Matching',          icon: List, skills: ['LISTENING', 'READING'] },
   { type: 'group', contentType: 'TABLE_COMPLETION',     label: 'Table Completion',       icon: ClipboardList, skills: ['LISTENING', 'READING'] },
   { type: 'group', contentType: 'FLOW_CHART',           label: 'Flow-chart Completion',  icon: ClipboardList, skills: ['LISTENING', 'READING'] },
+  { type: 'group', contentType: 'FLOW_CHART_TEXT',      label: 'Flow-chart (Điền text)', icon: PenLine,     skills: ['LISTENING', 'READING'] },
   // ── Biến thể mới: Fill-in → Drag-drop ──
   { type: 'group', contentType: 'FILL_BLANK_DRAG',      label: 'Fill Blank (Drag)',      icon: List, skills: ['LISTENING', 'READING'] },
   { type: 'group', contentType: 'SENTENCE_COMPLETION_DRAG', label: 'Sentence (Drag)',    icon: List, skills: ['LISTENING', 'READING'] },
@@ -80,6 +81,7 @@ const TYPE_META = {
   SENTENCE_COMPLETION:   { label: 'SC', bg: '#ecfdf5', color: '#065f46' },
   SHORT_ANSWER_GROUP:    { label: 'SA', bg: '#f0fdf4', color: '#166534' },
   FLOW_CHART:            { label: 'FC', bg: '#f0fdfa', color: '#0f766e' },
+  FLOW_CHART_TEXT:       { label: 'FT', bg: '#f0fdfa', color: '#0f766e' },
   MATCHING_FILLABLE:     { label: 'MF', bg: '#e0f2fe', color: '#0369a1' },
   MATCHING_HEADINGS_FILLABLE: { label: 'MH', bg: '#e0f2fe', color: '#0369a1' },
   WRITING_TASK:          { label: 'WT', bg: '#fef9c3', color: '#a16207' },
@@ -107,6 +109,7 @@ const PALETTE_ORDER = {
   TABLE_COMPLETION: 31,
   DIAGRAM: 32,
   FLOW_CHART: 33,
+  FLOW_CHART_TEXT: 34,
   MAP: 34,
   MAP_LABELLING: 35,
   IMAGE_NOTE_FORM: 36,

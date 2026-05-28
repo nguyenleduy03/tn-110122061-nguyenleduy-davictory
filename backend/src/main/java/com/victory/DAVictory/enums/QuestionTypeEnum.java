@@ -43,6 +43,9 @@ public enum QuestionTypeEnum {
     FLOW_CHART("Flow-chart Completion", "LISTENING", false, true, false,
             "Hoàn thành sơ đồ quy trình"),
 
+    FLOW_CHART_TEXT("Flow-chart Completion (Text Input)", "LISTENING_READING", false, true, false,
+            "Hoàn thành sơ đồ quy trình bằng cách nhập văn bản"),
+
     // ─── Dạng nối (matching) ───
     MATCHING("Matching", "READING", false, false, true,
             "Nối thông tin giữa hai cột (features, sentence endings...)"),

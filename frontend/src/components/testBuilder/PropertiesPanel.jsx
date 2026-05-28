@@ -193,6 +193,15 @@ const GroupPanel = ({ group, onChange, onDelete }) => (
       </div>
     )}
 
+    {(group.contentType === 'FLOW_CHART_TEXT') && (
+      <div className="tb-field">
+        <label className="tb-label">ℹ️ Flow-chart (Điền text)</label>
+        <div style={{ fontSize: 12, color: '#6b7280', padding: '6px 10px', background: '#f0fdfa', borderRadius: 6, border: '1px solid #99f6e4' }}>
+          Nhập tiêu đề sơ đồ → Thêm các ô (bước) → Dùng <code>[blank]</code> trong ô để tạo ô trống có số → Nhập đáp án text cho từng ô trống. Không có kéo-thả.
+        </div>
+      </div>
+    )}
+
     {(['DRAG_MATCHING', 'FILL_BLANK_DRAG', 'SENTENCE_COMPLETION_DRAG', 'SUMMARY_COMPLETION_DRAG', 'NOTE_COMPLETION_DRAG', 'FLOW_CHART', 'MAP_LABELLING', 'MATCHING_HEADING'].includes(group.contentType)) && (
       <div className="tb-field">
         <label className="tb-label">Kéo thả: dùng lại thẻ</label>

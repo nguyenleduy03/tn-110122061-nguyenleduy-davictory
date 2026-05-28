@@ -210,6 +210,7 @@ function FcCellEditor({ value, onChange, startQNum }) {
 
 // ---- Flow-chart Block ----
 function FlowChartBlock({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps, onUpdateQuestion, selectedQuestionId }) {
+  const isTextMode = group.contentType === 'FLOW_CHART_TEXT';
   const flowNodes = group.flowNodes ?? [];
   const questions = group.questions ?? [];
   const options = group.optionBank ?? [];
@@ -259,23 +260,27 @@ function FlowChartBlock({ group, onUpdate, onDelete, onSelect, selected, dragHan
           multiline
           rows={2}
           value={group.instructions || ''}
-          placeholder="Complete the flow-chart below. Choose NO MORE THAN TWO WORDS from the passage for each answer."
+          placeholder={isTextMode ? "Complete the flow-chart below. Write NO MORE THAN TWO WORDS for each answer." : "Complete the flow-chart below. Choose NO MORE THAN TWO WORDS from the passage for each answer."}
           onChange={(html) => onUpdate(group.id, { instructions: html })}
         />
-        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginTop: 8, fontSize: 12, color: '#374151' }}>
-          <input
-            type="checkbox"
-            checked={allowOptionReuse}
-            onChange={(e) => onUpdate(group.id, { allowOptionReuse: e.target.checked })}
-            onClick={(e) => e.stopPropagation()}
-          />
-          Cho phép dùng lại đáp án trong lúc làm bài
-        </label>
-        <div style={{ marginTop: 4, fontSize: 11, color: autoKeepUsedOptionSlots ? '#047857' : '#6b7280' }}>
-          {autoKeepUsedOptionSlots
-            ? `Đang tự động giữ slot trống và ẩn đáp án đã dùng vì số đáp án > số ô kéo-thả (${optionCount}/${dragSlotCount}).`
-            : `Hiệu ứng giữ slot trống chỉ kích hoạt khi số đáp án > số ô kéo-thả (${optionCount}/${dragSlotCount}).`}
-        </div>
+        {!isTextMode && (
+          <>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginTop: 8, fontSize: 12, color: '#374151' }}>
+              <input
+                type="checkbox"
+                checked={allowOptionReuse}
+                onChange={(e) => onUpdate(group.id, { allowOptionReuse: e.target.checked })}
+                onClick={(e) => e.stopPropagation()}
+              />
+              Cho phép dùng lại đáp án trong lúc làm bài
+            </label>
+            <div style={{ marginTop: 4, fontSize: 11, color: autoKeepUsedOptionSlots ? '#047857' : '#6b7280' }}>
+              {autoKeepUsedOptionSlots
+                ? `Đang tự động giữ slot trống và ẩn đáp án đã dùng vì số đáp án > số ô kéo-thả (${optionCount}/${dragSlotCount}).`
+                : `Hiệu ứng giữ slot trống chỉ kích hoạt khi số đáp án > số ô kéo-thả (${optionCount}/${dragSlotCount}).`}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Chart title */}
@@ -320,40 +325,42 @@ function FlowChartBlock({ group, onUpdate, onDelete, onSelect, selected, dragHan
           </button>
         </div>
 
-        {/* Right: word bank */}
-        <div className="exam-fc-bank">
-          <div className="exam-dm-col-header">
-            <RichInput
-              style={{ width: '100%' }}
-              value={group.bankTitle ?? ''}
-              placeholder="Tiêu đề ngân từ (tuỳ chọn)"
-              onChange={(html) => onUpdate(group.id, { bankTitle: html })}
-            />
+        {/* Right: word bank (ẩn nếu là FLOW_CHART_TEXT) */}
+        {!isTextMode && (
+          <div className="exam-fc-bank">
+            <div className="exam-dm-col-header">
+              <RichInput
+                style={{ width: '100%' }}
+                value={group.bankTitle ?? ''}
+                placeholder="Tiêu đề ngân từ (tuỳ chọn)"
+                onChange={(html) => onUpdate(group.id, { bankTitle: html })}
+              />
+            </div>
+            <div className="exam-dm-bank">
+              {options.map((o, i) => (
+                <div key={i} className="exam-dm-option">
+                  <RichInput style={{ flex: 1 }}
+                    value={o.text || ''}
+                    placeholder={`Lựa chọn ${i + 1}...`}
+                    onChange={(html) => {
+                      const n = [...options];
+                      n[i] = { ...n[i], text: html };
+                      onUpdate(group.id, { optionBank: n });
+                    }}
+                  />
+                  <button className="exam-q-del-btn"
+                    onClick={(e) => { e.stopPropagation(); onUpdate(group.id, { optionBank: options.filter((_, j) => j !== i) }); }}>
+                    ×
+                  </button>
+                </div>
+              ))}
+              <button className="exam-add-btn" style={{ marginTop: 6 }}
+                onClick={(e) => { e.stopPropagation(); onUpdate(group.id, { optionBank: [...options, { id: Date.now(), text: '' }] }); }}>
+                <Plus size={11} /> Thêm lựa chọn
+              </button>
+            </div>
           </div>
-          <div className="exam-dm-bank">
-            {options.map((o, i) => (
-              <div key={i} className="exam-dm-option">
-                <RichInput style={{ flex: 1 }}
-                  value={o.text || ''}
-                  placeholder={`Lựa chọn ${i + 1}...`}
-                  onChange={(html) => {
-                    const n = [...options];
-                    n[i] = { ...n[i], text: html };
-                    onUpdate(group.id, { optionBank: n });
-                  }}
-                />
-                <button className="exam-q-del-btn"
-                  onClick={(e) => { e.stopPropagation(); onUpdate(group.id, { optionBank: options.filter((_, j) => j !== i) }); }}>
-                  ×
-                </button>
-              </div>
-            ))}
-            <button className="exam-add-btn" style={{ marginTop: 6 }}
-              onClick={(e) => { e.stopPropagation(); onUpdate(group.id, { optionBank: [...options, { id: Date.now(), text: '' }] }); }}>
-              <Plus size={11} /> Thêm lựa chọn
-            </button>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Question range */}
@@ -373,6 +380,36 @@ function FlowChartBlock({ group, onUpdate, onDelete, onSelect, selected, dragHan
         <span style={{ fontSize: 11, color: '#9ca3af', marginLeft: 6 }}>(tự động)</span>
       </div>
 
+      {/* Answer validation options (chỉ cho text mode) */}
+      {isTextMode && (
+        <div style={{ marginTop: 12, padding: '8px 10px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 4 }} onClick={(e) => e.stopPropagation()}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 6 }}>Tùy chọn chấm điểm:</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, cursor: 'pointer' }}>
+              <input type="checkbox" checked={group.ignoreCase !== false} onChange={(e) => onUpdate(group.id, { ignoreCase: e.target.checked, questions })} />
+              <span>Bỏ qua hoa/thường</span>
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, cursor: 'pointer' }}>
+              <input type="checkbox" checked={group.ignoreSpaces || false} onChange={(e) => onUpdate(group.id, { ignoreSpaces: e.target.checked, questions })} />
+              <span>Bỏ qua khoảng trắng</span>
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, cursor: 'pointer' }}>
+              <input type="checkbox" checked={group.ignorePunctuation || false} onChange={(e) => onUpdate(group.id, { ignorePunctuation: e.target.checked, questions })} />
+              <span>Bỏ qua dấu câu</span>
+            </label>
+          </div>
+          <div style={{ marginTop: 6 }}>
+            <input
+              type="text"
+              placeholder="Ký tự bỏ qua khác (vd: -_)"
+              value={group.ignoreChars || ''}
+              onChange={(e) => onUpdate(group.id, { ignoreChars: e.target.value, questions })}
+              style={{ width: '100%', padding: '4px 8px', border: '1px solid #cbd5e1', borderRadius: 3, fontSize: 12 }}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Answer key */}
       {questions.length > 0 && (
         <div className="exam-ml-answer-section" onClick={(e) => e.stopPropagation()}>
@@ -380,7 +417,7 @@ function FlowChartBlock({ group, onUpdate, onDelete, onSelect, selected, dragHan
           {questions.map((q) => (
             <div key={q.id} className="exam-ml-answer-row">
               <span className="exam-ml-answer-num">Câu {q.questionNumber}</span>
-              {options.length > 0 ? (
+              {!isTextMode && options.length > 0 ? (
                 <select
                   style={{ flex: 1, padding: '6px 10px', border: '1px solid #ddd', borderRadius: 4, fontSize: 13 }}
                   value={q.answerText ?? ''}

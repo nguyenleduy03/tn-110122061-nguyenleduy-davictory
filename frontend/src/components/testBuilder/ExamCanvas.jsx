@@ -10,12 +10,12 @@
  * 
  * NOTE: Block components đã được tách ra thành các file riêng trong thư mục blocks/
  */
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useDroppable } from '@dnd-kit/core';
 import { createPortal } from 'react-dom';
-import { Plus, X, Clock, TimerReset, Check, Eye, Headphones, BookOpen, PenLine, Mic, Volume2, FileText } from 'lucide-react';
+import { Plus, X, Clock, TimerReset, Check, Eye, Headphones, BookOpen, PenLine, Mic, Volume2, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatTextWithWhitespace, normalizeRichHtml, preserveBlockLineBreaks, stripInlineStyles } from '../../utils/textFormatters';
 import { renderHtmlWithTokenPlaceholders } from '../../utils/htmlTokenRenderer';
 import { resolveDrivePreviewUrl } from '../../utils/mediaUrl';
@@ -781,19 +781,20 @@ const PreviewContent = ({ test, sessions, sessionDurations, activeSkill, onSetAc
         }
       );
     };
+    const hasTableTitle = (group.tableTitle || '').replace(/<[^>]*>/g, '').trim().length > 0;
     return (
       <div className="pv-group-block">
         <QuestionRange group={group} />
         {group.title && <div className="pv-summary-title" dangerouslySetInnerHTML={{ __html: formatPreviewText(group.title) }} />}
         <div className="pv-tc-scroll">
           <table className="pv-tc-table">
-            {group.tableTitle && (
+            {hasTableTitle && (
               <thead>
                 <tr><th className="pv-tc-title-cell" colSpan={columns.length}>{group.tableTitle}</th></tr>
                 <tr>{columns.map(col => <th key={col.id} className="pv-tc-header-cell">{col.header}</th>)}</tr>
               </thead>
             )}
-            {!group.tableTitle && columns.some(c => c.header) && (
+            {!hasTableTitle && columns.some(c => c.header) && (
               <thead><tr>{columns.map(col => <th key={col.id} className="pv-tc-header-cell">{col.header}</th>)}</tr></thead>
             )}
             <tbody>
@@ -1205,7 +1206,7 @@ const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUp
       onUpdateQuestion={onUpdateQuestion} onDeleteQuestion={onDeleteQuestion} onAddQuestion={onAddQuestion}
       selectedQuestionId={selectedQuestionId} />;
   }
-  if (ct === 'FLOW_CHART') {
+  if (ct === 'FLOW_CHART' || ct === 'FLOW_CHART_TEXT') {
     return <FlowChartBlock group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
       onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps}
       onUpdateQuestion={onUpdateQuestion}
@@ -1283,6 +1284,8 @@ const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUp
 };
 
 const PartView = ({ skill, part, allParts = [], selection, onSelectGroup, onSelectQuestion, onUpdateGroup, onUpdateQuestion, onDeleteGroup, onDeleteQuestion, onAddQuestion, onAddGroup, onMoveGroupUp, onMoveGroupDown, isDropOver, isPassagePaneOver, isPassagePaneLocked, isMHLocked, test, testId, leftWidth, containerRef, handleDragStart }) => {
+  const [collapsedPane, setCollapsedPane] = useState(null);
+  const [hoverPos, setHoverPos] = useState(null);
   const groups = part.questionGroups ?? [];
   const partQuestionStartNumber = useMemo(() => {
     const partIndex = allParts.findIndex((p) => p.id === part.id);
@@ -1294,6 +1297,34 @@ const PartView = ({ skill, part, allParts = [], selection, onSelectGroup, onSele
       }, 0);
     }, 0) + 1;
   }, [allParts, part.id]);
+
+  useEffect(() => { setHoverPos(null); }, [collapsedPane]);
+
+  const expandAll = () => setCollapsedPane(null);
+
+  const handleSplitMove = useCallback((e) => {
+    const el = e.currentTarget;
+    const rect = el.getBoundingClientRect();
+    const zoom = rect.height / (el.clientHeight || rect.height);
+    const x = (e.clientX - rect.left) / zoom;
+    const y = (e.clientY - rect.top) / zoom;
+    const w = rect.width / zoom;
+
+    if (collapsedPane === null) {
+      const dividerLeft = (leftWidth / 100) * w;
+      if (x >= dividerLeft - 8 && x <= dividerLeft + 20) {
+        setHoverPos({ y, zone: 'divider', left: dividerLeft });
+        return;
+      }
+    } else if (collapsedPane === 'left') {
+      if (x < 20) { setHoverPos({ y, zone: 'left-edge' }); return; }
+    } else if (collapsedPane === 'right') {
+      if (x > w - 20) { setHoverPos({ y, zone: 'right-edge' }); return; }
+    }
+    setHoverPos(null);
+  }, [collapsedPane, leftWidth]);
+
+  const handleSplitLeave = useCallback(() => setHoverPos(null), []);
 
   const renderGroup = (group) => (
     <SortableGroupWrapper key={group.id} group={{ ...group, partId: part.id }}>
@@ -1325,31 +1356,53 @@ const PartView = ({ skill, part, allParts = [], selection, onSelectGroup, onSele
   if (skill === 'READING') {
     const passages = groups.filter((g) => g.contentType === 'READING_PASSAGE');
     const qGroups = groups.filter((g) => g.contentType !== 'READING_PASSAGE');
+
+    const getGridTemplate = () => {
+      if (collapsedPane === 'left') return '0px 0px 1fr';
+      if (collapsedPane === 'right') return '1fr 0px 0px';
+      return `${leftWidth}% 12px minmax(0, 1fr)`;
+    };
+
     return (
       <div
         className="exam-split"
         ref={containerRef}
-        style={{ gridTemplateColumns: `${leftWidth}% 12px minmax(0, 1fr)` }}
+        style={{ gridTemplateColumns: getGridTemplate() }}
+        onMouseMove={handleSplitMove}
+        onMouseLeave={handleSplitLeave}
       >
         {/* LEFT: passage texts only */}
-        <div className={`exam-pane passage${isPassagePaneLocked ? ' pane-locked' : ''}`} style={{ minWidth: 0 }}>
-          {isPassagePaneLocked && (
-            <div className="exam-pane-lock-overlay">Chỉ nhận <strong>Đoạn văn</strong></div>
+        <div className={`exam-pane passage${isPassagePaneLocked ? ' pane-locked' : ''}${collapsedPane === 'left' ? ' collapsed' : ''}`} style={{ minWidth: 0 }}>
+          {collapsedPane !== 'left' && (
+            <>
+              <div className="exam-pane-header">
+                <span className="exam-pane-label">Đoạn văn</span>
+                {!collapsedPane && (
+                  <button className="exam-pane-collapse-btn" onClick={() => setCollapsedPane('left')} title="Thu gọn cột trái">
+                    <ChevronLeft size={14} />
+                  </button>
+                )}
+              </div>
+              {isPassagePaneLocked && (
+                <div className="exam-pane-lock-overlay">Chỉ nhận <strong>Đoạn văn</strong></div>
+              )}
+              <SortableContext items={passages.map((g) => `group-${g.id}`)} strategy={verticalListSortingStrategy}>
+                {passages.map(renderGroup)}
+              </SortableContext>
+              <GroupDropZone
+                partId={`left-${part.id}`}
+                isOver={isPassagePaneOver}
+                onAddGroup={(p) => onAddGroup(p, 'READING_PASSAGE')}
+                part={part}
+                paneType="passage-pane"
+              />
+            </>
           )}
-          <SortableContext items={passages.map((g) => `group-${g.id}`)} strategy={verticalListSortingStrategy}>
-            {passages.map(renderGroup)}
-          </SortableContext>
-          <GroupDropZone
-            partId={`left-${part.id}`}
-            isOver={isPassagePaneOver}
-            onAddGroup={(p) => onAddGroup(p, 'READING_PASSAGE')}
-            part={part}
-            paneType="passage-pane"
-          />
         </div>
         <div
-          className="exam-pane-divider"
+          className={`exam-pane-divider${collapsedPane ? ' divider-hidden' : ''}`}
           onMouseDown={(e) => {
+            if (collapsedPane) return;
             e.preventDefault();
             handleDragStart();
           }}
@@ -1359,21 +1412,79 @@ const PartView = ({ skill, part, allParts = [], selection, onSelectGroup, onSele
           tabIndex={0}
         />
         {/* RIGHT: question groups */}
-        <div className={`exam-pane questions${isMHLocked ? ' pane-locked' : ''}`} style={{ minWidth: 0 }}>
-          {isMHLocked && (
-            <div className="exam-pane-lock-overlay">Cần bật <strong>chế độ đa đoạn</strong> ở Đoạn văn trước</div>
+        <div className={`exam-pane questions${isMHLocked ? ' pane-locked' : ''}${collapsedPane === 'right' ? ' collapsed' : ''}`} style={{ minWidth: 0 }}>
+          {collapsedPane !== 'right' && (
+            <>
+              <div className="exam-pane-header">
+                {!collapsedPane && (
+                  <button className="exam-pane-collapse-btn" onClick={() => setCollapsedPane('right')} title="Thu gọn cột phải">
+                    <ChevronRight size={14} />
+                  </button>
+                )}
+                <span className="exam-pane-label">Câu hỏi</span>
+              </div>
+              {isMHLocked && (
+                <div className="exam-pane-lock-overlay">Cần bật <strong>chế độ đa đoạn</strong> ở Đoạn văn trước</div>
+              )}
+              <SortableContext items={qGroups.map((g) => `group-${g.id}`)} strategy={verticalListSortingStrategy}>
+                {qGroups.map(renderGroup)}
+              </SortableContext>
+              <GroupDropZone
+                partId={part.id}
+                isOver={isDropOver}
+                onAddGroup={onAddGroup}
+                part={part}
+                paneType="question-pane"
+              />
+            </>
           )}
-          <SortableContext items={qGroups.map((g) => `group-${g.id}`)} strategy={verticalListSortingStrategy}>
-            {qGroups.map(renderGroup)}
-          </SortableContext>
-          <GroupDropZone
-            partId={part.id}
-            isOver={isDropOver}
-            onAddGroup={onAddGroup}
-            part={part}
-            paneType="question-pane"
-          />
         </div>
+
+        {/* Hover floating buttons */}
+        {hoverPos && (
+          <div className="exam-hover-actions">
+            {hoverPos.zone === 'divider' && (
+              <>
+                <button
+                  className="exam-hover-btn visible"
+                  style={{ top: hoverPos.y - 20, left: hoverPos.left - 24, borderRadius: '4px 0 0 4px', borderRight: 'none' }}
+                  onClick={() => setCollapsedPane('left')}
+                  title="Thu gọn cột trái"
+                >
+                  <ChevronLeft size={14} />
+                </button>
+                <button
+                  className="exam-hover-btn visible"
+                  style={{ top: hoverPos.y - 20, left: hoverPos.left + 12, borderRadius: '0 4px 4px 0', borderLeft: 'none' }}
+                  onClick={() => setCollapsedPane('right')}
+                  title="Thu gọn cột phải"
+                >
+                  <ChevronRight size={14} />
+                </button>
+              </>
+            )}
+            {hoverPos.zone === 'left-edge' && (
+              <button
+                className="exam-hover-btn visible"
+                style={{ top: hoverPos.y - 20, left: 0, borderRadius: '0 4px 4px 0', borderLeft: 'none' }}
+                onClick={expandAll}
+                title="Hiện cột Đoạn văn"
+              >
+                <ChevronRight size={14} />
+              </button>
+            )}
+            {hoverPos.zone === 'right-edge' && (
+              <button
+                className="exam-hover-btn visible"
+                style={{ top: hoverPos.y - 20, right: 0, borderRadius: '4px 0 0 4px', borderRight: 'none' }}
+                onClick={expandAll}
+                title="Hiện cột Câu hỏi"
+              >
+                <ChevronLeft size={14} />
+              </button>
+            )}
+          </div>
+        )}
       </div>
     );
   }

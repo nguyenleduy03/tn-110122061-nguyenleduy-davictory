@@ -78,6 +78,8 @@ function mapQuestionType(questionTypeCode) {
       return 'summary-completion-select';
     case 'FLOW_CHART':
       return 'flow_chart';
+    case 'FLOW_CHART_TEXT':
+      return 'flow_chart_text';
     case 'MAP_DIAGRAM':
       return 'image-drag-drop';
     case 'DRAG_MATCHING':
@@ -234,6 +236,8 @@ async function transformGroup(baseUrl, group) {
     feType = 'note-completion';
   } else if (contentType === 'FLOW_CHART') {
     feType = 'flow_chart';
+  } else if (contentType === 'FLOW_CHART_TEXT') {
+    feType = 'flow_chart_text';
   } else if (contentType === 'TABLE_COMPLETION') {
     feType = 'table-completion';
   } else if (contentType === 'NOTE_COMPLETION') {
@@ -604,14 +608,14 @@ async function transformGroup(baseUrl, group) {
 
   // ─── TABLE_COMPLETION → 1 group question ────────────────────────────
   if (feType === 'table-completion') {
-    let tableTitle = group.title || '';
+    let tableTitle = '';
     let columns = [];
     let tableRows = [];
 
     if (group.passageText) {
       try {
         const parsed = JSON.parse(group.passageText);
-        tableTitle = parsed.tableTitle || tableTitle;
+        tableTitle = parsed.tableTitle || '';
         columns = Array.isArray(parsed.columns) ? parsed.columns : [];
         tableRows = Array.isArray(parsed.tableRows) ? parsed.tableRows : [];
       } catch {
@@ -922,6 +926,68 @@ async function transformGroup(baseUrl, group) {
       flowNodes,
       subQuestions,
       allowOptionReuse,
+    }];
+  }
+
+  // ─── FLOW_CHART_TEXT → 1 group question (text input, no drag-drop) ───
+  if (feType === 'flow_chart_text') {
+    const subQuestions = questions.map((q) => {
+      const num = resolveDbQuestionNumber(q);
+      const correctAnswer = (q.answers || [])[0]?.answerText || '';
+      return { id: `q${q.id}`, number: num, correctAnswer };
+    });
+
+    let flowNodes = [];
+    let flowTitle = group.title || '';
+    let flowInstruction = 'Complete the flow-chart. Write NO MORE THAN TWO WORDS for each answer.';
+    let validationOptions = null;
+    if (group.passageText) {
+      try {
+        const parsed = JSON.parse(group.passageText);
+        if (Array.isArray(parsed)) {
+          flowNodes = parsed;
+        } else if (parsed && typeof parsed === 'object') {
+          if (Array.isArray(parsed.flowNodes)) {
+            flowNodes = parsed.flowNodes;
+          }
+          if (parsed.title) {
+            flowTitle = parsed.title;
+          }
+          if (parsed.instructions) {
+            flowInstruction = parsed.instructions;
+          }
+          if (parsed.validationOptions) {
+            validationOptions = parsed.validationOptions;
+          }
+        }
+      } catch {
+        flowNodes = questions.map((q, i) => ({
+          id: `n${i + 1}`,
+          text: q.blankContext || q.questionText || '',
+        }));
+      }
+    } else {
+      flowNodes = questions.map((q, i) => ({
+        id: `n${i + 1}`,
+        text: q.blankContext || q.questionText || '',
+      }));
+    }
+
+    const isGenericGroupTitle = (value) => /^\s*(nh[oó]m|group)\s*\d*\s*$/i.test(String(value || ''));
+    if (isGenericGroupTitle(flowTitle)) {
+      flowTitle = '';
+    }
+
+    return [{
+      id: `group-${group.questionGroupId || group.id}`,
+      type: 'flow_chart_text',
+      questionTypeCode: typeCode,
+      heading: '',
+      instruction: flowInstruction,
+      title: flowTitle,
+      flowNodes,
+      subQuestions,
+      validationOptions,
     }];
   }
 
