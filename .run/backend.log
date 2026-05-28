@@ -11,17 +11,13 @@
 [[1;34mINFO[m] Copying 0 resource from src/main/resources to target/classes
 [[1;34mINFO[m] 
 [[1;34mINFO[m] [1m--- [0;32mmaven-compiler-plugin:3.14.1:compile[m [1m(default-compile)[m @ [36mDAVictory[0;1m ---[m
-[[1;34mINFO[m] Recompiling the module because of [1mchanged source code[m.
-[[1;34mINFO[m] Compiling 227 source files with javac [debug parameters release 21] to target/classes
-[[1;34mINFO[m] /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/config/PublicIpService.java: Some input files use or override a deprecated API.
-[[1;34mINFO[m] /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/config/PublicIpService.java: Recompile with -Xlint:deprecation for details.
+[[1;34mINFO[m] Nothing to compile - all classes are up to date.
 [[1;34mINFO[m] 
 [[1;34mINFO[m] [1m--- [0;32mmaven-resources-plugin:3.3.1:testResources[m [1m(default-testResources)[m @ [36mDAVictory[0;1m ---[m
 [[1;34mINFO[m] skip non existing resourceDirectory /home/hv/DuAn/DAVictory/backend/src/test/resources
 [[1;34mINFO[m] 
 [[1;34mINFO[m] [1m--- [0;32mmaven-compiler-plugin:3.14.1:testCompile[m [1m(default-testCompile)[m @ [36mDAVictory[0;1m ---[m
-[[1;34mINFO[m] Recompiling the module because of [1mchanged dependency[m.
-[[1;34mINFO[m] Compiling 1 source file with javac [debug parameters release 21] to target/test-classes
+[[1;34mINFO[m] Nothing to compile - all classes are up to date.
 [[1;34mINFO[m] 
 [[1;34mINFO[m] [1m<<< [0;32mspring-boot-maven-plugin:4.0.3:run[m [1m(default-cli)[0;1m < [0;1mtest-compile[m @ [36mDAVictory[0;1m <<<[m
 [[1;34mINFO[m] 
@@ -38,22 +34,22 @@
 
  :: Spring Boot ::                (v4.0.3)
 
-2026-05-19T10:09:35.701+07:00  INFO 40150 --- [DAVictory] [           main] c.v.DAVictory.DaVictoryApplication       : Starting DaVictoryApplication using Java 21.0.10 with PID 40150 (/home/hv/DuAn/DAVictory/backend/target/classes started by hv in /home/hv/DuAn/DAVictory/backend)
-2026-05-19T10:09:35.705+07:00  INFO 40150 --- [DAVictory] [           main] c.v.DAVictory.DaVictoryApplication       : No active profile set, falling back to 1 default profile: "default"
-2026-05-19T10:09:36.793+07:00  INFO 40150 --- [DAVictory] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
-2026-05-19T10:09:37.002+07:00  INFO 40150 --- [DAVictory] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 200 ms. Found 60 JPA repository interfaces.
-2026-05-19T10:09:37.754+07:00  INFO 40150 --- [DAVictory] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 8080 (http)
-2026-05-19T10:09:37.770+07:00  INFO 40150 --- [DAVictory] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
-2026-05-19T10:09:37.770+07:00  INFO 40150 --- [DAVictory] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/11.0.18]
-2026-05-19T10:09:37.826+07:00  INFO 40150 --- [DAVictory] [           main] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 2057 ms
-2026-05-19T10:09:38.051+07:00  INFO 40150 --- [DAVictory] [           main] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
-2026-05-19T10:09:38.098+07:00  INFO 40150 --- [DAVictory] [           main] org.hibernate.orm.core                   : HHH000001: Hibernate ORM core version 7.2.4.Final
-2026-05-19T10:09:38.552+07:00  INFO 40150 --- [DAVictory] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
-2026-05-19T10:09:38.582+07:00  INFO 40150 --- [DAVictory] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
-2026-05-19T10:09:38.760+07:00  INFO 40150 --- [DAVictory] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@6949cead
-2026-05-19T10:09:38.762+07:00  INFO 40150 --- [DAVictory] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
-2026-05-19T10:09:38.815+07:00  WARN 40150 --- [DAVictory] [           main] org.hibernate.orm.deprecation            : HHH90000025: MySQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
-2026-05-19T10:09:38.833+07:00  INFO 40150 --- [DAVictory] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+2026-05-25T18:12:53.212+07:00  INFO 510600 --- [DAVictory] [           main] c.v.DAVictory.DaVictoryApplication       : Starting DaVictoryApplication using Java 21.0.10 with PID 510600 (/home/hv/DuAn/DAVictory/backend/target/classes started by hv in /home/hv/DuAn/DAVictory/backend)
+2026-05-25T18:12:53.216+07:00  INFO 510600 --- [DAVictory] [           main] c.v.DAVictory.DaVictoryApplication       : No active profile set, falling back to 1 default profile: "default"
+2026-05-25T18:12:54.526+07:00  INFO 510600 --- [DAVictory] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-05-25T18:12:54.756+07:00  INFO 510600 --- [DAVictory] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 215 ms. Found 60 JPA repository interfaces.
+2026-05-25T18:12:55.642+07:00  INFO 510600 --- [DAVictory] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 8080 (http)
+2026-05-25T18:12:55.658+07:00  INFO 510600 --- [DAVictory] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-05-25T18:12:55.659+07:00  INFO 510600 --- [DAVictory] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/11.0.18]
+2026-05-25T18:12:55.721+07:00  INFO 510600 --- [DAVictory] [           main] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 2435 ms
+2026-05-25T18:12:55.991+07:00  INFO 510600 --- [DAVictory] [           main] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-05-25T18:12:56.071+07:00  INFO 510600 --- [DAVictory] [           main] org.hibernate.orm.core                   : HHH000001: Hibernate ORM core version 7.2.4.Final
+2026-05-25T18:12:56.610+07:00  INFO 510600 --- [DAVictory] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-05-25T18:12:56.653+07:00  INFO 510600 --- [DAVictory] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-05-25T18:12:56.843+07:00  INFO 510600 --- [DAVictory] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@3a6b94b6
+2026-05-25T18:12:56.844+07:00  INFO 510600 --- [DAVictory] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-05-25T18:12:56.906+07:00  WARN 510600 --- [DAVictory] [           main] org.hibernate.orm.deprecation            : HHH90000025: MySQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-05-25T18:12:56.927+07:00  INFO 510600 --- [DAVictory] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
 	Database JDBC URL [jdbc:mysql://localhost:3306/DAVictory?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true]
 	Database driver: MySQL Connector/J
 	Database dialect: MySQLDialect
@@ -65,2202 +61,776 @@
 	Pool: DataSourceConnectionProvider
 	Minimum pool size: undefined/unknown
 	Maximum pool size: undefined/unknown
-2026-05-19T10:09:41.148+07:00  INFO 40150 --- [DAVictory] [           main] org.hibernate.orm.core                   : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
-2026-05-19T10:09:41.508+07:00  INFO 40150 --- [DAVictory] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
-2026-05-19T10:09:41.656+07:00  INFO 40150 --- [DAVictory] [           main] o.s.d.j.r.query.QueryEnhancerFactories   : Hibernate is in classpath; If applicable, HQL parser will be used.
-2026-05-19T10:09:43.226+07:00  INFO 40150 --- [DAVictory] [           main] c.v.DAVictory.config.PublicIpService     : ✅ Lấy IP từ https://api.ipify.org: 113.170.158.188
-2026-05-19T10:09:43.227+07:00  INFO 40150 --- [DAVictory] [           main] c.v.DAVictory.config.PublicIpService     : 🌐 Public IP đã phát hiện: 113.170.158.188
-2026-05-19T10:09:43.234+07:00  INFO 40150 --- [DAVictory] [           main] c.victory.DAVictory.config.CorsConfig    : CORS: Thêm IP public 113.170.158.188 vào allowed origins
-2026-05-19T10:09:43.234+07:00  INFO 40150 --- [DAVictory] [           main] c.victory.DAVictory.config.CorsConfig    : CORS allowed origins: [http://localhost:5173, http://localhost:3000, http://localhost:80, http://localhost, https://davictory.io.vn, https://www.davictory.io.vn, http://davictory.io.vn, http://www.davictory.io.vn, http://113.170.158.188:5173, http://113.170.158.188:3000, http://113.170.158.188:80, http://113.170.158.188]
-2026-05-19T10:09:44.891+07:00  INFO 40150 --- [DAVictory] [           main] eAuthenticationProviderManagerConfigurer : Global AuthenticationManager configured with AuthenticationProvider bean with name authenticationProvider
-2026-05-19T10:09:44.892+07:00  WARN 40150 --- [DAVictory] [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with an AuthenticationProvider bean. UserDetailsService beans will not be used by Spring Security for automatically configuring username/password login. Consider removing the AuthenticationProvider bean. Alternatively, consider using the UserDetailsService in a manually instantiated DaoAuthenticationProvider. If the current configuration is intentional, to turn off this warning, increase the logging level of 'org.springframework.security.config.annotation.authentication.configuration.InitializeUserDetailsBeanManagerConfigurer' to ERROR
-2026-05-19T10:09:46.508+07:00  WARN 40150 --- [DAVictory] [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
-2026-05-19T10:09:46.981+07:00  INFO 40150 --- [DAVictory] [           main] o.s.v.b.OptionalValidatorFactoryBean     : Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
-2026-05-19T10:09:47.826+07:00  INFO 40150 --- [DAVictory] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat started on port 8080 (http) with context path '/'
-2026-05-19T10:09:47.835+07:00  INFO 40150 --- [DAVictory] [           main] c.v.DAVictory.DaVictoryApplication       : Started DaVictoryApplication in 12.655 seconds (process running for 13.106)
-2026-05-19T10:09:48.058+07:00  INFO 40150 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    : 🔧 [TestStructureInitializer] Bắt đầu khởi tạo cấu trúc IELTS...
-2026-05-19T10:09:48.070+07:00  INFO 40150 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ DifficultyLevels (5 cấp độ)
-2026-05-19T10:09:48.090+07:00  INFO 40150 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ Sessions (Listening / Reading / Writing / Speaking × Academic & General)
-2026-05-19T10:09:48.176+07:00  INFO 40150 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ Parts (các phần trong mỗi kỹ năng)
-2026-05-19T10:09:48.220+07:00  INFO 40150 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ QuestionTypes (14 loại câu hỏi IELTS)
-2026-05-19T10:09:48.220+07:00  INFO 40150 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    : ✅ [TestStructureInitializer] Hoàn tất khởi tạo cấu trúc IELTS.
-2026-05-19T10:09:49.906+07:00  INFO 40150 --- [DAVictory] [nio-8080-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
-2026-05-19T10:09:49.907+07:00  INFO 40150 --- [DAVictory] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
-2026-05-19T10:09:49.912+07:00  INFO 40150 --- [DAVictory] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 5 ms
-2026-05-19T10:09:51.714+07:00  WARN 40150 --- [DAVictory] [nio-8080-exec-2] .w.s.m.s.DefaultHandlerExceptionResolver : Ignoring exception, response committed already: org.springframework.http.converter.HttpMessageNotWritableException: Could not write JSON: ServletOutputStream failed to write: java.io.IOException: Broken pipe
-2026-05-19T10:09:51.714+07:00  WARN 40150 --- [DAVictory] [nio-8080-exec-1] .w.s.m.s.DefaultHandlerExceptionResolver : Ignoring exception, response committed already: org.springframework.http.converter.HttpMessageNotWritableException: Could not write JSON: ServletOutputStream failed to write: java.io.IOException: Broken pipe
-🗑️ Cleaning up unused group: 35822
-🗑️ Cleaning up unused group: 35823
-🗑️ Cleaning up unused group: 35824
-🗑️ Cleaning up unused group: 35825
-🗑️ Cleaning up unused group: 35826
-🗑️ Cleaning up unused group: 35827
-🗑️ Cleaning up unused group: 35828
-🗑️ Cleaning up unused group: 35829
-🗑️ Cleaning up unused group: 35830
-🔍 Saving 7 questions for group: Match Headings 2
-📝 Question 1: Section A | Answers: 1
-💾 Saving 1 answers for question ID: 106097, text: Section A
-📝 Answer 1 INPUT: 'The birth of sanitation' (length: 23)
-✅ Saved answer 1 with ID: 81944, text: 'The birth of sanitation' (length: 23)
-✅ Successfully saved question 1
-📝 Question 2: Section B | Answers: 1
-💾 Saving 1 answers for question ID: 106098, text: Section B
-📝 Answer 1 INPUT: 'The need for increasingly sophisticated systems' (length: 47)
-✅ Saved answer 1 with ID: 81945, text: 'The need for increasingly sophisticated systems' (length: 47)
-✅ Successfully saved question 2
-📝 Question 3: Section C | Answers: 1
-💾 Saving 1 answers for question ID: 106099, text: Section C
-📝 Answer 1 INPUT: 'Wooden sewage pipes' (length: 19)
-✅ Saved answer 1 with ID: 81946, text: 'Wooden sewage pipes' (length: 19)
-✅ Successfully saved question 3
-📝 Question 4: Section D | Answers: 1
-💾 Saving 1 answers for question ID: 106100, text: Section D
-📝 Answer 1 INPUT: 'Ancient sewers updated for modern use' (length: 37)
-✅ Saved answer 1 with ID: 81947, text: 'Ancient sewers updated for modern use' (length: 37)
-✅ Successfully saved question 4
-📝 Question 5: Section E | Answers: 1
-💾 Saving 1 answers for question ID: 106101, text: Section E
-📝 Answer 1 INPUT: 'A new invention not widely implemented' (length: 38)
-✅ Saved answer 1 with ID: 81948, text: 'A new invention not widely implemented' (length: 38)
-✅ Successfully saved question 5
-📝 Question 6: Section F | Answers: 1
-💾 Saving 1 answers for question ID: 106102, text: Section F
-📝 Answer 1 INPUT: 'Poor sanitation a cause of health problems' (length: 42)
-✅ Saved answer 1 with ID: 81949, text: 'Poor sanitation a cause of health problems' (length: 42)
-✅ Successfully saved question 6
-📝 Question 7: Section G | Answers: 1
-💾 Saving 1 answers for question ID: 106103, text: Section G
-📝 Answer 1 INPUT: 'The impact of waste water treatment' (length: 35)
-✅ Saved answer 1 with ID: 81950, text: 'The impact of waste water treatment' (length: 35)
-✅ Successfully saved question 7
-🔍 Saving 0 questions for group: The Development of Sanitation Systems
-🔍 Saving 7 questions for group: Nhóm 3
-📝 Question 1:  | Answers: 0
-💾 Saving 0 answers for question ID: 106104, text: 
-✅ Successfully saved question 1
-📝 Question 2:  | Answers: 0
-💾 Saving 0 answers for question ID: 106105, text: 
-✅ Successfully saved question 2
-📝 Question 3:  | Answers: 0
-💾 Saving 0 answers for question ID: 106106, text: 
-✅ Successfully saved question 3
-📝 Question 4:  | Answers: 0
-💾 Saving 0 answers for question ID: 106107, text: 
-✅ Successfully saved question 4
-📝 Question 5:  | Answers: 0
-💾 Saving 0 answers for question ID: 106108, text: 
-✅ Successfully saved question 5
-📝 Question 6:  | Answers: 0
-💾 Saving 0 answers for question ID: 106109, text: 
-✅ Successfully saved question 6
-📝 Question 7:  | Answers: 0
-💾 Saving 0 answers for question ID: 106110, text: 
-✅ Successfully saved question 7
-🔍 Saving 3 questions for group: Sentence (Drag) 2
-📝 Question 1: The Rorschach test is often used by psychologists to | Answers: 1
-💾 Saving 1 answers for question ID: 106111, text: The Rorschach test is often used by psychologists to
-📝 Answer 1 INPUT: 'assess subjects who are unwilling to express their thoughts.' (length: 60)
-✅ Saved answer 1 with ID: 81951, text: 'assess subjects who are unwilling to express their thoughts.' (length: 60)
-✅ Successfully saved question 1
-📝 Question 2: The test is based on the belief that people will | Answers: 1
-💾 Saving 1 answers for question ID: 106112, text: The test is based on the belief that people will
-📝 Answer 1 INPUT: 'interpret ambiguous images according to their own specific perceptions of life.' (length: 79)
-✅ Saved answer 1 with ID: 81952, text: 'interpret ambiguous images according to their own specific perceptions of life.' (length: 79)
-✅ Successfully saved question 2
-📝 Question 3: Rorschach’s original aim was not to assess personality, but to | Answers: 1
-💾 Saving 1 answers for question ID: 106113, text: Rorschach’s original aim was not to assess personality, but to
-📝 Answer 1 INPUT: 'diagnose a mental disorder.' (length: 27)
-✅ Saved answer 1 with ID: 81953, text: 'diagnose a mental disorder.' (length: 27)
-✅ Successfully saved question 3
-🔍 Saving 0 questions for group: The Rorschach Test
-🔍 Saving 3 questions for group: Nhóm 3
-📝 Question 1: scscscs | Answers: 0
-💾 Saving 0 answers for question ID: 106114, text: scscscs
-✅ Successfully saved question 1
-📝 Question 2:  | Answers: 0
-💾 Saving 0 answers for question ID: 106115, text: 
-✅ Successfully saved question 2
-📝 Question 3:  | Answers: 0
-💾 Saving 0 answers for question ID: 106116, text: 
-✅ Successfully saved question 3
-🔍 Saving 5 questions for group: Questions 9-19
-📝 Question 1: sxs | Answers: 0
-💾 Saving 0 answers for question ID: 106117, text: sxs
-✅ Successfully saved question 1
-📝 Question 2:  | Answers: 0
-💾 Saving 0 answers for question ID: 106118, text: 
-✅ Successfully saved question 2
-📝 Question 3:  | Answers: 0
-💾 Saving 0 answers for question ID: 106119, text: 
-✅ Successfully saved question 3
-📝 Question 4:  | Answers: 0
-💾 Saving 0 answers for question ID: 106120, text: 
-✅ Successfully saved question 4
-📝 Question 5:  | Answers: 0
-💾 Saving 0 answers for question ID: 106121, text: 
-✅ Successfully saved question 5
-🔍 Saving 0 questions for group: Understanding Humour
-🔍 Saving 2 questions for group: Short Answer 2
-📝 Question 1: <li>Which group of theories about humour describe it as being good for us?<br></li> | Answers: 1
-💾 Saving 1 answers for question ID: 106122, text: <li>Which group of theories about humour describe it as being good for us?<br></li>
-📝 Answer 1 INPUT: 'psychological' (length: 13)
-✅ Saved answer 1 with ID: 81954, text: 'psychological' (length: 13)
-✅ Successfully saved question 1
-📝 Question 2: What function did comedy have in the royal courts of the past? | Answers: 1
-💾 Saving 1 answers for question ID: 106123, text: What function did comedy have in the royal courts of the past?
-📝 Answer 1 INPUT: 'entertainment' (length: 13)
-✅ Saved answer 1 with ID: 81955, text: 'entertainment' (length: 13)
-✅ Successfully saved question 2
-🗑️ Cleaning up unused group: 36503
-🗑️ Cleaning up unused group: 36504
-🗑️ Cleaning up unused group: 36505
-🗑️ Cleaning up unused group: 36506
-🗑️ Cleaning up unused group: 36507
-🗑️ Cleaning up unused group: 36508
+2026-05-25T18:12:59.544+07:00  INFO 510600 --- [DAVictory] [           main] org.hibernate.orm.core                   : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-05-25T18:13:00.688+07:00  INFO 510600 --- [DAVictory] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-05-25T18:13:00.827+07:00  INFO 510600 --- [DAVictory] [           main] o.s.d.j.r.query.QueryEnhancerFactories   : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-05-25T18:13:02.538+07:00  INFO 510600 --- [DAVictory] [           main] c.v.DAVictory.config.PublicIpService     : ✅ Lấy IP từ https://api.ipify.org: 113.170.158.188
+2026-05-25T18:13:02.538+07:00  INFO 510600 --- [DAVictory] [           main] c.v.DAVictory.config.PublicIpService     : 🌐 Public IP đã phát hiện: 113.170.158.188
+2026-05-25T18:13:02.545+07:00  INFO 510600 --- [DAVictory] [           main] c.victory.DAVictory.config.CorsConfig    : CORS: Thêm IP public 113.170.158.188 vào allowed origins
+2026-05-25T18:13:02.545+07:00  INFO 510600 --- [DAVictory] [           main] c.victory.DAVictory.config.CorsConfig    : CORS allowed origins: [http://localhost:5173, http://localhost:3000, http://localhost:80, http://localhost, https://davictory.io.vn, https://www.davictory.io.vn, http://davictory.io.vn, http://www.davictory.io.vn, http://113.170.158.188:5173, http://113.170.158.188:3000, http://113.170.158.188:80, http://113.170.158.188]
+2026-05-25T18:13:04.361+07:00  INFO 510600 --- [DAVictory] [           main] eAuthenticationProviderManagerConfigurer : Global AuthenticationManager configured with AuthenticationProvider bean with name authenticationProvider
+2026-05-25T18:13:04.362+07:00  WARN 510600 --- [DAVictory] [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with an AuthenticationProvider bean. UserDetailsService beans will not be used by Spring Security for automatically configuring username/password login. Consider removing the AuthenticationProvider bean. Alternatively, consider using the UserDetailsService in a manually instantiated DaoAuthenticationProvider. If the current configuration is intentional, to turn off this warning, increase the logging level of 'org.springframework.security.config.annotation.authentication.configuration.InitializeUserDetailsBeanManagerConfigurer' to ERROR
+2026-05-25T18:13:06.132+07:00  WARN 510600 --- [DAVictory] [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-05-25T18:13:06.650+07:00  INFO 510600 --- [DAVictory] [           main] o.s.v.b.OptionalValidatorFactoryBean     : Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2026-05-25T18:13:07.626+07:00  INFO 510600 --- [DAVictory] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat started on port 8080 (http) with context path '/'
+2026-05-25T18:13:07.635+07:00  INFO 510600 --- [DAVictory] [           main] c.v.DAVictory.DaVictoryApplication       : Started DaVictoryApplication in 15.046 seconds (process running for 15.592)
+2026-05-25T18:13:07.748+07:00  INFO 510600 --- [DAVictory] [nio-8080-exec-2] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-05-25T18:13:07.749+07:00  INFO 510600 --- [DAVictory] [nio-8080-exec-2] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-05-25T18:13:07.753+07:00  INFO 510600 --- [DAVictory] [nio-8080-exec-2] o.s.web.servlet.DispatcherServlet        : Completed initialization in 4 ms
+2026-05-25T18:13:07.893+07:00  INFO 510600 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    : 🔧 [TestStructureInitializer] Bắt đầu khởi tạo cấu trúc IELTS...
+2026-05-25T18:13:07.909+07:00  INFO 510600 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ DifficultyLevels (5 cấp độ)
+2026-05-25T18:13:07.932+07:00  INFO 510600 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ Sessions (Listening / Reading / Writing / Speaking × Academic & General)
+2026-05-25T18:13:08.017+07:00  INFO 510600 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ Parts (các phần trong mỗi kỹ năng)
+2026-05-25T18:13:08.061+07:00  INFO 510600 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ QuestionTypes (14 loại câu hỏi IELTS)
+2026-05-25T18:13:08.061+07:00  INFO 510600 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    : ✅ [TestStructureInitializer] Hoàn tất khởi tạo cấu trúc IELTS.
+🔍 Checking authorization:
+   - Credential exists: true
+   - Access token exists: true
+🔍 Checking authorization:
+   - Credential exists: true
+   - Access token exists: true
+2026-05-25T18:19:12.967+07:00  WARN 510600 --- [DAVictory] [nio-8080-exec-5] .w.s.m.s.DefaultHandlerExceptionResolver : Ignoring exception, response committed already: org.springframework.http.converter.HttpMessageNotWritableException: Could not write JSON: ServletOutputStream failed to write: java.io.IOException: Broken pipe
+2026-05-25T18:19:52.152+07:00  INFO 510600 --- [DAVictory] [nio-8080-exec-5] o.apache.coyote.http11.Http11Processor   : Error parsing HTTP request header
+ Note: further occurrences of HTTP request parsing errors will be logged at DEBUG level.
+
+java.lang.IllegalArgumentException: Invalid character found in method name [MGLNDD_113.170.158.188_80800x0a...]. HTTP method names must be tokens
+	at org.apache.coyote.http11.Http11InputBuffer.parseRequestLine(Http11InputBuffer.java:391) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:270) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:63) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:903) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1779) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:52) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:946) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:480) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:57) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at java.base/java.lang.Thread.run(Thread.java:1583) ~[na:na]
+
+🗑️ Cleaning up unused group: 39622
+🗑️ Cleaning up unused group: 39623
+🗑️ Cleaning up unused group: 39624
+🗑️ Cleaning up unused group: 39625
+🗑️ Cleaning up unused group: 39626
+🗑️ Cleaning up unused group: 39627
+🗑️ Cleaning up unused group: 39628
+🗑️ Cleaning up unused group: 39629
+🗑️ Cleaning up unused group: 39630
+🗑️ Cleaning up unused group: 39631
+🗑️ Cleaning up unused group: 39632
+🗑️ Cleaning up unused group: 39633
+🗑️ Cleaning up unused group: 39634
 🔍 Saving 0 questions for group: Nutmeg – a valuable spice
-🔍 Saving 4 questions for group: <span style="font-weight: 400; white-space: pre-wrap; font-size: 20px;"><b>The nutmeg tree and fruit</b></span>
+🔍 Saving 4 questions for group: Nhóm 2
 📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question ID: 106124, text: 
+💾 Saving 1 answers for question ID: 114508, text: 
 📝 Answer 1 INPUT: 'oval' (length: 4)
-✅ Saved answer 1 with ID: 81956, text: 'oval' (length: 4)
+✅ Saved answer 1 with ID: 88475, text: 'oval' (length: 4)
 ✅ Successfully saved question 1
 📝 Question 2:  | Answers: 1
-💾 Saving 1 answers for question ID: 106125, text: 
+💾 Saving 1 answers for question ID: 114509, text: 
 📝 Answer 1 INPUT: 'husk' (length: 4)
-✅ Saved answer 1 with ID: 81957, text: 'husk' (length: 4)
+✅ Saved answer 1 with ID: 88476, text: 'husk' (length: 4)
 ✅ Successfully saved question 2
 📝 Question 3:  | Answers: 1
-💾 Saving 1 answers for question ID: 106126, text: 
+💾 Saving 1 answers for question ID: 114510, text: 
 📝 Answer 1 INPUT: 'seed' (length: 4)
-✅ Saved answer 1 with ID: 81958, text: 'seed' (length: 4)
+✅ Saved answer 1 with ID: 88477, text: 'seed' (length: 4)
 ✅ Successfully saved question 3
 📝 Question 4:  | Answers: 1
-💾 Saving 1 answers for question ID: 106127, text: 
+💾 Saving 1 answers for question ID: 114511, text: 
 📝 Answer 1 INPUT: 'mace' (length: 4)
-✅ Saved answer 1 with ID: 81959, text: 'mace' (length: 4)
+✅ Saved answer 1 with ID: 88478, text: 'mace' (length: 4)
 ✅ Successfully saved question 4
 🔍 Saving 3 questions for group: Nhóm 3
 📝 Question 1: In the Middle Ages, most Europeans knew where nutmeg was grown. | Answers: 1
-💾 Saving 1 answers for question ID: 106128, text: In the Middle Ages, most Europeans knew where nutmeg was grown.
+💾 Saving 1 answers for question ID: 114512, text: In the Middle Ages, most Europeans knew where nutmeg was grown.
 📝 Answer 1 INPUT: 'FALSE' (length: 5)
-✅ Saved answer 1 with ID: 81960, text: 'FALSE' (length: 5)
+✅ Saved answer 1 with ID: 88479, text: 'FALSE' (length: 5)
 ✅ Successfully saved question 1
 📝 Question 2: The VOC was the world’s first major trading company. | Answers: 1
-💾 Saving 1 answers for question ID: 106129, text: The VOC was the world’s first major trading company.
+💾 Saving 1 answers for question ID: 114513, text: The VOC was the world’s first major trading company.
 📝 Answer 1 INPUT: 'NOT GIVEN' (length: 9)
-✅ Saved answer 1 with ID: 81961, text: 'NOT GIVEN' (length: 9)
+✅ Saved answer 1 with ID: 88480, text: 'NOT GIVEN' (length: 9)
 ✅ Successfully saved question 2
 📝 Question 3: Following the Treaty of Breda, the Dutch had control of all the islands where nutmeg grew. | Answers: 1
-💾 Saving 1 answers for question ID: 106130, text: Following the Treaty of Breda, the Dutch had control of all the islands where nutmeg grew.
+💾 Saving 1 answers for question ID: 114514, text: Following the Treaty of Breda, the Dutch had control of all the islands where nutmeg grew.
 📝 Answer 1 INPUT: 'TRUE' (length: 4)
-✅ Saved answer 1 with ID: 81962, text: 'TRUE' (length: 4)
+✅ Saved answer 1 with ID: 88481, text: 'TRUE' (length: 4)
 ✅ Successfully saved question 3
 🔍 Saving 6 questions for group: Table Completion 4
 📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question ID: 106131, text: 
+💾 Saving 1 answers for question ID: 114515, text: 
 📝 Answer 1 INPUT: 'Arabs' (length: 5)
-✅ Saved answer 1 with ID: 81963, text: 'Arabs' (length: 5)
+✅ Saved answer 1 with ID: 88482, text: 'Arabs' (length: 5)
 ✅ Successfully saved question 1
 📝 Question 2:  | Answers: 1
-💾 Saving 1 answers for question ID: 106132, text: 
+💾 Saving 1 answers for question ID: 114516, text: 
 📝 Answer 1 INPUT: 'plague' (length: 6)
-✅ Saved answer 1 with ID: 81964, text: 'plague' (length: 6)
+✅ Saved answer 1 with ID: 88483, text: 'plague' (length: 6)
 ✅ Successfully saved question 2
 📝 Question 3:  | Answers: 1
-💾 Saving 1 answers for question ID: 106133, text: 
+💾 Saving 1 answers for question ID: 114517, text: 
 📝 Answer 1 INPUT: 'lime' (length: 4)
-✅ Saved answer 1 with ID: 81965, text: 'lime' (length: 4)
+✅ Saved answer 1 with ID: 88484, text: 'lime' (length: 4)
 ✅ Successfully saved question 3
 📝 Question 4:  | Answers: 1
-💾 Saving 1 answers for question ID: 106134, text: 
+💾 Saving 1 answers for question ID: 114518, text: 
 📝 Answer 1 INPUT: 'Run' (length: 3)
-✅ Saved answer 1 with ID: 81966, text: 'Run' (length: 3)
+✅ Saved answer 1 with ID: 88485, text: 'Run' (length: 3)
 ✅ Successfully saved question 4
 📝 Question 5:  | Answers: 1
-💾 Saving 1 answers for question ID: 106135, text: 
+💾 Saving 1 answers for question ID: 114519, text: 
 📝 Answer 1 INPUT: 'Mauritius' (length: 9)
-✅ Saved answer 1 with ID: 81967, text: 'Mauritius' (length: 9)
+✅ Saved answer 1 with ID: 88486, text: 'Mauritius' (length: 9)
 ✅ Successfully saved question 5
 📝 Question 6:  | Answers: 1
-💾 Saving 1 answers for question ID: 106136, text: 
+💾 Saving 1 answers for question ID: 114520, text: 
 📝 Answer 1 INPUT: 'tsunami' (length: 7)
-✅ Saved answer 1 with ID: 81968, text: 'tsunami' (length: 7)
+✅ Saved answer 1 with ID: 88487, text: 'tsunami' (length: 7)
 ✅ Successfully saved question 6
-🔍 Saving 0 questions for group: Driverless cars
 🔍 Saving 5 questions for group: <br>
 📝 Question 1: reference to the amount of time when a car is not in use | Answers: 1
-💾 Saving 1 answers for question ID: 106137, text: reference to the amount of time when a car is not in use
+💾 Saving 1 answers for question ID: 114521, text: reference to the amount of time when a car is not in use
 📝 Answer 1 INPUT: 'C' (length: 1)
-✅ Saved answer 1 with ID: 81969, text: 'C' (length: 1)
+✅ Saved answer 1 with ID: 88488, text: 'C' (length: 1)
 ✅ Successfully saved question 1
 📝 Question 2: mention of several advantages of driverless vehicles for individual road-users | Answers: 1
-💾 Saving 1 answers for question ID: 106138, text: mention of several advantages of driverless vehicles for individual road-users
+💾 Saving 1 answers for question ID: 114522, text: mention of several advantages of driverless vehicles for individual road-users
 📝 Answer 1 INPUT: 'B' (length: 1)
-✅ Saved answer 1 with ID: 81970, text: 'B' (length: 1)
+✅ Saved answer 1 with ID: 88489, text: 'B' (length: 1)
 ✅ Successfully saved question 2
 📝 Question 3: reference to the opportunity of choosing the most appropriate vehicle for each trip | Answers: 1
-💾 Saving 1 answers for question ID: 106139, text: reference to the opportunity of choosing the most appropriate vehicle for each trip
+💾 Saving 1 answers for question ID: 114523, text: reference to the opportunity of choosing the most appropriate vehicle for each trip
 📝 Answer 1 INPUT: 'E' (length: 1)
-✅ Saved answer 1 with ID: 81971, text: 'E' (length: 1)
+✅ Saved answer 1 with ID: 88490, text: 'E' (length: 1)
 ✅ Successfully saved question 3
 📝 Question 4: an estimate of how long it will take to overcome a number of problems | Answers: 1
-💾 Saving 1 answers for question ID: 106140, text: an estimate of how long it will take to overcome a number of problems
+💾 Saving 1 answers for question ID: 114524, text: an estimate of how long it will take to overcome a number of problems
 📝 Answer 1 INPUT: 'G' (length: 1)
-✅ Saved answer 1 with ID: 81972, text: 'G' (length: 1)
+✅ Saved answer 1 with ID: 88491, text: 'G' (length: 1)
 ✅ Successfully saved question 4
 📝 Question 5: a suggestion that the use of driverless cars may have no effect on the number of vehicles manufactured | Answers: 1
-💾 Saving 1 answers for question ID: 106141, text: a suggestion that the use of driverless cars may have no effect on the number of vehicles manufactured
+💾 Saving 1 answers for question ID: 114525, text: a suggestion that the use of driverless cars may have no effect on the number of vehicles manufactured
 📝 Answer 1 INPUT: 'D' (length: 1)
-✅ Saved answer 1 with ID: 81973, text: 'D' (length: 1)
+✅ Saved answer 1 with ID: 88492, text: 'D' (length: 1)
 ✅ Successfully saved question 5
-🗑️ Cleaning up unused group: 36518
-🗑️ Cleaning up unused group: 36519
-🗑️ Cleaning up unused group: 36520
-🗑️ Cleaning up unused group: 36521
-🗑️ Cleaning up unused group: 36522
-🗑️ Cleaning up unused group: 36523
-🔍 Saving 0 questions for group: Nutmeg – a valuable spice
-🔍 Saving 4 questions for group: <span style="font-weight: 400; white-space: pre-wrap; font-size: 20px;"><b>The nutmeg tree and fruit</b></span>
+🔍 Saving 0 questions for group: Nhóm 2
+🔍 Saving 4 questions for group: Nhóm 3
 📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question ID: 106142, text: 
-📝 Answer 1 INPUT: 'oval' (length: 4)
-✅ Saved answer 1 with ID: 81974, text: 'oval' (length: 4)
+💾 Saving 1 answers for question ID: 114526, text: 
+📝 Answer 1 INPUT: 'human error' (length: 11)
+✅ Saved answer 1 with ID: 88493, text: 'human error' (length: 11)
 ✅ Successfully saved question 1
 📝 Question 2:  | Answers: 1
-💾 Saving 1 answers for question ID: 106143, text: 
-📝 Answer 1 INPUT: 'husk' (length: 4)
-✅ Saved answer 1 with ID: 81975, text: 'husk' (length: 4)
+💾 Saving 1 answers for question ID: 114527, text: 
+📝 Answer 1 INPUT: 'car-sharing | car sharing' (length: 25)
+✅ Saved answer 1 with ID: 88494, text: 'car-sharing | car sharing' (length: 25)
 ✅ Successfully saved question 2
 📝 Question 3:  | Answers: 1
-💾 Saving 1 answers for question ID: 106144, text: 
-📝 Answer 1 INPUT: 'seed' (length: 4)
-✅ Saved answer 1 with ID: 81976, text: 'seed' (length: 4)
+💾 Saving 1 answers for question ID: 114528, text: 
+📝 Answer 1 INPUT: 'ownership' (length: 9)
+✅ Saved answer 1 with ID: 88495, text: 'ownership' (length: 9)
 ✅ Successfully saved question 3
 📝 Question 4:  | Answers: 1
-💾 Saving 1 answers for question ID: 106145, text: 
+💾 Saving 1 answers for question ID: 114529, text: 
+📝 Answer 1 INPUT: 'mileage' (length: 7)
+✅ Saved answer 1 with ID: 88496, text: 'mileage' (length: 7)
+✅ Successfully saved question 4
+🔍 Saving 1 questions for group: Multiple Choice (nhiều) 4
+📝 Question 1: Which <strong>TWO</strong> benefits of automated vehicles does the writer mention? | Answers: 0
+💾 Saving 0 answers for question ID: 114530, text: Which <strong>TWO</strong> benefits of automated vehicles does the writer mention?
+✅ Successfully saved question 1
+🔍 Saving 1 questions for group: Multiple Choice (nhiều) 5
+📝 Question 1: Which <strong>TWO</strong> challenges to automated vehicle development does the writer mention? | Answers: 0
+💾 Saving 0 answers for question ID: 114531, text: Which <strong>TWO</strong> challenges to automated vehicle development does the writer mention?
+✅ Successfully saved question 1
+🔍 Saving 0 questions for group: What is exploration?
+🔍 Saving 6 questions for group: Multiple Choice 2
+📝 Question 1: The writer refers to visitors to New York to illustrate the point that | Answers: 0
+💾 Saving 0 answers for question ID: 114532, text: The writer refers to visitors to New York to illustrate the point that
+✅ Successfully saved question 1
+📝 Question 2: <p>According to the second paragraph, what is the writer’s view of explorers?</p> | Answers: 0
+💾 Saving 0 answers for question ID: 114533, text: <p>According to the second paragraph, what is the writer’s view of explorers?</p>
+✅ Successfully saved question 2
+📝 Question 3: The writer refers to a description of Egdon Heath to suggest that | Answers: 0
+💾 Saving 0 answers for question ID: 114534, text: The writer refers to a description of Egdon Heath to suggest that
+✅ Successfully saved question 3
+📝 Question 4: In the fourth paragraph, the writer refers to ‘a golden age’ to suggest that | Answers: 0
+💾 Saving 0 answers for question ID: 114535, text: In the fourth paragraph, the writer refers to ‘a golden age’ to suggest that
+✅ Successfully saved question 4
+📝 Question 5: <p>In the sixth paragraph, when discussing the definition of exploration, the writer argues that</p> | Answers: 0
+💾 Saving 0 answers for question ID: 114536, text: <p>In the sixth paragraph, when discussing the definition of exploration, the writer argues that</p>
+✅ Successfully saved question 5
+📝 Question 6: <p>In the last paragraph, the writer explains that he is interested in</p> | Answers: 0
+💾 Saving 0 answers for question ID: 114537, text: <p>In the last paragraph, the writer explains that he is interested in</p>
+✅ Successfully saved question 6
+🔍 Saving 5 questions for group: <br>
+📝 Question 1: He referred to the relevance of the form of transport used. | Answers: 1
+💾 Saving 1 answers for question ID: 114538, text: He referred to the relevance of the form of transport used.
+📝 Answer 1 INPUT: 'E' (length: 1)
+✅ Saved answer 1 with ID: 88497, text: 'E' (length: 1)
+✅ Successfully saved question 1
+📝 Question 2: He described feelings on coming back home after a long journey. | Answers: 1
+💾 Saving 1 answers for question ID: 114539, text: He described feelings on coming back home after a long journey.
+📝 Answer 1 INPUT: 'A' (length: 1)
+✅ Saved answer 1 with ID: 88498, text: 'A' (length: 1)
+✅ Successfully saved question 2
+📝 Question 3: He worked for the benefit of specific groups of people. | Answers: 1
+💾 Saving 1 answers for question ID: 114540, text: He worked for the benefit of specific groups of people.
+📝 Answer 1 INPUT: 'D' (length: 1)
+✅ Saved answer 1 with ID: 88499, text: 'D' (length: 1)
+✅ Successfully saved question 3
+📝 Question 4: He did not consider learning about oneself an essential part of exploration. | Answers: 1
+💾 Saving 1 answers for question ID: 114541, text: He did not consider learning about oneself an essential part of exploration.
+📝 Answer 1 INPUT: 'E' (length: 1)
+✅ Saved answer 1 with ID: 88500, text: 'E' (length: 1)
+✅ Successfully saved question 4
+📝 Question 5: He defined exploration as being both unique and of value to others. | Answers: 1
+💾 Saving 1 answers for question ID: 114542, text: He defined exploration as being both unique and of value to others.
+📝 Answer 1 INPUT: 'B' (length: 1)
+✅ Saved answer 1 with ID: 88501, text: 'B' (length: 1)
+✅ Successfully saved question 5
+🔍 Saving 3 questions for group: Image + Note Form 4
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question ID: 114543, text: 
+📝 Answer 1 INPUT: 'unique expeditions | expeditions' (length: 32)
+✅ Saved answer 1 with ID: 88502, text: 'unique expeditions | expeditions' (length: 32)
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question ID: 114544, text: 
+📝 Answer 1 INPUT: 'uncontacted | isolated' (length: 22)
+✅ Saved answer 1 with ID: 88503, text: 'uncontacted | isolated' (length: 22)
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question ID: 114545, text: 
+📝 Answer 1 INPUT: 'land surface | surface' (length: 22)
+✅ Saved answer 1 with ID: 88504, text: 'land surface | surface' (length: 22)
+✅ Successfully saved question 3
+🗑️ Cleaning up unused group: 39732
+🗑️ Cleaning up unused group: 39733
+🗑️ Cleaning up unused group: 39734
+🗑️ Cleaning up unused group: 39735
+🗑️ Cleaning up unused group: 39736
+🗑️ Cleaning up unused group: 39737
+🗑️ Cleaning up unused group: 39738
+🗑️ Cleaning up unused group: 39739
+🗑️ Cleaning up unused group: 39740
+🗑️ Cleaning up unused group: 39741
+🗑️ Cleaning up unused group: 39742
+🗑️ Cleaning up unused group: 39743
+🗑️ Cleaning up unused group: 39744
+🔍 Saving 0 questions for group: Nutmeg – a valuable spice
+🔍 Saving 4 questions for group: Nhóm 2
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question ID: 114546, text: 
+📝 Answer 1 INPUT: 'oval' (length: 4)
+✅ Saved answer 1 with ID: 88505, text: 'oval' (length: 4)
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question ID: 114547, text: 
+📝 Answer 1 INPUT: 'husk' (length: 4)
+✅ Saved answer 1 with ID: 88506, text: 'husk' (length: 4)
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question ID: 114548, text: 
+📝 Answer 1 INPUT: 'seed' (length: 4)
+✅ Saved answer 1 with ID: 88507, text: 'seed' (length: 4)
+✅ Successfully saved question 3
+📝 Question 4:  | Answers: 1
+💾 Saving 1 answers for question ID: 114549, text: 
 📝 Answer 1 INPUT: 'mace' (length: 4)
-✅ Saved answer 1 with ID: 81977, text: 'mace' (length: 4)
+✅ Saved answer 1 with ID: 88508, text: 'mace' (length: 4)
 ✅ Successfully saved question 4
 🔍 Saving 3 questions for group: Nhóm 3
 📝 Question 1: In the Middle Ages, most Europeans knew where nutmeg was grown. | Answers: 1
-💾 Saving 1 answers for question ID: 106146, text: In the Middle Ages, most Europeans knew where nutmeg was grown.
+💾 Saving 1 answers for question ID: 114550, text: In the Middle Ages, most Europeans knew where nutmeg was grown.
 📝 Answer 1 INPUT: 'FALSE' (length: 5)
-✅ Saved answer 1 with ID: 81978, text: 'FALSE' (length: 5)
+✅ Saved answer 1 with ID: 88509, text: 'FALSE' (length: 5)
 ✅ Successfully saved question 1
 📝 Question 2: The VOC was the world’s first major trading company. | Answers: 1
-💾 Saving 1 answers for question ID: 106147, text: The VOC was the world’s first major trading company.
+💾 Saving 1 answers for question ID: 114551, text: The VOC was the world’s first major trading company.
 📝 Answer 1 INPUT: 'NOT GIVEN' (length: 9)
-✅ Saved answer 1 with ID: 81979, text: 'NOT GIVEN' (length: 9)
+✅ Saved answer 1 with ID: 88510, text: 'NOT GIVEN' (length: 9)
 ✅ Successfully saved question 2
 📝 Question 3: Following the Treaty of Breda, the Dutch had control of all the islands where nutmeg grew. | Answers: 1
-💾 Saving 1 answers for question ID: 106148, text: Following the Treaty of Breda, the Dutch had control of all the islands where nutmeg grew.
+💾 Saving 1 answers for question ID: 114552, text: Following the Treaty of Breda, the Dutch had control of all the islands where nutmeg grew.
 📝 Answer 1 INPUT: 'TRUE' (length: 4)
-✅ Saved answer 1 with ID: 81980, text: 'TRUE' (length: 4)
+✅ Saved answer 1 with ID: 88511, text: 'TRUE' (length: 4)
 ✅ Successfully saved question 3
 🔍 Saving 6 questions for group: Table Completion 4
 📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question ID: 106149, text: 
+💾 Saving 1 answers for question ID: 114553, text: 
 📝 Answer 1 INPUT: 'Arabs' (length: 5)
-✅ Saved answer 1 with ID: 81981, text: 'Arabs' (length: 5)
+✅ Saved answer 1 with ID: 88512, text: 'Arabs' (length: 5)
 ✅ Successfully saved question 1
 📝 Question 2:  | Answers: 1
-💾 Saving 1 answers for question ID: 106150, text: 
+💾 Saving 1 answers for question ID: 114554, text: 
 📝 Answer 1 INPUT: 'plague' (length: 6)
-✅ Saved answer 1 with ID: 81982, text: 'plague' (length: 6)
+✅ Saved answer 1 with ID: 88513, text: 'plague' (length: 6)
 ✅ Successfully saved question 2
 📝 Question 3:  | Answers: 1
-💾 Saving 1 answers for question ID: 106151, text: 
+💾 Saving 1 answers for question ID: 114555, text: 
 📝 Answer 1 INPUT: 'lime' (length: 4)
-✅ Saved answer 1 with ID: 81983, text: 'lime' (length: 4)
+✅ Saved answer 1 with ID: 88514, text: 'lime' (length: 4)
 ✅ Successfully saved question 3
 📝 Question 4:  | Answers: 1
-💾 Saving 1 answers for question ID: 106152, text: 
+💾 Saving 1 answers for question ID: 114556, text: 
 📝 Answer 1 INPUT: 'Run' (length: 3)
-✅ Saved answer 1 with ID: 81984, text: 'Run' (length: 3)
+✅ Saved answer 1 with ID: 88515, text: 'Run' (length: 3)
 ✅ Successfully saved question 4
 📝 Question 5:  | Answers: 1
-💾 Saving 1 answers for question ID: 106153, text: 
+💾 Saving 1 answers for question ID: 114557, text: 
 📝 Answer 1 INPUT: 'Mauritius' (length: 9)
-✅ Saved answer 1 with ID: 81985, text: 'Mauritius' (length: 9)
+✅ Saved answer 1 with ID: 88516, text: 'Mauritius' (length: 9)
 ✅ Successfully saved question 5
 📝 Question 6:  | Answers: 1
-💾 Saving 1 answers for question ID: 106154, text: 
+💾 Saving 1 answers for question ID: 114558, text: 
 📝 Answer 1 INPUT: 'tsunami' (length: 7)
-✅ Saved answer 1 with ID: 81986, text: 'tsunami' (length: 7)
+✅ Saved answer 1 with ID: 88517, text: 'tsunami' (length: 7)
 ✅ Successfully saved question 6
-🔍 Saving 0 questions for group: Driverless cars
 🔍 Saving 5 questions for group: <br>
 📝 Question 1: reference to the amount of time when a car is not in use | Answers: 1
-💾 Saving 1 answers for question ID: 106155, text: reference to the amount of time when a car is not in use
+💾 Saving 1 answers for question ID: 114559, text: reference to the amount of time when a car is not in use
 📝 Answer 1 INPUT: 'C' (length: 1)
-✅ Saved answer 1 with ID: 81987, text: 'C' (length: 1)
+✅ Saved answer 1 with ID: 88518, text: 'C' (length: 1)
 ✅ Successfully saved question 1
 📝 Question 2: mention of several advantages of driverless vehicles for individual road-users | Answers: 1
-💾 Saving 1 answers for question ID: 106156, text: mention of several advantages of driverless vehicles for individual road-users
+💾 Saving 1 answers for question ID: 114560, text: mention of several advantages of driverless vehicles for individual road-users
 📝 Answer 1 INPUT: 'B' (length: 1)
-✅ Saved answer 1 with ID: 81988, text: 'B' (length: 1)
+✅ Saved answer 1 with ID: 88519, text: 'B' (length: 1)
 ✅ Successfully saved question 2
 📝 Question 3: reference to the opportunity of choosing the most appropriate vehicle for each trip | Answers: 1
-💾 Saving 1 answers for question ID: 106157, text: reference to the opportunity of choosing the most appropriate vehicle for each trip
+💾 Saving 1 answers for question ID: 114561, text: reference to the opportunity of choosing the most appropriate vehicle for each trip
 📝 Answer 1 INPUT: 'E' (length: 1)
-✅ Saved answer 1 with ID: 81989, text: 'E' (length: 1)
+✅ Saved answer 1 with ID: 88520, text: 'E' (length: 1)
 ✅ Successfully saved question 3
 📝 Question 4: an estimate of how long it will take to overcome a number of problems | Answers: 1
-💾 Saving 1 answers for question ID: 106158, text: an estimate of how long it will take to overcome a number of problems
+💾 Saving 1 answers for question ID: 114562, text: an estimate of how long it will take to overcome a number of problems
 📝 Answer 1 INPUT: 'G' (length: 1)
-✅ Saved answer 1 with ID: 81990, text: 'G' (length: 1)
+✅ Saved answer 1 with ID: 88521, text: 'G' (length: 1)
 ✅ Successfully saved question 4
 📝 Question 5: a suggestion that the use of driverless cars may have no effect on the number of vehicles manufactured | Answers: 1
-💾 Saving 1 answers for question ID: 106159, text: a suggestion that the use of driverless cars may have no effect on the number of vehicles manufactured
+💾 Saving 1 answers for question ID: 114563, text: a suggestion that the use of driverless cars may have no effect on the number of vehicles manufactured
 📝 Answer 1 INPUT: 'D' (length: 1)
-✅ Saved answer 1 with ID: 81991, text: 'D' (length: 1)
+✅ Saved answer 1 with ID: 88522, text: 'D' (length: 1)
 ✅ Successfully saved question 5
-🗑️ Cleaning up unused group: 36524
-🗑️ Cleaning up unused group: 36525
-🗑️ Cleaning up unused group: 36526
-🗑️ Cleaning up unused group: 36527
-🗑️ Cleaning up unused group: 36528
-🗑️ Cleaning up unused group: 36529
-🔍 Saving 0 questions for group: Nutmeg – a valuable spice
-🔍 Saving 4 questions for group: <span style="font-weight: 400; white-space: pre-wrap; font-size: 20px;"><b>The nutmeg tree and fruit</b></span>
+🔍 Saving 0 questions for group: Nhóm 2
+🔍 Saving 4 questions for group: Nhóm 3
 📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question ID: 106160, text: 
-📝 Answer 1 INPUT: 'oval' (length: 4)
-✅ Saved answer 1 with ID: 81992, text: 'oval' (length: 4)
+💾 Saving 1 answers for question ID: 114564, text: 
+📝 Answer 1 INPUT: 'human error' (length: 11)
+✅ Saved answer 1 with ID: 88523, text: 'human error' (length: 11)
 ✅ Successfully saved question 1
 📝 Question 2:  | Answers: 1
-💾 Saving 1 answers for question ID: 106161, text: 
-📝 Answer 1 INPUT: 'husk' (length: 4)
-✅ Saved answer 1 with ID: 81993, text: 'husk' (length: 4)
+💾 Saving 1 answers for question ID: 114565, text: 
+📝 Answer 1 INPUT: 'car-sharing | car sharing' (length: 25)
+✅ Saved answer 1 with ID: 88524, text: 'car-sharing | car sharing' (length: 25)
 ✅ Successfully saved question 2
 📝 Question 3:  | Answers: 1
-💾 Saving 1 answers for question ID: 106162, text: 
-📝 Answer 1 INPUT: 'seed' (length: 4)
-✅ Saved answer 1 with ID: 81994, text: 'seed' (length: 4)
+💾 Saving 1 answers for question ID: 114566, text: 
+📝 Answer 1 INPUT: 'ownership' (length: 9)
+✅ Saved answer 1 with ID: 88525, text: 'ownership' (length: 9)
 ✅ Successfully saved question 3
 📝 Question 4:  | Answers: 1
-💾 Saving 1 answers for question ID: 106163, text: 
+💾 Saving 1 answers for question ID: 114567, text: 
+📝 Answer 1 INPUT: 'mileage' (length: 7)
+✅ Saved answer 1 with ID: 88526, text: 'mileage' (length: 7)
+✅ Successfully saved question 4
+🔍 Saving 1 questions for group: Multiple Choice (nhiều) 4
+📝 Question 1: Which <strong>TWO</strong> benefits of automated vehicles does the writer mention? | Answers: 0
+💾 Saving 0 answers for question ID: 114568, text: Which <strong>TWO</strong> benefits of automated vehicles does the writer mention?
+✅ Successfully saved question 1
+🔍 Saving 1 questions for group: Multiple Choice (nhiều) 5
+📝 Question 1: Which <strong>TWO</strong> challenges to automated vehicle development does the writer mention? | Answers: 0
+💾 Saving 0 answers for question ID: 114569, text: Which <strong>TWO</strong> challenges to automated vehicle development does the writer mention?
+✅ Successfully saved question 1
+🔍 Saving 0 questions for group: What is exploration?
+🔍 Saving 6 questions for group: Multiple Choice 2
+📝 Question 1: The writer refers to visitors to New York to illustrate the point that | Answers: 0
+💾 Saving 0 answers for question ID: 114570, text: The writer refers to visitors to New York to illustrate the point that
+✅ Successfully saved question 1
+📝 Question 2: <p>According to the second paragraph, what is the writer’s view of explorers?</p> | Answers: 0
+💾 Saving 0 answers for question ID: 114571, text: <p>According to the second paragraph, what is the writer’s view of explorers?</p>
+✅ Successfully saved question 2
+📝 Question 3: The writer refers to a description of Egdon Heath to suggest that | Answers: 0
+💾 Saving 0 answers for question ID: 114572, text: The writer refers to a description of Egdon Heath to suggest that
+✅ Successfully saved question 3
+📝 Question 4: In the fourth paragraph, the writer refers to ‘a golden age’ to suggest that | Answers: 0
+💾 Saving 0 answers for question ID: 114573, text: In the fourth paragraph, the writer refers to ‘a golden age’ to suggest that
+✅ Successfully saved question 4
+📝 Question 5: <p>In the sixth paragraph, when discussing the definition of exploration, the writer argues that</p> | Answers: 0
+💾 Saving 0 answers for question ID: 114574, text: <p>In the sixth paragraph, when discussing the definition of exploration, the writer argues that</p>
+✅ Successfully saved question 5
+📝 Question 6: <p>In the last paragraph, the writer explains that he is interested in</p> | Answers: 0
+💾 Saving 0 answers for question ID: 114575, text: <p>In the last paragraph, the writer explains that he is interested in</p>
+✅ Successfully saved question 6
+🔍 Saving 5 questions for group: <br>
+📝 Question 1: He referred to the relevance of the form of transport used. | Answers: 1
+💾 Saving 1 answers for question ID: 114576, text: He referred to the relevance of the form of transport used.
+📝 Answer 1 INPUT: 'E' (length: 1)
+✅ Saved answer 1 with ID: 88527, text: 'E' (length: 1)
+✅ Successfully saved question 1
+📝 Question 2: He described feelings on coming back home after a long journey. | Answers: 1
+💾 Saving 1 answers for question ID: 114577, text: He described feelings on coming back home after a long journey.
+📝 Answer 1 INPUT: 'A' (length: 1)
+✅ Saved answer 1 with ID: 88528, text: 'A' (length: 1)
+✅ Successfully saved question 2
+📝 Question 3: He worked for the benefit of specific groups of people. | Answers: 1
+💾 Saving 1 answers for question ID: 114578, text: He worked for the benefit of specific groups of people.
+📝 Answer 1 INPUT: 'D' (length: 1)
+✅ Saved answer 1 with ID: 88529, text: 'D' (length: 1)
+✅ Successfully saved question 3
+📝 Question 4: He did not consider learning about oneself an essential part of exploration. | Answers: 1
+💾 Saving 1 answers for question ID: 114579, text: He did not consider learning about oneself an essential part of exploration.
+📝 Answer 1 INPUT: 'E' (length: 1)
+✅ Saved answer 1 with ID: 88530, text: 'E' (length: 1)
+✅ Successfully saved question 4
+📝 Question 5: He defined exploration as being both unique and of value to others. | Answers: 1
+💾 Saving 1 answers for question ID: 114580, text: He defined exploration as being both unique and of value to others.
+📝 Answer 1 INPUT: 'B' (length: 1)
+✅ Saved answer 1 with ID: 88531, text: 'B' (length: 1)
+✅ Successfully saved question 5
+🔍 Saving 3 questions for group: Image + Note Form 4
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question ID: 114581, text: 
+📝 Answer 1 INPUT: 'unique expeditions | expeditions' (length: 32)
+✅ Saved answer 1 with ID: 88532, text: 'unique expeditions | expeditions' (length: 32)
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question ID: 114582, text: 
+📝 Answer 1 INPUT: 'uncontacted | isolated' (length: 22)
+✅ Saved answer 1 with ID: 88533, text: 'uncontacted | isolated' (length: 22)
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question ID: 114583, text: 
+📝 Answer 1 INPUT: 'land surface | surface' (length: 22)
+✅ Saved answer 1 with ID: 88534, text: 'land surface | surface' (length: 22)
+✅ Successfully saved question 3
+🗑️ Cleaning up unused group: 39745
+🗑️ Cleaning up unused group: 39746
+🗑️ Cleaning up unused group: 39747
+🗑️ Cleaning up unused group: 39748
+🗑️ Cleaning up unused group: 39749
+🗑️ Cleaning up unused group: 39750
+🗑️ Cleaning up unused group: 39751
+🗑️ Cleaning up unused group: 39752
+🗑️ Cleaning up unused group: 39753
+🗑️ Cleaning up unused group: 39754
+🗑️ Cleaning up unused group: 39755
+🗑️ Cleaning up unused group: 39756
+🗑️ Cleaning up unused group: 39757
+🔍 Saving 0 questions for group: Nutmeg – a valuable spice
+🔍 Saving 4 questions for group: Nhóm 2
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question ID: 114584, text: 
+📝 Answer 1 INPUT: 'oval' (length: 4)
+✅ Saved answer 1 with ID: 88535, text: 'oval' (length: 4)
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question ID: 114585, text: 
+📝 Answer 1 INPUT: 'husk' (length: 4)
+✅ Saved answer 1 with ID: 88536, text: 'husk' (length: 4)
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question ID: 114586, text: 
+📝 Answer 1 INPUT: 'seed' (length: 4)
+✅ Saved answer 1 with ID: 88537, text: 'seed' (length: 4)
+✅ Successfully saved question 3
+📝 Question 4:  | Answers: 1
+💾 Saving 1 answers for question ID: 114587, text: 
 📝 Answer 1 INPUT: 'mace' (length: 4)
-✅ Saved answer 1 with ID: 81995, text: 'mace' (length: 4)
+✅ Saved answer 1 with ID: 88538, text: 'mace' (length: 4)
 ✅ Successfully saved question 4
 🔍 Saving 3 questions for group: Nhóm 3
 📝 Question 1: In the Middle Ages, most Europeans knew where nutmeg was grown. | Answers: 1
-💾 Saving 1 answers for question ID: 106164, text: In the Middle Ages, most Europeans knew where nutmeg was grown.
+💾 Saving 1 answers for question ID: 114588, text: In the Middle Ages, most Europeans knew where nutmeg was grown.
 📝 Answer 1 INPUT: 'FALSE' (length: 5)
-✅ Saved answer 1 with ID: 81996, text: 'FALSE' (length: 5)
+✅ Saved answer 1 with ID: 88539, text: 'FALSE' (length: 5)
 ✅ Successfully saved question 1
 📝 Question 2: The VOC was the world’s first major trading company. | Answers: 1
-💾 Saving 1 answers for question ID: 106165, text: The VOC was the world’s first major trading company.
+💾 Saving 1 answers for question ID: 114589, text: The VOC was the world’s first major trading company.
 📝 Answer 1 INPUT: 'NOT GIVEN' (length: 9)
-✅ Saved answer 1 with ID: 81997, text: 'NOT GIVEN' (length: 9)
+✅ Saved answer 1 with ID: 88540, text: 'NOT GIVEN' (length: 9)
 ✅ Successfully saved question 2
 📝 Question 3: Following the Treaty of Breda, the Dutch had control of all the islands where nutmeg grew. | Answers: 1
-💾 Saving 1 answers for question ID: 106166, text: Following the Treaty of Breda, the Dutch had control of all the islands where nutmeg grew.
+💾 Saving 1 answers for question ID: 114590, text: Following the Treaty of Breda, the Dutch had control of all the islands where nutmeg grew.
 📝 Answer 1 INPUT: 'TRUE' (length: 4)
-✅ Saved answer 1 with ID: 81998, text: 'TRUE' (length: 4)
+✅ Saved answer 1 with ID: 88541, text: 'TRUE' (length: 4)
 ✅ Successfully saved question 3
 🔍 Saving 6 questions for group: Table Completion 4
 📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question ID: 106167, text: 
+💾 Saving 1 answers for question ID: 114591, text: 
 📝 Answer 1 INPUT: 'Arabs' (length: 5)
-✅ Saved answer 1 with ID: 81999, text: 'Arabs' (length: 5)
+✅ Saved answer 1 with ID: 88542, text: 'Arabs' (length: 5)
 ✅ Successfully saved question 1
 📝 Question 2:  | Answers: 1
-💾 Saving 1 answers for question ID: 106168, text: 
+💾 Saving 1 answers for question ID: 114592, text: 
 📝 Answer 1 INPUT: 'plague' (length: 6)
-✅ Saved answer 1 with ID: 82000, text: 'plague' (length: 6)
+✅ Saved answer 1 with ID: 88543, text: 'plague' (length: 6)
 ✅ Successfully saved question 2
 📝 Question 3:  | Answers: 1
-💾 Saving 1 answers for question ID: 106169, text: 
+💾 Saving 1 answers for question ID: 114593, text: 
 📝 Answer 1 INPUT: 'lime' (length: 4)
-✅ Saved answer 1 with ID: 82001, text: 'lime' (length: 4)
+✅ Saved answer 1 with ID: 88544, text: 'lime' (length: 4)
 ✅ Successfully saved question 3
 📝 Question 4:  | Answers: 1
-💾 Saving 1 answers for question ID: 106170, text: 
+💾 Saving 1 answers for question ID: 114594, text: 
 📝 Answer 1 INPUT: 'Run' (length: 3)
-✅ Saved answer 1 with ID: 82002, text: 'Run' (length: 3)
+✅ Saved answer 1 with ID: 88545, text: 'Run' (length: 3)
 ✅ Successfully saved question 4
 📝 Question 5:  | Answers: 1
-💾 Saving 1 answers for question ID: 106171, text: 
+💾 Saving 1 answers for question ID: 114595, text: 
 📝 Answer 1 INPUT: 'Mauritius' (length: 9)
-✅ Saved answer 1 with ID: 82003, text: 'Mauritius' (length: 9)
+✅ Saved answer 1 with ID: 88546, text: 'Mauritius' (length: 9)
 ✅ Successfully saved question 5
 📝 Question 6:  | Answers: 1
-💾 Saving 1 answers for question ID: 106172, text: 
+💾 Saving 1 answers for question ID: 114596, text: 
 📝 Answer 1 INPUT: 'tsunami' (length: 7)
-✅ Saved answer 1 with ID: 82004, text: 'tsunami' (length: 7)
+✅ Saved answer 1 with ID: 88547, text: 'tsunami' (length: 7)
 ✅ Successfully saved question 6
-🔍 Saving 0 questions for group: Driverless cars
 🔍 Saving 5 questions for group: <br>
 📝 Question 1: reference to the amount of time when a car is not in use | Answers: 1
-💾 Saving 1 answers for question ID: 106173, text: reference to the amount of time when a car is not in use
+💾 Saving 1 answers for question ID: 114597, text: reference to the amount of time when a car is not in use
 📝 Answer 1 INPUT: 'C' (length: 1)
-✅ Saved answer 1 with ID: 82005, text: 'C' (length: 1)
+✅ Saved answer 1 with ID: 88548, text: 'C' (length: 1)
 ✅ Successfully saved question 1
 📝 Question 2: mention of several advantages of driverless vehicles for individual road-users | Answers: 1
-💾 Saving 1 answers for question ID: 106174, text: mention of several advantages of driverless vehicles for individual road-users
+💾 Saving 1 answers for question ID: 114598, text: mention of several advantages of driverless vehicles for individual road-users
 📝 Answer 1 INPUT: 'B' (length: 1)
-✅ Saved answer 1 with ID: 82006, text: 'B' (length: 1)
+✅ Saved answer 1 with ID: 88549, text: 'B' (length: 1)
 ✅ Successfully saved question 2
 📝 Question 3: reference to the opportunity of choosing the most appropriate vehicle for each trip | Answers: 1
-💾 Saving 1 answers for question ID: 106175, text: reference to the opportunity of choosing the most appropriate vehicle for each trip
+💾 Saving 1 answers for question ID: 114599, text: reference to the opportunity of choosing the most appropriate vehicle for each trip
 📝 Answer 1 INPUT: 'E' (length: 1)
-✅ Saved answer 1 with ID: 82007, text: 'E' (length: 1)
+✅ Saved answer 1 with ID: 88550, text: 'E' (length: 1)
 ✅ Successfully saved question 3
 📝 Question 4: an estimate of how long it will take to overcome a number of problems | Answers: 1
-💾 Saving 1 answers for question ID: 106176, text: an estimate of how long it will take to overcome a number of problems
+💾 Saving 1 answers for question ID: 114600, text: an estimate of how long it will take to overcome a number of problems
 📝 Answer 1 INPUT: 'G' (length: 1)
-✅ Saved answer 1 with ID: 82008, text: 'G' (length: 1)
+✅ Saved answer 1 with ID: 88551, text: 'G' (length: 1)
 ✅ Successfully saved question 4
 📝 Question 5: a suggestion that the use of driverless cars may have no effect on the number of vehicles manufactured | Answers: 1
-💾 Saving 1 answers for question ID: 106177, text: a suggestion that the use of driverless cars may have no effect on the number of vehicles manufactured
+💾 Saving 1 answers for question ID: 114601, text: a suggestion that the use of driverless cars may have no effect on the number of vehicles manufactured
 📝 Answer 1 INPUT: 'D' (length: 1)
-✅ Saved answer 1 with ID: 82009, text: 'D' (length: 1)
+✅ Saved answer 1 with ID: 88552, text: 'D' (length: 1)
 ✅ Successfully saved question 5
-🗑️ Cleaning up unused group: 36530
-🗑️ Cleaning up unused group: 36531
-🗑️ Cleaning up unused group: 36532
-🗑️ Cleaning up unused group: 36533
-🗑️ Cleaning up unused group: 36534
-🗑️ Cleaning up unused group: 36535
-🔍 Saving 0 questions for group: Nutmeg – a valuable spice
-🔍 Saving 4 questions for group: <span style="font-weight: 400; white-space: pre-wrap; font-size: 20px;"><b>The nutmeg tree and fruit</b></span>
+🔍 Saving 0 questions for group: Nhóm 2
+🔍 Saving 4 questions for group: Nhóm 3
 📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question ID: 106178, text: 
-📝 Answer 1 INPUT: 'oval' (length: 4)
-✅ Saved answer 1 with ID: 82010, text: 'oval' (length: 4)
+💾 Saving 1 answers for question ID: 114602, text: 
+📝 Answer 1 INPUT: 'human error' (length: 11)
+✅ Saved answer 1 with ID: 88553, text: 'human error' (length: 11)
 ✅ Successfully saved question 1
 📝 Question 2:  | Answers: 1
-💾 Saving 1 answers for question ID: 106179, text: 
-📝 Answer 1 INPUT: 'husk' (length: 4)
-✅ Saved answer 1 with ID: 82011, text: 'husk' (length: 4)
+💾 Saving 1 answers for question ID: 114603, text: 
+📝 Answer 1 INPUT: 'car-sharing | car sharing' (length: 25)
+✅ Saved answer 1 with ID: 88554, text: 'car-sharing | car sharing' (length: 25)
 ✅ Successfully saved question 2
 📝 Question 3:  | Answers: 1
-💾 Saving 1 answers for question ID: 106180, text: 
-📝 Answer 1 INPUT: 'seed' (length: 4)
-✅ Saved answer 1 with ID: 82012, text: 'seed' (length: 4)
+💾 Saving 1 answers for question ID: 114604, text: 
+📝 Answer 1 INPUT: 'ownership' (length: 9)
+✅ Saved answer 1 with ID: 88555, text: 'ownership' (length: 9)
 ✅ Successfully saved question 3
 📝 Question 4:  | Answers: 1
-💾 Saving 1 answers for question ID: 106181, text: 
-📝 Answer 1 INPUT: 'mace' (length: 4)
-✅ Saved answer 1 with ID: 82013, text: 'mace' (length: 4)
+💾 Saving 1 answers for question ID: 114605, text: 
+📝 Answer 1 INPUT: 'mileage' (length: 7)
+✅ Saved answer 1 with ID: 88556, text: 'mileage' (length: 7)
 ✅ Successfully saved question 4
-🔍 Saving 3 questions for group: Nhóm 3
-📝 Question 1: In the Middle Ages, most Europeans knew where nutmeg was grown. | Answers: 1
-💾 Saving 1 answers for question ID: 106182, text: In the Middle Ages, most Europeans knew where nutmeg was grown.
-📝 Answer 1 INPUT: 'FALSE' (length: 5)
-✅ Saved answer 1 with ID: 82014, text: 'FALSE' (length: 5)
+🔍 Saving 1 questions for group: Multiple Choice (nhiều) 4
+📝 Question 1: Which <strong>TWO</strong> benefits of automated vehicles does the writer mention? | Answers: 0
+💾 Saving 0 answers for question ID: 114606, text: Which <strong>TWO</strong> benefits of automated vehicles does the writer mention?
 ✅ Successfully saved question 1
-📝 Question 2: The VOC was the world’s first major trading company. | Answers: 1
-💾 Saving 1 answers for question ID: 106183, text: The VOC was the world’s first major trading company.
-📝 Answer 1 INPUT: 'NOT GIVEN' (length: 9)
-✅ Saved answer 1 with ID: 82015, text: 'NOT GIVEN' (length: 9)
-✅ Successfully saved question 2
-📝 Question 3: Following the Treaty of Breda, the Dutch had control of all the islands where nutmeg grew. | Answers: 1
-💾 Saving 1 answers for question ID: 106184, text: Following the Treaty of Breda, the Dutch had control of all the islands where nutmeg grew.
-📝 Answer 1 INPUT: 'TRUE' (length: 4)
-✅ Saved answer 1 with ID: 82016, text: 'TRUE' (length: 4)
-✅ Successfully saved question 3
-🔍 Saving 6 questions for group: Table Completion 4
-📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question ID: 106185, text: 
-📝 Answer 1 INPUT: 'Arabs' (length: 5)
-✅ Saved answer 1 with ID: 82017, text: 'Arabs' (length: 5)
+🔍 Saving 1 questions for group: Multiple Choice (nhiều) 5
+📝 Question 1: Which <strong>TWO</strong> challenges to automated vehicle development does the writer mention? | Answers: 0
+💾 Saving 0 answers for question ID: 114607, text: Which <strong>TWO</strong> challenges to automated vehicle development does the writer mention?
 ✅ Successfully saved question 1
-📝 Question 2:  | Answers: 1
-💾 Saving 1 answers for question ID: 106186, text: 
-📝 Answer 1 INPUT: 'plague' (length: 6)
-✅ Saved answer 1 with ID: 82018, text: 'plague' (length: 6)
+🔍 Saving 0 questions for group: What is exploration?
+🔍 Saving 6 questions for group: Multiple Choice 2
+📝 Question 1: The writer refers to visitors to New York to illustrate the point that | Answers: 0
+💾 Saving 0 answers for question ID: 114608, text: The writer refers to visitors to New York to illustrate the point that
+✅ Successfully saved question 1
+📝 Question 2: <p>According to the second paragraph, what is the writer’s view of explorers?</p> | Answers: 0
+💾 Saving 0 answers for question ID: 114609, text: <p>According to the second paragraph, what is the writer’s view of explorers?</p>
 ✅ Successfully saved question 2
-📝 Question 3:  | Answers: 1
-💾 Saving 1 answers for question ID: 106187, text: 
-📝 Answer 1 INPUT: 'lime' (length: 4)
-✅ Saved answer 1 with ID: 82019, text: 'lime' (length: 4)
+📝 Question 3: The writer refers to a description of Egdon Heath to suggest that | Answers: 0
+💾 Saving 0 answers for question ID: 114610, text: The writer refers to a description of Egdon Heath to suggest that
 ✅ Successfully saved question 3
-📝 Question 4:  | Answers: 1
-💾 Saving 1 answers for question ID: 106188, text: 
-📝 Answer 1 INPUT: 'Run' (length: 3)
-✅ Saved answer 1 with ID: 82020, text: 'Run' (length: 3)
+📝 Question 4: In the fourth paragraph, the writer refers to ‘a golden age’ to suggest that | Answers: 0
+💾 Saving 0 answers for question ID: 114611, text: In the fourth paragraph, the writer refers to ‘a golden age’ to suggest that
 ✅ Successfully saved question 4
-📝 Question 5:  | Answers: 1
-💾 Saving 1 answers for question ID: 106189, text: 
-📝 Answer 1 INPUT: 'Mauritius' (length: 9)
-✅ Saved answer 1 with ID: 82021, text: 'Mauritius' (length: 9)
+📝 Question 5: <p>In the sixth paragraph, when discussing the definition of exploration, the writer argues that</p> | Answers: 0
+💾 Saving 0 answers for question ID: 114612, text: <p>In the sixth paragraph, when discussing the definition of exploration, the writer argues that</p>
 ✅ Successfully saved question 5
-📝 Question 6:  | Answers: 1
-💾 Saving 1 answers for question ID: 106190, text: 
-📝 Answer 1 INPUT: 'tsunami' (length: 7)
-✅ Saved answer 1 with ID: 82022, text: 'tsunami' (length: 7)
+📝 Question 6: <p>In the last paragraph, the writer explains that he is interested in</p> | Answers: 0
+💾 Saving 0 answers for question ID: 114613, text: <p>In the last paragraph, the writer explains that he is interested in</p>
 ✅ Successfully saved question 6
-🔍 Saving 0 questions for group: Driverless cars
 🔍 Saving 5 questions for group: <br>
-📝 Question 1: reference to the amount of time when a car is not in use | Answers: 1
-💾 Saving 1 answers for question ID: 106191, text: reference to the amount of time when a car is not in use
-📝 Answer 1 INPUT: 'C' (length: 1)
-✅ Saved answer 1 with ID: 82023, text: 'C' (length: 1)
-✅ Successfully saved question 1
-📝 Question 2: mention of several advantages of driverless vehicles for individual road-users | Answers: 1
-💾 Saving 1 answers for question ID: 106192, text: mention of several advantages of driverless vehicles for individual road-users
-📝 Answer 1 INPUT: 'B' (length: 1)
-✅ Saved answer 1 with ID: 82024, text: 'B' (length: 1)
-✅ Successfully saved question 2
-📝 Question 3: reference to the opportunity of choosing the most appropriate vehicle for each trip | Answers: 1
-💾 Saving 1 answers for question ID: 106193, text: reference to the opportunity of choosing the most appropriate vehicle for each trip
+📝 Question 1: He referred to the relevance of the form of transport used. | Answers: 1
+💾 Saving 1 answers for question ID: 114614, text: He referred to the relevance of the form of transport used.
 📝 Answer 1 INPUT: 'E' (length: 1)
-✅ Saved answer 1 with ID: 82025, text: 'E' (length: 1)
-✅ Successfully saved question 3
-📝 Question 4: an estimate of how long it will take to overcome a number of problems | Answers: 1
-💾 Saving 1 answers for question ID: 106194, text: an estimate of how long it will take to overcome a number of problems
-📝 Answer 1 INPUT: 'G' (length: 1)
-✅ Saved answer 1 with ID: 82026, text: 'G' (length: 1)
-✅ Successfully saved question 4
-📝 Question 5: a suggestion that the use of driverless cars may have no effect on the number of vehicles manufactured | Answers: 1
-💾 Saving 1 answers for question ID: 106195, text: a suggestion that the use of driverless cars may have no effect on the number of vehicles manufactured
+✅ Saved answer 1 with ID: 88557, text: 'E' (length: 1)
+✅ Successfully saved question 1
+📝 Question 2: He described feelings on coming back home after a long journey. | Answers: 1
+💾 Saving 1 answers for question ID: 114615, text: He described feelings on coming back home after a long journey.
+📝 Answer 1 INPUT: 'A' (length: 1)
+✅ Saved answer 1 with ID: 88558, text: 'A' (length: 1)
+✅ Successfully saved question 2
+📝 Question 3: He worked for the benefit of specific groups of people. | Answers: 1
+💾 Saving 1 answers for question ID: 114616, text: He worked for the benefit of specific groups of people.
 📝 Answer 1 INPUT: 'D' (length: 1)
-✅ Saved answer 1 with ID: 82027, text: 'D' (length: 1)
-✅ Successfully saved question 5
-🗑️ Cleaning up unused group: 36536
-🗑️ Cleaning up unused group: 36537
-🗑️ Cleaning up unused group: 36538
-🗑️ Cleaning up unused group: 36539
-🗑️ Cleaning up unused group: 36540
-🗑️ Cleaning up unused group: 36541
-🔍 Saving 0 questions for group: Nutmeg – a valuable spice
-🔍 Saving 4 questions for group: <span style="font-weight: 400; white-space: pre-wrap; font-size: 20px;"><b>The nutmeg tree and fruit</b></span>
-📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question ID: 106196, text: 
-📝 Answer 1 INPUT: 'oval' (length: 4)
-✅ Saved answer 1 with ID: 82028, text: 'oval' (length: 4)
-✅ Successfully saved question 1
-📝 Question 2:  | Answers: 1
-💾 Saving 1 answers for question ID: 106197, text: 
-📝 Answer 1 INPUT: 'husk' (length: 4)
-✅ Saved answer 1 with ID: 82029, text: 'husk' (length: 4)
-✅ Successfully saved question 2
-📝 Question 3:  | Answers: 1
-💾 Saving 1 answers for question ID: 106198, text: 
-📝 Answer 1 INPUT: 'seed' (length: 4)
-✅ Saved answer 1 with ID: 82030, text: 'seed' (length: 4)
+✅ Saved answer 1 with ID: 88559, text: 'D' (length: 1)
 ✅ Successfully saved question 3
-📝 Question 4:  | Answers: 1
-💾 Saving 1 answers for question ID: 106199, text: 
-📝 Answer 1 INPUT: 'mace' (length: 4)
-✅ Saved answer 1 with ID: 82031, text: 'mace' (length: 4)
-✅ Successfully saved question 4
-🔍 Saving 3 questions for group: Nhóm 3
-📝 Question 1: In the Middle Ages, most Europeans knew where nutmeg was grown. | Answers: 1
-💾 Saving 1 answers for question ID: 106200, text: In the Middle Ages, most Europeans knew where nutmeg was grown.
-📝 Answer 1 INPUT: 'FALSE' (length: 5)
-✅ Saved answer 1 with ID: 82032, text: 'FALSE' (length: 5)
-✅ Successfully saved question 1
-📝 Question 2: The VOC was the world’s first major trading company. | Answers: 1
-💾 Saving 1 answers for question ID: 106201, text: The VOC was the world’s first major trading company.
-📝 Answer 1 INPUT: 'NOT GIVEN' (length: 9)
-✅ Saved answer 1 with ID: 82033, text: 'NOT GIVEN' (length: 9)
-✅ Successfully saved question 2
-📝 Question 3: Following the Treaty of Breda, the Dutch had control of all the islands where nutmeg grew. | Answers: 1
-💾 Saving 1 answers for question ID: 106202, text: Following the Treaty of Breda, the Dutch had control of all the islands where nutmeg grew.
-📝 Answer 1 INPUT: 'TRUE' (length: 4)
-✅ Saved answer 1 with ID: 82034, text: 'TRUE' (length: 4)
-✅ Successfully saved question 3
-🔍 Saving 6 questions for group: Table Completion 4
-📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question ID: 106203, text: 
-📝 Answer 1 INPUT: 'Arabs' (length: 5)
-✅ Saved answer 1 with ID: 82035, text: 'Arabs' (length: 5)
-✅ Successfully saved question 1
-📝 Question 2:  | Answers: 1
-💾 Saving 1 answers for question ID: 106204, text: 
-📝 Answer 1 INPUT: 'plague' (length: 6)
-✅ Saved answer 1 with ID: 82036, text: 'plague' (length: 6)
-✅ Successfully saved question 2
-📝 Question 3:  | Answers: 1
-💾 Saving 1 answers for question ID: 106205, text: 
-📝 Answer 1 INPUT: 'lime' (length: 4)
-✅ Saved answer 1 with ID: 82037, text: 'lime' (length: 4)
-✅ Successfully saved question 3
-📝 Question 4:  | Answers: 1
-💾 Saving 1 answers for question ID: 106206, text: 
-📝 Answer 1 INPUT: 'Run' (length: 3)
-✅ Saved answer 1 with ID: 82038, text: 'Run' (length: 3)
-✅ Successfully saved question 4
-📝 Question 5:  | Answers: 1
-💾 Saving 1 answers for question ID: 106207, text: 
-📝 Answer 1 INPUT: 'Mauritius' (length: 9)
-✅ Saved answer 1 with ID: 82039, text: 'Mauritius' (length: 9)
-✅ Successfully saved question 5
-📝 Question 6:  | Answers: 1
-💾 Saving 1 answers for question ID: 106208, text: 
-📝 Answer 1 INPUT: 'tsunami' (length: 7)
-✅ Saved answer 1 with ID: 82040, text: 'tsunami' (length: 7)
-✅ Successfully saved question 6
-🔍 Saving 0 questions for group: Driverless cars
-🔍 Saving 5 questions for group: <br>
-📝 Question 1: reference to the amount of time when a car is not in use | Answers: 1
-💾 Saving 1 answers for question ID: 106209, text: reference to the amount of time when a car is not in use
-📝 Answer 1 INPUT: 'C' (length: 1)
-✅ Saved answer 1 with ID: 82041, text: 'C' (length: 1)
-✅ Successfully saved question 1
-📝 Question 2: mention of several advantages of driverless vehicles for individual road-users | Answers: 1
-💾 Saving 1 answers for question ID: 106210, text: mention of several advantages of driverless vehicles for individual road-users
-📝 Answer 1 INPUT: 'B' (length: 1)
-✅ Saved answer 1 with ID: 82042, text: 'B' (length: 1)
-✅ Successfully saved question 2
-📝 Question 3: reference to the opportunity of choosing the most appropriate vehicle for each trip | Answers: 1
-💾 Saving 1 answers for question ID: 106211, text: reference to the opportunity of choosing the most appropriate vehicle for each trip
+📝 Question 4: He did not consider learning about oneself an essential part of exploration. | Answers: 1
+💾 Saving 1 answers for question ID: 114617, text: He did not consider learning about oneself an essential part of exploration.
 📝 Answer 1 INPUT: 'E' (length: 1)
-✅ Saved answer 1 with ID: 82043, text: 'E' (length: 1)
-✅ Successfully saved question 3
-📝 Question 4: an estimate of how long it will take to overcome a number of problems | Answers: 1
-💾 Saving 1 answers for question ID: 106212, text: an estimate of how long it will take to overcome a number of problems
-📝 Answer 1 INPUT: 'G' (length: 1)
-✅ Saved answer 1 with ID: 82044, text: 'G' (length: 1)
+✅ Saved answer 1 with ID: 88560, text: 'E' (length: 1)
 ✅ Successfully saved question 4
-📝 Question 5: a suggestion that the use of driverless cars may have no effect on the number of vehicles manufactured | Answers: 1
-💾 Saving 1 answers for question ID: 106213, text: a suggestion that the use of driverless cars may have no effect on the number of vehicles manufactured
-📝 Answer 1 INPUT: 'D' (length: 1)
-✅ Saved answer 1 with ID: 82045, text: 'D' (length: 1)
-✅ Successfully saved question 5
-🗑️ Cleaning up unused group: 36542
-🗑️ Cleaning up unused group: 36543
-🗑️ Cleaning up unused group: 36544
-🗑️ Cleaning up unused group: 36545
-🗑️ Cleaning up unused group: 36546
-🗑️ Cleaning up unused group: 36547
-🔍 Saving 0 questions for group: Nutmeg – a valuable spice
-🔍 Saving 4 questions for group: <span style="font-weight: 400; white-space: pre-wrap; font-size: 20px;"><b>The nutmeg tree and fruit</b></span>
-📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question ID: 106214, text: 
-📝 Answer 1 INPUT: 'oval' (length: 4)
-✅ Saved answer 1 with ID: 82046, text: 'oval' (length: 4)
-✅ Successfully saved question 1
-📝 Question 2:  | Answers: 1
-💾 Saving 1 answers for question ID: 106215, text: 
-📝 Answer 1 INPUT: 'husk' (length: 4)
-✅ Saved answer 1 with ID: 82047, text: 'husk' (length: 4)
-✅ Successfully saved question 2
-📝 Question 3:  | Answers: 1
-💾 Saving 1 answers for question ID: 106216, text: 
-📝 Answer 1 INPUT: 'seed' (length: 4)
-✅ Saved answer 1 with ID: 82048, text: 'seed' (length: 4)
-✅ Successfully saved question 3
-📝 Question 4:  | Answers: 1
-💾 Saving 1 answers for question ID: 106217, text: 
-📝 Answer 1 INPUT: 'mace' (length: 4)
-✅ Saved answer 1 with ID: 82049, text: 'mace' (length: 4)
-✅ Successfully saved question 4
-🔍 Saving 3 questions for group: Nhóm 3
-📝 Question 1: In the Middle Ages, most Europeans knew where nutmeg was grown. | Answers: 1
-💾 Saving 1 answers for question ID: 106218, text: In the Middle Ages, most Europeans knew where nutmeg was grown.
-📝 Answer 1 INPUT: 'FALSE' (length: 5)
-✅ Saved answer 1 with ID: 82050, text: 'FALSE' (length: 5)
-✅ Successfully saved question 1
-📝 Question 2: The VOC was the world’s first major trading company. | Answers: 1
-💾 Saving 1 answers for question ID: 106219, text: The VOC was the world’s first major trading company.
-📝 Answer 1 INPUT: 'NOT GIVEN' (length: 9)
-✅ Saved answer 1 with ID: 82051, text: 'NOT GIVEN' (length: 9)
-✅ Successfully saved question 2
-📝 Question 3: Following the Treaty of Breda, the Dutch had control of all the islands where nutmeg grew. | Answers: 1
-💾 Saving 1 answers for question ID: 106220, text: Following the Treaty of Breda, the Dutch had control of all the islands where nutmeg grew.
-📝 Answer 1 INPUT: 'TRUE' (length: 4)
-✅ Saved answer 1 with ID: 82052, text: 'TRUE' (length: 4)
-✅ Successfully saved question 3
-🔍 Saving 6 questions for group: Table Completion 4
-📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question ID: 106221, text: 
-📝 Answer 1 INPUT: 'Arabs' (length: 5)
-✅ Saved answer 1 with ID: 82053, text: 'Arabs' (length: 5)
-✅ Successfully saved question 1
-📝 Question 2:  | Answers: 1
-💾 Saving 1 answers for question ID: 106222, text: 
-📝 Answer 1 INPUT: 'plague' (length: 6)
-✅ Saved answer 1 with ID: 82054, text: 'plague' (length: 6)
-✅ Successfully saved question 2
-📝 Question 3:  | Answers: 1
-💾 Saving 1 answers for question ID: 106223, text: 
-📝 Answer 1 INPUT: 'lime' (length: 4)
-✅ Saved answer 1 with ID: 82055, text: 'lime' (length: 4)
-✅ Successfully saved question 3
-📝 Question 4:  | Answers: 1
-💾 Saving 1 answers for question ID: 106224, text: 
-📝 Answer 1 INPUT: 'Run' (length: 3)
-✅ Saved answer 1 with ID: 82056, text: 'Run' (length: 3)
-✅ Successfully saved question 4
-📝 Question 5:  | Answers: 1
-💾 Saving 1 answers for question ID: 106225, text: 
-📝 Answer 1 INPUT: 'Mauritius' (length: 9)
-✅ Saved answer 1 with ID: 82057, text: 'Mauritius' (length: 9)
-✅ Successfully saved question 5
-📝 Question 6:  | Answers: 1
-💾 Saving 1 answers for question ID: 106226, text: 
-📝 Answer 1 INPUT: 'tsunami' (length: 7)
-✅ Saved answer 1 with ID: 82058, text: 'tsunami' (length: 7)
-✅ Successfully saved question 6
-🔍 Saving 0 questions for group: Driverless cars
-🔍 Saving 5 questions for group: <br>
-📝 Question 1: reference to the amount of time when a car is not in use | Answers: 1
-💾 Saving 1 answers for question ID: 106227, text: reference to the amount of time when a car is not in use
-📝 Answer 1 INPUT: 'C' (length: 1)
-✅ Saved answer 1 with ID: 82059, text: 'C' (length: 1)
-✅ Successfully saved question 1
-📝 Question 2: mention of several advantages of driverless vehicles for individual road-users | Answers: 1
-💾 Saving 1 answers for question ID: 106228, text: mention of several advantages of driverless vehicles for individual road-users
+📝 Question 5: He defined exploration as being both unique and of value to others. | Answers: 1
+💾 Saving 1 answers for question ID: 114618, text: He defined exploration as being both unique and of value to others.
 📝 Answer 1 INPUT: 'B' (length: 1)
-✅ Saved answer 1 with ID: 82060, text: 'B' (length: 1)
-✅ Successfully saved question 2
-📝 Question 3: reference to the opportunity of choosing the most appropriate vehicle for each trip | Answers: 1
-💾 Saving 1 answers for question ID: 106229, text: reference to the opportunity of choosing the most appropriate vehicle for each trip
-📝 Answer 1 INPUT: 'E' (length: 1)
-✅ Saved answer 1 with ID: 82061, text: 'E' (length: 1)
-✅ Successfully saved question 3
-📝 Question 4: an estimate of how long it will take to overcome a number of problems | Answers: 1
-💾 Saving 1 answers for question ID: 106230, text: an estimate of how long it will take to overcome a number of problems
-📝 Answer 1 INPUT: 'G' (length: 1)
-✅ Saved answer 1 with ID: 82062, text: 'G' (length: 1)
-✅ Successfully saved question 4
-📝 Question 5: a suggestion that the use of driverless cars may have no effect on the number of vehicles manufactured | Answers: 1
-💾 Saving 1 answers for question ID: 106231, text: a suggestion that the use of driverless cars may have no effect on the number of vehicles manufactured
-📝 Answer 1 INPUT: 'D' (length: 1)
-✅ Saved answer 1 with ID: 82063, text: 'D' (length: 1)
+✅ Saved answer 1 with ID: 88561, text: 'B' (length: 1)
 ✅ Successfully saved question 5
-🗑️ Cleaning up unused group: 36548
-🗑️ Cleaning up unused group: 36549
-🗑️ Cleaning up unused group: 36550
-🗑️ Cleaning up unused group: 36551
-🗑️ Cleaning up unused group: 36552
-🗑️ Cleaning up unused group: 36553
-🔍 Saving 0 questions for group: Nutmeg – a valuable spice
-🔍 Saving 4 questions for group: <span style="font-weight: 400; white-space: pre-wrap; font-size: 20px;"><b>The nutmeg tree and fruit</b></span>
+🔍 Saving 3 questions for group: Image + Note Form 4
 📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question ID: 106232, text: 
-📝 Answer 1 INPUT: 'oval' (length: 4)
-✅ Saved answer 1 with ID: 82064, text: 'oval' (length: 4)
+💾 Saving 1 answers for question ID: 114619, text: 
+📝 Answer 1 INPUT: 'unique expeditions | expeditions' (length: 32)
+✅ Saved answer 1 with ID: 88562, text: 'unique expeditions | expeditions' (length: 32)
 ✅ Successfully saved question 1
 📝 Question 2:  | Answers: 1
-💾 Saving 1 answers for question ID: 106233, text: 
-📝 Answer 1 INPUT: 'husk' (length: 4)
-✅ Saved answer 1 with ID: 82065, text: 'husk' (length: 4)
+💾 Saving 1 answers for question ID: 114620, text: 
+📝 Answer 1 INPUT: 'uncontacted | isolated' (length: 22)
+✅ Saved answer 1 with ID: 88563, text: 'uncontacted | isolated' (length: 22)
 ✅ Successfully saved question 2
 📝 Question 3:  | Answers: 1
-💾 Saving 1 answers for question ID: 106234, text: 
-📝 Answer 1 INPUT: 'seed' (length: 4)
-✅ Saved answer 1 with ID: 82066, text: 'seed' (length: 4)
+💾 Saving 1 answers for question ID: 114621, text: 
+📝 Answer 1 INPUT: 'land surface | surface' (length: 22)
+✅ Saved answer 1 with ID: 88564, text: 'land surface | surface' (length: 22)
 ✅ Successfully saved question 3
-📝 Question 4:  | Answers: 1
-💾 Saving 1 answers for question ID: 106235, text: 
-📝 Answer 1 INPUT: 'mace' (length: 4)
-✅ Saved answer 1 with ID: 82067, text: 'mace' (length: 4)
-✅ Successfully saved question 4
-🔍 Saving 3 questions for group: Nhóm 3
-📝 Question 1: In the Middle Ages, most Europeans knew where nutmeg was grown. | Answers: 1
-💾 Saving 1 answers for question ID: 106236, text: In the Middle Ages, most Europeans knew where nutmeg was grown.
-📝 Answer 1 INPUT: 'FALSE' (length: 5)
-✅ Saved answer 1 with ID: 82068, text: 'FALSE' (length: 5)
-✅ Successfully saved question 1
-📝 Question 2: The VOC was the world’s first major trading company. | Answers: 1
-💾 Saving 1 answers for question ID: 106237, text: The VOC was the world’s first major trading company.
-📝 Answer 1 INPUT: 'NOT GIVEN' (length: 9)
-✅ Saved answer 1 with ID: 82069, text: 'NOT GIVEN' (length: 9)
-✅ Successfully saved question 2
-📝 Question 3: Following the Treaty of Breda, the Dutch had control of all the islands where nutmeg grew. | Answers: 1
-💾 Saving 1 answers for question ID: 106238, text: Following the Treaty of Breda, the Dutch had control of all the islands where nutmeg grew.
-📝 Answer 1 INPUT: 'TRUE' (length: 4)
-✅ Saved answer 1 with ID: 82070, text: 'TRUE' (length: 4)
-✅ Successfully saved question 3
-🔍 Saving 6 questions for group: Table Completion 4
-📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question ID: 106239, text: 
-📝 Answer 1 INPUT: 'Arabs' (length: 5)
-✅ Saved answer 1 with ID: 82071, text: 'Arabs' (length: 5)
-✅ Successfully saved question 1
-📝 Question 2:  | Answers: 1
-💾 Saving 1 answers for question ID: 106240, text: 
-📝 Answer 1 INPUT: 'plague' (length: 6)
-✅ Saved answer 1 with ID: 82072, text: 'plague' (length: 6)
-✅ Successfully saved question 2
-📝 Question 3:  | Answers: 1
-💾 Saving 1 answers for question ID: 106241, text: 
-📝 Answer 1 INPUT: 'lime' (length: 4)
-✅ Saved answer 1 with ID: 82073, text: 'lime' (length: 4)
-✅ Successfully saved question 3
-📝 Question 4:  | Answers: 1
-💾 Saving 1 answers for question ID: 106242, text: 
-📝 Answer 1 INPUT: 'Run' (length: 3)
-✅ Saved answer 1 with ID: 82074, text: 'Run' (length: 3)
-✅ Successfully saved question 4
-📝 Question 5:  | Answers: 1
-💾 Saving 1 answers for question ID: 106243, text: 
-📝 Answer 1 INPUT: 'Mauritius' (length: 9)
-✅ Saved answer 1 with ID: 82075, text: 'Mauritius' (length: 9)
-✅ Successfully saved question 5
-📝 Question 6:  | Answers: 1
-💾 Saving 1 answers for question ID: 106244, text: 
-📝 Answer 1 INPUT: 'tsunami' (length: 7)
-✅ Saved answer 1 with ID: 82076, text: 'tsunami' (length: 7)
-✅ Successfully saved question 6
-🔍 Saving 0 questions for group: Driverless cars
-🔍 Saving 5 questions for group: <br>
-📝 Question 1: reference to the amount of time when a car is not in use | Answers: 1
-💾 Saving 1 answers for question ID: 106245, text: reference to the amount of time when a car is not in use
-📝 Answer 1 INPUT: 'C' (length: 1)
-✅ Saved answer 1 with ID: 82077, text: 'C' (length: 1)
-✅ Successfully saved question 1
-📝 Question 2: mention of several advantages of driverless vehicles for individual road-users | Answers: 1
-💾 Saving 1 answers for question ID: 106246, text: mention of several advantages of driverless vehicles for individual road-users
-📝 Answer 1 INPUT: 'B' (length: 1)
-✅ Saved answer 1 with ID: 82078, text: 'B' (length: 1)
-✅ Successfully saved question 2
-📝 Question 3: reference to the opportunity of choosing the most appropriate vehicle for each trip | Answers: 1
-💾 Saving 1 answers for question ID: 106247, text: reference to the opportunity of choosing the most appropriate vehicle for each trip
-📝 Answer 1 INPUT: 'E' (length: 1)
-✅ Saved answer 1 with ID: 82079, text: 'E' (length: 1)
-✅ Successfully saved question 3
-📝 Question 4: an estimate of how long it will take to overcome a number of problems | Answers: 1
-💾 Saving 1 answers for question ID: 106248, text: an estimate of how long it will take to overcome a number of problems
-📝 Answer 1 INPUT: 'G' (length: 1)
-✅ Saved answer 1 with ID: 82080, text: 'G' (length: 1)
-✅ Successfully saved question 4
-📝 Question 5: a suggestion that the use of driverless cars may have no effect on the number of vehicles manufactured | Answers: 1
-💾 Saving 1 answers for question ID: 106249, text: a suggestion that the use of driverless cars may have no effect on the number of vehicles manufactured
-📝 Answer 1 INPUT: 'D' (length: 1)
-✅ Saved answer 1 with ID: 82081, text: 'D' (length: 1)
-✅ Successfully saved question 5
-🗑️ Cleaning up unused group: 36554
-🗑️ Cleaning up unused group: 36555
-🗑️ Cleaning up unused group: 36556
-🗑️ Cleaning up unused group: 36557
-🗑️ Cleaning up unused group: 36558
-🗑️ Cleaning up unused group: 36559
-🔍 Saving 0 questions for group: Nutmeg – a valuable spice
-🔍 Saving 4 questions for group: <span style="font-weight: 400; white-space: pre-wrap; font-size: 20px;"><b>The nutmeg tree and fruit</b></span>
-📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question ID: 106250, text: 
-📝 Answer 1 INPUT: 'oval' (length: 4)
-✅ Saved answer 1 with ID: 82082, text: 'oval' (length: 4)
-✅ Successfully saved question 1
-📝 Question 2:  | Answers: 1
-💾 Saving 1 answers for question ID: 106251, text: 
-📝 Answer 1 INPUT: 'husk' (length: 4)
-✅ Saved answer 1 with ID: 82083, text: 'husk' (length: 4)
-✅ Successfully saved question 2
-📝 Question 3:  | Answers: 1
-💾 Saving 1 answers for question ID: 106252, text: 
-📝 Answer 1 INPUT: 'seed' (length: 4)
-✅ Saved answer 1 with ID: 82084, text: 'seed' (length: 4)
-✅ Successfully saved question 3
-📝 Question 4:  | Answers: 1
-💾 Saving 1 answers for question ID: 106253, text: 
-📝 Answer 1 INPUT: 'mace' (length: 4)
-✅ Saved answer 1 with ID: 82085, text: 'mace' (length: 4)
-✅ Successfully saved question 4
-🔍 Saving 3 questions for group: Nhóm 3
-📝 Question 1: In the Middle Ages, most Europeans knew where nutmeg was grown. | Answers: 1
-💾 Saving 1 answers for question ID: 106254, text: In the Middle Ages, most Europeans knew where nutmeg was grown.
-📝 Answer 1 INPUT: 'FALSE' (length: 5)
-✅ Saved answer 1 with ID: 82086, text: 'FALSE' (length: 5)
-✅ Successfully saved question 1
-📝 Question 2: The VOC was the world’s first major trading company. | Answers: 1
-💾 Saving 1 answers for question ID: 106255, text: The VOC was the world’s first major trading company.
-📝 Answer 1 INPUT: 'NOT GIVEN' (length: 9)
-✅ Saved answer 1 with ID: 82087, text: 'NOT GIVEN' (length: 9)
-✅ Successfully saved question 2
-📝 Question 3: Following the Treaty of Breda, the Dutch had control of all the islands where nutmeg grew. | Answers: 1
-💾 Saving 1 answers for question ID: 106256, text: Following the Treaty of Breda, the Dutch had control of all the islands where nutmeg grew.
-📝 Answer 1 INPUT: 'TRUE' (length: 4)
-✅ Saved answer 1 with ID: 82088, text: 'TRUE' (length: 4)
-✅ Successfully saved question 3
-🔍 Saving 6 questions for group: Table Completion 4
-📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question ID: 106257, text: 
-📝 Answer 1 INPUT: 'Arabs' (length: 5)
-✅ Saved answer 1 with ID: 82089, text: 'Arabs' (length: 5)
-✅ Successfully saved question 1
-📝 Question 2:  | Answers: 1
-💾 Saving 1 answers for question ID: 106258, text: 
-📝 Answer 1 INPUT: 'plague' (length: 6)
-✅ Saved answer 1 with ID: 82090, text: 'plague' (length: 6)
-✅ Successfully saved question 2
-📝 Question 3:  | Answers: 1
-💾 Saving 1 answers for question ID: 106259, text: 
-📝 Answer 1 INPUT: 'lime' (length: 4)
-✅ Saved answer 1 with ID: 82091, text: 'lime' (length: 4)
-✅ Successfully saved question 3
-📝 Question 4:  | Answers: 1
-💾 Saving 1 answers for question ID: 106260, text: 
-📝 Answer 1 INPUT: 'Run' (length: 3)
-✅ Saved answer 1 with ID: 82092, text: 'Run' (length: 3)
-✅ Successfully saved question 4
-📝 Question 5:  | Answers: 1
-💾 Saving 1 answers for question ID: 106261, text: 
-📝 Answer 1 INPUT: 'Mauritius' (length: 9)
-✅ Saved answer 1 with ID: 82093, text: 'Mauritius' (length: 9)
-✅ Successfully saved question 5
-📝 Question 6:  | Answers: 1
-💾 Saving 1 answers for question ID: 106262, text: 
-📝 Answer 1 INPUT: 'tsunami' (length: 7)
-✅ Saved answer 1 with ID: 82094, text: 'tsunami' (length: 7)
-✅ Successfully saved question 6
-🔍 Saving 0 questions for group: Driverless cars
-🔍 Saving 5 questions for group: <br>
-📝 Question 1: reference to the amount of time when a car is not in use | Answers: 1
-💾 Saving 1 answers for question ID: 106263, text: reference to the amount of time when a car is not in use
-📝 Answer 1 INPUT: 'C' (length: 1)
-✅ Saved answer 1 with ID: 82095, text: 'C' (length: 1)
-✅ Successfully saved question 1
-📝 Question 2: mention of several advantages of driverless vehicles for individual road-users | Answers: 1
-💾 Saving 1 answers for question ID: 106264, text: mention of several advantages of driverless vehicles for individual road-users
-📝 Answer 1 INPUT: 'B' (length: 1)
-✅ Saved answer 1 with ID: 82096, text: 'B' (length: 1)
-✅ Successfully saved question 2
-📝 Question 3: reference to the opportunity of choosing the most appropriate vehicle for each trip | Answers: 1
-💾 Saving 1 answers for question ID: 106265, text: reference to the opportunity of choosing the most appropriate vehicle for each trip
-📝 Answer 1 INPUT: 'E' (length: 1)
-✅ Saved answer 1 with ID: 82097, text: 'E' (length: 1)
-✅ Successfully saved question 3
-📝 Question 4: an estimate of how long it will take to overcome a number of problems | Answers: 1
-💾 Saving 1 answers for question ID: 106266, text: an estimate of how long it will take to overcome a number of problems
-📝 Answer 1 INPUT: 'G' (length: 1)
-✅ Saved answer 1 with ID: 82098, text: 'G' (length: 1)
-✅ Successfully saved question 4
-📝 Question 5: a suggestion that the use of driverless cars may have no effect on the number of vehicles manufactured | Answers: 1
-💾 Saving 1 answers for question ID: 106267, text: a suggestion that the use of driverless cars may have no effect on the number of vehicles manufactured
-📝 Answer 1 INPUT: 'D' (length: 1)
-✅ Saved answer 1 with ID: 82099, text: 'D' (length: 1)
-✅ Successfully saved question 5
-🗑️ Cleaning up unused group: 36560
-🗑️ Cleaning up unused group: 36561
-🗑️ Cleaning up unused group: 36562
-🗑️ Cleaning up unused group: 36563
-🗑️ Cleaning up unused group: 36564
-🗑️ Cleaning up unused group: 36565
-🔍 Saving 0 questions for group: Nutmeg – a valuable spice
-🔍 Saving 4 questions for group: <span style="font-weight: 400; white-space: pre-wrap; font-size: 20px;"><b>The nutmeg tree and fruit</b></span>
-📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question ID: 106268, text: 
-📝 Answer 1 INPUT: 'oval' (length: 4)
-✅ Saved answer 1 with ID: 82100, text: 'oval' (length: 4)
-✅ Successfully saved question 1
-📝 Question 2:  | Answers: 1
-💾 Saving 1 answers for question ID: 106269, text: 
-📝 Answer 1 INPUT: 'husk' (length: 4)
-✅ Saved answer 1 with ID: 82101, text: 'husk' (length: 4)
-✅ Successfully saved question 2
-📝 Question 3:  | Answers: 1
-💾 Saving 1 answers for question ID: 106270, text: 
-📝 Answer 1 INPUT: 'seed' (length: 4)
-✅ Saved answer 1 with ID: 82102, text: 'seed' (length: 4)
-✅ Successfully saved question 3
-📝 Question 4:  | Answers: 1
-💾 Saving 1 answers for question ID: 106271, text: 
-📝 Answer 1 INPUT: 'mace' (length: 4)
-✅ Saved answer 1 with ID: 82103, text: 'mace' (length: 4)
-✅ Successfully saved question 4
-🔍 Saving 3 questions for group: Nhóm 3
-📝 Question 1: In the Middle Ages, most Europeans knew where nutmeg was grown. | Answers: 1
-💾 Saving 1 answers for question ID: 106272, text: In the Middle Ages, most Europeans knew where nutmeg was grown.
-📝 Answer 1 INPUT: 'FALSE' (length: 5)
-✅ Saved answer 1 with ID: 82104, text: 'FALSE' (length: 5)
-✅ Successfully saved question 1
-📝 Question 2: The VOC was the world’s first major trading company. | Answers: 1
-💾 Saving 1 answers for question ID: 106273, text: The VOC was the world’s first major trading company.
-📝 Answer 1 INPUT: 'NOT GIVEN' (length: 9)
-✅ Saved answer 1 with ID: 82105, text: 'NOT GIVEN' (length: 9)
-✅ Successfully saved question 2
-📝 Question 3: Following the Treaty of Breda, the Dutch had control of all the islands where nutmeg grew. | Answers: 1
-💾 Saving 1 answers for question ID: 106274, text: Following the Treaty of Breda, the Dutch had control of all the islands where nutmeg grew.
-📝 Answer 1 INPUT: 'TRUE' (length: 4)
-✅ Saved answer 1 with ID: 82106, text: 'TRUE' (length: 4)
-✅ Successfully saved question 3
-🔍 Saving 6 questions for group: Table Completion 4
-📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question ID: 106275, text: 
-📝 Answer 1 INPUT: 'Arabs' (length: 5)
-✅ Saved answer 1 with ID: 82107, text: 'Arabs' (length: 5)
-✅ Successfully saved question 1
-📝 Question 2:  | Answers: 1
-💾 Saving 1 answers for question ID: 106276, text: 
-📝 Answer 1 INPUT: 'plague' (length: 6)
-✅ Saved answer 1 with ID: 82108, text: 'plague' (length: 6)
-✅ Successfully saved question 2
-📝 Question 3:  | Answers: 1
-💾 Saving 1 answers for question ID: 106277, text: 
-📝 Answer 1 INPUT: 'lime' (length: 4)
-✅ Saved answer 1 with ID: 82109, text: 'lime' (length: 4)
-✅ Successfully saved question 3
-📝 Question 4:  | Answers: 1
-💾 Saving 1 answers for question ID: 106278, text: 
-📝 Answer 1 INPUT: 'Run' (length: 3)
-✅ Saved answer 1 with ID: 82110, text: 'Run' (length: 3)
-✅ Successfully saved question 4
-📝 Question 5:  | Answers: 1
-💾 Saving 1 answers for question ID: 106279, text: 
-📝 Answer 1 INPUT: 'Mauritius' (length: 9)
-✅ Saved answer 1 with ID: 82111, text: 'Mauritius' (length: 9)
-✅ Successfully saved question 5
-📝 Question 6:  | Answers: 1
-💾 Saving 1 answers for question ID: 106280, text: 
-📝 Answer 1 INPUT: 'tsunami' (length: 7)
-✅ Saved answer 1 with ID: 82112, text: 'tsunami' (length: 7)
-✅ Successfully saved question 6
-🔍 Saving 0 questions for group: Driverless cars
-🔍 Saving 5 questions for group: <br>
-📝 Question 1: reference to the amount of time when a car is not in use | Answers: 1
-💾 Saving 1 answers for question ID: 106281, text: reference to the amount of time when a car is not in use
-📝 Answer 1 INPUT: 'C' (length: 1)
-✅ Saved answer 1 with ID: 82113, text: 'C' (length: 1)
-✅ Successfully saved question 1
-📝 Question 2: mention of several advantages of driverless vehicles for individual road-users | Answers: 1
-💾 Saving 1 answers for question ID: 106282, text: mention of several advantages of driverless vehicles for individual road-users
-📝 Answer 1 INPUT: 'B' (length: 1)
-✅ Saved answer 1 with ID: 82114, text: 'B' (length: 1)
-✅ Successfully saved question 2
-📝 Question 3: reference to the opportunity of choosing the most appropriate vehicle for each trip | Answers: 1
-💾 Saving 1 answers for question ID: 106283, text: reference to the opportunity of choosing the most appropriate vehicle for each trip
-📝 Answer 1 INPUT: 'E' (length: 1)
-✅ Saved answer 1 with ID: 82115, text: 'E' (length: 1)
-✅ Successfully saved question 3
-📝 Question 4: an estimate of how long it will take to overcome a number of problems | Answers: 1
-💾 Saving 1 answers for question ID: 106284, text: an estimate of how long it will take to overcome a number of problems
-📝 Answer 1 INPUT: 'G' (length: 1)
-✅ Saved answer 1 with ID: 82116, text: 'G' (length: 1)
-✅ Successfully saved question 4
-📝 Question 5: a suggestion that the use of driverless cars may have no effect on the number of vehicles manufactured | Answers: 1
-💾 Saving 1 answers for question ID: 106285, text: a suggestion that the use of driverless cars may have no effect on the number of vehicles manufactured
-📝 Answer 1 INPUT: 'D' (length: 1)
-✅ Saved answer 1 with ID: 82117, text: 'D' (length: 1)
-✅ Successfully saved question 5
-🔍 Saving 1 questions for group: Nhóm 3
-📝 Question 1:  | Answers: 0
-💾 Saving 0 answers for question ID: 106286, text: 
-✅ Successfully saved question 1
-🗑️ Cleaning up unused group: 36566
-🗑️ Cleaning up unused group: 36567
-🗑️ Cleaning up unused group: 36568
-🗑️ Cleaning up unused group: 36569
-🗑️ Cleaning up unused group: 36570
-🗑️ Cleaning up unused group: 36571
-🗑️ Cleaning up unused group: 36572
-🔍 Saving 0 questions for group: Nutmeg – a valuable spice
-🔍 Saving 4 questions for group: <span style="font-weight: 400; white-space: pre-wrap; font-size: 20px;"><b>The nutmeg tree and fruit</b></span>
-📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question ID: 106287, text: 
-📝 Answer 1 INPUT: 'oval' (length: 4)
-✅ Saved answer 1 with ID: 82118, text: 'oval' (length: 4)
-✅ Successfully saved question 1
-📝 Question 2:  | Answers: 1
-💾 Saving 1 answers for question ID: 106288, text: 
-📝 Answer 1 INPUT: 'husk' (length: 4)
-✅ Saved answer 1 with ID: 82119, text: 'husk' (length: 4)
-✅ Successfully saved question 2
-📝 Question 3:  | Answers: 1
-💾 Saving 1 answers for question ID: 106289, text: 
-📝 Answer 1 INPUT: 'seed' (length: 4)
-✅ Saved answer 1 with ID: 82120, text: 'seed' (length: 4)
-✅ Successfully saved question 3
-📝 Question 4:  | Answers: 1
-💾 Saving 1 answers for question ID: 106290, text: 
-📝 Answer 1 INPUT: 'mace' (length: 4)
-✅ Saved answer 1 with ID: 82121, text: 'mace' (length: 4)
-✅ Successfully saved question 4
-🔍 Saving 3 questions for group: Nhóm 3
-📝 Question 1: In the Middle Ages, most Europeans knew where nutmeg was grown. | Answers: 1
-💾 Saving 1 answers for question ID: 106291, text: In the Middle Ages, most Europeans knew where nutmeg was grown.
-📝 Answer 1 INPUT: 'FALSE' (length: 5)
-✅ Saved answer 1 with ID: 82122, text: 'FALSE' (length: 5)
-✅ Successfully saved question 1
-📝 Question 2: The VOC was the world’s first major trading company. | Answers: 1
-💾 Saving 1 answers for question ID: 106292, text: The VOC was the world’s first major trading company.
-📝 Answer 1 INPUT: 'NOT GIVEN' (length: 9)
-✅ Saved answer 1 with ID: 82123, text: 'NOT GIVEN' (length: 9)
-✅ Successfully saved question 2
-📝 Question 3: Following the Treaty of Breda, the Dutch had control of all the islands where nutmeg grew. | Answers: 1
-💾 Saving 1 answers for question ID: 106293, text: Following the Treaty of Breda, the Dutch had control of all the islands where nutmeg grew.
-📝 Answer 1 INPUT: 'TRUE' (length: 4)
-✅ Saved answer 1 with ID: 82124, text: 'TRUE' (length: 4)
-✅ Successfully saved question 3
-🔍 Saving 6 questions for group: Table Completion 4
-📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question ID: 106294, text: 
-📝 Answer 1 INPUT: 'Arabs' (length: 5)
-✅ Saved answer 1 with ID: 82125, text: 'Arabs' (length: 5)
-✅ Successfully saved question 1
-📝 Question 2:  | Answers: 1
-💾 Saving 1 answers for question ID: 106295, text: 
-📝 Answer 1 INPUT: 'plague' (length: 6)
-✅ Saved answer 1 with ID: 82126, text: 'plague' (length: 6)
-✅ Successfully saved question 2
-📝 Question 3:  | Answers: 1
-💾 Saving 1 answers for question ID: 106296, text: 
-📝 Answer 1 INPUT: 'lime' (length: 4)
-✅ Saved answer 1 with ID: 82127, text: 'lime' (length: 4)
-✅ Successfully saved question 3
-📝 Question 4:  | Answers: 1
-💾 Saving 1 answers for question ID: 106297, text: 
-📝 Answer 1 INPUT: 'Run' (length: 3)
-✅ Saved answer 1 with ID: 82128, text: 'Run' (length: 3)
-✅ Successfully saved question 4
-📝 Question 5:  | Answers: 1
-💾 Saving 1 answers for question ID: 106298, text: 
-📝 Answer 1 INPUT: 'Mauritius' (length: 9)
-✅ Saved answer 1 with ID: 82129, text: 'Mauritius' (length: 9)
-✅ Successfully saved question 5
-📝 Question 6:  | Answers: 1
-💾 Saving 1 answers for question ID: 106299, text: 
-📝 Answer 1 INPUT: 'tsunami' (length: 7)
-✅ Saved answer 1 with ID: 82130, text: 'tsunami' (length: 7)
-✅ Successfully saved question 6
-🔍 Saving 0 questions for group: Driverless cars
-🔍 Saving 5 questions for group: <br>
-📝 Question 1: reference to the amount of time when a car is not in use | Answers: 1
-💾 Saving 1 answers for question ID: 106300, text: reference to the amount of time when a car is not in use
-📝 Answer 1 INPUT: 'C' (length: 1)
-✅ Saved answer 1 with ID: 82131, text: 'C' (length: 1)
-✅ Successfully saved question 1
-📝 Question 2: mention of several advantages of driverless vehicles for individual road-users | Answers: 1
-💾 Saving 1 answers for question ID: 106301, text: mention of several advantages of driverless vehicles for individual road-users
-📝 Answer 1 INPUT: 'B' (length: 1)
-✅ Saved answer 1 with ID: 82132, text: 'B' (length: 1)
-✅ Successfully saved question 2
-📝 Question 3: reference to the opportunity of choosing the most appropriate vehicle for each trip | Answers: 1
-💾 Saving 1 answers for question ID: 106302, text: reference to the opportunity of choosing the most appropriate vehicle for each trip
-📝 Answer 1 INPUT: 'E' (length: 1)
-✅ Saved answer 1 with ID: 82133, text: 'E' (length: 1)
-✅ Successfully saved question 3
-📝 Question 4: an estimate of how long it will take to overcome a number of problems | Answers: 1
-💾 Saving 1 answers for question ID: 106303, text: an estimate of how long it will take to overcome a number of problems
-📝 Answer 1 INPUT: 'G' (length: 1)
-✅ Saved answer 1 with ID: 82134, text: 'G' (length: 1)
-✅ Successfully saved question 4
-📝 Question 5: a suggestion that the use of driverless cars may have no effect on the number of vehicles manufactured | Answers: 1
-💾 Saving 1 answers for question ID: 106304, text: a suggestion that the use of driverless cars may have no effect on the number of vehicles manufactured
-📝 Answer 1 INPUT: 'D' (length: 1)
-✅ Saved answer 1 with ID: 82135, text: 'D' (length: 1)
-✅ Successfully saved question 5
-🗑️ Cleaning up unused group: 36573
-🗑️ Cleaning up unused group: 36574
-🗑️ Cleaning up unused group: 36575
-🗑️ Cleaning up unused group: 36576
-🗑️ Cleaning up unused group: 36577
-🗑️ Cleaning up unused group: 36578
-🔍 Saving 0 questions for group: Nutmeg – a valuable spice
-🔍 Saving 4 questions for group: <span style="font-weight: 400; white-space: pre-wrap; font-size: 20px;"><b>The nutmeg tree and fruit</b></span>
-📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question ID: 106305, text: 
-📝 Answer 1 INPUT: 'oval' (length: 4)
-✅ Saved answer 1 with ID: 82136, text: 'oval' (length: 4)
-✅ Successfully saved question 1
-📝 Question 2:  | Answers: 1
-💾 Saving 1 answers for question ID: 106306, text: 
-📝 Answer 1 INPUT: 'husk' (length: 4)
-✅ Saved answer 1 with ID: 82137, text: 'husk' (length: 4)
-✅ Successfully saved question 2
-📝 Question 3:  | Answers: 1
-💾 Saving 1 answers for question ID: 106307, text: 
-📝 Answer 1 INPUT: 'seed' (length: 4)
-✅ Saved answer 1 with ID: 82138, text: 'seed' (length: 4)
-✅ Successfully saved question 3
-📝 Question 4:  | Answers: 1
-💾 Saving 1 answers for question ID: 106308, text: 
-📝 Answer 1 INPUT: 'mace' (length: 4)
-✅ Saved answer 1 with ID: 82139, text: 'mace' (length: 4)
-✅ Successfully saved question 4
-🔍 Saving 3 questions for group: Nhóm 3
-📝 Question 1: In the Middle Ages, most Europeans knew where nutmeg was grown. | Answers: 1
-💾 Saving 1 answers for question ID: 106309, text: In the Middle Ages, most Europeans knew where nutmeg was grown.
-📝 Answer 1 INPUT: 'FALSE' (length: 5)
-✅ Saved answer 1 with ID: 82140, text: 'FALSE' (length: 5)
-✅ Successfully saved question 1
-📝 Question 2: The VOC was the world’s first major trading company. | Answers: 1
-💾 Saving 1 answers for question ID: 106310, text: The VOC was the world’s first major trading company.
-📝 Answer 1 INPUT: 'NOT GIVEN' (length: 9)
-✅ Saved answer 1 with ID: 82141, text: 'NOT GIVEN' (length: 9)
-✅ Successfully saved question 2
-📝 Question 3: Following the Treaty of Breda, the Dutch had control of all the islands where nutmeg grew. | Answers: 1
-💾 Saving 1 answers for question ID: 106311, text: Following the Treaty of Breda, the Dutch had control of all the islands where nutmeg grew.
-📝 Answer 1 INPUT: 'TRUE' (length: 4)
-✅ Saved answer 1 with ID: 82142, text: 'TRUE' (length: 4)
-✅ Successfully saved question 3
-🔍 Saving 6 questions for group: Table Completion 4
-📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question ID: 106312, text: 
-📝 Answer 1 INPUT: 'Arabs' (length: 5)
-✅ Saved answer 1 with ID: 82143, text: 'Arabs' (length: 5)
-✅ Successfully saved question 1
-📝 Question 2:  | Answers: 1
-💾 Saving 1 answers for question ID: 106313, text: 
-📝 Answer 1 INPUT: 'plague' (length: 6)
-✅ Saved answer 1 with ID: 82144, text: 'plague' (length: 6)
-✅ Successfully saved question 2
-📝 Question 3:  | Answers: 1
-💾 Saving 1 answers for question ID: 106314, text: 
-📝 Answer 1 INPUT: 'lime' (length: 4)
-✅ Saved answer 1 with ID: 82145, text: 'lime' (length: 4)
-✅ Successfully saved question 3
-📝 Question 4:  | Answers: 1
-💾 Saving 1 answers for question ID: 106315, text: 
-📝 Answer 1 INPUT: 'Run' (length: 3)
-✅ Saved answer 1 with ID: 82146, text: 'Run' (length: 3)
-✅ Successfully saved question 4
-📝 Question 5:  | Answers: 1
-💾 Saving 1 answers for question ID: 106316, text: 
-📝 Answer 1 INPUT: 'Mauritius' (length: 9)
-✅ Saved answer 1 with ID: 82147, text: 'Mauritius' (length: 9)
-✅ Successfully saved question 5
-📝 Question 6:  | Answers: 1
-💾 Saving 1 answers for question ID: 106317, text: 
-📝 Answer 1 INPUT: 'tsunami' (length: 7)
-✅ Saved answer 1 with ID: 82148, text: 'tsunami' (length: 7)
-✅ Successfully saved question 6
-🔍 Saving 0 questions for group: Driverless cars
-🔍 Saving 5 questions for group: <br>
-📝 Question 1: reference to the amount of time when a car is not in use | Answers: 1
-💾 Saving 1 answers for question ID: 106318, text: reference to the amount of time when a car is not in use
-📝 Answer 1 INPUT: 'C' (length: 1)
-✅ Saved answer 1 with ID: 82149, text: 'C' (length: 1)
-✅ Successfully saved question 1
-📝 Question 2: mention of several advantages of driverless vehicles for individual road-users | Answers: 1
-💾 Saving 1 answers for question ID: 106319, text: mention of several advantages of driverless vehicles for individual road-users
-📝 Answer 1 INPUT: 'B' (length: 1)
-✅ Saved answer 1 with ID: 82150, text: 'B' (length: 1)
-✅ Successfully saved question 2
-📝 Question 3: reference to the opportunity of choosing the most appropriate vehicle for each trip | Answers: 1
-💾 Saving 1 answers for question ID: 106320, text: reference to the opportunity of choosing the most appropriate vehicle for each trip
-📝 Answer 1 INPUT: 'E' (length: 1)
-✅ Saved answer 1 with ID: 82151, text: 'E' (length: 1)
-✅ Successfully saved question 3
-📝 Question 4: an estimate of how long it will take to overcome a number of problems | Answers: 1
-💾 Saving 1 answers for question ID: 106321, text: an estimate of how long it will take to overcome a number of problems
-📝 Answer 1 INPUT: 'G' (length: 1)
-✅ Saved answer 1 with ID: 82152, text: 'G' (length: 1)
-✅ Successfully saved question 4
-📝 Question 5: a suggestion that the use of driverless cars may have no effect on the number of vehicles manufactured | Answers: 1
-💾 Saving 1 answers for question ID: 106322, text: a suggestion that the use of driverless cars may have no effect on the number of vehicles manufactured
-📝 Answer 1 INPUT: 'D' (length: 1)
-✅ Saved answer 1 with ID: 82153, text: 'D' (length: 1)
-✅ Successfully saved question 5
-🗑️ Cleaning up unused group: 36579
-🗑️ Cleaning up unused group: 36580
-🗑️ Cleaning up unused group: 36581
-🗑️ Cleaning up unused group: 36582
-🗑️ Cleaning up unused group: 36583
-🗑️ Cleaning up unused group: 36584
-🔍 Saving 0 questions for group: Nutmeg – a valuable spice
-🔍 Saving 4 questions for group: <span style="font-weight: 400; white-space: pre-wrap; font-size: 20px;"><b>The nutmeg tree and fruit</b></span>
-📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question ID: 106323, text: 
-📝 Answer 1 INPUT: 'oval' (length: 4)
-✅ Saved answer 1 with ID: 82154, text: 'oval' (length: 4)
-✅ Successfully saved question 1
-📝 Question 2:  | Answers: 1
-💾 Saving 1 answers for question ID: 106324, text: 
-📝 Answer 1 INPUT: 'husk' (length: 4)
-✅ Saved answer 1 with ID: 82155, text: 'husk' (length: 4)
-✅ Successfully saved question 2
-📝 Question 3:  | Answers: 1
-💾 Saving 1 answers for question ID: 106325, text: 
-📝 Answer 1 INPUT: 'seed' (length: 4)
-✅ Saved answer 1 with ID: 82156, text: 'seed' (length: 4)
-✅ Successfully saved question 3
-📝 Question 4:  | Answers: 1
-💾 Saving 1 answers for question ID: 106326, text: 
-📝 Answer 1 INPUT: 'mace' (length: 4)
-✅ Saved answer 1 with ID: 82157, text: 'mace' (length: 4)
-✅ Successfully saved question 4
-🔍 Saving 3 questions for group: Nhóm 3
-📝 Question 1: In the Middle Ages, most Europeans knew where nutmeg was grown. | Answers: 1
-💾 Saving 1 answers for question ID: 106327, text: In the Middle Ages, most Europeans knew where nutmeg was grown.
-📝 Answer 1 INPUT: 'FALSE' (length: 5)
-✅ Saved answer 1 with ID: 82158, text: 'FALSE' (length: 5)
-✅ Successfully saved question 1
-📝 Question 2: The VOC was the world’s first major trading company. | Answers: 1
-💾 Saving 1 answers for question ID: 106328, text: The VOC was the world’s first major trading company.
-📝 Answer 1 INPUT: 'NOT GIVEN' (length: 9)
-✅ Saved answer 1 with ID: 82159, text: 'NOT GIVEN' (length: 9)
-✅ Successfully saved question 2
-📝 Question 3: Following the Treaty of Breda, the Dutch had control of all the islands where nutmeg grew. | Answers: 1
-💾 Saving 1 answers for question ID: 106329, text: Following the Treaty of Breda, the Dutch had control of all the islands where nutmeg grew.
-📝 Answer 1 INPUT: 'TRUE' (length: 4)
-✅ Saved answer 1 with ID: 82160, text: 'TRUE' (length: 4)
-✅ Successfully saved question 3
-🔍 Saving 6 questions for group: Table Completion 4
-📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question ID: 106330, text: 
-📝 Answer 1 INPUT: 'Arabs' (length: 5)
-✅ Saved answer 1 with ID: 82161, text: 'Arabs' (length: 5)
-✅ Successfully saved question 1
-📝 Question 2:  | Answers: 1
-💾 Saving 1 answers for question ID: 106331, text: 
-📝 Answer 1 INPUT: 'plague' (length: 6)
-✅ Saved answer 1 with ID: 82162, text: 'plague' (length: 6)
-✅ Successfully saved question 2
-📝 Question 3:  | Answers: 1
-💾 Saving 1 answers for question ID: 106332, text: 
-📝 Answer 1 INPUT: 'lime' (length: 4)
-✅ Saved answer 1 with ID: 82163, text: 'lime' (length: 4)
-✅ Successfully saved question 3
-📝 Question 4:  | Answers: 1
-💾 Saving 1 answers for question ID: 106333, text: 
-📝 Answer 1 INPUT: 'Run' (length: 3)
-✅ Saved answer 1 with ID: 82164, text: 'Run' (length: 3)
-✅ Successfully saved question 4
-📝 Question 5:  | Answers: 1
-💾 Saving 1 answers for question ID: 106334, text: 
-📝 Answer 1 INPUT: 'Mauritius' (length: 9)
-✅ Saved answer 1 with ID: 82165, text: 'Mauritius' (length: 9)
-✅ Successfully saved question 5
-📝 Question 6:  | Answers: 1
-💾 Saving 1 answers for question ID: 106335, text: 
-📝 Answer 1 INPUT: 'tsunami' (length: 7)
-✅ Saved answer 1 with ID: 82166, text: 'tsunami' (length: 7)
-✅ Successfully saved question 6
-🔍 Saving 0 questions for group: Driverless cars
-🔍 Saving 5 questions for group: <br>
-📝 Question 1: reference to the amount of time when a car is not in use | Answers: 1
-💾 Saving 1 answers for question ID: 106336, text: reference to the amount of time when a car is not in use
-📝 Answer 1 INPUT: 'C' (length: 1)
-✅ Saved answer 1 with ID: 82167, text: 'C' (length: 1)
-✅ Successfully saved question 1
-📝 Question 2: mention of several advantages of driverless vehicles for individual road-users | Answers: 1
-💾 Saving 1 answers for question ID: 106337, text: mention of several advantages of driverless vehicles for individual road-users
-📝 Answer 1 INPUT: 'B' (length: 1)
-✅ Saved answer 1 with ID: 82168, text: 'B' (length: 1)
-✅ Successfully saved question 2
-📝 Question 3: reference to the opportunity of choosing the most appropriate vehicle for each trip | Answers: 1
-💾 Saving 1 answers for question ID: 106338, text: reference to the opportunity of choosing the most appropriate vehicle for each trip
-📝 Answer 1 INPUT: 'E' (length: 1)
-✅ Saved answer 1 with ID: 82169, text: 'E' (length: 1)
-✅ Successfully saved question 3
-📝 Question 4: an estimate of how long it will take to overcome a number of problems | Answers: 1
-💾 Saving 1 answers for question ID: 106339, text: an estimate of how long it will take to overcome a number of problems
-📝 Answer 1 INPUT: 'G' (length: 1)
-✅ Saved answer 1 with ID: 82170, text: 'G' (length: 1)
-✅ Successfully saved question 4
-📝 Question 5: a suggestion that the use of driverless cars may have no effect on the number of vehicles manufactured | Answers: 1
-💾 Saving 1 answers for question ID: 106340, text: a suggestion that the use of driverless cars may have no effect on the number of vehicles manufactured
-📝 Answer 1 INPUT: 'D' (length: 1)
-✅ Saved answer 1 with ID: 82171, text: 'D' (length: 1)
-✅ Successfully saved question 5
-🔍 Saving 0 questions for group: Match Headings 3
-🗑️ Cleaning up unused group: 36585
-🗑️ Cleaning up unused group: 36586
-🗑️ Cleaning up unused group: 36587
-🗑️ Cleaning up unused group: 36588
-🗑️ Cleaning up unused group: 36589
-🗑️ Cleaning up unused group: 36590
-🗑️ Cleaning up unused group: 36591
-🔍 Saving 0 questions for group: Nutmeg – a valuable spice
-🔍 Saving 4 questions for group: <span style="font-weight: 400; white-space: pre-wrap; font-size: 20px;"><b>The nutmeg tree and fruit</b></span>
-📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question ID: 106341, text: 
-📝 Answer 1 INPUT: 'oval' (length: 4)
-✅ Saved answer 1 with ID: 82172, text: 'oval' (length: 4)
-✅ Successfully saved question 1
-📝 Question 2:  | Answers: 1
-💾 Saving 1 answers for question ID: 106342, text: 
-📝 Answer 1 INPUT: 'husk' (length: 4)
-✅ Saved answer 1 with ID: 82173, text: 'husk' (length: 4)
-✅ Successfully saved question 2
-📝 Question 3:  | Answers: 1
-💾 Saving 1 answers for question ID: 106343, text: 
-📝 Answer 1 INPUT: 'seed' (length: 4)
-✅ Saved answer 1 with ID: 82174, text: 'seed' (length: 4)
-✅ Successfully saved question 3
-📝 Question 4:  | Answers: 1
-💾 Saving 1 answers for question ID: 106344, text: 
-📝 Answer 1 INPUT: 'mace' (length: 4)
-✅ Saved answer 1 with ID: 82175, text: 'mace' (length: 4)
-✅ Successfully saved question 4
-🔍 Saving 3 questions for group: Nhóm 3
-📝 Question 1: In the Middle Ages, most Europeans knew where nutmeg was grown. | Answers: 1
-💾 Saving 1 answers for question ID: 106345, text: In the Middle Ages, most Europeans knew where nutmeg was grown.
-📝 Answer 1 INPUT: 'FALSE' (length: 5)
-✅ Saved answer 1 with ID: 82176, text: 'FALSE' (length: 5)
-✅ Successfully saved question 1
-📝 Question 2: The VOC was the world’s first major trading company. | Answers: 1
-💾 Saving 1 answers for question ID: 106346, text: The VOC was the world’s first major trading company.
-📝 Answer 1 INPUT: 'NOT GIVEN' (length: 9)
-✅ Saved answer 1 with ID: 82177, text: 'NOT GIVEN' (length: 9)
-✅ Successfully saved question 2
-📝 Question 3: Following the Treaty of Breda, the Dutch had control of all the islands where nutmeg grew. | Answers: 1
-💾 Saving 1 answers for question ID: 106347, text: Following the Treaty of Breda, the Dutch had control of all the islands where nutmeg grew.
-📝 Answer 1 INPUT: 'TRUE' (length: 4)
-✅ Saved answer 1 with ID: 82178, text: 'TRUE' (length: 4)
-✅ Successfully saved question 3
-🔍 Saving 6 questions for group: Table Completion 4
-📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question ID: 106348, text: 
-📝 Answer 1 INPUT: 'Arabs' (length: 5)
-✅ Saved answer 1 with ID: 82179, text: 'Arabs' (length: 5)
-✅ Successfully saved question 1
-📝 Question 2:  | Answers: 1
-💾 Saving 1 answers for question ID: 106349, text: 
-📝 Answer 1 INPUT: 'plague' (length: 6)
-✅ Saved answer 1 with ID: 82180, text: 'plague' (length: 6)
-✅ Successfully saved question 2
-📝 Question 3:  | Answers: 1
-💾 Saving 1 answers for question ID: 106350, text: 
-📝 Answer 1 INPUT: 'lime' (length: 4)
-✅ Saved answer 1 with ID: 82181, text: 'lime' (length: 4)
-✅ Successfully saved question 3
-📝 Question 4:  | Answers: 1
-💾 Saving 1 answers for question ID: 106351, text: 
-📝 Answer 1 INPUT: 'Run' (length: 3)
-✅ Saved answer 1 with ID: 82182, text: 'Run' (length: 3)
-✅ Successfully saved question 4
-📝 Question 5:  | Answers: 1
-💾 Saving 1 answers for question ID: 106352, text: 
-📝 Answer 1 INPUT: 'Mauritius' (length: 9)
-✅ Saved answer 1 with ID: 82183, text: 'Mauritius' (length: 9)
-✅ Successfully saved question 5
-📝 Question 6:  | Answers: 1
-💾 Saving 1 answers for question ID: 106353, text: 
-📝 Answer 1 INPUT: 'tsunami' (length: 7)
-✅ Saved answer 1 with ID: 82184, text: 'tsunami' (length: 7)
-✅ Successfully saved question 6
-🔍 Saving 0 questions for group: Driverless cars
-🔍 Saving 5 questions for group: <br>
-📝 Question 1: reference to the amount of time when a car is not in use | Answers: 1
-💾 Saving 1 answers for question ID: 106354, text: reference to the amount of time when a car is not in use
-📝 Answer 1 INPUT: 'C' (length: 1)
-✅ Saved answer 1 with ID: 82185, text: 'C' (length: 1)
-✅ Successfully saved question 1
-📝 Question 2: mention of several advantages of driverless vehicles for individual road-users | Answers: 1
-💾 Saving 1 answers for question ID: 106355, text: mention of several advantages of driverless vehicles for individual road-users
-📝 Answer 1 INPUT: 'B' (length: 1)
-✅ Saved answer 1 with ID: 82186, text: 'B' (length: 1)
-✅ Successfully saved question 2
-📝 Question 3: reference to the opportunity of choosing the most appropriate vehicle for each trip | Answers: 1
-💾 Saving 1 answers for question ID: 106356, text: reference to the opportunity of choosing the most appropriate vehicle for each trip
-📝 Answer 1 INPUT: 'E' (length: 1)
-✅ Saved answer 1 with ID: 82187, text: 'E' (length: 1)
-✅ Successfully saved question 3
-📝 Question 4: an estimate of how long it will take to overcome a number of problems | Answers: 1
-💾 Saving 1 answers for question ID: 106357, text: an estimate of how long it will take to overcome a number of problems
-📝 Answer 1 INPUT: 'G' (length: 1)
-✅ Saved answer 1 with ID: 82188, text: 'G' (length: 1)
-✅ Successfully saved question 4
-📝 Question 5: a suggestion that the use of driverless cars may have no effect on the number of vehicles manufactured | Answers: 1
-💾 Saving 1 answers for question ID: 106358, text: a suggestion that the use of driverless cars may have no effect on the number of vehicles manufactured
-📝 Answer 1 INPUT: 'D' (length: 1)
-✅ Saved answer 1 with ID: 82189, text: 'D' (length: 1)
-✅ Successfully saved question 5
-🔍 Saving 0 questions for group: Match Headings 3
-🗑️ Cleaning up unused group: 36592
-🗑️ Cleaning up unused group: 36593
-🗑️ Cleaning up unused group: 36594
-🗑️ Cleaning up unused group: 36595
-🗑️ Cleaning up unused group: 36596
-🗑️ Cleaning up unused group: 36597
-🗑️ Cleaning up unused group: 36598
-🔍 Saving 0 questions for group: Nutmeg – a valuable spice
-🔍 Saving 4 questions for group: <span style="font-weight: 400; white-space: pre-wrap; font-size: 20px;"><b>The nutmeg tree and fruit</b></span>
-📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question ID: 106359, text: 
-📝 Answer 1 INPUT: 'oval' (length: 4)
-✅ Saved answer 1 with ID: 82190, text: 'oval' (length: 4)
-✅ Successfully saved question 1
-📝 Question 2:  | Answers: 1
-💾 Saving 1 answers for question ID: 106360, text: 
-📝 Answer 1 INPUT: 'husk' (length: 4)
-✅ Saved answer 1 with ID: 82191, text: 'husk' (length: 4)
-✅ Successfully saved question 2
-📝 Question 3:  | Answers: 1
-💾 Saving 1 answers for question ID: 106361, text: 
-📝 Answer 1 INPUT: 'seed' (length: 4)
-✅ Saved answer 1 with ID: 82192, text: 'seed' (length: 4)
-✅ Successfully saved question 3
-📝 Question 4:  | Answers: 1
-💾 Saving 1 answers for question ID: 106362, text: 
-📝 Answer 1 INPUT: 'mace' (length: 4)
-✅ Saved answer 1 with ID: 82193, text: 'mace' (length: 4)
-✅ Successfully saved question 4
-🔍 Saving 3 questions for group: Nhóm 3
-📝 Question 1: In the Middle Ages, most Europeans knew where nutmeg was grown. | Answers: 1
-💾 Saving 1 answers for question ID: 106363, text: In the Middle Ages, most Europeans knew where nutmeg was grown.
-📝 Answer 1 INPUT: 'FALSE' (length: 5)
-✅ Saved answer 1 with ID: 82194, text: 'FALSE' (length: 5)
-✅ Successfully saved question 1
-📝 Question 2: The VOC was the world’s first major trading company. | Answers: 1
-💾 Saving 1 answers for question ID: 106364, text: The VOC was the world’s first major trading company.
-📝 Answer 1 INPUT: 'NOT GIVEN' (length: 9)
-✅ Saved answer 1 with ID: 82195, text: 'NOT GIVEN' (length: 9)
-✅ Successfully saved question 2
-📝 Question 3: Following the Treaty of Breda, the Dutch had control of all the islands where nutmeg grew. | Answers: 1
-💾 Saving 1 answers for question ID: 106365, text: Following the Treaty of Breda, the Dutch had control of all the islands where nutmeg grew.
-📝 Answer 1 INPUT: 'TRUE' (length: 4)
-✅ Saved answer 1 with ID: 82196, text: 'TRUE' (length: 4)
-✅ Successfully saved question 3
-🔍 Saving 6 questions for group: Table Completion 4
-📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question ID: 106366, text: 
-📝 Answer 1 INPUT: 'Arabs' (length: 5)
-✅ Saved answer 1 with ID: 82197, text: 'Arabs' (length: 5)
-✅ Successfully saved question 1
-📝 Question 2:  | Answers: 1
-💾 Saving 1 answers for question ID: 106367, text: 
-📝 Answer 1 INPUT: 'plague' (length: 6)
-✅ Saved answer 1 with ID: 82198, text: 'plague' (length: 6)
-✅ Successfully saved question 2
-📝 Question 3:  | Answers: 1
-💾 Saving 1 answers for question ID: 106368, text: 
-📝 Answer 1 INPUT: 'lime' (length: 4)
-✅ Saved answer 1 with ID: 82199, text: 'lime' (length: 4)
-✅ Successfully saved question 3
-📝 Question 4:  | Answers: 1
-💾 Saving 1 answers for question ID: 106369, text: 
-📝 Answer 1 INPUT: 'Run' (length: 3)
-✅ Saved answer 1 with ID: 82200, text: 'Run' (length: 3)
-✅ Successfully saved question 4
-📝 Question 5:  | Answers: 1
-💾 Saving 1 answers for question ID: 106370, text: 
-📝 Answer 1 INPUT: 'Mauritius' (length: 9)
-✅ Saved answer 1 with ID: 82201, text: 'Mauritius' (length: 9)
-✅ Successfully saved question 5
-📝 Question 6:  | Answers: 1
-💾 Saving 1 answers for question ID: 106371, text: 
-📝 Answer 1 INPUT: 'tsunami' (length: 7)
-✅ Saved answer 1 with ID: 82202, text: 'tsunami' (length: 7)
-✅ Successfully saved question 6
-🔍 Saving 0 questions for group: Driverless cars
-🔍 Saving 5 questions for group: <br>
-📝 Question 1: reference to the amount of time when a car is not in use | Answers: 1
-💾 Saving 1 answers for question ID: 106372, text: reference to the amount of time when a car is not in use
-📝 Answer 1 INPUT: 'C' (length: 1)
-✅ Saved answer 1 with ID: 82203, text: 'C' (length: 1)
-✅ Successfully saved question 1
-📝 Question 2: mention of several advantages of driverless vehicles for individual road-users | Answers: 1
-💾 Saving 1 answers for question ID: 106373, text: mention of several advantages of driverless vehicles for individual road-users
-📝 Answer 1 INPUT: 'B' (length: 1)
-✅ Saved answer 1 with ID: 82204, text: 'B' (length: 1)
-✅ Successfully saved question 2
-📝 Question 3: reference to the opportunity of choosing the most appropriate vehicle for each trip | Answers: 1
-💾 Saving 1 answers for question ID: 106374, text: reference to the opportunity of choosing the most appropriate vehicle for each trip
-📝 Answer 1 INPUT: 'E' (length: 1)
-✅ Saved answer 1 with ID: 82205, text: 'E' (length: 1)
-✅ Successfully saved question 3
-📝 Question 4: an estimate of how long it will take to overcome a number of problems | Answers: 1
-💾 Saving 1 answers for question ID: 106375, text: an estimate of how long it will take to overcome a number of problems
-📝 Answer 1 INPUT: 'G' (length: 1)
-✅ Saved answer 1 with ID: 82206, text: 'G' (length: 1)
-✅ Successfully saved question 4
-📝 Question 5: a suggestion that the use of driverless cars may have no effect on the number of vehicles manufactured | Answers: 1
-💾 Saving 1 answers for question ID: 106376, text: a suggestion that the use of driverless cars may have no effect on the number of vehicles manufactured
-📝 Answer 1 INPUT: 'D' (length: 1)
-✅ Saved answer 1 with ID: 82207, text: 'D' (length: 1)
-✅ Successfully saved question 5
-🔍 Saving 1 questions for group: Match Headings 3
-📝 Question 1: Section A | Answers: 1
-💾 Saving 1 answers for question ID: 106377, text: Section A
-📝 Answer 1 INPUT: 'reference to the amount of time when a car is not in use' (length: 56)
-✅ Saved answer 1 with ID: 82208, text: 'reference to the amount of time when a car is not in use' (length: 56)
-✅ Successfully saved question 1
-🗑️ Cleaning up unused group: 36599
-🗑️ Cleaning up unused group: 36600
-🗑️ Cleaning up unused group: 36601
-🗑️ Cleaning up unused group: 36602
-🗑️ Cleaning up unused group: 36603
-🗑️ Cleaning up unused group: 36604
-🗑️ Cleaning up unused group: 36605
-🔍 Saving 0 questions for group: Nutmeg – a valuable spice
-🔍 Saving 4 questions for group: <span style="font-weight: 400; white-space: pre-wrap; font-size: 20px;"><b>The nutmeg tree and fruit</b></span>
-📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question ID: 106378, text: 
-📝 Answer 1 INPUT: 'oval' (length: 4)
-✅ Saved answer 1 with ID: 82209, text: 'oval' (length: 4)
-✅ Successfully saved question 1
-📝 Question 2:  | Answers: 1
-💾 Saving 1 answers for question ID: 106379, text: 
-📝 Answer 1 INPUT: 'husk' (length: 4)
-✅ Saved answer 1 with ID: 82210, text: 'husk' (length: 4)
-✅ Successfully saved question 2
-📝 Question 3:  | Answers: 1
-💾 Saving 1 answers for question ID: 106380, text: 
-📝 Answer 1 INPUT: 'seed' (length: 4)
-✅ Saved answer 1 with ID: 82211, text: 'seed' (length: 4)
-✅ Successfully saved question 3
-📝 Question 4:  | Answers: 1
-💾 Saving 1 answers for question ID: 106381, text: 
-📝 Answer 1 INPUT: 'mace' (length: 4)
-✅ Saved answer 1 with ID: 82212, text: 'mace' (length: 4)
-✅ Successfully saved question 4
-🔍 Saving 3 questions for group: Nhóm 3
-📝 Question 1: In the Middle Ages, most Europeans knew where nutmeg was grown. | Answers: 1
-💾 Saving 1 answers for question ID: 106382, text: In the Middle Ages, most Europeans knew where nutmeg was grown.
-📝 Answer 1 INPUT: 'FALSE' (length: 5)
-✅ Saved answer 1 with ID: 82213, text: 'FALSE' (length: 5)
-✅ Successfully saved question 1
-📝 Question 2: The VOC was the world’s first major trading company. | Answers: 1
-💾 Saving 1 answers for question ID: 106383, text: The VOC was the world’s first major trading company.
-📝 Answer 1 INPUT: 'NOT GIVEN' (length: 9)
-✅ Saved answer 1 with ID: 82214, text: 'NOT GIVEN' (length: 9)
-✅ Successfully saved question 2
-📝 Question 3: Following the Treaty of Breda, the Dutch had control of all the islands where nutmeg grew. | Answers: 1
-💾 Saving 1 answers for question ID: 106384, text: Following the Treaty of Breda, the Dutch had control of all the islands where nutmeg grew.
-📝 Answer 1 INPUT: 'TRUE' (length: 4)
-✅ Saved answer 1 with ID: 82215, text: 'TRUE' (length: 4)
-✅ Successfully saved question 3
-🔍 Saving 6 questions for group: Table Completion 4
-📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question ID: 106385, text: 
-📝 Answer 1 INPUT: 'Arabs' (length: 5)
-✅ Saved answer 1 with ID: 82216, text: 'Arabs' (length: 5)
-✅ Successfully saved question 1
-📝 Question 2:  | Answers: 1
-💾 Saving 1 answers for question ID: 106386, text: 
-📝 Answer 1 INPUT: 'plague' (length: 6)
-✅ Saved answer 1 with ID: 82217, text: 'plague' (length: 6)
-✅ Successfully saved question 2
-📝 Question 3:  | Answers: 1
-💾 Saving 1 answers for question ID: 106387, text: 
-📝 Answer 1 INPUT: 'lime' (length: 4)
-✅ Saved answer 1 with ID: 82218, text: 'lime' (length: 4)
-✅ Successfully saved question 3
-📝 Question 4:  | Answers: 1
-💾 Saving 1 answers for question ID: 106388, text: 
-📝 Answer 1 INPUT: 'Run' (length: 3)
-✅ Saved answer 1 with ID: 82219, text: 'Run' (length: 3)
-✅ Successfully saved question 4
-📝 Question 5:  | Answers: 1
-💾 Saving 1 answers for question ID: 106389, text: 
-📝 Answer 1 INPUT: 'Mauritius' (length: 9)
-✅ Saved answer 1 with ID: 82220, text: 'Mauritius' (length: 9)
-✅ Successfully saved question 5
-📝 Question 6:  | Answers: 1
-💾 Saving 1 answers for question ID: 106390, text: 
-📝 Answer 1 INPUT: 'tsunami' (length: 7)
-✅ Saved answer 1 with ID: 82221, text: 'tsunami' (length: 7)
-✅ Successfully saved question 6
-🔍 Saving 0 questions for group: Driverless cars
-🔍 Saving 5 questions for group: <br>
-📝 Question 1: reference to the amount of time when a car is not in use | Answers: 1
-💾 Saving 1 answers for question ID: 106391, text: reference to the amount of time when a car is not in use
-📝 Answer 1 INPUT: 'C' (length: 1)
-✅ Saved answer 1 with ID: 82222, text: 'C' (length: 1)
-✅ Successfully saved question 1
-📝 Question 2: mention of several advantages of driverless vehicles for individual road-users | Answers: 1
-💾 Saving 1 answers for question ID: 106392, text: mention of several advantages of driverless vehicles for individual road-users
-📝 Answer 1 INPUT: 'B' (length: 1)
-✅ Saved answer 1 with ID: 82223, text: 'B' (length: 1)
-✅ Successfully saved question 2
-📝 Question 3: reference to the opportunity of choosing the most appropriate vehicle for each trip | Answers: 1
-💾 Saving 1 answers for question ID: 106393, text: reference to the opportunity of choosing the most appropriate vehicle for each trip
-📝 Answer 1 INPUT: 'E' (length: 1)
-✅ Saved answer 1 with ID: 82224, text: 'E' (length: 1)
-✅ Successfully saved question 3
-📝 Question 4: an estimate of how long it will take to overcome a number of problems | Answers: 1
-💾 Saving 1 answers for question ID: 106394, text: an estimate of how long it will take to overcome a number of problems
-📝 Answer 1 INPUT: 'G' (length: 1)
-✅ Saved answer 1 with ID: 82225, text: 'G' (length: 1)
-✅ Successfully saved question 4
-📝 Question 5: a suggestion that the use of driverless cars may have no effect on the number of vehicles manufactured | Answers: 1
-💾 Saving 1 answers for question ID: 106395, text: a suggestion that the use of driverless cars may have no effect on the number of vehicles manufactured
-📝 Answer 1 INPUT: 'D' (length: 1)
-✅ Saved answer 1 with ID: 82226, text: 'D' (length: 1)
-✅ Successfully saved question 5
-🔍 Saving 2 questions for group: Match Headings 3
-📝 Question 1: Section A | Answers: 1
-💾 Saving 1 answers for question ID: 106396, text: Section A
-📝 Answer 1 INPUT: 'reference to the amount of time when a car is not in use' (length: 56)
-✅ Saved answer 1 with ID: 82227, text: 'reference to the amount of time when a car is not in use' (length: 56)
-✅ Successfully saved question 1
-📝 Question 2: Section B | Answers: 1
-💾 Saving 1 answers for question ID: 106397, text: Section B
-📝 Answer 1 INPUT: 'an estimate of how long it will take to overcome a number of problems' (length: 69)
-✅ Saved answer 1 with ID: 82228, text: 'an estimate of how long it will take to overcome a number of problems' (length: 69)
-✅ Successfully saved question 2
-🗑️ Cleaning up unused group: 36606
-🗑️ Cleaning up unused group: 36607
-🗑️ Cleaning up unused group: 36608
-🗑️ Cleaning up unused group: 36609
-🗑️ Cleaning up unused group: 36610
-🗑️ Cleaning up unused group: 36611
-🗑️ Cleaning up unused group: 36612
-🔍 Saving 0 questions for group: Nutmeg – a valuable spice
-🔍 Saving 4 questions for group: <span style="font-weight: 400; white-space: pre-wrap; font-size: 20px;"><b>The nutmeg tree and fruit</b></span>
-📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question ID: 106398, text: 
-📝 Answer 1 INPUT: 'oval' (length: 4)
-✅ Saved answer 1 with ID: 82229, text: 'oval' (length: 4)
-✅ Successfully saved question 1
-📝 Question 2:  | Answers: 1
-💾 Saving 1 answers for question ID: 106399, text: 
-📝 Answer 1 INPUT: 'husk' (length: 4)
-✅ Saved answer 1 with ID: 82230, text: 'husk' (length: 4)
-✅ Successfully saved question 2
-📝 Question 3:  | Answers: 1
-💾 Saving 1 answers for question ID: 106400, text: 
-📝 Answer 1 INPUT: 'seed' (length: 4)
-✅ Saved answer 1 with ID: 82231, text: 'seed' (length: 4)
-✅ Successfully saved question 3
-📝 Question 4:  | Answers: 1
-💾 Saving 1 answers for question ID: 106401, text: 
-📝 Answer 1 INPUT: 'mace' (length: 4)
-✅ Saved answer 1 with ID: 82232, text: 'mace' (length: 4)
-✅ Successfully saved question 4
-🔍 Saving 3 questions for group: Nhóm 3
-📝 Question 1: In the Middle Ages, most Europeans knew where nutmeg was grown. | Answers: 1
-💾 Saving 1 answers for question ID: 106402, text: In the Middle Ages, most Europeans knew where nutmeg was grown.
-📝 Answer 1 INPUT: 'FALSE' (length: 5)
-✅ Saved answer 1 with ID: 82233, text: 'FALSE' (length: 5)
-✅ Successfully saved question 1
-📝 Question 2: The VOC was the world’s first major trading company. | Answers: 1
-💾 Saving 1 answers for question ID: 106403, text: The VOC was the world’s first major trading company.
-📝 Answer 1 INPUT: 'NOT GIVEN' (length: 9)
-✅ Saved answer 1 with ID: 82234, text: 'NOT GIVEN' (length: 9)
-✅ Successfully saved question 2
-📝 Question 3: Following the Treaty of Breda, the Dutch had control of all the islands where nutmeg grew. | Answers: 1
-💾 Saving 1 answers for question ID: 106404, text: Following the Treaty of Breda, the Dutch had control of all the islands where nutmeg grew.
-📝 Answer 1 INPUT: 'TRUE' (length: 4)
-✅ Saved answer 1 with ID: 82235, text: 'TRUE' (length: 4)
-✅ Successfully saved question 3
-🔍 Saving 6 questions for group: Table Completion 4
-📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question ID: 106405, text: 
-📝 Answer 1 INPUT: 'Arabs' (length: 5)
-✅ Saved answer 1 with ID: 82236, text: 'Arabs' (length: 5)
-✅ Successfully saved question 1
-📝 Question 2:  | Answers: 1
-💾 Saving 1 answers for question ID: 106406, text: 
-📝 Answer 1 INPUT: 'plague' (length: 6)
-✅ Saved answer 1 with ID: 82237, text: 'plague' (length: 6)
-✅ Successfully saved question 2
-📝 Question 3:  | Answers: 1
-💾 Saving 1 answers for question ID: 106407, text: 
-📝 Answer 1 INPUT: 'lime' (length: 4)
-✅ Saved answer 1 with ID: 82238, text: 'lime' (length: 4)
-✅ Successfully saved question 3
-📝 Question 4:  | Answers: 1
-💾 Saving 1 answers for question ID: 106408, text: 
-📝 Answer 1 INPUT: 'Run' (length: 3)
-✅ Saved answer 1 with ID: 82239, text: 'Run' (length: 3)
-✅ Successfully saved question 4
-📝 Question 5:  | Answers: 1
-💾 Saving 1 answers for question ID: 106409, text: 
-📝 Answer 1 INPUT: 'Mauritius' (length: 9)
-✅ Saved answer 1 with ID: 82240, text: 'Mauritius' (length: 9)
-✅ Successfully saved question 5
-📝 Question 6:  | Answers: 1
-💾 Saving 1 answers for question ID: 106410, text: 
-📝 Answer 1 INPUT: 'tsunami' (length: 7)
-✅ Saved answer 1 with ID: 82241, text: 'tsunami' (length: 7)
-✅ Successfully saved question 6
-🔍 Saving 0 questions for group: Driverless cars
-🔍 Saving 5 questions for group: <br>
-📝 Question 1: reference to the amount of time when a car is not in use | Answers: 1
-💾 Saving 1 answers for question ID: 106411, text: reference to the amount of time when a car is not in use
-📝 Answer 1 INPUT: 'C' (length: 1)
-✅ Saved answer 1 with ID: 82242, text: 'C' (length: 1)
-✅ Successfully saved question 1
-📝 Question 2: mention of several advantages of driverless vehicles for individual road-users | Answers: 1
-💾 Saving 1 answers for question ID: 106412, text: mention of several advantages of driverless vehicles for individual road-users
-📝 Answer 1 INPUT: 'B' (length: 1)
-✅ Saved answer 1 with ID: 82243, text: 'B' (length: 1)
-✅ Successfully saved question 2
-📝 Question 3: reference to the opportunity of choosing the most appropriate vehicle for each trip | Answers: 1
-💾 Saving 1 answers for question ID: 106413, text: reference to the opportunity of choosing the most appropriate vehicle for each trip
-📝 Answer 1 INPUT: 'E' (length: 1)
-✅ Saved answer 1 with ID: 82244, text: 'E' (length: 1)
-✅ Successfully saved question 3
-📝 Question 4: an estimate of how long it will take to overcome a number of problems | Answers: 1
-💾 Saving 1 answers for question ID: 106414, text: an estimate of how long it will take to overcome a number of problems
-📝 Answer 1 INPUT: 'G' (length: 1)
-✅ Saved answer 1 with ID: 82245, text: 'G' (length: 1)
-✅ Successfully saved question 4
-📝 Question 5: a suggestion that the use of driverless cars may have no effect on the number of vehicles manufactured | Answers: 1
-💾 Saving 1 answers for question ID: 106415, text: a suggestion that the use of driverless cars may have no effect on the number of vehicles manufactured
-📝 Answer 1 INPUT: 'D' (length: 1)
-✅ Saved answer 1 with ID: 82246, text: 'D' (length: 1)
-✅ Successfully saved question 5
-🔍 Saving 4 questions for group: Match Headings 3
-📝 Question 1: Section A | Answers: 1
-💾 Saving 1 answers for question ID: 106416, text: Section A
-📝 Answer 1 INPUT: 'reference to the amount of time when a car is not in use' (length: 56)
-✅ Saved answer 1 with ID: 82247, text: 'reference to the amount of time when a car is not in use' (length: 56)
-✅ Successfully saved question 1
-📝 Question 2: Section B | Answers: 1
-💾 Saving 1 answers for question ID: 106417, text: Section B
-📝 Answer 1 INPUT: 'an estimate of how long it will take to overcome a number of problems' (length: 69)
-✅ Saved answer 1 with ID: 82248, text: 'an estimate of how long it will take to overcome a number of problems' (length: 69)
-✅ Successfully saved question 2
-📝 Question 3: Section C | Answers: 1
-💾 Saving 1 answers for question ID: 106418, text: Section C
-📝 Answer 1 INPUT: 'mention of several advantages of driverless vehicles for individual road-users' (length: 78)
-✅ Saved answer 1 with ID: 82249, text: 'mention of several advantages of driverless vehicles for individual road-users' (length: 78)
-✅ Successfully saved question 3
-📝 Question 4: Section D | Answers: 1
-💾 Saving 1 answers for question ID: 106419, text: Section D
-📝 Answer 1 INPUT: 'reference to the opportunity of choosing the most appropriate vehicle for each trip' (length: 83)
-✅ Saved answer 1 with ID: 82250, text: 'reference to the opportunity of choosing the most appropriate vehicle for each trip' (length: 83)
-✅ Successfully saved question 4
-🗑️ Cleaning up unused group: 36613
-🗑️ Cleaning up unused group: 36614
-🗑️ Cleaning up unused group: 36615
-🗑️ Cleaning up unused group: 36616
-🗑️ Cleaning up unused group: 36617
-🗑️ Cleaning up unused group: 36618
-🗑️ Cleaning up unused group: 36619
-🔍 Saving 0 questions for group: Nutmeg – a valuable spice
-🔍 Saving 4 questions for group: <span style="font-weight: 400; white-space: pre-wrap; font-size: 20px;"><b>The nutmeg tree and fruit</b></span>
-📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question ID: 106420, text: 
-📝 Answer 1 INPUT: 'oval' (length: 4)
-✅ Saved answer 1 with ID: 82251, text: 'oval' (length: 4)
-✅ Successfully saved question 1
-📝 Question 2:  | Answers: 1
-💾 Saving 1 answers for question ID: 106421, text: 
-📝 Answer 1 INPUT: 'husk' (length: 4)
-✅ Saved answer 1 with ID: 82252, text: 'husk' (length: 4)
-✅ Successfully saved question 2
-📝 Question 3:  | Answers: 1
-💾 Saving 1 answers for question ID: 106422, text: 
-📝 Answer 1 INPUT: 'seed' (length: 4)
-✅ Saved answer 1 with ID: 82253, text: 'seed' (length: 4)
-✅ Successfully saved question 3
-📝 Question 4:  | Answers: 1
-💾 Saving 1 answers for question ID: 106423, text: 
-📝 Answer 1 INPUT: 'mace' (length: 4)
-✅ Saved answer 1 with ID: 82254, text: 'mace' (length: 4)
-✅ Successfully saved question 4
-🔍 Saving 3 questions for group: Nhóm 3
-📝 Question 1: In the Middle Ages, most Europeans knew where nutmeg was grown. | Answers: 1
-💾 Saving 1 answers for question ID: 106424, text: In the Middle Ages, most Europeans knew where nutmeg was grown.
-📝 Answer 1 INPUT: 'FALSE' (length: 5)
-✅ Saved answer 1 with ID: 82255, text: 'FALSE' (length: 5)
-✅ Successfully saved question 1
-📝 Question 2: The VOC was the world’s first major trading company. | Answers: 1
-💾 Saving 1 answers for question ID: 106425, text: The VOC was the world’s first major trading company.
-📝 Answer 1 INPUT: 'NOT GIVEN' (length: 9)
-✅ Saved answer 1 with ID: 82256, text: 'NOT GIVEN' (length: 9)
-✅ Successfully saved question 2
-📝 Question 3: Following the Treaty of Breda, the Dutch had control of all the islands where nutmeg grew. | Answers: 1
-💾 Saving 1 answers for question ID: 106426, text: Following the Treaty of Breda, the Dutch had control of all the islands where nutmeg grew.
-📝 Answer 1 INPUT: 'TRUE' (length: 4)
-✅ Saved answer 1 with ID: 82257, text: 'TRUE' (length: 4)
-✅ Successfully saved question 3
-🔍 Saving 6 questions for group: Table Completion 4
-📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question ID: 106427, text: 
-📝 Answer 1 INPUT: 'Arabs' (length: 5)
-✅ Saved answer 1 with ID: 82258, text: 'Arabs' (length: 5)
-✅ Successfully saved question 1
-📝 Question 2:  | Answers: 1
-💾 Saving 1 answers for question ID: 106428, text: 
-📝 Answer 1 INPUT: 'plague' (length: 6)
-✅ Saved answer 1 with ID: 82259, text: 'plague' (length: 6)
-✅ Successfully saved question 2
-📝 Question 3:  | Answers: 1
-💾 Saving 1 answers for question ID: 106429, text: 
-📝 Answer 1 INPUT: 'lime' (length: 4)
-✅ Saved answer 1 with ID: 82260, text: 'lime' (length: 4)
-✅ Successfully saved question 3
-📝 Question 4:  | Answers: 1
-💾 Saving 1 answers for question ID: 106430, text: 
-📝 Answer 1 INPUT: 'Run' (length: 3)
-✅ Saved answer 1 with ID: 82261, text: 'Run' (length: 3)
-✅ Successfully saved question 4
-📝 Question 5:  | Answers: 1
-💾 Saving 1 answers for question ID: 106431, text: 
-📝 Answer 1 INPUT: 'Mauritius' (length: 9)
-✅ Saved answer 1 with ID: 82262, text: 'Mauritius' (length: 9)
-✅ Successfully saved question 5
-📝 Question 6:  | Answers: 1
-💾 Saving 1 answers for question ID: 106432, text: 
-📝 Answer 1 INPUT: 'tsunami' (length: 7)
-✅ Saved answer 1 with ID: 82263, text: 'tsunami' (length: 7)
-✅ Successfully saved question 6
-🔍 Saving 0 questions for group: Driverless cars
-🔍 Saving 5 questions for group: <br>
-📝 Question 1: reference to the amount of time when a car is not in use | Answers: 1
-💾 Saving 1 answers for question ID: 106433, text: reference to the amount of time when a car is not in use
-📝 Answer 1 INPUT: 'C' (length: 1)
-✅ Saved answer 1 with ID: 82264, text: 'C' (length: 1)
-✅ Successfully saved question 1
-📝 Question 2: mention of several advantages of driverless vehicles for individual road-users | Answers: 1
-💾 Saving 1 answers for question ID: 106434, text: mention of several advantages of driverless vehicles for individual road-users
-📝 Answer 1 INPUT: 'B' (length: 1)
-✅ Saved answer 1 with ID: 82265, text: 'B' (length: 1)
-✅ Successfully saved question 2
-📝 Question 3: reference to the opportunity of choosing the most appropriate vehicle for each trip | Answers: 1
-💾 Saving 1 answers for question ID: 106435, text: reference to the opportunity of choosing the most appropriate vehicle for each trip
-📝 Answer 1 INPUT: 'E' (length: 1)
-✅ Saved answer 1 with ID: 82266, text: 'E' (length: 1)
-✅ Successfully saved question 3
-📝 Question 4: an estimate of how long it will take to overcome a number of problems | Answers: 1
-💾 Saving 1 answers for question ID: 106436, text: an estimate of how long it will take to overcome a number of problems
-📝 Answer 1 INPUT: 'G' (length: 1)
-✅ Saved answer 1 with ID: 82267, text: 'G' (length: 1)
-✅ Successfully saved question 4
-📝 Question 5: a suggestion that the use of driverless cars may have no effect on the number of vehicles manufactured | Answers: 1
-💾 Saving 1 answers for question ID: 106437, text: a suggestion that the use of driverless cars may have no effect on the number of vehicles manufactured
-📝 Answer 1 INPUT: 'D' (length: 1)
-✅ Saved answer 1 with ID: 82268, text: 'D' (length: 1)
-✅ Successfully saved question 5
-🔍 Saving 5 questions for group: Match Headings 3
-📝 Question 1: Section A | Answers: 1
-💾 Saving 1 answers for question ID: 106438, text: Section A
-📝 Answer 1 INPUT: 'reference to the amount of time when a car is not in use' (length: 56)
-✅ Saved answer 1 with ID: 82269, text: 'reference to the amount of time when a car is not in use' (length: 56)
-✅ Successfully saved question 1
-📝 Question 2: Section B | Answers: 1
-💾 Saving 1 answers for question ID: 106439, text: Section B
-📝 Answer 1 INPUT: 'an estimate of how long it will take to overcome a number of problems' (length: 69)
-✅ Saved answer 1 with ID: 82270, text: 'an estimate of how long it will take to overcome a number of problems' (length: 69)
-✅ Successfully saved question 2
-📝 Question 3: Section C | Answers: 1
-💾 Saving 1 answers for question ID: 106440, text: Section C
-📝 Answer 1 INPUT: 'mention of several advantages of driverless vehicles for individual road-users' (length: 78)
-✅ Saved answer 1 with ID: 82271, text: 'mention of several advantages of driverless vehicles for individual road-users' (length: 78)
-✅ Successfully saved question 3
-📝 Question 4: Section D | Answers: 1
-💾 Saving 1 answers for question ID: 106441, text: Section D
-📝 Answer 1 INPUT: 'reference to the opportunity of choosing the most appropriate vehicle for each trip' (length: 83)
-✅ Saved answer 1 with ID: 82272, text: 'reference to the opportunity of choosing the most appropriate vehicle for each trip' (length: 83)
-✅ Successfully saved question 4
-📝 Question 5: Section E | Answers: 1
-💾 Saving 1 answers for question ID: 106442, text: Section E
-📝 Answer 1 INPUT: 'mention of several advantages of driverless vehicles for individual road-users' (length: 78)
-✅ Saved answer 1 with ID: 82273, text: 'mention of several advantages of driverless vehicles for individual road-users' (length: 78)
-✅ Successfully saved question 5
-🗑️ Cleaning up unused group: 36620
-🗑️ Cleaning up unused group: 36621
-🗑️ Cleaning up unused group: 36622
-🗑️ Cleaning up unused group: 36623
-🗑️ Cleaning up unused group: 36624
-🗑️ Cleaning up unused group: 36625
-🗑️ Cleaning up unused group: 36626
-🔍 Saving 0 questions for group: Nutmeg – a valuable spice
-🔍 Saving 4 questions for group: <span style="font-weight: 400; white-space: pre-wrap; font-size: 20px;"><b>The nutmeg tree and fruit</b></span>
-📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question ID: 106443, text: 
-📝 Answer 1 INPUT: 'oval' (length: 4)
-✅ Saved answer 1 with ID: 82274, text: 'oval' (length: 4)
-✅ Successfully saved question 1
-📝 Question 2:  | Answers: 1
-💾 Saving 1 answers for question ID: 106444, text: 
-📝 Answer 1 INPUT: 'husk' (length: 4)
-✅ Saved answer 1 with ID: 82275, text: 'husk' (length: 4)
-✅ Successfully saved question 2
-📝 Question 3:  | Answers: 1
-💾 Saving 1 answers for question ID: 106445, text: 
-📝 Answer 1 INPUT: 'seed' (length: 4)
-✅ Saved answer 1 with ID: 82276, text: 'seed' (length: 4)
-✅ Successfully saved question 3
-📝 Question 4:  | Answers: 1
-💾 Saving 1 answers for question ID: 106446, text: 
-📝 Answer 1 INPUT: 'mace' (length: 4)
-✅ Saved answer 1 with ID: 82277, text: 'mace' (length: 4)
-✅ Successfully saved question 4
-🔍 Saving 3 questions for group: Nhóm 3
-📝 Question 1: In the Middle Ages, most Europeans knew where nutmeg was grown. | Answers: 1
-💾 Saving 1 answers for question ID: 106447, text: In the Middle Ages, most Europeans knew where nutmeg was grown.
-📝 Answer 1 INPUT: 'FALSE' (length: 5)
-✅ Saved answer 1 with ID: 82278, text: 'FALSE' (length: 5)
-✅ Successfully saved question 1
-📝 Question 2: The VOC was the world’s first major trading company. | Answers: 1
-💾 Saving 1 answers for question ID: 106448, text: The VOC was the world’s first major trading company.
-📝 Answer 1 INPUT: 'NOT GIVEN' (length: 9)
-✅ Saved answer 1 with ID: 82279, text: 'NOT GIVEN' (length: 9)
-✅ Successfully saved question 2
-📝 Question 3: Following the Treaty of Breda, the Dutch had control of all the islands where nutmeg grew. | Answers: 1
-💾 Saving 1 answers for question ID: 106449, text: Following the Treaty of Breda, the Dutch had control of all the islands where nutmeg grew.
-📝 Answer 1 INPUT: 'TRUE' (length: 4)
-✅ Saved answer 1 with ID: 82280, text: 'TRUE' (length: 4)
-✅ Successfully saved question 3
-🔍 Saving 6 questions for group: Table Completion 4
-📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question ID: 106450, text: 
-📝 Answer 1 INPUT: 'Arabs' (length: 5)
-✅ Saved answer 1 with ID: 82281, text: 'Arabs' (length: 5)
-✅ Successfully saved question 1
-📝 Question 2:  | Answers: 1
-💾 Saving 1 answers for question ID: 106451, text: 
-📝 Answer 1 INPUT: 'plague' (length: 6)
-✅ Saved answer 1 with ID: 82282, text: 'plague' (length: 6)
-✅ Successfully saved question 2
-📝 Question 3:  | Answers: 1
-💾 Saving 1 answers for question ID: 106452, text: 
-📝 Answer 1 INPUT: 'lime' (length: 4)
-✅ Saved answer 1 with ID: 82283, text: 'lime' (length: 4)
-✅ Successfully saved question 3
-📝 Question 4:  | Answers: 1
-💾 Saving 1 answers for question ID: 106453, text: 
-📝 Answer 1 INPUT: 'Run' (length: 3)
-✅ Saved answer 1 with ID: 82284, text: 'Run' (length: 3)
-✅ Successfully saved question 4
-📝 Question 5:  | Answers: 1
-💾 Saving 1 answers for question ID: 106454, text: 
-📝 Answer 1 INPUT: 'Mauritius' (length: 9)
-✅ Saved answer 1 with ID: 82285, text: 'Mauritius' (length: 9)
-✅ Successfully saved question 5
-📝 Question 6:  | Answers: 1
-💾 Saving 1 answers for question ID: 106455, text: 
-📝 Answer 1 INPUT: 'tsunami' (length: 7)
-✅ Saved answer 1 with ID: 82286, text: 'tsunami' (length: 7)
-✅ Successfully saved question 6
-🔍 Saving 0 questions for group: Driverless cars
-🔍 Saving 5 questions for group: <br>
-📝 Question 1: reference to the amount of time when a car is not in use | Answers: 1
-💾 Saving 1 answers for question ID: 106456, text: reference to the amount of time when a car is not in use
-📝 Answer 1 INPUT: 'C' (length: 1)
-✅ Saved answer 1 with ID: 82287, text: 'C' (length: 1)
-✅ Successfully saved question 1
-📝 Question 2: mention of several advantages of driverless vehicles for individual road-users | Answers: 1
-💾 Saving 1 answers for question ID: 106457, text: mention of several advantages of driverless vehicles for individual road-users
-📝 Answer 1 INPUT: 'B' (length: 1)
-✅ Saved answer 1 with ID: 82288, text: 'B' (length: 1)
-✅ Successfully saved question 2
-📝 Question 3: reference to the opportunity of choosing the most appropriate vehicle for each trip | Answers: 1
-💾 Saving 1 answers for question ID: 106458, text: reference to the opportunity of choosing the most appropriate vehicle for each trip
-📝 Answer 1 INPUT: 'E' (length: 1)
-✅ Saved answer 1 with ID: 82289, text: 'E' (length: 1)
-✅ Successfully saved question 3
-📝 Question 4: an estimate of how long it will take to overcome a number of problems | Answers: 1
-💾 Saving 1 answers for question ID: 106459, text: an estimate of how long it will take to overcome a number of problems
-📝 Answer 1 INPUT: 'G' (length: 1)
-✅ Saved answer 1 with ID: 82290, text: 'G' (length: 1)
-✅ Successfully saved question 4
-📝 Question 5: a suggestion that the use of driverless cars may have no effect on the number of vehicles manufactured | Answers: 1
-💾 Saving 1 answers for question ID: 106460, text: a suggestion that the use of driverless cars may have no effect on the number of vehicles manufactured
-📝 Answer 1 INPUT: 'D' (length: 1)
-✅ Saved answer 1 with ID: 82291, text: 'D' (length: 1)
-✅ Successfully saved question 5
-🔍 Saving 7 questions for group: Match Headings 3
-📝 Question 1: Section A | Answers: 1
-💾 Saving 1 answers for question ID: 106461, text: Section A
-📝 Answer 1 INPUT: 'reference to the amount of time when a car is not in use' (length: 56)
-✅ Saved answer 1 with ID: 82292, text: 'reference to the amount of time when a car is not in use' (length: 56)
-✅ Successfully saved question 1
-📝 Question 2: Section B | Answers: 1
-💾 Saving 1 answers for question ID: 106462, text: Section B
-📝 Answer 1 INPUT: 'an estimate of how long it will take to overcome a number of problems' (length: 69)
-✅ Saved answer 1 with ID: 82293, text: 'an estimate of how long it will take to overcome a number of problems' (length: 69)
-✅ Successfully saved question 2
-📝 Question 3: Section C | Answers: 1
-💾 Saving 1 answers for question ID: 106463, text: Section C
-📝 Answer 1 INPUT: 'mention of several advantages of driverless vehicles for individual road-users' (length: 78)
-✅ Saved answer 1 with ID: 82294, text: 'mention of several advantages of driverless vehicles for individual road-users' (length: 78)
-✅ Successfully saved question 3
-📝 Question 4: Section D | Answers: 1
-💾 Saving 1 answers for question ID: 106464, text: Section D
-📝 Answer 1 INPUT: 'reference to the opportunity of choosing the most appropriate vehicle for each trip' (length: 83)
-✅ Saved answer 1 with ID: 82295, text: 'reference to the opportunity of choosing the most appropriate vehicle for each trip' (length: 83)
-✅ Successfully saved question 4
-📝 Question 5: Section E | Answers: 1
-💾 Saving 1 answers for question ID: 106465, text: Section E
-📝 Answer 1 INPUT: 'mention of several advantages of driverless vehicles for individual road-users' (length: 78)
-✅ Saved answer 1 with ID: 82296, text: 'mention of several advantages of driverless vehicles for individual road-users' (length: 78)
-✅ Successfully saved question 5
-📝 Question 6: Section F | Answers: 1
-💾 Saving 1 answers for question ID: 106466, text: Section F
-📝 Answer 1 INPUT: 'reference to the opportunity of choosing the most appropriate vehicle for each trip' (length: 83)
-✅ Saved answer 1 with ID: 82297, text: 'reference to the opportunity of choosing the most appropriate vehicle for each trip' (length: 83)
-✅ Successfully saved question 6
-📝 Question 7: Section G | Answers: 1
-💾 Saving 1 answers for question ID: 106467, text: Section G
-📝 Answer 1 INPUT: 'mention of several advantages of driverless vehicles for individual road-users' (length: 78)
-✅ Saved answer 1 with ID: 82298, text: 'mention of several advantages of driverless vehicles for individual road-users' (length: 78)
-✅ Successfully saved question 7
-🗑️ Cleaning up unused group: 36627
-🗑️ Cleaning up unused group: 36628
-🗑️ Cleaning up unused group: 36629
-🗑️ Cleaning up unused group: 36630
-🗑️ Cleaning up unused group: 36631
-🗑️ Cleaning up unused group: 36632
-🗑️ Cleaning up unused group: 36633
-🔍 Saving 0 questions for group: Nutmeg – a valuable spice
-🔍 Saving 4 questions for group: <span style="font-weight: 400; white-space: pre-wrap; font-size: 20px;"><b>The nutmeg tree and fruit</b></span>
-📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question ID: 106468, text: 
-📝 Answer 1 INPUT: 'oval' (length: 4)
-✅ Saved answer 1 with ID: 82299, text: 'oval' (length: 4)
-✅ Successfully saved question 1
-📝 Question 2:  | Answers: 1
-💾 Saving 1 answers for question ID: 106469, text: 
-📝 Answer 1 INPUT: 'husk' (length: 4)
-✅ Saved answer 1 with ID: 82300, text: 'husk' (length: 4)
-✅ Successfully saved question 2
-📝 Question 3:  | Answers: 1
-💾 Saving 1 answers for question ID: 106470, text: 
-📝 Answer 1 INPUT: 'seed' (length: 4)
-✅ Saved answer 1 with ID: 82301, text: 'seed' (length: 4)
-✅ Successfully saved question 3
-📝 Question 4:  | Answers: 1
-💾 Saving 1 answers for question ID: 106471, text: 
-📝 Answer 1 INPUT: 'mace' (length: 4)
-✅ Saved answer 1 with ID: 82302, text: 'mace' (length: 4)
-✅ Successfully saved question 4
-🔍 Saving 3 questions for group: Nhóm 3
-📝 Question 1: In the Middle Ages, most Europeans knew where nutmeg was grown. | Answers: 1
-💾 Saving 1 answers for question ID: 106472, text: In the Middle Ages, most Europeans knew where nutmeg was grown.
-📝 Answer 1 INPUT: 'FALSE' (length: 5)
-✅ Saved answer 1 with ID: 82303, text: 'FALSE' (length: 5)
-✅ Successfully saved question 1
-📝 Question 2: The VOC was the world’s first major trading company. | Answers: 1
-💾 Saving 1 answers for question ID: 106473, text: The VOC was the world’s first major trading company.
-📝 Answer 1 INPUT: 'NOT GIVEN' (length: 9)
-✅ Saved answer 1 with ID: 82304, text: 'NOT GIVEN' (length: 9)
-✅ Successfully saved question 2
-📝 Question 3: Following the Treaty of Breda, the Dutch had control of all the islands where nutmeg grew. | Answers: 1
-💾 Saving 1 answers for question ID: 106474, text: Following the Treaty of Breda, the Dutch had control of all the islands where nutmeg grew.
-📝 Answer 1 INPUT: 'TRUE' (length: 4)
-✅ Saved answer 1 with ID: 82305, text: 'TRUE' (length: 4)
-✅ Successfully saved question 3
-🔍 Saving 6 questions for group: Table Completion 4
-📝 Question 1:  | Answers: 1
-💾 Saving 1 answers for question ID: 106475, text: 
-📝 Answer 1 INPUT: 'Arabs' (length: 5)
-✅ Saved answer 1 with ID: 82306, text: 'Arabs' (length: 5)
-✅ Successfully saved question 1
-📝 Question 2:  | Answers: 1
-💾 Saving 1 answers for question ID: 106476, text: 
-📝 Answer 1 INPUT: 'plague' (length: 6)
-✅ Saved answer 1 with ID: 82307, text: 'plague' (length: 6)
-✅ Successfully saved question 2
-📝 Question 3:  | Answers: 1
-💾 Saving 1 answers for question ID: 106477, text: 
-📝 Answer 1 INPUT: 'lime' (length: 4)
-✅ Saved answer 1 with ID: 82308, text: 'lime' (length: 4)
-✅ Successfully saved question 3
-📝 Question 4:  | Answers: 1
-💾 Saving 1 answers for question ID: 106478, text: 
-📝 Answer 1 INPUT: 'Run' (length: 3)
-✅ Saved answer 1 with ID: 82309, text: 'Run' (length: 3)
-✅ Successfully saved question 4
-📝 Question 5:  | Answers: 1
-💾 Saving 1 answers for question ID: 106479, text: 
-📝 Answer 1 INPUT: 'Mauritius' (length: 9)
-✅ Saved answer 1 with ID: 82310, text: 'Mauritius' (length: 9)
-✅ Successfully saved question 5
-📝 Question 6:  | Answers: 1
-💾 Saving 1 answers for question ID: 106480, text: 
-📝 Answer 1 INPUT: 'tsunami' (length: 7)
-✅ Saved answer 1 with ID: 82311, text: 'tsunami' (length: 7)
-✅ Successfully saved question 6
-🔍 Saving 0 questions for group: Driverless cars
-🔍 Saving 5 questions for group: <br>
-📝 Question 1: reference to the amount of time when a car is not in use | Answers: 1
-💾 Saving 1 answers for question ID: 106481, text: reference to the amount of time when a car is not in use
-📝 Answer 1 INPUT: 'C' (length: 1)
-✅ Saved answer 1 with ID: 82312, text: 'C' (length: 1)
-✅ Successfully saved question 1
-📝 Question 2: mention of several advantages of driverless vehicles for individual road-users | Answers: 1
-💾 Saving 1 answers for question ID: 106482, text: mention of several advantages of driverless vehicles for individual road-users
-📝 Answer 1 INPUT: 'B' (length: 1)
-✅ Saved answer 1 with ID: 82313, text: 'B' (length: 1)
-✅ Successfully saved question 2
-📝 Question 3: reference to the opportunity of choosing the most appropriate vehicle for each trip | Answers: 1
-💾 Saving 1 answers for question ID: 106483, text: reference to the opportunity of choosing the most appropriate vehicle for each trip
-📝 Answer 1 INPUT: 'E' (length: 1)
-✅ Saved answer 1 with ID: 82314, text: 'E' (length: 1)
-✅ Successfully saved question 3
-📝 Question 4: an estimate of how long it will take to overcome a number of problems | Answers: 1
-💾 Saving 1 answers for question ID: 106484, text: an estimate of how long it will take to overcome a number of problems
-📝 Answer 1 INPUT: 'G' (length: 1)
-✅ Saved answer 1 with ID: 82315, text: 'G' (length: 1)
-✅ Successfully saved question 4
-📝 Question 5: a suggestion that the use of driverless cars may have no effect on the number of vehicles manufactured | Answers: 1
-💾 Saving 1 answers for question ID: 106485, text: a suggestion that the use of driverless cars may have no effect on the number of vehicles manufactured
-📝 Answer 1 INPUT: 'D' (length: 1)
-✅ Saved answer 1 with ID: 82316, text: 'D' (length: 1)
-✅ Successfully saved question 5
+🗑️ Cleaning up unused group: 39728
+🗑️ Cleaning up unused group: 39729
+🗑️ Cleaning up unused group: 39730
+🗑️ Cleaning up unused group: 39731
+🔍 Saving 0 questions for group: Audio transcript
+🔍 Saving 0 questions for group: Audio transcript
+🔍 Saving 0 questions for group: Audio transcript
+🔍 Saving 0 questions for group: Audio transcript
+🗑️ Cleaning up unused group: 39771
+🗑️ Cleaning up unused group: 39772
+🗑️ Cleaning up unused group: 39773
+🗑️ Cleaning up unused group: 39774
+🔍 Saving 0 questions for group: Audio transcript
+🔍 Saving 0 questions for group: Audio transcript
+🔍 Saving 0 questions for group: Audio transcript
+🔍 Saving 0 questions for group: Audio transcript
+🗑️ Cleaning up unused group: 39775
+🗑️ Cleaning up unused group: 39776
+🗑️ Cleaning up unused group: 39777
+🗑️ Cleaning up unused group: 39778
+🔍 Saving 0 questions for group: Audio transcript
+🔍 Saving 0 questions for group: Audio transcript
+🔍 Saving 0 questions for group: Audio transcript
+🔍 Saving 0 questions for group: Audio transcript
+2026-05-25T18:42:11.657+07:00  INFO 510600 --- [DAVictory] [nio-8080-exec-4] o.apache.coyote.http11.Http11Processor   : Error parsing HTTP request header
+ Note: further occurrences of HTTP request parsing errors will be logged at DEBUG level.
+
+java.lang.IllegalArgumentException: Invalid character found in method name [0x800x000x00(0x0b0xf2[!0x000x000x000x000x000x000x000x020x000x010x860xa00x000x000x000x020x000x000x000x000x000x000x000x000x000x000x000x000x000x000x000x000x000x000x000x00...]. HTTP method names must be tokens
+	at org.apache.coyote.http11.Http11InputBuffer.parseRequestLine(Http11InputBuffer.java:391) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:270) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:63) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:903) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1779) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:52) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:946) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:480) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:57) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at java.base/java.lang.Thread.run(Thread.java:1583) ~[na:na]
+
+2026-05-26T04:00:05.462+07:00  INFO 510600 --- [DAVictory] [nio-8080-exec-9] o.apache.coyote.http11.Http11Processor   : Error parsing HTTP request header
+ Note: further occurrences of HTTP request parsing errors will be logged at DEBUG level.
+
+java.lang.IllegalArgumentException: Invalid character found in method name [0x160x030x010x00u0x010x000x00q0x030x030xe6~n00xd6z0x0ecF0xb60xb8@0xd40xec)0xd80xa50xb50xbaG0x100x08t0x86^0xd80xe1S0x0e0xba0x080xa60x000x000x1a0xc0/0xc0+0xc00x110xc00x070xc00x130xc00x090xc00x140xc00x0a0x000x050x00/0x0050xc00x120x000x0a0x010x000x00.0x000x050x000x050x010x000x000x000x000x000x0a0x000x080x000x060x000x170x000x180x000x190x000x0b0x000x020x010x000x000x0d0x000x0a0x000x080x040x010x040x030x020x010x020x030xff0x010x000x010x00...]. HTTP method names must be tokens
+	at org.apache.coyote.http11.Http11InputBuffer.parseRequestLine(Http11InputBuffer.java:391) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:270) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:63) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:903) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1779) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:52) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:946) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:480) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:57) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at java.base/java.lang.Thread.run(Thread.java:1583) ~[na:na]
+
+2026-05-26T19:07:47.816+07:00  INFO 510600 --- [DAVictory] [nio-8080-exec-6] o.apache.coyote.http11.Http11Processor   : Error parsing HTTP request header
+ Note: further occurrences of HTTP request parsing errors will be logged at DEBUG level.
+
+java.lang.IllegalArgumentException: Invalid character found in method name [0x160x030x010x010x890x010x000x010x850x030x03j0x160x0b0x9f0x1c0x7f0xff0xba0x810xf8@0x1e0x040xe50x050xae0xa00xf60x9b0x9e0xe50xc8"0xeat0xde0x95E0xc90x130x05M0x000x010x140xcc0xa80xcc0xa90xcc0xaa0xc0,0xc000x000x9f0xc00xad0xc00x9f0xc0$0xc0(0x00k0xc00x0a0xc00x140x0090xc00xaf0xc00xa30xc00x870xc00x8b0xc0}0xc0s0xc0w0x000xc40x000x880xc0+0xc0/0x000x9e0xc00xac0xc00x9e0xc0#0xc0'0x00g0xc00x090xc00x130x0030xc00xae0xc00xa20xc00x860xc00x8a0xc0|0xc0r0xc0v0x000xbe0x00E0xc00x080xc00x120x000x160xcc0xac0xcc0xad0x000xab0xc00xa70xc080x000xb30xc060x000x910xc00x910xc00x9b0xc00x970xc00xab0x000xaa0xc00xa60xc070x000xb20xc050x000x900xc00x900xc00x960xc00x9a0xc00xaa0xc040x000x8f0x000x9d0xc00x9d0x00=0x0050xc020xc0*0xc00x0f0xc0.0xc0&0xc00x050xc00xa10xc0{0x000xc00x000x840xc00x8d0xc0y0xc00x890xc0u0x000x9c0xc00x9c0x00<0x00/0xc010xc0)0xc00x0e0xc0-0xc0%0xc00x040xc00xa00xc0z0x000xba0x00A0xc00x8c0xc0x0xc00x880xc0t0x000x0a0xc00x0d0xc00x030xcc0xae0x000xad0x000xb70x000x950xc00x930xc00x990x000xac0x000xb60x000x940xc00x920xc00x980x000x930xcc0xab0x000xa90xc00xa50x000xaf0x000x8d0xc00x8f0xc00x950xc00xa90x000xa80xc00xa40x000xae0x000x8c0xc00x8e0xc00x940xc00xa80x000x8b0x000xff0x010x000x00H0x000x0d0x000x160x000x140x060x030x060x010x050x030x050x010x040x030x040x010x030x030x030x010x020x030x020x010x000x0a0x000x180x000x160x000x190x000x1c0x000x180x000x1b0x000x170x000x160x000x1a0x000x150x000x140x000x130x000x120x000x0b0x000x020x010x000x000x160x000x000x000x170x000x000x00#0x000x00...]. HTTP method names must be tokens
+	at org.apache.coyote.http11.Http11InputBuffer.parseRequestLine(Http11InputBuffer.java:391) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:270) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:63) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:903) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1779) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:52) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:946) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:480) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:57) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at java.base/java.lang.Thread.run(Thread.java:1583) ~[na:na]
+
+2026-05-27T03:00:34.374+07:00  INFO 510600 --- [DAVictory] [io-8080-exec-10] o.apache.coyote.http11.Http11Processor   : Error parsing HTTP request header
+ Note: further occurrences of HTTP request parsing errors will be logged at DEBUG level.
+
+java.lang.IllegalArgumentException: Invalid character found in method name [0x160x030x010x000xce0x010x000x000xca0x030x03N0<0x930x000xfe0x110[:0xde0xe90xc90x850x91O0x9a0xce0x8fr=0x1b0xfc0x7f0xf90x110x1b0x9b/0xf60xbd. ]. HTTP method names must be tokens
+	at org.apache.coyote.http11.Http11InputBuffer.parseRequestLine(Http11InputBuffer.java:391) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:270) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:63) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:903) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1779) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:52) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:946) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:480) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:57) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at java.base/java.lang.Thread.run(Thread.java:1583) ~[na:na]
+
+2026-05-28T03:49:37.516+07:00  INFO 510600 --- [DAVictory] [nio-8080-exec-8] o.apache.coyote.http11.Http11Processor   : Error parsing HTTP request header
+ Note: further occurrences of HTTP request parsing errors will be logged at DEBUG level.
+
+java.lang.IllegalArgumentException: Invalid character found in method name [0x160x030x010x000xee0x010x000x000xea0x030x030xde0xd90xa40xba0xadt,\0xb30xec0xe60xcaC0xc60xec<F0xf80x1c0xbd0x1a60xc5p0xa8K0x890x8c0x8b0xdf0x10K ]. HTTP method names must be tokens
+	at org.apache.coyote.http11.Http11InputBuffer.parseRequestLine(Http11InputBuffer.java:391) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:270) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:63) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:903) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1779) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:52) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:946) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:480) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:57) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at java.base/java.lang.Thread.run(Thread.java:1583) ~[na:na]
+
+2026-05-28T08:04:07.196+07:00  INFO 510600 --- [DAVictory] [nio-8080-exec-4] o.apache.coyote.http11.Http11Processor   : Error parsing HTTP request header
+ Note: further occurrences of HTTP request parsing errors will be logged at DEBUG level.
+
+java.lang.IllegalArgumentException: Invalid character found in method name [0x160x030x010x000xea0x010x000x000xe60x030x030xd90x8200x0b0x10O4jc0xc00xc350x85E0xe20x8f0xc50x0e@40xa20x1e0xb2l9P00x9bu+60x96 ]. HTTP method names must be tokens
+	at org.apache.coyote.http11.Http11InputBuffer.parseRequestLine(Http11InputBuffer.java:391) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:270) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:63) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:903) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1779) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:52) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:946) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:480) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:57) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at java.base/java.lang.Thread.run(Thread.java:1583) ~[na:na]
+
+2026-05-28T08:04:07.196+07:00  INFO 510600 --- [DAVictory] [io-8080-exec-10] o.apache.coyote.http11.Http11Processor   : Error parsing HTTP request header
+ Note: further occurrences of HTTP request parsing errors will be logged at DEBUG level.
+
+java.lang.IllegalArgumentException: Invalid character found in method name [0x160x030x010x000xea0x010x000x000xe60x030x03k0xc90x0000x0b0xe4M0x02A0xa00xc50xf1'0xb9e0xc30x8b0xaeI0x880x050xbd0xc0GUq0xec0xfb0x7fX0xf4& ]. HTTP method names must be tokens
+	at org.apache.coyote.http11.Http11InputBuffer.parseRequestLine(Http11InputBuffer.java:391) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:270) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:63) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:903) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1779) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:52) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:946) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:480) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:57) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
+	at java.base/java.lang.Thread.run(Thread.java:1583) ~[na:na]
+

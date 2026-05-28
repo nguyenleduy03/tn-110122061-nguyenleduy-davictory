@@ -613,27 +613,18 @@ const TestBuilder = () => {
           };
 
         case 'SHARED_OPTIONS_DROPDOWN': {
-          const mkDrop = (n) => makeQ(n, 'MCQ_DROPDOWN', {
-            options: [],
-            answerText: '',
-            answers: [{ answerText: '', blankIndex: 1, isCaseSensitive: false }],
-          });
           return {
-            title: `Questions ${startQuestionNumber}–${startQuestionNumber + 4}`,
-            fromQuestion: startQuestionNumber,
-            toQuestion: startQuestionNumber + 4,
+            title: '',
+            fromQuestion: null,
+            toQuestion: null,
             instructions: '',
             questionTitle: '',
             mainInstruction: '',
             subInstruction: '',
             imageUrl: '',
             imageWidth: 100,
-            sharedOptions: [
-              { id: `so-${Date.now()}-a`, key: 'A', label: '', imageUrl: '' },
-              { id: `so-${Date.now()}-b`, key: 'B', label: '', imageUrl: '' },
-              { id: `so-${Date.now()}-c`, key: 'C', label: '', imageUrl: '' },
-            ],
-            questions: [mkDrop(1), mkDrop(2), mkDrop(3), mkDrop(4), mkDrop(5)],
+            sharedOptions: [],
+            questions: [],
           };
         }
 
@@ -1006,6 +997,15 @@ const TestBuilder = () => {
         ? Math.max(...group.questions.map(q => q.questionNumber || 0))
         : startNum - 1;
       questionNumber = maxNum + 1;
+    } else {
+      const existingNumbers = (group.questions ?? [])
+        .map((q) => Number(q?.questionNumber))
+        .filter((num) => Number.isFinite(num) && num > 0);
+      if (existingNumbers.length > 0) {
+        questionNumber = Math.max(...existingNumbers) + 1;
+      } else if (Number.isFinite(Number(group.fromQuestion))) {
+        questionNumber = Number(group.fromQuestion);
+      }
     }
 
     const newQ = {
