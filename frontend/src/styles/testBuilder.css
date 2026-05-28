@@ -6609,6 +6609,7 @@
   margin: 0;
   font-size: 14px;
   line-height: 1.8;
+  white-space: pre-wrap;
 }
 
 .pv-fc-arrow {

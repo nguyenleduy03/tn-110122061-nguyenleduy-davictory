@@ -287,8 +287,8 @@ export const MOCK_WRITING_DATA = {
   parts: [
     {
       id: "writing-task-1",
-      title: "Task 1",
-      taskLabel: "Writing Task 1",
+      title: "Part 1",
+      taskLabel: "Writing Part 1",
       minWords: 150,
       recommendedMinutes: 20,
       instruction: `You should spend about 20 minutes on this task.
@@ -340,8 +340,8 @@ Write at least 150 words.`,
     },
     {
       id: "writing-task-2",
-      title: "Task 2",
-      taskLabel: "Writing Task 2",
+      title: "Part 2",
+      taskLabel: "Writing Part 2",
       minWords: 250,
       recommendedMinutes: 40,
       instruction: `You should spend about 40 minutes on this task.

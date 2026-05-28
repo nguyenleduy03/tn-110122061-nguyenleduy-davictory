@@ -1485,12 +1485,17 @@ export const ieltsApi = {
         const partInstructions = formatTextWithWhitespace(part.instructions || part.instruction || '');
         const resolvedInstructions = partInstructions || mergedInstructions;
 
+        let partName = part.name || `Part ${part.orderIndex || index + 1}`;
+        if (targetMode === 'WRITING') {
+          partName = partName.replace(/Task\s*(\d+)/i, 'Part $1');
+        }
+
         const partObj = {
           id: `part-${part.testPartId || part.id}`,
           partNumber: part.orderIndex || index + 1,
-          name: part.name || `Part ${part.orderIndex || index + 1}`,
+          name: partName,
           orderIndex: part.orderIndex || index + 1,
-          title: part.name || `Part ${part.orderIndex || index + 1}`,
+          title: partName,
 
           // Extracted metadata
           instruction: resolvedInstructions || (targetMode === 'WRITING' ? 'No task specified.' : 'Listen and answer questions.'),
@@ -1560,11 +1565,14 @@ export const ieltsApi = {
         } catch { /* plain text fallback */ }
       }
 
+      let partName = part.name || `Part ${part.orderIndex || idx + 1}`;
+      partName = partName.replace(/Task\s*(\d+)/i, 'Part $1');
+
       return {
         id: `part-${part.testPartId}`,
         questionGroupId: writingGroup?.questionGroupId || null,
-        title: part.name || `Task ${part.orderIndex || idx + 1}`,
-        taskLabel: part.name || `Writing Task ${part.orderIndex || idx + 1}`,
+        title: partName,
+        taskLabel: partName.includes('Writing') ? partName : `Writing ${partName}`,
         minWords,
         recommendedMinutes,
         instruction: taskInstruction || 'No instructions provided.',

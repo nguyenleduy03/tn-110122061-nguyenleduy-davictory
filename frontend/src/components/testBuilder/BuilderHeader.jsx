@@ -208,9 +208,51 @@ const BuilderHeader = ({
           }
           
           // Đọc line-height hiện tại
-          const wrapper = editableEl.querySelector('[data-line-height-wrapper]');
-          const lineHeight = wrapper ? wrapper.style.lineHeight : editableEl.style.lineHeight;
-          setCurrentLineHeight(lineHeight || '');
+          let lh = '';
+          let curr = selectionNode;
+          
+          // Danh sách các giá trị hợp lệ để nhận diện
+          const validOptions = ['1.5', '1.8', '2.0', '2.2', '2.4', '2.6'];
+
+          while (curr && curr !== editableEl.parentElement) {
+            if (curr.nodeType === 1) {
+              // Ưu tiên kiểm tra inline style trước vì đó là nơi ta lưu giá trị giãn dòng
+              const inlineStyle = curr.getAttribute('style') || '';
+              const match = inlineStyle.match(/line-height\s*:\s*([^;]+)/i);
+              
+              if (match) {
+                const val = match[1].trim();
+                // Nếu là giá trị số thuần túy (không đơn vị)
+                if (/^\d+(\.\d+)?$/.test(val)) {
+                  lh = val;
+                  break;
+                }
+              }
+
+              // Nếu không có inline style, kiểm tra computed style nhưng chỉ lấy nếu nó khớp với các option của ta
+              const styleLh = window.getComputedStyle(curr).lineHeight;
+              if (styleLh && !styleLh.includes('normal')) {
+                const num = parseFloat(styleLh);
+                if (!isNaN(num)) {
+                  let computedLh = '';
+                  if (styleLh.includes('px')) {
+                    const fs = parseFloat(window.getComputedStyle(curr).fontSize);
+                    computedLh = (num / fs).toFixed(1);
+                  } else {
+                    computedLh = String(num);
+                  }
+                  
+                  // Chỉ lấy nếu nó gần giống với một trong các option (tránh lấy nhầm giá trị mặc định của trình duyệt)
+                  if (validOptions.some(opt => Math.abs(parseFloat(opt) - parseFloat(computedLh)) < 0.05)) {
+                    lh = computedLh;
+                    break;
+                  }
+                }
+              }
+            }
+            curr = curr.parentElement;
+          }
+          setCurrentLineHeight(lh || '');
         }
         if (sel?.rangeCount > 0) {
           const range = sel.getRangeAt(0);
@@ -995,13 +1037,32 @@ const BuilderHeader = ({
                     if (!target) return;
                     
                     const lineHeightValue = e.target.value;
-                    const currentHtml = target.innerHTML;
+                    const sel = window.getSelection();
                     
-                    // Kiểm tra đã có wrapper chưa
-                    if (target.firstElementChild?.hasAttribute('data-line-height-wrapper')) {
-                      target.firstElementChild.style.lineHeight = lineHeightValue;
+                    // Trường hợp có bôi đen văn bản
+                    if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
+                      const range = sel.getRangeAt(0);
+                      
+                      if (target.contains(range.commonAncestorContainer)) {
+                        const wrapper = document.createElement('div');
+                        wrapper.style.lineHeight = lineHeightValue;
+                        wrapper.setAttribute('data-line-height-wrapper', 'true');
+                        
+                        try {
+                          wrapper.appendChild(range.extractContents());
+                          range.insertNode(wrapper);
+                        } catch (err) {
+                          console.error('Failed to apply line height to selection:', err);
+                        }
+                      }
                     } else {
-                      target.innerHTML = `<div data-line-height-wrapper="true" style="line-height: ${lineHeightValue}">${currentHtml}</div>`;
+                      // Trường hợp không bôi đen: Áp dụng cho toàn bộ khối như cũ
+                      const currentHtml = target.innerHTML;
+                      if (target.firstElementChild?.hasAttribute('data-line-height-wrapper')) {
+                        target.firstElementChild.style.lineHeight = lineHeightValue;
+                      } else {
+                        target.innerHTML = `<div data-line-height-wrapper="true" style="line-height: ${lineHeightValue}">${currentHtml}</div>`;
+                      }
                     }
                     
                     // Update state

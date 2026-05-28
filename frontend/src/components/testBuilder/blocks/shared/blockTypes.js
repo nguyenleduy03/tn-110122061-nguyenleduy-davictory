@@ -20,6 +20,7 @@ export const TYPE_META = {
   SENTENCE_COMPLETION:    { label: 'Sentence Completion',  bg: '#ecfdf5', color: '#065f46' },
   SHORT_ANSWER_GROUP:     { label: 'Short Answer',         bg: '#f0fdf4', color: '#166534' },
   FLOW_CHART:             { label: 'Flow-chart',           bg: '#f0fdfa', color: '#0f766e' },
+  FLOW_CHART_TEXT:        { label: 'Flow-chart (Text)',    bg: '#f0fdfa', color: '#0f766e' },
   MATCHING_FEATURES:      { label: 'Matching Features',    bg: '#f3e8ff', color: '#7c3aed' },
   MATCHING_FILLABLE:      { label: 'Matching (Fill-in)',   bg: '#fef3c7', color: '#92400e' },
   MATCHING_HEADINGS_FILLABLE: { label: 'Match Headings (Fill)', bg: '#fed7aa', color: '#9a3412' },

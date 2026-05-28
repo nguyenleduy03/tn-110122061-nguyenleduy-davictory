@@ -1970,7 +1970,7 @@
     font-size: var(--ielts-question-content-font-size);
     line-height: var(--ielts-question-content-line-height);
     color: #111;
-    white-space: nowrap;
+    white-space: pre-wrap;
 }
 
 .fc-arrow {

@@ -566,8 +566,8 @@ const IeltsWritingTest = () => {
                 partItem?.taskLabel
                 || partItem?.title
                 || partItem?.name
-                || `Task_${idx + 1}`
-            ).trim();
+                || `Part_${idx + 1}`
+            ).trim().replace(/Task\s*(\d+)/i, 'Part $1');
             const fileContent = [
                 `Test: ${resolvedTestTitle}`,
                 `MaThiSinh: ${resolvedCandidateCode}`,

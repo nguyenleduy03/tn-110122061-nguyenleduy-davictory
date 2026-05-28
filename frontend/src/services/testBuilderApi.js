@@ -1037,10 +1037,15 @@ export function parseLoadedTest(data) {
       }
       mappedGroups.forEach(g => { delete g._embeddedPassage; });
 
+      let partName = partResp.name;
+      if (skillKey === 'WRITING') {
+        partName = partName.replace(/Task\s*(\d+)/i, 'Part $1');
+      }
+
       return {
         id: nextId++,
         backendTestPartId: partResp.testPartId,
-        name: partResp.name,
+        name: partName,
         orderIndex: partResp.orderIndex,
         totalQuestions: partResp.totalQuestions,
         instructions: partResp.instructions || '',

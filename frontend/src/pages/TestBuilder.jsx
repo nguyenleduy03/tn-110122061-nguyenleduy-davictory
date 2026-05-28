@@ -157,14 +157,14 @@ const makeDefaultParts = (skillKey) => {
   if (skillKey === 'WRITING') {
     return [
       {
-        id: nextId(), name: 'Task 1 – Report/Description', orderIndex: 1,
+        id: nextId(), name: 'Part 1', orderIndex: 1,
         durationMinutes: 20, totalQuestions: 1,
-        instructions: 'Mô tả biểu đồ, bảng số liệu, sơ đồ hoặc bản đồ (tối thiểu 150 từ)', questionGroups: []
+        instructions: 'You should spend about 20 minutes on this task. Write at least 150 words.', questionGroups: []
       },
       {
-        id: nextId(), name: 'Task 2 – Essay', orderIndex: 2,
+        id: nextId(), name: 'Part 2', orderIndex: 2,
         durationMinutes: 40, totalQuestions: 1,
-        instructions: 'Viết bài luận (tối thiểu 250 từ)', questionGroups: []
+        instructions: 'You should spend about 40 minutes on this task. Write at least 250 words.', questionGroups: []
       },
     ];
   }

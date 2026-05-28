@@ -78,7 +78,9 @@ function FcCellEditor({ value, onChange, startQNum }) {
   const toHTML = (text, firstNum) => {
     if (!text) return '';
     let n = firstNum - 1;
-    return esc(text).replace(/\[blank\]/gi, () => {
+    const escaped = esc(text);
+    const withBreaks = escaped.replace(/\n/g, '<br>');
+    return withBreaks.replace(/\[blank\]/gi, () => {
       n++;
       return `<span class="rbe-blank rbe-blank-indigo" contenteditable="false" data-blank="true">`
         + `<span class="rbe-blank-num">${n}</span>`
@@ -106,7 +108,7 @@ function FcCellEditor({ value, onChange, startQNum }) {
 
   useEffect(() => {
     if (editorRef.current) editorRef.current.innerHTML = toHTML(value || '', startQNum);
-  }, []);
+  }, [value, startQNum]);
 
   useEffect(() => {
     startQRef.current = startQNum;
@@ -219,6 +221,10 @@ function FlowChartBlock({ group, onUpdate, onDelete, onSelect, selected, dragHan
   const optionCount = options.filter((opt) => toPlainText(opt?.text || '').trim()).length;
   const dragSlotCount = questions.length;
   const autoKeepUsedOptionSlots = optionCount > dragSlotCount;
+  const [showImportArea, setShowImportArea] = React.useState(false);
+  const importAreaRef = React.useRef(null);
+  const [showImportAnswer, setShowImportAnswer] = React.useState(false);
+  const importAnswerRef = React.useRef(null);
 
   const syncAndSave = (nodes, qOverride) => {
     const newQs = qOverride ?? syncFcQuestions(nodes, questions, fromQ);
@@ -236,6 +242,34 @@ function FlowChartBlock({ group, onUpdate, onDelete, onSelect, selected, dragHan
   const removeNode = (nodeId) => {
     if (flowNodes.length <= 1) return;
     syncAndSave(flowNodes.filter((n) => n.id !== nodeId));
+  };
+
+  const handleImportAnswer = () => {
+    const text = importAnswerRef.current?.value?.trim();
+    if (!text) { alert('Vui lòng nhập đáp án.'); return; }
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+    if (lines.length === 0) { alert('Vui lòng nhập đáp án.'); return; }
+    const updated = questions.map((q, idx) => idx < lines.length ? { ...q, answerText: lines[idx] } : q);
+    onUpdate(group.id, { questions: updated });
+    setShowImportAnswer(false);
+    if (importAnswerRef.current) importAnswerRef.current.value = '';
+  };
+
+  const handleImportNodes = () => {
+    const text = importAreaRef.current?.value?.trim();
+    if (!text) { alert('Vui lòng nhập nội dung các bước.'); return; }
+    const groups = text.split(/\n\s*\n/).map(g => g.trim()).filter(g => g);
+    if (groups.length === 0) { alert('Vui lòng nhập nội dung các bước.'); return; }
+    const newNodes = groups.map(group => {
+      const converted = group.replace(/_{3,}|\.{3,}|-{3,}/g, '[blank]');
+      return {
+        id: `fn${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        text: converted,
+      };
+    });
+    syncAndSave(newNodes);
+    setShowImportArea(false);
+    if (importAreaRef.current) importAreaRef.current.value = '';
   };
 
   // Cumulative start question number per node
@@ -292,6 +326,36 @@ function FlowChartBlock({ group, onUpdate, onDelete, onSelect, selected, dragHan
           placeholder="Tiêu đề sơ đồ (VD: Procedure for detecting life on another planet)"
           onChange={(e) => onUpdate(group.id, { title: e.target.value })}
         />
+      </div>
+
+      {/* Import từ văn bản */}
+      <div style={{ marginBottom: 8 }} onClick={(e) => e.stopPropagation()}>
+        <button
+          className="exam-add-btn"
+          onClick={(e) => { e.stopPropagation(); setShowImportArea(!showImportArea); }}
+          style={{ fontSize: 12 }}
+          title="Import từ văn bản"
+        >
+          {showImportArea ? '✕' : '📋'}
+        </button>
+        {showImportArea && (
+          <div style={{ marginTop: 8, padding: 10, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 4 }}>
+            <textarea
+              ref={importAreaRef}
+              rows={6}
+              placeholder={"Preheat the oven to 180°C\nand prepare the baking tray\n\nMix the ingredients\nin a large bowl\n\nBake for 30 minutes"}
+              style={{ width: '100%', padding: 8, border: '1px solid #cbd5e1', borderRadius: 3, fontSize: 12, fontFamily: 'monospace' }}
+            />
+            <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+              <button className="exam-add-btn" onClick={handleImportNodes} style={{ fontSize: 12 }}>
+                ✓ Import
+              </button>
+              <button className="exam-add-btn" onClick={() => { setShowImportArea(false); if (importAreaRef.current) importAreaRef.current.value = ''; }} style={{ fontSize: 12, background: '#94a3b8' }}>
+                Hủy
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Two-column: flow nodes + word bank */}
@@ -409,6 +473,39 @@ function FlowChartBlock({ group, onUpdate, onDelete, onSelect, selected, dragHan
           </div>
         </div>
       )}
+
+      {/* Import đáp án hàng loạt */}
+      <div style={{ marginTop: 8 }} onClick={(e) => e.stopPropagation()}>
+        <button
+          className="exam-add-btn"
+          onClick={(e) => { e.stopPropagation(); setShowImportAnswer(!showImportAnswer); }}
+          style={{ fontSize: 12 }}
+          title="Import hàng loạt đáp án"
+        >
+          {showImportAnswer ? '✕' : '📋'}
+        </button>
+        {showImportAnswer && (
+          <div style={{ marginTop: 8, padding: 10, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 4 }}>
+            <div style={{ fontSize: 12, color: '#64748b', marginBottom: 6 }}>
+              Paste đáp án (mỗi dòng 1 đáp án, theo thứ tự câu hỏi):
+            </div>
+            <textarea
+              ref={importAnswerRef}
+              rows={Math.min(questions.length || 5, 10)}
+              placeholder={`Ví dụ:\nwater\n1|one\ntemperature`}
+              style={{ width: '100%', padding: 8, border: '1px solid #cbd5e1', borderRadius: 3, fontSize: 12, fontFamily: 'monospace' }}
+            />
+            <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+              <button className="exam-add-btn" onClick={handleImportAnswer} style={{ fontSize: 12 }}>
+                ✓ Import
+              </button>
+              <button className="exam-add-btn" onClick={() => { setShowImportAnswer(false); if (importAnswerRef.current) importAnswerRef.current.value = ''; }} style={{ fontSize: 12, background: '#94a3b8' }}>
+                Hủy
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Answer key */}
       {questions.length > 0 && (

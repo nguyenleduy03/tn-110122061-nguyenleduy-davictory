@@ -18,7 +18,7 @@ import {
 const SESSIONS = [
   { key: 'LISTENING', label: 'Listen',   icon: Headphones, iconBg: '#dbeafe', iconColor: '#1d4ed8', prefix: '40 câu', defaultDuration: 30 },
   { key: 'READING',   label: 'Reading',  icon: BookOpen,   iconBg: '#dcfce7', iconColor: '#15803d', prefix: '40 câu', defaultDuration: 60 },
-  { key: 'WRITING',   label: 'Writing',  icon: PenLine,    iconBg: '#fef9c3', iconColor: '#a16207', prefix: 'Task 1&2', defaultDuration: 60 },
+  { key: 'WRITING',   label: 'Writing',  icon: PenLine,    iconBg: '#fef9c3', iconColor: '#a16207', prefix: 'Part 1&2', defaultDuration: 60 },
   { key: 'SPEAKING',  label: 'Speaking', icon: Mic,        iconBg: '#fce7f3', iconColor: '#be185d', prefix: 'Part 1-3', defaultDuration: 12 },
 ];
 
