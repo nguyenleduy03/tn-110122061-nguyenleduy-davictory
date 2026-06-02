@@ -7,9 +7,11 @@ import { authApi } from '../../services/authApi';
 import QuestionRenderer from '../../components/question/QuestionRenderer';
 import { formatTextWithWhitespace } from '../../utils/textFormatters';
 import { calculateExamBand, calculateWritingBandFromCriteria, formatBand } from '../../utils/ieltsScoring';
+import AIGradingPanel from '../../components/ai/AIGradingPanel';
 import '../../styles/lms.css';
 import '../../styles/lmsGradeSubmission.css';
 import '../../styles/ieltsTest.css';
+import '../../styles/aiGrading.css';
 
 const normalizeSkillToken = (value) => String(value || '').trim().toUpperCase();
 const isWritingSkill = (value) => normalizeSkillToken(value).includes('WRITING');
@@ -1620,6 +1622,30 @@ export default function LmsGradeSubmission() {
                 overflowY: 'auto',
                 scrollbarGutter: 'stable'
               }}>
+                {/* AI Grading Panel */}
+                {submission && writingSource === 'writing' && (
+                  <AIGradingPanel
+                    submissionId={id}
+                    onApprove={(aiResult) => {
+                      if (aiResult) {
+                        setGrading(prev => ({
+                          ...prev,
+                          taskAchievement: aiResult.taskResponse?.band?.toString() || '',
+                          coherenceCohesion: aiResult.coherenceCohesion?.band?.toString() || '',
+                          lexicalResource: aiResult.lexicalResource?.band?.toString() || '',
+                          grammaticalRange: aiResult.grammaticalRange?.band?.toString() || '',
+                          feedback: aiResult.overallFeedback || '',
+                        }));
+                      }
+                    }}
+                    onReject={() => {
+                      // User rejected - they'll use manual grading instead
+                    }}
+                  />
+                )}
+
+                <hr style={{ margin: '16px 0', border: 'none', borderTop: '1px solid #e5e7eb' }} />
+
                 <h3 style={{
                   margin: '0 0 20px 0',
                   fontSize: 18,
@@ -1629,7 +1655,7 @@ export default function LmsGradeSubmission() {
                   gap: 8
                 }}>
                   <Award size={20} style={{ color: '#f59e0b' }} />
-                  Chấm điểm
+                  Chấm điểm thủ công
                 </h3>
 
                 <div style={{ marginBottom: 20 }}>

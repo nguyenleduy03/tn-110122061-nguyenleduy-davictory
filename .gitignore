@@ -24,3 +24,32 @@ Thumbs.db
 # Env
 .env
 .env.local
+
+# Tokens
+backend/tokens/
+backend/tokens/*
+
+# Config with secrets
+application-optimized.yaml
+ai-writing-service/src/main/resources/application.yaml
+
+# Dependencies
+ai-writing-service/vue-ui/node_modules/
+ai-writing-service/vue-ui/node_modules/*
+**/node_modules/
+
+# Build artifacts
+ai-writing-service/target/
+ai-writing-service/target/*
+ai-writing-service/vue-ui/dist/
+ai-writing-service/vue-ui/dist/*
+**/target/
+
+# Temp / cache
+ai-writing-service/data/tmp/
+ai-writing-service/data/tmp/*
+**/__pycache__/
+*.pyc
+
+# Run files
+.run/*

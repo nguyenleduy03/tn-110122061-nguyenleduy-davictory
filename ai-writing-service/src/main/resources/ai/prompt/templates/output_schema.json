@@ -1,0 +1,58 @@
+{
+    "overallBand": 6.5,
+    "criteria": {
+        "taskResponse": {
+            "band": 6.0,
+            "strengths": [
+                "Clear position presented throughout the essay",
+                "Addresses all parts of the task"
+            ],
+            "weaknesses": [
+                "Some ideas underdeveloped",
+                "Conclusion does not fully reflect the main arguments"
+            ],
+            "detailedFeedback": "You have presented a clear position and addressed all parts of the task. However, some of your main ideas could be more fully developed with specific examples or evidence."
+        },
+        "coherenceCohesion": {
+            "band": 7.0,
+            "strengths": [
+                "Logical paragraph organization",
+                "Effective use of a range of cohesive devices"
+            ],
+            "weaknesses": [
+                "Some mechanical use of linking words"
+            ],
+            "detailedFeedback": "Your essay is well-organized with clear paragraphing. You use a range of cohesive devices effectively, though occasionally they feel mechanical rather than natural."
+        },
+        "lexicalResource": {
+            "band": 6.5,
+            "strengths": [
+                "Adequate range of vocabulary for the task",
+                "Some attempts at less common vocabulary"
+            ],
+            "weaknesses": [
+                "Some word choice errors",
+                "Occasional spelling mistakes"
+            ],
+            "detailedFeedback": "You have a sufficient range of vocabulary to discuss the topic. You attempt some less common words, but there are occasional errors in word choice and spelling."
+        },
+        "grammaticalRange": {
+            "band": 7.0,
+            "strengths": [
+                "Mix of simple and complex sentence forms",
+                "Good control of tenses and agreement"
+            ],
+            "weaknesses": [
+                "Some article errors",
+                "Occasional subject-verb agreement issues"
+            ],
+            "detailedFeedback": "You use a good mix of simple and complex sentence structures with generally good control. A few errors in articles and subject-verb agreement prevent a higher score."
+        }
+    },
+    "overallFeedback": "This is a competent essay that addresses the task well. Your main areas for improvement are developing ideas more fully with specific examples and expanding your vocabulary range to include more precise academic terms.",
+    "improvementPriority": [
+        "Developed your main ideas with specific examples and evidence",
+        "Expand your academic vocabulary range"
+    ],
+    "confidenceScore": 0.85
+}

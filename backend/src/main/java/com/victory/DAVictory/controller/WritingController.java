@@ -4,6 +4,8 @@ import com.victory.DAVictory.dto.WritingSubmitRequest;
 import com.victory.DAVictory.dto.WritingSubmissionResponse;
 import com.victory.DAVictory.dto.WritingGradeRequest;
 import com.victory.DAVictory.dto.WritingGradeHistoryResponse;
+import com.victory.DAVictory.dto.AIGradingResponseDTO;
+import com.victory.DAVictory.service.AIBridgeService;
 import com.victory.DAVictory.service.WritingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -27,6 +29,7 @@ import java.util.Map;
 public class WritingController {
 
     private final WritingService writingService;
+    private final AIBridgeService aiBridgeService;
 
     /**
      * Nộp bài viết writing.
@@ -141,6 +144,49 @@ public class WritingController {
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
+    }
+
+    /**
+     * Chấm bài Writing bằng AI.
+     * Gọi AI Writing Service (port 8081) để chấm tự động.
+     */
+    @PostMapping("/ai-grade/{submissionId}")
+    @PreAuthorize("hasAnyRole('TEACHER', 'MANAGER', 'ADMIN')")
+    public ResponseEntity<?> aiGradeWriting(
+            @PathVariable Long submissionId,
+            Authentication authentication) {
+        try {
+            String username = authentication.getName();
+            AIGradingResponseDTO response = aiBridgeService.gradeWriting(
+                submissionId, username, getRole(authentication));
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Xem kết quả chấm AI của một bài viết.
+     */
+    @GetMapping("/ai-grade/{submissionId}/result")
+    @PreAuthorize("hasAnyRole('TEACHER', 'MANAGER', 'ADMIN', 'STUDENT')")
+    public ResponseEntity<?> getAiGradingResult(
+            @PathVariable Long submissionId) {
+        try {
+            AIGradingResponseDTO response = aiBridgeService.getResult(submissionId);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.ok(Map.of(
+                "submissionId", submissionId,
+                "status", "NOT_GRADED"));
+        }
+    }
+
+    private String getRole(Authentication auth) {
+        return auth.getAuthorities().stream()
+            .map(g -> g.getAuthority().replace("ROLE_", ""))
+            .findFirst()
+            .orElse("STUDENT");
     }
 
     /**
