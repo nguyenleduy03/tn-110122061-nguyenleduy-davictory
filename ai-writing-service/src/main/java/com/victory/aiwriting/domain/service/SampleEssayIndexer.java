@@ -24,10 +24,10 @@ public class SampleEssayIndexer implements CommandLineRunner {
     @Override
     public void run(String... args) {
         if (vectorStore.isInitialized()) {
-            log.info("Vector store already initialized, skipping");
+            log.info("Vector store already initialized, found {} samples", vectorStore.count());
             return;
         }
-        indexAll();
+        log.info("Vector store not initialized. Use POST /api/admin/ai/reindex to index samples.");
     }
 
     public void indexAll() {

@@ -1,0 +1,92 @@
+server:
+  port: 5181
+
+spring:
+  application:
+    name: ai-speaking-service
+  autoconfigure:
+    exclude:
+      - org.springframework.ai.autoconfigure.openai.OpenAiAutoConfiguration
+  datasource:
+    url: jdbc:mysql://localhost:3306/DAVictory?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh
+    username: root
+    password: 1111
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: Asia/Ho_Chi_Minh
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+
+app:
+  ai:
+    conversation:
+      provider: groq
+      base-url: https://api.groq.com/openai
+      model: llama-3.3-70b-versatile
+      api-keys:
+        - ${GROQ_API_KEY}
+      temperature: 0.3
+      max-tokens: 1024
+    scoring:
+      provider: openai
+      base-url: https://api.openai.com/v1
+      model: gpt-4o
+      api-keys:
+        - ${OPENAI_API_KEY}
+      temperature: 0.1
+      max-tokens: 2048
+    features:
+      speaking-grading: true
+      realtime-stt: true
+      realtime-tts: true
+      pronunciation-from-audio: true
+      nlp-feature-extraction: true
+    quota:
+      student-per-day: 10
+      teacher-per-day: 100
+      admin-per-day: 500
+    cache:
+      enabled: true
+      ttl-minutes: 1440
+      max-size: 500
+    prompt:
+      version: v2.0
+      max-answer-length: 2000
+      include-feature-analysis: true
+      use-cot-reasoning: true
+    stt:
+      provider: openai
+      model: whisper-1
+      language: en
+      response-format: verbose_json
+      enable-word-confidence: true
+    tts:
+      provider: openai
+      model: tts-1
+      voice: alloy
+      speed: 1.0
+    pronunciation:
+      min-word-confidence: 0.6
+      confidence-weight: 0.7
+      speech-rate-weight: 0.3
+      expected-rate-range: [80, 160]
+    session:
+      max-turns: 50
+      max-duration-minutes: 30
+      part1-duration-minutes: 5
+      part2-duration-minutes: 4
+      part3-duration-minutes: 5
+      prep-time-seconds: 60
+      long-turn-seconds: 120

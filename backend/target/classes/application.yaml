@@ -48,5 +48,11 @@ google:
     folder:
       id: 1VuSeTs0V248E4X7co4a4kc6MSi4ke_3r
 
+# AI Writing Grading Service Configuration
+app:
+  ai:
+    service:
+      url: ${AI_SERVICE_URL:http://localhost:8081}
+
 logging:
   

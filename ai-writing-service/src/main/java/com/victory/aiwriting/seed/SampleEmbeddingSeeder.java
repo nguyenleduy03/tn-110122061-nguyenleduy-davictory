@@ -17,6 +17,6 @@ public class SampleEmbeddingSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        sampleEssayIndexer.indexAll();
+        log.info("Vector store will not auto-index at startup. Use POST /api/admin/ai/reindex to index samples.");
     }
 }

@@ -81,8 +81,10 @@ public class ResponseParser {
         var c = node.get(field);
         return CriteriaScore.builder()
             .band(c.has("band") ? c.get("band").asDouble() : 0.0)
+            .bandJustification(getNullableText(c, "bandJustification"))
             .strengths(parseStringArray(c, "strengths"))
             .weaknesses(parseStringArray(c, "weaknesses"))
+            .evidenceFromEssay(parseStringArray(c, "evidenceFromEssay"))
             .detailedFeedback(getNullableText(c, "detailedFeedback"))
             .build();
     }

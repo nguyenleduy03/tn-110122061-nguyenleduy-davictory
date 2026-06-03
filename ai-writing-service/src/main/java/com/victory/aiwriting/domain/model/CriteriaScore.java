@@ -10,8 +10,10 @@ public class CriteriaScore {
     private String code;
     private String displayName;
     private Double band;
+    private String bandJustification;
     private List<String> strengths;
     private List<String> weaknesses;
+    private List<String> evidenceFromEssay;
     private String detailedFeedback;
     private List<VocabularySuggestion> vocabularySuggestions;
     private List<ErrorExample> errorExamples;

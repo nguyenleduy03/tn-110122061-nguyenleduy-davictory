@@ -16,14 +16,9 @@ public class DynamicAIProvider implements AIProvider {
     public record ModelOption(String label, String model, String provider, String baseUrl) {}
 
     public static final List<ModelOption> AVAILABLE_MODELS = List.of(
-        new ModelOption("Llama 3.3 70B (Versatile)", "llama-3.3-70b-versatile", "groq", "https://api.groq.com/openai"),
-        new ModelOption("Llama 3 70B", "llama3-70b-8192", "groq", "https://api.groq.com/openai"),
-        new ModelOption("Llama 3 8B", "llama3-8b-8192", "groq", "https://api.groq.com/openai"),
-        new ModelOption("Mixtral 8x7B", "mixtral-8x7b-32768", "groq", "https://api.groq.com/openai"),
-        new ModelOption("Gemma 2 9B", "gemma2-9b-it", "groq", "https://api.groq.com/openai"),
-        new ModelOption("Gemma 7B", "gemma-7b-it", "groq", "https://api.groq.com/openai"),
-        new ModelOption("Qwen 2.5 32B", "qwen-2.5-32b", "groq", "https://api.groq.com/openai"),
-        new ModelOption("DeepSeek R1 Distill 70B", "deepseek-r1-distill-llama-70b", "groq", "https://api.groq.com/openai")
+        new ModelOption("Llama 3.3 70B", "llama-3.3-70b-versatile", "groq", "https://api.groq.com/openai"),
+        new ModelOption("Llama 4 Scout 17B", "meta-llama/llama-4-scout-17b-16e-instruct", "groq", "https://api.groq.com/openai"),
+        new ModelOption("Llama 3.1 8B (Instant)", "llama-3.1-8b-instant", "groq", "https://api.groq.com/openai")
     );
 
     private final List<String> apiKeys;

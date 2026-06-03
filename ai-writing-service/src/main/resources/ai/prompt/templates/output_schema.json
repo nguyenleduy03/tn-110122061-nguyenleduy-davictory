@@ -1,58 +1,71 @@
 {
-    "overallBand": 6.5,
+    "overallBand": 5.5,
     "criteria": {
         "taskResponse": {
-            "band": 6.0,
+            "band": 5.5,
+            "bandJustification": "Why this band rather than one level higher or lower, referencing specific essay features",
             "strengths": [
-                "Clear position presented throughout the essay",
-                "Addresses all parts of the task"
+                "Addresses the general topic"
             ],
             "weaknesses": [
-                "Some ideas underdeveloped",
-                "Conclusion does not fully reflect the main arguments"
+                "Position unclear or inconsistent",
+                "Ideas underdeveloped with limited support"
             ],
-            "detailedFeedback": "You have presented a clear position and addressed all parts of the task. However, some of your main ideas could be more fully developed with specific examples or evidence."
+            "evidenceFromEssay": [
+                "\"quote from student essay showing the issue\""
+            ],
+            "detailedFeedback": "You have attempted to address the task but your position is not fully clear. Develop your main ideas with specific examples."
         },
         "coherenceCohesion": {
-            "band": 7.0,
+            "band": 5.5,
+            "bandJustification": "Why this band rather than one level higher or lower",
             "strengths": [
-                "Logical paragraph organization",
-                "Effective use of a range of cohesive devices"
+                "Some paragraph structure present"
             ],
             "weaknesses": [
-                "Some mechanical use of linking words"
+                "Limited range of cohesive devices",
+                "Progression of ideas not always clear"
             ],
-            "detailedFeedback": "Your essay is well-organized with clear paragraphing. You use a range of cohesive devices effectively, though occasionally they feel mechanical rather than natural."
+            "evidenceFromEssay": [
+                "\"quote from student essay\""
+            ],
+            "detailedFeedback": "Your essay has basic organization but the progression of ideas could be clearer. Try using a wider range of linking words."
         },
         "lexicalResource": {
-            "band": 6.5,
+            "band": 5.5,
+            "bandJustification": "Why this band rather than one level higher or lower",
             "strengths": [
-                "Adequate range of vocabulary for the task",
-                "Some attempts at less common vocabulary"
+                "Basic vocabulary adequate for simple communication"
             ],
             "weaknesses": [
-                "Some word choice errors",
-                "Occasional spelling mistakes"
+                "Limited vocabulary range",
+                "Some word choice errors"
             ],
-            "detailedFeedback": "You have a sufficient range of vocabulary to discuss the topic. You attempt some less common words, but there are occasional errors in word choice and spelling."
+            "evidenceFromEssay": [
+                "\"quote from student essay\""
+            ],
+            "detailedFeedback": "Your vocabulary is adequate for basic communication but limited in range. Try using more precise and varied words."
         },
         "grammaticalRange": {
-            "band": 7.0,
+            "band": 5.5,
+            "bandJustification": "Why this band rather than one level higher or lower",
             "strengths": [
-                "Mix of simple and complex sentence forms",
-                "Good control of tenses and agreement"
+                "Attempts some complex sentences"
             ],
             "weaknesses": [
-                "Some article errors",
-                "Occasional subject-verb agreement issues"
+                "Frequent errors in complex structures",
+                "Some basic grammar errors throughout"
             ],
-            "detailedFeedback": "You use a good mix of simple and complex sentence structures with generally good control. A few errors in articles and subject-verb agreement prevent a higher score."
+            "evidenceFromEssay": [
+                "\"quote from student essay showing grammar issue\""
+            ],
+            "detailedFeedback": "You attempt some complex sentences but they contain errors. Focus on improving accuracy before adding more complexity."
         }
     },
-    "overallFeedback": "This is a competent essay that addresses the task well. Your main areas for improvement are developing ideas more fully with specific examples and expanding your vocabulary range to include more precise academic terms.",
+    "overallFeedback": "This essay shows some understanding of the task but needs significant improvement in idea development, vocabulary range, and grammatical accuracy.",
     "improvementPriority": [
-        "Developed your main ideas with specific examples and evidence",
-        "Expand your academic vocabulary range"
+        "Develop your main ideas with specific examples and evidence",
+        "Expand your vocabulary and use more precise academic words"
     ],
     "confidenceScore": 0.85
 }

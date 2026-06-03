@@ -161,8 +161,10 @@ public class AIGradingController {
         if (cs == null) return null;
         return AIGradingResponseDTO.CriteriaScoreDTO.builder()
             .band(cs.getBand())
+            .bandJustification(cs.getBandJustification())
             .strengths(cs.getStrengths())
             .weaknesses(cs.getWeaknesses())
+            .evidenceFromEssay(cs.getEvidenceFromEssay())
             .detailedFeedback(cs.getDetailedFeedback())
             .build();
     }

@@ -56,8 +56,10 @@ public class AIGradingResponseDTO {
         if (cs == null) return null;
         return CriteriaScoreDTO.builder()
             .band(cs.getBand())
+            .bandJustification(cs.getBandJustification())
             .strengths(cs.getStrengths())
             .weaknesses(cs.getWeaknesses())
+            .evidenceFromEssay(cs.getEvidenceFromEssay())
             .detailedFeedback(cs.getDetailedFeedback())
             .build();
     }
@@ -66,8 +68,10 @@ public class AIGradingResponseDTO {
     @Builder
     public static class CriteriaScoreDTO {
         private Double band;
+        private String bandJustification;
         private List<String> strengths;
         private List<String> weaknesses;
+        private List<String> evidenceFromEssay;
         private String detailedFeedback;
     }
 }
