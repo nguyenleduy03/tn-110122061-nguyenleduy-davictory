@@ -486,6 +486,9 @@ const IeltsSpeakingTest = () => {
   // stage: mic-test | part-intro | part | part-review
   const [stage, setStage] = useState('mic-test');
 
+  const [requiresClassification, setRequiresClassification] = useState(false);
+  const [userClassification, setUserClassification] = useState(null);
+
   const [audioInputDevices, setAudioInputDevices] = useState([]);
   const [audioOutputDevices, setAudioOutputDevices] = useState([]);
   const [selectedInputId, setSelectedInputId] = useState('');
@@ -586,9 +589,6 @@ const IeltsSpeakingTest = () => {
         }
       }
 
-      setTestData(configuredData);
-      setLoading(false);
-
       if (isGuest && guestInfo && !attemptId) {
         ieltsApi.startGuestAttempt(guestInfo, testId, 'SPEAKING')
           .then((attempt) => {
@@ -598,6 +598,20 @@ const IeltsSpeakingTest = () => {
             console.error('[Speaking] Failed to start guest attempt:', startError);
           });
       }
+
+      // Kiểm tra xem có cần phân loại Work/Study không
+      const hasClassification = configuredData.parts?.[0]?.questionGroups?.some(
+        g => g.classification === 'WORK' || g.classification === 'STUDY'
+      );
+      
+      if (hasClassification) {
+        setRequiresClassification(true);
+        // Lưu tạm vào testData, sẽ filter sau khi người dùng chọn
+        setTestData(configuredData);
+      } else {
+        setTestData(configuredData);
+      }
+      setLoading(false);
     }).catch((err) => {
       console.error('[Speaking] Lỗi tải bài thi:', err);
       setError(err.message === 'AUTH_REQUIRED'
@@ -1568,6 +1582,56 @@ const IeltsSpeakingTest = () => {
 
       {/* Main card ──────────────────────────────────────────────────────── */}
       <main className="spk-main">
+        {requiresClassification ? (
+          <div className="spk-card spk-unified-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '40px' }}>
+            <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '16px', color: '#1f2937' }}>Phân loại đối tượng thi</h2>
+            <p style={{ fontSize: '16px', color: '#4b5563', marginBottom: '32px' }}>
+              Are you currently working or studying? (Bạn đang đi làm hay đi học?)
+            </p>
+            <div style={{ display: 'flex', gap: '16px' }}>
+              <button 
+                style={{ padding: '12px 32px', fontSize: '16px', fontWeight: '600', color: 'white', backgroundColor: '#3b82f6', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
+                onClick={() => {
+                  setUserClassification('WORK');
+                  const filteredData = {
+                    ...testData,
+                    parts: testData.parts.map((p, idx) => {
+                      if (idx !== 0) return p;
+                      return {
+                        ...p,
+                        questionGroups: p.questionGroups.filter(g => g.classification === 'WORK' || !g.classification || g.classification === 'GENERAL')
+                      };
+                    })
+                  };
+                  setTestData(filteredData);
+                  setRequiresClassification(false);
+                }}
+              >
+                Working (Đi làm)
+              </button>
+              <button 
+                style={{ padding: '12px 32px', fontSize: '16px', fontWeight: '600', color: 'white', backgroundColor: '#10b981', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
+                onClick={() => {
+                  setUserClassification('STUDY');
+                  const filteredData = {
+                    ...testData,
+                    parts: testData.parts.map((p, idx) => {
+                      if (idx !== 0) return p;
+                      return {
+                        ...p,
+                        questionGroups: p.questionGroups.filter(g => g.classification === 'STUDY' || !g.classification || g.classification === 'GENERAL')
+                      };
+                    })
+                  };
+                  setTestData(filteredData);
+                  setRequiresClassification(false);
+                }}
+              >
+                Studying (Đi học)
+              </button>
+            </div>
+          </div>
+        ) : (
         <div className="spk-card spk-unified-card">
           {stage === 'mic-test' && (
             <div className="spk-stage-screen spk-check-stage spk-check-mic-only">
@@ -1795,6 +1859,7 @@ const IeltsSpeakingTest = () => {
             </div>
           )}
         </div>
+        )}
       </main>
     </div>
   );

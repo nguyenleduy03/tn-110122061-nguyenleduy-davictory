@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Save, User, Clock, FileText, Award, ClipboardList, CheckCircle2, History } from 'lucide-react';
+import { ArrowLeft, Save, User, Clock, FileText, Award, ClipboardList, CheckCircle2, History, Code } from 'lucide-react';
 import { teacherApi } from '../../services/teacherApi';
 import { ieltsApi } from '../../services/ieltsApi';
 import { authApi } from '../../services/authApi';
@@ -28,6 +28,8 @@ export default function LmsGradeSubmission() {
   const [activeQuestion, setActiveQuestion] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showRawLlmInput, setShowRawLlmInput] = useState(false);
+  const [attemptData, setAttemptData] = useState(null);
   const [writingSource, setWritingSource] = useState('none');
   const [forceWritingMode, setForceWritingMode] = useState(type === 'writing');
   const [gradeHistory, setGradeHistory] = useState([]);
@@ -327,9 +329,15 @@ export default function LmsGradeSubmission() {
     return chunks.join('\n\n').trim();
   };
 
+  const isDragDropOrMatchingAnswer = (answer) => {
+    if (answer?.matchingAnswer && String(answer.matchingAnswer).trim() !== '') return true;
+    return false;
+  };
+
   const buildWritingLikeFromExamAttempt = async (attempt) => {
     const answers = Array.isArray(attempt?.answers) ? attempt.answers : [];
     const fallbackSubmissionText = answers
+      .filter((a) => !isDragDropOrMatchingAnswer(a))
       .map((a) => String(a?.textAnswer || '').trim())
       .filter((text) => text && !isLikelyDrivePreviewUrl(text))
       .join('\n\n')
@@ -486,6 +494,7 @@ export default function LmsGradeSubmission() {
 
         if (effectiveSource === 'exam') {
           const data = await teacherApi.getExamAttemptDetail(id);
+          setAttemptData(data);
           const skill = String(data?.skillType || data?.examType || '');
           if (isWritingSkill(skill)) {
             const mapped = await buildWritingLikeFromExamAttempt(data);
@@ -534,6 +543,7 @@ export default function LmsGradeSubmission() {
             }
           } catch {
             const examData = await teacherApi.getExamAttemptDetail(id);
+            setAttemptData(examData);
             const skill = String(examData?.skillType || examData?.examType || '');
             if (!isWritingSkill(skill)) {
               throw new Error('Submission is not WRITING');
@@ -548,6 +558,7 @@ export default function LmsGradeSubmission() {
           }
         } else {
           const data = await teacherApi.getExamAttemptDetail(id);
+          setAttemptData(data);
           const skill = String(data?.skillType || data?.examType || '');
           if (isWritingSkill(skill)) {
             const mapped = await buildWritingLikeFromExamAttempt(data);
@@ -1412,30 +1423,90 @@ export default function LmsGradeSubmission() {
                   padding: 24,
                   border: '1px solid #e5e7eb'
                 }}>
-                  <h3 style={{
-                    margin: '0 0 16px 0',
-                    fontSize: 18,
-                    fontWeight: 600,
-                    color: '#1f2937',
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: 16,
                     borderBottom: '2px solid #10b981',
                     paddingBottom: 12
                   }}>
-                    Bài làm của học viên
-                  </h3>
-                  <div style={{
-                    padding: 20,
-                    background: '#f9fafb',
-                    borderRadius: 8,
-                    border: '1px solid #e5e7eb',
-                    minHeight: 400,
-                    fontSize: 15,
-                    lineHeight: 1.8,
-                    fontFamily: 'inherit',
-                    whiteSpace: 'pre-wrap',
-                    wordWrap: 'break-word'
-                  }}>
-                    {submission.submissionText || 'Không có nội dung bài làm'}
+                    <h3 style={{ margin: 0, fontSize: 18, fontWeight: 600, color: '#1f2937' }}>
+                      Bài làm của học viên
+                    </h3>
+                    {attemptData?.answers?.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setShowRawLlmInput(prev => !prev)}
+                        style={{
+                          padding: '6px 14px',
+                          fontSize: 12,
+                          fontWeight: 600,
+                          borderRadius: 6,
+                          border: '1px solid #d1d5db',
+                          background: showRawLlmInput ? '#3b82f6' : '#f9fafb',
+                          color: showRawLlmInput ? '#fff' : '#374151',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 6,
+                        }}
+                      >
+                        <Code size={14} />
+                        {showRawLlmInput ? 'Xem bài làm' : 'Xem nội dung gửi LLM'}
+                      </button>
+                    )}
                   </div>
+                  {showRawLlmInput ? (
+                    <div style={{
+                      padding: 20,
+                      background: '#1f2937',
+                      borderRadius: 8,
+                      minHeight: 400,
+                      fontSize: 13,
+                      lineHeight: 1.7,
+                      fontFamily: "'Monaco', 'Menlo', 'Consolas', monospace",
+                      whiteSpace: 'pre-wrap',
+                      wordWrap: 'break-word',
+                      color: '#e2e8f0',
+                    }}>
+                      <div style={{ marginBottom: 12, color: '#94a3b8', fontSize: 12 }}>
+                        ⚡ Dữ liệu gốc gửi đến LLM (bao gồm cả câu trả lời gửi kéo nếu có)
+                      </div>
+                      {attemptData?.answers?.map((ans, idx) => (
+                        <div key={idx} style={{ marginBottom: 16, borderBottom: '1px solid #334155', paddingBottom: 12 }}>
+                          <div style={{ color: '#60a5fa', fontSize: 11, marginBottom: 4 }}>
+                            Câu hỏi #{ans.questionId}
+                            {ans.matchingAnswer ? ' [Kéo thả]' : ans.selectedOptionLabel ? ' [Chọn đáp án]' : ' [Viết luận]'}
+                          </div>
+                          {ans.textAnswer && (
+                            <div style={{ color: '#a78bfa', fontSize: 11 }}>textAnswer: <span style={{ color: '#e2e8f0' }}>{ans.textAnswer}</span></div>
+                          )}
+                          {ans.matchingAnswer && (
+                            <div style={{ color: '#f59e0b', fontSize: 11 }}>matchingAnswer: <span style={{ color: '#e2e8f0' }}>{ans.matchingAnswer}</span></div>
+                          )}
+                          {ans.selectedOptionLabel && ans.selectedOptionLabel !== ans.textAnswer && (
+                            <div style={{ color: '#34d399', fontSize: 11 }}>selectedOptionLabel: <span style={{ color: '#e2e8f0' }}>{ans.selectedOptionLabel}</span></div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{
+                      padding: 20,
+                      background: '#f9fafb',
+                      borderRadius: 8,
+                      border: '1px solid #e5e7eb',
+                      minHeight: 400,
+                      fontSize: 15,
+                      lineHeight: 1.8,
+                      fontFamily: 'inherit',
+                      whiteSpace: 'pre-wrap',
+                      wordWrap: 'break-word'
+                    }}>
+                      {submission.submissionText || 'Không có nội dung bài làm'}
+                    </div>
+                  )}
                 </div>
 
                 {renderGradeHistorySection()}

@@ -2,10 +2,12 @@ package com.victory.aiwriting.infrastructure.vector;
 
 import com.victory.aiwriting.domain.model.SampleEssay;
 import com.victory.aiwriting.domain.port.VectorStorePort;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.SimpleVectorStore;
+import java.io.File;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -13,10 +15,27 @@ import java.util.stream.Collectors;
 public class SimpleVectorStoreAdapter implements VectorStorePort {
 
     private final SimpleVectorStore store;
-    private boolean initialized = false;
+    private final String persistPath;
+    private int documentCount = 0;
 
-    public SimpleVectorStoreAdapter(SimpleVectorStore store) {
+    public SimpleVectorStoreAdapter(SimpleVectorStore store, String persistPath) {
         this.store = store;
+        this.persistPath = persistPath;
+        countLoadedDocuments();
+    }
+
+    private void countLoadedDocuments() {
+        var file = new File(persistPath);
+        if (file.exists() && file.length() > 20) {
+            try {
+                var mapper = new ObjectMapper();
+                var root = mapper.readTree(file);
+                documentCount = root.size();
+                log.info("Loaded {} documents from vector store file: {}", documentCount, persistPath);
+            } catch (Exception e) {
+                log.warn("Could not read vector store file, will reindex: {}", e.getMessage());
+            }
+        }
     }
 
     @Override
@@ -55,8 +74,9 @@ public class SimpleVectorStoreAdapter implements VectorStorePort {
             .toList();
 
         store.add(docs);
-        this.initialized = true;
-        log.info("Indexed {} sample essays into vector store", docs.size());
+        store.save(new File(persistPath));
+        documentCount = docs.size();
+        log.info("Indexed {} sample essays into vector store, saved to {}", documentCount, persistPath);
     }
 
     @Override
@@ -79,8 +99,8 @@ public class SimpleVectorStoreAdapter implements VectorStorePort {
 
         return filtered.stream()
             .map(doc -> new SearchResult(
-                (Long) doc.getMetadata().getOrDefault("id", 0L),
-                (double) doc.getMetadata().getOrDefault("_similarity", 0.0),
+                ((Number) doc.getMetadata().getOrDefault("id", 0L)).longValue(),
+                ((Number) doc.getMetadata().getOrDefault("_similarity", 0.0)).doubleValue(),
                 doc.getMetadata()
             ))
             .toList();
@@ -88,12 +108,12 @@ public class SimpleVectorStoreAdapter implements VectorStorePort {
 
     @Override
     public boolean isInitialized() {
-        return initialized;
+        return documentCount > 0;
     }
 
     @Override
     public long count() {
-        return initialized ? 1 : 0;
+        return documentCount;
     }
 
     private boolean matchesFilter(Map<String, Object> metadata, Map<String, String> filter) {

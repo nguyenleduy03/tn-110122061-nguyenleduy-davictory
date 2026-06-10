@@ -23,6 +23,8 @@ server:
   tomcat:
     max-http-form-post-size: 2GB
     max-swallow-size: 2GB
+  # Forwarded headers de Cloudflare/Nginx proxy lay dung protocol (HTTP/HTTPS)
+  forward-headers-strategy: native
 
 springdoc:
   api-docs:
@@ -52,7 +54,10 @@ google:
 app:
   ai:
     service:
-      url: ${AI_SERVICE_URL:http://localhost:8081}
+      url: ${AI_SERVICE_URL:http://localhost:5182}
+    import:
+      service:
+        url: ${AI_IMPORT_SERVICE_URL:http://localhost:5186}
 
 logging:
   

@@ -8,6 +8,9 @@ import { toRoman, loadImageFile, toPlainText, countBlankTokens, getNextQuestionN
 const SpeakingCueCardBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps }) => {
   const bulletPoints = group.bulletPoints ?? ['', '', ''];
 
+  const [showImport, setShowImport] = useState(false);
+  const importRef = useRef(null);
+
   const updateBullet = (i, val) => {
     const next = [...bulletPoints];
     next[i] = val;
@@ -17,6 +20,20 @@ const SpeakingCueCardBlock = ({ group, onUpdate, onDelete, onSelect, selected, d
   const addBullet = (e) => {
     e.stopPropagation();
     onUpdate(group.id, { bulletPoints: [...bulletPoints, ''] });
+  };
+
+  const handleImport = () => {
+    const text = importRef.current?.value || '';
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+    if (lines.length === 0) {
+      setShowImport(false);
+      return;
+    }
+
+    onUpdate(group.id, {
+      bulletPoints: [...bulletPoints.filter(b => b.trim()), ...lines],
+    });
+    setShowImport(false);
   };
 
   const removeBullet = (i, e) => {
@@ -81,9 +98,15 @@ const SpeakingCueCardBlock = ({ group, onUpdate, onDelete, onSelect, selected, d
               <button className="exam-spk-qdel" onClick={(e) => removeBullet(i, e)}><X size={12} /></button>
             </div>
           ))}
-          <button className="exam-spk-qadd" onClick={addBullet}>
-            <Plus size={12} /> Thêm bullet
-          </button>
+          
+          <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+            <button className="exam-spk-qadd" style={{ flex: 1 }} onClick={addBullet}>
+              <Plus size={12} /> Thêm bullet
+            </button>
+            <button className="exam-spk-qadd" onClick={() => setShowImport(true)} title="Import bullet points">
+              📋 Import
+            </button>
+          </div>
         </div>
 
         {/* Closing sentence */}
@@ -107,6 +130,33 @@ const SpeakingCueCardBlock = ({ group, onUpdate, onDelete, onSelect, selected, d
           </div>
         </div>
       </div>
+
+      {showImport && (
+        <div className="exam-import-modal" style={{
+          position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+          backgroundColor: 'white', padding: 20, borderRadius: 12, boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+          zIndex: 1000, width: '400px', border: '1px solid #e5e7eb'
+        }} onClick={(e) => e.stopPropagation()}>
+          <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12 }}>Import bullet points</h3>
+          <p style={{ fontSize: 12, color: '#666', marginBottom: 8 }}>Mỗi dòng là một bullet point</p>
+          <textarea
+            ref={importRef}
+            rows={10}
+            style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #d1d5db', fontSize: 13, outline: 'none' }}
+            placeholder="VD:&#10;who you helped&#10;when it was&#10;what you did to help them"
+          />
+          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+            <button onClick={handleImport} style={{
+              flex: 1, padding: '8px 16px', backgroundColor: '#7e22ce', color: 'white',
+              border: 'none', borderRadius: 6, fontWeight: 600, cursor: 'pointer'
+            }}>Import</button>
+            <button onClick={() => setShowImport(false)} style={{
+              padding: '8px 16px', backgroundColor: '#f3f4f6', color: '#4b5563',
+              border: 'none', borderRadius: 6, fontWeight: 600, cursor: 'pointer'
+            }}>Hủy</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

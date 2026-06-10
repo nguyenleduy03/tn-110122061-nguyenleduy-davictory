@@ -11,7 +11,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
-import java.util.Map;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @RestController
@@ -27,6 +31,61 @@ public class AIAdminController {
     private final SampleEssayIndexer sampleEssayIndexer;
     private final VectorStorePort vectorStore;
     private final DynamicAIProvider aiProvider;
+
+    @GetMapping("/samples")
+    public ResponseEntity<?> getSamples(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        try {
+            int offset = page * size;
+            var rows = em.createNativeQuery("""
+                SELECT wsa.id, wt.code as task_type, wp.title as topic,
+                       wp.prompt_text, wsa.answer_text, wsa.band_score,
+                       wsa.word_count, wsa.annotation, wsa.created_at,
+                       wp.title as prompt_title
+                FROM writing_sample_answers wsa
+                JOIN writing_prompts wp ON wp.id = wsa.writing_prompt_id
+                JOIN writing_tasks wt ON wt.id = wp.writing_task_id
+                WHERE wsa.is_active = true
+                ORDER BY wsa.band_score DESC, wsa.created_at DESC
+                LIMIT :limit OFFSET :offset
+                """)
+                .setParameter("limit", size)
+                .setParameter("offset", offset)
+                .getResultList();
+
+            long total = ((Number) em.createNativeQuery(
+                "SELECT COUNT(*) FROM writing_sample_answers WHERE is_active = true")
+                .getSingleResult()).longValue();
+
+            var samples = rows.stream().map(r -> {
+                Object[] cols = (Object[]) r;
+                return Map.of(
+                    "id", ((Number) cols[0]).longValue(),
+                    "taskType", (String) cols[1],
+                    "topic", (String) cols[2],
+                    "promptText", (String) cols[3],
+                    "essayText", (String) cols[4],
+                    "bandScore", cols[5] != null ? ((Number) cols[5]).doubleValue() : 0.0,
+                    "wordCount", cols[6] != null ? ((Number) cols[6]).intValue() : 0,
+                    "annotation", cols[7] != null ? (String) cols[7] : "",
+                    "createdAt", cols[8] != null ? cols[8].toString() : "",
+                    "promptTitle", cols[9] != null ? (String) cols[9] : ""
+                );
+            }).toList();
+
+            return ResponseEntity.ok(Map.of(
+                "samples", samples,
+                "total", total,
+                "page", page,
+                "size", size,
+                "totalPages", (total + size - 1) / size
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                .body(Map.of("error", "Failed to load samples: " + e.getMessage()));
+        }
+    }
 
     @GetMapping("/samples/count")
     public ResponseEntity<?> getSampleCount() {
@@ -185,19 +244,43 @@ public class AIAdminController {
 
     @GetMapping("/models")
     public ResponseEntity<?> listModels() {
-        var models = DynamicAIProvider.AVAILABLE_MODELS.stream()
-            .map(m -> Map.of(
-                "label", m.label(),
-                "model", m.model(),
-                "provider", m.provider(),
-                "baseUrl", m.baseUrl()
-            ))
-            .collect(Collectors.toList());
-        return ResponseEntity.ok(Map.of(
-            "models", models,
-            "current", aiProvider.getModelName(),
-            "provider", aiProvider.getProviderName()
-        ));
+        var seen = new HashSet<String>();
+        var models = new ArrayList<Map<String, String>>();
+
+        for (var m : DynamicAIProvider.AVAILABLE_MODELS) {
+            seen.add(m.model());
+            models.add(Map.of("label", m.label(), "model", m.model(), "provider", m.provider(), "baseUrl", m.baseUrl()));
+        }
+
+        try {
+            var apiKey = config.getApiKeys().stream().filter(k -> k != null && !k.isBlank()).findFirst();
+            if (apiKey.isPresent()) {
+                var client = HttpClient.newHttpClient();
+                var req = HttpRequest.newBuilder()
+                    .uri(URI.create("https://api.groq.com/openai/v1/models"))
+                    .header("Authorization", "Bearer " + apiKey.get())
+                    .GET().build();
+                var res = client.send(req, HttpResponse.BodyHandlers.ofString());
+                if (res.statusCode() == 200) {
+                    var json = new com.fasterxml.jackson.databind.ObjectMapper().readTree(res.body());
+                    var data = json.get("data");
+                    if (data != null && data.isArray()) {
+                        for (var node : data) {
+                            var modelId = node.get("id").asText();
+                            if (!seen.contains(modelId) && !modelId.contains("whisper") && !modelId.contains("tts")) {
+                                seen.add(modelId);
+                                var label = Arrays.stream(modelId.replaceAll("[-/]", " ").split("\\s+"))
+                                    .map(s -> s.isEmpty() ? "" : Character.toUpperCase(s.charAt(0)) + s.substring(1))
+                                    .collect(Collectors.joining(" "));
+                                models.add(Map.of("label", label, "model", modelId, "provider", "groq", "baseUrl", "https://api.groq.com/openai"));
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception ignored) {}
+
+        return ResponseEntity.ok(Map.of("models", models, "current", aiProvider.getModelName(), "provider", aiProvider.getProviderName()));
     }
 
     @PostMapping("/model")

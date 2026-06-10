@@ -5,6 +5,7 @@
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/config/SecurityConfig.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/config/SwaggerConfig.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/config/TestStructureInitializer.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/AIImportController.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/AdminDriveController.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/AssignmentController.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/AuthController.java

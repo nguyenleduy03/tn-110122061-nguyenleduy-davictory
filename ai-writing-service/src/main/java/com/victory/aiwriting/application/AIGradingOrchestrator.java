@@ -72,8 +72,9 @@ public class AIGradingOrchestrator {
         return result;
     }
 
-    public AIGradingResult gradeText(String essayText, String taskType, String topic) {
-        return gradeCore(essayText, taskType, topic, "", 0, "test-user");
+    public AIGradingResult gradeText(String essayText, String taskType, String topic, String promptText) {
+        return gradeCore(essayText, taskType, topic,
+            promptText != null ? promptText : "", 0, "test-user");
     }
 
     private AIGradingResult gradeCore(String essayText, String taskType, String topic,

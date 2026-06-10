@@ -55,7 +55,8 @@ public class AIGradingController {
             var result = orchestrator.gradeText(
                 request.getEssayText(),
                 request.getTaskType() != null ? request.getTaskType() : "TASK2_ACADEMIC",
-                request.getTopic() != null ? request.getTopic() : "General"
+                request.getTopic() != null ? request.getTopic() : "General",
+                request.getPromptText() != null ? request.getPromptText() : ""
             );
             return ResponseEntity.ok(toDTO(result));
         } catch (AIParseException e) {
@@ -154,6 +155,7 @@ public class AIGradingController {
         private String essayText;
         private String taskType;
         private String topic;
+        private String promptText;
     }
 
     private AIGradingResponseDTO.CriteriaScoreDTO toCriteriaDTO(

@@ -332,7 +332,7 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
               }
 
               // Ưu tiên contentType của group cho các loại writing/speaking đặc biệt
-              const contentTypeOverride = ['WRITING_TASK', 'SPEAKING_INTERVIEW', 'SPEAKING_CUECARD', 'SHARED_OPTIONS_DROPDOWN'].includes(group.contentType)
+              const contentTypeOverride = ['WRITING_TASK', 'SPEAKING_INTERVIEW', 'SPEAKING_DISCUSSION', 'SPEAKING_CUECARD', 'SHARED_OPTIONS_DROPDOWN', 'SPEAKING_PART1', 'SPEAKING_PART2', 'SPEAKING_PART3'].includes(group.contentType)
                 ? group.contentType
                 : null;
               
@@ -726,15 +726,18 @@ function serializeGroupContent(group, part) {
       recommendedMinutes: group.recommendedMinutes ?? 20,
     });
   }
-  // Speaking Interview
-  if (ct === 'SPEAKING_INTERVIEW') {
+  // Speaking Interview & Discussion
+  if (ct === 'SPEAKING_INTERVIEW' || ct === 'SPEAKING_DISCUSSION' || ct === 'SPEAKING_PART1' || ct === 'SPEAKING_PART3') {
     return JSON.stringify({
-      interviewType: group.interviewType || 'PART1',
+      interviewType: group.interviewType || (ct === 'SPEAKING_DISCUSSION' || ct === 'SPEAKING_PART3' ? 'PART3' : 'PART1'),
       partInstruction: group.partInstruction || '',
+      classification: group.classification || 'GENERAL',
+      topics: group.topics || [], // For SpeakingPart1Block
+      theme: group.theme || '', // For SpeakingPart3Block
     });
   }
   // Speaking Cue Card
-  if (ct === 'SPEAKING_CUECARD') {
+  if (ct === 'SPEAKING_CUECARD' || ct === 'SPEAKING_PART2') {
     return JSON.stringify({
       partInstruction: group.partInstruction || '',
       topic: group.topic || '',
@@ -743,6 +746,7 @@ function serializeGroupContent(group, part) {
       closingSentence: group.closingSentence || '',
       prepSeconds: group.prepSeconds ?? 60,
       speakingSeconds: group.speakingSeconds ?? 120,
+      followUpQuestions: group.followUpQuestions || [], // For SpeakingPart2Block
     });
   }
   // Dropdown chung (Listening/Reading): options + hướng dẫn trong JSON
@@ -824,7 +828,11 @@ function mapQuestionTypeCode(typeName) {
     'WRITING_TASK': 'ESSAY',
     'LETTER_ESSAY': 'ESSAY',
     'SPEAKING_INTERVIEW': 'SHORT_ANSWER',
+    'SPEAKING_DISCUSSION': 'SHORT_ANSWER',
     'SPEAKING_CUECARD': 'SHORT_ANSWER',
+    'SPEAKING_PART1': 'SHORT_ANSWER',
+    'SPEAKING_PART2': 'SHORT_ANSWER',
+    'SPEAKING_PART3': 'SHORT_ANSWER',
     // Audio
     'AUDIO_TRANSCRIPT': 'FILL_BLANK',
     'STANDALONE': 'FILL_BLANK',
@@ -1192,14 +1200,17 @@ function deserializeGroupContent(contentType, passageText) {
         isYesNo: parsed.isYesNo || false,
       };
     }
-    if (contentType === 'SPEAKING_INTERVIEW') {
+    if (contentType === 'SPEAKING_INTERVIEW' || contentType === 'SPEAKING_DISCUSSION' || contentType === 'SPEAKING_PART1' || contentType === 'SPEAKING_PART3') {
       const parsed = JSON.parse(passageText);
       return {
-        interviewType: parsed.interviewType || 'PART1',
+        interviewType: parsed.interviewType || (contentType === 'SPEAKING_DISCUSSION' || contentType === 'SPEAKING_PART3' ? 'PART3' : 'PART1'),
         partInstruction: parsed.partInstruction || '',
+        classification: parsed.classification || 'GENERAL',
+        topics: parsed.topics || [],
+        theme: parsed.theme || '',
       };
     }
-    if (contentType === 'SPEAKING_CUECARD') {
+    if (contentType === 'SPEAKING_CUECARD' || contentType === 'SPEAKING_PART2') {
       const parsed = JSON.parse(passageText);
       return {
         partInstruction: parsed.partInstruction || '',
@@ -1209,6 +1220,7 @@ function deserializeGroupContent(contentType, passageText) {
         closingSentence: parsed.closingSentence || '',
         prepSeconds: parsed.prepSeconds ?? 60,
         speakingSeconds: parsed.speakingSeconds ?? 120,
+        followUpQuestions: parsed.followUpQuestions || [],
       };
     }
     if (contentType === 'SHARED_OPTIONS_DROPDOWN') {

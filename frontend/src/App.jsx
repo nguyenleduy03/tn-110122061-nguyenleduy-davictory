@@ -52,6 +52,8 @@ const AssignmentDetail = lazy(() => import('./pages/student/AssignmentDetail'))
 const SubmitAssignment = lazy(() => import('./pages/student/SubmitAssignment'))
 const AssignmentResult = lazy(() => import('./pages/student/AssignmentResult'))
 const TestApiPage = lazy(() => import('./pages/TestApiPage'))
+const AITestCenter = lazy(() => import('./pages/AITestCenter'))
+const AITestImport = lazy(() => import('./pages/AITestImport'))
 const TestBuilderV2 = lazy(() => import('./pages/TestBuilderV2'))
 
 function AppContent() {
@@ -115,6 +117,10 @@ function AppContent() {
           {/* TestBuilderV2 - New version with Quill editor */}
           <Route path="/teacher/tests-v2/new" element={<RoleBasedRoute requiredRole="TEACHER"><TestBuilderV2 /></RoleBasedRoute>} />
           <Route path="/teacher/tests-v2/:id/edit" element={<RoleBasedRoute requiredRole="TEACHER"><TestBuilderV2 /></RoleBasedRoute>} />
+
+          {/* AI Features */}
+          <Route path="/ai-test" element={<ProtectedRoute><AITestCenter /></ProtectedRoute>} />
+          <Route path="/ai-import" element={<RoleBasedRoute requiredRole="TEACHER"><AITestImport /></RoleBasedRoute>} />
 
           <Route path="/lms/teacher" element={<RoleBasedRoute requiredRole="TEACHER"><LmsTeacherDashboard /></RoleBasedRoute>} />
           <Route path="/lms/teacher/classes" element={<RoleBasedRoute requiredRole="TEACHER"><LmsTeacherClasses /></RoleBasedRoute>} />

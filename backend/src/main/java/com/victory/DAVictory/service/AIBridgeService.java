@@ -11,6 +11,11 @@ import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.MediaType;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+
 import java.util.List;
 import java.util.Map;
 
@@ -20,8 +25,11 @@ public class AIBridgeService {
 
     private final RestClient restClient;
 
-    @Value("${app.ai.service.url:http://localhost:5180}")
+    @Value("${app.ai.service.url:http://localhost:5182}")
     private String aiServiceUrl;
+
+    @Value("${app.ai.import.service.url:http://localhost:5186}")
+    private String aiImportServiceUrl;
 
     public AIBridgeService() {
         this.restClient = RestClient.builder()
@@ -68,5 +76,80 @@ public class AIBridgeService {
             .uri(aiServiceUrl + "/api/ai/writing/result/{submissionId}", submissionId)
             .retrieve()
             .body(AIGradingResponseDTO.class);
+    }
+
+    public AIGradingResponseDTO testGrade(String essayText, String taskType, String topic) {
+        log.info("Test grading essay ({} chars)", essayText.length());
+        try {
+            Map<String, String> body = Map.of(
+                "essayText", essayText,
+                "taskType", taskType != null ? taskType : "TASK2_ACADEMIC",
+                "topic", topic != null ? topic : ""
+            );
+            var response = restClient.post()
+                .uri(aiServiceUrl + "/api/ai/writing/test-grade")
+                .body(body)
+                .retrieve()
+                .body(AIGradingResponseDTO.class);
+            log.info("Test grading completed");
+            return response;
+        } catch (Exception e) {
+            log.error("Test grading failed: {}", e.getMessage());
+            throw new AIGradingException("AI grading failed: " + e.getMessage());
+        }
+    }
+
+    // ==================== AI Import Service ====================
+
+    public Map<String, Object> importParseDocument(byte[] content, String filename,
+                                                    String skillHint, String testType) {
+        log.info("AI import parse: {} ({} bytes)", filename, content.length);
+        try {
+            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+            body.add("file", new ByteArrayResource(content) {
+                @Override
+                public String getFilename() { return filename; }
+            });
+            body.add("skillHint", skillHint != null ? skillHint : "");
+            body.add("testType", testType != null ? testType : "ACADEMIC");
+
+            var response = restClient.post()
+                .uri(aiImportServiceUrl + "/api/ai/import/parse")
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .body(body)
+                .retrieve()
+                .body(Map.class);
+            return response;
+        } catch (Exception e) {
+            log.error("AI import parse failed: {}", e.getMessage());
+            throw new AIGradingException("Import parse failed: " + e.getMessage());
+        }
+    }
+
+    public Map<String, Object> importCreateTest(Map<String, Object> request) {
+        log.info("AI import create test: {}", request.getOrDefault("title", "Untitled"));
+        try {
+            var response = restClient.post()
+                .uri(aiImportServiceUrl + "/api/ai/import/create")
+                .body(request)
+                .retrieve()
+                .body(Map.class);
+            return response;
+        } catch (Exception e) {
+            log.error("AI import create failed: {}", e.getMessage());
+            throw new AIGradingException("Import create failed: " + e.getMessage());
+        }
+    }
+
+    public Map<String, Object> importGetStatus(String taskId) {
+        try {
+            var response = restClient.get()
+                .uri(aiImportServiceUrl + "/api/ai/import/status/{taskId}", taskId)
+                .retrieve()
+                .body(Map.class);
+            return response;
+        } catch (Exception e) {
+            return Map.of("taskId", taskId, "status", "UNKNOWN");
+        }
     }
 }

@@ -7,6 +7,9 @@ const SpeakingPart2Block = ({ group, onUpdate, onDelete, onSelect, selected, dra
   const bulletPoints = group.bulletPoints ?? ['', '', ''];
   const followUpQuestions = group.followUpQuestions ?? [''];
 
+  const [importTarget, setImportTarget] = React.useState(null); // 'bullet' | 'followup'
+  const importRef = React.useRef(null);
+
   const updateBullet = (i, val) => {
     const next = [...bulletPoints];
     next[i] = val;
@@ -16,6 +19,26 @@ const SpeakingPart2Block = ({ group, onUpdate, onDelete, onSelect, selected, dra
   const addBullet = (e) => {
     e.stopPropagation();
     onUpdate(group.id, { bulletPoints: [...bulletPoints, ''] });
+  };
+
+  const handleImport = () => {
+    const text = importRef.current?.value || '';
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+    if (lines.length === 0) {
+      setImportTarget(null);
+      return;
+    }
+
+    if (importTarget === 'bullet') {
+      onUpdate(group.id, {
+        bulletPoints: [...bulletPoints.filter(b => b.trim()), ...lines],
+      });
+    } else {
+      onUpdate(group.id, {
+        followUpQuestions: [...followUpQuestions.filter(q => q.trim()), ...lines],
+      });
+    }
+    setImportTarget(null);
   };
 
   const removeBullet = (i, e) => {
@@ -104,9 +127,14 @@ const SpeakingPart2Block = ({ group, onUpdate, onDelete, onSelect, selected, dra
               )}
             </div>
           ))}
-          <button className="exam-spk-qadd" onClick={addBullet}>
-            <Plus size={12} /> Add bullet
-          </button>
+          <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+            <button className="exam-spk-qadd" style={{ flex: 1 }} onClick={addBullet}>
+              <Plus size={12} /> Add bullet
+            </button>
+            <button className="exam-spk-qadd" onClick={() => setImportTarget('bullet')} title="Import bullet points">
+              📋 Import
+            </button>
+          </div>
         </div>
 
         <div className="exam-wt-section">
@@ -158,12 +186,46 @@ const SpeakingPart2Block = ({ group, onUpdate, onDelete, onSelect, selected, dra
                 )}
               </div>
             ))}
-            <button className="exam-spk-qadd" onClick={addFollowUp}>
-              <Plus size={12} /> Add follow-up
-            </button>
+            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+              <button className="exam-spk-qadd" style={{ flex: 1 }} onClick={addFollowUp}>
+                <Plus size={12} /> Add follow-up
+              </button>
+              <button className="exam-spk-qadd" onClick={() => setImportTarget('followup')} title="Import follow-up questions">
+                📋 Import
+              </button>
+            </div>
           </div>
         </div>
       </div>
+
+      {importTarget && (
+        <div className="exam-import-modal" style={{
+          position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+          backgroundColor: 'white', padding: 20, borderRadius: 12, boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+          zIndex: 1000, width: '400px', border: '1px solid #e5e7eb'
+        }} onClick={(e) => e.stopPropagation()}>
+          <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12 }}>
+            Import {importTarget === 'bullet' ? 'Bullet Points' : 'Follow-up Questions'}
+          </h3>
+          <p style={{ fontSize: 12, color: '#666', marginBottom: 8 }}>Mỗi dòng là một mục</p>
+          <textarea
+            ref={importRef}
+            rows={10}
+            style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #d1d5db', fontSize: 13, outline: 'none' }}
+            placeholder={importTarget === 'bullet' ? 'VD:&#10;who this person is&#10;what they did' : 'VD:&#10;Do you still keep in touch?&#10;Would you like to see them again?'}
+          />
+          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+            <button onClick={handleImport} style={{
+              flex: 1, padding: '8px 16px', backgroundColor: '#7e22ce', color: 'white',
+              border: 'none', borderRadius: 6, fontWeight: 600, cursor: 'pointer'
+            }}>Import</button>
+            <button onClick={() => setImportTarget(null)} style={{
+              padding: '8px 16px', backgroundColor: '#f3f4f6', color: '#4b5563',
+              border: 'none', borderRadius: 6, fontWeight: 600, cursor: 'pointer'
+            }}>Hủy</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

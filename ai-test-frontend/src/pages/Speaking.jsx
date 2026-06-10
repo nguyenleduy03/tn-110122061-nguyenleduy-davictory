@@ -1,13 +1,27 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Mic, MessageSquare, Volume2, Play, Send, CheckCircle,
   ChevronRight, StopCircle, BarChart3, RefreshCw, Plus,
 } from 'lucide-react';
 import { speakingApi } from '../api/speakingApi';
 import ResponseViewer from '../components/ResponseViewer';
+import { useHeader } from '../context/HeaderContext';
 
 export default function Speaking() {
   const [tab, setTab] = useState('chat');
+  const { setTabs } = useHeader();
+
+  const tabDefs = [
+    { key: 'chat', label: 'Chat Practice', icon: MessageSquare, onClick: () => setTab('chat') },
+    { key: 'session', label: 'Session Controls', icon: Play, onClick: () => setTab('session') },
+    { key: 'tts', label: 'TTS Player', icon: Volume2, onClick: () => setTab('tts') },
+    { key: 'admin', label: 'Admin', icon: Plus, onClick: () => setTab('admin') },
+  ];
+
+  useEffect(() => {
+    setTabs(tabDefs);
+    return () => setTabs([]);
+  }, []);
   const [sessionId, setSessionId] = useState(null);
   const [chatMessages, setChatMessages] = useState([]);
   const [answerText, setAnswerText] = useState('');
@@ -111,29 +125,13 @@ export default function Speaking() {
         <p>Test all AI Speaking service endpoints — sessions, chat, TTS, scoring</p>
       </div>
 
-      <div className="tabs">
-        {[
-          { key: 'chat', label: 'Chat Practice', icon: MessageSquare },
-          { key: 'session', label: 'Session Controls', icon: Play },
-          { key: 'tts', label: 'TTS Player', icon: Volume2 },
-          { key: 'admin', label: 'Admin', icon: Plus },
-        ].map((t) => (
-          <button
-            key={t.key}
-            className={`tab ${tab === t.key ? 'active' : ''}`}
-            onClick={() => setTab(t.key)}
-          >
-            <t.icon size={14} style={{ marginRight: 6 }} />
-            {t.label}
-          </button>
-        ))}
-      </div>
 
-      {/* Session Status Bar */}
-      <div className="card" style={{ padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 16 }}>
+      <div className="model-selector" style={{ flexWrap: 'wrap' }}>
         <div className="service-indicator" style={{ margin: 0 }}>
           <span className={`dot ${sessionId ? 'dot-online' : 'dot-offline'}`} />
-          Session: {sessionId ? <strong>{sessionId}</strong> : 'Not created'}
+          <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 600 }}>
+            Session: {sessionId ? <strong style={{ color: 'var(--text)' }}>{sessionId}</strong> : 'Not created'}
+          </span>
         </div>
         <button className="btn btn-primary btn-sm" onClick={handleCreateSession} disabled={loading}>
           <Plus size={14} /> New Session
@@ -249,14 +247,8 @@ export default function Speaking() {
             <button className="btn btn-secondary" onClick={() => callApi(() => speakingApi.generateQuestion(sessionId), 'Question')} disabled={!sessionId}>
               Generate Question
             </button>
-            <button className="btn btn-secondary" onClick={() => callApi(() => speakingApi.followUp(sessionId), 'Follow-up')} disabled={!sessionId}>
-              Follow-up Question
-            </button>
             <button className="btn btn-secondary" onClick={() => callApi(() => speakingApi.nextPhase(sessionId), 'Next Phase')} disabled={!sessionId}>
               Next Phase
-            </button>
-            <button className="btn btn-secondary" onClick={() => callApi(() => speakingApi.endPart(sessionId), 'End Part')} disabled={!sessionId}>
-              End Part
             </button>
             <button className="btn btn-danger" onClick={() => callApi(() => speakingApi.endSession(sessionId), 'End Session')} disabled={!sessionId}>
               End Session
@@ -320,9 +312,6 @@ export default function Speaking() {
                 </button>
                 <button className="btn btn-danger" onClick={() => callApi(() => speakingApi.clearCache(), 'Clear Cache')}>
                   Clear Cache
-                </button>
-                <button className="btn btn-danger" onClick={() => callApi(() => speakingApi.resetQuota(), 'Reset Quota')}>
-                  Reset All Quotas
                 </button>
               </div>
             </div>

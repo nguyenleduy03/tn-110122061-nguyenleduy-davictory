@@ -1,0 +1,64 @@
+{
+  "rubrics": {
+    "TASK2_ACADEMIC": {
+      "task_response": [
+        {"band":5,"positive":["Addresses task partially","Position may be unclear","Some main ideas, limited development"],"negative":["Position unclear/shifting","Ideas repetitive/insufficient","Parts of task ignored"],"boundary_up":{"condition":"All parts addressed; position clearer","test":"Missing part or unclear position → max 5.5"}},
+        {"band":6,"positive":["Addresses all parts","Relevant position","Presents relevant main ideas"],"negative":["Some parts better addressed","Position may lapse","Ideas insufficiently developed"],"boundary_up":{"condition":"Position clear throughout; ideas extended and supported","test":"Position unclear or ideas underdeveloped → max 6.5"}},
+        {"band":7,"positive":["Addresses all parts","Clear position throughout","Main ideas extended and supported"],"negative":["Explanations may be general","Examples may be generic","Development may be uneven"],"boundary_up":{"condition":"Ideas fully extended with precise support; specific examples","test":"General explanations or generic examples → max 7.5"}},
+        {"band":8,"positive":["Sufficiently addresses all parts","Ideas relevant, extended, supported","Arguments logically developed","Counterarguments handled effectively"],"negative":["Some ideas lack full precision","Occasional over-generalisation"],"boundary_up":{"condition":"Fully developed position; no aspect overlooked; precise support","test":"Any aspect underdeveloped → max 8.5"}},
+        {"band":9,"positive":["Fully addresses all parts","Fully developed position","Ideas fully extended with precise support","No aspect overlooked"],"negative":["Any deviation → not Band 9"],"boundary_up":{"condition":"N/A — ceiling","test":"Not fully addressed or supported → not Band 9"}}
+      ],
+      "coherence_cohesion": [
+        {"band":5,"positive":["Some organisation","Basic cohesive devices"],"negative":["Inadequate/over-use of cohesive devices","No clear progression","Absent/inconsistent paragraphing"],"boundary_up":{"condition":"Clear progression; effective cohesion","test":"Unclear progression or faulty cohesion → max 5.5"}},
+        {"band":6,"positive":["Coherent arrangement","Clear overall progression","Effective cohesive devices"],"negative":["Cohesion may be mechanical","Paragraphing may be illogical"],"boundary_up":{"condition":"Logical organisation; appropriate cohesive range","test":"Mechanical cohesion or uneven paragraphing → max 6.5"}},
+        {"band":7,"positive":["Logically organises ideas","Clear progression","Range of cohesive devices appropriately"],"negative":["Some cohesive devices over-used","Paragraphing slightly uneven"],"boundary_up":{"condition":"Skilful cohesion; logical paragraphing","test":"Cohesion draws attention or paragraphing inconsistent → max 7.5"}},
+        {"band":8,"positive":["Logical sequencing","Manages cohesion well","Sufficient paragraphing"],"negative":["Cohesion occasionally noticeable","Paragraphing functional but not skilful"],"boundary_up":{"condition":"Effortless cohesion; skilful paragraphing","test":"Cohesion noticeable or paragraphing could improve → max 8.5"}},
+        {"band":9,"positive":["Effortless cohesion","Skilful paragraphing"],"negative":["Any noticeable cohesion → not Band 9"],"boundary_up":{"condition":"N/A — ceiling","test":"Cohesion noticeable → not Band 9"}}
+      ],
+      "lexical_resource": [
+        {"band":5,"positive":["Limited but minimally adequate vocabulary"],"negative":["Limited range","Word choice errors cause difficulty","Relies on memorised/repetitive language"],"boundary_up":{"condition":"Adequate range with attempts at less common items","test":"Vocabulary too basic or errors impede → max 5.5"}},
+        {"band":6,"positive":["Adequate range","Attempts less common vocabulary"],"negative":["Some inaccuracy in less common items","Collocation errors"],"boundary_up":{"condition":"Sufficient range with flexibility; awareness of style","test":"Lacks flexibility or noticeable errors → max 6.5"}},
+        {"band":7,"positive":["Sufficient range with flexibility","Less common vocabulary with awareness of style"],"negative":["Occasional imprecision in less common items","Some over-use of certain vocabulary"],"boundary_up":{"condition":"Wide range fluently and flexibly; skilful use of uncommon items","test":"Range sufficient but not wide → max 7.5"}},
+        {"band":8,"positive":["Wide range fluently and flexibly","Skilful use of uncommon items"],"negative":["Occasional inaccuracy","Rare lack of naturalness"],"boundary_up":{"condition":"Natural, sophisticated control; seamless precision","test":"Imprecision or unnatural phrasing → max 8.5"}},
+        {"band":9,"positive":["Natural and sophisticated control","Rare minor 'slip' errors"],"negative":["Any noticeable imprecision → not Band 9"],"boundary_up":{"condition":"N/A — ceiling","test":"Imprecision → not Band 9"}}
+      ],
+      "grammatical_range": [
+        {"band":5,"positive":["Limited range of structures","Attempts complex sentences"],"negative":["Frequent errors","Complex sentences rare and error-prone"],"boundary_up":{"condition":"Mix of simple and complex with some errors","test":"Frequent errors → max 5.5"}},
+        {"band":6,"positive":["Mix of simple and complex","Some error-free sentences"],"negative":["Some grammar/punctuation errors","Complex structures contain errors"],"boundary_up":{"condition":"Variety of complex structures; frequent error-free","test":"Errors persist in complex structures → max 6.5"}},
+        {"band":7,"positive":["Variety of complex structures","Frequent error-free sentences","Good control"],"negative":["Some structures lack full flexibility","Occasional errors in advanced structures"],"boundary_up":{"condition":"Wide range; majority error-free; full flexibility","test":"Errors more than occasional → max 7.5"}},
+        {"band":8,"positive":["Wide range of structures","Majority error-free"],"negative":["Only very occasional errors","Rare structural awkwardness"],"boundary_up":{"condition":"Full range with full flexibility; rare 'slip' errors","test":"Errors more than very occasional → max 8.5"}},
+        {"band":9,"positive":["Full range with full flexibility and accuracy","Rare minor 'slip' errors"],"negative":["Any systematic error → not Band 9"],"boundary_up":{"condition":"N/A — ceiling","test":"Error pattern exists → not Band 9"}}
+      ]
+    },
+    "TASK1_ACADEMIC": {
+      "task_response": [
+        {"band":5,"positive":["Generally addresses task","Recounts data mechanically"],"negative":["No clear overview","Data described without selecting key features","May focus on irrelevant details"],"boundary_up":{"condition":"Overview presented; key features highlighted","test":"No overview or features not highlighted → max 5.5"}},
+        {"band":6,"positive":["Addresses requirements","Presents overview with key features","Selects appropriate information"],"negative":["Overview may be unclear","Some key features omitted"],"boundary_up":{"condition":"Clear overview of main trends; key features clearly highlighted","test":"Unclear overview → max 6.5"}},
+        {"band":7,"positive":["Covers requirements","Clear overview of main trends","Clearly presents key features","Support with data"],"negative":["Overview could be more comprehensive","Data support slightly uneven"],"boundary_up":{"condition":"All requirements sufficiently covered; effective overview","test":"Requirement not fully covered → max 7.5"}},
+        {"band":8,"positive":["Covers all sufficiently","Clear effective overview","Key features highlighted with data"],"negative":["Slightly unbalanced feature selection","Some features could be more extended"],"boundary_up":{"condition":"Fully satisfied; fully developed; integrated overview","test":"Not fully satisfied → max 8.5"}},
+        {"band":9,"positive":["Fully satisfies all","Clear integrated overview","Key features clearly presented","Fully developed with precise data"],"negative":["Any gap → not Band 9"],"boundary_up":{"condition":"N/A — ceiling","test":"Not fully satisfied → not Band 9"}}
+      ],
+      "coherence_cohesion": [
+        {"band":5,"positive":["Some organisation","Basic cohesive devices"],"negative":["Inadequate/over-use","No clear progression","Absent/inconsistent paragraphing"],"boundary_up":{"condition":"Clear progression; effective cohesion","test":"Unclear progression → max 5.5"}},
+        {"band":6,"positive":["Coherent arrangement","Clear progression","Effective cohesive devices"],"negative":["Faulty/mechanical cohesion","Paragraphing may be illogical"],"boundary_up":{"condition":"Logical organisation; appropriate cohesion","test":"Mechanical cohesion → max 6.5"}},
+        {"band":7,"positive":["Logical organisation","Clear progression","Range of cohesive devices"],"negative":["Some over-used devices","Paragraphing slightly uneven"],"boundary_up":{"condition":"Skilful cohesion; logical paragraphing","test":"Cohesion draws attention → max 7.5"}},
+        {"band":8,"positive":["Logical sequencing","Manages cohesion well","Sufficient paragraphing"],"negative":["Cohesion occasionally noticeable","Functional not skilful paragraphing"],"boundary_up":{"condition":"Effortless cohesion; skilful paragraphing","test":"Cohesion noticeable → max 8.5"}},
+        {"band":9,"positive":["Effortless cohesion","Skilful paragraphing"],"negative":["Any noticeable cohesion → not Band 9"],"boundary_up":{"condition":"N/A — ceiling","test":"Cohesion noticeable → not Band 9"}}
+      ],
+      "lexical_resource": [
+        {"band":5,"positive":[],"negative":["Limited range, minimally adequate","Word choice errors cause difficulty"],"boundary_up":{"condition":"Adequate range; attempts less common items","test":"Too basic or errors impede → max 5.5"}},
+        {"band":6,"positive":["Adequate range","Attempts less common vocabulary"],"negative":["Inaccuracy in less common items","Collocation errors"],"boundary_up":{"condition":"Sufficient range with flexibility","test":"Lacks flexibility → max 6.5"}},
+        {"band":7,"positive":["Sufficient range with flexibility","Less common vocabulary with style awareness"],"negative":["Occasional imprecision","Some over-use"],"boundary_up":{"condition":"Wide range fluently and flexibly","test":"Range not wide → max 7.5"}},
+        {"band":8,"positive":["Wide range fluently and flexibly","Skilful use of uncommon items"],"negative":["Occasional inaccuracy","Rare lack of naturalness"],"boundary_up":{"condition":"Natural sophisticated control","test":"Imprecision → max 8.5"}},
+        {"band":9,"positive":["Natural sophisticated control","Rare 'slip' errors"],"negative":["Imprecision → not Band 9"],"boundary_up":{"condition":"N/A — ceiling","test":"Imprecision → not Band 9"}}
+      ],
+      "grammatical_range": [
+        {"band":5,"positive":[],"negative":["Limited range","Frequent errors","Complex sentences rare and error-prone"],"boundary_up":{"condition":"Mix of simple/complex with some errors","test":"Frequent errors → max 5.5"}},
+        {"band":6,"positive":["Mix of simple and complex","Some error-free"],"negative":["Some grammar/punctuation errors","Complex structures contain errors"],"boundary_up":{"condition":"Variety of complex; frequent error-free","test":"Errors persist in complex → max 6.5"}},
+        {"band":7,"positive":["Variety of complex structures","Frequent error-free","Good control"],"negative":["Some lack full flexibility","Occasional errors in advanced"],"boundary_up":{"condition":"Wide range; majority error-free","test":"Errors more than occasional → max 7.5"}},
+        {"band":8,"positive":["Wide range","Majority error-free"],"negative":["Very occasional errors","Rare awkwardness"],"boundary_up":{"condition":"Full range; full flexibility; rare 'slip' errors","test":"Errors more than very occasional → max 8.5"}},
+        {"band":9,"positive":["Full range; full flexibility","Rare 'slip' errors"],"negative":["Systematic error → not Band 9"],"boundary_up":{"condition":"N/A — ceiling","test":"Error pattern exists → not Band 9"}}
+      ]
+    }
+  }
+}

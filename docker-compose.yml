@@ -1,0 +1,27 @@
+# DAVictory Python AI Services - Docker Compose
+# Redis + AI Speaking (ChromaDB được quản lý bởi manage.sh)
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "5185:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ai-speaking:
+    build:
+      context: ./ai-speaking-python
+      dockerfile: Dockerfile
+    command: uvicorn main:app --host 0.0.0.0 --port 5183 --workers 2
+    ports:
+      - "5183:5183"
+    env_file:
+      - ./ai-speaking-python/.env
+    environment:
+      - DB_HOST=host.docker.internal
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

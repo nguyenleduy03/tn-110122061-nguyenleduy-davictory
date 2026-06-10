@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import {
-  Cpu, HardDrive, Activity, Zap, CheckCircle, XCircle,
+  Cpu, HardDrive, Activity, Zap, CheckCircle, XCircle, ArrowRight,
 } from 'lucide-react';
 import { writingApi } from '../api/writingApi';
 import { speakingApi } from '../api/speakingApi';
@@ -46,53 +46,64 @@ export default function Dashboard() {
       <div className="main">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 40 }}>
           <div className="spinner" />
-          Checking services...
+          <span style={{ color: 'var(--text-muted)' }}>Checking services...</span>
         </div>
       </div>
     );
   }
 
+  const onlineCount = services.filter(s => s.online).length;
+
   return (
     <div className="main">
-      <div className="page-header">
-        <h1>AI Test Center Dashboard</h1>
+      <div className="welcome-banner">
+        <h2>AI Test Center Dashboard</h2>
         <p>Overview of all AI services status and configuration</p>
+        <span className="badge">{onlineCount}/{services.length} services online</span>
       </div>
 
       <div className="stats-grid">
         {services.map((svc) => (
           <div className="stat-card" key={svc.name}>
-            <div className="stat-icon" style={{ background: svc.online ? '#d1fae5' : '#fee2e2' }}>
-              {svc.online ? <CheckCircle size={20} color="#00b894" /> : <XCircle size={20} color="#d63031" />}
+            <div className="stat-icon" style={{
+              background: svc.online ? 'var(--success-bg)' : 'var(--danger-bg)',
+            }}>
+              {svc.online
+                ? <CheckCircle size={20} color="var(--success)" />
+                : <XCircle size={20} color="var(--danger)" />
+              }
             </div>
-            <div className="stat-value" style={{ fontSize: 18, fontWeight: 700 }}>
+            <div className="stat-value" style={{ fontSize: 16, fontWeight: 700 }}>
               {svc.name}
             </div>
             <div className="service-indicator" style={{ marginTop: 8 }}>
               <span className={`dot ${svc.online ? 'dot-online' : 'dot-offline'}`} />
-              {svc.online ? 'Online' : 'Offline'} (Status: {svc.status})
+              {svc.online ? 'Online' : 'Offline'}
+              <span style={{ color: 'var(--text-muted)', fontSize: 12, marginLeft: 4 }}>
+                (Status: {svc.status})
+              </span>
             </div>
           </div>
         ))}
         <div className="stat-card">
-          <div className="stat-icon" style={{ background: '#dbeafe' }}>
-            <Cpu size={20} color="#1e40af" />
+          <div className="stat-icon" style={{ background: 'var(--info-bg)' }}>
+            <Cpu size={20} color="var(--primary)" />
           </div>
-          <div className="stat-value" style={{ fontSize: 18, fontWeight: 700 }}>
+          <div className="stat-value" style={{ fontSize: 16, fontWeight: 700 }}>
             Writing Model
           </div>
-          <div className="service-indicator" style={{ marginTop: 8 }}>
+          <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>
             {writingConfig?.model || 'N/A'}
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon" style={{ background: '#fef3c7' }}>
-            <Activity size={20} color="#92400e" />
+          <div className="stat-icon" style={{ background: 'var(--warning-bg)' }}>
+            <Activity size={20} color="#B7950B" />
           </div>
-          <div className="stat-value" style={{ fontSize: 18, fontWeight: 700 }}>
+          <div className="stat-value" style={{ fontSize: 16, fontWeight: 700 }}>
             Speaking Model
           </div>
-          <div className="service-indicator" style={{ marginTop: 8 }}>
+          <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>
             {speakingConfig?.scoring?.model || 'N/A'}
           </div>
         </div>
@@ -126,10 +137,14 @@ export default function Dashboard() {
         <div className="card">
           <h3><Zap size={18} /> Quick Actions</h3>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <a href="#/writing" className="btn btn-primary">Test Writing</a>
-            <a href="#/speaking" className="btn btn-primary">Test Speaking</a>
-            <a href="#/admin" className="btn btn-secondary">Admin Panel</a>
-            <a href="#/console" className="btn btn-secondary">API Console</a>
+            <a href="/ai-test/writing" className="btn btn-primary">
+              Test Writing <ArrowRight size={14} />
+            </a>
+            <a href="/ai-test/speaking" className="btn btn-primary">
+              Test Speaking <ArrowRight size={14} />
+            </a>
+            <a href="/ai-test/admin" className="btn btn-secondary">Admin Panel</a>
+            <a href="/ai-test/console" className="btn btn-secondary">API Console</a>
           </div>
         </div>
       </div>

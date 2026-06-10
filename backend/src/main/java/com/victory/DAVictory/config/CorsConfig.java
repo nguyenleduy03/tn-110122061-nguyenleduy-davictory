@@ -57,8 +57,17 @@ public class CorsConfig {
             log.info("CORS: Thêm IP public {} vào allowed origins", publicIp);
         }
 
-        config.setAllowedOrigins(allowedOrigins);
-        log.info("CORS allowed origins: {}", allowedOrigins);
+        // Use allowedOriginPatterns with proper patterns (supports HTTP/HTTPS and credentials)
+        config.setAllowedOriginPatterns(List.of(
+            "http://localhost:*",
+            "http://127.0.0.1:*",
+            "https://davictory.io.vn",
+            "https://www.davictory.io.vn",
+            "http://davictory.io.vn",
+            "http://www.davictory.io.vn",
+            "http://14.227.143.142"
+        ));
+        log.info("CORS allowed origin patterns: flexible matching enabled");
 
         // Các HTTP methods được phép
         config.setAllowedMethods(Arrays.asList(

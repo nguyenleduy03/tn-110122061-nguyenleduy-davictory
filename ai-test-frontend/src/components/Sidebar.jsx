@@ -1,20 +1,36 @@
 import { NavLink } from 'react-router-dom';
 import {
-  LayoutDashboard, Pencil, Mic, Settings, Terminal, BarChart3,
+  Home, LayoutDashboard, Pencil, Mic, Settings, Terminal, BarChart3,
+  Database, Languages, BookOpen, CreditCard, Sparkles,
 } from 'lucide-react';
 
 const sections = [
   {
-    title: 'Main',
+    title: 'Overview',
     links: [
-      { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
+      { to: '/', icon: Home, label: 'Home' },
+      { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     ],
   },
   {
-    title: 'Services',
+    title: 'Features',
     links: [
       { to: '/writing', icon: Pencil, label: 'Writing AI' },
       { to: '/speaking', icon: Mic, label: 'Speaking AI' },
+      { to: '/grammar', icon: Languages, label: 'Grammar Checker' },
+      { to: '/tests', icon: BookOpen, label: 'Test Library' },
+    ],
+  },
+  {
+    title: 'Plans',
+    links: [
+      { to: '/pricing', icon: CreditCard, label: 'Pricing' },
+    ],
+  },
+  {
+    title: 'Data',
+    links: [
+      { to: '/samples', icon: Database, label: 'Sample Essays' },
     ],
   },
   {
@@ -30,37 +46,42 @@ const sections = [
 export default function Sidebar() {
   return (
     <aside className="sidebar">
-      <div className="sidebar-logo">
-        <Terminal size={28} />
-        <div>
-          DAVictory<br /><span>AI Test Center</span>
-        </div>
-      </div>
-
-      <nav className="sidebar-nav">
-        {sections.map((section) => (
-          <div key={section.title}>
-            <div className="sidebar-section">{section.title}</div>
-            {section.links.map((link) => (
-              <NavLink
-                key={link.to}
-                to={link.to}
-                end={link.to === '/'}
-                className={({ isActive }) =>
-                  `sidebar-link${isActive ? ' active' : ''}`
-                }
-              >
-                <link.icon size={18} />
-                {link.label}
-              </NavLink>
-            ))}
+      <div className="sidebar-inner">
+        <div className="sidebar-logo">
+          <div className="sidebar-logo-icon">
+            <Sparkles size={22} />
           </div>
-        ))}
-      </nav>
+          <div className="sidebar-logo-text">
+            DAVictory
+            <span>AI Test Center</span>
+          </div>
+        </div>
 
-      <div className="sidebar-footer">
-        DAVictory v1.0
-        <span>AI Test Dashboard</span>
+        <nav className="sidebar-nav">
+          {sections.map((section) => (
+            <div key={section.title}>
+              <div className="sidebar-section">{section.title}</div>
+              {section.links.map((link) => (
+                <NavLink
+                  key={link.to}
+                  to={link.to}
+                  end={link.to === '/'}
+                  className={({ isActive }) =>
+                    `sidebar-link${isActive ? ' active' : ''}`
+                  }
+                >
+                  <link.icon size={18} />
+                  {link.label}
+                </NavLink>
+              ))}
+            </div>
+          ))}
+        </nav>
+
+        <div className="sidebar-footer">
+          DAVictory v2.0
+          <span>AI-Powered Language Learning</span>
+        </div>
       </div>
     </aside>
   );

@@ -26,11 +26,12 @@ public class AIProviderConfig {
     public DynamicAIProvider aiProvider(AIConfigProperties config) {
         return new DynamicAIProvider(
             config.getApiKeys(),
+            config.getGeminiApiKey(),
             "https://api.groq.com/openai",
             config.getProvider(),
             config.getModel(),
             0.1,
-            2000
+            4096
         );
     }
 }

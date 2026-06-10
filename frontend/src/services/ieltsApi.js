@@ -331,6 +331,7 @@ async function transformGroup(baseUrl, group) {
           questionTypeCode: contentType,
           partInstruction: formatTextWithWhitespace(groupData.partInstruction || ''),
           interviewType: groupData.interviewType || 'PART1',
+          classification: groupData.classification || 'GENERAL',
           text: formatTextWithWhitespace(q.questionText || q.blankContext || ''),
           topic: formatTextWithWhitespace(q.topic || ''),
         };
@@ -1365,6 +1366,15 @@ export const ieltsApi = {
             taskInstruction = group.instructions;
           }
 
+          // Extract Speaking metadata (classification)
+          let classification = 'GENERAL';
+          if (targetMode === 'SPEAKING' && group.passageText) {
+            try {
+              const parsed = JSON.parse(group.passageText);
+              if (parsed.classification) classification = parsed.classification;
+            } catch { }
+          }
+
           // Transform group's questions using transformGroup()
           const transformedQuestions = await transformGroup(baseUrl, group);
 
@@ -1379,6 +1389,7 @@ export const ieltsApi = {
             audioPlayCount: group.audioPlayCount,
             imageUrl: group.imageUrl,
             instructions: group.instructions,
+            classification,
             // Provide transformed questions
             questions: transformedQuestions,
           });

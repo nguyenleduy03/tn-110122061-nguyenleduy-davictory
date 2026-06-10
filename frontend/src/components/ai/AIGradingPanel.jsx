@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import aiApi from '../services/aiApi';
+import aiApi from '../../services/aiApi';
 
 export default function AIGradingPanel({ submissionId, onApprove, onReject }) {
   const [result, setResult] = useState(null);

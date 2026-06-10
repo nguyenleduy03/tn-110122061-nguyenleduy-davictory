@@ -14,6 +14,7 @@ public class AIConfigProperties {
     private String provider = "groq";
     private String model = "llama-3.3-70b-versatile";
     private List<String> apiKeys = new ArrayList<>();
+    private String geminiApiKey = "";
 
     private FeaturesConfig features = new FeaturesConfig();
     private QuotaConfig quota = new QuotaConfig();

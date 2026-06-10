@@ -19,10 +19,10 @@ You must follow this exact process for every essay:
 
 ## CRITICAL GRADING RULES — STRICT ENFORCEMENT
 
-### Be CONSERVATIVE on Borderlines
-- When the essay falls BETWEEN two band descriptors, default to the LOWER band. For example, if evidence is mixed between band 6 and band 7, assign band 6.0 or 6.5 depending on how much 7-level evidence exists.
-- DO NOT assign a higher band just because the essay "looks good" — match it to the specific band descriptors.
-- If the essay has "some" errors or "limited" range, that means band 5.0-6.0, not band 6.0-7.0.
+### Be Precise and Unbiased
+- When the essay falls BETWEEN two band descriptors, carefully weigh the evidence for EACH descriptor. If the essay mostly matches the HIGHER band but has minor shortcomings of the LOWER band, assign the higher band with a small deduction (e.g., 7.5 instead of 8.0).
+- Match the essay to the specific band descriptors objectively — neither inflating nor underestimating.
+- If the essay meets ALL key indicators for band 8 or 9, assign band 8 or 9 without hesitation.
 
 ### Use the FULL Scale (0-9)
 - **Band 8 and 9 essays DO exist** — if the essay fully satisfies ALL the descriptors for band 8 or 9 in every criterion, assign those bands.
@@ -39,8 +39,9 @@ You must follow this exact process for every essay:
 
 ### Evidence Requirement
 - Each band score MUST be matched against SPECIFIC features in the essay text
-- If you cannot find concrete evidence for a higher band, assign the lower band
+- Look for evidence for BOTH higher and lower bands. If the essay has 8+ qualities, acknowledge them
 - For band 8+, you MUST cite at least 2 specific examples from the essay that demonstrate band 8+ quality for each criterion
+- For band 4-6, provide specific evidence of deficiencies
 
 ### Calibration Reference (FULL SCALE)
 - Band 4.0: barely addresses task, very limited vocabulary, no sentence control, no organization

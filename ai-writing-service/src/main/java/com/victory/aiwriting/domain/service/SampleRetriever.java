@@ -34,7 +34,6 @@ public class SampleRetriever {
         var metadataFilter = new HashMap<String, String>();
         if (taskType != null) {
             if (taskType.startsWith("TASK2_")) {
-                // TASK2_ACADEMIC and TASK2_GENERAL are identical in IELTS
                 metadataFilter.put("taskType", "TASK2_ACADEMIC");
             } else {
                 metadataFilter.put("taskType", taskType);
@@ -48,15 +47,29 @@ public class SampleRetriever {
         }
 
         var hybridScored = applyHybridSearch(essayText, candidates);
-        var diversified = diversifyByBand(hybridScored, topK);
 
         double avgSemantic = candidates.stream()
             .mapToDouble(VectorStorePort.SearchResult::similarity)
             .average().orElse(0.0);
 
+        var diversified = diversifyByBand(hybridScored, topK, avgSemantic);
+
+        diversified = removeSelfMatch(diversified, essayText);
+
         double bandSpread = calculateBandSpread(diversified);
 
         return new DiversifiedResult(diversified, avgSemantic, bandSpread);
+    }
+
+    private List<SampleEssay> removeSelfMatch(List<SampleEssay> samples, String essayText) {
+        if (essayText == null || essayText.length() < 50) return samples;
+        var searchFor = essayText.substring(0, Math.min(essayText.length(), 100)).toLowerCase();
+        return samples.stream()
+            .filter(s -> {
+                var cmp = s.getEssayText().substring(0, Math.min(s.getEssayText().length(), 100)).toLowerCase();
+                return !cmp.equals(searchFor);
+            })
+            .toList();
     }
 
     private List<VectorStorePort.SearchResult> applyHybridSearch(
@@ -98,7 +111,7 @@ public class SampleRetriever {
         return (double) intersection.size() / union.size();
     }
 
-    private List<SampleEssay> diversifyByBand(List<VectorStorePort.SearchResult> results, int topK) {
+    private List<SampleEssay> diversifyByBand(List<VectorStorePort.SearchResult> results, int topK, double avgSemantic) {
         var lowBand  = filterByBandRange(results, 4.0, 6.0);
         var midBand  = filterByBandRange(results, 6.0, 7.5);
         var highBand = filterByBandRange(results, 7.5, 9.0);
@@ -108,9 +121,16 @@ public class SampleRetriever {
         if (highBand.isEmpty()) highBand = midBand;
 
         var samples = new ArrayList<SampleEssay>();
-        if (!lowBand.isEmpty()) samples.add(toSampleEssay(lowBand.get(0)));
-        if (!midBand.isEmpty() && midBand != lowBand) samples.add(toSampleEssay(midBand.get(0)));
-        if (!highBand.isEmpty() && highBand != midBand) samples.add(toSampleEssay(highBand.get(0)));
+
+        if (avgSemantic > 0.65) {
+            if (!highBand.isEmpty()) samples.add(toSampleEssay(highBand.get(0)));
+            if (!midBand.isEmpty() && midBand != highBand) samples.add(toSampleEssay(midBand.get(0)));
+            if (!lowBand.isEmpty() && lowBand != highBand && lowBand != midBand) samples.add(toSampleEssay(lowBand.get(0)));
+        } else {
+            if (!lowBand.isEmpty()) samples.add(toSampleEssay(lowBand.get(0)));
+            if (!midBand.isEmpty() && midBand != lowBand) samples.add(toSampleEssay(midBand.get(0)));
+            if (!highBand.isEmpty() && highBand != midBand) samples.add(toSampleEssay(highBand.get(0)));
+        }
 
         if (samples.isEmpty() && !results.isEmpty()) {
             for (int i = 0; i < Math.min(topK, results.size()); i++) {
@@ -125,7 +145,8 @@ public class SampleRetriever {
             List<VectorStorePort.SearchResult> results, double min, double max) {
         return results.stream()
             .filter(r -> {
-                var band = (Double) r.metadata().getOrDefault("bandScore", 0.0);
+                var bandVal = r.metadata().getOrDefault("bandScore", 0.0);
+                var band = bandVal instanceof Number n ? n.doubleValue() : 0.0;
                 return band >= min && band <= max;
             })
             .limit(1)
@@ -140,16 +161,20 @@ public class SampleRetriever {
 
     private SampleEssay toSampleEssay(VectorStorePort.SearchResult result) {
         var meta = result.metadata();
+        var idVal = meta.getOrDefault("id", 0L);
+        var bandVal = meta.getOrDefault("bandScore", 0.0);
+        var wordVal = meta.getOrDefault("wordCount", 0);
+        var hasCommentVal = meta.getOrDefault("hasComment", false);
         return SampleEssay.builder()
-            .id((Long) meta.getOrDefault("id", 0L))
+            .id(idVal instanceof Number n ? n.longValue() : 0L)
             .taskType((String) meta.getOrDefault("taskType", ""))
             .topic((String) meta.getOrDefault("topic", ""))
             .promptText((String) meta.getOrDefault("promptText", ""))
-            .bandScore((Double) meta.getOrDefault("bandScore", 0.0))
+            .bandScore(bandVal instanceof Number n ? n.doubleValue() : 0.0)
             .essayText((String) meta.getOrDefault("essayText", ""))
             .examinerComment((String) meta.getOrDefault("examinerComment", ""))
-            .hasComment((Boolean) meta.getOrDefault("hasComment", false))
-            .wordCount((Integer) meta.getOrDefault("wordCount", 0))
+            .hasComment(hasCommentVal instanceof Boolean b && b)
+            .wordCount(wordVal instanceof Number n ? n.intValue() : 0)
             .build();
     }
 

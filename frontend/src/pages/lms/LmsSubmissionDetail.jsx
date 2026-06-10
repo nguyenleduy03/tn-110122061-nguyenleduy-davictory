@@ -77,9 +77,15 @@ export default function LmsSubmissionDetail() {
     return chunks.join('\n\n').trim();
   };
 
+  const isDragDropOrMatchingAnswer = (answer) => {
+    if (answer?.matchingAnswer && String(answer.matchingAnswer).trim() !== '') return true;
+    return false;
+  };
+
   const buildWritingLikeFromExamAttempt = async (attempt) => {
     const answers = Array.isArray(attempt?.answers) ? attempt.answers : [];
     const fallbackSubmissionText = answers
+      .filter((a) => !isDragDropOrMatchingAnswer(a))
       .map((a) => String(a?.textAnswer || '').trim())
       .filter((text) => text && !isLikelyDrivePreviewUrl(text))
       .join('\n\n')

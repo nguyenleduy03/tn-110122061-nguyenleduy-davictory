@@ -412,6 +412,7 @@ public class TestBuilderService {
 
         int sessionOrder = 1;
         int globalQuestionNumber = 0;
+        Long linkedSpeakingTestId = null;
 
         for (Session session : sessions) {
             TestSession newTs = new TestSession();
@@ -439,9 +440,31 @@ public class TestBuilderService {
                     continue;
                 }
 
-                // 5. Chọn ngẫu nhiên 1 TestPart
-                TestPart picked = candidates.get(
-                        ThreadLocalRandom.current().nextInt(candidates.size()));
+                // 5. Chọn ngẫu nhiên 1 TestPart (CÓ LƯU Ý LIÊN KẾT SPEAKING PART 2 & 3)
+                TestPart picked;
+                
+                if ("SPEAKING".equals(session.getSkillType().name())) {
+                    if (part.getOrderIndex() == 2) {
+                        picked = candidates.get(ThreadLocalRandom.current().nextInt(candidates.size()));
+                        linkedSpeakingTestId = picked.getTestSession().getTest().getId();
+                    } else if (part.getOrderIndex() == 3 && linkedSpeakingTestId != null) {
+                        List<TestPart> linkedCandidates = new ArrayList<>();
+                        for (TestPart tp : candidates) {
+                            if (tp.getTestSession().getTest().getId().equals(linkedSpeakingTestId)) {
+                                linkedCandidates.add(tp);
+                            }
+                        }
+                        if (!linkedCandidates.isEmpty()) {
+                            picked = linkedCandidates.get(ThreadLocalRandom.current().nextInt(linkedCandidates.size()));
+                        } else {
+                            picked = candidates.get(ThreadLocalRandom.current().nextInt(candidates.size())); // Fallback
+                        }
+                    } else {
+                        picked = candidates.get(ThreadLocalRandom.current().nextInt(candidates.size()));
+                    }
+                } else {
+                    picked = candidates.get(ThreadLocalRandom.current().nextInt(candidates.size()));
+                }
 
                 // 6. Tạo TestPart mới
                 TestPart newTp = new TestPart();

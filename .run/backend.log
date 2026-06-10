@@ -34,22 +34,22 @@
 
  :: Spring Boot ::                (v4.0.3)
 
-2026-06-03T16:29:04.127+07:00  INFO 111287 --- [DAVictory] [           main] c.v.DAVictory.DaVictoryApplication       : Starting DaVictoryApplication using Java 21.0.11 with PID 111287 (/home/hv/DuAn/DAVictory/backend/target/classes started by hv in /home/hv/DuAn/DAVictory/backend)
-2026-06-03T16:29:04.130+07:00  INFO 111287 --- [DAVictory] [           main] c.v.DAVictory.DaVictoryApplication       : No active profile set, falling back to 1 default profile: "default"
-2026-06-03T16:29:05.539+07:00  INFO 111287 --- [DAVictory] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
-2026-06-03T16:29:05.813+07:00  INFO 111287 --- [DAVictory] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 262 ms. Found 60 JPA repository interfaces.
-2026-06-03T16:29:06.928+07:00  INFO 111287 --- [DAVictory] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 8080 (http)
-2026-06-03T16:29:06.957+07:00  INFO 111287 --- [DAVictory] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
-2026-06-03T16:29:06.958+07:00  INFO 111287 --- [DAVictory] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/11.0.18]
-2026-06-03T16:29:07.057+07:00  INFO 111287 --- [DAVictory] [           main] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 2855 ms
-2026-06-03T16:29:07.337+07:00  INFO 111287 --- [DAVictory] [           main] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
-2026-06-03T16:29:07.398+07:00  INFO 111287 --- [DAVictory] [           main] org.hibernate.orm.core                   : HHH000001: Hibernate ORM core version 7.2.4.Final
-2026-06-03T16:29:07.948+07:00  INFO 111287 --- [DAVictory] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
-2026-06-03T16:29:07.986+07:00  INFO 111287 --- [DAVictory] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
-2026-06-03T16:29:08.217+07:00  INFO 111287 --- [DAVictory] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@3cfab340
-2026-06-03T16:29:08.220+07:00  INFO 111287 --- [DAVictory] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
-2026-06-03T16:29:08.279+07:00  WARN 111287 --- [DAVictory] [           main] org.hibernate.orm.deprecation            : HHH90000025: MySQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
-2026-06-03T16:29:08.300+07:00  INFO 111287 --- [DAVictory] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+2026-06-10T18:11:41.583+07:00  INFO 917732 --- [DAVictory] [           main] c.v.DAVictory.DaVictoryApplication       : Starting DaVictoryApplication using Java 21.0.11 with PID 917732 (/home/hv/DuAn/DAVictory/backend/target/classes started by hv in /home/hv/DuAn/DAVictory/backend)
+2026-06-10T18:11:41.586+07:00  INFO 917732 --- [DAVictory] [           main] c.v.DAVictory.DaVictoryApplication       : No active profile set, falling back to 1 default profile: "default"
+2026-06-10T18:11:42.851+07:00  INFO 917732 --- [DAVictory] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-06-10T18:11:43.060+07:00  INFO 917732 --- [DAVictory] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 198 ms. Found 60 JPA repository interfaces.
+2026-06-10T18:11:44.218+07:00  INFO 917732 --- [DAVictory] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 8080 (http)
+2026-06-10T18:11:44.260+07:00  INFO 917732 --- [DAVictory] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-06-10T18:11:44.260+07:00  INFO 917732 --- [DAVictory] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/11.0.18]
+2026-06-10T18:11:44.370+07:00  INFO 917732 --- [DAVictory] [           main] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 2707 ms
+2026-06-10T18:11:44.791+07:00  INFO 917732 --- [DAVictory] [           main] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-06-10T18:11:44.891+07:00  INFO 917732 --- [DAVictory] [           main] org.hibernate.orm.core                   : HHH000001: Hibernate ORM core version 7.2.4.Final
+2026-06-10T18:11:45.510+07:00  INFO 917732 --- [DAVictory] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-06-10T18:11:45.549+07:00  INFO 917732 --- [DAVictory] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-06-10T18:11:45.754+07:00  INFO 917732 --- [DAVictory] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@2fccf49e
+2026-06-10T18:11:45.757+07:00  INFO 917732 --- [DAVictory] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-06-10T18:11:45.824+07:00  WARN 917732 --- [DAVictory] [           main] org.hibernate.orm.deprecation            : HHH90000025: MySQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-06-10T18:11:45.843+07:00  INFO 917732 --- [DAVictory] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
 	Database JDBC URL [jdbc:mysql://localhost:3306/DAVictory?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true]
 	Database driver: MySQL Connector/J
 	Database dialect: MySQLDialect
@@ -61,50 +61,71 @@
 	Pool: DataSourceConnectionProvider
 	Minimum pool size: undefined/unknown
 	Maximum pool size: undefined/unknown
-2026-06-03T16:29:11.528+07:00  INFO 111287 --- [DAVictory] [           main] org.hibernate.orm.core                   : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
-2026-06-03T16:29:11.889+07:00  INFO 111287 --- [DAVictory] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
-2026-06-03T16:29:12.019+07:00  INFO 111287 --- [DAVictory] [           main] o.s.d.j.r.query.QueryEnhancerFactories   : Hibernate is in classpath; If applicable, HQL parser will be used.
-2026-06-03T16:29:13.798+07:00  INFO 111287 --- [DAVictory] [           main] c.v.DAVictory.config.PublicIpService     : ✅ Lấy IP từ https://api.ipify.org: 14.183.200.227
-2026-06-03T16:29:13.799+07:00  INFO 111287 --- [DAVictory] [           main] c.v.DAVictory.config.PublicIpService     : 🌐 Public IP đã phát hiện: 14.183.200.227
-2026-06-03T16:29:13.808+07:00  INFO 111287 --- [DAVictory] [           main] c.victory.DAVictory.config.CorsConfig    : CORS: Thêm IP public 14.183.200.227 vào allowed origins
-2026-06-03T16:29:13.809+07:00  INFO 111287 --- [DAVictory] [           main] c.victory.DAVictory.config.CorsConfig    : CORS allowed origins: [http://localhost:5173, http://localhost:3000, http://localhost:80, http://localhost, https://davictory.io.vn, https://www.davictory.io.vn, http://davictory.io.vn, http://www.davictory.io.vn, http://14.183.200.227:5173, http://14.183.200.227:3000, http://14.183.200.227:80, http://14.183.200.227]
-2026-06-03T16:29:16.206+07:00  INFO 111287 --- [DAVictory] [           main] eAuthenticationProviderManagerConfigurer : Global AuthenticationManager configured with AuthenticationProvider bean with name authenticationProvider
-2026-06-03T16:29:16.206+07:00  WARN 111287 --- [DAVictory] [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with an AuthenticationProvider bean. UserDetailsService beans will not be used by Spring Security for automatically configuring username/password login. Consider removing the AuthenticationProvider bean. Alternatively, consider using the UserDetailsService in a manually instantiated DaoAuthenticationProvider. If the current configuration is intentional, to turn off this warning, increase the logging level of 'org.springframework.security.config.annotation.authentication.configuration.InitializeUserDetailsBeanManagerConfigurer' to ERROR
-2026-06-03T16:29:18.440+07:00  WARN 111287 --- [DAVictory] [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
-2026-06-03T16:29:19.054+07:00  INFO 111287 --- [DAVictory] [           main] o.s.v.b.OptionalValidatorFactoryBean     : Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
-2026-06-03T16:29:20.126+07:00  INFO 111287 --- [DAVictory] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat started on port 8080 (http) with context path '/'
-2026-06-03T16:29:20.137+07:00  INFO 111287 --- [DAVictory] [           main] c.v.DAVictory.DaVictoryApplication       : Started DaVictoryApplication in 16.618 seconds (process running for 17.229)
-2026-06-03T16:29:20.389+07:00  INFO 111287 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    : 🔧 [TestStructureInitializer] Bắt đầu khởi tạo cấu trúc IELTS...
-2026-06-03T16:29:20.403+07:00  INFO 111287 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ DifficultyLevels (5 cấp độ)
-2026-06-03T16:29:20.426+07:00  INFO 111287 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ Sessions (Listening / Reading / Writing / Speaking × Academic & General)
-2026-06-03T16:29:20.519+07:00  INFO 111287 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ Parts (các phần trong mỗi kỹ năng)
-2026-06-03T16:29:20.569+07:00  INFO 111287 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ QuestionTypes (14 loại câu hỏi IELTS)
-2026-06-03T16:29:20.569+07:00  INFO 111287 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    : ✅ [TestStructureInitializer] Hoàn tất khởi tạo cấu trúc IELTS.
-2026-06-03T16:29:30.558+07:00  INFO 111287 --- [DAVictory] [nio-8080-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
-2026-06-03T16:29:30.559+07:00  INFO 111287 --- [DAVictory] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
-2026-06-03T16:29:30.563+07:00  INFO 111287 --- [DAVictory] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 4 ms
-🔍 Checking authorization:
-   - Credential exists: true
-   - Access token exists: true
-🔍 Checking authorization:
-   - Credential exists: true
-   - Access token exists: true
-🔍 Checking authorization:
-   - Credential exists: true
-   - Access token exists: true
-🔍 Checking authorization:
-   - Credential exists: true
-   - Access token exists: true
-🔍 Checking authorization:
-   - Credential exists: true
-   - Access token exists: true
-🔍 Checking authorization:
-   - Credential exists: true
-   - Access token exists: true
-2026-06-03T16:56:21.001+07:00  INFO 111287 --- [DAVictory] [nio-8080-exec-5] o.apache.coyote.http11.Http11Processor   : Error parsing HTTP request header
+2026-06-10T18:11:49.879+07:00  INFO 917732 --- [DAVictory] [           main] org.hibernate.orm.core                   : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-06-10T18:11:50.826+07:00  INFO 917732 --- [DAVictory] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-06-10T18:11:51.000+07:00  INFO 917732 --- [DAVictory] [           main] o.s.d.j.r.query.QueryEnhancerFactories   : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-06-10T18:11:53.023+07:00  INFO 917732 --- [DAVictory] [           main] c.v.DAVictory.config.PublicIpService     : ✅ Lấy IP từ https://api.ipify.org: 14.227.143.142
+2026-06-10T18:11:53.024+07:00  INFO 917732 --- [DAVictory] [           main] c.v.DAVictory.config.PublicIpService     : 🌐 Public IP đã phát hiện: 14.227.143.142
+2026-06-10T18:11:53.035+07:00  INFO 917732 --- [DAVictory] [           main] c.victory.DAVictory.config.CorsConfig    : CORS: Thêm IP public 14.227.143.142 vào allowed origins
+2026-06-10T18:11:53.036+07:00  INFO 917732 --- [DAVictory] [           main] c.victory.DAVictory.config.CorsConfig    : CORS allowed origin patterns: flexible matching enabled
+2026-06-10T18:11:55.385+07:00  INFO 917732 --- [DAVictory] [           main] eAuthenticationProviderManagerConfigurer : Global AuthenticationManager configured with AuthenticationProvider bean with name authenticationProvider
+2026-06-10T18:11:55.385+07:00  WARN 917732 --- [DAVictory] [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with an AuthenticationProvider bean. UserDetailsService beans will not be used by Spring Security for automatically configuring username/password login. Consider removing the AuthenticationProvider bean. Alternatively, consider using the UserDetailsService in a manually instantiated DaoAuthenticationProvider. If the current configuration is intentional, to turn off this warning, increase the logging level of 'org.springframework.security.config.annotation.authentication.configuration.InitializeUserDetailsBeanManagerConfigurer' to ERROR
+2026-06-10T18:11:59.240+07:00  WARN 917732 --- [DAVictory] [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-06-10T18:12:00.823+07:00  INFO 917732 --- [DAVictory] [           main] o.s.v.b.OptionalValidatorFactoryBean     : Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2026-06-10T18:12:03.443+07:00  INFO 917732 --- [DAVictory] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat started on port 8080 (http) with context path '/'
+2026-06-10T18:12:03.467+07:00  INFO 917732 --- [DAVictory] [           main] c.v.DAVictory.DaVictoryApplication       : Started DaVictoryApplication in 22.514 seconds (process running for 23.144)
+2026-06-10T18:12:03.986+07:00  INFO 917732 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    : 🔧 [TestStructureInitializer] Bắt đầu khởi tạo cấu trúc IELTS...
+2026-06-10T18:12:04.008+07:00  INFO 917732 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ DifficultyLevels (5 cấp độ)
+2026-06-10T18:12:04.075+07:00  INFO 917732 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ Sessions (Listening / Reading / Writing / Speaking × Academic & General)
+2026-06-10T18:12:04.271+07:00  INFO 917732 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ Parts (các phần trong mỗi kỹ năng)
+2026-06-10T18:12:04.368+07:00  INFO 917732 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ QuestionTypes (14 loại câu hỏi IELTS)
+2026-06-10T18:12:04.369+07:00  INFO 917732 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    : ✅ [TestStructureInitializer] Hoàn tất khởi tạo cấu trúc IELTS.
+2026-06-10T18:17:01.185+07:00  INFO 917732 --- [DAVictory] [nio-8080-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-06-10T18:17:01.186+07:00  INFO 917732 --- [DAVictory] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-06-10T18:17:01.191+07:00  INFO 917732 --- [DAVictory] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 4 ms
+🗑️ Cleaning up unused group: 44961
+🗑️ Cleaning up unused group: 44962
+🗑️ Cleaning up unused group: 44963
+🔍 Saving 5 questions for group: Part 1 - Interview 1
+📝 Question 1: cscs | Answers: 0
+💾 Saving 0 answers for question ID: 123648, text: cscs
+✅ Successfully saved question 1
+📝 Question 2: cewce | Answers: 0
+💾 Saving 0 answers for question ID: 123649, text: cewce
+✅ Successfully saved question 2
+📝 Question 3: xữ | Answers: 0
+💾 Saving 0 answers for question ID: 123650, text: xữ
+✅ Successfully saved question 3
+📝 Question 4: <div>ưdwd</div><div><br></div> | Answers: 0
+💾 Saving 0 answers for question ID: 123651, text: <div>ưdwd</div><div><br></div>
+✅ Successfully saved question 4
+📝 Question 5: <div>đư</div><div><br></div> | Answers: 0
+💾 Saving 0 answers for question ID: 123652, text: <div>đư</div><div><br></div>
+✅ Successfully saved question 5
+🔍 Saving 1 questions for group: Part 2 - Cue Card 1
+📝 Question 1:  | Answers: 0
+💾 Saving 0 answers for question ID: 123653, text: 
+✅ Successfully saved question 1
+🔍 Saving 5 questions for group: Part 3 - Discussion 1
+📝 Question 1: fewf | Answers: 0
+💾 Saving 0 answers for question ID: 123654, text: fewf
+✅ Successfully saved question 1
+📝 Question 2: ềw | Answers: 0
+💾 Saving 0 answers for question ID: 123655, text: ềw
+✅ Successfully saved question 2
+📝 Question 3: ề | Answers: 0
+💾 Saving 0 answers for question ID: 123656, text: ề
+✅ Successfully saved question 3
+📝 Question 4: ewcwe | Answers: 0
+💾 Saving 0 answers for question ID: 123657, text: ewcwe
+✅ Successfully saved question 4
+📝 Question 5: ewce | Answers: 0
+💾 Saving 0 answers for question ID: 123658, text: ewce
+✅ Successfully saved question 5
+2026-06-10T18:30:17.423+07:00  INFO 917732 --- [DAVictory] [nio-8080-exec-3] o.apache.coyote.http11.Http11Processor   : Error parsing HTTP request header
  Note: further occurrences of HTTP request parsing errors will be logged at DEBUG level.
 
-java.lang.IllegalArgumentException: Invalid character found in method name [0x800x000x00(0xca0xfe0xca0xfe0x000x000x000x000x000x000x000x020x000x010x860xa00x000x000x000x040x000x000x000x040x000x000x000x000x000x000x000x000x000x000x000x000x000x000x000x00...]. HTTP method names must be tokens
+java.lang.IllegalArgumentException: Invalid character found in method name [MGLNDD_14.227.143.142_80800x0a...]. HTTP method names must be tokens
 	at org.apache.coyote.http11.Http11InputBuffer.parseRequestLine(Http11InputBuffer.java:391) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
 	at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:270) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
 	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:63) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
@@ -116,3 +137,1552 @@ java.lang.IllegalArgumentException: Invalid character found in method name [0x80
 	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:57) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
 	at java.base/java.lang.Thread.run(Thread.java:1583) ~[na:na]
 
+🗑️ Cleaning up unused group: 44964
+🗑️ Cleaning up unused group: 44965
+🗑️ Cleaning up unused group: 44966
+🔍 Saving 5 questions for group: Part 1 - Interview 1
+📝 Question 1: cscs | Answers: 0
+💾 Saving 0 answers for question ID: 123659, text: cscs
+✅ Successfully saved question 1
+📝 Question 2: cewce | Answers: 0
+💾 Saving 0 answers for question ID: 123660, text: cewce
+✅ Successfully saved question 2
+📝 Question 3: xữ | Answers: 0
+💾 Saving 0 answers for question ID: 123661, text: xữ
+✅ Successfully saved question 3
+📝 Question 4: <div>ưdwd</div><div><br></div> | Answers: 0
+💾 Saving 0 answers for question ID: 123662, text: <div>ưdwd</div><div><br></div>
+✅ Successfully saved question 4
+📝 Question 5: <div>đư</div><div><br></div> | Answers: 0
+💾 Saving 0 answers for question ID: 123663, text: <div>đư</div><div><br></div>
+✅ Successfully saved question 5
+🔍 Saving 1 questions for group: Part 2 - Cue Card 1
+📝 Question 1:  | Answers: 0
+💾 Saving 0 answers for question ID: 123664, text: 
+✅ Successfully saved question 1
+🔍 Saving 5 questions for group: Part 3 - Discussion 1
+📝 Question 1: fewf | Answers: 0
+💾 Saving 0 answers for question ID: 123665, text: fewf
+✅ Successfully saved question 1
+📝 Question 2: ềw | Answers: 0
+💾 Saving 0 answers for question ID: 123666, text: ềw
+✅ Successfully saved question 2
+📝 Question 3: ề | Answers: 0
+💾 Saving 0 answers for question ID: 123667, text: ề
+✅ Successfully saved question 3
+📝 Question 4: ewcwe | Answers: 0
+💾 Saving 0 answers for question ID: 123668, text: ewcwe
+✅ Successfully saved question 4
+📝 Question 5: ewce | Answers: 0
+💾 Saving 0 answers for question ID: 123669, text: ewce
+✅ Successfully saved question 5
+🗑️ Cleaning up unused group: 44967
+🗑️ Cleaning up unused group: 44968
+🗑️ Cleaning up unused group: 44969
+🔍 Saving 5 questions for group: Part 1 - Interview 1
+📝 Question 1: cscs | Answers: 0
+💾 Saving 0 answers for question ID: 123670, text: cscs
+✅ Successfully saved question 1
+📝 Question 2: cewce | Answers: 0
+💾 Saving 0 answers for question ID: 123671, text: cewce
+✅ Successfully saved question 2
+📝 Question 3: xữ | Answers: 0
+💾 Saving 0 answers for question ID: 123672, text: xữ
+✅ Successfully saved question 3
+📝 Question 4: <div>ưdwd</div><div><br></div> | Answers: 0
+💾 Saving 0 answers for question ID: 123673, text: <div>ưdwd</div><div><br></div>
+✅ Successfully saved question 4
+📝 Question 5: <div>đư</div><div><br></div> | Answers: 0
+💾 Saving 0 answers for question ID: 123674, text: <div>đư</div><div><br></div>
+✅ Successfully saved question 5
+🔍 Saving 1 questions for group: Part 2 - Cue Card 1
+📝 Question 1:  | Answers: 0
+💾 Saving 0 answers for question ID: 123675, text: 
+✅ Successfully saved question 1
+🔍 Saving 5 questions for group: Part 3 - Discussion 1
+📝 Question 1: fewf | Answers: 0
+💾 Saving 0 answers for question ID: 123676, text: fewf
+✅ Successfully saved question 1
+📝 Question 2: ềw | Answers: 0
+💾 Saving 0 answers for question ID: 123677, text: ềw
+✅ Successfully saved question 2
+📝 Question 3: ề | Answers: 0
+💾 Saving 0 answers for question ID: 123678, text: ề
+✅ Successfully saved question 3
+📝 Question 4: ewcwe | Answers: 0
+💾 Saving 0 answers for question ID: 123679, text: ewcwe
+✅ Successfully saved question 4
+📝 Question 5: ewce | Answers: 0
+💾 Saving 0 answers for question ID: 123680, text: ewce
+✅ Successfully saved question 5
+🗑️ Cleaning up unused group: 44970
+🗑️ Cleaning up unused group: 44971
+🗑️ Cleaning up unused group: 44972
+🔍 Saving 5 questions for group: Part 1 - Interview 1
+📝 Question 1: cscs | Answers: 0
+💾 Saving 0 answers for question ID: 123681, text: cscs
+✅ Successfully saved question 1
+📝 Question 2: cewce | Answers: 0
+💾 Saving 0 answers for question ID: 123682, text: cewce
+✅ Successfully saved question 2
+📝 Question 3: xữ | Answers: 0
+💾 Saving 0 answers for question ID: 123683, text: xữ
+✅ Successfully saved question 3
+📝 Question 4: <div>ưdwd</div><div><br></div> | Answers: 0
+💾 Saving 0 answers for question ID: 123684, text: <div>ưdwd</div><div><br></div>
+✅ Successfully saved question 4
+📝 Question 5: <div>đư</div><div><br></div> | Answers: 0
+💾 Saving 0 answers for question ID: 123685, text: <div>đư</div><div><br></div>
+✅ Successfully saved question 5
+🔍 Saving 3 questions for group: Part 1 - Interview 2
+📝 Question 1:  | Answers: 0
+💾 Saving 0 answers for question ID: 123686, text: 
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 0
+💾 Saving 0 answers for question ID: 123687, text: 
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 0
+💾 Saving 0 answers for question ID: 123688, text: 
+✅ Successfully saved question 3
+🔍 Saving 1 questions for group: Part 2 - Cue Card 1
+📝 Question 1:  | Answers: 0
+💾 Saving 0 answers for question ID: 123689, text: 
+✅ Successfully saved question 1
+🔍 Saving 5 questions for group: Part 3 - Discussion 1
+📝 Question 1: fewf | Answers: 0
+💾 Saving 0 answers for question ID: 123690, text: fewf
+✅ Successfully saved question 1
+📝 Question 2: ềw | Answers: 0
+💾 Saving 0 answers for question ID: 123691, text: ềw
+✅ Successfully saved question 2
+📝 Question 3: ề | Answers: 0
+💾 Saving 0 answers for question ID: 123692, text: ề
+✅ Successfully saved question 3
+📝 Question 4: ewcwe | Answers: 0
+💾 Saving 0 answers for question ID: 123693, text: ewcwe
+✅ Successfully saved question 4
+📝 Question 5: ewce | Answers: 0
+💾 Saving 0 answers for question ID: 123694, text: ewce
+✅ Successfully saved question 5
+🗑️ Cleaning up unused group: 44973
+🗑️ Cleaning up unused group: 44974
+🗑️ Cleaning up unused group: 44975
+🗑️ Cleaning up unused group: 44976
+🔍 Saving 5 questions for group: Part 1 - Interview 1
+📝 Question 1: cscs | Answers: 0
+💾 Saving 0 answers for question ID: 123695, text: cscs
+✅ Successfully saved question 1
+📝 Question 2: cewce | Answers: 0
+💾 Saving 0 answers for question ID: 123696, text: cewce
+✅ Successfully saved question 2
+📝 Question 3: xữ | Answers: 0
+💾 Saving 0 answers for question ID: 123697, text: xữ
+✅ Successfully saved question 3
+📝 Question 4: <div>ưdwd</div><div><br></div> | Answers: 0
+💾 Saving 0 answers for question ID: 123698, text: <div>ưdwd</div><div><br></div>
+✅ Successfully saved question 4
+📝 Question 5: <div>đư</div><div><br></div> | Answers: 0
+💾 Saving 0 answers for question ID: 123699, text: <div>đư</div><div><br></div>
+✅ Successfully saved question 5
+🔍 Saving 3 questions for group: Part 1 - Interview 2
+📝 Question 1:  | Answers: 0
+💾 Saving 0 answers for question ID: 123700, text: 
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 0
+💾 Saving 0 answers for question ID: 123701, text: 
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 0
+💾 Saving 0 answers for question ID: 123702, text: 
+✅ Successfully saved question 3
+🔍 Saving 1 questions for group: Part 2 - Cue Card 1
+📝 Question 1:  | Answers: 0
+💾 Saving 0 answers for question ID: 123703, text: 
+✅ Successfully saved question 1
+🔍 Saving 5 questions for group: Part 3 - Discussion 1
+📝 Question 1: fewf | Answers: 0
+💾 Saving 0 answers for question ID: 123704, text: fewf
+✅ Successfully saved question 1
+📝 Question 2: ềw | Answers: 0
+💾 Saving 0 answers for question ID: 123705, text: ềw
+✅ Successfully saved question 2
+📝 Question 3: ề | Answers: 0
+💾 Saving 0 answers for question ID: 123706, text: ề
+✅ Successfully saved question 3
+📝 Question 4: ewcwe | Answers: 0
+💾 Saving 0 answers for question ID: 123707, text: ewcwe
+✅ Successfully saved question 4
+📝 Question 5: ewce | Answers: 0
+💾 Saving 0 answers for question ID: 123708, text: ewce
+✅ Successfully saved question 5
+🗑️ Cleaning up unused group: 44977
+🗑️ Cleaning up unused group: 44978
+🗑️ Cleaning up unused group: 44979
+🗑️ Cleaning up unused group: 44980
+🔍 Saving 5 questions for group: Part 1 - Interview 1
+📝 Question 1: cscs | Answers: 0
+💾 Saving 0 answers for question ID: 123709, text: cscs
+✅ Successfully saved question 1
+📝 Question 2: cewce | Answers: 0
+💾 Saving 0 answers for question ID: 123710, text: cewce
+✅ Successfully saved question 2
+📝 Question 3: xữ | Answers: 0
+💾 Saving 0 answers for question ID: 123711, text: xữ
+✅ Successfully saved question 3
+📝 Question 4: <div>ưdwd</div><div><br></div> | Answers: 0
+💾 Saving 0 answers for question ID: 123712, text: <div>ưdwd</div><div><br></div>
+✅ Successfully saved question 4
+📝 Question 5: <div>đư</div><div><br></div> | Answers: 0
+💾 Saving 0 answers for question ID: 123713, text: <div>đư</div><div><br></div>
+✅ Successfully saved question 5
+🔍 Saving 3 questions for group: Part 1 - Interview 2
+📝 Question 1:  | Answers: 0
+💾 Saving 0 answers for question ID: 123714, text: 
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 0
+💾 Saving 0 answers for question ID: 123715, text: 
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 0
+💾 Saving 0 answers for question ID: 123716, text: 
+✅ Successfully saved question 3
+🔍 Saving 1 questions for group: Part 2 - Cue Card 1
+📝 Question 1:  | Answers: 0
+💾 Saving 0 answers for question ID: 123717, text: 
+✅ Successfully saved question 1
+🔍 Saving 5 questions for group: Part 3 - Discussion 1
+📝 Question 1: fewf | Answers: 0
+💾 Saving 0 answers for question ID: 123718, text: fewf
+✅ Successfully saved question 1
+📝 Question 2: ềw | Answers: 0
+💾 Saving 0 answers for question ID: 123719, text: ềw
+✅ Successfully saved question 2
+📝 Question 3: ề | Answers: 0
+💾 Saving 0 answers for question ID: 123720, text: ề
+✅ Successfully saved question 3
+📝 Question 4: ewcwe | Answers: 0
+💾 Saving 0 answers for question ID: 123721, text: ewcwe
+✅ Successfully saved question 4
+📝 Question 5: ewce | Answers: 0
+💾 Saving 0 answers for question ID: 123722, text: ewce
+✅ Successfully saved question 5
+🗑️ Cleaning up unused group: 44981
+🗑️ Cleaning up unused group: 44982
+🗑️ Cleaning up unused group: 44983
+🗑️ Cleaning up unused group: 44984
+🔍 Saving 12 questions for group: Part 1 - Interview 1
+📝 Question 1: cscs | Answers: 0
+💾 Saving 0 answers for question ID: 123723, text: cscs
+✅ Successfully saved question 1
+📝 Question 2: cewce | Answers: 0
+💾 Saving 0 answers for question ID: 123724, text: cewce
+✅ Successfully saved question 2
+📝 Question 3: xữ | Answers: 0
+💾 Saving 0 answers for question ID: 123725, text: xữ
+✅ Successfully saved question 3
+📝 Question 4: <div>ưdwd</div><div><br></div> | Answers: 0
+💾 Saving 0 answers for question ID: 123726, text: <div>ưdwd</div><div><br></div>
+✅ Successfully saved question 4
+📝 Question 5: <div>đư</div><div><br></div> | Answers: 0
+💾 Saving 0 answers for question ID: 123727, text: <div>đư</div><div><br></div>
+✅ Successfully saved question 5
+📝 Question 6: ewfef | Answers: 0
+💾 Saving 0 answers for question ID: 123728, text: ewfef
+✅ Successfully saved question 6
+📝 Question 7: fef | Answers: 0
+💾 Saving 0 answers for question ID: 123729, text: fef
+✅ Successfully saved question 7
+📝 Question 8: è | Answers: 0
+💾 Saving 0 answers for question ID: 123730, text: è
+✅ Successfully saved question 8
+📝 Question 9: è | Answers: 0
+💾 Saving 0 answers for question ID: 123731, text: è
+✅ Successfully saved question 9
+📝 Question 10: è | Answers: 0
+💾 Saving 0 answers for question ID: 123732, text: è
+✅ Successfully saved question 10
+📝 Question 11: e | Answers: 0
+💾 Saving 0 answers for question ID: 123733, text: e
+✅ Successfully saved question 11
+📝 Question 12: f | Answers: 0
+💾 Saving 0 answers for question ID: 123734, text: f
+✅ Successfully saved question 12
+🔍 Saving 3 questions for group: Part 1 - Interview 2
+📝 Question 1:  | Answers: 0
+💾 Saving 0 answers for question ID: 123735, text: 
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 0
+💾 Saving 0 answers for question ID: 123736, text: 
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 0
+💾 Saving 0 answers for question ID: 123737, text: 
+✅ Successfully saved question 3
+🔍 Saving 1 questions for group: Part 2 - Cue Card 1
+📝 Question 1:  | Answers: 0
+💾 Saving 0 answers for question ID: 123738, text: 
+✅ Successfully saved question 1
+🔍 Saving 5 questions for group: Part 3 - Discussion 1
+📝 Question 1: fewf | Answers: 0
+💾 Saving 0 answers for question ID: 123739, text: fewf
+✅ Successfully saved question 1
+📝 Question 2: ềw | Answers: 0
+💾 Saving 0 answers for question ID: 123740, text: ềw
+✅ Successfully saved question 2
+📝 Question 3: ề | Answers: 0
+💾 Saving 0 answers for question ID: 123741, text: ề
+✅ Successfully saved question 3
+📝 Question 4: ewcwe | Answers: 0
+💾 Saving 0 answers for question ID: 123742, text: ewcwe
+✅ Successfully saved question 4
+📝 Question 5: ewce | Answers: 0
+💾 Saving 0 answers for question ID: 123743, text: ewce
+✅ Successfully saved question 5
+🗑️ Cleaning up unused group: 44985
+🗑️ Cleaning up unused group: 44986
+🗑️ Cleaning up unused group: 44987
+🗑️ Cleaning up unused group: 44988
+🔍 Saving 11 questions for group: Part 1 - Interview 1
+📝 Question 1: cewce | Answers: 0
+💾 Saving 0 answers for question ID: 123744, text: cewce
+✅ Successfully saved question 1
+📝 Question 2: xữ | Answers: 0
+💾 Saving 0 answers for question ID: 123745, text: xữ
+✅ Successfully saved question 2
+📝 Question 3: <div>ưdwd</div><div><br></div> | Answers: 0
+💾 Saving 0 answers for question ID: 123746, text: <div>ưdwd</div><div><br></div>
+✅ Successfully saved question 3
+📝 Question 4: <div>đư</div><div><br></div> | Answers: 0
+💾 Saving 0 answers for question ID: 123747, text: <div>đư</div><div><br></div>
+✅ Successfully saved question 4
+📝 Question 5: ewfef | Answers: 0
+💾 Saving 0 answers for question ID: 123748, text: ewfef
+✅ Successfully saved question 5
+📝 Question 6: fef | Answers: 0
+💾 Saving 0 answers for question ID: 123749, text: fef
+✅ Successfully saved question 6
+📝 Question 7: è | Answers: 0
+💾 Saving 0 answers for question ID: 123750, text: è
+✅ Successfully saved question 7
+📝 Question 8: è | Answers: 0
+💾 Saving 0 answers for question ID: 123751, text: è
+✅ Successfully saved question 8
+📝 Question 9: è | Answers: 0
+💾 Saving 0 answers for question ID: 123752, text: è
+✅ Successfully saved question 9
+📝 Question 10: e | Answers: 0
+💾 Saving 0 answers for question ID: 123753, text: e
+✅ Successfully saved question 10
+📝 Question 11: f | Answers: 0
+💾 Saving 0 answers for question ID: 123754, text: f
+✅ Successfully saved question 11
+🔍 Saving 3 questions for group: Part 1 - Interview 2
+📝 Question 1:  | Answers: 0
+💾 Saving 0 answers for question ID: 123755, text: 
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 0
+💾 Saving 0 answers for question ID: 123756, text: 
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 0
+💾 Saving 0 answers for question ID: 123757, text: 
+✅ Successfully saved question 3
+🔍 Saving 1 questions for group: Part 2 - Cue Card 1
+📝 Question 1:  | Answers: 0
+💾 Saving 0 answers for question ID: 123758, text: 
+✅ Successfully saved question 1
+🔍 Saving 5 questions for group: Part 3 - Discussion 1
+📝 Question 1: fewf | Answers: 0
+💾 Saving 0 answers for question ID: 123759, text: fewf
+✅ Successfully saved question 1
+📝 Question 2: ềw | Answers: 0
+💾 Saving 0 answers for question ID: 123760, text: ềw
+✅ Successfully saved question 2
+📝 Question 3: ề | Answers: 0
+💾 Saving 0 answers for question ID: 123761, text: ề
+✅ Successfully saved question 3
+📝 Question 4: ewcwe | Answers: 0
+💾 Saving 0 answers for question ID: 123762, text: ewcwe
+✅ Successfully saved question 4
+📝 Question 5: ewce | Answers: 0
+💾 Saving 0 answers for question ID: 123763, text: ewce
+✅ Successfully saved question 5
+🗑️ Cleaning up unused group: 44989
+🗑️ Cleaning up unused group: 44990
+🗑️ Cleaning up unused group: 44991
+🗑️ Cleaning up unused group: 44992
+🔍 Saving 11 questions for group: Part 1 - Interview 1
+📝 Question 1: cewce | Answers: 0
+💾 Saving 0 answers for question ID: 123764, text: cewce
+✅ Successfully saved question 1
+📝 Question 2: xữ | Answers: 0
+💾 Saving 0 answers for question ID: 123765, text: xữ
+✅ Successfully saved question 2
+📝 Question 3: <div>ưdwd</div><div><br></div> | Answers: 0
+💾 Saving 0 answers for question ID: 123766, text: <div>ưdwd</div><div><br></div>
+✅ Successfully saved question 3
+📝 Question 4: <div>đư</div><div><br></div> | Answers: 0
+💾 Saving 0 answers for question ID: 123767, text: <div>đư</div><div><br></div>
+✅ Successfully saved question 4
+📝 Question 5: ewfef | Answers: 0
+💾 Saving 0 answers for question ID: 123768, text: ewfef
+✅ Successfully saved question 5
+📝 Question 6: fef | Answers: 0
+💾 Saving 0 answers for question ID: 123769, text: fef
+✅ Successfully saved question 6
+📝 Question 7: è | Answers: 0
+💾 Saving 0 answers for question ID: 123770, text: è
+✅ Successfully saved question 7
+📝 Question 8: è | Answers: 0
+💾 Saving 0 answers for question ID: 123771, text: è
+✅ Successfully saved question 8
+📝 Question 9: è | Answers: 0
+💾 Saving 0 answers for question ID: 123772, text: è
+✅ Successfully saved question 9
+📝 Question 10: e | Answers: 0
+💾 Saving 0 answers for question ID: 123773, text: e
+✅ Successfully saved question 10
+📝 Question 11: f | Answers: 0
+💾 Saving 0 answers for question ID: 123774, text: f
+✅ Successfully saved question 11
+🔍 Saving 3 questions for group: Part 1 - Interview 2
+📝 Question 1:  | Answers: 0
+💾 Saving 0 answers for question ID: 123775, text: 
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 0
+💾 Saving 0 answers for question ID: 123776, text: 
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 0
+💾 Saving 0 answers for question ID: 123777, text: 
+✅ Successfully saved question 3
+🔍 Saving 1 questions for group: Part 2 - Cue Card 1
+📝 Question 1:  | Answers: 0
+💾 Saving 0 answers for question ID: 123778, text: 
+✅ Successfully saved question 1
+🔍 Saving 5 questions for group: Part 3 - Discussion 1
+📝 Question 1: fewf | Answers: 0
+💾 Saving 0 answers for question ID: 123779, text: fewf
+✅ Successfully saved question 1
+📝 Question 2: ềw | Answers: 0
+💾 Saving 0 answers for question ID: 123780, text: ềw
+✅ Successfully saved question 2
+📝 Question 3: ề | Answers: 0
+💾 Saving 0 answers for question ID: 123781, text: ề
+✅ Successfully saved question 3
+📝 Question 4: ewcwe | Answers: 0
+💾 Saving 0 answers for question ID: 123782, text: ewcwe
+✅ Successfully saved question 4
+📝 Question 5: ewce | Answers: 0
+💾 Saving 0 answers for question ID: 123783, text: ewce
+✅ Successfully saved question 5
+🗑️ Cleaning up unused group: 44993
+🗑️ Cleaning up unused group: 44994
+🗑️ Cleaning up unused group: 44995
+🗑️ Cleaning up unused group: 44996
+🔍 Saving 11 questions for group: Part 1 - Interview 1
+📝 Question 1: cewce | Answers: 0
+💾 Saving 0 answers for question ID: 123784, text: cewce
+✅ Successfully saved question 1
+📝 Question 2: xữ | Answers: 0
+💾 Saving 0 answers for question ID: 123785, text: xữ
+✅ Successfully saved question 2
+📝 Question 3: <div>ưdwd</div><div><br></div> | Answers: 0
+💾 Saving 0 answers for question ID: 123786, text: <div>ưdwd</div><div><br></div>
+✅ Successfully saved question 3
+📝 Question 4: <div>đư</div><div><br></div> | Answers: 0
+💾 Saving 0 answers for question ID: 123787, text: <div>đư</div><div><br></div>
+✅ Successfully saved question 4
+📝 Question 5: ewfef | Answers: 0
+💾 Saving 0 answers for question ID: 123788, text: ewfef
+✅ Successfully saved question 5
+📝 Question 6: fef | Answers: 0
+💾 Saving 0 answers for question ID: 123789, text: fef
+✅ Successfully saved question 6
+📝 Question 7: è | Answers: 0
+💾 Saving 0 answers for question ID: 123790, text: è
+✅ Successfully saved question 7
+📝 Question 8: è | Answers: 0
+💾 Saving 0 answers for question ID: 123791, text: è
+✅ Successfully saved question 8
+📝 Question 9: è | Answers: 0
+💾 Saving 0 answers for question ID: 123792, text: è
+✅ Successfully saved question 9
+📝 Question 10: e | Answers: 0
+💾 Saving 0 answers for question ID: 123793, text: e
+✅ Successfully saved question 10
+📝 Question 11: f | Answers: 0
+💾 Saving 0 answers for question ID: 123794, text: f
+✅ Successfully saved question 11
+🔍 Saving 3 questions for group: Part 1 - Interview 2
+📝 Question 1:  | Answers: 0
+💾 Saving 0 answers for question ID: 123795, text: 
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 0
+💾 Saving 0 answers for question ID: 123796, text: 
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 0
+💾 Saving 0 answers for question ID: 123797, text: 
+✅ Successfully saved question 3
+🔍 Saving 1 questions for group: Part 2 - Cue Card 1
+📝 Question 1:  | Answers: 0
+💾 Saving 0 answers for question ID: 123798, text: 
+✅ Successfully saved question 1
+🔍 Saving 12 questions for group: Part 3 - Discussion 1
+📝 Question 1: fewf | Answers: 0
+💾 Saving 0 answers for question ID: 123799, text: fewf
+✅ Successfully saved question 1
+📝 Question 2: ềw | Answers: 0
+💾 Saving 0 answers for question ID: 123800, text: ềw
+✅ Successfully saved question 2
+📝 Question 3: ề | Answers: 0
+💾 Saving 0 answers for question ID: 123801, text: ề
+✅ Successfully saved question 3
+📝 Question 4: ewcwe | Answers: 0
+💾 Saving 0 answers for question ID: 123802, text: ewcwe
+✅ Successfully saved question 4
+📝 Question 5: ewce | Answers: 0
+💾 Saving 0 answers for question ID: 123803, text: ewce
+✅ Successfully saved question 5
+📝 Question 6: ưdwd | Answers: 0
+💾 Saving 0 answers for question ID: 123804, text: ưdwd
+✅ Successfully saved question 6
+📝 Question 7: ưdw | Answers: 0
+💾 Saving 0 answers for question ID: 123805, text: ưdw
+✅ Successfully saved question 7
+📝 Question 8: dư | Answers: 0
+💾 Saving 0 answers for question ID: 123806, text: dư
+✅ Successfully saved question 8
+📝 Question 9: dư | Answers: 0
+💾 Saving 0 answers for question ID: 123807, text: dư
+✅ Successfully saved question 9
+📝 Question 10: đwd | Answers: 0
+💾 Saving 0 answers for question ID: 123808, text: đwd
+✅ Successfully saved question 10
+📝 Question 11: ưd | Answers: 0
+💾 Saving 0 answers for question ID: 123809, text: ưd
+✅ Successfully saved question 11
+📝 Question 12: ư | Answers: 0
+💾 Saving 0 answers for question ID: 123810, text: ư
+✅ Successfully saved question 12
+🗑️ Cleaning up unused group: 44997
+🗑️ Cleaning up unused group: 44998
+🗑️ Cleaning up unused group: 44999
+🗑️ Cleaning up unused group: 45000
+🔍 Saving 11 questions for group: Part 1 - Interview 1
+📝 Question 1: cewce | Answers: 0
+💾 Saving 0 answers for question ID: 123811, text: cewce
+✅ Successfully saved question 1
+📝 Question 2: xữ | Answers: 0
+💾 Saving 0 answers for question ID: 123812, text: xữ
+✅ Successfully saved question 2
+📝 Question 3: <div>ưdwd</div><div><br></div> | Answers: 0
+💾 Saving 0 answers for question ID: 123813, text: <div>ưdwd</div><div><br></div>
+✅ Successfully saved question 3
+📝 Question 4: <div>đư</div><div><br></div> | Answers: 0
+💾 Saving 0 answers for question ID: 123814, text: <div>đư</div><div><br></div>
+✅ Successfully saved question 4
+📝 Question 5: ewfef | Answers: 0
+💾 Saving 0 answers for question ID: 123815, text: ewfef
+✅ Successfully saved question 5
+📝 Question 6: fef | Answers: 0
+💾 Saving 0 answers for question ID: 123816, text: fef
+✅ Successfully saved question 6
+📝 Question 7: è | Answers: 0
+💾 Saving 0 answers for question ID: 123817, text: è
+✅ Successfully saved question 7
+📝 Question 8: è | Answers: 0
+💾 Saving 0 answers for question ID: 123818, text: è
+✅ Successfully saved question 8
+📝 Question 9: è | Answers: 0
+💾 Saving 0 answers for question ID: 123819, text: è
+✅ Successfully saved question 9
+📝 Question 10: e | Answers: 0
+💾 Saving 0 answers for question ID: 123820, text: e
+✅ Successfully saved question 10
+📝 Question 11: f | Answers: 0
+💾 Saving 0 answers for question ID: 123821, text: f
+✅ Successfully saved question 11
+🔍 Saving 3 questions for group: Part 1 - Interview 2
+📝 Question 1:  | Answers: 0
+💾 Saving 0 answers for question ID: 123822, text: 
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 0
+💾 Saving 0 answers for question ID: 123823, text: 
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 0
+💾 Saving 0 answers for question ID: 123824, text: 
+✅ Successfully saved question 3
+🔍 Saving 1 questions for group: Part 2 - Cue Card 1
+📝 Question 1:  | Answers: 0
+💾 Saving 0 answers for question ID: 123825, text: 
+✅ Successfully saved question 1
+🔍 Saving 11 questions for group: Part 3 - Discussion 1
+📝 Question 1: ềw | Answers: 0
+💾 Saving 0 answers for question ID: 123826, text: ềw
+✅ Successfully saved question 1
+📝 Question 2: ề | Answers: 0
+💾 Saving 0 answers for question ID: 123827, text: ề
+✅ Successfully saved question 2
+📝 Question 3: ewcwe | Answers: 0
+💾 Saving 0 answers for question ID: 123828, text: ewcwe
+✅ Successfully saved question 3
+📝 Question 4: ewce | Answers: 0
+💾 Saving 0 answers for question ID: 123829, text: ewce
+✅ Successfully saved question 4
+📝 Question 5: ưdwd | Answers: 0
+💾 Saving 0 answers for question ID: 123830, text: ưdwd
+✅ Successfully saved question 5
+📝 Question 6: ưdw | Answers: 0
+💾 Saving 0 answers for question ID: 123831, text: ưdw
+✅ Successfully saved question 6
+📝 Question 7: dư | Answers: 0
+💾 Saving 0 answers for question ID: 123832, text: dư
+✅ Successfully saved question 7
+📝 Question 8: dư | Answers: 0
+💾 Saving 0 answers for question ID: 123833, text: dư
+✅ Successfully saved question 8
+📝 Question 9: đwd | Answers: 0
+💾 Saving 0 answers for question ID: 123834, text: đwd
+✅ Successfully saved question 9
+📝 Question 10: ưd | Answers: 0
+💾 Saving 0 answers for question ID: 123835, text: ưd
+✅ Successfully saved question 10
+📝 Question 11: ư | Answers: 0
+💾 Saving 0 answers for question ID: 123836, text: ư
+✅ Successfully saved question 11
+🗑️ Cleaning up unused group: 45001
+🗑️ Cleaning up unused group: 45002
+🗑️ Cleaning up unused group: 45003
+🗑️ Cleaning up unused group: 45004
+🔍 Saving 11 questions for group: Part 1 - Interview 1
+📝 Question 1: cewce | Answers: 0
+💾 Saving 0 answers for question ID: 123837, text: cewce
+✅ Successfully saved question 1
+📝 Question 2: xữ | Answers: 0
+💾 Saving 0 answers for question ID: 123838, text: xữ
+✅ Successfully saved question 2
+📝 Question 3: <div>ưdwd</div><div><br></div> | Answers: 0
+💾 Saving 0 answers for question ID: 123839, text: <div>ưdwd</div><div><br></div>
+✅ Successfully saved question 3
+📝 Question 4: <div>đư</div><div><br></div> | Answers: 0
+💾 Saving 0 answers for question ID: 123840, text: <div>đư</div><div><br></div>
+✅ Successfully saved question 4
+📝 Question 5: ewfef | Answers: 0
+💾 Saving 0 answers for question ID: 123841, text: ewfef
+✅ Successfully saved question 5
+📝 Question 6: fef | Answers: 0
+💾 Saving 0 answers for question ID: 123842, text: fef
+✅ Successfully saved question 6
+📝 Question 7: è | Answers: 0
+💾 Saving 0 answers for question ID: 123843, text: è
+✅ Successfully saved question 7
+📝 Question 8: è | Answers: 0
+💾 Saving 0 answers for question ID: 123844, text: è
+✅ Successfully saved question 8
+📝 Question 9: è | Answers: 0
+💾 Saving 0 answers for question ID: 123845, text: è
+✅ Successfully saved question 9
+📝 Question 10: e | Answers: 0
+💾 Saving 0 answers for question ID: 123846, text: e
+✅ Successfully saved question 10
+📝 Question 11: f | Answers: 0
+💾 Saving 0 answers for question ID: 123847, text: f
+✅ Successfully saved question 11
+🔍 Saving 3 questions for group: Part 1 - Interview 2
+📝 Question 1:  | Answers: 0
+💾 Saving 0 answers for question ID: 123848, text: 
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 0
+💾 Saving 0 answers for question ID: 123849, text: 
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 0
+💾 Saving 0 answers for question ID: 123850, text: 
+✅ Successfully saved question 3
+🔍 Saving 1 questions for group: Part 2 - Cue Card 1
+📝 Question 1:  | Answers: 0
+💾 Saving 0 answers for question ID: 123851, text: 
+✅ Successfully saved question 1
+🔍 Saving 4 questions for group: Part 3 - Discussion 1
+📝 Question 1: ề | Answers: 0
+💾 Saving 0 answers for question ID: 123852, text: ề
+✅ Successfully saved question 1
+📝 Question 2: ewcwe | Answers: 0
+💾 Saving 0 answers for question ID: 123853, text: ewcwe
+✅ Successfully saved question 2
+📝 Question 3: ewce | Answers: 0
+💾 Saving 0 answers for question ID: 123854, text: ewce
+✅ Successfully saved question 3
+📝 Question 4: ưdwd | Answers: 0
+💾 Saving 0 answers for question ID: 123855, text: ưdwd
+✅ Successfully saved question 4
+🗑️ Cleaning up unused group: 45005
+🗑️ Cleaning up unused group: 45006
+🗑️ Cleaning up unused group: 45007
+🗑️ Cleaning up unused group: 45008
+🔍 Saving 11 questions for group: Part 1 - Interview 1
+📝 Question 1: cewce | Answers: 0
+💾 Saving 0 answers for question ID: 123856, text: cewce
+✅ Successfully saved question 1
+📝 Question 2: xữ | Answers: 0
+💾 Saving 0 answers for question ID: 123857, text: xữ
+✅ Successfully saved question 2
+📝 Question 3: <div>ưdwd</div><div><br></div> | Answers: 0
+💾 Saving 0 answers for question ID: 123858, text: <div>ưdwd</div><div><br></div>
+✅ Successfully saved question 3
+📝 Question 4: <div>đư</div><div><br></div> | Answers: 0
+💾 Saving 0 answers for question ID: 123859, text: <div>đư</div><div><br></div>
+✅ Successfully saved question 4
+📝 Question 5: ewfef | Answers: 0
+💾 Saving 0 answers for question ID: 123860, text: ewfef
+✅ Successfully saved question 5
+📝 Question 6: fef | Answers: 0
+💾 Saving 0 answers for question ID: 123861, text: fef
+✅ Successfully saved question 6
+📝 Question 7: è | Answers: 0
+💾 Saving 0 answers for question ID: 123862, text: è
+✅ Successfully saved question 7
+📝 Question 8: è | Answers: 0
+💾 Saving 0 answers for question ID: 123863, text: è
+✅ Successfully saved question 8
+📝 Question 9: è | Answers: 0
+💾 Saving 0 answers for question ID: 123864, text: è
+✅ Successfully saved question 9
+📝 Question 10: e | Answers: 0
+💾 Saving 0 answers for question ID: 123865, text: e
+✅ Successfully saved question 10
+📝 Question 11: f | Answers: 0
+💾 Saving 0 answers for question ID: 123866, text: f
+✅ Successfully saved question 11
+🔍 Saving 3 questions for group: Part 1 - Interview 2
+📝 Question 1:  | Answers: 0
+💾 Saving 0 answers for question ID: 123867, text: 
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 0
+💾 Saving 0 answers for question ID: 123868, text: 
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 0
+💾 Saving 0 answers for question ID: 123869, text: 
+✅ Successfully saved question 3
+🔍 Saving 1 questions for group: Part 2 - Cue Card 1
+📝 Question 1:  | Answers: 0
+💾 Saving 0 answers for question ID: 123870, text: 
+✅ Successfully saved question 1
+🔍 Saving 9 questions for group: Part 3 - Discussion 1
+📝 Question 1: ề | Answers: 0
+💾 Saving 0 answers for question ID: 123871, text: ề
+✅ Successfully saved question 1
+📝 Question 2: ewcwe | Answers: 0
+💾 Saving 0 answers for question ID: 123872, text: ewcwe
+✅ Successfully saved question 2
+📝 Question 3: ewce | Answers: 0
+💾 Saving 0 answers for question ID: 123873, text: ewce
+✅ Successfully saved question 3
+📝 Question 4: ưdwd | Answers: 0
+💾 Saving 0 answers for question ID: 123874, text: ưdwd
+✅ Successfully saved question 4
+📝 Question 5: scsc | Answers: 0
+💾 Saving 0 answers for question ID: 123875, text: scsc
+✅ Successfully saved question 5
+📝 Question 6: ưd | Answers: 0
+💾 Saving 0 answers for question ID: 123876, text: ưd
+✅ Successfully saved question 6
+📝 Question 7: ưd | Answers: 0
+💾 Saving 0 answers for question ID: 123877, text: ưd
+✅ Successfully saved question 7
+📝 Question 8: ưd | Answers: 0
+💾 Saving 0 answers for question ID: 123878, text: ưd
+✅ Successfully saved question 8
+📝 Question 9: ưd | Answers: 0
+💾 Saving 0 answers for question ID: 123879, text: ưd
+✅ Successfully saved question 9
+🗑️ Cleaning up unused group: 41559
+🗑️ Cleaning up unused group: 41560
+🔍 Saving 1 questions for group: Writing Task 1
+📝 Question 1:  | Answers: 0
+💾 Saving 0 answers for question ID: 123880, text: 
+✅ Successfully saved question 1
+🔍 Saving 1 questions for group: Writing Task 1
+📝 Question 1:  | Answers: 0
+💾 Saving 0 answers for question ID: 123881, text: 
+✅ Successfully saved question 1
+🗑️ Cleaning up unused group: 45013
+🗑️ Cleaning up unused group: 45014
+🔍 Saving 1 questions for group: Writing Task 1
+📝 Question 1:  | Answers: 0
+💾 Saving 0 answers for question ID: 123882, text: 
+✅ Successfully saved question 1
+🔍 Saving 1 questions for group: Writing Task 1
+📝 Question 1:  | Answers: 0
+💾 Saving 0 answers for question ID: 123883, text: 
+✅ Successfully saved question 1
+🗑️ Cleaning up unused group: 45010
+🔍 Saving 11 questions for group: Part 1 - Interview 1
+📝 Question 1: cewce | Answers: 0
+💾 Saving 0 answers for question ID: 123884, text: cewce
+✅ Successfully saved question 1
+📝 Question 2: xữ | Answers: 0
+🗑️ Cleaning up unused group: 41546
+💾 Saving 0 answers for question ID: 123885, text: xữ
+✅ Successfully saved question 2
+📝 Question 3: <div>ưdwd</div><div><br></div> | Answers: 0
+💾 Saving 0 answers for question ID: 123886, text: <div>ưdwd</div><div><br></div>
+✅ Successfully saved question 3
+📝 Question 4: <div>đư</div><div><br></div> | Answers: 0
+💾 Saving 0 answers for question ID: 123887, text: <div>đư</div><div><br></div>
+✅ Successfully saved question 4
+📝 Question 5: ewfef | Answers: 0
+💾 Saving 0 answers for question ID: 123888, text: ewfef
+✅ Successfully saved question 5
+📝 Question 6: fef | Answers: 0
+💾 Saving 0 answers for question ID: 123889, text: fef
+✅ Successfully saved question 6
+📝 Question 7: è | Answers: 0
+💾 Saving 0 answers for question ID: 123890, text: è
+✅ Successfully saved question 7
+📝 Question 8: è | Answers: 0
+💾 Saving 0 answers for question ID: 123891, text: è
+✅ Successfully saved question 8
+📝 Question 9: è | Answers: 0
+🗑️ Cleaning up unused group: 41547
+💾 Saving 0 answers for question ID: 123892, text: è
+✅ Successfully saved question 9
+📝 Question 10: e | Answers: 0
+💾 Saving 0 answers for question ID: 123893, text: e
+✅ Successfully saved question 10
+📝 Question 11: f | Answers: 0
+💾 Saving 0 answers for question ID: 123894, text: f
+✅ Successfully saved question 11
+🗑️ Cleaning up unused group: 41548
+🔍 Saving 3 questions for group: Part 1 - Interview 2
+📝 Question 1:  | Answers: 0
+💾 Saving 0 answers for question ID: 123895, text: 
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 0
+💾 Saving 0 answers for question ID: 123896, text: 
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 0
+💾 Saving 0 answers for question ID: 123897, text: 
+✅ Successfully saved question 3
+🗑️ Cleaning up unused group: 41549
+🔍 Saving 1 questions for group: Part 2 - Cue Card 1
+📝 Question 1:  | Answers: 0
+💾 Saving 0 answers for question ID: 123898, text: 
+✅ Successfully saved question 1
+🗑️ Cleaning up unused group: 41550
+🔍 Saving 9 questions for group: Part 3 - Discussion 1
+📝 Question 1: ề | Answers: 0
+💾 Saving 0 answers for question ID: 123899, text: ề
+✅ Successfully saved question 1
+📝 Question 2: ewcwe | Answers: 0
+💾 Saving 0 answers for question ID: 123900, text: ewcwe
+✅ Successfully saved question 2
+📝 Question 3: ewce | Answers: 0
+💾 Saving 0 answers for question ID: 123901, text: ewce
+✅ Successfully saved question 3
+📝 Question 4: ưdwd | Answers: 0
+💾 Saving 0 answers for question ID: 123902, text: ưdwd
+✅ Successfully saved question 4
+📝 Question 5: scsc | Answers: 0
+🗑️ Cleaning up unused group: 41551
+💾 Saving 0 answers for question ID: 123903, text: scsc
+✅ Successfully saved question 5
+📝 Question 6: ưd | Answers: 0
+💾 Saving 0 answers for question ID: 123904, text: ưd
+✅ Successfully saved question 6
+📝 Question 7: ưd | Answers: 0
+💾 Saving 0 answers for question ID: 123905, text: ưd
+✅ Successfully saved question 7
+📝 Question 8: ưd | Answers: 0
+💾 Saving 0 answers for question ID: 123906, text: ưd
+✅ Successfully saved question 8
+📝 Question 9: ưd | Answers: 0
+💾 Saving 0 answers for question ID: 123907, text: ưd
+✅ Successfully saved question 9
+🗑️ Cleaning up unused group: 41552
+🗑️ Cleaning up unused group: 41553
+🗑️ Cleaning up unused group: 41554
+🗑️ Cleaning up unused group: 41555
+🗑️ Cleaning up unused group: 41556
+🔍 Saving 0 questions for group: <span style="font-size: 40px;"><span style="font-size: 12px;"><span style="font-size: 16px;">Nutmeg – a valuable spice</span></span></span>
+🔍 Saving 4 questions for group: Nhóm 2
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question ID: 123908, text: 
+📝 Answer 1 INPUT: 'oval' (length: 4)
+✅ Saved answer 1 with ID: 92471, text: 'oval' (length: 4)
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question ID: 123909, text: 
+📝 Answer 1 INPUT: 'husk' (length: 4)
+✅ Saved answer 1 with ID: 92472, text: 'husk' (length: 4)
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question ID: 123910, text: 
+📝 Answer 1 INPUT: 'seed' (length: 4)
+✅ Saved answer 1 with ID: 92473, text: 'seed' (length: 4)
+✅ Successfully saved question 3
+📝 Question 4:  | Answers: 1
+💾 Saving 1 answers for question ID: 123911, text: 
+📝 Answer 1 INPUT: 'mace' (length: 4)
+✅ Saved answer 1 with ID: 92474, text: 'mace' (length: 4)
+✅ Successfully saved question 4
+🔍 Saving 3 questions for group: Nhóm 3
+📝 Question 1: In the Middle Ages, most Europeans knew where nutmeg was grown. | Answers: 1
+💾 Saving 1 answers for question ID: 123912, text: In the Middle Ages, most Europeans knew where nutmeg was grown.
+📝 Answer 1 INPUT: 'FALSE' (length: 5)
+✅ Saved answer 1 with ID: 92475, text: 'FALSE' (length: 5)
+✅ Successfully saved question 1
+📝 Question 2: The VOC was the world’s first major trading company. | Answers: 1
+💾 Saving 1 answers for question ID: 123913, text: The VOC was the world’s first major trading company.
+📝 Answer 1 INPUT: 'NOT GIVEN' (length: 9)
+✅ Saved answer 1 with ID: 92476, text: 'NOT GIVEN' (length: 9)
+✅ Successfully saved question 2
+📝 Question 3: Following the Treaty of Breda, the Dutch had control of all the islands where nutmeg grew. | Answers: 1
+💾 Saving 1 answers for question ID: 123914, text: Following the Treaty of Breda, the Dutch had control of all the islands where nutmeg grew.
+📝 Answer 1 INPUT: 'TRUE' (length: 4)
+✅ Saved answer 1 with ID: 92477, text: 'TRUE' (length: 4)
+✅ Successfully saved question 3
+🔍 Saving 6 questions for group: Table Completion 4
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question ID: 123915, text: 
+📝 Answer 1 INPUT: 'Arabs' (length: 5)
+✅ Saved answer 1 with ID: 92478, text: 'Arabs' (length: 5)
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question ID: 123916, text: 
+📝 Answer 1 INPUT: 'plague' (length: 6)
+✅ Saved answer 1 with ID: 92479, text: 'plague' (length: 6)
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question ID: 123917, text: 
+📝 Answer 1 INPUT: 'lime' (length: 4)
+✅ Saved answer 1 with ID: 92480, text: 'lime' (length: 4)
+✅ Successfully saved question 3
+📝 Question 4:  | Answers: 1
+💾 Saving 1 answers for question ID: 123918, text: 
+📝 Answer 1 INPUT: 'Run' (length: 3)
+✅ Saved answer 1 with ID: 92481, text: 'Run' (length: 3)
+✅ Successfully saved question 4
+📝 Question 5:  | Answers: 1
+💾 Saving 1 answers for question ID: 123919, text: 
+📝 Answer 1 INPUT: 'Mauritius' (length: 9)
+✅ Saved answer 1 with ID: 92482, text: 'Mauritius' (length: 9)
+✅ Successfully saved question 5
+📝 Question 6:  | Answers: 1
+💾 Saving 1 answers for question ID: 123920, text: 
+📝 Answer 1 INPUT: 'tsunami' (length: 7)
+✅ Saved answer 1 with ID: 92483, text: 'tsunami' (length: 7)
+✅ Successfully saved question 6
+🔍 Saving 3 questions for group: Nhóm 5
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question ID: 123921, text: 
+📝 Answer 1 INPUT: 'cewfew' (length: 6)
+✅ Saved answer 1 with ID: 92484, text: 'cewfew' (length: 6)
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question ID: 123922, text: 
+📝 Answer 1 INPUT: 'cewfew' (length: 6)
+✅ Saved answer 1 with ID: 92485, text: 'cewfew' (length: 6)
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question ID: 123923, text: 
+📝 Answer 1 INPUT: 'cewfew' (length: 6)
+✅ Saved answer 1 with ID: 92486, text: 'cewfew' (length: 6)
+✅ Successfully saved question 3
+🔍 Saving 2 questions for group: Nhóm 6
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question ID: 123924, text: 
+📝 Answer 1 INPUT: 'efef' (length: 4)
+✅ Saved answer 1 with ID: 92487, text: 'efef' (length: 4)
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question ID: 123925, text: 
+📝 Answer 1 INPUT: 'aa' (length: 2)
+✅ Saved answer 1 with ID: 92488, text: 'aa' (length: 2)
+✅ Successfully saved question 2
+🔍 Saving 5 questions for group: <br>
+📝 Question 1: reference to the amount of time when a car is not in use | Answers: 1
+💾 Saving 1 answers for question ID: 123926, text: reference to the amount of time when a car is not in use
+📝 Answer 1 INPUT: 'C' (length: 1)
+✅ Saved answer 1 with ID: 92489, text: 'C' (length: 1)
+✅ Successfully saved question 1
+📝 Question 2: mention of several advantages of driverless vehicles for individual road-users | Answers: 1
+💾 Saving 1 answers for question ID: 123927, text: mention of several advantages of driverless vehicles for individual road-users
+📝 Answer 1 INPUT: 'B' (length: 1)
+✅ Saved answer 1 with ID: 92490, text: 'B' (length: 1)
+✅ Successfully saved question 2
+📝 Question 3: reference to the opportunity of choosing the most appropriate vehicle for each trip | Answers: 1
+💾 Saving 1 answers for question ID: 123928, text: reference to the opportunity of choosing the most appropriate vehicle for each trip
+📝 Answer 1 INPUT: 'E' (length: 1)
+✅ Saved answer 1 with ID: 92491, text: 'E' (length: 1)
+✅ Successfully saved question 3
+📝 Question 4: an estimate of how long it will take to overcome a number of problems | Answers: 1
+💾 Saving 1 answers for question ID: 123929, text: an estimate of how long it will take to overcome a number of problems
+📝 Answer 1 INPUT: 'G' (length: 1)
+✅ Saved answer 1 with ID: 92492, text: 'G' (length: 1)
+✅ Successfully saved question 4
+📝 Question 5: a suggestion that the use of driverless cars may have no effect on the number of vehicles manufactured | Answers: 1
+💾 Saving 1 answers for question ID: 123930, text: a suggestion that the use of driverless cars may have no effect on the number of vehicles manufactured
+📝 Answer 1 INPUT: 'D' (length: 1)
+✅ Saved answer 1 with ID: 92493, text: 'D' (length: 1)
+✅ Successfully saved question 5
+🔍 Saving 0 questions for group: Nhóm 2
+🔍 Saving 4 questions for group: Nhóm 3
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question ID: 123931, text: 
+📝 Answer 1 INPUT: 'human error' (length: 11)
+✅ Saved answer 1 with ID: 92494, text: 'human error' (length: 11)
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question ID: 123932, text: 
+📝 Answer 1 INPUT: 'car-sharing | car sharing' (length: 25)
+✅ Saved answer 1 with ID: 92495, text: 'car-sharing | car sharing' (length: 25)
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question ID: 123933, text: 
+📝 Answer 1 INPUT: 'ownership' (length: 9)
+✅ Saved answer 1 with ID: 92496, text: 'ownership' (length: 9)
+✅ Successfully saved question 3
+📝 Question 4:  | Answers: 1
+💾 Saving 1 answers for question ID: 123934, text: 
+📝 Answer 1 INPUT: 'mileage' (length: 7)
+✅ Saved answer 1 with ID: 92497, text: 'mileage' (length: 7)
+✅ Successfully saved question 4
+🔍 Saving 1 questions for group: Multiple Choice (nhiều) 4
+📝 Question 1: Which <strong>TWO</strong> benefits of automated vehicles does the writer mention? | Answers: 0
+💾 Saving 0 answers for question ID: 123935, text: Which <strong>TWO</strong> benefits of automated vehicles does the writer mention?
+✅ Successfully saved question 1
+🔍 Saving 1 questions for group: Multiple Choice (nhiều) 5
+📝 Question 1: Which <strong>TWO</strong> challenges to automated vehicle development does the writer mention? | Answers: 0
+💾 Saving 0 answers for question ID: 123936, text: Which <strong>TWO</strong> challenges to automated vehicle development does the writer mention?
+✅ Successfully saved question 1
+🔍 Saving 0 questions for group: What is exploration?
+🔍 Saving 6 questions for group: Multiple Choice 2
+📝 Question 1: The writer refers to visitors to New York to illustrate the point that | Answers: 0
+💾 Saving 0 answers for question ID: 123937, text: The writer refers to visitors to New York to illustrate the point that
+✅ Successfully saved question 1
+📝 Question 2: <p>According to the second paragraph, what is the writer’s view of explorers?</p> | Answers: 0
+💾 Saving 0 answers for question ID: 123938, text: <p>According to the second paragraph, what is the writer’s view of explorers?</p>
+✅ Successfully saved question 2
+📝 Question 3: The writer refers to a description of Egdon Heath to suggest that | Answers: 0
+💾 Saving 0 answers for question ID: 123939, text: The writer refers to a description of Egdon Heath to suggest that
+✅ Successfully saved question 3
+📝 Question 4: In the fourth paragraph, the writer refers to ‘a golden age’ to suggest that | Answers: 0
+💾 Saving 0 answers for question ID: 123940, text: In the fourth paragraph, the writer refers to ‘a golden age’ to suggest that
+✅ Successfully saved question 4
+📝 Question 5: <p>In the sixth paragraph, when discussing the definition of exploration, the writer argues that</p> | Answers: 0
+💾 Saving 0 answers for question ID: 123941, text: <p>In the sixth paragraph, when discussing the definition of exploration, the writer argues that</p>
+✅ Successfully saved question 5
+📝 Question 6: <p>In the last paragraph, the writer explains that he is interested in</p> | Answers: 0
+💾 Saving 0 answers for question ID: 123942, text: <p>In the last paragraph, the writer explains that he is interested in</p>
+✅ Successfully saved question 6
+🔍 Saving 5 questions for group: <br>
+📝 Question 1: He referred to the relevance of the form of transport used. | Answers: 1
+💾 Saving 1 answers for question ID: 123943, text: He referred to the relevance of the form of transport used.
+📝 Answer 1 INPUT: 'E' (length: 1)
+✅ Saved answer 1 with ID: 92498, text: 'E' (length: 1)
+✅ Successfully saved question 1
+📝 Question 2: He described feelings on coming back home after a long journey. | Answers: 1
+💾 Saving 1 answers for question ID: 123944, text: He described feelings on coming back home after a long journey.
+📝 Answer 1 INPUT: 'A' (length: 1)
+✅ Saved answer 1 with ID: 92499, text: 'A' (length: 1)
+✅ Successfully saved question 2
+📝 Question 3: He worked for the benefit of specific groups of people. | Answers: 1
+💾 Saving 1 answers for question ID: 123945, text: He worked for the benefit of specific groups of people.
+📝 Answer 1 INPUT: 'D' (length: 1)
+✅ Saved answer 1 with ID: 92500, text: 'D' (length: 1)
+✅ Successfully saved question 3
+📝 Question 4: He did not consider learning about oneself an essential part of exploration. | Answers: 1
+💾 Saving 1 answers for question ID: 123946, text: He did not consider learning about oneself an essential part of exploration.
+📝 Answer 1 INPUT: 'E' (length: 1)
+✅ Saved answer 1 with ID: 92501, text: 'E' (length: 1)
+✅ Successfully saved question 4
+📝 Question 5: He defined exploration as being both unique and of value to others. | Answers: 1
+💾 Saving 1 answers for question ID: 123947, text: He defined exploration as being both unique and of value to others.
+📝 Answer 1 INPUT: 'B' (length: 1)
+✅ Saved answer 1 with ID: 92502, text: 'B' (length: 1)
+✅ Successfully saved question 5
+🔍 Saving 3 questions for group: Image + Note Form 4
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question ID: 123948, text: 
+📝 Answer 1 INPUT: 'unique expeditions | expeditions' (length: 32)
+✅ Saved answer 1 with ID: 92503, text: 'unique expeditions | expeditions' (length: 32)
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question ID: 123949, text: 
+📝 Answer 1 INPUT: 'uncontacted | isolated' (length: 22)
+✅ Saved answer 1 with ID: 92504, text: 'uncontacted | isolated' (length: 22)
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question ID: 123950, text: 
+📝 Answer 1 INPUT: 'land surface | surface' (length: 22)
+✅ Saved answer 1 with ID: 92505, text: 'land surface | surface' (length: 22)
+✅ Successfully saved question 3
+🔍 Saving 7 questions for group: Match Headings 2
+📝 Question 1: Section A | Answers: 1
+💾 Saving 1 answers for question ID: 123951, text: Section A
+📝 Answer 1 INPUT: 'The birth of sanitation' (length: 23)
+✅ Saved answer 1 with ID: 92506, text: 'The birth of sanitation' (length: 23)
+✅ Successfully saved question 1
+📝 Question 2: Section B | Answers: 1
+💾 Saving 1 answers for question ID: 123952, text: Section B
+📝 Answer 1 INPUT: 'The need for increasingly sophisticated systems' (length: 47)
+✅ Saved answer 1 with ID: 92507, text: 'The need for increasingly sophisticated systems' (length: 47)
+✅ Successfully saved question 2
+📝 Question 3: Section C | Answers: 1
+💾 Saving 1 answers for question ID: 123953, text: Section C
+📝 Answer 1 INPUT: 'Wooden sewage pipes' (length: 19)
+✅ Saved answer 1 with ID: 92508, text: 'Wooden sewage pipes' (length: 19)
+✅ Successfully saved question 3
+📝 Question 4: Section D | Answers: 1
+💾 Saving 1 answers for question ID: 123954, text: Section D
+📝 Answer 1 INPUT: 'Ancient sewers updated for modern use' (length: 37)
+✅ Saved answer 1 with ID: 92509, text: 'Ancient sewers updated for modern use' (length: 37)
+✅ Successfully saved question 4
+📝 Question 5: Section E | Answers: 1
+💾 Saving 1 answers for question ID: 123955, text: Section E
+📝 Answer 1 INPUT: 'A new invention not widely implemented' (length: 38)
+✅ Saved answer 1 with ID: 92510, text: 'A new invention not widely implemented' (length: 38)
+✅ Successfully saved question 5
+📝 Question 6: Section F | Answers: 1
+💾 Saving 1 answers for question ID: 123956, text: Section F
+📝 Answer 1 INPUT: 'Poor sanitation a cause of health problems' (length: 42)
+✅ Saved answer 1 with ID: 92511, text: 'Poor sanitation a cause of health problems' (length: 42)
+✅ Successfully saved question 6
+📝 Question 7: Section G | Answers: 1
+💾 Saving 1 answers for question ID: 123957, text: Section G
+📝 Answer 1 INPUT: 'The impact of waste water treatment' (length: 35)
+✅ Saved answer 1 with ID: 92512, text: 'The impact of waste water treatment' (length: 35)
+✅ Successfully saved question 7
+🔍 Saving 0 questions for group: The Development of Sanitation Systems
+🔍 Saving 7 questions for group: Nhóm 3
+📝 Question 1:  | Answers: 0
+💾 Saving 0 answers for question ID: 123958, text: 
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 0
+💾 Saving 0 answers for question ID: 123959, text: 
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 0
+💾 Saving 0 answers for question ID: 123960, text: 
+✅ Successfully saved question 3
+📝 Question 4:  | Answers: 0
+💾 Saving 0 answers for question ID: 123961, text: 
+✅ Successfully saved question 4
+📝 Question 5:  | Answers: 0
+💾 Saving 0 answers for question ID: 123962, text: 
+✅ Successfully saved question 5
+📝 Question 6:  | Answers: 0
+💾 Saving 0 answers for question ID: 123963, text: 
+✅ Successfully saved question 6
+📝 Question 7:  | Answers: 0
+💾 Saving 0 answers for question ID: 123964, text: 
+✅ Successfully saved question 7
+🔍 Saving 3 questions for group: Sentence (Drag) 2
+📝 Question 1: The Rorschach test is often used by psychologists to | Answers: 1
+💾 Saving 1 answers for question ID: 123965, text: The Rorschach test is often used by psychologists to
+📝 Answer 1 INPUT: 'assess subjects who are unwilling to express their thoughts.' (length: 60)
+✅ Saved answer 1 with ID: 92513, text: 'assess subjects who are unwilling to express their thoughts.' (length: 60)
+✅ Successfully saved question 1
+📝 Question 2: The test is based on the belief that people will | Answers: 1
+💾 Saving 1 answers for question ID: 123966, text: The test is based on the belief that people will
+📝 Answer 1 INPUT: 'interpret ambiguous images according to their own specific perceptions of life.' (length: 79)
+✅ Saved answer 1 with ID: 92514, text: 'interpret ambiguous images according to their own specific perceptions of life.' (length: 79)
+✅ Successfully saved question 2
+📝 Question 3: Rorschach’s original aim was not to assess personality, but to | Answers: 1
+💾 Saving 1 answers for question ID: 123967, text: Rorschach’s original aim was not to assess personality, but to
+📝 Answer 1 INPUT: 'diagnose a mental disorder.' (length: 27)
+✅ Saved answer 1 with ID: 92515, text: 'diagnose a mental disorder.' (length: 27)
+✅ Successfully saved question 3
+🔍 Saving 0 questions for group: The Rorschach Test
+🔍 Saving 3 questions for group: Nhóm 3
+📝 Question 1: scscscs | Answers: 0
+💾 Saving 0 answers for question ID: 123968, text: scscscs
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 0
+💾 Saving 0 answers for question ID: 123969, text: 
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 0
+💾 Saving 0 answers for question ID: 123970, text: 
+✅ Successfully saved question 3
+🔍 Saving 5 questions for group: Questions 9-19
+📝 Question 1: sxs | Answers: 0
+💾 Saving 0 answers for question ID: 123971, text: sxs
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 0
+💾 Saving 0 answers for question ID: 123972, text: 
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 0
+💾 Saving 0 answers for question ID: 123973, text: 
+✅ Successfully saved question 3
+📝 Question 4:  | Answers: 0
+💾 Saving 0 answers for question ID: 123974, text: 
+✅ Successfully saved question 4
+📝 Question 5:  | Answers: 0
+💾 Saving 0 answers for question ID: 123975, text: 
+✅ Successfully saved question 5
+🔍 Saving 0 questions for group: Understanding Humour
+🔍 Saving 2 questions for group: Short Answer 2
+📝 Question 1: <li>Which group of theories about humour describe it as being good for us?<br></li> | Answers: 1
+💾 Saving 1 answers for question ID: 123976, text: <li>Which group of theories about humour describe it as being good for us?<br></li>
+📝 Answer 1 INPUT: 'psychological' (length: 13)
+✅ Saved answer 1 with ID: 92516, text: 'psychological' (length: 13)
+✅ Successfully saved question 1
+📝 Question 2: What function did comedy have in the royal courts of the past? | Answers: 1
+💾 Saving 1 answers for question ID: 123977, text: What function did comedy have in the royal courts of the past?
+📝 Answer 1 INPUT: 'entertainment' (length: 13)
+✅ Saved answer 1 with ID: 92517, text: 'entertainment' (length: 13)
+✅ Successfully saved question 2
+🗑️ Cleaning up unused group: 12532
+🗑️ Cleaning up unused group: 12533
+🗑️ Cleaning up unused group: 12534
+🗑️ Cleaning up unused group: 12535
+🗑️ Cleaning up unused group: 12536
+🗑️ Cleaning up unused group: 12537
+🔍 Saving 0 questions for group: Part 1
+🔍 Saving 10 questions for group: Nhóm 2
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question ID: 123978, text: 
+📝 Answer 1 INPUT: 'Jamieson' (length: 8)
+✅ Saved answer 1 with ID: 92518, text: 'Jamieson' (length: 8)
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question ID: 123979, text: 
+📝 Answer 1 INPUT: 'afternoon' (length: 9)
+✅ Saved answer 1 with ID: 92519, text: 'afternoon' (length: 9)
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question ID: 123980, text: 
+📝 Answer 1 INPUT: 'communication' (length: 13)
+✅ Saved answer 1 with ID: 92520, text: 'communication' (length: 13)
+✅ Successfully saved question 3
+📝 Question 4:  | Answers: 1
+💾 Saving 1 answers for question ID: 123981, text: 
+📝 Answer 1 INPUT: 'week' (length: 4)
+✅ Saved answer 1 with ID: 92521, text: 'week' (length: 4)
+✅ Successfully saved question 4
+📝 Question 5:  | Answers: 1
+💾 Saving 1 answers for question ID: 123982, text: 
+📝 Answer 1 INPUT: '10|ten' (length: 6)
+✅ Saved answer 1 with ID: 92522, text: '10|ten' (length: 6)
+✅ Successfully saved question 5
+📝 Question 6:  | Answers: 1
+💾 Saving 1 answers for question ID: 123983, text: 
+📝 Answer 1 INPUT: 'suit' (length: 4)
+✅ Saved answer 1 with ID: 92523, text: 'suit' (length: 4)
+✅ Successfully saved question 6
+📝 Question 7:  | Answers: 1
+💾 Saving 1 answers for question ID: 123984, text: 
+📝 Answer 1 INPUT: 'passport' (length: 8)
+✅ Saved answer 1 with ID: 92524, text: 'passport' (length: 8)
+✅ Successfully saved question 7
+📝 Question 8:  | Answers: 1
+💾 Saving 1 answers for question ID: 123985, text: 
+📝 Answer 1 INPUT: 'personality' (length: 11)
+✅ Saved answer 1 with ID: 92525, text: 'personality' (length: 11)
+✅ Successfully saved question 8
+📝 Question 9:  | Answers: 1
+💾 Saving 1 answers for question ID: 123986, text: 
+📝 Answer 1 INPUT: 'feedback' (length: 8)
+✅ Saved answer 1 with ID: 92526, text: 'feedback' (length: 8)
+✅ Successfully saved question 9
+📝 Question 10:  | Answers: 1
+💾 Saving 1 answers for question ID: 123987, text: 
+📝 Answer 1 INPUT: 'time' (length: 4)
+✅ Saved answer 1 with ID: 92527, text: 'time' (length: 4)
+✅ Successfully saved question 10
+🔍 Saving 0 questions for group: Part 1
+🔍 Saving 4 questions for group: Multiple Choice 2
+📝 Question 1: According to the speaker, the company | Answers: 0
+💾 Saving 0 answers for question ID: 123988, text: According to the speaker, the company
+✅ Successfully saved question 1
+📝 Question 2: Where can customers meet the tour manager before travelling to the Isle of Man? | Answers: 0
+💾 Saving 0 answers for question ID: 123989, text: Where can customers meet the tour manager before travelling to the Isle of Man?
+✅ Successfully saved question 2
+📝 Question 3: How many lunches are included in the price of the holiday? | Answers: 0
+💾 Saving 0 answers for question ID: 123990, text: How many lunches are included in the price of the holiday?
+✅ Successfully saved question 3
+📝 Question 4: Customers have to pay extra for | Answers: 0
+💾 Saving 0 answers for question ID: 123991, text: Customers have to pay extra for
+✅ Successfully saved question 4
+🔍 Saving 6 questions for group: Table Completion 3
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question ID: 123992, text: 
+📝 Answer 1 INPUT: 'river' (length: 5)
+✅ Saved answer 1 with ID: 92528, text: 'river' (length: 5)
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question ID: 123993, text: 
+📝 Answer 1 INPUT: '1422' (length: 4)
+✅ Saved answer 1 with ID: 92529, text: '1422' (length: 4)
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question ID: 123994, text: 
+📝 Answer 1 INPUT: 'top' (length: 3)
+✅ Saved answer 1 with ID: 92530, text: 'top' (length: 3)
+✅ Successfully saved question 3
+📝 Question 4:  | Answers: 1
+💾 Saving 1 answers for question ID: 123995, text: 
+📝 Answer 1 INPUT: 'pass' (length: 4)
+✅ Saved answer 1 with ID: 92531, text: 'pass' (length: 4)
+✅ Successfully saved question 4
+📝 Question 5:  | Answers: 1
+💾 Saving 1 answers for question ID: 123996, text: 
+📝 Answer 1 INPUT: 'steam' (length: 5)
+✅ Saved answer 1 with ID: 92532, text: 'steam' (length: 5)
+✅ Successfully saved question 5
+📝 Question 6:  | Answers: 1
+💾 Saving 1 answers for question ID: 123997, text: 
+📝 Answer 1 INPUT: 'capital' (length: 7)
+✅ Saved answer 1 with ID: 92533, text: 'capital' (length: 7)
+✅ Successfully saved question 6
+🔍 Saving 6 questions for group: Drag Matching 1
+📝 Question 1: the eldest child | Answers: 1
+💾 Saving 1 answers for question ID: 123998, text: the eldest child
+📝 Answer 1 INPUT: 'caring' (length: 6)
+✅ Saved answer 1 with ID: 92534, text: 'caring' (length: 6)
+✅ Successfully saved question 1
+📝 Question 2: a middle child | Answers: 1
+💾 Saving 1 answers for question ID: 123999, text: a middle child
+📝 Answer 1 INPUT: 'co-operative' (length: 12)
+✅ Saved answer 1 with ID: 92535, text: 'co-operative' (length: 12)
+✅ Successfully saved question 2
+📝 Question 3: the youngest child | Answers: 1
+💾 Saving 1 answers for question ID: 124000, text: the youngest child
+📝 Answer 1 INPUT: 'outgoing' (length: 8)
+✅ Saved answer 1 with ID: 92536, text: 'outgoing' (length: 8)
+✅ Successfully saved question 3
+📝 Question 4: a twin | Answers: 1
+💾 Saving 1 answers for question ID: 124001, text: a twin
+📝 Answer 1 INPUT: 'introverted' (length: 11)
+✅ Saved answer 1 with ID: 92537, text: 'introverted' (length: 11)
+✅ Successfully saved question 4
+📝 Question 5: an only child | Answers: 1
+💾 Saving 1 answers for question ID: 124002, text: an only child
+📝 Answer 1 INPUT: 'selfish' (length: 7)
+✅ Saved answer 1 with ID: 92538, text: 'selfish' (length: 7)
+✅ Successfully saved question 5
+📝 Question 6: a child with much older siblings | Answers: 1
+💾 Saving 1 answers for question ID: 124003, text: a child with much older siblings
+📝 Answer 1 INPUT: 'independent' (length: 11)
+✅ Saved answer 1 with ID: 92539, text: 'independent' (length: 11)
+✅ Successfully saved question 6
+🗑️ Cleaning up unused group: 45021
+🗑️ Cleaning up unused group: 45022
+🗑️ Cleaning up unused group: 45023
+🗑️ Cleaning up unused group: 45024
+🗑️ Cleaning up unused group: 45025
+🗑️ Cleaning up unused group: 45026
+🗑️ Cleaning up unused group: 45027
+🗑️ Cleaning up unused group: 45028
+🗑️ Cleaning up unused group: 45029
+🗑️ Cleaning up unused group: 45030
+🗑️ Cleaning up unused group: 45031
+🔍 Saving 0 questions for group: <span style="font-size: 40px;"><span style="font-size: 12px;"><span style="font-size: 16px;">Nutmeg – a valuable spice</span></span></span>
+🔍 Saving 4 questions for group: Nhóm 2
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question ID: 124004, text: 
+📝 Answer 1 INPUT: 'oval' (length: 4)
+✅ Saved answer 1 with ID: 92540, text: 'oval' (length: 4)
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question ID: 124005, text: 
+📝 Answer 1 INPUT: 'husk' (length: 4)
+✅ Saved answer 1 with ID: 92541, text: 'husk' (length: 4)
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question ID: 124006, text: 
+📝 Answer 1 INPUT: 'seed' (length: 4)
+✅ Saved answer 1 with ID: 92542, text: 'seed' (length: 4)
+✅ Successfully saved question 3
+📝 Question 4:  | Answers: 1
+💾 Saving 1 answers for question ID: 124007, text: 
+📝 Answer 1 INPUT: 'mace' (length: 4)
+✅ Saved answer 1 with ID: 92543, text: 'mace' (length: 4)
+✅ Successfully saved question 4
+🔍 Saving 3 questions for group: Nhóm 3
+📝 Question 1: In the Middle Ages, most Europeans knew where nutmeg was grown. | Answers: 1
+💾 Saving 1 answers for question ID: 124008, text: In the Middle Ages, most Europeans knew where nutmeg was grown.
+📝 Answer 1 INPUT: 'FALSE' (length: 5)
+✅ Saved answer 1 with ID: 92544, text: 'FALSE' (length: 5)
+✅ Successfully saved question 1
+📝 Question 2: The VOC was the world’s first major trading company. | Answers: 1
+💾 Saving 1 answers for question ID: 124009, text: The VOC was the world’s first major trading company.
+📝 Answer 1 INPUT: 'NOT GIVEN' (length: 9)
+✅ Saved answer 1 with ID: 92545, text: 'NOT GIVEN' (length: 9)
+✅ Successfully saved question 2
+📝 Question 3: Following the Treaty of Breda, the Dutch had control of all the islands where nutmeg grew. | Answers: 1
+💾 Saving 1 answers for question ID: 124010, text: Following the Treaty of Breda, the Dutch had control of all the islands where nutmeg grew.
+📝 Answer 1 INPUT: 'TRUE' (length: 4)
+✅ Saved answer 1 with ID: 92546, text: 'TRUE' (length: 4)
+✅ Successfully saved question 3
+🔍 Saving 6 questions for group: Table Completion 4
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question ID: 124011, text: 
+📝 Answer 1 INPUT: 'Arabs' (length: 5)
+✅ Saved answer 1 with ID: 92547, text: 'Arabs' (length: 5)
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question ID: 124012, text: 
+📝 Answer 1 INPUT: 'plague' (length: 6)
+✅ Saved answer 1 with ID: 92548, text: 'plague' (length: 6)
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question ID: 124013, text: 
+📝 Answer 1 INPUT: 'lime' (length: 4)
+✅ Saved answer 1 with ID: 92549, text: 'lime' (length: 4)
+✅ Successfully saved question 3
+📝 Question 4:  | Answers: 1
+💾 Saving 1 answers for question ID: 124014, text: 
+📝 Answer 1 INPUT: 'Run' (length: 3)
+✅ Saved answer 1 with ID: 92550, text: 'Run' (length: 3)
+✅ Successfully saved question 4
+📝 Question 5:  | Answers: 1
+💾 Saving 1 answers for question ID: 124015, text: 
+📝 Answer 1 INPUT: 'Mauritius' (length: 9)
+✅ Saved answer 1 with ID: 92551, text: 'Mauritius' (length: 9)
+✅ Successfully saved question 5
+📝 Question 6:  | Answers: 1
+💾 Saving 1 answers for question ID: 124016, text: 
+📝 Answer 1 INPUT: 'tsunami' (length: 7)
+✅ Saved answer 1 with ID: 92552, text: 'tsunami' (length: 7)
+✅ Successfully saved question 6
+🔍 Saving 3 questions for group: Nhóm 5
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question ID: 124017, text: 
+📝 Answer 1 INPUT: 'cewfew' (length: 6)
+✅ Saved answer 1 with ID: 92553, text: 'cewfew' (length: 6)
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question ID: 124018, text: 
+📝 Answer 1 INPUT: 'cewfew' (length: 6)
+✅ Saved answer 1 with ID: 92554, text: 'cewfew' (length: 6)
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question ID: 124019, text: 
+📝 Answer 1 INPUT: 'cewfew' (length: 6)
+✅ Saved answer 1 with ID: 92555, text: 'cewfew' (length: 6)
+✅ Successfully saved question 3
+🔍 Saving 2 questions for group: Nhóm 6
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question ID: 124020, text: 
+📝 Answer 1 INPUT: 'efef' (length: 4)
+✅ Saved answer 1 with ID: 92556, text: 'efef' (length: 4)
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question ID: 124021, text: 
+📝 Answer 1 INPUT: 'aa' (length: 2)
+✅ Saved answer 1 with ID: 92557, text: 'aa' (length: 2)
+✅ Successfully saved question 2
+🔍 Saving 5 questions for group: <br>
+📝 Question 1: reference to the amount of time when a car is not in use | Answers: 1
+💾 Saving 1 answers for question ID: 124022, text: reference to the amount of time when a car is not in use
+📝 Answer 1 INPUT: 'C' (length: 1)
+✅ Saved answer 1 with ID: 92558, text: 'C' (length: 1)
+✅ Successfully saved question 1
+📝 Question 2: mention of several advantages of driverless vehicles for individual road-users | Answers: 1
+💾 Saving 1 answers for question ID: 124023, text: mention of several advantages of driverless vehicles for individual road-users
+📝 Answer 1 INPUT: 'B' (length: 1)
+✅ Saved answer 1 with ID: 92559, text: 'B' (length: 1)
+✅ Successfully saved question 2
+📝 Question 3: reference to the opportunity of choosing the most appropriate vehicle for each trip | Answers: 1
+💾 Saving 1 answers for question ID: 124024, text: reference to the opportunity of choosing the most appropriate vehicle for each trip
+📝 Answer 1 INPUT: 'E' (length: 1)
+✅ Saved answer 1 with ID: 92560, text: 'E' (length: 1)
+✅ Successfully saved question 3
+📝 Question 4: an estimate of how long it will take to overcome a number of problems | Answers: 1
+💾 Saving 1 answers for question ID: 124025, text: an estimate of how long it will take to overcome a number of problems
+📝 Answer 1 INPUT: 'G' (length: 1)
+✅ Saved answer 1 with ID: 92561, text: 'G' (length: 1)
+✅ Successfully saved question 4
+📝 Question 5: a suggestion that the use of driverless cars may have no effect on the number of vehicles manufactured | Answers: 1
+💾 Saving 1 answers for question ID: 124026, text: a suggestion that the use of driverless cars may have no effect on the number of vehicles manufactured
+📝 Answer 1 INPUT: 'D' (length: 1)
+✅ Saved answer 1 with ID: 92562, text: 'D' (length: 1)
+✅ Successfully saved question 5
+🔍 Saving 0 questions for group: Nhóm 2
+🔍 Saving 4 questions for group: Nhóm 3
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question ID: 124027, text: 
+📝 Answer 1 INPUT: 'human error' (length: 11)
+✅ Saved answer 1 with ID: 92563, text: 'human error' (length: 11)
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question ID: 124028, text: 
+📝 Answer 1 INPUT: 'car-sharing | car sharing' (length: 25)
+✅ Saved answer 1 with ID: 92564, text: 'car-sharing | car sharing' (length: 25)
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question ID: 124029, text: 
+📝 Answer 1 INPUT: 'ownership' (length: 9)
+✅ Saved answer 1 with ID: 92565, text: 'ownership' (length: 9)
+✅ Successfully saved question 3
+📝 Question 4:  | Answers: 1
+💾 Saving 1 answers for question ID: 124030, text: 
+📝 Answer 1 INPUT: 'mileage' (length: 7)
+✅ Saved answer 1 with ID: 92566, text: 'mileage' (length: 7)
+✅ Successfully saved question 4
+🔍 Saving 1 questions for group: Multiple Choice (nhiều) 4
+📝 Question 1: Which <strong>TWO</strong> benefits of automated vehicles does the writer mention? | Answers: 0
+💾 Saving 0 answers for question ID: 124031, text: Which <strong>TWO</strong> benefits of automated vehicles does the writer mention?
+✅ Successfully saved question 1
+🔍 Saving 1 questions for group: Multiple Choice (nhiều) 5
+📝 Question 1: Which <strong>TWO</strong> challenges to automated vehicle development does the writer mention? | Answers: 0
+💾 Saving 0 answers for question ID: 124032, text: Which <strong>TWO</strong> challenges to automated vehicle development does the writer mention?
+✅ Successfully saved question 1
+🔍 Saving 0 questions for group: What is exploration?
+🔍 Saving 6 questions for group: Multiple Choice 2
+📝 Question 1: The writer refers to visitors to New York to illustrate the point that | Answers: 0
+💾 Saving 0 answers for question ID: 124033, text: The writer refers to visitors to New York to illustrate the point that
+✅ Successfully saved question 1
+📝 Question 2: <p>According to the second paragraph, what is the writer’s view of explorers?</p> | Answers: 0
+💾 Saving 0 answers for question ID: 124034, text: <p>According to the second paragraph, what is the writer’s view of explorers?</p>
+✅ Successfully saved question 2
+📝 Question 3: The writer refers to a description of Egdon Heath to suggest that | Answers: 0
+💾 Saving 0 answers for question ID: 124035, text: The writer refers to a description of Egdon Heath to suggest that
+✅ Successfully saved question 3
+📝 Question 4: In the fourth paragraph, the writer refers to ‘a golden age’ to suggest that | Answers: 0
+💾 Saving 0 answers for question ID: 124036, text: In the fourth paragraph, the writer refers to ‘a golden age’ to suggest that
+✅ Successfully saved question 4
+📝 Question 5: <p>In the sixth paragraph, when discussing the definition of exploration, the writer argues that</p> | Answers: 0
+💾 Saving 0 answers for question ID: 124037, text: <p>In the sixth paragraph, when discussing the definition of exploration, the writer argues that</p>
+✅ Successfully saved question 5
+📝 Question 6: <p>In the last paragraph, the writer explains that he is interested in</p> | Answers: 0
+💾 Saving 0 answers for question ID: 124038, text: <p>In the last paragraph, the writer explains that he is interested in</p>
+✅ Successfully saved question 6
+🔍 Saving 5 questions for group: <br>
+📝 Question 1: He referred to the relevance of the form of transport used. | Answers: 1
+💾 Saving 1 answers for question ID: 124039, text: He referred to the relevance of the form of transport used.
+📝 Answer 1 INPUT: 'E' (length: 1)
+✅ Saved answer 1 with ID: 92567, text: 'E' (length: 1)
+✅ Successfully saved question 1
+📝 Question 2: He described feelings on coming back home after a long journey. | Answers: 1
+💾 Saving 1 answers for question ID: 124040, text: He described feelings on coming back home after a long journey.
+📝 Answer 1 INPUT: 'A' (length: 1)
+✅ Saved answer 1 with ID: 92568, text: 'A' (length: 1)
+✅ Successfully saved question 2
+📝 Question 3: He worked for the benefit of specific groups of people. | Answers: 1
+💾 Saving 1 answers for question ID: 124041, text: He worked for the benefit of specific groups of people.
+📝 Answer 1 INPUT: 'D' (length: 1)
+✅ Saved answer 1 with ID: 92569, text: 'D' (length: 1)
+✅ Successfully saved question 3
+📝 Question 4: He did not consider learning about oneself an essential part of exploration. | Answers: 1
+💾 Saving 1 answers for question ID: 124042, text: He did not consider learning about oneself an essential part of exploration.
+📝 Answer 1 INPUT: 'E' (length: 1)
+✅ Saved answer 1 with ID: 92570, text: 'E' (length: 1)
+✅ Successfully saved question 4
+📝 Question 5: He defined exploration as being both unique and of value to others. | Answers: 1
+💾 Saving 1 answers for question ID: 124043, text: He defined exploration as being both unique and of value to others.
+📝 Answer 1 INPUT: 'B' (length: 1)
+✅ Saved answer 1 with ID: 92571, text: 'B' (length: 1)
+✅ Successfully saved question 5
+🔍 Saving 3 questions for group: Image + Note Form 4
+📝 Question 1:  | Answers: 1
+💾 Saving 1 answers for question ID: 124044, text: 
+📝 Answer 1 INPUT: 'unique expeditions | expeditions' (length: 32)
+✅ Saved answer 1 with ID: 92572, text: 'unique expeditions | expeditions' (length: 32)
+✅ Successfully saved question 1
+📝 Question 2:  | Answers: 1
+💾 Saving 1 answers for question ID: 124045, text: 
+📝 Answer 1 INPUT: 'uncontacted | isolated' (length: 22)
+✅ Saved answer 1 with ID: 92573, text: 'uncontacted | isolated' (length: 22)
+✅ Successfully saved question 2
+📝 Question 3:  | Answers: 1
+💾 Saving 1 answers for question ID: 124046, text: 
+📝 Answer 1 INPUT: 'land surface | surface' (length: 22)
+✅ Saved answer 1 with ID: 92574, text: 'land surface | surface' (length: 22)
+✅ Successfully saved question 3

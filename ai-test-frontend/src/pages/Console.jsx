@@ -67,7 +67,7 @@ export default function Console() {
       </div>
 
       <div className="card">
-        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'flex-end' }}>
           <div className="form-group" style={{ width: 120, marginBottom: 0 }}>
             <label>Method</label>
             <select value={method} onChange={(e) => setMethod(e.target.value)}>
@@ -82,7 +82,7 @@ export default function Console() {
             <label>URL</label>
             <input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="/api/ai/writing/test-grade" />
           </div>
-          <div className="form-group" style={{ marginBottom: 0, alignSelf: 'flex-end' }}>
+          <div className="form-group" style={{ marginBottom: 0 }}>
             <button className="btn btn-primary" onClick={sendRequest} disabled={loading}>
               {loading ? <span className="spinner" /> : <Send size={16} />}
               Send

@@ -37,9 +37,17 @@ export default function Evaluation() {
       <div className="card-grid">
         <div className="card">
           <h3><Target size={18} /> Accuracy Metrics</h3>
-          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16 }}>
-            AI vs teacher grading comparison: MAE, RMSE, Pearson correlation, exact/band match
-          </p>
+          <div style={{ background: 'var(--info-bg)', borderRadius: 'var(--radius-sm)', padding: 16, marginBottom: 16 }}>
+            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+              <div><span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>MAE</span></div>
+              <div><span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>RMSE</span></div>
+              <div><span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Pearson</span></div>
+              <div><span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Exact Match</span></div>
+            </div>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 8 }}>
+              AI vs teacher grading comparison metrics
+            </p>
+          </div>
           <button
             className="btn btn-primary"
             onClick={() => callApi(() => writingApi.getEvaluationAccuracy(), 'Accuracy')}
@@ -51,9 +59,16 @@ export default function Evaluation() {
 
         <div className="card">
           <h3><BarChart3 size={18} /> Grading Statistics</h3>
-          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16 }}>
-            Total graded, approval rate, by provider breakdown
-          </p>
+          <div style={{ background: 'var(--bg)', borderRadius: 'var(--radius-sm)', padding: 16, marginBottom: 16 }}>
+            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+              <div><span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Total Graded</span></div>
+              <div><span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Approval Rate</span></div>
+              <div><span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>By Provider</span></div>
+            </div>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 8 }}>
+              Overall grading statistics breakdown
+            </p>
+          </div>
           <button
             className="btn btn-primary"
             onClick={() => callApi(() => writingApi.getEvaluationStats(), 'Stats')}

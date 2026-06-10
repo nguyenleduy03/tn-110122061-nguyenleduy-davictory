@@ -10,12 +10,12 @@ export const writingApi = {
     });
   },
 
-  testGrade(essayText, taskType = 'TASK2_ACADEMIC', topic = 'Education') {
-    return axios.post(`${writingBase}/test-grade`, { essayText, taskType, topic });
+  testGrade(essayText, taskType = 'TASK2_ACADEMIC', topic = 'Education', promptText = '') {
+    return axios.post(`${writingBase}/test-grade`, { essayText, taskType, topic, promptText });
   },
 
   startBatch(submissionIds, userId = 'test') {
-    return axios.post(`${writingBase}/batch`, { submissionIds }, {
+    return axios.post(`${writingBase}/batch`, { submission_ids: submissionIds }, {
       headers: { 'X-User-Id': userId },
     });
   },
@@ -29,7 +29,7 @@ export const writingApi = {
   },
 
   approve(submissionId, adjustments, reason, userId = 1) {
-    return axios.post(`${writingBase}/approve/${submissionId}`, 
+    return axios.post(`${writingBase}/approve/${submissionId}`,
       { adjustments, reason },
       { headers: { 'X-User-Id': String(userId) } }
     );
@@ -39,7 +39,10 @@ export const writingApi = {
     return axios.post(`${writingBase}/reject/${submissionId}`, { reason });
   },
 
-  // Admin
+  getSamples(page = 0, size = 20) {
+    return axios.get(`${writingAdminBase}/samples`, { params: { page, size } });
+  },
+
   getSamplesCount() {
     return axios.get(`${writingAdminBase}/samples/count`);
   },
@@ -78,5 +81,9 @@ export const writingApi = {
 
   getEvaluationStats() {
     return axios.get('/api/ai/evaluation/stats');
+  },
+
+  matchSamples(essayText, taskType = 'TASK2_ACADEMIC') {
+    return axios.post(`${writingBase}/match-samples`, { essay_text: essayText, task_type: taskType });
   },
 };

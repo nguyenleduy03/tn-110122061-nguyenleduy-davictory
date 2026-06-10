@@ -3,7 +3,7 @@ import aiApi from '../services/aiApi';
 import {
   Sparkles, Send, RotateCw, AlertCircle, CheckCircle2, ChevronDown, ChevronUp,
   Brain, FileText, BookOpen, PenLine, Mic, Quote, Target,
-  ArrowUpRight, Layers, Lightbulb, Wrench, Languages, MessageSquare
+  ArrowUpRight, Layers, Lightbulb, Wrench, Languages, MessageSquare, Code
 } from 'lucide-react';
 import Navbar from '../components/layout/Navbar';
 import '../styles/aiTestCenter.css';
@@ -25,11 +25,13 @@ export default function AITestCenter() {
   const [taskType, setTaskType] = useState('TASK2_ACADEMIC');
   const [topic, setTopic] = useState('');
   const [service, setService] = useState('writing');
+  const [showRawPrompt, setShowRawPrompt] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
   const [expandedSections, setExpandedSections] = useState({});
+  const [showFullPrompt, setShowFullPrompt] = useState(false);
 
   const toggleSection = (key) => {
     setExpandedSections(prev => ({ ...prev, [key]: !prev[key] }));
@@ -140,17 +142,73 @@ export default function AITestCenter() {
               </div>
 
               <div className="ai-test-textarea-wrap">
-                <textarea
-                  className="ai-test-textarea"
-                  placeholder="Dán bài IELTS Writing của bạn vào đây..."
-                  value={essayText}
-                  onChange={e => setEssayText(e.target.value)}
-                  rows={12}
-                />
+                {showRawPrompt ? (
+                  <div style={{
+                    padding: 16,
+                    background: '#1f2937',
+                    borderRadius: 8,
+                    minHeight: 300,
+                    fontSize: 13,
+                    fontFamily: "'Monaco','Menlo','Consolas',monospace",
+                    whiteSpace: 'pre-wrap',
+                    wordWrap: 'break-word',
+                    color: '#e2e8f0',
+                    lineHeight: 1.6,
+                    marginBottom: 8,
+                  }}>
+                    <div style={{ marginBottom: 12, color: '#94a3b8', fontSize: 12 }}>
+                      ⚡ Payload gốc gửi đến backend → Python service → LLM
+                    </div>
+                    <div style={{ color: '#60a5fa', fontSize: 11, marginBottom: 4 }}>
+                      task_type: {taskType}
+                    </div>
+                    <div style={{ color: '#60a5fa', fontSize: 11, marginBottom: 4 }}>
+                      topic: {topic || '(không có)'}
+                    </div>
+                    <div style={{ color: '#60a5fa', fontSize: 11, marginBottom: 8 }}>
+                      word_count: {essayText.trim() ? essayText.trim().split(/\s+/).length : 0}
+                    </div>
+                    <div style={{ borderTop: '1px solid #334155', paddingTop: 12, color: '#fbbf24', fontSize: 11, marginBottom: 8 }}>
+                      essayText:
+                    </div>
+                    <div style={{ color: '#e2e8f0', whiteSpace: 'pre-wrap' }}>
+                      {essayText.trim() || '(trống)'}
+                    </div>
+                  </div>
+                ) : (
+                  <textarea
+                    className="ai-test-textarea"
+                    placeholder="Dán bài IELTS Writing của bạn vào đây..."
+                    value={essayText}
+                    onChange={e => setEssayText(e.target.value)}
+                    rows={12}
+                  />
+                )}
                 <div className="ai-test-textarea-footer">
                   <span className="ai-test-word-count">
                     {essayText.trim() ? `${essayText.trim().split(/\s+/).length} từ` : ''}
                   </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowRawPrompt(v => !v)}
+                    style={{
+                      padding: '6px 12px',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      borderRadius: 6,
+                      border: '1px solid #d1d5db',
+                      background: showRawPrompt ? '#3b82f6' : 'transparent',
+                      color: showRawPrompt ? '#fff' : '#6b7280',
+                      cursor: 'pointer',
+                      marginRight: 8,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                    }}
+                  >
+                    <Code size={14} />
+                    {showRawPrompt ? 'Soạn thảo' : 'Xem nội dung gửi LLM'}
+                  </button>
                   <button
                     className={`ai-test-submit-btn${loading ? ' loading' : ''}`}
                     onClick={handleTest}
@@ -477,6 +535,26 @@ export default function AITestCenter() {
                 </div>
               )}
             </div>
+
+            {/* Full Prompt */}
+            {result.fullPrompt && (
+              <div style={{ marginTop: 16 }}>
+                <button
+                  className="ai-test-raw-toggle"
+                  onClick={() => setShowFullPrompt(v => !v)}
+                  style={{ borderColor: '#8b5cf6', color: showFullPrompt ? '#fff' : '#8b5cf6', background: showFullPrompt ? '#8b5cf6' : 'transparent' }}
+                >
+                  <Code size={16} style={{ marginRight: 6 }} />
+                  {showFullPrompt ? 'Ẩn prompt đầy đủ đã gửi LLM' : 'Xem prompt đầy đủ đã gửi LLM'}
+                  {showFullPrompt ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                </button>
+                {showFullPrompt && (
+                  <pre className="ai-test-raw-json" style={{ background: '#0f172a', color: '#e2e8f0', border: '1px solid #334155', marginTop: 8 }}>
+                    {result.fullPrompt}
+                  </pre>
+                )}
+              </div>
+            )}
 
             {/* Raw JSON */}
             <button

@@ -6,17 +6,9 @@ const speakingAdminBase = '/api/admin/speaking';
 export const speakingApi = {
   createSession(config = {}, userId = 1, userName = 'Test User', userRole = 'STUDENT') {
     return axios.post(`${speakingBase}/sessions`, {
-      targetLanguage: 'english',
-      scenario: 'ielts_speaking',
-      focusArea: 'part1',
-      topic: 'random_topics',
-      currentLevel: 'band_6',
-      targetLevel: 'band_7',
-      practiceMode: 'mock_test',
-      aiRole: 'examiner',
-      responseStyle: 'formal',
-      voiceAccent: 'female_uk',
-      feedbackLanguage: 'english',
+      topic: config.topic || '',
+      focus_area: config.focusArea || 'general',
+      practice_mode: config.practiceMode || 'mock_test',
       ...config,
     }, {
       headers: {
@@ -33,29 +25,21 @@ export const speakingApi = {
 
   submitAnswer(sessionId, answerText, durationMs) {
     return axios.post(`${speakingBase}/sessions/${sessionId}/answer`, {
-      answerText,
-      durationMs,
+      answer_text: answerText,
+      duration_ms: durationMs,
     });
   },
 
   submitAudio(sessionId, audioFile) {
     const formData = new FormData();
-    formData.append('audio', audioFile);
+    formData.append('file', audioFile);
     return axios.post(`${speakingBase}/sessions/${sessionId}/audio`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
 
-  followUp(sessionId) {
-    return axios.post(`${speakingBase}/sessions/${sessionId}/follow-up`);
-  },
-
   nextPhase(sessionId) {
     return axios.post(`${speakingBase}/sessions/${sessionId}/next-phase`);
-  },
-
-  endPart(sessionId) {
-    return axios.post(`${speakingBase}/sessions/${sessionId}/end-part`);
   },
 
   endSession(sessionId) {
@@ -73,13 +57,11 @@ export const speakingApi = {
   },
 
   tts(text, voice = 'alloy') {
-    return axios.get(`${speakingBase}/tts`, {
-      params: { text, voice },
+    return axios.post(`${speakingBase}/tts`, { text, voice }, {
       responseType: 'blob',
     });
   },
 
-  // Scoring
   scoreEvaluate(sessionId, userId = 1) {
     return axios.post(`${speakingBase}/scoring/evaluate/${sessionId}`, null, {
       headers: { 'X-User-Id': String(userId) },
@@ -90,7 +72,6 @@ export const speakingApi = {
     return axios.get(`${speakingBase}/scoring/result/${sessionId}`);
   },
 
-  // Admin
   getConfig() {
     return axios.get(`${speakingAdminBase}/config`);
   },
@@ -105,9 +86,5 @@ export const speakingApi = {
 
   clearCache() {
     return axios.post(`${speakingAdminBase}/cache/clear`);
-  },
-
-  resetQuota() {
-    return axios.post(`${speakingAdminBase}/quota/reset`);
   },
 };

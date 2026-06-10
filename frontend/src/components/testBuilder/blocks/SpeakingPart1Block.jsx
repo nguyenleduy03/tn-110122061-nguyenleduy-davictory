@@ -6,11 +6,32 @@ import RichInput from '../../common/RichInput';
 const SpeakingPart1Block = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps }) => {
   const topics = group.topics ?? [{ id: `topic-${Date.now()}`, name: '', questions: [''] }];
 
+  const [importTopicId, setImportTopicId] = React.useState(null);
+  const importRef = React.useRef(null);
+
   const addTopic = (e) => {
     e.stopPropagation();
     onUpdate(group.id, {
       topics: [...topics, { id: `topic-${Date.now()}`, name: '', questions: [''] }]
     });
+  };
+
+  const handleImport = (topicId) => {
+    const text = importRef.current?.value || '';
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+    if (lines.length === 0) {
+      setImportTopicId(null);
+      return;
+    }
+
+    onUpdate(group.id, {
+      topics: topics.map(t => 
+        t.id === topicId 
+          ? { ...t, questions: [...t.questions.filter(q => q.trim()), ...lines] } 
+          : t
+      )
+    });
+    setImportTopicId(null);
   };
 
   const updateTopic = (topicId, field, value) => {
@@ -107,12 +128,44 @@ const SpeakingPart1Block = ({ group, onUpdate, onDelete, onSelect, selected, dra
                 )}
               </div>
             ))}
-            <button className="exam-spk-qadd" onClick={(e) => addQuestion(topic.id, e)}>
-              <Plus size={12} /> Add question
-            </button>
+            <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+              <button className="exam-spk-qadd" style={{ flex: 1 }} onClick={(e) => addQuestion(topic.id, e)}>
+                <Plus size={12} /> Add question
+              </button>
+              <button className="exam-spk-qadd" onClick={() => setImportTopicId(topic.id)} title="Import questions for this topic">
+                📋 Import
+              </button>
+            </div>
           </div>
         </div>
       ))}
+
+      {importTopicId && (
+        <div className="exam-import-modal" style={{
+          position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+          backgroundColor: 'white', padding: 20, borderRadius: 12, boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+          zIndex: 1000, width: '400px', border: '1px solid #e5e7eb'
+        }} onClick={(e) => e.stopPropagation()}>
+          <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12 }}>Import Questions</h3>
+          <p style={{ fontSize: 12, color: '#666', marginBottom: 8 }}>Mỗi dòng là một câu hỏi cho topic này</p>
+          <textarea
+            ref={importRef}
+            rows={10}
+            style={{ width: '100%', padding: 10, borderRadius: 8, border: '1px solid #d1d5db', fontSize: 13, outline: 'none' }}
+            placeholder="VD:&#10;What do you do?&#10;Is it a difficult job?&#10;Why did you choose this work?"
+          />
+          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+            <button onClick={() => handleImport(importTopicId)} style={{
+              flex: 1, padding: '8px 16px', backgroundColor: '#1e40af', color: 'white',
+              border: 'none', borderRadius: 6, fontWeight: 600, cursor: 'pointer'
+            }}>Import</button>
+            <button onClick={() => setImportTopicId(null)} style={{
+              padding: '8px 16px', backgroundColor: '#f3f4f6', color: '#4b5563',
+              border: 'none', borderRadius: 6, fontWeight: 600, cursor: 'pointer'
+            }}>Hủy</button>
+          </div>
+        </div>
+      )}
 
       <button className="exam-spk-qadd" style={{ marginTop: 12 }} onClick={addTopic}>
         <Plus size={14} /> Add topic

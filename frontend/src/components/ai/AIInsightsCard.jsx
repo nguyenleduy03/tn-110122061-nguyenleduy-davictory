@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import aiApi from '../services/aiApi';
+import aiApi from '../../services/aiApi';
 
 export default function AIInsightsCard({ userId }) {
   const [insights, setInsights] = useState(null);

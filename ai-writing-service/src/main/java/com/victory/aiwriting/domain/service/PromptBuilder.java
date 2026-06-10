@@ -115,7 +115,9 @@ public class PromptBuilder {
                 sb.append("--- Prompt (Exam Question) ---\n").append(s.getPromptText()).append("\n");
             }
 
-            sb.append("--- Student Essay ---\n").append(s.getEssayText()).append("\n");
+            var essay = s.getEssayText();
+            if (essay.length() > 600) { essay = essay.substring(0, 600) + "\n...[truncated]"; }
+            sb.append("--- Student Essay ---\n").append(essay).append("\n");
             sb.append("--- Assigned Band Score ---\n").append(String.format("%.1f / 9.0\n", s.getBandScore()));
 
             if (includeExaminerComments && s.isHasComment() && s.getExaminerComment() != null) {

@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Pencil, FileText, Layers, Send, CheckCircle, XCircle, Plus, RefreshCw, Cpu, AlertTriangle } from 'lucide-react';
+import { Pencil, FileText, Layers, Send, CheckCircle, XCircle, Plus, RefreshCw, Cpu, AlertTriangle, Database, Code, ArrowRight } from 'lucide-react';
 import { writingApi } from '../api/writingApi';
 import ResponseViewer from '../components/ResponseViewer';
+import { useHeader } from '../context/HeaderContext';
 
 const DEFAULT_ESSAY = `Some people believe that unpaid community service should be a compulsory part of high school programmes. To what extent do you agree or disagree?
 
@@ -17,9 +18,24 @@ In conclusion, I firmly believe that the benefits of compulsory community servic
 
 export default function Writing() {
   const [tab, setTab] = useState('test-grade');
+  const { setTabs, activeTab } = useHeader();
+
+  const tabDefs = [
+    { key: 'test-grade', label: 'Test Grade', icon: FileText, onClick: () => setTab('test-grade') },
+    { key: 'submission', label: 'Grade by ID', icon: CheckCircle, onClick: () => setTab('submission') },
+    { key: 'batch', label: 'Batch Grade', icon: Layers, onClick: () => setTab('batch') },
+    { key: 'admin', label: 'Admin', icon: Plus, onClick: () => setTab('admin') },
+  ];
+
+  useEffect(() => {
+    setTabs(tabDefs);
+    return () => setTabs([]);
+  }, []);
   const [essayText, setEssayText] = useState(DEFAULT_ESSAY);
   const [taskType, setTaskType] = useState('TASK2_ACADEMIC');
   const [topic, setTopic] = useState('Education');
+  const [promptText, setPromptText] = useState('');
+  const [showRawPrompt, setShowRawPrompt] = useState(false);
   const [submissionId, setSubmissionId] = useState('');
   const [batchIds, setBatchIds] = useState('');
   const [batchId, setBatchId] = useState('');
@@ -32,12 +48,23 @@ export default function Writing() {
   const [models, setModels] = useState([]);
   const [currentModel, setCurrentModel] = useState('');
   const [switchingModel, setSwitchingModel] = useState(false);
+  const [matchResult, setMatchResult] = useState(null);
+  const [matchLoading, setMatchLoading] = useState(false);
 
   const loadModels = useCallback(async () => {
     try {
       const res = await writingApi.getModels();
-      setModels(res.data.models || []);
-      setCurrentModel(res.data.current);
+      const data = res.data || {};
+      const modelsList = data.models || [];
+      const flat = modelsList.map((m) => ({
+        model: m.id,
+        label: m.id,
+        provider: m.owned_by || 'groq',
+        active: m.active,
+      }));
+      setModels(flat);
+      const current = flat.find((m) => m.active && m.model === currentModel) || flat.find((m) => m.active) || flat[0];
+      if (current) setCurrentModel(current.model);
     } catch { /* ignore */ }
   }, []);
 
@@ -61,6 +88,19 @@ export default function Writing() {
     }
   }
 
+  async function handleMatchSamples() {
+    setMatchLoading(true);
+    setMatchResult(null);
+    try {
+      const res = await writingApi.matchSamples(essayText, taskType);
+      setMatchResult(res.data);
+    } catch (err) {
+      setError(err.response?.data ? JSON.stringify(err.response.data, null, 2) : err.message);
+    } finally {
+      setMatchLoading(false);
+    }
+  }
+
   return (
     <div className="main">
       <div className="page-header">
@@ -68,27 +108,9 @@ export default function Writing() {
         <p>Test all AI Writing service endpoints — grading, batch processing, admin controls</p>
       </div>
 
-      <div className="tabs">
-        {[
-          { key: 'test-grade', label: 'Test Grade', icon: FileText },
-          { key: 'submission', label: 'Grade by ID', icon: CheckCircle },
-          { key: 'batch', label: 'Batch Grade', icon: Layers },
-          { key: 'admin', label: 'Admin', icon: Plus },
-        ].map((t) => (
-          <button
-            key={t.key}
-            className={`tab ${tab === t.key ? 'active' : ''}`}
-            onClick={() => setTab(t.key)}
-          >
-            <t.icon size={14} style={{ marginRight: 6 }} />
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="card" style={{ padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+      <div className="model-selector">
         <Cpu size={16} style={{ color: 'var(--primary)' }} />
-        <span style={{ fontSize: 13, fontWeight: 600 }}>Model:</span>
+        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>Model:</span>
         <select
           value={currentModel}
           onChange={async (e) => {
@@ -105,7 +127,7 @@ export default function Writing() {
               setSwitchingModel(false);
             }
           }}
-          style={{ width: 260, padding: '6px 10px', fontSize: 13, border: '1px solid var(--border)', borderRadius: 8, background: 'var(--bg)' }}
+          style={{ width: 260, padding: '6px 10px', fontSize: 13, border: '1px solid var(--border)', borderRadius: 'var(--radius-xs)', background: 'var(--bg)' }}
           disabled={switchingModel}
         >
           {models.map((m) => (
@@ -118,8 +140,13 @@ export default function Writing() {
         <button className="btn btn-sm btn-secondary" onClick={loadModels} style={{ marginLeft: 'auto' }}>
           <RefreshCw size={12} /> Refresh
         </button>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: '#fef3c7', color: '#92400e' }}>
-          <AlertTriangle size={12} /> Nếu gặp rate limit, đổi model khác
+        <span style={{
+          display: 'inline-flex', alignItems: 'center', gap: 4,
+          padding: '4px 10px', borderRadius: 20,
+          fontSize: 11, fontWeight: 600,
+          background: 'var(--warning-bg)', color: '#B7950B',
+        }}>
+          <AlertTriangle size={12} /> Rate limit? Switch model
         </span>
       </div>
 
@@ -142,16 +169,136 @@ export default function Writing() {
             </div>
           </div>
           <div className="form-group">
-            <label>Essay Text</label>
-            <textarea value={essayText} onChange={(e) => setEssayText(e.target.value)} rows={12} />
+            <label>Prompt / Question (optional — nếu có, AI chấm chính xác hơn)</label>
+            <textarea value={promptText} onChange={(e) => setPromptText(e.target.value)} rows={3} placeholder="Paste the essay question/prompt here..." />
           </div>
-          <button
-            className="btn btn-primary"
-            onClick={() => callApi(() => writingApi.testGrade(essayText, taskType, topic), 'Test Grade Result')}
-            disabled={loading}
-          >
-            <Send size={16} /> Grade Essay
-          </button>
+          <div className="form-group">
+            <label>Essay Text</label>
+            {showRawPrompt && response?.full_prompt ? (
+              <pre style={{
+                padding: 16, background: '#0f172a', borderRadius: 8,
+                minHeight: 250, fontSize: 12, lineHeight: 1.5,
+                fontFamily: "'Monaco','Menlo','Consolas',monospace",
+                whiteSpace: 'pre-wrap', wordWrap: 'break-word',
+                color: '#e2e8f0', marginBottom: 8,
+              }}>
+                {response.full_prompt}
+              </pre>
+            ) : showRawPrompt ? (
+              <div style={{
+                padding: 16, background: '#1f2937', borderRadius: 8,
+                minHeight: 250, fontSize: 13,
+                fontFamily: "'Monaco','Menlo','Consolas',monospace",
+                whiteSpace: 'pre-wrap', wordWrap: 'break-word',
+                color: '#e2e8f0', lineHeight: 1.6, marginBottom: 8,
+              }}>
+                <div style={{ marginBottom: 12, color: '#94a3b8', fontSize: 12 }}>
+                  ⚡ Payload gốc gửi đến backend → Python service → LLM
+                </div>
+                <div style={{ color: '#60a5fa', fontSize: 11, marginBottom: 4 }}>
+                  task_type: {taskType}
+                </div>
+                <div style={{ color: '#60a5fa', fontSize: 11, marginBottom: 4 }}>
+                  topic: {topic || '(không có)'}
+                </div>
+                <div style={{ color: '#60a5fa', fontSize: 11, marginBottom: 8 }}>
+                  prompt_text: {promptText ? promptText.substring(0, 80) + (promptText.length > 80 ? '...' : '') : '(không có)'}
+                </div>
+                <div style={{ borderTop: '1px solid #334155', paddingTop: 12, color: '#fbbf24', fontSize: 11, marginBottom: 8 }}>
+                  essayText ({essayText.trim() ? essayText.trim().split(/\s+/).length : 0} words):
+                </div>
+                <div style={{ color: '#e2e8f0', whiteSpace: 'pre-wrap' }}>
+                  {essayText.trim() || '(trống)'}
+                </div>
+              </div>
+            ) : (
+              <textarea value={essayText} onChange={(e) => setEssayText(e.target.value)} rows={12} />
+            )}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
+              <button
+                type="button"
+                onClick={() => setShowRawPrompt(v => !v)}
+                style={{
+                  padding: '4px 10px',
+                  fontSize: 11,
+                  fontWeight: 600,
+                  borderRadius: 5,
+                  border: '1px solid #d1d5db',
+                  background: showRawPrompt ? '#3b82f6' : 'transparent',
+                  color: showRawPrompt ? '#fff' : '#6b7280',
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                }}
+              >
+                <Code size={13} />
+                {showRawPrompt && response?.full_prompt ? 'Soạn thảo' : showRawPrompt ? 'Soạn thảo' : response?.full_prompt ? 'Xem prompt thật đã gửi LLM' : 'Xem nội dung gửi LLM'}
+              </button>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+            <button
+              className="btn btn-secondary"
+              onClick={handleMatchSamples}
+              disabled={matchLoading || !essayText.trim()}
+            >
+              <Database size={16} /> {matchLoading ? 'Matching...' : 'Check ChromaDB Match'}
+            </button>
+            <button
+              className="btn btn-primary"
+              onClick={() => callApi(() => writingApi.testGrade(essayText, taskType, topic, promptText), 'Test Grade Result')}
+              disabled={loading}
+            >
+              <Send size={16} /> Grade Essay
+            </button>
+          </div>
+
+              {matchResult && (
+            <div className="card" style={{ marginBottom: 16, padding: 16 }}>
+              <h4 style={{ margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Database size={16} /> ChromaDB Matched Samples ({matchResult.total})
+                <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 400 }}>
+                  — Avg similarity: {matchResult.avgSimilarity}
+                </span>
+              </h4>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Band</th>
+                    <th>Similarity</th>
+                    <th>Topic</th>
+                    <th>Keywords</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {matchResult.samples?.map((s) => (
+                    <tr key={s.id}>
+                      <td>#{s.id}</td>
+                      <td><span className="badge badge-info">{s.bandScore}</span></td>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <div className="progress-bar" style={{ width: 80 }}>
+                            <div className="progress-bar-fill" style={{
+                              width: `${Math.min(100, s.similarity * 100)}%`,
+                              background: s.similarity > 0.7 ? 'var(--success)' : s.similarity > 0.5 ? 'var(--warning)' : 'var(--danger)',
+                            }} />
+                          </div>
+                          {s.similarityPercent}
+                        </div>
+                      </td>
+                      <td style={{ color: 'var(--text-muted)' }}>{s.topic || 'N/A'}</td>
+                      <td style={{ color: 'var(--text-muted)', fontSize: 12 }}>
+                        {s.keywords?.join(', ') || 'N/A'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
           <ResponseViewer response={response} error={error} loading={loading} label={label} />
         </div>
       )}

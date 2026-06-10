@@ -1,4 +1,11 @@
-import api from '../config/api';
+import axios from 'axios';
+import { API_CONFIG } from '../config/api';
+
+const api = axios.create({
+  baseURL: API_CONFIG.BASE_URL,
+  timeout: 60000,
+  headers: { 'Content-Type': 'application/json' },
+});
 
 const aiApi = {
   gradeWriting(submissionId) {
@@ -7,6 +14,14 @@ const aiApi = {
 
   getGradingResult(submissionId) {
     return api.get(`/writing/ai-grade/${submissionId}/result`);
+  },
+
+  testGradeWriting(essayText, taskType = 'TASK2_ACADEMIC', topic = '') {
+    return api.post('/writing/ai-grade/test', {
+      essayText: essayText.trim(),
+      taskType,
+      topic,
+    });
   },
 
   gradeBatch(submissionIds) {

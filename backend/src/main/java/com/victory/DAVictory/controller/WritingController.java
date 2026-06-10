@@ -182,6 +182,27 @@ public class WritingController {
         }
     }
 
+    /**
+     * Test chấm bài bằng AI với essay text trực tiếp.
+     * Dùng cho AITestCenter — không cần submission.
+     */
+    @PostMapping("/ai-grade/test")
+    @PreAuthorize("hasAnyRole('TEACHER', 'MANAGER', 'ADMIN', 'STUDENT')")
+    public ResponseEntity<?> testAiGrade(@RequestBody Map<String, String> request) {
+        try {
+            String essayText = request.getOrDefault("essayText", "");
+            String taskType = request.getOrDefault("taskType", "TASK2_ACADEMIC");
+            String topic = request.getOrDefault("topic", "");
+            if (essayText == null || essayText.isBlank()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "essayText is required"));
+            }
+            AIGradingResponseDTO response = aiBridgeService.testGrade(essayText, taskType, topic);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     private String getRole(Authentication auth) {
         return auth.getAuthorities().stream()
             .map(g -> g.getAuthority().replace("ROLE_", ""))

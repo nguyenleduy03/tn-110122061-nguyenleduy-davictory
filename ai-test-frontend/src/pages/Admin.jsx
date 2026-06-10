@@ -36,7 +36,6 @@ export default function Admin() {
       </div>
 
       <div className="card-grid">
-        {/* Writing Admin */}
         <div className="card">
           <h3><Database size={18} /> AI Writing Service Admin</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -78,7 +77,6 @@ export default function Admin() {
           </div>
         </div>
 
-        {/* Add Sample */}
         <div className="card">
           <h3><Plus size={18} /> Add Sample Essay</h3>
           <div className="form-row">
@@ -121,7 +119,6 @@ export default function Admin() {
           </button>
         </div>
 
-        {/* Speaking Admin */}
         <div className="card">
           <h3><Zap size={18} /> AI Speaking Service Admin</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -136,9 +133,6 @@ export default function Admin() {
             </button>
             <button className="btn btn-danger" onClick={() => callApi(() => speakingApi.clearCache(), 'Clear Cache')}>
               <Trash2 size={14} /> Clear Cache
-            </button>
-            <button className="btn btn-danger" onClick={() => callApi(() => speakingApi.resetQuota(), 'Reset Quota')}>
-              <RefreshCw size={14} /> Reset All Quotas
             </button>
           </div>
         </div>

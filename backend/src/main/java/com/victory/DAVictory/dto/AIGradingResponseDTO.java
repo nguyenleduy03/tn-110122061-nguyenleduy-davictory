@@ -23,12 +23,15 @@ public class AIGradingResponseDTO {
     private String status;
     private String promptVersion;
     private long latencyMs;
+    private String fullPrompt;
 
     @Data
     public static class CriteriaScoreDTO {
         private Double band;
+        private String bandJustification;
         private List<String> strengths;
         private List<String> weaknesses;
+        private List<String> evidenceFromEssay;
         private String detailedFeedback;
     }
 }
