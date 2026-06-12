@@ -171,6 +171,11 @@ const makeDefaultParts = (skillKey) => {
   if (skillKey === 'SPEAKING') {
     return [
       {
+        id: nextId(), name: 'Part 0 - Cấu hình', orderIndex: 0,
+        durationMinutes: null, totalQuestions: 0,
+        instructions: 'Kéo block Part 0 - Cấu hình vào đây để thiết lập chế độ INLINE', questionGroups: []
+      },
+      {
         id: nextId(), name: 'Part 1 – Introduction & Interview', orderIndex: 1,
         durationMinutes: 5, totalQuestions: 13,
         instructions: 'Giám khảo hỏi về bản thân, gia đình, sở thích (4-5 phút)', questionGroups: []
@@ -777,6 +782,20 @@ const TestBuilder = () => {
             questions: [makeQ(1, 'WRITING_TASK', { questionText: '' })],
           };
 
+        case 'SPEAKING_PART0':
+          return {
+            title: `Part 0 - Cấu hình Speaking`,
+            passageText: JSON.stringify({
+              includeWarmUp: true,
+              optionalFrameCount: 2,
+              mandatoryQuestionCount: 5,
+              optionalQuestionCount: 4,
+              part3QuestionCount: 5
+            }),
+            fromQuestion: null, toQuestion: null,
+            questions: [makeQ(1, 'SHORT_ANSWER')],
+          };
+
         case 'SPEAKING_INTERVIEW':
           return {
             title: `Part 1 - Interview ${groupIdx}`,
@@ -797,6 +816,21 @@ const TestBuilder = () => {
             questions: [makeQ(1, 'SPEAKING_CUECARD', { questionText: '' })],
           };
 
+        case 'SPEAKING_PART2':
+          return {
+            title: `Part 2 - Cue Card ${groupIdx}`,
+            topic: '',
+            bulletPoints: ['', '', ''],
+            shouldSayLabel: 'You should say:',
+            closingSentence: '',
+            prepSeconds: 60,
+            speakingSeconds: 120,
+            followUpQuestions: [''],
+            partInstruction: '',
+            fromQuestion: null, toQuestion: null,
+            questions: [makeQ(1, 'SPEAKING_CUECARD', { questionText: '' })],
+          };
+
         case 'SPEAKING_DISCUSSION':
           return {
             title: `Part 3 - Discussion ${groupIdx}`,
@@ -806,6 +840,17 @@ const TestBuilder = () => {
               makeQ(1, 'SPEAKING_DISCUSSION', { questionText: '' }),
               makeQ(2, 'SPEAKING_DISCUSSION', { questionText: '' }),
             ],
+          };
+
+        case 'SPEAKING_PART3':
+          return {
+            title: `Part 3 - Two-way Discussion ${groupIdx}`,
+            theme: '',
+            partInstruction: 'The examiner asks further questions connected to the topic in Part 2.',
+            randomCount: 0,
+            durationMinutes: 5,
+            questions: [1, 2, 3, 4].map(i => ({ id: nextId(), text: '' })),
+            fromQuestion: null, toQuestion: null,
           };
 
         case 'CUSTOM':
@@ -863,6 +908,7 @@ const TestBuilder = () => {
       questionGroups: [...(part.questionGroups ?? []), newGroup],
     });
     setSelection({ type: 'group', data: newGroup });
+    return newGroup;
   };
 
   const updateGroup = useCallback((partId, groupId, updates) => {
@@ -881,6 +927,40 @@ const TestBuilder = () => {
 
       if (!hasChanges) {
         return prev;
+      }
+
+      // Nếu Part 2 thay đổi topic → sync theme cho Part 3 link
+      if ('topic' in updates && currentGroup.linkedPart3GroupId) {
+        const linkedPart3GroupId = currentGroup.linkedPart3GroupId;
+        const newTopic = updates.topic;
+        setTimeout(() => {
+          setParts((pPrev) => {
+            return pPrev.map((p) => ({
+              ...p,
+              questionGroups: (p.questionGroups || []).map((g) => {
+                if (g.id === linkedPart3GroupId && g.autoSyncFromPart2 !== false) {
+                  return { ...g, theme: newTopic || '' };
+                }
+                return g;
+              }),
+            }));
+          });
+          setSessions((sPrev) => {
+            const synced = { ...sPrev };
+            for (const [sk, parts] of Object.entries(synced)) {
+              synced[sk] = parts.map((p) => ({
+                ...p,
+                questionGroups: (p.questionGroups || []).map((g) => {
+                  if (g.id === linkedPart3GroupId && g.autoSyncFromPart2 !== false) {
+                    return { ...g, theme: newTopic || '' };
+                  }
+                  return g;
+                }),
+              }));
+            }
+            return synced;
+          });
+        }, 0);
       }
 
       // Update parts state
@@ -925,7 +1005,95 @@ const TestBuilder = () => {
     });
   }, []);
 
+  const handleLinkPart3 = useCallback((part2GroupOrId, part2PartOverride) => {
+    // Tìm Part 2 group — có thể nhận group object (từ drag) hoặc group ID (từ UI)
+    let part2Group = null;
+    let part2Part = null;
+    if (typeof part2GroupOrId === 'object' && part2GroupOrId.id) {
+      part2Group = part2GroupOrId;
+      part2Part = part2PartOverride || parts.find(p => (p.questionGroups || []).some(g => g.id === part2Group.id));
+    } else {
+      for (const p of parts) {
+        const g = (p.questionGroups || []).find(g => g.id === part2GroupOrId);
+        if (g) { part2Group = g; part2Part = p; break; }
+      }
+    }
+    if (!part2Group) return;
+
+    // Tìm Part 3 part (part có orderIndex = 3 hoặc tên chứa "Part 3")
+    const speakingParts = sessions['SPEAKING'] || [];
+    let part3Part = speakingParts.find(p => p.orderIndex === 3 || p.name?.includes('Part 3'));
+    if (!part3Part) return;
+
+    // Luôn tạo mới 1 Part 3 group cho mỗi Part 2 (không reuse group cũ)
+    const newGroup3 = addGroup(part3Part, 'SPEAKING_PART3');
+    if (newGroup3) {
+      // Mutate trực tiếp trên object (tránh stale closure khi React batch updates)
+      part2Group.linkedPart3GroupId = newGroup3.id;
+      newGroup3.linkedPart2GroupId = part2Group.id;
+      newGroup3.autoSyncFromPart2 = true;
+      newGroup3.theme = part2Group.topic || '';
+      // Cập nhật selection + sessions để đồng bộ
+      setSelection((s) => (s?.type === 'group' && s.data.id === part2Group.id)
+        ? { ...s, data: { ...s.data, linkedPart3GroupId: newGroup3.id } } : s);
+      setSessions((prev) => {
+        const updated = { ...prev };
+        for (const [sk, pts] of Object.entries(updated)) {
+          updated[sk] = pts.map(p => {
+            if (p.id === part3Part.id) {
+              return { ...p, questionGroups: (p.questionGroups || []).map(g =>
+                g.id === newGroup3.id ? { ...g, linkedPart2GroupId: part2Group.id, autoSyncFromPart2: true, theme: part2Group.topic || '' } : g
+              )};
+            }
+            if (p.id === part2Part.id) {
+              return { ...p, questionGroups: (p.questionGroups || []).map(g =>
+                g.id === part2Group.id ? { ...g, linkedPart3GroupId: newGroup3.id } : g
+              )};
+            }
+            return p;
+          });
+        }
+        return updated;
+      });
+    }
+  }, [parts, sessions, updateGroup, nextId]);
+
+  const handleUnlinkPart3 = useCallback((part3GroupId) => {
+    // Tìm Part 3 group
+    let part3Group = null;
+    let part3Part = null;
+    for (const p of parts) {
+      const g = (p.questionGroups || []).find(g => g.id === part3GroupId);
+      if (g) { part3Group = g; part3Part = p; break; }
+    }
+    if (!part3Group || !part3Group.linkedPart2GroupId) return;
+
+    // Clear link trên Part 2
+    const part2GroupId = part3Group.linkedPart2GroupId;
+    let part2Part = null;
+    for (const p of parts) {
+      if ((p.questionGroups || []).some(g => g.id === part2GroupId)) { part2Part = p; break; }
+    }
+    if (part2Part) {
+      updateGroup(part2Part.id, part2GroupId, { linkedPart3GroupId: null });
+    }
+    // Clear link trên Part 3
+    updateGroup(part3Part.id, part3GroupId, { linkedPart2GroupId: null, autoSyncFromPart2: false });
+  }, [parts, updateGroup]);
+
   const deleteGroup = (partId, groupId) => {
+    // Tìm group bị xoá để clear link nếu cần
+    for (const p of parts) {
+      const deletedGroup = (p.questionGroups || []).find(g => g.id === groupId);
+      if (!deletedGroup) continue;
+      if (['SPEAKING_PART2', 'SPEAKING_CUECARD'].includes(deletedGroup.contentType) && deletedGroup.linkedPart3GroupId) {
+        handleUnlinkPart3(deletedGroup.linkedPart3GroupId);
+      } else if (['SPEAKING_PART3', 'SPEAKING_DISCUSSION'].includes(deletedGroup.contentType) && deletedGroup.linkedPart2GroupId) {
+        handleUnlinkPart3(groupId);
+      }
+      break;
+    }
+
     setParts((prev) =>
       prev.map((p) => {
         if (p.id !== partId) return p;
@@ -1211,7 +1379,11 @@ const TestBuilder = () => {
         if (part) {
           // Don't allow dropping READING_PASSAGE into question pane
           const ct = activeData.contentType === 'READING_PASSAGE' ? 'STANDALONE' : activeData.contentType;
-          addGroup(part, ct);
+          const finalCt = activeData.contentType === 'SPEAKING_CUECARD' ? 'SPEAKING_PART2' : ct;
+          const newGroup = addGroup(part, finalCt);
+          if (newGroup && finalCt === 'SPEAKING_PART2') {
+            handleLinkPart3(newGroup, part);
+          }
         }
         return;
       }
@@ -1224,7 +1396,11 @@ const TestBuilder = () => {
         const part = parts.find((p) => p.id === partId);
         if (part) {
           const ct = activeData.contentType === 'READING_PASSAGE' ? 'READING_PASSAGE' : activeData.contentType;
-          addGroup(part, ct);
+          const finalCt = ct === 'SPEAKING_CUECARD' ? 'SPEAKING_PART2' : ct;
+          const newGroup = addGroup(part, finalCt);
+          if (newGroup && finalCt === 'SPEAKING_PART2') {
+            handleLinkPart3(newGroup, part);
+          }
         }
         return;
       }
@@ -1233,7 +1409,13 @@ const TestBuilder = () => {
       if (activeData?.source === 'palette' && overData?.type === 'part') {
         const partId = Number(overData.partId ?? overData.part?.id);
         const part = parts.find((p) => p.id === partId);
-        if (part) addGroup(part, activeData.contentType);
+        if (part) {
+          const finalCt = activeData.contentType === 'SPEAKING_CUECARD' ? 'SPEAKING_PART2' : activeData.contentType;
+          const newGroup = addGroup(part, finalCt);
+          if (newGroup && finalCt === 'SPEAKING_PART2') {
+            handleLinkPart3(newGroup, part);
+          }
+        }
         return;
       }
 
@@ -1541,7 +1723,16 @@ const TestBuilder = () => {
           seriesLabel={test.seriesLabel}
           savedTestId={savedTestId}
           previewMode={previewMode}
-          onPreviewToggle={() => setPreviewMode((prev) => !prev)}
+          onPreviewToggle={async () => {
+            if (hasChangedSinceEntryRef.current && savedTestId) {
+              try {
+                await handleSave({});
+              } catch {
+                return;
+              }
+            }
+            setPreviewMode((prev) => !prev);
+          }}
           activeSkill={activeSkill}
           hasUnsavedChanges={hasUnsavedChanges}
           onOpenVersionHistory={savedTestId ? () => setShowVersionHistory(true) : undefined}
@@ -1674,6 +1865,8 @@ const TestBuilder = () => {
                   onAddQuestion={(group) => addQuestion(group)}
                   onAddGroup={(part, contentType) => addGroup(part, contentType)}
                   onAddPart={addPart}
+                  onLinkPart3={handleLinkPart3}
+                  onUnlinkPart3={handleUnlinkPart3}
                 />
               </ErrorBoundary>
 

@@ -119,13 +119,20 @@ const SpeakingCueCardBlock = ({ group, onUpdate, onDelete, onSelect, selected, d
           />
         </div>
 
-        {/* Prep time */}
+        {/* Meta fields */}
         <div className="exam-wt-meta-row" style={{ marginTop: 8 }}>
           <div className="exam-wt-meta-field">
-            <label className="exam-wt-label">⏱ Thời gian chuẩn bị (giây)</label>
+            <label className="exam-wt-label">⏱ Chuẩn bị (giây)</label>
             <input type="number" className="exam-q-range-input" style={{ width: 72 }}
               value={group.prepSeconds ?? 60} min={0} max={120}
               onChange={(e) => onUpdate(group.id, { prepSeconds: Number(e.target.value) })}
+              onClick={(e) => e.stopPropagation()} />
+          </div>
+          <div className="exam-wt-meta-field">
+            <label className="exam-wt-label">Random N Follow-up</label>
+            <input type="number" className="exam-q-range-input" style={{ width: 72 }}
+              value={group.randomFollowUpCount ?? 0} min={0} max={20}
+              onChange={(e) => onUpdate(group.id, { randomFollowUpCount: Math.max(0, Number(e.target.value)) })}
               onClick={(e) => e.stopPropagation()} />
           </div>
         </div>

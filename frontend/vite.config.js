@@ -25,6 +25,7 @@ export default defineConfig(async () => {
 
   return {
     plugins: [react()],
+    base: process.env.VITE_BASE_URL || '/',
     define: {
       __PUBLIC_IP__: JSON.stringify(PUBLIC_IP),
       __BACKEND_PORT__: JSON.stringify(String(BACKEND_PORT)),

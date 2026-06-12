@@ -55,6 +55,8 @@ import {
   SpeakingPart1Block,
   SpeakingPart2Block,
   SpeakingPart3Block,
+  SpeakingPart0Block,
+  SpeakingNewFormatBlock,
   WritingTaskBlock,
   GroupToolbar,
   TYPE_META,
@@ -969,7 +971,7 @@ const formatPreviewText = (text) => {
 };
 
 // ---- Sortable wrapper ----
-const SortableGroupWrapper = ({ group, children }) => {
+const SortableGroupWrapper = ({ group, children, highlight }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: `group-${group.id}`,
     data: { type: 'group', group, partId: group.partId },
@@ -977,6 +979,8 @@ const SortableGroupWrapper = ({ group, children }) => {
   return (
     <div
       ref={setNodeRef}
+      id={`exam-group-${group.id}`}
+      className={highlight ? 'exam-group-highlight' : ''}
       style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1, position: 'relative' }}
     >
       {children({ dragHandleProps: { ...attributes, ...listeners } })}
@@ -1050,7 +1054,7 @@ const QuestionList = ({ group, onUpdateGroup, onUpdateQuestion, onDeleteQuestion
   </>
 );
 
-const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUpdateGroup, onUpdateQuestion, onDeleteGroup, onDeleteQuestion, onAddQuestion, onMoveGroupUp, onMoveGroupDown, dragHandleProps, allGroups, partQuestionStartNumber, testTitle, testId, skill }) => {
+const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUpdateGroup, onUpdateQuestion, onDeleteGroup, onDeleteQuestion, onAddQuestion, onMoveGroupUp, onMoveGroupDown, dragHandleProps, allGroups, partQuestionStartNumber, testTitle, testId, skill, onLinkPart3, onUnlinkPart3, onNavigateToPart }) => {
   const selectedGroupId = selection?.type === 'group' ? selection.data.id : null;
   const selectedQuestionId = selection?.type === 'question' ? selection.data.id : null;
   const isSelected = selectedGroupId === group.id;
@@ -1235,10 +1239,20 @@ const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUp
   }
   if (ct === 'SPEAKING_PART2') {
     return <SpeakingPart2Block group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
-      onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps} />;
+      onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps}
+      allGroups={allGroups} onLinkPart3={onLinkPart3} onNavigateToPart={onNavigateToPart} />;
   }
   if (ct === 'SPEAKING_PART3') {
     return <SpeakingPart3Block group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
+      onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps}
+      allGroups={allGroups} onUnlinkPart3={onUnlinkPart3} onNavigateToPart={onNavigateToPart} />;
+  }
+  if (ct === 'SPEAKING_PART0') {
+    return <SpeakingPart0Block group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
+      onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps} />;
+  }
+  if (ct === 'SPEAKING_NEW_FORMAT') {
+    return <SpeakingNewFormatBlock group={group} onUpdate={onUpdateGroup} onDelete={onDeleteGroup}
       onSelect={(g) => onSelectGroup(g, g.partId)} selected={isSelected} dragHandleProps={dragHandleProps} />;
   }
   if (ct === 'READING_PASSAGE') {
@@ -1283,7 +1297,7 @@ const GroupRenderer = ({ group, selection, onSelectGroup, onSelectQuestion, onUp
   );
 };
 
-const PartView = ({ skill, part, allParts = [], selection, onSelectGroup, onSelectQuestion, onUpdateGroup, onUpdateQuestion, onDeleteGroup, onDeleteQuestion, onAddQuestion, onAddGroup, onMoveGroupUp, onMoveGroupDown, isDropOver, isPassagePaneOver, isPassagePaneLocked, isMHLocked, test, testId, leftWidth, containerRef, handleDragStart }) => {
+const PartView = ({ skill, part, allParts = [], selection, onSelectGroup, onSelectQuestion, onUpdateGroup, onUpdateQuestion, onDeleteGroup, onDeleteQuestion, onAddQuestion, onAddGroup, onMoveGroupUp, onMoveGroupDown, onLinkPart3, onUnlinkPart3, onNavigateToPart, highlightGroupId, isDropOver, isPassagePaneOver, isPassagePaneLocked, isMHLocked, test, testId, leftWidth, containerRef, handleDragStart }) => {
   const [collapsedPane, setCollapsedPane] = useState(null);
   const [hoverPos, setHoverPos] = useState(null);
   const groups = part.questionGroups ?? [];
@@ -1326,12 +1340,16 @@ const PartView = ({ skill, part, allParts = [], selection, onSelectGroup, onSele
 
   const handleSplitLeave = useCallback(() => setHoverPos(null), []);
 
+  // Speaking cần allGroups từ tất cả parts (Part 2 cần tìm Part 3 ở part khác)
+  const ctxAllGroups = skill === 'SPEAKING'
+    ? allParts.flatMap(p => (p.questionGroups ?? []).map(g => ({ ...g, partId: p.id })))
+    : groups;
   const renderGroup = (group) => (
-    <SortableGroupWrapper key={group.id} group={{ ...group, partId: part.id }}>
+    <SortableGroupWrapper key={group.id} group={{ ...group, partId: part.id }} highlight={group.id === highlightGroupId}>
       {({ dragHandleProps }) => (
         <GroupRenderer
           group={{ ...group, partId: part.id }}
-          allGroups={groups}
+          allGroups={ctxAllGroups}
           partQuestionStartNumber={partQuestionStartNumber}
           selection={selection}
           onSelectGroup={onSelectGroup}
@@ -1343,6 +1361,9 @@ const PartView = ({ skill, part, allParts = [], selection, onSelectGroup, onSele
           onAddQuestion={onAddQuestion}
           onMoveGroupUp={onMoveGroupUp}
           onMoveGroupDown={onMoveGroupDown}
+          onLinkPart3={onLinkPart3}
+          onUnlinkPart3={onUnlinkPart3}
+          onNavigateToPart={onNavigateToPart}
           dragHandleProps={dragHandleProps}
           testTitle={test?.title}
           testId={testId}
@@ -1517,6 +1538,8 @@ const ExamCanvas = ({
   onAddGroup,
   onMoveGroupUp,
   onMoveGroupDown,
+  onLinkPart3,
+  onUnlinkPart3,
   dragOverPartId,
   dragOverPassagePaneId,
   draggingContentType,
@@ -1532,6 +1555,21 @@ const ExamCanvas = ({
   testId,
 }) => {
   const [activePartId, setActivePartId] = useState(null);
+  const [highlightGroupId, setHighlightGroupId] = useState(null);
+  const handleNavigateToPart = useCallback((partId, groupId) => {
+    if (partId) setActivePartId(partId);
+    if (groupId) setHighlightGroupId(groupId);
+  }, []);
+  useEffect(() => {
+    if (highlightGroupId) {
+      const scrollTimer = setTimeout(() => {
+        document.getElementById(`exam-group-${highlightGroupId}`)
+          ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+      const clearTimer = setTimeout(() => setHighlightGroupId(null), 2500);
+      return () => { clearTimeout(scrollTimer); clearTimeout(clearTimer); };
+    }
+  }, [highlightGroupId]);
   const [showTimeModal, setShowTimeModal] = useState(false);
   const [draftTimeValue, setDraftTimeValue] = useState('');
   const [zoomLevel, setZoomLevel] = useState(100);
@@ -1856,6 +1894,10 @@ const ExamCanvas = ({
                 onAddGroup={onAddGroup}
                 onMoveGroupUp={onMoveGroupUp}
                 onMoveGroupDown={onMoveGroupDown}
+                onLinkPart3={onLinkPart3}
+                onUnlinkPart3={onUnlinkPart3}
+                onNavigateToPart={handleNavigateToPart}
+                highlightGroupId={highlightGroupId}
                 isDropOver={isDropOver}
                 isPassagePaneOver={isPassagePaneOver}
                 isPassagePaneLocked={isPassagePaneLocked}

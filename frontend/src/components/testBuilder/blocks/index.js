@@ -20,6 +20,8 @@ export { default as SpeakingCueCardBlock } from './SpeakingCueCardBlock';
 export { default as SpeakingPart1Block } from './SpeakingPart1Block';
 export { default as SpeakingPart2Block } from './SpeakingPart2Block';
 export { default as SpeakingPart3Block } from './SpeakingPart3Block';
+export { default as SpeakingPart0Block } from './SpeakingPart0Block';
+export { default as SpeakingNewFormatBlock } from './SpeakingNewFormatBlock';
 export { default as WritingTaskBlock } from './WritingTaskBlock';
 
 // Export shared utilities

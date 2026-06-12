@@ -10,8 +10,18 @@ export const writingApi = {
     });
   },
 
-  testGrade(essayText, taskType = 'TASK2_ACADEMIC', topic = 'Education', promptText = '') {
-    return axios.post(`${writingBase}/test-grade`, { essayText, taskType, topic, promptText });
+  testGrade(essayText, taskType = 'TASK2_ACADEMIC', topic = 'Education',
+            promptText = '', chartType = '', essayType = '', letterType = '') {
+    return axios.post(`${writingBase}/test-grade`, {
+      essayText, taskType, topic, promptText,
+      chartType, essayType, letterType,
+    });
+  },
+
+  classify(essayText, promptText = '') {
+    return axios.post(`${writingBase}/classify`, {
+      essayText, promptText,
+    });
   },
 
   startBatch(submissionIds, userId = 'test') {

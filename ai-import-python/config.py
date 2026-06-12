@@ -20,6 +20,12 @@ class Settings(BaseSettings):
     groq_temperature: float = 0.1
     groq_max_tokens: int = 8192
 
+    nvidia_api_key: str = ""
+    nvidia_base_url: str = "https://integrate.api.nvidia.com/v1"
+    nvidia_model: str = "nvidia/llama-3.1-nemotron-70b-instruct"
+    nvidia_temperature: float = 0.1
+    nvidia_max_tokens: int = 8192
+
     backend_url: str = "http://localhost:8080"
     backend_timeout: int = 60
 

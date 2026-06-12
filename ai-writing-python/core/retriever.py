@@ -28,18 +28,38 @@ class SampleRetriever:
 
     def __init__(self):
         s = get_settings()
-        self._client = HttpClient(host=s.chroma_host, port=s.chroma_port)
+        self._settings = s
+        self._client = None
         self._model = None
         self._collection = None
 
     @property
+    def client(self):
+        if self._client is None:
+            s = self._settings
+            try:
+                self._client = HttpClient(host=s.chroma_host, port=s.chroma_port)
+            except Exception as e:
+                logger.warning(f"ChromaDB connection failed at {s.chroma_host}:{s.chroma_port}: {e}")
+                self._client = None
+        return self._client
+
+    def _is_connected(self) -> bool:
+        try:
+            return self.client is not None
+        except Exception:
+            return False
+
+    @property
     def collection(self):
         if self._collection is None:
+            if not self._is_connected():
+                return None
             try:
-                self._collection = self._client.get_or_create_collection(
+                self._collection = self.client.get_or_create_collection(
                     name=self.COLLECTION, metadata={"hnsw:space": "cosine"})
             except Exception:
-                self._collection = self._client.get_collection(self.COLLECTION)
+                self._collection = self.client.get_collection(self.COLLECTION)
         return self._collection
 
     @property
@@ -55,19 +75,25 @@ class SampleRetriever:
     @property
     def is_initialized(self) -> bool:
         try:
-            return self.collection.count() > 0
+            col = self.collection
+            return col is not None and col.count() > 0
         except Exception:
             return False
 
     def count(self) -> int:
         try:
-            return self.collection.count()
+            col = self.collection
+            return col.count() if col else 0
         except Exception:
             return 0
 
     def retrieve(self, query: str, task_type: str = "TASK2_ACADEMIC",
                  top_k: int = 15, exclude_id: int | None = None) -> DiversifiedResult:
         col = self.collection
+        if col is None:
+            logger.warning("ChromaDB not available, returning empty samples")
+            return DiversifiedResult()
+
         qe = self.embed(query)
 
         if col.count() == 0:

@@ -1,0 +1,27 @@
+You are an IELTS Writing expert. Classify the following essay/prompt by determining:
+
+1. **task_type**: One of:
+   - "TASK1_ACADEMIC" — Task 1 Academic (chart, graph, table, diagram, map, process)
+   - "TASK1_GENERAL" — Task 1 General Training (letter)
+   - "TASK2_ACADEMIC" — Task 2 Academic (essay)
+   - "TASK2_GENERAL" — Task 2 General Training (essay)
+
+2. **sub_type**: Depending on task_type:
+   - For TASK1_ACADEMIC: chart type → one of "line", "bar", "pie", "table", "process", "map", "multiple"
+   - For TASK1_GENERAL: letter type → one of "formal", "semi-formal", "informal"
+   - For TASK2: essay type → one of "opinion", "discussion", "advantages-disadvantages", "problem-solution", "two-part"
+
+3. **topic**: The main topic/subject (short phrase, e.g. "Environment", "Education", "Technology")
+
+4. **reasoning**: Brief explanation of why you classified it this way
+
+5. **confidence**: Float 0.0-1.0 indicating your confidence in this classification
+
+Return ONLY valid JSON with these exact fields:
+{
+  "task_type": "TASK2_ACADEMIC",
+  "sub_type": "opinion",
+  "topic": "Education",
+  "reasoning": "The prompt asks for opinion on university education...",
+  "confidence": 0.95
+}

@@ -12,6 +12,8 @@ import java.util.Optional;
 
 public interface TestShareLinkRepository extends JpaRepository<TestShareLink, Long> {
 
+    void deleteByTestId(Long testId);
+
     Optional<TestShareLink> findFirstByTestIdAndSkillTypeAndIsActiveTrueOrderByCreatedAtDesc(Long testId, SkillType skillType);
 
     Optional<TestShareLink> findFirstByTestIdAndSkillTypeAndTokenAndIsActiveTrue(Long testId, SkillType skillType, String token);

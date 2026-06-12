@@ -1,7 +1,8 @@
-"""LLM client for AI Writing Service - Groq provider with key rotation."""
+"""LLM clients for AI Writing Service - Groq + NVIDIA providers with key rotation."""
 
 from dataclasses import dataclass
 from groq import AsyncGroq, RateLimitError
+from openai import AsyncOpenAI
 from loguru import logger
 
 from config import get_settings, get_active_model
@@ -19,6 +20,42 @@ class LLMResponse:
 
 class AIProviderError(Exception):
     pass
+
+
+class NvidiaClient:
+    def __init__(self):
+        self.settings = get_settings()
+        key = self.settings.nvidia_api_key
+        self.client = AsyncOpenAI(api_key=key, base_url=self.settings.nvidia_base_url) if key else None
+
+    async def chat(self, system_prompt: str, user_prompt: str,
+                   temperature: float | None = None, max_tokens: int | None = None) -> LLMResponse:
+        if not self.client:
+            raise AIProviderError("NVIDIA API key not configured")
+        model = get_active_model() or self.settings.nvidia_model
+        if model.startswith("nvidia/"):
+            model = model[len("nvidia/"):]
+        try:
+            resp = await self.client.chat.completions.create(
+                model=model,
+                temperature=temperature if temperature is not None else self.settings.nvidia_temperature,
+                max_tokens=(max_tokens if max_tokens is not None else self.settings.nvidia_max_tokens) or None,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+            )
+            usage = resp.usage
+            return LLMResponse(
+                content=resp.choices[0].message.content or "",
+                model=resp.model,
+                provider="nvidia",
+                prompt_tokens=usage.prompt_tokens if usage else 0,
+                completion_tokens=usage.completion_tokens if usage else 0,
+                total_tokens=usage.total_tokens if usage else 0,
+            )
+        except Exception as e:
+            raise AIProviderError(f"NVIDIA API: {e}")
 
 
 class GroqClient:
@@ -47,7 +84,7 @@ class GroqClient:
                 resp = await client.chat.completions.create(
                     model=model,
                     temperature=temperature if temperature is not None else self.settings.groq_temperature,
-                    max_tokens=max_tokens or self.settings.groq_max_tokens,
+                    max_tokens=(max_tokens if max_tokens is not None else self.settings.groq_max_tokens) or None,
                     messages=[
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": user_prompt},

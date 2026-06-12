@@ -1,53 +1,45 @@
 {
   "analysis": {
-    "task_response_analysis": "Detailed assessment of task address, position clarity, and idea development with specific evidence from the essay",
-    "coherence_analysis": "Detailed assessment of organisation, progression, cohesion, and paragraphing with specific evidence",
-    "lexical_analysis": "Detailed assessment of vocabulary range, precision, less common items, and collocation with specific evidence",
+    "task_response_analysis": "Detailed assessment of task address, position clarity, and idea development with specific evidence. For letters: assess purpose, tone, bullet point coverage, and format.",
+    "coherence_analysis": "Detailed assessment of organisation, progression, cohesion, and paragraphing with specific evidence. For letters: assess letter structure, opening/closing, logical flow.",
+    "lexical_analysis": "Detailed assessment of vocabulary range, precision, less common items, and collocation with specific evidence. For letters: assess register appropriateness.",
     "grammar_analysis": "Detailed assessment of sentence variety, structural control, and error patterns with specific evidence",
-    "identified_strengths": ["Strength 1 with exact quote from essay", "Strength 2 with exact quote from essay"],
-    "identified_weaknesses": ["Weakness 1 with exact quote from essay", "Weakness 2 with exact quote from essay"]
+    "identified_strengths": ["Strength 1 with exact quote", "Strength 2 with exact quote"],
+    "identified_weaknesses": ["Weakness 1 with exact quote", "Weakness 2 with exact quote"]
   },
   "scores": {
     "taskResponse": {
       "band": 7.0,
-      "bandJustification": "Explain why this band was chosen and why higher band was not awarded",
-      "boundary": {
-        "detected": false,
-        "closerTo": 0.0,
-        "reason": "Only set if detected=true; explain what holds this criterion back from next band"
-      }
+      "bandJustification": "Explain why this band was chosen and why higher band was not awarded.",
+      "boundary": { "detected": false, "closerTo": 0.0, "reason": "" }
     },
     "coherenceCohesion": {
       "band": 7.5,
-      "bandJustification": "Explain why this band was chosen and why higher band was not awarded",
-      "boundary": {
-        "detected": true,
-        "closerTo": 8.0,
-        "reason": "Cohesion is well-managed overall but occasionally draws attention; paragraphing is logical but lacks full sophistication"
-      }
+      "bandJustification": "Explain why this band was chosen and why higher band was not awarded.",
+      "boundary": { "detected": true, "closerTo": 8.0, "reason": "Explain boundary" }
     },
     "lexicalResource": {
       "band": 7.0,
-      "bandJustification": "Explain why this band was chosen and why higher band was not awarded",
-      "boundary": {
-        "detected": false,
-        "closerTo": 0.0,
-        "reason": ""
-      }
+      "bandJustification": "Explain why this band was chosen and why higher band was not awarded.",
+      "boundary": { "detected": false, "closerTo": 0.0, "reason": "" }
     },
     "grammaticalRange": {
       "band": 7.0,
-      "bandJustification": "Explain why this band was chosen and why higher band was not awarded",
-      "boundary": {
-        "detected": false,
-        "closerTo": 0.0,
-        "reason": ""
-      }
+      "bandJustification": "Explain why this band was chosen and why higher band was not awarded.",
+      "boundary": { "detected": false, "closerTo": 0.0, "reason": "" }
     }
   },
   "overallBand": 7.0,
-  "bandJustification": "Overall explanation of why these bands were assigned, referencing specific criteria interactions",
-  "bandBoundarySummary": "Summary of any boundary cases across all criteria — which criteria are close to the next band and what is needed to reach it",
+  "overallFeedback": "Overall feedback paragraph summarizing main strengths and areas for improvement.",
+  "bandJustification": "Overall explanation of why these bands were assigned.",
+  "bandBoundarySummary": "Summary of any boundary cases across all criteria.",
   "confidence": 0.82,
-  "confidenceReason": "Explain what factors influenced your confidence level, citing specific alignment or ambiguity in the essay vs rubric descriptors"
+  "confidenceReason": "Explain factors influencing your confidence level.",
+  "strengthSummary": "Brief summary of the essay's key strengths.",
+  "weaknessSummary": "Brief summary of the essay's main weaknesses.",
+  "improvementPriority": [
+    "1. Most important improvement with specific action.",
+    "2. Second most important improvement.",
+    "3. Third most important improvement."
+  ]
 }

@@ -9,6 +9,10 @@ const SpeakingInterviewBlock = ({ group, onUpdate, onDelete, onSelect, selected,
   const questions = group.questions ?? [];
   const interviewType = group.interviewType ?? 'PART1';
   const classification = group.classification ?? 'GENERAL';
+  const frameName = group.frameName ?? '';
+  const frameType = group.frameType ?? 'OPTIONAL';
+  const profile = group.profile ?? 'BOTH';
+  const randomCount = group.randomCount ?? 0;
 
   const [showImport, setShowImport] = useState(false);
   const importRef = useRef(null);
@@ -73,21 +77,56 @@ const SpeakingInterviewBlock = ({ group, onUpdate, onDelete, onSelect, selected,
       </div>
 
       {interviewType === 'PART1' && (
-        <div className="exam-wt-section" onClick={(e) => e.stopPropagation()}>
-          <label className="exam-wt-label" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-            Phân loại chủ đề (Work / Study)
-          </label>
-          <select 
-            className="exam-wt-select" 
-            value={classification} 
-            onChange={(e) => onUpdate(group.id, { classification: e.target.value })}
-            style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #d1d5db' }}
-          >
-            <option value="GENERAL">Chung (General)</option>
-            <option value="WORK">Đi làm (Work)</option>
-            <option value="STUDY">Đi học (Study)</option>
-          </select>
-        </div>
+        <>
+          <div className="exam-wt-section" onClick={(e) => e.stopPropagation()} style={{ display: 'flex', gap: 12 }}>
+            <div style={{ flex: 1 }}>
+              <label className="exam-wt-label" style={{ fontSize: '0.85em', marginBottom: 4, display: 'block' }}>Tên Frame</label>
+              <input type="text" value={frameName}
+                onChange={(e) => onUpdate(group.id, { frameName: e.target.value })}
+                placeholder="Home, Music..."
+                style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: '0.9em' }}
+                onClick={(e) => e.stopPropagation()} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label className="exam-wt-label" style={{ fontSize: '0.85em', marginBottom: 4, display: 'block' }}>Loại Frame</label>
+              <select value={frameType}
+                onChange={(e) => onUpdate(group.id, { frameType: e.target.value })}
+                style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #d1d5db' }}>
+                <option value="MANDATORY">Bắt buộc</option>
+                <option value="OPTIONAL">Tùy chọn</option>
+              </select>
+            </div>
+            <div style={{ flex: 1 }}>
+              <label className="exam-wt-label" style={{ fontSize: '0.85em', marginBottom: 4, display: 'block' }}>Profile</label>
+              <select value={profile}
+                onChange={(e) => onUpdate(group.id, { profile: e.target.value })}
+                style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #d1d5db' }}>
+                <option value="BOTH">Cả 2</option>
+                <option value="STUDENT">Student</option>
+                <option value="WORK">Work</option>
+              </select>
+            </div>
+            <div style={{ flex: 1 }}>
+              <label className="exam-wt-label" style={{ fontSize: '0.85em', marginBottom: 4, display: 'block' }}>Random N</label>
+              <input type="number" min={0} max={50} value={randomCount}
+                onChange={(e) => onUpdate(group.id, { randomCount: Math.max(0, Number(e.target.value)) })}
+                style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #d1d5db', textAlign: 'center' }}
+                onClick={(e) => e.stopPropagation()} />
+            </div>
+          </div>
+          <div className="exam-wt-section" onClick={(e) => e.stopPropagation()}>
+            <label className="exam-wt-label" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 4, fontSize: '0.85em' }}>
+              Legacy: Phân loại (chỉ dùng cho BANK mode)
+            </label>
+            <select value={classification}
+              onChange={(e) => onUpdate(group.id, { classification: e.target.value })}
+              style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #d1d5db' }}>
+              <option value="GENERAL">Chung</option>
+              <option value="WORK">Work</option>
+              <option value="STUDY">Study</option>
+            </select>
+          </div>
+        </>
       )}
 
       {/* Instructions */}

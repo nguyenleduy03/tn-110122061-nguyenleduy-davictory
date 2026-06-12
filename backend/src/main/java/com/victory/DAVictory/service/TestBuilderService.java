@@ -61,6 +61,7 @@ public class TestBuilderService {
     private final DriveAssetRenameService driveAssetRenameService;
     private final GoogleDriveOAuth2Service driveService;
     private final TestVersionRepository testVersionRepository;
+    private final TestShareLinkRepository testShareLinkRepository;
 
     // ═══════════════════════════════════════════════════════════════
     //  1. LƯU TOÀN BỘ ĐỀ THI (Save Full Test)
@@ -92,8 +93,14 @@ public class TestBuilderService {
             // Thu thập group ID cũ trước khi xóa cấu trúc
             List<Long> oldGroupIds = testQuestionGroupRepository.findQuestionGroupIdsByTestId(test.getId());
 
-            // Xóa cấu trúc cũ — cascade sẽ xóa TestPart, TestQuestionGroup
-            test.getTestSessions().clear();
+            // Chỉ xóa TestSessions có trong request, giữ nguyên các skill khác không gửi lên
+            Set<Long> incomingSessionIds = new HashSet<>();
+            if (req.getSessions() != null) {
+                for (TestSaveRequest.SessionSave ss : req.getSessions()) {
+                    incomingSessionIds.add(ss.getSessionId());
+                }
+            }
+            test.getTestSessions().removeIf(ts -> incomingSessionIds.contains(ts.getSession().getId()));
             testRepository.saveAndFlush(test);
 
             // Xóa các QuestionGroup không còn được tham chiếu bởi bất kỳ đề thi nào
@@ -609,6 +616,23 @@ public class TestBuilderService {
         System.out.println("🗑️ Permanent delete requested for test ID=" + testId + ", title=" + test.getTitle());
         List<Long> questionGroupIds = testQuestionGroupRepository.findQuestionGroupIdsByTestId(testId);
 
+        // Xoá QuestionGroup và Question TRƯỚC để tránh lỗi cascade
+        System.out.println("🗑️ Cleaning question groups for test ID=" + testId);
+        for (Long groupId : questionGroupIds) {
+            if (testQuestionGroupRepository.findByQuestionGroupId(groupId).isEmpty()
+                    && !hasAttemptAnswersForGroup(groupId)) {
+                List<Question> questions = questionRepository.findByQuestionGroupIdOrderByOrderIndexAsc(groupId);
+                for (Question question : questions) {
+                    questionStatisticRepository.deleteByQuestionId(question.getId());
+                    questionTagMapRepository.deleteByQuestionId(question.getId());
+                }
+                answerRepository.deleteByQuestionGroupId(groupId);
+                questionOptionRepository.deleteByQuestionGroupId(groupId);
+                questionRepository.deleteByQuestionGroupId(groupId);
+                questionGroupRepository.deleteById(groupId);
+            }
+        }
+
         System.out.println("🗑️ Removing related rows for test ID=" + testId);
         assignmentRepository.deleteByTestId(testId);
         examAttemptRepository.deleteByTestId(testId);
@@ -616,6 +640,8 @@ public class TestBuilderService {
         testSettingRepository.deleteByTestId(testId);
         fullTestProgressRepository.deleteByTestId(testId);
         guestExamAttemptRepository.deleteByTestId(testId);
+        testVersionRepository.deleteByTestId(testId);
+        testShareLinkRepository.deleteByTestId(testId);
 
         System.out.println("🗑️ Deleting test row ID=" + testId);
         testRepository.delete(test);
@@ -626,23 +652,6 @@ public class TestBuilderService {
             driveService.deleteFolderByPath(driveFolderPath);
         } catch (Exception e) {
             System.err.println("⚠️ Không thể xóa thư mục Drive của đề thi ID=" + testId + ": " + e.getMessage());
-        }
-
-        System.out.println("🗑️ Cleaning unused question groups for test ID=" + testId);
-        for (Long groupId : questionGroupIds) {
-            if (testQuestionGroupRepository.findByQuestionGroupId(groupId).isEmpty()
-                    && !hasAttemptAnswersForGroup(groupId)) {
-                List<Question> questions = questionRepository.findByQuestionGroupIdOrderByOrderIndexAsc(groupId);
-                for (Question question : questions) {
-                    Long questionId = question.getId();
-                    questionStatisticRepository.deleteByQuestionId(questionId);
-                    questionTagMapRepository.deleteByQuestionId(questionId);
-                }
-                answerRepository.deleteByQuestionGroupId(groupId);
-                questionOptionRepository.deleteByQuestionGroupId(groupId);
-                questionRepository.deleteByQuestionGroupId(groupId);
-                questionGroupRepository.deleteById(groupId);
-            }
         }
 
         System.out.println("✅ Permanent delete completed for test ID=" + testId);

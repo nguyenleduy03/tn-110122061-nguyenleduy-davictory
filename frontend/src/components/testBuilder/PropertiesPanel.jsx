@@ -269,6 +269,11 @@ const GroupPanel = ({ group, onChange, onDelete }) => (
         <div style={{ fontSize: 12, color: '#6b7280', padding: '6px 10px', background: '#fef3c7', borderRadius: 6, border: '1px solid #fde68a' }}>
           Individual Long Turn: Cue card với topic, bullet points, thời gian chuẩn bị (60s) và nói (1-2 phút), kèm follow-up questions.
         </div>
+        {group.linkedPart3GroupId && (
+          <div style={{ fontSize: 12, color: '#6d28d9', marginTop: 6, padding: '4px 8px', background: '#f5f3ff', borderRadius: 6 }}>
+            🔗 Đã liên kết với Part 3 — Part 3 sẽ tự động đồng bộ theme từ topic này.
+          </div>
+        )}
       </div>
     )}
 
@@ -277,6 +282,7 @@ const GroupPanel = ({ group, onChange, onDelete }) => (
         <label className="tb-label">ℹ️ Speaking Part 3</label>
         <div style={{ fontSize: 12, color: '#6b7280', padding: '6px 10px', background: '#e0e7ff', borderRadius: 6, border: '1px solid #c7d2fe' }}>
           Two-way Discussion: Thảo luận sâu về chủ đề Part 2 với 4-6 câu hỏi trừu tượng, phân tích.
+          {group.linkedPart2GroupId && <><br/>🔗 Đã liên kết với Part 2. Theme tự động đồng bộ.</>}
         </div>
       </div>
     )}

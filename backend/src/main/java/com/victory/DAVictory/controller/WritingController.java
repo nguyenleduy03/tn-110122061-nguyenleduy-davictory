@@ -193,10 +193,14 @@ public class WritingController {
             String essayText = request.getOrDefault("essayText", "");
             String taskType = request.getOrDefault("taskType", "TASK2_ACADEMIC");
             String topic = request.getOrDefault("topic", "");
+            String chartType = request.getOrDefault("chartType", "");
+            String essayType = request.getOrDefault("essayType", "");
+            String letterType = request.getOrDefault("letterType", "");
             if (essayText == null || essayText.isBlank()) {
                 return ResponseEntity.badRequest().body(Map.of("error", "essayText is required"));
             }
-            AIGradingResponseDTO response = aiBridgeService.testGrade(essayText, taskType, topic);
+            AIGradingResponseDTO response = aiBridgeService.testGrade(essayText, taskType, topic,
+                chartType, essayType, letterType);
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));

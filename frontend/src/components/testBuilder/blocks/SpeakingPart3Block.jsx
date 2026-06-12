@@ -1,17 +1,24 @@
 import React from 'react';
-import { X, Plus, MessageSquare } from 'lucide-react';
+import { X, Plus, MessageSquare, Link as LinkIcon, Unlink, ArrowLeft } from 'lucide-react';
 import GroupToolbar from './shared/GroupToolbar';
 import RichInput from '../../common/RichInput';
 
-const SpeakingPart3Block = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps }) => {
-  const questions = group.questions ?? [''];
+let localQId = Date.now();
+
+const SpeakingPart3Block = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps, allGroups, onUnlinkPart3, onNavigateToPart }) => {
+  const questions = group.questions ?? [{ id: ++localQId, text: '' }];
 
   const [showImport, setShowImport] = React.useState(false);
   const importRef = React.useRef(null);
 
+  const linkedPart2 = group.linkedPart2GroupId
+    ? allGroups?.find(g => g.id === group.linkedPart2GroupId)
+    : null;
+
   const addQuestion = (e) => {
     e.stopPropagation();
-    onUpdate(group.id, { questions: [...questions, ''] });
+    const newQ = { id: ++localQId, text: '' };
+    onUpdate(group.id, { questions: [...questions, newQ] });
   };
 
   const handleImport = () => {
@@ -22,15 +29,21 @@ const SpeakingPart3Block = ({ group, onUpdate, onDelete, onSelect, selected, dra
       return;
     }
 
+    const existing = questions.filter(q => {
+      if (typeof q === 'string') return q.trim();
+      return (q.text ?? '').trim();
+    });
+    const imported = lines.map((line, i) => ({ id: Date.now() + i, text: line }));
     onUpdate(group.id, {
-      questions: [...questions.filter(q => q.trim()), ...lines],
+      questions: [...existing, ...imported],
     });
     setShowImport(false);
   };
 
   const updateQuestion = (i, val) => {
     const next = [...questions];
-    next[i] = val;
+    const old = next[i];
+    next[i] = typeof old === 'string' ? val : { ...old, text: val, questionText: val };
     onUpdate(group.id, { questions: next });
   };
 
@@ -46,6 +59,29 @@ const SpeakingPart3Block = ({ group, onUpdate, onDelete, onSelect, selected, dra
       onClick={(e) => { e.stopPropagation(); onSelect(group); }}>
       <GroupToolbar group={group} dragHandleProps={dragHandleProps} onDelete={onDelete} />
 
+      {/* Linked Part 2 info */}
+      {linkedPart2 && (
+        <div className="exam-wt-section" onClick={(e) => e.stopPropagation()}
+          style={{ background: '#f5f3ff', borderRadius: 8, padding: '8px 12px', marginBottom: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontSize: 13, color: '#6d28d9' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <LinkIcon size={14} />
+              <span>🔗 Linked to Part 2: <strong>{(linkedPart2.topic || '(no topic)').substring(0, 50)}</strong></span>
+            </div>
+            <div style={{ display: 'flex', gap: 4 }}>
+              <button onClick={(e) => { e.stopPropagation(); onNavigateToPart?.(linkedPart2.partId, linkedPart2.id); }}
+                style={{ background: 'none', border: '1px solid #6d28d9', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontSize: 12, color: '#6d28d9', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <ArrowLeft size={12} /> Part 2
+              </button>
+              <button onClick={(e) => { e.stopPropagation(); onUnlinkPart3?.(group.id); }}
+                style={{ background: 'none', border: '1px solid #d1d5db', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontSize: 12, color: '#6b7280' }}>
+                <Unlink size={12} style={{ marginRight: 4 }} />Unlink
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="exam-wt-section" onClick={(e) => e.stopPropagation()}>
         <label className="exam-wt-label" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
           <MessageSquare size={14} /> Part 3 - Two-way Discussion
@@ -58,21 +94,26 @@ const SpeakingPart3Block = ({ group, onUpdate, onDelete, onSelect, selected, dra
       </div>
 
       <div className="exam-wt-section" onClick={(e) => e.stopPropagation()}>
-        <label className="exam-wt-label">Discussion Theme (optional)</label>
+        <label className="exam-wt-label">
+          Discussion Theme (optional)
+          {group.autoSyncFromPart2 && <span style={{ fontSize: 11, color: '#6d28d9', marginLeft: 8 }}>(auto-sync from Part 2)</span>}
+        </label>
         <RichInput
           value={group.theme ?? ''}
           placeholder="e.g., The role of technology in education / Cultural traditions in modern society"
-          onChange={(html) => onUpdate(group.id, { theme: html })}
+          onChange={(html) => {
+            onUpdate(group.id, { theme: html, autoSyncFromPart2: false });
+          }}
         />
       </div>
 
       <div className="exam-spk-qlist" onClick={(e) => e.stopPropagation()}>
         <label className="exam-wt-label" style={{ marginBottom: 8 }}>Discussion Questions</label>
         {questions.map((q, i) => (
-          <div key={i} className="exam-spk-qrow">
+          <div key={q.id ?? i} className="exam-spk-qrow">
             <span className="exam-spk-qnum">Q{i + 1}</span>
             <RichInput
-              value={q}
+              value={typeof q === 'string' ? q : (q.questionText ?? q.text ?? '')}
               placeholder="How has technology changed the way people learn? / Why do you think...?"
               onChange={(html) => updateQuestion(i, html)}
               className="exam-spk-rich-q"
@@ -101,6 +142,13 @@ const SpeakingPart3Block = ({ group, onUpdate, onDelete, onSelect, selected, dra
           <input type="number" className="exam-q-range-input" style={{ width: 72 }}
             value={group.durationMinutes ?? 5} min={3} max={7}
             onChange={(e) => onUpdate(group.id, { durationMinutes: Number(e.target.value) })}
+            onClick={(e) => e.stopPropagation()} />
+        </div>
+        <div className="exam-wt-meta-field">
+          <label className="exam-wt-label">Random N câu</label>
+          <input type="number" className="exam-q-range-input" style={{ width: 72 }}
+            value={group.randomCount ?? 0} min={0} max={20}
+            onChange={(e) => onUpdate(group.id, { randomCount: Math.max(0, Number(e.target.value)) })}
             onClick={(e) => e.stopPropagation()} />
         </div>
       </div>

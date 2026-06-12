@@ -45,6 +45,9 @@ public class AIBridgeService {
                 .uri(aiServiceUrl + "/api/ai/writing/grade/{submissionId}", submissionId)
                 .header("X-User-Id", userId)
                 .header("X-User-Role", role)
+                .header("X-Chart-Type", "")
+                .header("X-Essay-Type", "")
+                .header("X-Letter-Type", "")
                 .retrieve()
                 .body(AIGradingResponseDTO.class);
 
@@ -78,14 +81,17 @@ public class AIBridgeService {
             .body(AIGradingResponseDTO.class);
     }
 
-    public AIGradingResponseDTO testGrade(String essayText, String taskType, String topic) {
+    public AIGradingResponseDTO testGrade(String essayText, String taskType, String topic,
+                                           String chartType, String essayType, String letterType) {
         log.info("Test grading essay ({} chars)", essayText.length());
         try {
-            Map<String, String> body = Map.of(
-                "essayText", essayText,
-                "taskType", taskType != null ? taskType : "TASK2_ACADEMIC",
-                "topic", topic != null ? topic : ""
-            );
+            Map<String, String> body = new java.util.HashMap<>();
+            body.put("essayText", essayText);
+            body.put("taskType", taskType != null ? taskType : "TASK2_ACADEMIC");
+            body.put("topic", topic != null ? topic : "");
+            body.put("chartType", chartType != null ? chartType : "");
+            body.put("essayType", essayType != null ? essayType : "");
+            body.put("letterType", letterType != null ? letterType : "");
             var response = restClient.post()
                 .uri(aiServiceUrl + "/api/ai/writing/test-grade")
                 .body(body)

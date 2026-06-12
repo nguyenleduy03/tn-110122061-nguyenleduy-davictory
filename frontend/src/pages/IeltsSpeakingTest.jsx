@@ -471,7 +471,206 @@ const IeltsSpeakingTest = () => {
     }
   }, []);
 
-  const [currentPartIdx, setCurrentPartIdx] = useState(0);
+  const handleClassification = async (profile) => {
+    setUserClassification(profile);
+    
+    if (testData?.isNewFormat || testData?.isPart0Format) {
+      setLoading(true);
+      try {
+        // Find config from Part 0 block (INLINE) or legacy SPEAKING_NEW_FORMAT
+        let config = null;
+        let isInline = testData?.isPart0Format || false;
+        
+        testData.parts.forEach(p => {
+          p.questionGroups?.forEach(g => {
+            if (g.questions?.[0]?.questionTypeCode === 'SPEAKING_PART0' && g.questions[0].config) {
+              config = { ...g.questions[0].config, mode: 'INLINE' };
+            }
+          });
+        });
+        
+        // Legacy fallback: SPEAKING_NEW_FORMAT
+        if (!config) {
+          testData.parts.forEach(p => {
+            p.questionGroups?.forEach(g => {
+              if (g.questions?.[0]?.questionTypeCode === 'SPEAKING_NEW_FORMAT' && g.questions[0].config) {
+                config = g.questions[0].config;
+              }
+            });
+          });
+        }
+        
+        if (config) {
+          // INLINE mode: collect frame/combo data from all speaking blocks
+          if (isInline || config.mode === 'INLINE') {
+            const frames = [];
+            let comboData = {};
+            testData.parts.forEach(p => {
+              p.questionGroups?.forEach(g => {
+                const qs = g.questions || [];
+                const firstQ = qs[0];
+                if (!firstQ) return;
+
+                // Collect Part 1 frames
+                if (firstQ.questionTypeCode === 'SPEAKING_INTERVIEW' && firstQ.interviewType === 'PART1') {
+                  const questions = qs.map(q => q.text || q.questionText || '').filter(Boolean);
+                  if (questions.length > 0) {
+                    frames.push({
+                      name: firstQ.frameName || firstQ.topic || '',
+                      introPrompt: firstQ.partInstruction || '',
+                      frameType: firstQ.frameType || 'OPTIONAL',
+                      profile: firstQ.profile || 'BOTH',
+                      questions,
+                      randomCount: firstQ.randomCount || 0
+                    });
+                  }
+                }
+
+                // Collect Part 2 cue card
+                if (firstQ.questionTypeCode === 'SPEAKING_CUECARD') {
+                  comboData.title = firstQ.topic || 'Cue Card';
+                  comboData.cueCardPrompt = firstQ.topic || '';
+                  comboData.bulletPoints = firstQ.bulletPoints || [];
+                  comboData.followUpQuestions = firstQ.followUpQuestions || [];
+                  comboData.randomFollowUpCount = firstQ.randomFollowUpCount || 0;
+                }
+
+                // Collect Part 3 discussion
+                if (firstQ.questionTypeCode === 'SPEAKING_DISCUSSION') {
+                  const questions = qs.map(q => q.text || q.questionText || '').filter(Boolean);
+                  comboData.title = firstQ.topic || comboData.title || 'Discussion';
+                  comboData.part3Questions = questions;
+                  comboData.part3RandomCount = firstQ.randomCount || 0;
+                }
+              });
+            });
+            config.frames = frames;
+            config.combo = comboData;
+          }
+
+          const generatedData = await ieltsApi.generateDynamicSpeakingTest(config, profile);
+          
+          // Map generated data into expected TestSession structure
+          // Part 0: Warm-up
+          let part0Group = null;
+          if (generatedData.warmUpQuestions?.length > 0) {
+            part0Group = {
+              id: 'gen-part0',
+              contentType: 'SPEAKING_INTERVIEW',
+              questions: generatedData.warmUpQuestions.map((q, i) => ({
+                id: `gen-p0-${i}`,
+                number: i + 1,
+                type: 'speaking',
+                questionTypeCode: 'SPEAKING_INTERVIEW',
+                topic: 'Warm-up',
+                text: q.text,
+                interviewType: 'PART0'
+              }))
+            };
+          }
+
+          // Part 1: Frames
+          const part1Group = {
+            id: 'gen-part1',
+            contentType: 'SPEAKING_INTERVIEW',
+            questions: generatedData.part1Frames.flatMap(frame => {
+               try {
+                 const qs = typeof frame.questions === 'string' ? JSON.parse(frame.questions) : frame.questions;
+                 return qs.map((qText, i) => ({
+                   id: `gen-p1-${frame.id}-${i}`,
+                   number: i + 1,
+                   type: 'speaking',
+                   questionTypeCode: 'SPEAKING_INTERVIEW',
+                   topic: frame.name,
+                   text: qText,
+                   interviewType: 'PART1'
+                 }));
+               } catch (e) {
+                 return [];
+               }
+            })
+          };
+          
+          // Part 2: Cue Card
+          let part2Group = null;
+          let part3Group = null;
+          
+          if (generatedData.combo) {
+            let bullets = [];
+            let followUps = [];
+            let p3Qs = [];
+            try { bullets = typeof generatedData.combo.bulletPoints === 'string' ? JSON.parse(generatedData.combo.bulletPoints) : generatedData.combo.bulletPoints; } catch(e){}
+            try { followUps = typeof generatedData.combo.followUpQuestions === 'string' ? JSON.parse(generatedData.combo.followUpQuestions) : generatedData.combo.followUpQuestions; } catch(e){}
+            try { p3Qs = typeof generatedData.combo.part3Questions === 'string' ? JSON.parse(generatedData.combo.part3Questions) : generatedData.combo.part3Questions; } catch(e){}
+            
+            part2Group = {
+              id: 'gen-part2',
+              contentType: 'SPEAKING_CUECARD',
+              questions: [{
+                id: `gen-p2-${generatedData.combo.id}`,
+                number: 1,
+                type: 'speaking',
+                questionTypeCode: 'SPEAKING_CUECARD',
+                topic: generatedData.combo.cueCardPrompt,
+                bulletPoints: bullets,
+                partInstruction: 'The examiner will give you a topic card. You will have 1 minute to prepare and make notes. Then you will speak for 1-2 minutes.',
+                followUpQuestions: followUps
+              }]
+            };
+            
+            part3Group = {
+              id: 'gen-part3',
+              contentType: 'SPEAKING_DISCUSSION',
+              questions: p3Qs.map((qText, i) => ({
+                 id: `gen-p3-${generatedData.combo.id}-${i}`,
+                 number: i + 1,
+                 type: 'speaking',
+                 questionTypeCode: 'SPEAKING_DISCUSSION',
+                 topic: generatedData.combo.title,
+                 text: qText,
+                 interviewType: 'PART3'
+              }))
+            };
+          }
+          
+          // Replace parts
+          const newParts = [];
+          if (part0Group && part0Group.questions.length > 0) {
+            newParts.push({ id: 'part-gen-0', name: 'Part 0 - Candidate Information', questionGroups: [part0Group] });
+          }
+          if (part1Group.questions.length > 0) {
+            newParts.push({ id: 'part-gen-1', name: 'Part 1 - Introduction & Interview', questionGroups: [part1Group] });
+          }
+          if (part2Group) {
+            newParts.push({ id: 'part-gen-2', name: 'Part 2 - Individual Long Turn', questionGroups: [part2Group] });
+          }
+          if (part3Group && part3Group.questions.length > 0) {
+            newParts.push({ id: 'part-gen-3', name: 'Part 3 - Two-way Discussion', questionGroups: [part3Group] });
+          }
+          
+          setTestData({ ...testData, parts: newParts });
+        }
+      } catch (err) {
+        console.error('Failed to generate dynamic test:', err);
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      // Old format fallback
+      const filteredData = {
+        ...testData,
+        parts: testData.parts.map((p, idx) => {
+          if (idx !== 0) return p;
+          return {
+            ...p,
+            questionGroups: p.questionGroups.filter(g => g.classification === profile || !g.classification || g.classification === 'GENERAL')
+          };
+        })
+      };
+      setTestData(filteredData);
+    }
+    setRequiresClassification(false);
+  };
   const [currentQIdx, setCurrentQIdx] = useState(0);
 
   // phase: idle | preparing | recording | done
@@ -599,15 +798,25 @@ const IeltsSpeakingTest = () => {
           });
       }
 
-      // Kiểm tra xem có cần phân loại Work/Study không
+      // Kiểm tra xem có cần phân loại Work/Study không (định dạng cũ)
       const hasClassification = configuredData.parts?.[0]?.questionGroups?.some(
         g => g.classification === 'WORK' || g.classification === 'STUDY'
       );
       
-      if (hasClassification) {
+      // Kiểm tra Part 0 format (INLINE mode)
+      const isPart0Format = configuredData.parts?.some(p => 
+        p.questionGroups?.some(g => g.questions?.some(q => q.questionTypeCode === 'SPEAKING_PART0'))
+      );
+      
+      // Kiểm tra định dạng BANK (legacy)
+      const isNewFormat = configuredData.parts?.some(p => 
+        p.questionGroups?.some(g => g.questions?.some(q => q.questionTypeCode === 'SPEAKING_NEW_FORMAT'))
+      );
+      
+      if (hasClassification || isNewFormat || isPart0Format) {
         setRequiresClassification(true);
-        // Lưu tạm vào testData, sẽ filter sau khi người dùng chọn
-        setTestData(configuredData);
+        // Lưu tạm vào testData, sẽ filter/generate sau khi người dùng chọn
+        setTestData({ ...configuredData, isNewFormat, isPart0Format });
       } else {
         setTestData(configuredData);
       }
@@ -1168,11 +1377,50 @@ const IeltsSpeakingTest = () => {
       return;
     }
 
-    const nextTransition = currentQIdx < currentPart.questions.length - 1
+    let nextTransition = currentQIdx < currentPart.questions.length - 1
       ? { type: 'next', partIdx: currentPartIdx, qIdx: currentQIdx + 1 }
       : { type: 'review' };
 
     if (phase === 'recording') {
+      if (isCueCard && recSeconds < 105 && currentQ?.followUpQuestions?.length > 0) {
+        // Inject follow-up question
+        const randomFollowUp = currentQ.followUpQuestions[Math.floor(Math.random() * currentQ.followUpQuestions.length)];
+        const followUpQ = {
+          id: `q-followup-${Date.now()}`,
+          number: (currentQ.number || 1) + 0.5,
+          type: 'speaking',
+          questionTypeCode: 'SPEAKING_DISCUSSION',
+          topic: currentQ.topic,
+          text: randomFollowUp,
+          partInstruction: 'Follow-up question:',
+          interviewType: 'PART2_FOLLOWUP'
+        };
+        
+        setTestData(prev => {
+          const newParts = [...prev.parts];
+          const partToUpdate = { ...newParts[currentPartIdx] };
+          if (partToUpdate.questions) {
+             const newQuestions = [...partToUpdate.questions];
+             newQuestions.splice(currentQIdx + 1, 0, followUpQ);
+             partToUpdate.questions = newQuestions;
+          }
+          if (partToUpdate.questionGroups) {
+             partToUpdate.questionGroups = partToUpdate.questionGroups.map(g => {
+                if (g.questions && g.questions.some(q => q.id === currentQ.id)) {
+                   const newGQs = [...g.questions];
+                   newGQs.push(followUpQ);
+                   return { ...g, questions: newGQs };
+                }
+                return g;
+             });
+          }
+          newParts[currentPartIdx] = partToUpdate;
+          return { ...prev, parts: newParts };
+        });
+        
+        nextTransition = { type: 'next', partIdx: currentPartIdx, qIdx: currentQIdx + 1 };
+      }
+
       pendingTransitionRef.current = nextTransition;
       stopRecording();
       return;
@@ -1187,7 +1435,7 @@ const IeltsSpeakingTest = () => {
     } else {
       goPartReview();
     }
-  }, [currentPart, currentQIdx, currentPartIdx, phase, thinkSecondsLeft, startRecording, skipPrep, stopRecording, navigateTo, goPartReview]);
+  }, [currentPart, currentQIdx, currentPartIdx, phase, thinkSecondsLeft, startRecording, skipPrep, stopRecording, navigateTo, goPartReview, isCueCard, recSeconds, currentQ]);
 
   useEffect(() => {
     if (!recordingStopSeq) return;
@@ -1611,21 +1859,7 @@ const IeltsSpeakingTest = () => {
               </button>
               <button 
                 style={{ padding: '12px 32px', fontSize: '16px', fontWeight: '600', color: 'white', backgroundColor: '#10b981', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
-                onClick={() => {
-                  setUserClassification('STUDY');
-                  const filteredData = {
-                    ...testData,
-                    parts: testData.parts.map((p, idx) => {
-                      if (idx !== 0) return p;
-                      return {
-                        ...p,
-                        questionGroups: p.questionGroups.filter(g => g.classification === 'STUDY' || !g.classification || g.classification === 'GENERAL')
-                      };
-                    })
-                  };
-                  setTestData(filteredData);
-                  setRequiresClassification(false);
-                }}
+                onClick={() => handleClassification('STUDY')}
               >
                 Studying (Đi học)
               </button>
@@ -1866,3 +2100,4 @@ const IeltsSpeakingTest = () => {
 };
 
 export default IeltsSpeakingTest;
+

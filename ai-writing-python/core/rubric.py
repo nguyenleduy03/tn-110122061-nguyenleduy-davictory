@@ -5,14 +5,47 @@ from models.rubric import WritingRubric, RubricBandDetail, RubricBoundary
 
 _HERE = Path(__file__).parent.parent
 
+VALID_TASK_TYPES = {
+    "TASK1_ACADEMIC", "TASK2_ACADEMIC",
+    "TASK1_GENERAL", "TASK2_GENERAL",
+}
 
-@lru_cache(maxsize=4)
+VALID_CHART_TYPES = {"line", "bar", "pie", "table", "process", "map", "multiple", ""}
+VALID_ESSAY_TYPES = {"opinion", "discussion", "advantages-disadvantages", "problem-solution", "two-part", ""}
+VALID_LETTER_TYPES = {"formal", "semi-formal", "informal", ""}
+
+
+def validate_task_params(task_type: str, chart_type: str = "", essay_type: str = "", letter_type: str = "") -> list[str]:
+    errors = []
+    if task_type not in VALID_TASK_TYPES:
+        errors.append(f"Invalid task_type: '{task_type}'. Must be one of {VALID_TASK_TYPES}")
+    if chart_type and chart_type not in VALID_CHART_TYPES:
+        errors.append(f"Invalid chart_type: '{chart_type}'. Must be one of {VALID_CHART_TYPES}")
+    if essay_type and essay_type not in VALID_ESSAY_TYPES:
+        errors.append(f"Invalid essay_type: '{essay_type}'. Must be one of {VALID_ESSAY_TYPES}")
+    if letter_type and letter_type not in VALID_LETTER_TYPES:
+        errors.append(f"Invalid letter_type: '{letter_type}'. Must be one of {VALID_LETTER_TYPES}")
+    if task_type == "TASK1_ACADEMIC" and chart_type and chart_type not in {"line", "bar", "pie", "table", "process", "map", "multiple"}:
+        errors.append(f"Invalid chart_type '{chart_type}' for TASK1_ACADEMIC")
+    if task_type == "TASK1_GENERAL" and letter_type not in {"formal", "semi-formal", "informal", ""}:
+        errors.append(f"Invalid letter_type '{letter_type}' for TASK1_GENERAL")
+    if task_type == "TASK2_GENERAL" and essay_type and essay_type not in VALID_ESSAY_TYPES:
+        errors.append(f"Invalid essay_type '{essay_type}' for TASK2")
+    return errors
+
+
+@lru_cache(maxsize=8)
 def load_rubric(task_type: str = "TASK2_ACADEMIC") -> WritingRubric:
     path = _HERE / "templates" / "rubric_data.json"
     if path.exists():
         with open(path, encoding="utf-8") as f:
             data = json.load(f)
-        entries = data.get("rubrics", {}).get(task_type, data["rubrics"].get("TASK2_ACADEMIC", {}))
+        rubrics = data.get("rubrics", {})
+        if task_type not in rubrics:
+            fallback = "TASK2_ACADEMIC" if "TASK2" in task_type else "TASK1_ACADEMIC"
+            entries = rubrics.get(fallback, {})
+        else:
+            entries = rubrics[task_type]
         return WritingRubric(
             task_type=task_type,
             task_response=_parse_bands(entries.get("task_response", [])),

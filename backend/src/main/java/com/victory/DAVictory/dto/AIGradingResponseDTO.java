@@ -2,10 +2,11 @@ package com.victory.DAVictory.dto;
 
 import lombok.Data;
 import java.util.List;
+import java.util.Map;
 
 @Data
 public class AIGradingResponseDTO {
-    private Long gradingId;
+    private String gradingId;
     private Long submissionId;
     private String provider;
     private String model;
@@ -19,6 +20,10 @@ public class AIGradingResponseDTO {
     private List<String> weaknesses;
     private List<String> improvementPriority;
     private Double confidenceScore;
+    private String confidenceReason;
+    private String bandJustification;
+    private String bandBoundarySummary;
+    private Map<String, Object> analysis;
     private List<Long> referenceSampleIds;
     private String status;
     private String promptVersion;

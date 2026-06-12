@@ -1,14 +1,18 @@
 import React from 'react';
-import { X, Plus, Mic, Clock } from 'lucide-react';
+import { X, Plus, Mic, Clock, Link as LinkIcon, ArrowRight } from 'lucide-react';
 import GroupToolbar from './shared/GroupToolbar';
 import RichInput from '../../common/RichInput';
 
-const SpeakingPart2Block = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps }) => {
+const SpeakingPart2Block = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps, allGroups, onLinkPart3, onNavigateToPart }) => {
   const bulletPoints = group.bulletPoints ?? ['', '', ''];
   const followUpQuestions = group.followUpQuestions ?? [''];
 
   const [importTarget, setImportTarget] = React.useState(null); // 'bullet' | 'followup'
   const importRef = React.useRef(null);
+
+  const linkedPart3 = group.linkedPart3GroupId
+    ? allGroups?.find(g => g.id === group.linkedPart3GroupId)
+    : null;
 
   const updateBullet = (i, val) => {
     const next = [...bulletPoints];
@@ -196,6 +200,27 @@ const SpeakingPart2Block = ({ group, onUpdate, onDelete, onSelect, selected, dra
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Link to Part 3 */}
+      <div className="exam-wt-section" style={{ marginTop: 16, borderTop: '1px dashed #d1d5db', paddingTop: 12 }}>
+        {linkedPart3 ? (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontSize: 13, color: '#6d28d9' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <LinkIcon size={14} />
+              <span>🔗 Linked to Part 3: <strong>{(linkedPart3.theme || linkedPart3.topic || '(no topic)').substring(0, 40)}</strong></span>
+            </div>
+            <button onClick={(e) => { e.stopPropagation(); onNavigateToPart?.(linkedPart3.partId, linkedPart3.id); }}
+              style={{ background: '#6d28d9', color: 'white', border: 'none', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              Part 3 <ArrowRight size={12} />
+            </button>
+          </div>
+        ) : (
+          <button className="exam-spk-qadd" onClick={(e) => { e.stopPropagation(); onLinkPart3?.(group.id); }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+            <LinkIcon size={14} /> 🔗 Tạo Part 3 liên kết
+          </button>
+        )}
       </div>
 
       {importTarget && (

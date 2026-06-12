@@ -32,6 +32,10 @@ CRITERIA_MAP_CAMEL = {
     "grammaticalRange": ("GRA", "Grammatical Range & Accuracy"),
 }
 
+_CRITERIA_ALL = {**CRITERIA_MAP_CAMEL, **CRITERIA_MAP_SNAKE}
+
+_LETTER_TASK_TYPES = {"TASK1_GENERAL"}
+
 
 def _get(d, *keys, default=None):
     for k in keys:
@@ -59,15 +63,26 @@ def _parse_band(val):
     return round_ielts_band(_float(val, 0))
 
 
+def _list_str(val, default=None):
+    if isinstance(val, list):
+        return [str(x) for x in val]
+    return default or []
+
+
 class ResponseParser:
 
-    def parse(self, content: str) -> GradingResult:
+    def parse(self, content: str, task_type: str = "TASK2_ACADEMIC") -> GradingResult:
+        is_letter = task_type in _LETTER_TASK_TYPES
         data = self._extract_json(content)
 
         overall_band = _get(data, "overallBand", "overall_band")
         if overall_band is None:
-            raise ParseError("Missing overallBand/overall_band", content)
-        overall = _parse_band(overall_band)
+            raw_scores = _get(data, "scores", "criteria", "band_mapping", default={})
+            overall_band = _get(raw_scores, "overallBand", "overall_band")
+        if overall_band is not None:
+            overall = _parse_band(overall_band)
+        else:
+            overall = None
 
         raw_scores = _get(data, "scores", "criteria", "band_mapping", default={})
         raw_analysis = data.get("analysis", {})
@@ -76,7 +91,7 @@ class ResponseParser:
             raw_scores = {} if raw_scores.get("assigned_band") is None else {"taskResponse": raw_scores}
 
         scores = {}
-        for json_key, (code, name) in {**CRITERIA_MAP_CAMEL, **CRITERIA_MAP_SNAKE}.items():
+        for json_key, (code, name) in _CRITERIA_ALL.items():
             c = raw_scores.get(json_key, {})
             if not c or not isinstance(c, dict):
                 continue
@@ -98,7 +113,11 @@ class ResponseParser:
 
         all_s = []
         all_w = []
-        for code in ["TR", "TA", "CC", "LR", "GRA"]:
+        if is_letter:
+            primary_code, secondary_code = "TA", "TR"
+        else:
+            primary_code, secondary_code = "TR", "TA"
+        for code in [primary_code, secondary_code, "CC", "LR", "GRA"]:
             s = scores.get(code)
             if s:
                 pfx = f"[{s.display_name}] "
@@ -129,6 +148,15 @@ class ResponseParser:
         else:
             band_just_str = str(band_just_raw) if band_just_raw else ""
 
+        if overall is None:
+            bands = [s.band for s in scores.values() if s.band > 0]
+            if bands:
+                from core.calculator import calculate_overall_band
+                overall = calculate_overall_band(bands)
+
+        if overall is None:
+            raise ParseError("Missing overallBand/overall_band", content)
+
         def _resolve_analysis_text(key):
             val = raw_analysis.get(key)
             if isinstance(val, str):
@@ -145,8 +173,9 @@ class ResponseParser:
 
         return GradingResult(
             overall_band=overall,
-            task_response=scores.get("TR", scores.get("TA",
-                self._infer_score_from_analysis(raw_analysis, "task_response", "TR", "Task Response"))),
+            task_response=scores.get(primary_code, scores.get(secondary_code,
+                self._infer_score_from_analysis(raw_analysis, "task_response", primary_code,
+                    "Task Achievement" if is_letter else "Task Response"))),
             coherence_cohesion=scores.get("CC",
                 self._infer_score_from_analysis(raw_analysis, "coherence", "CC", "Coherence & Cohesion")),
             lexical_resource=scores.get("LR",
@@ -155,7 +184,7 @@ class ResponseParser:
                 self._infer_score_from_analysis(raw_analysis, "grammar", "GRA", "Grammatical Range & Accuracy")),
             overall_feedback=_str(_get(data, "overallFeedback", "overall_feedback", default="")),
             strengths=all_s, weaknesses=all_w,
-            improvement_priority=[str(p) for p in _get(data, "improvementPriority", "improvement_priority", default=[])],
+            improvement_priority=_list_str(_get(data, "improvementPriority", "improvement_priority", default=[])),
             confidence_score=conf,
             confidence_reason=_str(_get(data, "confidenceReason", "confidence_reason", default="")),
             band_justification=band_just_str,
@@ -166,6 +195,8 @@ class ResponseParser:
                 "lexicalAnalysis": _resolve_analysis_text("lexical_analysis"),
                 "grammarAnalysis": _resolve_analysis_text("grammar_analysis"),
             },
+            strength_summary=_str(_get(data, "strengthSummary", "strength_summary", default="")),
+            weakness_summary=_str(_get(data, "weaknessSummary", "weakness_summary", default="")),
             status="COMPLETED",
         )
 
@@ -193,10 +224,15 @@ class ResponseParser:
             return json.loads(content)
         except json.JSONDecodeError:
             pass
-        m = re.search(r"\{.*\}", content, re.DOTALL)
+        # Find JSON object start and try to close if truncated
+        m = re.search(r"\{", content, re.DOTALL)
         if m:
-            try:
-                return json.loads(m.group())
-            except json.JSONDecodeError:
-                pass
+            start = m.start()
+            json_str = content[start:]
+            # Try parsing as-is, then with progressively more closing braces
+            for i in range(10):
+                try:
+                    return json.loads(json_str + "}" * i)
+                except json.JSONDecodeError:
+                    continue
         raise ParseError("Cannot extract JSON", content)

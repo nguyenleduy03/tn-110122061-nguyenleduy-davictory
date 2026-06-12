@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Image as ImageIcon,
+  Settings
 } from 'lucide-react';
 
 const SESSIONS = [
@@ -59,6 +60,7 @@ const PALETTE_ITEMS = [
   { type: 'group', contentType: 'STANDALONE',           label: 'Câu độc lập',            icon: FileText, skills: ['LISTENING', 'WRITING', 'SPEAKING'] },
   { type: 'group', contentType: 'WRITING_TASK',         label: 'Writing Task',           icon: PenLine, skills: ['WRITING'] },
   // ── SPEAKING only ──
+  { type: 'group', contentType: 'SPEAKING_PART0',       label: 'Part 0 - Cấu hình',      icon: Settings, skills: ['SPEAKING'] },
   { type: 'group', contentType: 'SPEAKING_INTERVIEW',   label: 'Part 1 - Interview',     icon: Mic, skills: ['SPEAKING'] },
   { type: 'group', contentType: 'SPEAKING_CUECARD',     label: 'Part 2 - Cue Card',      icon: Mic, skills: ['SPEAKING'] },
   { type: 'group', contentType: 'SPEAKING_DISCUSSION',  label: 'Part 3 - Discussion',    icon: Mic, skills: ['SPEAKING'] },
@@ -85,6 +87,7 @@ const TYPE_META = {
   MATCHING_FILLABLE:     { label: 'MF', bg: '#e0f2fe', color: '#0369a1' },
   MATCHING_HEADINGS_FILLABLE: { label: 'MH', bg: '#e0f2fe', color: '#0369a1' },
   WRITING_TASK:          { label: 'WT', bg: '#fef9c3', color: '#a16207' },
+  SPEAKING_PART0:        { label: 'P0', bg: '#fff7ed', color: '#c2410c' },
   SPEAKING_INTERVIEW:    { label: 'P1', bg: '#fce7f3', color: '#be185d' },
   SPEAKING_CUECARD:      { label: 'P2', bg: '#fdf4ff', color: '#7e22ce' },
   SPEAKING_DISCUSSION:   { label: 'P3', bg: '#ede9fe', color: '#6d28d9' },
@@ -97,6 +100,7 @@ const PALETTE_ORDER = {
   AUDIO_TRANSCRIPT: 10,
   STANDALONE: 15,
   WRITING_TASK: 15,
+  SPEAKING_PART0: 14,
   SPEAKING_INTERVIEW: 15,
   SPEAKING_CUECARD: 16,
   SPEAKING_DISCUSSION: 17,

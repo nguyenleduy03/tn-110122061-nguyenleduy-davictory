@@ -20,6 +20,12 @@ class Settings(BaseSettings):
     groq_temperature: float = 0.3
     groq_max_tokens: int = 1024
 
+    nvidia_api_key: str = ""
+    nvidia_base_url: str = "https://integrate.api.nvidia.com/v1"
+    nvidia_model: str = "nvidia/llama-3.1-nemotron-70b-instruct"
+    nvidia_temperature: float = 0.3
+    nvidia_max_tokens: int = 1024
+
     openai_api_key: str = ""
     openai_base_url: str = "https://api.openai.com/v1"
     openai_scoring_model: str = "gpt-4o"

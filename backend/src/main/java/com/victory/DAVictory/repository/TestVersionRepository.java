@@ -12,6 +12,8 @@ import java.util.Optional;
 @Repository
 public interface TestVersionRepository extends JpaRepository<TestVersion, Long> {
 
+    void deleteByTestId(Long testId);
+
     List<TestVersion> findByTestIdOrderByVersionNumberDesc(Long testId);
 
     @Query("SELECT COALESCE(MAX(v.versionNumber), 0) FROM TestVersion v WHERE v.test.id = :testId")

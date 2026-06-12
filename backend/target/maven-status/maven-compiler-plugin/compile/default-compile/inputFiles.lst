@@ -16,6 +16,7 @@
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/GoogleDriveAuthController.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/GuestExamController.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/QuestionGroupController.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/SpeakingBankController.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/SpeakingController.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/StudentWritingController.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/SubmissionBridgeController.java
@@ -53,6 +54,8 @@
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/GuestExamResponse.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/GuestExamStartRequest.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/GuestExamSubmitRequest.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/InlineCombo.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/InlineFrame.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/LoginRequest.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/ManualGradeRequest.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/ManualSubmissionRequest.java
@@ -60,7 +63,11 @@
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/QuestionGroupResponse.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/RegisterRequest.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/ShuffleTestRequest.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/SpeakingBankDataDTO.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/SpeakingGenerationRequest.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/SpeakingGenerationResponse.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/SpeakingGradeRequest.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/SpeakingNewFormatData.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/SpeakingResultDTO.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/SubmitAnswersRequest.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/TestAttemptRequest.java
@@ -79,6 +86,7 @@
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/TestSessionResponse.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/TestSubmissionRequest.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/UserDTO.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/WarmUpQuestion.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/WritingGradeHistoryResponse.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/WritingGradeRequest.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/WritingSubmissionResponse.java
@@ -114,8 +122,10 @@
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/entity/Role.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/entity/Session.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/entity/SpeakingAttempt.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/entity/SpeakingCombo.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/entity/SpeakingCueCard.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/entity/SpeakingFeedback.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/entity/SpeakingFrame.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/entity/SpeakingRecording.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/entity/SpeakingScore.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/entity/SpeakingTopic.java
@@ -180,8 +190,10 @@
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/repository/RoleRepository.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/repository/SessionRepository.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/repository/SpeakingAttemptRepository.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/repository/SpeakingComboRepository.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/repository/SpeakingCueCardRepository.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/repository/SpeakingFeedbackRepository.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/repository/SpeakingFrameRepository.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/repository/SpeakingRecordingRepository.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/repository/SpeakingScoreRepository.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/repository/SpeakingTopicRepository.java
@@ -225,6 +237,7 @@
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/service/MediaService.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/service/QuestionBankService.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/service/RoleService.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/service/SpeakingGenerationService.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/service/SpeakingService.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/service/TestBuilderService.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/service/TestManagementService.java

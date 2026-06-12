@@ -270,7 +270,7 @@ async function transformGroup(baseUrl, group) {
     feType = 'short-answer-group';
   } else if (contentType === 'SHARED_OPTIONS_DROPDOWN') {
     feType = 'mcq_dropdown_group';
-  } else if (contentType === 'SPEAKING_CUECARD' || contentType === 'SPEAKING_INTERVIEW' || contentType === 'SPEAKING_DISCUSSION') {
+  } else if (contentType === 'SPEAKING_CUECARD' || contentType === 'SPEAKING_INTERVIEW' || contentType === 'SPEAKING_DISCUSSION' || contentType === 'SPEAKING_NEW_FORMAT' || contentType === 'SPEAKING_PART0') {
     // SPEAKING: Parse passageText JSON for group-level data
     let groupData = {};
     if (group.passageText) {
@@ -279,6 +279,26 @@ async function transformGroup(baseUrl, group) {
       } catch {
         /* ignore parse error */
       }
+    }
+
+    if (contentType === 'SPEAKING_PART0') {
+      return [{
+        id: `q${group.id || Date.now()}-part0`,
+        number: 1,
+        type: 'speaking',
+        questionTypeCode: contentType,
+        config: groupData
+      }];
+    }
+
+    if (contentType === 'SPEAKING_NEW_FORMAT') {
+      return [{
+        id: `q${group.id || Date.now()}-new-format`,
+        number: 1,
+        type: 'speaking',
+        questionTypeCode: contentType,
+        config: groupData
+      }];
     }
 
     return questions.map((q) => {
@@ -290,7 +310,6 @@ async function transformGroup(baseUrl, group) {
         const cleanedBullets = rawBullets
           .filter(bp => bp && bp.trim())
           .map(bp => {
-            // If bullet contains <ul><li>, extract just the <li> content
             if (bp.includes('<ul>') || bp.includes('<li>')) {
               const tempDiv = document.createElement('div');
               tempDiv.innerHTML = bp;
@@ -315,6 +334,8 @@ async function transformGroup(baseUrl, group) {
           prepSeconds: groupData.prepSeconds ?? 60,
           speakingSeconds: groupData.speakingSeconds ?? 120,
           text: formatTextWithWhitespace(q.questionText || ''),
+          followUpQuestions: groupData.followUpQuestions || [],
+          randomFollowUpCount: groupData.randomFollowUpCount || 0,
         };
       }
 
@@ -334,6 +355,11 @@ async function transformGroup(baseUrl, group) {
           classification: groupData.classification || 'GENERAL',
           text: formatTextWithWhitespace(q.questionText || q.blankContext || ''),
           topic: formatTextWithWhitespace(q.topic || ''),
+          // INLINE fields
+          frameName: groupData.frameName || '',
+          frameType: groupData.frameType || 'OPTIONAL',
+          profile: groupData.profile || 'BOTH',
+          randomCount: groupData.randomCount || 0,
         };
       }
 
@@ -1834,4 +1860,14 @@ export const ieltsApi = {
       body: JSON.stringify(filter),
     });
   },
+
+  // ─── Generate dynamic speaking test ─────────────────────────────
+  generateDynamicSpeakingTest: async (config, candidateProfile) => {
+    const baseUrl = API_CONFIG.BASE_URL;
+    return await apiFetch(`${baseUrl}/speaking-bank/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ config, candidateProfile })
+    });
+  }
 };

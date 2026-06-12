@@ -258,20 +258,59 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
     const structInfo = structure[skillKey];
     if (!structInfo || !parts || parts.length === 0) continue;
 
-    // Bỏ qua session nếu không có question group nào
+    // Ở chế độ single skill, luôn gửi session của skill đang chọn
+    // (kể cả chưa có question group) để backend lưu cấu trúc,
+    // giúp frontend nhận diện được skill khi load lại.
+    const isSelectedSingleSkill = !isFullTest && allowedSkills?.includes(skillKey);
     const hasContent = parts.some(p => (p.questionGroups?.length ?? 0) > 0);
-    if (!hasContent) continue;
+    if (!isSelectedSingleSkill && !hasContent) continue;
 
-    const partPayloads = parts.map((part, partIdx) => {
-      // Tìm Part ID từ structure dựa trên orderIndex
-      const structPart = structInfo.parts.find(sp => sp.orderIndex === part.orderIndex)
-        || structInfo.parts[partIdx];
+    // Xây map orderIndex → structPart để lookup nhanh, tránh fallback sai
+    const structPartByOrder = {};
+    for (const sp of structInfo.parts) {
+      structPartByOrder[sp.orderIndex] = sp;
+    }
+
+    // Gom groups của part ảo (không có trong backend structure) vào part thật đầu tiên
+    // Ví dụ: Part 0 - Cấu hình là virtual, groups của nó (SPEAKING_PART0) được merge vào Part 1
+    const realParts = [];
+    let pendingVirtualGroups = [];
+    for (const part of parts) {
+      const sp = structPartByOrder[part.orderIndex];
+      if (!sp || !sp.partId) {
+        pendingVirtualGroups.push(...(part.questionGroups || []));
+      } else {
+        realParts.push({
+          ...part,
+          questionGroups: [...pendingVirtualGroups, ...(part.questionGroups || [])],
+        });
+        pendingVirtualGroups = [];
+      }
+    }
+    // Nếu còn groups tồn đọng (Part có questionGroups mà không có struct), đính vào part cuối
+    if (pendingVirtualGroups.length > 0) {
+      if (realParts.length > 0) {
+        realParts[realParts.length - 1].questionGroups = [
+          ...(realParts[realParts.length - 1].questionGroups || []),
+          ...pendingVirtualGroups,
+        ];
+      } else {
+        realParts.push({ id: 99999, orderIndex: 999, questionGroups: pendingVirtualGroups });
+      }
+    }
+
+    // Lọc các part có questionGroups — bỏ qua struct để không mất Part 2/Part 3
+    const partPayloads = realParts
+      .filter(part => (part.questionGroups ?? []).length > 0)
+      .map((part) => {
+      const structPart = structPartByOrder[part.orderIndex];
 
       // Lưu tất cả groups kể cả READING_PASSAGE
       const questionGroups = part.questionGroups || [];
 
       return {
-        partId: structPart?.partId,
+        partId: structPart?.partId ?? part.backendTestPartId ?? null,
+        // Nếu không có partId (virtual part), backend sẽ tạo mới hoặc bỏ qua
         orderIndex: part.orderIndex,
         name: part.name,
         totalQuestions: part.totalQuestions,
@@ -282,7 +321,7 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
             existingGroupId: group.backendGroupId || null,
             title: group.title || `Nhóm ${gIdx + 1}`,
             contentType: mapContentType(group.contentType),
-            passageText: serializeGroupContent(group, part),
+            passageText: serializeGroupContent(group, part, sessions),
             audioUrl: group.audioUrl || null,
             audioPlayCount: group.audioPlayCount ?? 1,
             imageUrl: group.imageUrl || null,
@@ -306,7 +345,11 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
               console.log(`   - existing answers: ${q.answers?.length || 0}`);
 
               // Luôn lấy questionNumber trực tiếp từ dữ liệu câu hỏi (DB/UI state), không tự đếm ở FE.
-              const rawQuestionNumber = Number(q?.questionNumber);
+              let rawQuestionNumber = Number(q?.questionNumber);
+              // Auto-number cho Speaking questions (object format {id, text})
+              if (!Number.isFinite(rawQuestionNumber) && ['SPEAKING_PART2', 'SPEAKING_PART3', 'SPEAKING_CUECARD', 'SPEAKING_DISCUSSION', 'SPEAKING_INTERVIEW'].includes(group.contentType)) {
+                rawQuestionNumber = qIdx + 1;
+              }
               const currentQuestionNumber = Number.isFinite(rawQuestionNumber) ? rawQuestionNumber : null;
 
               // Short Answer: questionCount = số đáp án thật (không phải sample)
@@ -332,7 +375,7 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
               }
 
               // Ưu tiên contentType của group cho các loại writing/speaking đặc biệt
-              const contentTypeOverride = ['WRITING_TASK', 'SPEAKING_INTERVIEW', 'SPEAKING_DISCUSSION', 'SPEAKING_CUECARD', 'SHARED_OPTIONS_DROPDOWN', 'SPEAKING_PART1', 'SPEAKING_PART2', 'SPEAKING_PART3'].includes(group.contentType)
+              const contentTypeOverride = ['WRITING_TASK', 'SPEAKING_INTERVIEW', 'SPEAKING_DISCUSSION', 'SPEAKING_CUECARD', 'SHARED_OPTIONS_DROPDOWN', 'SPEAKING_PART0', 'SPEAKING_PART1', 'SPEAKING_PART2', 'SPEAKING_PART3', 'SPEAKING_NEW_FORMAT'].includes(group.contentType)
                 ? group.contentType
                 : null;
               
@@ -425,7 +468,7 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
                 questionTypeCode: typeCode,
                 questionNumber: currentQuestionNumber,
                 questionSection: q.questionSection || null,
-                questionText: q.questionText || '',
+                questionText: q.text ?? q.questionText ?? '',
                 blankContext: q.blankContext || null,
                 pinX: q.pinX ?? null,
                 pinY: q.pinY ?? null,
@@ -606,7 +649,7 @@ function isDragCompletionContentType(ct) {
 
 // ─── Serialize nội dung group thành passageText (JSON) ───────────
 
-function serializeGroupContent(group, part) {
+function serializeGroupContent(group, part, sessions) {
   const ct = group.contentType;
   const allowOptionReuse = (typeof group.allowOptionReuse === 'boolean') ? group.allowOptionReuse : true;
 
@@ -728,16 +771,81 @@ function serializeGroupContent(group, part) {
   }
   // Speaking Interview & Discussion
   if (ct === 'SPEAKING_INTERVIEW' || ct === 'SPEAKING_DISCUSSION' || ct === 'SPEAKING_PART1' || ct === 'SPEAKING_PART3') {
+    let linkedPart2BackendGroupId = null;
+    let linkedPart2PartOrderIndex = null;
+    let linkedPart2GroupIndex = null;
+    if (group.linkedPart2GroupId && sessions) {
+      for (const parts of Object.values(sessions)) {
+        for (const p of parts) {
+          const idx = (p.questionGroups || []).findIndex(g => g.id === group.linkedPart2GroupId);
+          if (idx >= 0) {
+            const linked = p.questionGroups[idx];
+            linkedPart2BackendGroupId = linked.backendGroupId || null;
+            linkedPart2PartOrderIndex = p.orderIndex;
+            linkedPart2GroupIndex = idx;
+            break;
+          }
+        }
+        if (linkedPart2PartOrderIndex != null) break;
+      }
+    }
     return JSON.stringify({
       interviewType: group.interviewType || (ct === 'SPEAKING_DISCUSSION' || ct === 'SPEAKING_PART3' ? 'PART3' : 'PART1'),
       partInstruction: group.partInstruction || '',
       classification: group.classification || 'GENERAL',
-      topics: group.topics || [], // For SpeakingPart1Block
-      theme: group.theme || '', // For SpeakingPart3Block
+      topics: group.topics || [],
+      theme: group.theme || '',
+      // INLINE mode fields
+      frameName: group.frameName || '',
+      frameType: group.frameType || 'OPTIONAL',
+      profile: group.profile || 'BOTH',
+      randomCount: group.randomCount || 0,
+      linkedPart2GroupId: group.linkedPart2GroupId || null,
+      linkedPart2BackendGroupId,
+      linkedPart2PartOrderIndex,
+      linkedPart2GroupIndex,
+      autoSyncFromPart2: group.autoSyncFromPart2 !== false,
+    });
+  }
+  // Speaking Part 0 - Config
+  if (ct === 'SPEAKING_PART0') {
+    return group.passageText || JSON.stringify({
+      includeWarmUp: true,
+      optionalFrameCount: 2,
+      mandatoryQuestionCount: 5,
+      optionalQuestionCount: 4,
+      part3QuestionCount: 5
+    });
+  }
+  // Speaking New Dynamic Format
+  if (ct === 'SPEAKING_NEW_FORMAT') {
+    // group.passageText already holds the JSON config created in the UI block
+    return group.passageText || JSON.stringify({
+      selectedComboId: null,
+      selectedOptionalFrameIds: [],
+      autoRandomOptionalFrames: true
     });
   }
   // Speaking Cue Card
   if (ct === 'SPEAKING_CUECARD' || ct === 'SPEAKING_PART2') {
+    let linkedPart3BackendGroupId = null;
+    let linkedPart3PartOrderIndex = null;
+    let linkedPart3GroupIndex = null;
+    if (group.linkedPart3GroupId && sessions) {
+      for (const parts of Object.values(sessions)) {
+        for (const p of parts) {
+          const idx = (p.questionGroups || []).findIndex(g => g.id === group.linkedPart3GroupId);
+          if (idx >= 0) {
+            const linked = p.questionGroups[idx];
+            linkedPart3BackendGroupId = linked.backendGroupId || null;
+            linkedPart3PartOrderIndex = p.orderIndex;
+            linkedPart3GroupIndex = idx;
+            break;
+          }
+        }
+        if (linkedPart3PartOrderIndex != null) break;
+      }
+    }
     return JSON.stringify({
       partInstruction: group.partInstruction || '',
       topic: group.topic || '',
@@ -746,7 +854,12 @@ function serializeGroupContent(group, part) {
       closingSentence: group.closingSentence || '',
       prepSeconds: group.prepSeconds ?? 60,
       speakingSeconds: group.speakingSeconds ?? 120,
-      followUpQuestions: group.followUpQuestions || [], // For SpeakingPart2Block
+      followUpQuestions: group.followUpQuestions || [],
+      randomFollowUpCount: group.randomFollowUpCount || 0,
+      linkedPart3GroupId: group.linkedPart3GroupId || null,
+      linkedPart3BackendGroupId,
+      linkedPart3PartOrderIndex,
+      linkedPart3GroupIndex,
     });
   }
   // Dropdown chung (Listening/Reading): options + hướng dẫn trong JSON
@@ -833,6 +946,8 @@ function mapQuestionTypeCode(typeName) {
     'SPEAKING_PART1': 'SHORT_ANSWER',
     'SPEAKING_PART2': 'SHORT_ANSWER',
     'SPEAKING_PART3': 'SHORT_ANSWER',
+    'SPEAKING_PART0': 'SPEAKING_PART0', // Giữ nguyên type để load lại còn nhận diện
+    'SPEAKING_NEW_FORMAT': 'SHORT_ANSWER', // Dummy type to pass schema validation
     // Audio
     'AUDIO_TRANSCRIPT': 'FILL_BLANK',
     'STANDALONE': 'FILL_BLANK',
@@ -1064,6 +1179,68 @@ export function parseLoadedTest(data) {
     sessions[skillKey] = parts;
   }
 
+  // Luôn đảm bảo Speaking có Part 0 (virtual, orderIndex=0)
+  const speakingParts = sessions['SPEAKING'];
+  if (speakingParts) {
+    let hasPart0 = false;
+    for (let i = 0; i < speakingParts.length; i++) {
+      const p = speakingParts[i];
+      if (p.orderIndex === 0) { hasPart0 = true; }
+      const idx = p.questionGroups?.findIndex(g => g.contentType === 'SPEAKING_PART0');
+      if (idx >= 0) {
+        const [cfg] = p.questionGroups.splice(idx, 1);
+        speakingParts.unshift({
+          id: nextId++,
+          orderIndex: 0,
+          name: 'Part 0 - Cấu hình',
+          totalQuestions: 0,
+          instructions: 'Kéo block Part 0 - Cấu hình vào đây để thiết lập chế độ INLINE',
+          questionGroups: [cfg],
+        });
+        hasPart0 = true;
+        break;
+      }
+    }
+    // Nếu chưa có Part 0, tạo mới với questionGroups rỗng
+    if (!hasPart0) {
+      speakingParts.unshift({
+        id: nextId++,
+        orderIndex: 0,
+        name: 'Part 0 - Cấu hình',
+        totalQuestions: 0,
+        instructions: 'Kéo block Part 0 - Cấu hình vào đây để thiết lập chế độ INLINE',
+        questionGroups: [],
+      });
+    }
+
+    // Resolve Part 2 ↔ Part 3 links — clear stale ID trước, resolve sau
+    const allSpeakingGroups = speakingParts.flatMap(p => p.questionGroups || []);
+    for (const g of allSpeakingGroups) {
+      // Clear stale client ID (số cũ từ session trước) — resolve sẽ gán lại
+      g.linkedPart3GroupId = null;
+      g.linkedPart2GroupId = null;
+
+      // Ưu tiên backendGroupId, fallback theo vị trí
+      if (g.linkedPart3BackendGroupId) {
+        const matched = allSpeakingGroups.find(other => other.backendGroupId === g.linkedPart3BackendGroupId);
+        if (matched) { g.linkedPart3GroupId = matched.id; }
+      } else if (g.linkedPart3PartOrderIndex != null && g.linkedPart3GroupIndex != null) {
+        const targetPart = speakingParts.find(p => p.orderIndex === g.linkedPart3PartOrderIndex);
+        const targetGroup = targetPart?.questionGroups?.[g.linkedPart3GroupIndex];
+        if (targetGroup) { g.linkedPart3GroupId = targetGroup.id; }
+      }
+
+      if (g.linkedPart2BackendGroupId) {
+        const matched = allSpeakingGroups.find(other => other.backendGroupId === g.linkedPart2BackendGroupId);
+        if (matched) { g.linkedPart2GroupId = matched.id; }
+      } else if (g.linkedPart2PartOrderIndex != null && g.linkedPart2GroupIndex != null) {
+        const targetPart = speakingParts.find(p => p.orderIndex === g.linkedPart2PartOrderIndex);
+        const targetGroup = targetPart?.questionGroups?.[g.linkedPart2GroupIndex];
+        if (targetGroup) { g.linkedPart2GroupId = targetGroup.id; }
+      }
+    }
+  }
+
   if (!test.isFullTest && !test.singleSkill) {
     const skillOrder = ['LISTENING', 'READING', 'WRITING', 'SPEAKING'];
     const loadedSkill = skillOrder.find((skillKey) => (sessions[skillKey] || []).length > 0);
@@ -1208,7 +1385,23 @@ function deserializeGroupContent(contentType, passageText) {
         classification: parsed.classification || 'GENERAL',
         topics: parsed.topics || [],
         theme: parsed.theme || '',
+        frameName: parsed.frameName || '',
+        frameType: parsed.frameType || 'OPTIONAL',
+        profile: parsed.profile || 'BOTH',
+        randomCount: parsed.randomCount || 0,
+        linkedPart2GroupId: parsed.linkedPart2GroupId || null,
+        linkedPart2BackendGroupId: parsed.linkedPart2BackendGroupId || null,
+        linkedPart2PartOrderIndex: parsed.linkedPart2PartOrderIndex ?? null,
+        linkedPart2GroupIndex: parsed.linkedPart2GroupIndex ?? null,
+        autoSyncFromPart2: parsed.autoSyncFromPart2 !== false,
       };
+    }
+    if (contentType === 'SPEAKING_PART0') {
+      return { passageText };
+    }
+    if (contentType === 'SPEAKING_NEW_FORMAT') {
+      // Return passageText directly because the UI block initializes state by parsing group.passageText
+      return { passageText };
     }
     if (contentType === 'SPEAKING_CUECARD' || contentType === 'SPEAKING_PART2') {
       const parsed = JSON.parse(passageText);
@@ -1221,6 +1414,11 @@ function deserializeGroupContent(contentType, passageText) {
         prepSeconds: parsed.prepSeconds ?? 60,
         speakingSeconds: parsed.speakingSeconds ?? 120,
         followUpQuestions: parsed.followUpQuestions || [],
+        randomFollowUpCount: parsed.randomFollowUpCount || 0,
+        linkedPart3GroupId: parsed.linkedPart3GroupId || null,
+        linkedPart3BackendGroupId: parsed.linkedPart3BackendGroupId || null,
+        linkedPart3PartOrderIndex: parsed.linkedPart3PartOrderIndex ?? null,
+        linkedPart3GroupIndex: parsed.linkedPart3GroupIndex ?? null,
       };
     }
     if (contentType === 'SHARED_OPTIONS_DROPDOWN') {

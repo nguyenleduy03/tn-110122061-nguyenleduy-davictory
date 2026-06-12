@@ -4,15 +4,25 @@ Usage:
     uvicorn main:app --host 0.0.0.0 --port 5182 --reload
 """
 
+import asyncio
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.grading import router as grading_router
-from api.admin import router as admin_router
+from api.admin import router as admin_router, refresh_nvidia_models
 from api.evaluation import router as eval_router
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    asyncio.create_task(refresh_nvidia_models())
+    yield
+
+
 app = FastAPI(
+    lifespan=lifespan,
     title="DAVictory AI Writing Service",
     description="AI-powered IELTS Writing Task 1 & 2 grading with RAG pipeline and ChromaDB",
     version="2.0.0",

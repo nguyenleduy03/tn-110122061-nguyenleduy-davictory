@@ -23,6 +23,33 @@ class AIProviderError(Exception):
     pass
 
 
+class NvidiaClient:
+    def __init__(self):
+        s = get_settings()
+        self.client = AsyncOpenAI(api_key=s.nvidia_api_key, base_url=s.nvidia_base_url) if s.nvidia_api_key else None
+
+    async def chat(self, system: str, user: str, temperature: float | None = None,
+                   max_tokens: int | None = None) -> LLMResponse:
+        if not self.client:
+            raise AIProviderError("NVIDIA API key not configured")
+        s = get_settings()
+        try:
+            resp = await self.client.chat.completions.create(
+                model=s.nvidia_model,
+                temperature=temperature if temperature is not None else s.nvidia_temperature,
+                max_tokens=max_tokens or s.nvidia_max_tokens,
+                messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
+            )
+            usage = resp.usage
+            return LLMResponse(content=resp.choices[0].message.content or "", model=resp.model,
+                              provider="nvidia",
+                              prompt_tokens=usage.prompt_tokens if usage else 0,
+                              completion_tokens=usage.completion_tokens if usage else 0,
+                              total_tokens=usage.total_tokens if usage else 0)
+        except Exception as e:
+            raise AIProviderError(f"NVIDIA API: {e}")
+
+
 class GroqClient:
     def __init__(self):
         s = get_settings()
@@ -64,11 +91,14 @@ class GroqClient:
 class OpenAIClient:
     def __init__(self):
         s = get_settings()
-        self.client = AsyncOpenAI(api_key=s.openai_api_key, base_url=s.openai_base_url)
+        key = s.openai_api_key
+        self.client = AsyncOpenAI(api_key=key, base_url=s.openai_base_url) if key else None
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=2, max=10))
     async def chat(self, system: str, user: str, temperature: float | None = None,
                    max_tokens: int | None = None) -> LLMResponse:
+        if not self.client:
+            raise AIProviderError("OpenAI API key not configured")
         s = get_settings()
         try:
             resp = await self.client.chat.completions.create(
@@ -87,6 +117,8 @@ class OpenAIClient:
             raise AIProviderError(f"OpenAI API: {e}")
 
     async def transcribe(self, audio_data: bytes, filename: str = "audio.webm") -> dict:
+        if not self.client:
+            raise AIProviderError("OpenAI API key not configured")
         s = get_settings()
         try:
             resp = await self.client.audio.transcriptions.create(
@@ -96,6 +128,8 @@ class OpenAIClient:
             raise AIProviderError(f"Whisper STT: {e}")
 
     async def synthesize(self, text: str, voice: str | None = None) -> bytes:
+        if not self.client:
+            raise AIProviderError("OpenAI API key not configured")
         s = get_settings()
         try:
             resp = await self.client.audio.speech.create(

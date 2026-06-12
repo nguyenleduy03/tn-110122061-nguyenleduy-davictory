@@ -36,4 +36,6 @@ export const TYPE_META = {
   SPEAKING_PART1:         { label: 'Speaking Part 1',      bg: '#dbeafe', color: '#1e40af' },
   SPEAKING_PART2:         { label: 'Speaking Part 2',      bg: '#fef3c7', color: '#b45309' },
   SPEAKING_PART3:         { label: 'Speaking Part 3',      bg: '#e0e7ff', color: '#4338ca' },
+  SPEAKING_PART0:         { label: 'Part 0 - Cấu hình',    bg: '#fff7ed', color: '#c2410c' },
+  SPEAKING_NEW_FORMAT:    { label: 'Cấu hình Đề (Dynamic)', bg: '#fdf2f8', color: '#be185d' },
 };

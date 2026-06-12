@@ -1,27 +1,30 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Mic, MessageSquare, Volume2, Play, Send, CheckCircle,
   ChevronRight, StopCircle, BarChart3, RefreshCw, Plus,
+  RotateCw, AlertCircle, PlayCircle, Settings, Database,
+  Cpu, Clock, User, ShieldCheck
 } from 'lucide-react';
 import { speakingApi } from '../api/speakingApi';
 import ResponseViewer from '../components/ResponseViewer';
 import { useHeader } from '../context/HeaderContext';
+import { BandScore, CriterionMeter } from '../components/ScoreDisplay';
 
 export default function Speaking() {
   const [tab, setTab] = useState('chat');
   const { setTabs } = useHeader();
 
   const tabDefs = [
-    { key: 'chat', label: 'Chat Practice', icon: MessageSquare, onClick: () => setTab('chat') },
-    { key: 'session', label: 'Session Controls', icon: Play, onClick: () => setTab('session') },
-    { key: 'tts', label: 'TTS Player', icon: Volume2, onClick: () => setTab('tts') },
-    { key: 'admin', label: 'Admin', icon: Plus, onClick: () => setTab('admin') },
+    { key: 'chat', label: 'Practice Session', icon: MessageSquare, onClick: () => setTab('chat') },
+    { key: 'tts', label: 'Voice Test', icon: Volume2, onClick: () => setTab('tts') },
+    { key: 'admin', label: 'Advanced', icon: Settings, onClick: () => setTab('admin') },
   ];
 
   useEffect(() => {
     setTabs(tabDefs);
     return () => setTabs([]);
   }, []);
+
   const [sessionId, setSessionId] = useState(null);
   const [chatMessages, setChatMessages] = useState([]);
   const [answerText, setAnswerText] = useState('');
@@ -33,21 +36,22 @@ export default function Speaking() {
   const [loading, setLoading] = useState(false);
   const [label, setLabel] = useState('');
   const [scoringResult, setScoringResult] = useState(null);
+  
+  const chatEndRef = useRef(null);
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessages]);
 
   async function callApi(fn, lbl) {
     setLoading(true);
     setError(null);
-    setResponse(null);
     setLabel(lbl);
     try {
       const res = await fn();
       setResponse(res.data);
       return res.data;
     } catch (err) {
-      const msg = err.response?.data
-        ? JSON.stringify(err.response.data, null, 2)
-        : err.message;
-      setError(msg);
+      setError(err.response?.data ? JSON.stringify(err.response.data) : err.message);
     } finally {
       setLoading(false);
     }
@@ -57,7 +61,7 @@ export default function Speaking() {
     const data = await callApi(() => speakingApi.createSession(), 'Create Session');
     if (data?.sessionId) {
       setSessionId(data.sessionId);
-      setChatMessages([]);
+      setChatMessages([{ type: 'system', text: 'Session created successfully.' }]);
       setScoringResult(null);
     }
   }
@@ -72,9 +76,10 @@ export default function Speaking() {
 
   async function handleSubmitAnswer() {
     if (!sessionId || !answerText.trim()) return;
-    const data = await callApi(() => speakingApi.submitAnswer(sessionId, answerText.trim()), 'Submit Answer');
-    setChatMessages((prev) => [...prev, { type: 'user', text: answerText.trim() }]);
+    const text = answerText.trim();
     setAnswerText('');
+    setChatMessages((prev) => [...prev, { type: 'user', text }]);
+    await callApi(() => speakingApi.submitAnswer(sessionId, text), 'Submit Answer');
   }
 
   async function handleNextPhase() {
@@ -92,7 +97,7 @@ export default function Speaking() {
   async function handleEndSession() {
     if (!sessionId) return;
     await callApi(() => speakingApi.endSession(sessionId), 'End Session');
-    setChatMessages((prev) => [...prev, { type: 'system', text: 'Session ended. Ready for evaluation.' }]);
+    setChatMessages((prev) => [...prev, { type: 'system', text: 'Session ended. You can now evaluate your performance.' }]);
   }
 
   async function handleEvaluate() {
@@ -102,15 +107,11 @@ export default function Speaking() {
   }
 
   async function handleTTS() {
-    if (!ttsText.trim()) return;
+    setLoading(true);
     try {
-      setLoading(true);
-      const res = await speakingApi.tts(ttsText.trim(), ttsVoice);
-      const blob = new Blob([res.data], { type: 'audio/mpeg' });
-      const url = URL.createObjectURL(blob);
-      if (audioUrl) URL.revokeObjectURL(audioUrl);
+      const res = await speakingApi.tts(ttsText, ttsVoice);
+      const url = URL.createObjectURL(res.data);
       setAudioUrl(url);
-      setResponse({ status: 'AUDIO_READY', text: ttsText, voice: ttsVoice });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -119,233 +120,215 @@ export default function Speaking() {
   }
 
   return (
-    <div className="main">
-      <div className="page-header">
-        <h1><Mic size={28} style={{ verticalAlign: 'middle', marginRight: 8 }} />IELTS Speaking AI Test</h1>
-        <p>Test all AI Speaking service endpoints — sessions, chat, TTS, scoring</p>
-      </div>
-
-
-      <div className="model-selector" style={{ flexWrap: 'wrap' }}>
-        <div className="service-indicator" style={{ margin: 0 }}>
-          <span className={`dot ${sessionId ? 'dot-online' : 'dot-offline'}`} />
-          <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 600 }}>
-            Session: {sessionId ? <strong style={{ color: 'var(--text)' }}>{sessionId}</strong> : 'Not created'}
-          </span>
-        </div>
-        <button className="btn btn-primary btn-sm" onClick={handleCreateSession} disabled={loading}>
-          <Plus size={14} /> New Session
-        </button>
-        {sessionId && (
-          <>
-            <button className="btn btn-secondary btn-sm" onClick={handleGenerateQuestion} disabled={loading}>
-              <MessageSquare size={14} /> Generate Question
-            </button>
-            <button className="btn btn-secondary btn-sm" onClick={handleNextPhase} disabled={loading}>
-              <ChevronRight size={14} /> Next Phase
-            </button>
-            <button className="btn btn-secondary btn-sm" onClick={handleEndSession} disabled={loading}>
-              <StopCircle size={14} /> End Session
-            </button>
-            <button className="btn btn-primary btn-sm" onClick={handleEvaluate} disabled={loading}>
-              <BarChart3 size={14} /> Evaluate
-            </button>
-          </>
-        )}
-      </div>
-
+    <div className="animate-fade">
       {tab === 'chat' && (
-        <div className="card">
-          <h3><MessageSquare size={18} /> Speaking Practice Chat</h3>
-          {sessionId ? (
-            <>
-              <div className="chat-container">
-                {chatMessages.length === 0 && (
-                  <div className="empty-state">
-                    <MessageSquare size={40} />
-                    <p>Generate a question to start practicing</p>
-                  </div>
-                )}
-                {chatMessages.map((msg, i) => (
-                  <div key={i} className={`chat-bubble ${msg.type}`}>
-                    <div className="chat-label">
-                      {msg.type === 'examiner' ? 'Examiner' : msg.type === 'system' ? 'System' : 'You'}
-                    </div>
-                    {msg.text}
-                  </div>
-                ))}
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <input
-                  style={{ flex: 1 }}
-                  value={answerText}
-                  onChange={(e) => setAnswerText(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSubmitAnswer()}
-                  placeholder="Type your answer here..."
-                />
-                <button className="btn btn-primary" onClick={handleSubmitAnswer} disabled={loading || !answerText.trim()}>
-                  <Send size={16} /> Send
-                </button>
-              </div>
-            </>
-          ) : (
-            <div className="empty-state">
-              <Mic size={48} />
-              <p>Create a new session to start the speaking practice</p>
-            </div>
-          )}
-
-          {scoringResult && (
-            <div style={{ marginTop: 24 }}>
-              <h3 style={{ marginBottom: 16 }}><BarChart3 size={18} /> Scoring Result</h3>
-              <div style={{ textAlign: 'center', marginBottom: 16 }}>
-                <div className="band-score">
-                  {scoringResult.overallBand?.toFixed(1) || '?'}
+        <div style={{ display: 'grid', gridTemplateColumns: scoringResult ? '1fr 400px' : '1fr', gap: '24px' }}>
+          {/* CHAT INTERFACE */}
+          <div className="card" style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 160px)', padding: 0, overflow: 'hidden' }}>
+            <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border-light)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ background: 'var(--primary-light)', color: 'var(--primary)', padding: '8px', borderRadius: '50%' }}>
+                  <Mic size={20} />
                 </div>
-                <div style={{ fontSize: 14, color: 'var(--text-muted)' }}>Overall Band Score</div>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: '1rem' }}>Speaking Practice</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{sessionId ? `Session ID: ${sessionId}` : 'Ready to start'}</div>
+                </div>
               </div>
-              <div className="criteria-grid">
-                {['fluencyCoherence', 'lexicalResource', 'grammaticalRangeAccuracy', 'pronunciation'].map((key) => {
-                  const c = scoringResult[key];
-                  if (!c) return null;
-                  return (
-                    <div className="criteria-item" key={key}>
-                      <h4>{c.displayName || key}</h4>
-                      <div className="criteria-band">{c.band?.toFixed(1) || '?'}</div>
-                      <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
-                        {c.detailedFeedback?.slice(0, 100)}...
-                      </div>
-                    </div>
-                  );
-                })}
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {!sessionId ? (
+                  <button className="btn btn-primary" onClick={handleCreateSession} disabled={loading}>
+                    <Plus size={18} /> New Session
+                  </button>
+                ) : (
+                  <>
+                    <button className="btn btn-outline" onClick={handleGenerateQuestion} disabled={loading}>
+                      <RotateCw size={16} /> Get Question
+                    </button>
+                    <button className="btn btn-outline" onClick={handleNextPhase} disabled={loading}>
+                      <ChevronRight size={16} /> Next Phase
+                    </button>
+                    <button className="btn btn-outline" style={{ color: 'var(--danger)' }} onClick={handleEndSession} disabled={loading}>
+                      <StopCircle size={16} /> End
+                    </button>
+                    <button className="btn btn-primary" onClick={handleEvaluate} disabled={loading}>
+                      <BarChart3 size={16} /> Evaluate
+                    </button>
+                  </>
+                )}
               </div>
-              {scoringResult.overallFeedback && (
-                <div style={{ marginTop: 12, background: 'var(--bg)', padding: 12, borderRadius: 8, fontSize: 13 }}>
-                  <strong>Feedback:</strong> {scoringResult.overallFeedback}
+            </div>
+
+            <div style={{ flex: 1, overflowY: 'auto', padding: '24px', background: 'var(--bg-main)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {chatMessages.length === 0 && (
+                <div style={{ textAlign: 'center', padding: '100px 0', color: 'var(--text-muted)' }}>
+                  <div style={{ marginBottom: '16px' }}><MessageSquare size={48} opacity={0.2} /></div>
+                  <p>Create a session to start your IELTS Speaking practice.</p>
                 </div>
               )}
+              {chatMessages.map((msg, i) => (
+                <div key={i} style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column',
+                  alignItems: msg.type === 'user' ? 'flex-end' : msg.type === 'system' ? 'center' : 'flex-start'
+                }}>
+                  {msg.type !== 'system' && (
+                    <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px', marginHorizontal: '8px' }}>
+                      {msg.type === 'examiner' ? 'IELTS EXAMINER' : 'YOU'}
+                    </div>
+                  )}
+                  <div style={{
+                    maxWidth: msg.type === 'system' ? '80%' : '70%',
+                    padding: msg.type === 'system' ? '4px 12px' : '12px 16px',
+                    borderRadius: '16px',
+                    fontSize: msg.type === 'system' ? '0.75rem' : '0.9375rem',
+                    background: msg.type === 'user' ? 'var(--primary)' : msg.type === 'system' ? 'var(--border-light)' : 'white',
+                    color: msg.type === 'user' ? 'white' : 'var(--text-main)',
+                    boxShadow: msg.type === 'system' ? 'none' : 'var(--shadow-sm)',
+                    border: msg.type === 'examiner' ? '1px solid var(--border)' : 'none',
+                    lineHeight: 1.5,
+                    borderBottomLeftRadius: msg.type === 'examiner' ? '4px' : '16px',
+                    borderBottomRightRadius: msg.type === 'user' ? '4px' : '16px',
+                  }}>
+                    {msg.text}
+                  </div>
+                </div>
+              ))}
+              <div ref={chatEndRef} />
+            </div>
+
+            <div style={{ padding: '20px 24px', background: 'white', borderTop: '1px solid var(--border-light)', display: 'flex', gap: '12px' }}>
+              <input 
+                style={{
+                  flex: 1, padding: '12px 16px', borderRadius: '999px', border: '1px solid var(--border)',
+                  background: 'var(--bg-main)', fontSize: '0.9375rem', outline: 'none'
+                }}
+                value={answerText}
+                onChange={(e) => setAnswerText(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSubmitAnswer()}
+                placeholder={sessionId ? "Type your response here..." : "Start a session first"}
+                disabled={!sessionId || loading}
+              />
+              <button 
+                className="btn btn-primary" 
+                style={{ borderRadius: '50%', width: '44px', height: '44px', padding: 0, justifyContent: 'center' }}
+                onClick={handleSubmitAnswer}
+                disabled={!sessionId || loading || !answerText.trim()}
+              >
+                <Send size={18} />
+              </button>
+            </div>
+          </div>
+
+          {/* SCORING RESULTS */}
+          {scoringResult && (
+            <div className="animate-fade">
+              <div className="card" style={{ background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', color: 'white', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+                <BandScore band={scoringResult.overallBand || 0} size={120} />
+                <h3 style={{ marginTop: '16px', fontSize: '1.25rem', fontWeight: 800 }}>Speaking Performance</h3>
+                <p style={{ fontSize: '0.875rem', opacity: 0.9, marginTop: '8px' }}>Based on your conversation in this session.</p>
+              </div>
+
+              {['fluencyCoherence', 'lexicalResource', 'grammaticalRangeAccuracy', 'pronunciation'].map((key) => {
+                const c = scoringResult[key];
+                if (!c) return null;
+                const labels = {
+                  fluencyCoherence: 'Fluency & Coherence',
+                  lexicalResource: 'Lexical Resource',
+                  grammaticalRangeAccuracy: 'Grammar Accuracy',
+                  pronunciation: 'Pronunciation'
+                };
+                const icons = {
+                  fluencyCoherence: MessageSquare,
+                  lexicalResource: BookOpen,
+                  grammaticalRangeAccuracy: ShieldCheck,
+                  pronunciation: Mic
+                };
+                return (
+                  <CriterionMeter 
+                    key={key}
+                    label={labels[key]}
+                    band={c.band || 0}
+                    color="var(--primary)"
+                    icon={icons[key]}
+                  />
+                );
+              })}
+
+              <div className="card">
+                <h4 style={{ fontSize: '0.875rem', fontWeight: 700, marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Zap size={16} color="var(--accent)" />
+                  Overall Feedback
+                </h4>
+                <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                  {scoringResult.overallFeedback}
+                </p>
+              </div>
             </div>
           )}
-        </div>
-      )}
-
-      {tab === 'session' && (
-        <div className="card">
-          <h3><Play size={18} /> Manual Session Operations</h3>
-          <div className="form-group">
-            <label>Session ID</label>
-            <input
-              value={sessionId || ''}
-              onChange={(e) => setSessionId(e.target.value)}
-              placeholder="Session ID (auto-filled when you create one)"
-            />
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            <button className="btn btn-secondary" onClick={() => callApi(() => speakingApi.getSession(sessionId), `Session ${sessionId}`)} disabled={!sessionId}>
-              Get Session Info
-            </button>
-            <button className="btn btn-secondary" onClick={() => callApi(() => speakingApi.generateQuestion(sessionId), 'Question')} disabled={!sessionId}>
-              Generate Question
-            </button>
-            <button className="btn btn-secondary" onClick={() => callApi(() => speakingApi.nextPhase(sessionId), 'Next Phase')} disabled={!sessionId}>
-              Next Phase
-            </button>
-            <button className="btn btn-danger" onClick={() => callApi(() => speakingApi.endSession(sessionId), 'End Session')} disabled={!sessionId}>
-              End Session
-            </button>
-            <button className="btn btn-primary" onClick={() => callApi(() => speakingApi.scoreEvaluate(sessionId), 'Score')} disabled={!sessionId}>
-              Evaluate (Score)
-            </button>
-          </div>
-          <ResponseViewer response={response} error={error} loading={loading} label={label} />
         </div>
       )}
 
       {tab === 'tts' && (
-        <div className="card">
-          <h3><Volume2 size={18} /> Text-to-Speech (TTS) Player</h3>
-          <div className="form-row">
-            <div className="form-group">
-              <label>Text to Speak</label>
-              <textarea value={ttsText} onChange={(e) => setTtsText(e.target.value)} rows={3} />
-            </div>
-            <div className="form-group">
-              <label>Voice</label>
-              <select value={ttsVoice} onChange={(e) => setTtsVoice(e.target.value)}>
-                <option value="alloy">Alloy</option>
-                <option value="echo">Echo</option>
-                <option value="fable">Fable</option>
-                <option value="onyx">Onyx</option>
-                <option value="nova">Nova</option>
-                <option value="shimmer">Shimmer</option>
-              </select>
-            </div>
+        <div className="card" style={{ maxWidth: '600px', margin: '0 auto' }}>
+          <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '24px' }}>
+            <Volume2 size={24} color="var(--primary)" />
+            Voice Configuration Test
+          </h3>
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '8px' }}>Sample Text</label>
+            <textarea 
+              style={{ width: '100%', padding: '12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', minHeight: '100px' }}
+              value={ttsText} onChange={(e) => setTtsText(e.target.value)}
+            />
           </div>
-          <button className="btn btn-primary" onClick={handleTTS} disabled={loading}>
-            <Volume2 size={16} /> Generate Speech
+          <div style={{ marginBottom: '24px' }}>
+            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '8px' }}>Examiner Voice</label>
+            <select 
+              style={{ width: '100%', padding: '12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'white' }}
+              value={ttsVoice} onChange={(e) => setTtsVoice(e.target.value)}
+            >
+              {['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'].map(v => (
+                <option key={v} value={v}>{v.charAt(0).toUpperCase() + v.slice(1)}</option>
+              ))}
+            </select>
+          </div>
+          <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} onClick={handleTTS} disabled={loading}>
+            {loading ? <RotateCw className="spin" size={18} /> : <Volume2 size={18} />}
+            Generate & Play Preview
           </button>
+          
           {audioUrl && (
-            <div style={{ marginTop: 16, padding: 16, background: 'var(--bg)', borderRadius: 8 }}>
+            <div style={{ marginTop: '24px', padding: '16px', background: 'var(--bg-main)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
               <audio controls autoPlay style={{ width: '100%' }}>
                 <source src={audioUrl} type="audio/mpeg" />
               </audio>
             </div>
           )}
-          <ResponseViewer response={response} error={error} loading={loading} label="TTS Response" />
         </div>
       )}
 
       {tab === 'admin' && (
-        <>
-          <div className="card-grid">
-            <div className="card">
-              <h3>Speaking Admin Actions</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <button className="btn btn-secondary" onClick={() => callApi(() => speakingApi.getConfig(), 'Speaking Config')}>
-                  Get Configuration
-                </button>
-                <button className="btn btn-secondary" onClick={() => callApi(() => speakingApi.getRubric(), 'Rubric')}>
-                  IELTS Rubric
-                </button>
-                <button className="btn btn-secondary" onClick={() => callApi(() => speakingApi.getCacheStats(), 'Cache Stats')}>
-                  Cache Statistics
-                </button>
-                <button className="btn btn-danger" onClick={() => callApi(() => speakingApi.clearCache(), 'Clear Cache')}>
-                  Clear Cache
-                </button>
-              </div>
-            </div>
-
-            <div className="card">
-              <h3>Scoring Endpoints</h3>
-              <div className="form-group">
-                <label>Session ID</label>
-                <input
-                  value={sessionId || ''}
-                  onChange={(e) => setSessionId(e.target.value)}
-                  placeholder="Enter session ID"
-                />
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button
-                  className="btn btn-primary"
-                  onClick={() => callApi(() => speakingApi.scoreEvaluate(sessionId), 'Score Evaluate')}
-                  disabled={loading || !sessionId}
-                >
-                  <BarChart3 size={16} /> Evaluate
-                </button>
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => callApi(() => speakingApi.scoreResult(sessionId), 'Score Result')}
-                  disabled={loading || !sessionId}
-                >
-                  <RefreshCw size={16} /> Get Result
-                </button>
-              </div>
+        <div className="grid-2">
+          <div className="card">
+            <h3 style={{ marginBottom: '20px' }}>Speaking System Admin</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <button className="btn btn-outline" onClick={() => callApi(() => speakingApi.getConfig(), 'Speaking Config')}>
+                <Settings size={16} /> Get Configuration
+              </button>
+              <button className="btn btn-outline" onClick={() => callApi(() => speakingApi.getRubric(), 'Rubric')}>
+                <Database size={16} /> IELTS Rubric
+              </button>
+              <button className="btn btn-outline" style={{ color: 'var(--danger)' }} onClick={() => callApi(() => speakingApi.clearCache(), 'Clear Cache')}>
+                <RotateCw size={16} /> Clear System Cache
+              </button>
             </div>
           </div>
-          <ResponseViewer response={response} error={error} loading={loading} label={label} />
-        </>
+          <div className="card">
+            <h3 style={{ marginBottom: '20px' }}>Debug Response</h3>
+            <ResponseViewer response={response} error={error} loading={loading} label={label} />
+          </div>
+        </div>
       )}
     </div>
   );

@@ -35,15 +35,42 @@ def _rubric_block(name: str, bands: list[RubricBandDetail]) -> str:
     return "\n".join(lines)
 
 
+_TASK1_CHART_GUIDE = {
+    "line": "Describing trends over time (line graph). Focus on: overall trend direction, key increases/decreases, fluctuations, peak/trough points, rate of change.",
+    "bar": "Comparing categories (bar chart). Focus on: highest/lowest values, significant differences, groupings, rankings, changes over time if applicable.",
+    "pie": "Comparing proportions (pie chart). Focus on: largest/smallest shares, percentages, rankings, changes between time periods if applicable.",
+    "table": "Comparing numerical data (table). Focus on: highest/lowest figures, notable differences, trends, selecting key data points (not all).",
+    "process": "Describing a process (process diagram). Focus on: stages in sequence, inputs and outputs, cyclical vs linear, materials/equipment, passive voice for man-made processes.",
+    "map": "Describing spatial changes (map). Focus on: location descriptions, additions/removals, expansions/contractions, transformations, compass directions.",
+    "multiple": "Combined charts. Focus on: correlation between chart types, key findings from each, synthesising information, not describing each chart separately.",
+}
+
+_TASK2_ESSAY_GUIDE = {
+    "opinion": "Argumentative essay — state and defend a clear position on the issue. Focus on: strong thesis statement, well-developed arguments, counter-arguments addressed, clear conclusion.",
+    "discussion": "Discussion essay — discuss both views/sides of an issue. Focus on: balanced coverage of both perspectives, your own opinion clearly stated, equal development of each side.",
+    "advantages-disadvantages": "Advantages and disadvantages essay. Focus on: balanced coverage of pros and cons, whether advantages outweigh disadvantages (if asked), specific examples.",
+    "problem-solution": "Problem and solution essay (or causes/effects). Focus on: clearly identified problems/causes, feasible solutions/effects, cause-effect reasoning, concrete recommendations.",
+    "two-part": "Two-part question essay — answer two distinct questions. Focus on: equal attention to both questions, clear structure addressing each question, logical connection between parts.",
+}
+
+_LETTER_GUIDE = {
+    "formal": "FORMAL LETTER — written to someone you do not know personally (e.g. company, manager, official). Use: formal greetings (Dear Sir/Madam), formal closings (Yours faithfully/sincerely), no contractions, polite and respectful language, formal vocabulary.",
+    "semi-formal": "SEMI-FORMAL LETTER — written to someone you know but in a professional/formal context (e.g. boss, teacher, neighbour). Use: courteous tone, some contractions acceptable, less formal than full formal but still polite, appropriate closings (Best regards, Kind regards).",
+    "informal": "INFORMAL LETTER — written to a friend or close family member. Use: friendly conversational tone, contractions OK (I'm, don't), personal expressions, casual closings (Love, Best wishes, Take care), informal vocabulary.",
+}
+
+
 class PromptBuilder:
 
     def build(self, rubric: WritingRubric, essay: str,
-              task_type: str, topic: str, prompt_text: str, word_count: int) -> PromptContext:
+              task_type: str, topic: str, prompt_text: str, word_count: int,
+              chart_type: str = "", essay_type: str = "", letter_type: str = "") -> PromptContext:
         system = self._load("system_role.txt") or "You are an official IELTS Writing Examiner."
         schema = self._load("output_schema.json") or '{"analysis":{},"scores":{},"overallBand":6.0}'
 
         rubric_sec = self._rubric_text(rubric)
-        user = self._user_text(rubric_sec, essay, task_type, topic, prompt_text, word_count, schema)
+        user = self._user_text(rubric_sec, essay, task_type, topic, prompt_text, word_count, schema,
+                               chart_type, essay_type, letter_type)
 
         return PromptContext(
             system_prompt=system,
@@ -58,7 +85,9 @@ class PromptBuilder:
 
     def _rubric_text(self, rubric: WritingRubric) -> str:
         parts = []
-        if not rubric.task_type.startswith("TASK1"):
+        if rubric.task_type == "TASK1_GENERAL":
+            tr_name = "Task Achievement (Letter)"
+        elif not rubric.task_type.startswith("TASK1"):
             tr_name = "Task Response"
         else:
             tr_name = "Task Achievement"
@@ -74,14 +103,40 @@ class PromptBuilder:
         return "\n".join(parts)
 
     def _user_text(self, rubric_sec: str, essay: str,
-                   task_type: str, topic: str, prompt_text: str, word_count: int, schema: str) -> str:
+                   task_type: str, topic: str, prompt_text: str, word_count: int, schema: str,
+                   chart_type: str = "", essay_type: str = "", letter_type: str = "") -> str:
         parts = ["=== GRADING TASK ==="]
         parts.append(f"Task Type: {task_type}")
+
+        # Append type-specific guidance
+        if task_type == "TASK1_ACADEMIC" and chart_type in _TASK1_CHART_GUIDE:
+            parts.append(f"Chart Type: {chart_type}")
+            parts.append(f"Visual Guide: {_TASK1_CHART_GUIDE[chart_type]}")
+        elif task_type == "TASK1_GENERAL":
+            lt = letter_type or "formal"  # default to formal
+            parts.append(f"Letter Type: {lt}")
+            if lt in _LETTER_GUIDE:
+                parts.append(f"Letter Guide: {_LETTER_GUIDE[lt]}")
+        elif essay_type in _TASK2_ESSAY_GUIDE:
+            parts.append(f"Essay Type: {essay_type}")
+            parts.append(f"Essay Guide: {_TASK2_ESSAY_GUIDE[essay_type]}")
+
         if topic:
             parts.append(f"Topic: {topic}")
         if prompt_text:
             parts.append(f"Prompt: {prompt_text}")
-        parts.append(f"Word Count: {word_count}" + (" (SHORT - may affect Task Response)" if word_count < 200 else "") + "\n")
+
+        # Word count warning based on task type
+        if task_type == "TASK1_GENERAL":
+            min_words = 150
+            warning = " (SHORT)" if word_count < 150 else ""
+        elif task_type.startswith("TASK1"):
+            min_words = 150
+            warning = " (SHORT)" if word_count < 150 else ""
+        else:
+            min_words = 250
+            warning = " (SHORT)" if word_count < 250 else ""
+        parts.append(f"Word Count: {word_count}{warning}\n")
 
         if rubric_sec:
             parts.append("=== DETAILED RUBRIC ===\n" + rubric_sec + "\n")
@@ -119,5 +174,9 @@ Finally, provide a band_justification explaining:
 - Why each criterion received its band
 - Why higher bands were NOT awarded (be specific)
 
-Output ONLY valid JSON.""")
+You MUST output valid JSON following this exact schema:
+
+""")  # noqa: E501
+        parts.append(schema)
+        parts.append("\n\nOutput ONLY valid JSON — no markdown, no extra text.")
         return "\n".join(parts)

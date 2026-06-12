@@ -22,18 +22,6 @@ const sections = [
     ],
   },
   {
-    title: 'Plans',
-    links: [
-      { to: '/pricing', icon: CreditCard, label: 'Pricing' },
-    ],
-  },
-  {
-    title: 'Data',
-    links: [
-      { to: '/samples', icon: Database, label: 'Sample Essays' },
-    ],
-  },
-  {
     title: 'System',
     links: [
       { to: '/admin', icon: Settings, label: 'Admin Panel' },
@@ -46,42 +34,39 @@ const sections = [
 export default function Sidebar() {
   return (
     <aside className="sidebar">
-      <div className="sidebar-inner">
-        <div className="sidebar-logo">
-          <div className="sidebar-logo-icon">
-            <Sparkles size={22} />
-          </div>
-          <div className="sidebar-logo-text">
-            DAVictory
-            <span>AI Test Center</span>
-          </div>
+      <div className="sidebar-logo">
+        <div className="sidebar-logo-icon">
+          <Sparkles size={20} />
         </div>
-
-        <nav className="sidebar-nav">
-          {sections.map((section) => (
-            <div key={section.title}>
-              <div className="sidebar-section">{section.title}</div>
-              {section.links.map((link) => (
-                <NavLink
-                  key={link.to}
-                  to={link.to}
-                  end={link.to === '/'}
-                  className={({ isActive }) =>
-                    `sidebar-link${isActive ? ' active' : ''}`
-                  }
-                >
-                  <link.icon size={18} />
-                  {link.label}
-                </NavLink>
-              ))}
-            </div>
-          ))}
-        </nav>
-
-        <div className="sidebar-footer">
-          DAVictory v2.0
-          <span>AI-Powered Language Learning</span>
+        <div className="sidebar-logo-text">
+          DAVictory
         </div>
+      </div>
+
+      <nav className="sidebar-nav">
+        {sections.map((section) => (
+          <div key={section.title} style={{ marginBottom: '24px' }}>
+            <div className="sidebar-section">{section.title}</div>
+            {section.links.map((link) => (
+              <NavLink
+                key={link.to}
+                to={link.to}
+                end={link.to === '/'}
+                className={({ isActive }) =>
+                  `sidebar-link${isActive ? ' active' : ''}`
+                }
+              >
+                <link.icon size={18} />
+                <span>{link.label}</span>
+              </NavLink>
+            ))}
+          </div>
+        ))}
+      </nav>
+
+      <div style={{ padding: '20px', borderTop: '1px solid var(--border-light)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+        <div>DAVictory v3.0</div>
+        <div style={{ marginTop: '4px' }}>AI Test Center</div>
       </div>
     </aside>
   );

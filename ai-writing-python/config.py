@@ -34,7 +34,13 @@ class Settings(BaseSettings):
     groq_base_url: str = "https://api.groq.com"
     groq_model: str = "llama-3.3-70b-versatile"
     groq_temperature: float = 0.1
-    groq_max_tokens: int = 1500
+    groq_max_tokens: int = 0
+
+    nvidia_api_key: str = ""
+    nvidia_base_url: str = "https://integrate.api.nvidia.com/v1"
+    nvidia_model: str = "nvidia/llama-3.1-nemotron-70b-instruct"
+    nvidia_temperature: float = 0.1
+    nvidia_max_tokens: int = 0
 
     openai_api_key: str = ""
     openai_base_url: str = "https://api.openai.com/v1"

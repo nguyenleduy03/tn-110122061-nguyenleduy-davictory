@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import aiApi from '../services/aiApi';
 import {
   Sparkles, Send, RotateCw, AlertCircle, CheckCircle2, ChevronDown, ChevronUp,
   Brain, FileText, BookOpen, PenLine, Mic, Quote, Target,
-  ArrowUpRight, Layers, Lightbulb, Wrench, Languages, MessageSquare, Code
+  ArrowUpRight, Layers, Lightbulb, Wrench, Languages, MessageSquare, Code,
+  Scan, Clock, Activity, FileSearch, BarChart3, Hash, Tag, MapPin
 } from 'lucide-react';
 import Navbar from '../components/layout/Navbar';
 import '../styles/aiTestCenter.css';
@@ -15,27 +16,99 @@ const TASK_TYPES = [
   { value: 'TASK2_GENERAL', label: 'Task 2 General' },
 ];
 
+const CHART_TYPES = [
+  { value: '', label: 'Tự động' },
+  { value: 'line', label: 'Line Graph' },
+  { value: 'bar', label: 'Bar Chart' },
+  { value: 'pie', label: 'Pie Chart' },
+  { value: 'table', label: 'Table' },
+  { value: 'process', label: 'Process' },
+  { value: 'map', label: 'Map' },
+  { value: 'multiple', label: 'Multiple Charts' },
+];
+
+const ESSAY_TYPES = [
+  { value: '', label: 'Tự động' },
+  { value: 'opinion', label: 'Opinion (Agree/Disagree)' },
+  { value: 'discussion', label: 'Discussion' },
+  { value: 'advantages-disadvantages', label: 'Advantages & Disadvantages' },
+  { value: 'problem-solution', label: 'Problem & Solution' },
+  { value: 'two-part', label: 'Two-part Question' },
+];
+
+const LETTER_TYPES = [
+  { value: '', label: 'Tự động' },
+  { value: 'formal', label: 'Formal' },
+  { value: 'semi-formal', label: 'Semi-formal' },
+  { value: 'informal', label: 'Informal' },
+];
+
 const SERVICES = [
   { id: 'writing', label: 'Writing AI', icon: PenLine, desc: 'Chấm điểm IELTS Writing', color: '#a16207', bgColor: '#fef9c3' },
   { id: 'speaking', label: 'Speaking AI', icon: Mic, desc: 'Chấm điểm IELTS Speaking', color: '#be185d', bgColor: '#fce7f3', coming: true },
 ];
 
+const SCAN_STAGES = [
+  { icon: FileSearch, label: 'Đọc đề bài & bài viết', key: 'reading' },
+  { icon: BarChart3, label: 'Phân loại dạng bài', key: 'classifying' },
+  { icon: Layers, label: 'Phân tích 4 tiêu chí IELTS', key: 'analyzing' },
+  { icon: Brain, label: 'Đối chiếu rubric & chấm điểm', key: 'scoring' },
+  { icon: Sparkles, label: 'Tạo nhận xét & đề xuất', key: 'feedback' },
+];
+
+const TASK_TYPE_LABELS = {
+  TASK1_ACADEMIC: 'Task 1 Academic',
+  TASK1_GENERAL: 'Task 1 General Training',
+  TASK2_ACADEMIC: 'Task 2 Academic',
+  TASK2_GENERAL: 'Task 2 General Training',
+};
+
+const CHART_TYPE_LABELS = {
+  line: 'Line Graph', bar: 'Bar Chart', pie: 'Pie Chart',
+  table: 'Table', process: 'Process', map: 'Map', multiple: 'Multiple Charts',
+};
+
+const ESSAY_TYPE_LABELS = {
+  opinion: 'Opinion / Agree-Disagree',
+  discussion: 'Discussion',
+  'advantages-disadvantages': 'Advantages & Disadvantages',
+  'problem-solution': 'Problem & Solution',
+  'two-part': 'Two-part Question',
+};
+
+const LETTER_TYPE_LABELS = {
+  formal: 'Formal Letter',
+  'semi-formal': 'Semi-formal Letter',
+  informal: 'Informal Letter',
+};
+
 export default function AITestCenter() {
   const [essayText, setEssayText] = useState('');
   const [taskType, setTaskType] = useState('TASK2_ACADEMIC');
   const [topic, setTopic] = useState('');
+  const [chartType, setChartType] = useState('');
+  const [essayType, setEssayType] = useState('');
+  const [letterType, setLetterType] = useState('');
   const [service, setService] = useState('writing');
   const [showRawPrompt, setShowRawPrompt] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [scanStage, setScanStage] = useState(0);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
   const [expandedSections, setExpandedSections] = useState({});
   const [showFullPrompt, setShowFullPrompt] = useState(false);
+  const scanTimerRef = useRef(null);
 
   const toggleSection = (key) => {
     setExpandedSections(prev => ({ ...prev, [key]: !prev[key] }));
   };
+
+  useEffect(() => {
+    return () => {
+      if (scanTimerRef.current) clearInterval(scanTimerRef.current);
+    };
+  }, []);
 
   const handleTest = async () => {
     if (!essayText.trim()) {
@@ -43,20 +116,38 @@ export default function AITestCenter() {
       return;
     }
     setLoading(true);
+    setScanStage(0);
     setError(null);
     setResult(null);
 
+    // Simulate scanning stages every 800ms
+    scanTimerRef.current = setInterval(() => {
+      setScanStage(prev => {
+        if (prev < SCAN_STAGES.length - 1) return prev + 1;
+        return prev;
+      });
+    }, 800);
+
     try {
       const response = await aiApi.testGradeWriting(
-        essayText.trim(), taskType, topic || 'General'
+        essayText.trim(), taskType, topic || 'General',
+        chartType, essayType, letterType
       );
       const data = response.data;
       setResult(data);
+      setScanStage(SCAN_STAGES.length); // mark done
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.error || err.message);
     } finally {
+      if (scanTimerRef.current) clearInterval(scanTimerRef.current);
       setLoading(false);
     }
+  };
+
+  const resetForm = () => {
+    setResult(null);
+    setError(null);
+    setScanStage(0);
   };
 
   return (
@@ -122,7 +213,7 @@ export default function AITestCenter() {
                     <select
                       className="ai-test-select"
                       value={taskType}
-                      onChange={e => setTaskType(e.target.value)}
+                      onChange={e => { setTaskType(e.target.value); resetForm(); }}
                     >
                       {TASK_TYPES.map(t => (
                         <option key={t.value} value={t.value}>{t.label}</option>
@@ -139,41 +230,59 @@ export default function AITestCenter() {
                     />
                   </div>
                 </div>
+
+                {/* Sub-type selectors */}
+                {taskType === 'TASK1_ACADEMIC' && (
+                  <div className="ai-test-option-group">
+                    <label className="ai-test-label">Loại biểu đồ</label>
+                    <select className="ai-test-select" value={chartType} onChange={e => setChartType(e.target.value)}>
+                      {CHART_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                    </select>
+                    <span className="ai-test-subtype-hint">Để trống để AI tự nhận diện từ đề bài</span>
+                  </div>
+                )}
+                {taskType === 'TASK1_GENERAL' && (
+                  <div className="ai-test-option-group">
+                    <label className="ai-test-label">Loại thư</label>
+                    <select className="ai-test-select" value={letterType} onChange={e => setLetterType(e.target.value)}>
+                      {LETTER_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                    </select>
+                    <span className="ai-test-subtype-hint">Để trống để AI tự nhận diện từ đề bài</span>
+                  </div>
+                )}
+                {(taskType === 'TASK2_ACADEMIC' || taskType === 'TASK2_GENERAL') && (
+                  <div className="ai-test-option-group">
+                    <label className="ai-test-label">Dạng bài luận</label>
+                    <select className="ai-test-select" value={essayType} onChange={e => setEssayType(e.target.value)}>
+                      {ESSAY_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                    </select>
+                    <span className="ai-test-subtype-hint">Để trống để AI tự nhận diện từ đề bài</span>
+                  </div>
+                )}
               </div>
 
               <div className="ai-test-textarea-wrap">
                 {showRawPrompt ? (
                   <div style={{
-                    padding: 16,
-                    background: '#1f2937',
-                    borderRadius: 8,
-                    minHeight: 300,
-                    fontSize: 13,
+                    padding: 16, background: '#1f2937', borderRadius: 8,
+                    minHeight: 300, fontSize: 13,
                     fontFamily: "'Monaco','Menlo','Consolas',monospace",
-                    whiteSpace: 'pre-wrap',
-                    wordWrap: 'break-word',
-                    color: '#e2e8f0',
-                    lineHeight: 1.6,
-                    marginBottom: 8,
+                    whiteSpace: 'pre-wrap', wordWrap: 'break-word',
+                    color: '#e2e8f0', lineHeight: 1.6, marginBottom: 8,
                   }}>
                     <div style={{ marginBottom: 12, color: '#94a3b8', fontSize: 12 }}>
                       ⚡ Payload gốc gửi đến backend → Python service → LLM
                     </div>
-                    <div style={{ color: '#60a5fa', fontSize: 11, marginBottom: 4 }}>
-                      task_type: {taskType}
-                    </div>
-                    <div style={{ color: '#60a5fa', fontSize: 11, marginBottom: 4 }}>
-                      topic: {topic || '(không có)'}
-                    </div>
-                    <div style={{ color: '#60a5fa', fontSize: 11, marginBottom: 8 }}>
+                    <div style={{ color: '#60a5fa', fontSize: 11, marginBottom: 4 }}>task_type: {taskType}</div>
+                    <div style={{ color: '#60a5fa', fontSize: 11, marginBottom: 4 }}>topic: {topic || '(không có)'}</div>
+                    <div style={{ color: '#60a5fa', fontSize: 11, marginBottom: 4 }}>chart_type: {chartType || '(tự động)'}</div>
+                    <div style={{ color: '#60a5fa', fontSize: 11, marginBottom: 4 }}>essay_type: {essayType || '(tự động)'}</div>
+                    <div style={{ color: '#60a5fa', fontSize: 11, marginBottom: 8 }}>letter_type: {letterType || '(tự động)'}</div>
+                    <div style={{ color: '#34d399', fontSize: 11, marginBottom: 8 }}>
                       word_count: {essayText.trim() ? essayText.trim().split(/\s+/).length : 0}
                     </div>
-                    <div style={{ borderTop: '1px solid #334155', paddingTop: 12, color: '#fbbf24', fontSize: 11, marginBottom: 8 }}>
-                      essayText:
-                    </div>
-                    <div style={{ color: '#e2e8f0', whiteSpace: 'pre-wrap' }}>
-                      {essayText.trim() || '(trống)'}
-                    </div>
+                    <div style={{ borderTop: '1px solid #334155', paddingTop: 12, color: '#fbbf24', fontSize: 11, marginBottom: 8 }}>essayText:</div>
+                    <div style={{ color: '#e2e8f0', whiteSpace: 'pre-wrap' }}>{essayText.trim() || '(trống)'}</div>
                   </div>
                 ) : (
                   <textarea
@@ -188,44 +297,73 @@ export default function AITestCenter() {
                   <span className="ai-test-word-count">
                     {essayText.trim() ? `${essayText.trim().split(/\s+/).length} từ` : ''}
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => setShowRawPrompt(v => !v)}
-                    style={{
-                      padding: '6px 12px',
-                      fontSize: 12,
-                      fontWeight: 600,
-                      borderRadius: 6,
-                      border: '1px solid #d1d5db',
-                      background: showRawPrompt ? '#3b82f6' : 'transparent',
-                      color: showRawPrompt ? '#fff' : '#6b7280',
-                      cursor: 'pointer',
-                      marginRight: 8,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 4,
-                    }}
-                  >
-                    <Code size={14} />
-                    {showRawPrompt ? 'Soạn thảo' : 'Xem nội dung gửi LLM'}
-                  </button>
-                  <button
-                    className={`ai-test-submit-btn${loading ? ' loading' : ''}`}
-                    onClick={handleTest}
-                    disabled={loading || !essayText.trim()}
-                  >
-                    {loading ? (
-                      <><RotateCw size={18} className="spin" /> Đang phân tích...</>
-                    ) : (
-                      <><Send size={18} /> Kiểm tra ngay</>
-                    )}
-                  </button>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <button type="button" onClick={() => setShowRawPrompt(v => !v)}
+                      style={{
+                        padding: '6px 12px', fontSize: 12, fontWeight: 600, borderRadius: 6,
+                        border: '1px solid #d1d5db',
+                        background: showRawPrompt ? '#3b82f6' : 'transparent',
+                        color: showRawPrompt ? '#fff' : '#6b7280', cursor: 'pointer',
+                        display: 'inline-flex', alignItems: 'center', gap: 4,
+                      }}
+                    >
+                      <Code size={14} />
+                      {showRawPrompt ? 'Soạn thảo' : 'Xem nội dung gửi LLM'}
+                    </button>
+                    <button
+                      className={`ai-test-submit-btn${loading ? ' loading' : ''}`}
+                      onClick={handleTest}
+                      disabled={loading || !essayText.trim()}
+                    >
+                      {loading ? (
+                        <><RotateCw size={18} className="spin" /> Đang phân tích...</>
+                      ) : (
+                        <><Send size={18} /> Kiểm tra ngay</>
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
       </section>
+
+      {/* Scanning Animation */}
+      {loading && (
+        <section className="ai-test-scan-section">
+          <div className="ai-test-container">
+            <div className="ai-test-scan-card">
+              <div className="ai-test-scan-header">
+                <Scan size={20} className="ai-test-scan-icon-pulse" />
+                <span>AI đang phân tích bài viết của bạn...</span>
+              </div>
+              <div className="ai-test-scan-stages">
+                {SCAN_STAGES.map((stage, i) => {
+                  const Icon = stage.icon;
+                  const isActive = i === scanStage;
+                  const isDone = i < scanStage;
+                  return (
+                    <div key={stage.key} className={`ai-test-scan-stage${isActive ? ' active' : ''}${isDone ? ' done' : ''}`}>
+                      <div className="ai-test-scan-stage-dot">
+                        {isDone ? <CheckCircle2 size={16} /> : <Icon size={16} />}
+                      </div>
+                      <div className="ai-test-scan-stage-info">
+                        <div className="ai-test-scan-stage-label">{stage.label}</div>
+                        {isActive && (
+                          <div className="ai-test-scan-stage-bar">
+                            <div className="ai-test-scan-stage-bar-fill" />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Error */}
       {error && (
@@ -245,6 +383,60 @@ export default function AITestCenter() {
       {result && (
         <section className="ai-test-result-section">
           <div className="ai-test-container">
+            {/* Task Info Card */}
+            <div className="ai-test-task-info-card">
+              <div className="ai-test-task-info-header">
+                <FileText size={18} />
+                <span>Thông tin bài thi</span>
+              </div>
+              <div className="ai-test-task-info-grid">
+                <div className="ai-test-task-info-item">
+                  <Tag size={14} />
+                  <span className="ai-test-task-info-label">Task Type</span>
+                  <span className="ai-test-task-info-value">{TASK_TYPE_LABELS[taskType] || taskType}</span>
+                </div>
+                {taskType === 'TASK1_ACADEMIC' && (
+                  <div className="ai-test-task-info-item">
+                    <BarChart3 size={14} />
+                    <span className="ai-test-task-info-label">Chart Type</span>
+                    <span className="ai-test-task-info-value">{CHART_TYPE_LABELS[chartType] || chartType || 'Tự động nhận diện'}</span>
+                  </div>
+                )}
+                {taskType === 'TASK1_GENERAL' && (
+                  <div className="ai-test-task-info-item">
+                    <PenLine size={14} />
+                    <span className="ai-test-task-info-label">Letter Type</span>
+                    <span className="ai-test-task-info-value">{LETTER_TYPE_LABELS[letterType] || letterType || 'Tự động nhận diện'}</span>
+                  </div>
+                )}
+                {(taskType === 'TASK2_ACADEMIC' || taskType === 'TASK2_GENERAL') && (
+                  <div className="ai-test-task-info-item">
+                    <MessageSquare size={14} />
+                    <span className="ai-test-task-info-label">Essay Type</span>
+                    <span className="ai-test-task-info-value">{ESSAY_TYPE_LABELS[essayType] || essayType || 'Tự động nhận diện'}</span>
+                  </div>
+                )}
+                <div className="ai-test-task-info-item">
+                  <Hash size={14} />
+                  <span className="ai-test-task-info-label">Word Count</span>
+                  <span className="ai-test-task-info-value">{essayText.trim().split(/\s+/).length} từ</span>
+                </div>
+                <div className="ai-test-task-info-item">
+                  <Activity size={14} />
+                  <span className="ai-test-task-info-label">Topic</span>
+                  <span className="ai-test-task-info-value">{topic || 'Không có'}</span>
+                </div>
+                {result.latencyMs != null && (
+                  <div className="ai-test-task-info-item">
+                    <Clock size={14} />
+                    <span className="ai-test-task-info-label">Thời gian xử lý</span>
+                    <span className="ai-test-task-info-value">{(result.latencyMs / 1000).toFixed(1)}s</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Score Header */}
             <div className="ai-test-result-header">
               <div className="ai-test-result-badge">
                 <CheckCircle2 size={18} />
@@ -258,6 +450,11 @@ export default function AITestCenter() {
                 <div className="ai-test-confidence">
                   <Target size={14} />
                   Độ tin cậy: {Math.round(result.confidenceScore * 100)}%
+                </div>
+              )}
+              {result.model && (
+                <div style={{ marginTop: 8, fontSize: 12, color: '#94a3b8' }}>
+                  Model: {result.provider}/{result.model}
                 </div>
               )}
             </div>
@@ -275,11 +472,7 @@ export default function AITestCenter() {
               ].map(tab => {
                 const Icon = tab.icon;
                 return (
-                  <button
-                    key={tab.id}
-                    className={`ai-test-tab${activeTab === tab.id ? ' active' : ''}`}
-                    onClick={() => setActiveTab(tab.id)}
-                  >
+                  <button key={tab.id} className={`ai-test-tab${activeTab === tab.id ? ' active' : ''}`} onClick={() => setActiveTab(tab.id)}>
                     <Icon size={15} />
                     {tab.label}
                   </button>
@@ -308,16 +501,24 @@ export default function AITestCenter() {
                           {score?.detailedFeedback && (
                             <p className="ai-test-criteria-feedback">{score.detailedFeedback}</p>
                           )}
+                          {score?.evidenceFromEssay?.length > 0 && (
+                            <div className="ai-test-evidence-box">
+                              <small>Dẫn chứng:</small>
+                              {score.evidenceFromEssay.map((e, i) => (
+                                <div key={i} className="ai-test-evidence-item">"{e}"</div>
+                              ))}
+                            </div>
+                          )}
                           {score?.strengths?.length > 0 && (
                             <div className="ai-test-criteria-tags">
-                              {score.strengths.slice(0, 2).map((s, i) => (
+                              {score.strengths.slice(0, 3).map((s, i) => (
                                 <span key={i} className="ai-test-tag ai-test-tag-good">+ {s}</span>
                               ))}
                             </div>
                           )}
                           {score?.weaknesses?.length > 0 && (
                             <div className="ai-test-criteria-tags">
-                              {score.weaknesses.slice(0, 2).map((w, i) => (
+                              {score.weaknesses.slice(0, 3).map((w, i) => (
                                 <span key={i} className="ai-test-tag ai-test-tag-bad">- {w}</span>
                               ))}
                             </div>
@@ -347,7 +548,7 @@ export default function AITestCenter() {
                 </div>
               )}
 
-              {/* Criteria Tab with Sub-scores */}
+              {/* Criteria Tab */}
               {activeTab === 'criteria' && (
                 <div className="ai-test-criteria-detail">
                   {[
@@ -364,6 +565,11 @@ export default function AITestCenter() {
                           <span className="ai-test-subscore-title">{group.label}</span>
                           <span className="ai-test-subscore-band">{score?.band ?? 'N/A'}</span>
                         </div>
+                        {score?.bandJustification && (
+                          <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 12px', lineHeight: 1.5 }}>
+                            {score.bandJustification}
+                          </p>
+                        )}
                         {subScores && subScores.length > 0 && (
                           <div className="ai-test-subscore-grid">
                             {subScores.map((sub, i) => (
@@ -399,9 +605,7 @@ export default function AITestCenter() {
                           {p.criteriaComments && (
                             <div className="ai-test-paragraph-comments">
                               {Object.entries(p.criteriaComments).map(([key, val]) => (
-                                <div key={key} className="ai-test-para-comment">
-                                  <strong>{key}:</strong> {val}
-                                </div>
+                                <div key={key} className="ai-test-para-comment"><strong>{key}:</strong> {val}</div>
                               ))}
                             </div>
                           )}
@@ -425,14 +629,7 @@ export default function AITestCenter() {
                 <div className="ai-test-grammar">
                   {result.grammarFixes?.length > 0 ? (
                     <table className="ai-test-table">
-                      <thead>
-                        <tr>
-                          <th>Vị trí</th>
-                          <th>Lỗi gốc</th>
-                          <th>Sửa lại</th>
-                          <th>Giải thích</th>
-                        </tr>
-                      </thead>
+                      <thead><tr><th>Vị trí</th><th>Lỗi gốc</th><th>Sửa lại</th><th>Giải thích</th></tr></thead>
                       <tbody>
                         {result.grammarFixes.map((g, i) => (
                           <tr key={i}>
@@ -476,19 +673,11 @@ export default function AITestCenter() {
                     <div key={i} className="ai-test-coherence-card">
                       <div className="ai-test-coherence-label">Cải thiện {i + 1}</div>
                       <div className="ai-test-coherence-compare">
-                        <div className="ai-test-coherence-before">
-                          <span className="badge-error">Gốc</span>
-                          <p>{c.original}</p>
-                        </div>
+                        <div className="ai-test-coherence-before"><span className="badge-error">Gốc</span><p>{c.original}</p></div>
                         <ArrowUpRight size={20} className="ai-test-coherence-arrow" />
-                        <div className="ai-test-coherence-after">
-                          <span className="badge-success">Cải thiện</span>
-                          <p>{c.improved}</p>
-                        </div>
+                        <div className="ai-test-coherence-after"><span className="badge-success">Cải thiện</span><p>{c.improved}</p></div>
                       </div>
-                      <div className="ai-test-coherence-explain">
-                        <strong>Giải thích:</strong> {c.explanation}
-                      </div>
+                      <div className="ai-test-coherence-explain"><strong>Giải thích:</strong> {c.explanation}</div>
                     </div>
                   )) : (
                     <div className="ai-test-empty">Chưa có gợi ý cải thiện mạch lạc.</div>
@@ -502,29 +691,16 @@ export default function AITestCenter() {
                   {result.structureFeedback ? (
                     <>
                       {result.structureFeedback.taskType && (
-                        <div className="ai-test-structure-type">
-                          <strong>Loại bài:</strong> {result.structureFeedback.taskType}
-                        </div>
+                        <div className="ai-test-structure-type"><strong>Loại bài:</strong> {result.structureFeedback.taskType}</div>
                       )}
                       {result.structureFeedback.keyTips?.length > 0 && (
-                        <div className="ai-test-structure-tips">
-                          <h5>Mẹo chính:</h5>
-                          <ul>
-                            {result.structureFeedback.keyTips.map((tip, i) => (
-                              <li key={i}>{tip}</li>
-                            ))}
-                          </ul>
-                        </div>
+                        <div className="ai-test-structure-tips"><h5>Mẹo chính:</h5><ul>{result.structureFeedback.keyTips.map((tip, i) => <li key={i}>{tip}</li>)}</ul></div>
                       )}
                       {result.structureFeedback.recommendedOutline?.length > 0 && (
                         <div className="ai-test-structure-outline">
                           <h5>Dàn bài gợi ý:</h5>
-                          {result.structureFeedback.recommendedOutline.map((item, i) =>
-                            Object.entries(item).map(([key, val]) => (
-                              <div key={key} className="ai-test-outline-item">
-                                <strong>{key}:</strong> {val}
-                              </div>
-                            ))
+                          {result.structureFeedback.recommendedOutline.map((item) =>
+                            Object.entries(item).map(([key, val]) => <div key={key} className="ai-test-outline-item"><strong>{key}:</strong> {val}</div>)
                           )}
                         </div>
                       )}
@@ -536,31 +712,23 @@ export default function AITestCenter() {
               )}
             </div>
 
-            {/* Full Prompt */}
+            {/* Full Prompt Toggle */}
             {result.fullPrompt && (
               <div style={{ marginTop: 16 }}>
-                <button
-                  className="ai-test-raw-toggle"
-                  onClick={() => setShowFullPrompt(v => !v)}
-                  style={{ borderColor: '#8b5cf6', color: showFullPrompt ? '#fff' : '#8b5cf6', background: showFullPrompt ? '#8b5cf6' : 'transparent' }}
-                >
+                <button className="ai-test-raw-toggle" onClick={() => setShowFullPrompt(v => !v)}
+                  style={{ borderColor: '#8b5cf6', color: showFullPrompt ? '#fff' : '#8b5cf6', background: showFullPrompt ? '#8b5cf6' : 'transparent' }}>
                   <Code size={16} style={{ marginRight: 6 }} />
                   {showFullPrompt ? 'Ẩn prompt đầy đủ đã gửi LLM' : 'Xem prompt đầy đủ đã gửi LLM'}
                   {showFullPrompt ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                 </button>
                 {showFullPrompt && (
-                  <pre className="ai-test-raw-json" style={{ background: '#0f172a', color: '#e2e8f0', border: '1px solid #334155', marginTop: 8 }}>
-                    {result.fullPrompt}
-                  </pre>
+                  <pre className="ai-test-raw-json" style={{ background: '#0f172a', color: '#e2e8f0', border: '1px solid #334155', marginTop: 8 }}>{result.fullPrompt}</pre>
                 )}
               </div>
             )}
 
             {/* Raw JSON */}
-            <button
-              className="ai-test-raw-toggle"
-              onClick={() => toggleSection('raw')}
-            >
+            <button className="ai-test-raw-toggle" onClick={() => toggleSection('raw')}>
               {expandedSections.raw ? 'Ẩn' : 'Xem'} dữ liệu JSON thô
               {expandedSections.raw ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
             </button>

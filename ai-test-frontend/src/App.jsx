@@ -18,21 +18,23 @@ export default function App() {
   return (
     <HeaderProvider>
       <Sidebar />
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+      <div className="main-wrapper">
         <Header />
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/writing" element={<Writing />} />
-          <Route path="/speaking" element={<Speaking />} />
-          <Route path="/grammar" element={<GrammarChecker />} />
-          <Route path="/tests" element={<TestLibrary />} />
-          <Route path="/pricing" element={<Pricing />} />
-          <Route path="/admin" element={<Admin />} />
-          <Route path="/console" element={<Console />} />
-          <Route path="/evaluation" element={<Evaluation />} />
-          <Route path="/samples" element={<Samples />} />
-        </Routes>
+        <main className="main-content">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/writing" element={<Writing />} />
+            <Route path="/speaking" element={<Speaking />} />
+            <Route path="/grammar" element={<GrammarChecker />} />
+            <Route path="/tests" element={<TestLibrary />} />
+            <Route path="/pricing" element={<Pricing />} />
+            <Route path="/admin" element={<Admin />} />
+            <Route path="/console" element={<Console />} />
+            <Route path="/evaluation" element={<Evaluation />} />
+            <Route path="/samples" element={<Samples />} />
+          </Routes>
+        </main>
       </div>
     </HeaderProvider>
   );

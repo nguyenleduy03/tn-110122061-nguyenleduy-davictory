@@ -16,11 +16,15 @@ const aiApi = {
     return api.get(`/writing/ai-grade/${submissionId}/result`);
   },
 
-  testGradeWriting(essayText, taskType = 'TASK2_ACADEMIC', topic = '') {
+  testGradeWriting(essayText, taskType = 'TASK2_ACADEMIC', topic = '',
+                   chartType = '', essayType = '', letterType = '') {
     return api.post('/writing/ai-grade/test', {
       essayText: essayText.trim(),
       taskType,
       topic,
+      chartType,
+      essayType,
+      letterType,
     });
   },
 
@@ -34,6 +38,13 @@ const aiApi = {
 
   rejectGrade(submissionId, reason = '') {
     return api.post(`/writing/ai-grade/${submissionId}/reject`, { reason });
+  },
+
+  matchSamples(essayText, taskType = 'TASK2_ACADEMIC') {
+    return api.post('/writing/ai-grade/match-samples', {
+      essayText: essayText.trim(),
+      taskType,
+    });
   },
 
   getInsights(userId) {

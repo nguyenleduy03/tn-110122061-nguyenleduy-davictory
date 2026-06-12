@@ -1,504 +1,277 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Pencil, FileText, Layers, Send, CheckCircle, XCircle, Plus, RefreshCw, Cpu, AlertTriangle, Database, Code, ArrowRight } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import {
+  Sparkles, FileText, BarChart3, Layers, Brain, Target, BookOpen,
+  Languages, Quote, TrendingUp, Zap, Database, Code, Clock, Cpu,
+  RotateCw, ChevronDown, ChevronUp, AlertCircle, CheckCircle2,
+  Scan, FileSearch, Star, Info,
+} from 'lucide-react';
 import { writingApi } from '../api/writingApi';
-import ResponseViewer from '../components/ResponseViewer';
 import { useHeader } from '../context/HeaderContext';
+import { BandScore, CriterionMeter } from '../components/ScoreDisplay';
 
-const DEFAULT_ESSAY = `Some people believe that unpaid community service should be a compulsory part of high school programmes. To what extent do you agree or disagree?
+const TASK_OPTIONS = [
+  { value: 'AUTO', label: 'Auto Detect' },
+  { value: 'TASK1_ACADEMIC', label: 'Task 1 Academic' },
+  { value: 'TASK1_GENERAL', label: 'Task 1 General' },
+  { value: 'TASK2_ACADEMIC', label: 'Task 2 Academic' },
+  { value: 'TASK2_GENERAL', label: 'Task 2 General' },
+];
 
-In recent years, there has been considerable debate about whether unpaid community service should be mandatory for high school students. While some argue that this would place an unnecessary burden on young people, I strongly believe that such programmes offer invaluable benefits that outweigh the potential drawbacks.
+const SCAN_STAGES = [
+  { label: 'Reading prompt & essay' },
+  { label: 'Classifying task type' },
+  { label: 'Analyzing 4 IELTS criteria' },
+  { label: 'Comparing with rubric' },
+  { label: 'Generating feedback' },
+];
 
-First and foremost, compulsory community service helps students develop essential life skills that traditional academic subjects often overlook. Through volunteering at local charities or environmental projects, students learn teamwork, communication, and problem-solving in real-world contexts. These practical experiences not only enhance their personal development but also make them more attractive to future employers and universities.
-
-Furthermore, requiring community service fosters a sense of social responsibility among young people. When teenagers engage with diverse groups in their community, they develop empathy and understanding for people from different backgrounds. This exposure helps combat prejudice and creates a more cohesive society in the long term.
-
-However, opponents argue that forcing students to volunteer defeats the very purpose of volunteering. They contend that genuine altruism cannot be mandated and that adding another requirement to already busy student schedules could increase stress levels. While these concerns are valid, schools can implement flexible programmes that accommodate students' individual circumstances.
-
-In conclusion, I firmly believe that the benefits of compulsory community service far surpass the disadvantages. By carefully designing these programmes to be flexible and meaningful, schools can nurture well-rounded individuals who are both academically capable and socially conscious.`;
+const CRITERIA = [
+  { key: 'taskResponse', label: 'Task Response', color: '#4F46E5', icon: Target },
+  { key: 'coherenceCohesion', label: 'Coherence & Cohesion', color: '#06B6D4', icon: Layers },
+  { key: 'lexicalResource', label: 'Lexical Resource', color: '#F59E0B', icon: BookOpen },
+  { key: 'grammaticalRange', label: 'Grammatical Range & Accuracy', color: '#EC4899', icon: Languages },
+];
 
 export default function Writing() {
-  const [tab, setTab] = useState('test-grade');
-  const { setTabs, activeTab } = useHeader();
+  const { setTabs } = useHeader();
+  useEffect(() => { setTabs([]); }, []);
 
-  const tabDefs = [
-    { key: 'test-grade', label: 'Test Grade', icon: FileText, onClick: () => setTab('test-grade') },
-    { key: 'submission', label: 'Grade by ID', icon: CheckCircle, onClick: () => setTab('submission') },
-    { key: 'batch', label: 'Batch Grade', icon: Layers, onClick: () => setTab('batch') },
-    { key: 'admin', label: 'Admin', icon: Plus, onClick: () => setTab('admin') },
-  ];
-
-  useEffect(() => {
-    setTabs(tabDefs);
-    return () => setTabs([]);
-  }, []);
-  const [essayText, setEssayText] = useState(DEFAULT_ESSAY);
-  const [taskType, setTaskType] = useState('TASK2_ACADEMIC');
-  const [topic, setTopic] = useState('Education');
+  const [essayText, setEssayText] = useState('');
+  const [taskType, setTaskType] = useState('AUTO');
   const [promptText, setPromptText] = useState('');
-  const [showRawPrompt, setShowRawPrompt] = useState(false);
-  const [submissionId, setSubmissionId] = useState('');
-  const [batchIds, setBatchIds] = useState('');
-  const [batchId, setBatchId] = useState('');
-  const [userId, setUserId] = useState('test');
-  const [role, setRole] = useState('TEACHER');
-  const [response, setResponse] = useState(null);
+  
+  const [result, setResult] = useState(null);
+  const [classifyResult, setClassifyResult] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [label, setLabel] = useState('');
-  const [models, setModels] = useState([]);
-  const [currentModel, setCurrentModel] = useState('');
-  const [switchingModel, setSwitchingModel] = useState(false);
-  const [matchResult, setMatchResult] = useState(null);
-  const [matchLoading, setMatchLoading] = useState(false);
+  const [scanStage, setScanStage] = useState(0);
+  
+  const [expandedSections, setExpandedSections] = useState({ overall: true });
+  const scanTimer = useRef(null);
+  const resultRef = useRef(null);
 
-  const loadModels = useCallback(async () => {
-    try {
-      const res = await writingApi.getModels();
-      const data = res.data || {};
-      const modelsList = data.models || [];
-      const flat = modelsList.map((m) => ({
-        model: m.id,
-        label: m.id,
-        provider: m.owned_by || 'groq',
-        active: m.active,
-      }));
-      setModels(flat);
-      const current = flat.find((m) => m.active && m.model === currentModel) || flat.find((m) => m.active) || flat[0];
-      if (current) setCurrentModel(current.model);
-    } catch { /* ignore */ }
-  }, []);
+  const wordCount = essayText.trim() ? essayText.trim().split(/\s+/).length : 0;
 
-  useEffect(() => { loadModels(); }, [loadModels]);
+  const startScan = () => {
+    if (scanTimer.current) clearInterval(scanTimer.current);
+    scanTimer.current = setInterval(() => {
+      setScanStage(p => p < SCAN_STAGES.length - 1 ? p + 1 : p);
+    }, 800);
+  };
 
-  async function callApi(fn, lbl) {
+  async function handleGrade() {
+    if (!essayText.trim()) { setError('Please paste your essay first.'); return; }
     setLoading(true);
+    setScanStage(0);
     setError(null);
-    setResponse(null);
-    setLabel(lbl);
+    setResult(null);
+    startScan();
+
     try {
-      const res = await fn();
-      setResponse(res.data);
-    } catch (err) {
-      const msg = err.response?.data
-        ? JSON.stringify(err.response.data, null, 2)
-        : err.message;
-      setError(msg);
+      let rt = taskType;
+      if (taskType === 'AUTO') {
+        const cls = await writingApi.classify(essayText, promptText);
+        setClassifyResult(cls.data);
+        rt = cls.data.taskType || 'TASK2_ACADEMIC';
+      }
+      const res = await writingApi.testGrade(essayText, rt, '', promptText, '', '', '');
+      setResult(res.data);
+      setScanStage(SCAN_STAGES.length);
+      setTimeout(() => resultRef.current?.scrollIntoView({ behavior: 'smooth' }), 200);
+    } catch (e) {
+      setError(e.response?.data ? JSON.stringify(e.response.data) : e.message);
     } finally {
+      if (scanTimer.current) clearInterval(scanTimer.current);
       setLoading(false);
     }
   }
 
-  async function handleMatchSamples() {
-    setMatchLoading(true);
-    setMatchResult(null);
-    try {
-      const res = await writingApi.matchSamples(essayText, taskType);
-      setMatchResult(res.data);
-    } catch (err) {
-      setError(err.response?.data ? JSON.stringify(err.response.data, null, 2) : err.message);
-    } finally {
-      setMatchLoading(false);
-    }
-  }
-
   return (
-    <div className="main">
-      <div className="page-header">
-        <h1><Pencil size={28} style={{ verticalAlign: 'middle', marginRight: 8 }} />IELTS Writing AI Test</h1>
-        <p>Test all AI Writing service endpoints — grading, batch processing, admin controls</p>
-      </div>
-
-      <div className="model-selector">
-        <Cpu size={16} style={{ color: 'var(--primary)' }} />
-        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>Model:</span>
-        <select
-          value={currentModel}
-          onChange={async (e) => {
-            const newModel = e.target.value;
-            if (newModel === currentModel) return;
-            setSwitchingModel(true);
-            try {
-              await writingApi.switchModel(newModel);
-              setCurrentModel(newModel);
-              setError(null);
-            } catch (err) {
-              setError('Switch failed: ' + (err.response?.data?.error || err.message));
-            } finally {
-              setSwitchingModel(false);
-            }
-          }}
-          style={{ width: 260, padding: '6px 10px', fontSize: 13, border: '1px solid var(--border)', borderRadius: 'var(--radius-xs)', background: 'var(--bg)' }}
-          disabled={switchingModel}
-        >
-          {models.map((m) => (
-            <option key={m.model} value={m.model}>
-              {m.label} ({m.provider})
-            </option>
-          ))}
-        </select>
-        {switchingModel && <span className="spinner" />}
-        <button className="btn btn-sm btn-secondary" onClick={loadModels} style={{ marginLeft: 'auto' }}>
-          <RefreshCw size={12} /> Refresh
-        </button>
-        <span style={{
-          display: 'inline-flex', alignItems: 'center', gap: 4,
-          padding: '4px 10px', borderRadius: 20,
-          fontSize: 11, fontWeight: 600,
-          background: 'var(--warning-bg)', color: '#B7950B',
-        }}>
-          <AlertTriangle size={12} /> Rate limit? Switch model
-        </span>
-      </div>
-
-      {tab === 'test-grade' && (
+    <div className="animate-fade">
+      <div className="grid-2">
+        {/* INPUT CARD */}
         <div className="card">
-          <h3><FileText size={18} /> Grade a Free-Text Essay (No Submission Required)</h3>
-          <div className="form-row">
-            <div className="form-group">
-              <label>Task Type</label>
-              <select value={taskType} onChange={(e) => setTaskType(e.target.value)}>
-                <option value="TASK1_ACADEMIC">Task 1 Academic</option>
-                <option value="TASK1_GENERAL">Task 1 General</option>
-                <option value="TASK2_ACADEMIC">Task 2 Academic</option>
-                <option value="TASK2_GENERAL">Task 2 General</option>
-              </select>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <FileText size={20} color="var(--primary)" />
+            Writing Test Input
+          </h2>
+          
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '8px' }}>Task Type</label>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+              {TASK_OPTIONS.map(o => (
+                <button 
+                  key={o.value}
+                  onClick={() => setTaskType(o.value)}
+                  style={{
+                    padding: '8px 16px',
+                    fontSize: '0.875rem',
+                    fontWeight: 600,
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--border)',
+                    background: taskType === o.value ? 'var(--primary)' : 'white',
+                    color: taskType === o.value ? 'white' : 'var(--text-secondary)',
+                    cursor: 'pointer',
+                    transition: 'var(--transition)'
+                  }}
+                >
+                  {o.label}
+                </button>
+              ))}
             </div>
-            <div className="form-group">
-              <label>Topic</label>
-              <input value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="e.g. Education" />
-            </div>
-          </div>
-          <div className="form-group">
-            <label>Prompt / Question (optional — nếu có, AI chấm chính xác hơn)</label>
-            <textarea value={promptText} onChange={(e) => setPromptText(e.target.value)} rows={3} placeholder="Paste the essay question/prompt here..." />
-          </div>
-          <div className="form-group">
-            <label>Essay Text</label>
-            {showRawPrompt && response?.full_prompt ? (
-              <pre style={{
-                padding: 16, background: '#0f172a', borderRadius: 8,
-                minHeight: 250, fontSize: 12, lineHeight: 1.5,
-                fontFamily: "'Monaco','Menlo','Consolas',monospace",
-                whiteSpace: 'pre-wrap', wordWrap: 'break-word',
-                color: '#e2e8f0', marginBottom: 8,
-              }}>
-                {response.full_prompt}
-              </pre>
-            ) : showRawPrompt ? (
-              <div style={{
-                padding: 16, background: '#1f2937', borderRadius: 8,
-                minHeight: 250, fontSize: 13,
-                fontFamily: "'Monaco','Menlo','Consolas',monospace",
-                whiteSpace: 'pre-wrap', wordWrap: 'break-word',
-                color: '#e2e8f0', lineHeight: 1.6, marginBottom: 8,
-              }}>
-                <div style={{ marginBottom: 12, color: '#94a3b8', fontSize: 12 }}>
-                  ⚡ Payload gốc gửi đến backend → Python service → LLM
-                </div>
-                <div style={{ color: '#60a5fa', fontSize: 11, marginBottom: 4 }}>
-                  task_type: {taskType}
-                </div>
-                <div style={{ color: '#60a5fa', fontSize: 11, marginBottom: 4 }}>
-                  topic: {topic || '(không có)'}
-                </div>
-                <div style={{ color: '#60a5fa', fontSize: 11, marginBottom: 8 }}>
-                  prompt_text: {promptText ? promptText.substring(0, 80) + (promptText.length > 80 ? '...' : '') : '(không có)'}
-                </div>
-                <div style={{ borderTop: '1px solid #334155', paddingTop: 12, color: '#fbbf24', fontSize: 11, marginBottom: 8 }}>
-                  essayText ({essayText.trim() ? essayText.trim().split(/\s+/).length : 0} words):
-                </div>
-                <div style={{ color: '#e2e8f0', whiteSpace: 'pre-wrap' }}>
-                  {essayText.trim() || '(trống)'}
-                </div>
-              </div>
-            ) : (
-              <textarea value={essayText} onChange={(e) => setEssayText(e.target.value)} rows={12} />
-            )}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
-              <button
-                type="button"
-                onClick={() => setShowRawPrompt(v => !v)}
-                style={{
-                  padding: '4px 10px',
-                  fontSize: 11,
-                  fontWeight: 600,
-                  borderRadius: 5,
-                  border: '1px solid #d1d5db',
-                  background: showRawPrompt ? '#3b82f6' : 'transparent',
-                  color: showRawPrompt ? '#fff' : '#6b7280',
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 4,
-                }}
-              >
-                <Code size={13} />
-                {showRawPrompt && response?.full_prompt ? 'Soạn thảo' : showRawPrompt ? 'Soạn thảo' : response?.full_prompt ? 'Xem prompt thật đã gửi LLM' : 'Xem nội dung gửi LLM'}
-              </button>
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-            <button
-              className="btn btn-secondary"
-              onClick={handleMatchSamples}
-              disabled={matchLoading || !essayText.trim()}
-            >
-              <Database size={16} /> {matchLoading ? 'Matching...' : 'Check ChromaDB Match'}
-            </button>
-            <button
-              className="btn btn-primary"
-              onClick={() => callApi(() => writingApi.testGrade(essayText, taskType, topic, promptText), 'Test Grade Result')}
-              disabled={loading}
-            >
-              <Send size={16} /> Grade Essay
-            </button>
           </div>
 
-              {matchResult && (
-            <div className="card" style={{ marginBottom: 16, padding: 16 }}>
-              <h4 style={{ margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Database size={16} /> ChromaDB Matched Samples ({matchResult.total})
-                <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 400 }}>
-                  — Avg similarity: {matchResult.avgSimilarity}
-                </span>
-              </h4>
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Band</th>
-                    <th>Similarity</th>
-                    <th>Topic</th>
-                    <th>Keywords</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {matchResult.samples?.map((s) => (
-                    <tr key={s.id}>
-                      <td>#{s.id}</td>
-                      <td><span className="badge badge-info">{s.bandScore}</span></td>
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <div className="progress-bar" style={{ width: 80 }}>
-                            <div className="progress-bar-fill" style={{
-                              width: `${Math.min(100, s.similarity * 100)}%`,
-                              background: s.similarity > 0.7 ? 'var(--success)' : s.similarity > 0.5 ? 'var(--warning)' : 'var(--danger)',
-                            }} />
-                          </div>
-                          {s.similarityPercent}
-                        </div>
-                      </td>
-                      <td style={{ color: 'var(--text-muted)' }}>{s.topic || 'N/A'}</td>
-                      <td style={{ color: 'var(--text-muted)', fontSize: 12 }}>
-                        {s.keywords?.join(', ') || 'N/A'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '8px' }}>Writing Prompt (Optional)</label>
+            <textarea 
+              style={{
+                width: '100%', padding: '12px', borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--border)', background: 'var(--bg-main)',
+                fontSize: '0.9375rem', minHeight: '80px', resize: 'vertical'
+              }}
+              value={promptText} onChange={e => setPromptText(e.target.value)}
+              placeholder="Paste the essay question here for more accurate grading..."
+            />
+          </div>
+
+          <div style={{ marginBottom: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Your Essay</label>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{wordCount} words</span>
+            </div>
+            <textarea 
+              style={{
+                width: '100%', padding: '16px', borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--border)', fontSize: '1rem',
+                minHeight: '400px', resize: 'vertical', lineHeight: '1.6'
+              }}
+              value={essayText} onChange={e => setEssayText(e.target.value)}
+              placeholder="Paste your essay here..."
+            />
+          </div>
+
+          <button 
+            className="btn btn-primary" 
+            style={{ width: '100%', justifyContent: 'center', padding: '14px' }}
+            onClick={handleGrade}
+            disabled={loading || !essayText.trim()}
+          >
+            {loading ? <RotateCw className="spin" size={20} /> : <Sparkles size={20} />}
+            {loading ? 'Analyzing Essay...' : 'Start AI Evaluation'}
+          </button>
+
+          {error && (
+            <div style={{ marginTop: '16px', padding: '12px', background: '#FEF2F2', border: '1px solid #FEE2E2', borderRadius: 'var(--radius-md)', color: 'var(--danger)', fontSize: '0.875rem', display: 'flex', gap: '8px' }}>
+              <AlertCircle size={16} /> {error}
+            </div>
+          )}
+        </div>
+
+        {/* RESULT COLUMN */}
+        <div ref={resultRef}>
+          {loading && (
+            <div className="card animate-fade">
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Scan size={20} className="scan-icon-pulse" style={{ color: 'var(--info)' }} />
+                AI Analysis in Progress
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {SCAN_STAGES.map((s, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px', opacity: i > scanStage ? 0.4 : 1, transition: 'opacity 0.3s' }}>
+                    <div style={{ 
+                      width: '28px', height: '28px', borderRadius: '50%', background: i < scanStage ? 'var(--secondary)' : i === scanStage ? 'var(--info)' : 'var(--border-light)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white'
+                    }}>
+                      {i < scanStage ? <CheckCircle2 size={16} /> : <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>{i+1}</span>}
+                    </div>
+                    <span style={{ fontSize: '0.9375rem', fontWeight: i === scanStage ? 600 : 400 }}>{s.label}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
-          <ResponseViewer response={response} error={error} loading={loading} label={label} />
-        </div>
-      )}
-
-      {tab === 'submission' && (
-        <div className="card">
-          <h3><CheckCircle size={18} /> Grade a Submission by ID</h3>
-          <div className="form-row">
-            <div className="form-group">
-              <label>Submission ID</label>
-              <input
-                type="number"
-                value={submissionId}
-                onChange={(e) => setSubmissionId(e.target.value)}
-                placeholder="e.g. 1"
-              />
-            </div>
-            <div className="form-group">
-              <label>User ID</label>
-              <input value={userId} onChange={(e) => setUserId(e.target.value)} placeholder="test" />
-            </div>
-            <div className="form-group">
-              <label>Role</label>
-              <select value={role} onChange={(e) => setRole(e.target.value)}>
-                <option value="TEACHER">TEACHER</option>
-                <option value="MANAGER">MANAGER</option>
-                <option value="ADMIN">ADMIN</option>
-                <option value="STUDENT">STUDENT</option>
-              </select>
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button
-              className="btn btn-primary"
-              onClick={() => callApi(() => writingApi.gradeSubmission(submissionId, userId, role), `Grade Submission #${submissionId}`)}
-              disabled={loading || !submissionId}
-            >
-              <Send size={16} /> Grade
-            </button>
-            <button
-              className="btn btn-secondary"
-              onClick={() => callApi(() => writingApi.getResult(submissionId), `Result for #${submissionId}`)}
-              disabled={loading || !submissionId}
-            >
-              <RefreshCw size={16} /> Get Result
-            </button>
-            <button
-              className="btn btn-secondary"
-              onClick={() => callApi(() => writingApi.approve(submissionId, null, 'Looks correct', 1), `Approve #${submissionId}`)}
-              disabled={loading || !submissionId}
-            >
-              <CheckCircle size={16} /> Approve
-            </button>
-            <button
-              className="btn btn-danger"
-              onClick={() => callApi(() => writingApi.reject(submissionId, 'Inaccurate'), `Reject #${submissionId}`)}
-              disabled={loading || !submissionId}
-            >
-              <XCircle size={16} /> Reject
-            </button>
-          </div>
-          <ResponseViewer response={response} error={error} loading={loading} label={label} />
-        </div>
-      )}
-
-      {tab === 'batch' && (
-        <>
-          <div className="card">
-            <h3><Layers size={18} /> Start Batch Grading</h3>
-            <div className="form-group">
-              <label>Submission IDs (comma-separated)</label>
-              <input
-                value={batchIds}
-                onChange={(e) => setBatchIds(e.target.value)}
-                placeholder="e.g. 1,2,3,4,5"
-              />
-            </div>
-            <button
-              className="btn btn-primary"
-              onClick={() => {
-                const ids = batchIds.split(',').map((s) => Number(s.trim())).filter(Boolean);
-                callApi(() => writingApi.startBatch(ids, userId), 'Batch Grading Started');
-              }}
-              disabled={loading || !batchIds}
-            >
-              <Send size={16} /> Start Batch
-            </button>
-            <ResponseViewer response={response} error={error} loading={loading} label={label} />
-          </div>
-
-          <div className="card">
-            <h3>Check Batch Status</h3>
-            <div className="form-row">
-              <div className="form-group">
-                <label>Batch ID</label>
-                <input value={batchId} onChange={(e) => setBatchId(e.target.value)} placeholder="Enter batch job ID" />
+          {!loading && !result && (
+            <div className="card" style={{ textAlign: 'center', padding: '60px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <div style={{ background: 'var(--primary-light)', color: 'var(--primary)', width: '64px', height: '64px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px' }}>
+                <Sparkles size={32} />
               </div>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '8px' }}>Ready for Evaluation</h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', maxWidth: '320px' }}>
+                Submit your essay to receive a detailed IELTS band score analysis and improvement tips.
+              </p>
             </div>
-            <button
-              className="btn btn-secondary"
-              onClick={() => callApi(() => writingApi.getBatchStatus(batchId), `Batch Status: ${batchId}`)}
-              disabled={loading || !batchId}
-            >
-              <RefreshCw size={16} /> Check Status
-            </button>
-            <ResponseViewer response={response} error={error} loading={loading} label={label} />
-          </div>
-        </>
-      )}
+          )}
 
-      {tab === 'admin' && (
-        <>
-          <div className="card-grid">
-            <div className="card">
-              <h3><Plus size={18} /> Add Sample Essay</h3>
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Task Type</label>
-                  <select id="sampleTask" defaultValue="TASK2_ACADEMIC">
-                    <option value="TASK1_ACADEMIC">Task 1 Academic</option>
-                    <option value="TASK2_ACADEMIC">Task 2 Academic</option>
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label>Band Score</label>
-                  <input id="sampleBand" type="number" defaultValue="7.0" step="0.5" min="0" max="9" />
+          {result && !loading && (
+            <div className="animate-fade">
+              <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '32px', background: 'linear-gradient(135deg, #4F46E5 0%, #3730A3 100%)', color: 'white', border: 'none' }}>
+                <BandScore band={result.overallBand} size={140} />
+                <div>
+                  <h3 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '8px' }}>Evaluation Complete</h3>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
+                    <span className="badge" style={{ background: 'rgba(255,255,255,0.15)', color: 'white' }}>
+                      <Target size={14} style={{ marginRight: '4px' }} /> {Math.round((result.confidenceScore || 0) * 100)}% Confidence
+                    </span>
+                    <span className="badge" style={{ background: 'rgba(255,255,255,0.15)', color: 'white' }}>
+                      <Clock size={14} style={{ marginRight: '4px' }} /> {result.latencyMs ? `${(result.latencyMs / 1000).toFixed(1)}s` : '-'}
+                    </span>
+                  </div>
+                  <p style={{ fontSize: '0.9375rem', opacity: 0.9, lineHeight: 1.5 }}>
+                    {result.strengthSummary || 'Your essay demonstrates competence in several areas of the IELTS rubric.'}
+                  </p>
                 </div>
               </div>
-              <div className="form-group">
-                <label>Topic</label>
-                <input id="sampleTopic" defaultValue="Education" />
-              </div>
-              <div className="form-group">
-                <label>Essay Text</label>
-                <textarea id="sampleEssay" rows={6} defaultValue="Some people think that..." />
-              </div>
-              <div className="form-group">
-                <label>Source ID (optional)</label>
-                <input id="sampleSource" placeholder="Unique identifier" />
-              </div>
-              <button
-                className="btn btn-primary"
-                onClick={() => {
-                  const data = {
-                    taskType: document.getElementById('sampleTask').value,
-                    bandScore: parseFloat(document.getElementById('sampleBand').value),
-                    topic: document.getElementById('sampleTopic').value,
-                    essayText: document.getElementById('sampleEssay').value,
-                    sourceId: document.getElementById('sampleSource').value || undefined,
-                  };
-                  callApi(() => writingApi.addSample(data), 'Add Sample');
-                }}
-                disabled={loading}
-              >
-                <Plus size={16} /> Add Sample
-              </button>
-            </div>
 
-            <div className="card">
-              <h3>Admin Actions</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <button className="btn btn-secondary" onClick={() => callApi(() => writingApi.getSamplesCount(), 'Samples Count')}>
-                  Get Samples Count
-                </button>
-                <button className="btn btn-secondary" onClick={() => callApi(() => writingApi.getStats(), 'Cache Stats')}>
-                  Cache Statistics
-                </button>
-                <button className="btn btn-secondary" onClick={() => callApi(() => writingApi.getModels(), 'AI Models')}>
-                  List AI Models
-                </button>
-                <button className="btn btn-danger" onClick={() => callApi(() => writingApi.reindex(), 'Reindex')}>
-                  <RefreshCw size={14} /> Reindex Vector Store
-                </button>
-                <button className="btn btn-danger" onClick={() => callApi(() => writingApi.clearCache(), 'Clear Cache')}>
-                  Clear AI Cache
-                </button>
+              <div className="grid-2">
+                {CRITERIA.map(c => (
+                  <CriterionMeter 
+                    key={c.key}
+                    label={c.label}
+                    band={result[c.key]?.band || 0}
+                    color={c.color}
+                    icon={c.icon}
+                  />
+                ))}
               </div>
-            </div>
 
-            <div className="card">
-              <h3>Switch AI Model</h3>
-              <div className="form-group">
-                <label>Model Name</label>
-                <input id="switchModel" placeholder="e.g. llama-3.3-70b-versatile" />
+              <div className="card">
+                <div 
+                  onClick={() => setExpandedSections(p => ({ ...p, overall: !p.overall }))}
+                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+                >
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Quote size={18} color="var(--primary)" />
+                    Overall Feedback
+                  </h3>
+                  {expandedSections.overall ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                </div>
+                {expandedSections.overall && (
+                  <div style={{ marginTop: '16px', padding: '16px', background: 'var(--bg-main)', borderRadius: 'var(--radius-md)', borderLeft: '4px solid var(--primary)' }}>
+                    <p style={{ fontSize: '0.9375rem', color: 'var(--text-secondary)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                      {result.overallFeedback}
+                    </p>
+                  </div>
+                )}
               </div>
-              <button
-                className="btn btn-primary"
-                onClick={() => {
-                  const model = document.getElementById('switchModel').value;
-                  callApi(() => writingApi.switchModel(model), `Switch to ${model}`);
-                }}
-                disabled={loading}
-              >
-                <RefreshCw size={16} /> Switch Model
-              </button>
+
+              {result.improvementPriority?.length > 0 && (
+                <div className="card" style={{ background: '#FFFBEB', borderColor: '#FEF3C7' }}>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '16px', color: '#92400E', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Zap size={18} />
+                    Improvement Priorities
+                  </h3>
+                  <ul style={{ paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {result.improvementPriority.map((item, i) => (
+                      <li key={i} style={{ fontSize: '0.9375rem', color: '#78350F' }}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
-          </div>
-          <ResponseViewer response={response} error={error} loading={loading} label={label} />
-        </>
-      )}
+          )}
+        </div>
+      </div>
     </div>
   );
 }

@@ -20,9 +20,7 @@ const pageTitles = {
 };
 
 export default function Header() {
-  const [dark, setDark] = useState(false);
   const [showUser, setShowUser] = useState(false);
-  const [showSearch, setShowSearch] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { tabs, activeTab, setActiveTab } = useHeader();
@@ -31,100 +29,98 @@ export default function Header() {
   const hasTabs = tabs && tabs.length > 0;
 
   return (
-    <>
-      <header className={`top-header ${hasTabs ? 'top-header--tabs' : ''}`}>
-        <div className="top-header-row top-header-row--main">
-          <div className="top-header-left">
-            <div className="top-header-breadcrumb">
-              <span className="top-header-title">{title}</span>
-            </div>
-          </div>
+    <header className="top-header">
+      <div className="header-left">
+        <h1 className="header-title">{title}</h1>
+      </div>
 
-          <div className="top-header-right">
-            <button className="top-header-btn" onClick={() => setShowSearch(!showSearch)} aria-label="Search">
-              <Search size={18} />
-            </button>
-            <button className="top-header-btn top-header-notif" aria-label="Notifications">
-              <Bell size={18} />
-              <span className="top-header-dot" />
-            </button>
-            <button className="top-header-btn" onClick={() => setDark(!dark)} aria-label="Toggle theme">
-              {dark ? <Sun size={18} /> : <Moon size={18} />}
-            </button>
-            <div className="top-header-divider" />
-            <div className="top-header-user-wrap">
-              <button
-                className="top-header-user"
-                onClick={() => setShowUser(!showUser)}
-                onBlur={() => setTimeout(() => setShowUser(false), 150)}
-              >
-                <div className="top-header-avatar">A</div>
-                <div className="top-header-user-info">
-                  <div className="top-header-user-name">Admin</div>
-                  <div className="top-header-user-role">Administrator</div>
-                </div>
-                <ChevronDown size={14} />
-              </button>
-              {showUser && (
-                <div className="top-header-dropdown">
-                  <button onClick={() => { navigate('/admin'); setShowUser(false); }}>
-                    <Settings size={15} /> Admin Panel
-                  </button>
-                  <button onClick={() => setShowUser(false)}>
-                    <User size={15} /> My Account
-                  </button>
-                  <hr />
-                  <button style={{ color: '#EF4444' }}>
-                    <LogOut size={15} /> Sign Out
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
+      <div className="header-right" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
         {hasTabs && (
-          <div className="top-header-row top-header-row--tabs">
-            <nav className="top-header-tabs">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.key}
-                  className={`top-header-tab ${activeTab === tab.key ? 'active' : ''}`}
-                  onClick={() => {
-                    setActiveTab(tab.key);
-                    tab.onClick?.();
-                  }}
-                >
-                  {tab.icon && <tab.icon size={14} />}
-                  {tab.label}
-                </button>
-              ))}
-            </nav>
-          </div>
+          <nav style={{ display: 'flex', gap: '4px', marginRight: '16px' }}>
+            {tabs.map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => {
+                  setActiveTab(tab.key);
+                  tab.onClick?.();
+                }}
+                style={{
+                  padding: '6px 12px',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  borderRadius: 'var(--radius-md)',
+                  border: 'none',
+                  background: activeTab === tab.key ? 'var(--primary-light)' : 'transparent',
+                  color: activeTab === tab.key ? 'var(--primary)' : 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  transition: 'var(--transition)'
+                }}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </nav>
         )}
-      </header>
 
-      {showSearch && (
-        <div className="top-header-search-overlay" onClick={() => setShowSearch(false)}>
-          <div className="top-header-search-box" onClick={(e) => e.stopPropagation()}>
-            <Search size={18} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-            <input
-              autoFocus
-              placeholder="Search pages, features, commands..."
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  const val = e.target.value.toLowerCase();
-                  const found = Object.entries(pageTitles).find(([, t]) =>
-                    t.toLowerCase().includes(val)
-                  );
-                  if (found) { navigate(found[0]); setShowSearch(false); }
-                  setShowSearch(false);
-                }
-              }}
-            />
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button className="btn-outline" style={{ padding: '8px', borderRadius: '50%', border: 'none' }}>
+            <Search size={18} />
+          </button>
+          <button className="btn-outline" style={{ padding: '8px', borderRadius: '50%', border: 'none' }}>
+            <Bell size={18} />
+          </button>
         </div>
-      )}
-    </>
+
+        <div style={{ width: '1px', height: '24px', background: 'var(--border)', margin: '0 8px' }} />
+
+        <div style={{ position: 'relative' }}>
+          <button
+            onClick={() => setShowUser(!showUser)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              border: 'none',
+              background: 'none',
+              cursor: 'pointer',
+              padding: '4px'
+            }}
+          >
+            <div style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
+              background: 'var(--primary)',
+              color: 'white',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontWeight: 600,
+              fontSize: '0.875rem'
+            }}>A</div>
+            <ChevronDown size={14} color="var(--text-muted)" />
+          </button>
+
+          {showUser && (
+            <div style={{
+              position: 'absolute',
+              top: '100%',
+              right: 0,
+              marginTop: '8px',
+              width: '200px',
+              background: 'white',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-md)',
+              boxShadow: 'var(--shadow-lg)',
+              padding: '8px',
+              zIndex: 100
+            }}>
+              <button onClick={() => navigate('/admin')} style={{ width: '100%', textAlign: 'left', padding: '8px', border: 'none', background: 'none', cursor: 'pointer', borderRadius: 'var(--radius-sm)' }}>Admin Panel</button>
+              <button style={{ width: '100%', textAlign: 'left', padding: '8px', border: 'none', background: 'none', cursor: 'pointer', borderRadius: 'var(--radius-sm)', color: 'var(--danger)' }}>Sign Out</button>
+            </div>
+          )}
+        </div>
+      </div>
+    </header>
   );
 }

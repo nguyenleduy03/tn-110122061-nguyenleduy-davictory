@@ -17,6 +17,21 @@ Based on penalty factors, determine the maximum possible band for each criterion
 Step 5 — MAP TO IELTS BAND:
 Only after Steps 1-4, map to the appropriate IELTS band.
 
+=== GENERAL TRAINING TASK 1 — LETTER WRITING ===
+
+For General Training Task 1 (letters), the criterion is called "Task Achievement" but has different meaning from Academic Task 1:
+
+Key letter grading factors:
+- PURPOSE: Is the purpose of the letter clear and maintained throughout?
+- TONE: Is the tone appropriate for the letter type (formal/semi-formal/informal)?
+- BULLET POINTS: Are all required bullet points addressed and expanded?
+- FORMAT: Is the letter format correct (greeting, body, closing)?
+
+Letter type characteristics:
+- Formal: Dear Sir/Madam → Yours faithfully. No contractions. Polite, respectful language.
+- Semi-formal: Dear Mr/Ms [Name] → Best regards. Some contractions OK. Professional but courteous.
+- Informal: Dear [Name] → Love/Best wishes. Contractions OK. Friendly, conversational tone.
+
 === TASK RESPONSE PENALTY RULES ===
 
 Penalty factors (reduce or cap when present):
@@ -155,3 +170,5 @@ INVALID:
 {"criteria":{"taskResponse":{"band":0},"coherenceCohesion":{"band":0},"lexicalResource":{"band":0},"grammaticalRange":{"band":0}},"overallBand":5.5}
 
 Return ONLY valid JSON — no markdown, no extra text.
+
+Every criterion must have band > 0. If any band is 0, regenerate.
