@@ -24,6 +24,7 @@ export default function LmsSubmissionDetail() {
   const [gradeHistory, setGradeHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState('');
+  const [speakingQuestions, setSpeakingQuestions] = useState([]);
 
   const isLikelyDrivePreviewUrl = (value) => {
     const raw = String(value || '').trim();
@@ -360,6 +361,19 @@ export default function LmsSubmissionDetail() {
     };
     loadSubmission();
   }, [id, type, sourceParam]);
+
+  // Load speaking snapshot
+  useEffect(() => {
+    if (!id || type !== 'exam') return;
+    const skill = String(submission?.skillType || submission?.examType || '');
+    if (!isSpeakingSkill(skill)) return;
+    const token = localStorage.getItem('authToken');
+    const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+    fetch(`/api/speaking-gen/snapshot/${id}`, { headers })
+      .then(r => r.ok ? r.json() : [])
+      .then(setSpeakingQuestions)
+      .catch(() => setSpeakingQuestions([]));
+  }, [id, type, submission?.skillType, submission?.examType]);
 
   useEffect(() => {
     const skill = String(submission?.skillType || submission?.examType || '');
@@ -784,6 +798,27 @@ export default function LmsSubmissionDetail() {
                 Band hiện tại: <strong style={{ color: '#16a34a' }}>{formatBand(displayExamBand)} / 9.0</strong>
               </div>
             </div>
+
+            {speakingQuestions.length > 0 && (
+              <div style={{ marginTop: 16 }}>
+                <h4 style={{ margin: '0 0 10px 0', fontSize: 14, fontWeight: 600, color: '#374151' }}>Câu hỏi đã hỏi:</h4>
+                {['PART0', 'PART1', 'PART2', 'PART2_FOLLOWUP', 'PART3'].map(part => {
+                  const qs = speakingQuestions.filter(q => q.part === part);
+                  if (qs.length === 0) return null;
+                  const label = { PART0: 'Warm-up', PART1: 'Part 1', PART2: 'Part 2', PART2_FOLLOWUP: 'Part 2 - Follow-up', PART3: 'Part 3' }[part] || part;
+                  return (
+                    <div key={part} style={{ marginBottom: 12, padding: 10, background: '#f9fafb', borderRadius: 8, border: '1px solid #e5e7eb' }}>
+                      <div style={{ fontWeight: 600, fontSize: 13, color: '#be185d', marginBottom: 6 }}>{label}</div>
+                      <ol style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: '#4b5563' }}>
+                        {qs.map((q, i) => (
+                          <li key={i} style={{ marginBottom: 3 }}>{q.questionText}{q.frameName ? <span style={{ color: '#9ca3af', marginLeft: 4 }}>({q.frameName})</span> : null}</li>
+                        ))}
+                      </ol>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {renderGradeHistorySection()}

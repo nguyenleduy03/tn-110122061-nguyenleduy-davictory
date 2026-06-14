@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import {
-  Home, Eye, Save, Send, Settings, Shuffle, List, CheckCircle2, Loader2,
+  Home, Eye, Save, Send, Settings, Shuffle, List, CheckCircle2, Loader2, Mic,
   Bold, Italic, Underline, Strikethrough,
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
   ListOrdered, Undo2, Redo2, Eraser, Subscript, Superscript,
@@ -66,6 +66,7 @@ const BuilderHeader = ({
   savedTestId,
   previewMode,
   onPreviewToggle,
+  onReviewSpeaking,
   activeSkill,
   onOpenVersionHistory,
   hasUnsavedChanges,
@@ -834,6 +835,12 @@ const BuilderHeader = ({
               <button className="tb-tool-btn" onClick={onShuffle} disabled={shuffling} title="Trộn đề ngẫu nhiên">
                 <Shuffle size={15} /><span>{shuffling ? 'Đang trộn...' : 'Trộn đề'}</span>
               </button>
+              {activeSkill === 'SPEAKING' && (
+                <button className="tb-tool-btn" onClick={onReviewSpeaking} title="Review cấu hình Speaking"
+                  style={{ background: '#fdf2f8', color: '#be185d', border: '1px solid #fbcfe8' }}>
+                  <Mic size={15} /><span>Review Speaking</span>
+                </button>
+              )}
               <button
                 className="tb-tool-btn"
                 onClick={(e) => {

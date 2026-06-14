@@ -47,6 +47,7 @@ public class SecurityConfig {
                                 "/api/drive/**",
                                 "/api/guest/**",
                             "/api/public/test-share/validate",
+                                "/api/speaking-gen/build",
                                 "/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
@@ -179,6 +180,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/speaking/pending")
                         .hasAnyRole("TEACHER", "MANAGER", "ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/speaking/**").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
+
+                        // ===== SPEAKING GEN =====
+                        .requestMatchers("/api/speaking-gen/**").authenticated()
 
                         // ===== WRITING =====
                         // Nộp bài & xem bài của mình: STUDENT+

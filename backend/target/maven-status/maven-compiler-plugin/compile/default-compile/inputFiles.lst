@@ -3,6 +3,7 @@
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/config/DataInitializer.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/config/PublicIpService.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/config/SecurityConfig.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/config/StringListConverter.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/config/SwaggerConfig.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/config/TestStructureInitializer.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/AIImportController.java
@@ -69,6 +70,7 @@
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/SpeakingGradeRequest.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/SpeakingNewFormatData.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/SpeakingResultDTO.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/SpeakingSnapshotRequest.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/SubmitAnswersRequest.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/TestAttemptRequest.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/TestAttemptResponse.java
@@ -126,6 +128,7 @@
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/entity/SpeakingCueCard.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/entity/SpeakingFeedback.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/entity/SpeakingFrame.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/entity/SpeakingGeneratedQuestion.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/entity/SpeakingRecording.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/entity/SpeakingScore.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/entity/SpeakingTopic.java
@@ -194,6 +197,7 @@
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/repository/SpeakingCueCardRepository.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/repository/SpeakingFeedbackRepository.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/repository/SpeakingFrameRepository.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/repository/SpeakingGeneratedQuestionRepository.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/repository/SpeakingRecordingRepository.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/repository/SpeakingScoreRepository.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/repository/SpeakingTopicRepository.java

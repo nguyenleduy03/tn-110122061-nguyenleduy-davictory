@@ -13,7 +13,7 @@ public class InlineCombo {
     private String cueCardPrompt;
     private List<String> bulletPoints;
     private List<String> followUpQuestions;
-    private int randomFollowUpCount;
+    private Integer randomFollowUpCount;
     private List<String> part3Questions;
-    private int part3RandomCount;
+    private Integer part3RandomCount;
 }

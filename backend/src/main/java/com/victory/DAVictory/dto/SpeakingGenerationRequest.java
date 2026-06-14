@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class SpeakingGenerationRequest {
-    private String candidateProfile; // "STUDENT" or "WORK"
-    private SpeakingNewFormatData config; // The JSON parsed config from the test
+    private String candidateProfile;
+    private SpeakingNewFormatData config;
+    private Long attemptId; // optional: để tạo snapshot nếu có
 }

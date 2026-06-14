@@ -192,12 +192,14 @@ const STAGE_UI_TEXT = {
     thinkPrefix: 'Time to Think',
     nextQuestion: 'Next Question',
     completePart: 'Hoàn thành Part',
-    idleHintCueCard: 'Press the microphone to begin 1-minute preparation',
     idleHintAnswer: 'Press the microphone to start recording your answer',
     recordingPrefix: 'Recording',
     doneHint: '✓ Answer recorded',
     stopRecording: 'Stop recording',
     autoRecording: 'Recording starts automatically',
+    readyButton: 'Tôi đã sẵn sàng',
+    prepHint: 'Chuẩn bị trong 1 phút. Bạn có thể ghi chú bên dưới.',
+    notesPlaceholder: 'Ghi chú của bạn...',
   },
   review: {
     resetPart: 'Reset This Part',
@@ -473,204 +475,276 @@ const IeltsSpeakingTest = () => {
 
   const handleClassification = async (profile) => {
     setUserClassification(profile);
-    
-    if (testData?.isNewFormat || testData?.isPart0Format) {
-      setLoading(true);
-      try {
-        // Find config from Part 0 block (INLINE) or legacy SPEAKING_NEW_FORMAT
-        let config = null;
-        let isInline = testData?.isPart0Format || false;
-        
-        testData.parts.forEach(p => {
-          p.questionGroups?.forEach(g => {
-            if (g.questions?.[0]?.questionTypeCode === 'SPEAKING_PART0' && g.questions[0].config) {
-              config = { ...g.questions[0].config, mode: 'INLINE' };
-            }
-          });
-        });
-        
-        // Legacy fallback: SPEAKING_NEW_FORMAT
-        if (!config) {
-          testData.parts.forEach(p => {
-            p.questionGroups?.forEach(g => {
-              if (g.questions?.[0]?.questionTypeCode === 'SPEAKING_NEW_FORMAT' && g.questions[0].config) {
-                config = g.questions[0].config;
-              }
-            });
-          });
+    setLoading(true);
+    try {
+      // 1. Extract config from SPEAKING_PART0 or SPEAKING_NEW_FORMAT
+      let config = null;
+      for (const p of (testData?.parts || [])) {
+        for (const g of (p.questionGroups || [])) {
+          if ((g.contentType === 'SPEAKING_PART0' || g.contentType === 'SPEAKING_NEW_FORMAT') && g.passageText) {
+            try {
+              config = JSON.parse(g.passageText);
+            } catch (e) { continue; }
+            break;
+          }
         }
-        
-        if (config) {
-          // INLINE mode: collect frame/combo data from all speaking blocks
-          if (isInline || config.mode === 'INLINE') {
-            const frames = [];
-            let comboData = {};
-            testData.parts.forEach(p => {
-              p.questionGroups?.forEach(g => {
-                const qs = g.questions || [];
-                const firstQ = qs[0];
-                if (!firstQ) return;
-
-                // Collect Part 1 frames
-                if (firstQ.questionTypeCode === 'SPEAKING_INTERVIEW' && firstQ.interviewType === 'PART1') {
-                  const questions = qs.map(q => q.text || q.questionText || '').filter(Boolean);
-                  if (questions.length > 0) {
-                    frames.push({
-                      name: firstQ.frameName || firstQ.topic || '',
-                      introPrompt: firstQ.partInstruction || '',
-                      frameType: firstQ.frameType || 'OPTIONAL',
-                      profile: firstQ.profile || 'BOTH',
-                      questions,
-                      randomCount: firstQ.randomCount || 0
-                    });
-                  }
-                }
-
-                // Collect Part 2 cue card
-                if (firstQ.questionTypeCode === 'SPEAKING_CUECARD') {
-                  comboData.title = firstQ.topic || 'Cue Card';
-                  comboData.cueCardPrompt = firstQ.topic || '';
-                  comboData.bulletPoints = firstQ.bulletPoints || [];
-                  comboData.followUpQuestions = firstQ.followUpQuestions || [];
-                  comboData.randomFollowUpCount = firstQ.randomFollowUpCount || 0;
-                }
-
-                // Collect Part 3 discussion
-                if (firstQ.questionTypeCode === 'SPEAKING_DISCUSSION') {
-                  const questions = qs.map(q => q.text || q.questionText || '').filter(Boolean);
-                  comboData.title = firstQ.topic || comboData.title || 'Discussion';
-                  comboData.part3Questions = questions;
-                  comboData.part3RandomCount = firstQ.randomCount || 0;
-                }
-              });
-            });
-            config.frames = frames;
-            config.combo = comboData;
-          }
-
-          const generatedData = await ieltsApi.generateDynamicSpeakingTest(config, profile);
-          
-          // Map generated data into expected TestSession structure
-          // Part 0: Warm-up
-          let part0Group = null;
-          if (generatedData.warmUpQuestions?.length > 0) {
-            part0Group = {
-              id: 'gen-part0',
-              contentType: 'SPEAKING_INTERVIEW',
-              questions: generatedData.warmUpQuestions.map((q, i) => ({
-                id: `gen-p0-${i}`,
-                number: i + 1,
-                type: 'speaking',
-                questionTypeCode: 'SPEAKING_INTERVIEW',
-                topic: 'Warm-up',
-                text: q.text,
-                interviewType: 'PART0'
-              }))
-            };
-          }
-
-          // Part 1: Frames
-          const part1Group = {
-            id: 'gen-part1',
-            contentType: 'SPEAKING_INTERVIEW',
-            questions: generatedData.part1Frames.flatMap(frame => {
-               try {
-                 const qs = typeof frame.questions === 'string' ? JSON.parse(frame.questions) : frame.questions;
-                 return qs.map((qText, i) => ({
-                   id: `gen-p1-${frame.id}-${i}`,
-                   number: i + 1,
-                   type: 'speaking',
-                   questionTypeCode: 'SPEAKING_INTERVIEW',
-                   topic: frame.name,
-                   text: qText,
-                   interviewType: 'PART1'
-                 }));
-               } catch (e) {
-                 return [];
-               }
-            })
-          };
-          
-          // Part 2: Cue Card
-          let part2Group = null;
-          let part3Group = null;
-          
-          if (generatedData.combo) {
-            let bullets = [];
-            let followUps = [];
-            let p3Qs = [];
-            try { bullets = typeof generatedData.combo.bulletPoints === 'string' ? JSON.parse(generatedData.combo.bulletPoints) : generatedData.combo.bulletPoints; } catch(e){}
-            try { followUps = typeof generatedData.combo.followUpQuestions === 'string' ? JSON.parse(generatedData.combo.followUpQuestions) : generatedData.combo.followUpQuestions; } catch(e){}
-            try { p3Qs = typeof generatedData.combo.part3Questions === 'string' ? JSON.parse(generatedData.combo.part3Questions) : generatedData.combo.part3Questions; } catch(e){}
-            
-            part2Group = {
-              id: 'gen-part2',
-              contentType: 'SPEAKING_CUECARD',
-              questions: [{
-                id: `gen-p2-${generatedData.combo.id}`,
-                number: 1,
-                type: 'speaking',
-                questionTypeCode: 'SPEAKING_CUECARD',
-                topic: generatedData.combo.cueCardPrompt,
-                bulletPoints: bullets,
-                partInstruction: 'The examiner will give you a topic card. You will have 1 minute to prepare and make notes. Then you will speak for 1-2 minutes.',
-                followUpQuestions: followUps
-              }]
-            };
-            
-            part3Group = {
-              id: 'gen-part3',
-              contentType: 'SPEAKING_DISCUSSION',
-              questions: p3Qs.map((qText, i) => ({
-                 id: `gen-p3-${generatedData.combo.id}-${i}`,
-                 number: i + 1,
-                 type: 'speaking',
-                 questionTypeCode: 'SPEAKING_DISCUSSION',
-                 topic: generatedData.combo.title,
-                 text: qText,
-                 interviewType: 'PART3'
-              }))
-            };
-          }
-          
-          // Replace parts
-          const newParts = [];
-          if (part0Group && part0Group.questions.length > 0) {
-            newParts.push({ id: 'part-gen-0', name: 'Part 0 - Candidate Information', questionGroups: [part0Group] });
-          }
-          if (part1Group.questions.length > 0) {
-            newParts.push({ id: 'part-gen-1', name: 'Part 1 - Introduction & Interview', questionGroups: [part1Group] });
-          }
-          if (part2Group) {
-            newParts.push({ id: 'part-gen-2', name: 'Part 2 - Individual Long Turn', questionGroups: [part2Group] });
-          }
-          if (part3Group && part3Group.questions.length > 0) {
-            newParts.push({ id: 'part-gen-3', name: 'Part 3 - Two-way Discussion', questionGroups: [part3Group] });
-          }
-          
-          setTestData({ ...testData, parts: newParts });
-        }
-      } catch (err) {
-        console.error('Failed to generate dynamic test:', err);
-      } finally {
-        setLoading(false);
+        if (config) break;
       }
-    } else {
-      // Old format fallback
-      const filteredData = {
-        ...testData,
-        parts: testData.parts.map((p, idx) => {
-          if (idx !== 0) return p;
-          return {
-            ...p,
-            questionGroups: p.questionGroups.filter(g => g.classification === profile || !g.classification || g.classification === 'GENERAL')
-          };
-        })
+      if (!config) {
+        throw new Error('Không tìm thấy cấu hình đề thi Speaking');
+      }
+
+      // 2. Collect frames from SPEAKING_INTERVIEW groups
+      config.mode = 'INLINE';
+      const frames = [];
+      let comboData = {};
+      let extraData = {};
+      for (const p of (testData?.parts || [])) {
+        for (const g of (p.questionGroups || [])) {
+          const firstQ = (g.questions || [])[0];
+          if (!firstQ) continue;
+
+          const tc = firstQ.questionTypeCode;
+          const gc = g.contentType;
+
+          // Part 1 frames
+          if (tc === 'SPEAKING_INTERVIEW' || gc === 'SPEAKING_INTERVIEW') {
+            const qItems = (g.questions || []).map(q => ({
+              id: q.id,
+              text: q.questionText || q.text || ''
+            })).filter(q => q.text);
+            if (qItems.length > 0) {
+              frames.push({
+                name: firstQ.frameName || firstQ.topic || '',
+                introPrompt: firstQ.partInstruction || '',
+                frameType: firstQ.frameType || 'OPTIONAL',
+                profile: firstQ.profile || 'BOTH',
+                questions: qItems.map(q => q.text),
+                questionIds: qItems.map(q => q.id),
+                randomCount: firstQ.randomCount || 0
+              });
+            }
+          }
+
+          // Part 2 cue card (dữ liệu từ group, không phải question)
+          if (tc === 'SPEAKING_CUECARD' || tc === 'SPEAKING_PART2' || gc === 'SPEAKING_PART2') {
+            let parsedPt = {};
+            if (g.passageText) { try { parsedPt = JSON.parse(g.passageText); } catch(e) {} }
+            const get = (field) => firstQ[field] || g[field] || parsedPt[field];
+            comboData.title = get('topic') || 'Cue Card';
+            comboData.cueCardPrompt = get('topic') || '';
+            comboData.bulletPoints = get('bulletPoints') || [];
+            comboData.followUpQuestions = get('followUpQuestions') || [];
+            comboData.randomFollowUpCount = firstQ.randomFollowUpCount || g.randomFollowUpCount || parsedPt.randomFollowUpCount || 0;
+            extraData.shouldSayLabel = g.shouldSayLabel || firstQ.shouldSayLabel || parsedPt.shouldSayLabel || 'You should say:';
+            extraData.closingSentence = g.closingSentence || firstQ.closingSentence || parsedPt.closingSentence || '';
+            extraData.cueCardInstruction = g.partInstruction || firstQ.partInstruction || parsedPt.partInstruction || '';
+            // Lưu real question ID từ group
+            extraData.p2QuestionIds = (g.questions || []).map(q => q.id).filter(Boolean);
+          }
+
+          // Part 3 discussion (lấy từ group, parse JSON nếu cần)
+          if (tc === 'SPEAKING_DISCUSSION' || tc === 'SPEAKING_PART3' || gc === 'SPEAKING_PART3') {
+            // Ưu tiên questionText (từ DB), fallback text, bỏ JSON metadata
+            let questions = (g.questions || []).map(q => q.questionText || q.text || '').filter(Boolean);
+            const realQs = questions.filter(q => !q.trim().startsWith('{'));
+            if (realQs.length > 0) {
+              questions = realQs;
+            } else if (g.passageText) {
+              try {
+                const meta = JSON.parse(g.passageText);
+                if (meta.topics && meta.topics.length > 0) {
+                  questions = meta.topics.map(t => typeof t === 'string' ? t : (t.text || t.questionText || t));
+                } else if (meta.theme) {
+                  // fallback: strip HTML từ theme
+                  questions = [meta.theme.replace(/<[^>]*>/g, '').trim()];
+                } else if (meta.partInstruction) {
+                  questions = [meta.partInstruction.replace(/<[^>]*>/g, '').trim()];
+                }
+              } catch (e) {}
+            }
+            // Lấy title cho Part 3 (từ theme trong passageText hoặc firstQ)
+            let p3Title = firstQ.topic || g.theme || '';
+            if (!p3Title && g.passageText) {
+              try { const m = JSON.parse(g.passageText); p3Title = m.theme || p3Title; } catch(e) {}
+            }
+            comboData.title = p3Title || comboData.title || 'Discussion';
+            comboData.part3Questions = questions;
+            comboData.part3RandomCount = firstQ.randomCount || g.randomCount || 0;
+            // Lưu real question IDs từ group
+            extraData.p3QuestionIds = (g.questions || []).map(q => q.id).filter(Boolean);
+          }
+        }
+      }
+      config.frames = frames;
+      if (comboData.cueCardPrompt || (comboData.part3Questions || []).length > 0) {
+        config.combo = comboData;
+      }
+
+      // Collect instructions từ original test data (ưu tiên passageText JSON → partInstruction)
+      const origInstr = testData.parts.map(p => {
+        const g = p.questionGroups?.[0];
+        if (g?.partInstruction) return g.partInstruction;
+        if (g?.passageText) {
+          try { const m = JSON.parse(g.passageText); if (m.partInstruction) return m.partInstruction; } catch(e) {}
+        }
+        return p.instruction || '';
+      });
+
+      // 3. Call /build
+      const gen = await ieltsApi.generateDynamicSpeakingTest(config, profile);
+
+      // 4. Build parts với numeric IDs (để submission hoạt động)
+      const getArr = (v) => Array.isArray(v) ? v : (typeof v === 'string' ? (() => { try { return JSON.parse(v); } catch(e) { return []; } })() : []);
+      let fakeId = 0; // negative counter cho câu hỏi không có real ID
+
+      const warmUpQs = (gen.warmUpQuestions || []).map((q, i) => ({
+        id: --fakeId, number: i + 1, type: 'speaking',
+        questionTypeCode: 'SPEAKING_INTERVIEW', topic: 'Warm-up',
+        text: q.text, interviewType: 'PART0'
+      }));
+
+      // Match returned frames with collected frames to get introPrompt + real question IDs
+      const frameMeta = {};
+      frames.forEach(f => { frameMeta[f.name.trim()] = f; });
+
+      const getRealId = (collectedFrame, idx) => {
+        const idStr = collectedFrame?.questionIds?.[idx];
+        if (!idStr) return null;
+        const m = String(idStr).trim().match(/^q?(\d+)$/i);
+        return m ? Number(m[1]) : null;
       };
-      setTestData(filteredData);
+
+      const frameQs = (gen.part1Frames || []).flatMap(f => {
+        const qs = getArr(f.questions);
+        const cf = frameMeta[(f.name || '').trim()];
+        const instruction = cf?.introPrompt || '';
+        return qs.map((t, i) => ({
+          id: getRealId(cf, i) || --fakeId,
+          number: i + 1, type: 'speaking',
+          questionTypeCode: 'SPEAKING_INTERVIEW', topic: f.name,
+          text: t, interviewType: 'PART1',
+          partInstruction: instruction
+        }));
+      });
+
+      const newParts = [];
+
+      newParts.push({
+        id: 'gen-part-0', name: 'PART 0 - WARM UP',
+        questions: warmUpQs,
+        questionGroups: [{ id: 'gen-g0', contentType: 'SPEAKING_INTERVIEW', questions: warmUpQs }]
+      });
+
+      // Lấy instruction Part 1 từ frame đầu tiên (mandatory) hoặc từ origInstr (original Part 1)
+      const part1Instruction = frameMeta[(gen.part1Frames?.[0]?.name || '').trim()]?.introPrompt || origInstr[0] || '';
+      newParts.push({
+        id: 'gen-part-1', name: 'Part 1 - Interview',
+        instruction: part1Instruction,
+        questions: frameQs,
+        questionGroups: [{
+          id: 'gen-g1', contentType: 'SPEAKING_INTERVIEW',
+          questions: frameQs,
+          partInstruction: part1Instruction
+        }]
+      });
+
+      if (gen.combo) {
+        const bullets = getArr(gen.combo.bulletPoints);
+        const followUps = getArr(gen.combo.followUpQuestions);
+        const p3Qs = getArr(gen.combo.part3Questions);
+
+        if (gen.combo.cueCardPrompt || bullets.length > 0) {
+          const parseId = (idStr) => { if (!idStr) return null; const m = String(idStr).trim().match(/^q?(\d+)$/i); return m ? Number(m[1]) : null; };
+          const p2RealId = parseId(extraData.p2QuestionIds?.[0]) || --fakeId;
+          const p2q = {
+            id: p2RealId, number: 1, type: 'speaking',
+            questionTypeCode: 'SPEAKING_CUECARD',
+            topic: gen.combo.cueCardPrompt || '',
+            bulletPoints: bullets,
+            shouldSayLabel: extraData.shouldSayLabel || 'You should say:',
+            closingSentence: extraData.closingSentence || '',
+            followUpQuestions: followUps,
+            partInstruction: extraData.cueCardInstruction || origInstr[1] || 'The examiner will give you a topic card...'
+          };
+          newParts.push({
+            id: 'gen-part-2', name: 'Part 2 - Cue Card',
+            instruction: extraData.cueCardInstruction || origInstr[1] || '',
+            questions: [p2q],
+            questionGroups: [{ id: 'gen-g2', contentType: 'SPEAKING_CUECARD', questions: [p2q], partInstruction: extraData.cueCardInstruction || origInstr[1] || '' }]
+          });
+        }
+
+        if (p3Qs.length > 0) {
+          const p3RealIds = (extraData.p3QuestionIds || []).map(idStr => {
+            if (!idStr) return null;
+            const m = String(idStr).trim().match(/^q?(\d+)$/i);
+            return m ? Number(m[1]) : null;
+          }).filter(id => id != null);
+          const p3qs = p3Qs.map((t, i) => ({
+            id: p3RealIds[i] || --fakeId,
+            number: i + 1, type: 'speaking',
+            questionTypeCode: 'SPEAKING_DISCUSSION',
+            topic: gen.combo.title || '', text: t, interviewType: 'PART3',
+            partInstruction: origInstr[2] || ''
+          }));
+          newParts.push({
+            id: 'gen-part-3', name: 'Part 3 - Discussion',
+            instruction: origInstr[2] || '',
+            questions: p3qs,
+            questionGroups: [{ id: 'gen-g3', contentType: 'SPEAKING_DISCUSSION', questions: p3qs, partInstruction: origInstr[2] || '' }]
+          });
+        }
+      }
+
+      // Build snapshot để sau submit có thể lưu
+      const stripHtml = (s) => (s || '').replace(/<[^>]*>/g, '').trim().substring(0, 200);
+      let snap = [];
+      snap.push(...(gen.warmUpQuestions || []).map((q, i) => ({
+        part: 'PART0', questionIndex: i + 1, questionText: q.text || '', frameName: '', comboTitle: ''
+      })));
+      if (gen.part1Frames) {
+        gen.part1Frames.forEach(f => {
+          const qs = getArr(f.questions);
+          qs.forEach((t, i) => snap.push({
+            part: 'PART1', questionIndex: snap.length + 1,
+            questionText: t, frameName: f.name || '', comboTitle: ''
+          }));
+        });
+      }
+      if (gen.combo) {
+        const bullets = getArr(gen.combo.bulletPoints);
+        const p3Qs = getArr(gen.combo.part3Questions);
+        if (gen.combo.cueCardPrompt) {
+          snap.push({ part: 'PART2', questionIndex: 1, questionText: stripHtml(gen.combo.cueCardPrompt), frameName: '', comboTitle: stripHtml(gen.combo.title) });
+        }
+        bullets.forEach((t, i) => snap.push({
+          part: 'PART2', questionIndex: snap.length + 1,
+          questionText: stripHtml(t), frameName: '', comboTitle: stripHtml(gen.combo.title)
+        }));
+        if (gen.combo.followUpQuestions) {
+          getArr(gen.combo.followUpQuestions).forEach((t, i) => snap.push({
+            part: 'PART2_FOLLOWUP', questionIndex: i + 1,
+            questionText: stripHtml(t), frameName: '', comboTitle: stripHtml(gen.combo.title)
+          }));
+        }
+        p3Qs.forEach((t, i) => snap.push({
+          part: 'PART3', questionIndex: i + 1,
+          questionText: stripHtml(t), frameName: '', comboTitle: stripHtml(gen.combo.title)
+        }));
+      }
+      generatedSnapshotRef.current = snap;
+
+      setTestData({ ...testData, parts: newParts });
+    } catch (err) {
+      console.error('Speaking generation error:', err);
+      alert('Lỗi: ' + (err.message || err));
+    } finally {
+      setLoading(false);
+      setRequiresClassification(false);
     }
-    setRequiresClassification(false);
   };
+  const [currentPartIdx, setCurrentPartIdx] = useState(0);
   const [currentQIdx, setCurrentQIdx] = useState(0);
 
   // phase: idle | preparing | recording | done
@@ -687,6 +761,9 @@ const IeltsSpeakingTest = () => {
 
   const [requiresClassification, setRequiresClassification] = useState(false);
   const [userClassification, setUserClassification] = useState(null);
+  const [candidateName, setCandidateName] = useState('');
+  const [candidateHometown, setCandidateHometown] = useState('');
+  const [prepNotes, setPrepNotes] = useState('');
 
   const [audioInputDevices, setAudioInputDevices] = useState([]);
   const [audioOutputDevices, setAudioOutputDevices] = useState([]);
@@ -730,6 +807,7 @@ const IeltsSpeakingTest = () => {
   const pendingAudioBlobsRef = useRef({});
   const partReviewAudioBlobsRef = useRef({});
   const submitInFlightRef = useRef(false);
+  const generatedSnapshotRef = useRef([]);
   const [analyser, setAnalyser] = useState(null);
 
   useEffect(() => {
@@ -805,12 +883,12 @@ const IeltsSpeakingTest = () => {
       
       // Kiểm tra Part 0 format (INLINE mode)
       const isPart0Format = configuredData.parts?.some(p => 
-        p.questionGroups?.some(g => g.questions?.some(q => q.questionTypeCode === 'SPEAKING_PART0'))
+        p.questionGroups?.some(g => g.contentType === 'SPEAKING_PART0' || g.questions?.some(q => q.questionTypeCode === 'SPEAKING_PART0'))
       );
       
       // Kiểm tra định dạng BANK (legacy)
       const isNewFormat = configuredData.parts?.some(p => 
-        p.questionGroups?.some(g => g.questions?.some(q => q.questionTypeCode === 'SPEAKING_NEW_FORMAT'))
+        p.questionGroups?.some(g => g.contentType === 'SPEAKING_NEW_FORMAT' || g.questions?.some(q => q.questionTypeCode === 'SPEAKING_NEW_FORMAT'))
       );
       
       if (hasClassification || isNewFormat || isPart0Format) {
@@ -885,26 +963,17 @@ const IeltsSpeakingTest = () => {
   const currentQ = currentPart?.questions?.[currentQIdx];
   const totalParts = testData?.parts?.length ?? 0;
   const currentPartDisplayNumber = currentPart?.partNumber ?? (currentPartIdx + 1);
-  const currentPartTitle = currentPart?.title || `Part ${currentPartDisplayNumber}`;
-  const currentPartTitleHtml = formatSpeakingHtml(currentPartTitle) || `Part ${currentPartDisplayNumber}`;
+  const currentPartTitle = currentPart?.title || currentPart?.name || `Part ${currentPartDisplayNumber}`;
+  const currentPartTitleHtml = formatSpeakingHtml(currentPartTitle) || currentPartTitle;
 
   const partInstructions = useMemo(() => {
     const list = [];
 
-    if (currentPart?.instruction) {
-      list.push(currentPart.instruction);
-    }
-
     const firstGroup = currentPart?.questionGroups?.[0];
-    if (firstGroup?.passageText) {
-      try {
-        const parsed = JSON.parse(firstGroup.passageText);
-        if (parsed?.partInstruction) {
-          list.push(parsed.partInstruction);
-        }
-      } catch {
-        // Ignore malformed group instruction payload.
-      }
+    if (firstGroup?.partInstruction) {
+      list.push(firstGroup.partInstruction);
+    } else if (currentPart?.instruction) {
+      list.push(currentPart.instruction);
     }
 
     return list;
@@ -1136,6 +1205,7 @@ const IeltsSpeakingTest = () => {
   const startPrep = useCallback(async () => {
     await ensureMic(); // request early so user sees prompt once
     setPhase("preparing");
+    setPrepNotes('');
     const prepTime = currentQ?.prepSeconds ?? PREP_SECONDS;
     setPrepSeconds(prepTime);
     clearInterval(timerRef.current);
@@ -1363,12 +1433,16 @@ const IeltsSpeakingTest = () => {
 
     if (pendingTransitionRef.current) return;
 
-    if (phase === 'idle' && thinkSecondsLeft > 0) {
-      clearInterval(timerRef.current);
-      autoStartTriggeredRef.current = true;
-      setThinkSecondsLeft(0);
-      setPrepSeconds(0);
-      void startRecording();
+    if (phase === 'idle') {
+      if (isCueCard) {
+        startPrep();
+      } else {
+        clearInterval(timerRef.current);
+        autoStartTriggeredRef.current = true;
+        setThinkSecondsLeft(0);
+        setPrepSeconds(0);
+        void startRecording();
+      }
       return;
     }
 
@@ -1461,14 +1535,13 @@ const IeltsSpeakingTest = () => {
     if (stage !== 'part') return;
     if (phase !== 'idle') return;
 
+    // Cue card: chờ user bấm "Tôi đã sẵn sàng", không auto
+    if (isCueCard) return;
+
     if (thinkSecondsLeft <= 0) {
       if (autoStartTriggeredRef.current) return;
       autoStartTriggeredRef.current = true;
-      if (isCueCard) {
-        startPrep();
-      } else {
-        startRecording();
-      }
+      startRecording();
       return;
     }
 
@@ -1681,13 +1754,29 @@ const IeltsSpeakingTest = () => {
     }
 
     submitPromise
-      .then((resp) => {
+      .then(async (resp) => {
+        const examId = resp?.id || resp?.attemptId;
+        // Save snapshot of generated questions
+        if (examId && generatedSnapshotRef.current.length > 0) {
+          try {
+            const token = localStorage.getItem('authToken');
+            await fetch('/api/speaking-gen/snapshot', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
+              body: JSON.stringify({
+                examAttemptId: examId,
+                questions: generatedSnapshotRef.current
+              })
+            });
+          } catch(e) { console.warn('Snapshot save error:', e); }
+        }
+
         // Nếu là bài tập, submit vào assignment API
-        if (assignmentId && resp?.attemptId) {
+        if (assignmentId && examId) {
           return import('../utils/assignmentHelper').then(({ submitTestToAssignment }) => {
             submitTestToAssignment(
               parseInt(assignmentId),
-              resp.attemptId,
+              resp.attemptId || examId,
               navigate,
               null,
               (err) => alert(`Nộp bài tập thất bại: ${err.message}`)
@@ -1764,15 +1853,17 @@ const IeltsSpeakingTest = () => {
     .filter(Boolean)
     .join(" ");
 
-  const isThinking = stage === 'part' && phase === 'idle' && thinkSecondsLeft > 0;
+  const isThinking = stage === 'part' && phase === 'idle' && thinkSecondsLeft > 0 && !isCueCard;
   const canAdvanceQuestion = phase === "recording" || phase === "done" || phase === 'preparing' || isThinking;
-  const micButtonDisabled = stage === 'part';
+  const micButtonDisabled = stage === 'part' && !(phase === 'idle' && isCueCard);
   const micCheckHeaderSeconds = stage === 'mic-test'
     ? Math.max(0, 20 - micCheckSeconds)
     : null;
-  const partTopActionLabel = (isThinking || phase === 'preparing')
-    ? `${STAGE_UI_TEXT.part.thinkPrefix} ${fmtTime(phase === 'preparing' ? prepSeconds : thinkSecondsLeft)}`
-    : (isLastQ ? STAGE_UI_TEXT.part.completePart : STAGE_UI_TEXT.part.nextQuestion);
+  const partTopActionLabel = phase === 'preparing'
+    ? `Chuẩn bị ${fmtTime(prepSeconds)}`
+    : isThinking
+      ? `${STAGE_UI_TEXT.part.thinkPrefix} ${fmtTime(thinkSecondsLeft)}`
+      : (isLastQ ? STAGE_UI_TEXT.part.completePart : STAGE_UI_TEXT.part.nextQuestion);
   const micIdleHint = isCueCard
     ? STAGE_UI_TEXT.part.idleHintCueCard
     : STAGE_UI_TEXT.part.idleHintAnswer;
@@ -1831,39 +1922,74 @@ const IeltsSpeakingTest = () => {
       {/* Main card ──────────────────────────────────────────────────────── */}
       <main className="spk-main">
         {requiresClassification ? (
-          <div className="spk-card spk-unified-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '40px' }}>
-            <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '16px', color: '#1f2937' }}>Phân loại đối tượng thi</h2>
-            <p style={{ fontSize: '16px', color: '#4b5563', marginBottom: '32px' }}>
-              Are you currently working or studying? (Bạn đang đi làm hay đi học?)
-            </p>
-            <div style={{ display: 'flex', gap: '16px' }}>
-              <button 
-                style={{ padding: '12px 32px', fontSize: '16px', fontWeight: '600', color: 'white', backgroundColor: '#3b82f6', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
-                onClick={() => {
-                  setUserClassification('WORK');
-                  const filteredData = {
-                    ...testData,
-                    parts: testData.parts.map((p, idx) => {
-                      if (idx !== 0) return p;
-                      return {
-                        ...p,
-                        questionGroups: p.questionGroups.filter(g => g.classification === 'WORK' || !g.classification || g.classification === 'GENERAL')
-                      };
-                    })
-                  };
-                  setTestData(filteredData);
-                  setRequiresClassification(false);
-                }}
-              >
-                Working (Đi làm)
-              </button>
-              <button 
-                style={{ padding: '12px 32px', fontSize: '16px', fontWeight: '600', color: 'white', backgroundColor: '#10b981', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
-                onClick={() => handleClassification('STUDY')}
-              >
-                Studying (Đi học)
-              </button>
+          <div className="spk-card spk-unified-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '40px' }}>
+            <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '24px', color: '#1f2937' }}>Thông tin thí sinh</h2>
+
+            <div style={{ width: '100%', maxWidth: 400, marginBottom: 20, textAlign: 'left' }}>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+                Họ và tên <span style={{ color: '#dc2626' }}>*</span>
+              </label>
+              <input type="text" value={candidateName}
+                onChange={(e) => setCandidateName(e.target.value)}
+                placeholder="Nguyễn Văn A"
+                style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: '15px', outline: 'none', boxSizing: 'border-box' }}
+              />
             </div>
+
+            <div style={{ width: '100%', maxWidth: 400, marginBottom: 24, textAlign: 'left' }}>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+                Quê quán
+              </label>
+              <input type="text" value={candidateHometown}
+                onChange={(e) => setCandidateHometown(e.target.value)}
+                placeholder="Hà Nội"
+                style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: '15px', outline: 'none', boxSizing: 'border-box' }}
+              />
+            </div>
+
+            <div style={{ width: '100%', maxWidth: 400, marginBottom: 28, textAlign: 'left' }}>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+                Bạn đang đi làm hay đi học? <span style={{ color: '#dc2626' }}>*</span>
+              </label>
+              <div style={{ display: 'flex', gap: 12 }}>
+                <button
+                  style={{
+                    flex: 1, padding: '10px 20px', fontSize: '15px', fontWeight: 600,
+                    border: userClassification === 'WORK' ? '2px solid #2563eb' : '1px solid #d1d5db',
+                    borderRadius: 8, cursor: 'pointer',
+                    background: userClassification === 'WORK' ? '#eff6ff' : 'white',
+                    color: userClassification === 'WORK' ? '#1e40af' : '#374151',
+                  }}
+                  onClick={() => setUserClassification('WORK')}
+                >
+                  💼 Đi làm
+                </button>
+                <button
+                  style={{
+                    flex: 1, padding: '10px 20px', fontSize: '15px', fontWeight: 600,
+                    border: userClassification === 'STUDENT' ? '2px solid #059669' : '1px solid #d1d5db',
+                    borderRadius: 8, cursor: 'pointer',
+                    background: userClassification === 'STUDENT' ? '#ecfdf5' : 'white',
+                    color: userClassification === 'STUDENT' ? '#065f46' : '#374151',
+                  }}
+                  onClick={() => setUserClassification('STUDENT')}
+                >
+                  🎓 Đi học
+                </button>
+              </div>
+            </div>
+
+            <button
+              disabled={!candidateName.trim() || !userClassification}
+              style={{
+                padding: '12px 40px', fontSize: '16px', fontWeight: 600, color: 'white',
+                background: (!candidateName.trim() || !userClassification) ? '#9ca3af' : '#2563eb',
+                border: 'none', borderRadius: 8, cursor: (!candidateName.trim() || !userClassification) ? 'not-allowed' : 'pointer',
+              }}
+              onClick={() => handleClassification(userClassification)}
+            >
+              Bắt đầu làm bài
+            </button>
           </div>
         ) : (
         <div className="spk-card spk-unified-card">
@@ -1891,7 +2017,7 @@ const IeltsSpeakingTest = () => {
 
                     <button
                       className="spk-next-btn spk-check-mic-start-btn"
-                      onClick={() => startPartWithIndex(initialPartIndex)}
+                      onClick={() => startPartWithIndex(0)}
                       type="button"
                     >
                       Start Exam <ChevronRight size={18} />
@@ -1900,7 +2026,17 @@ const IeltsSpeakingTest = () => {
                 </>
               ) : (
                 <>
-                  <div className="spk-check-mic-center">
+                  <h3 className="spk-check-mic-title">Skip Test</h3>
+                  <p className="spk-check-mic-desc">Bỏ qua kiểm tra mic và vào bài thi</p>
+                  <p className="spk-check-mic-disclaimer">Đảm bảo micro đang hoạt động trước khi bỏ qua.</p>
+                  <div className="spk-mic-actions">
+                    <button className="spk-next-btn spk-check-mic-start-btn"
+                      onClick={() => startPartWithIndex(0)}>
+                      Skip
+                    </button>
+                  </div>
+                
+                <div className="spk-check-mic-center">
                     <div className={`spk-check-mic-icon ${micCheckStatus === 'recording' ? 'is-recording' : ''}`} aria-hidden="true">
                       <Mic size={40} />
                     </div>
@@ -1933,7 +2069,7 @@ const IeltsSpeakingTest = () => {
 
                     <button
                       className="spk-next-btn spk-check-mic-skip-btn"
-                      onClick={() => startPartWithIndex(initialPartIndex)}
+                      onClick={() => startPartWithIndex(0)}
                       type="button"
                     >
                       Skip
@@ -2009,7 +2145,7 @@ const IeltsSpeakingTest = () => {
               </div>
 
               <div className="spk-review-full-body spk-stage-body">
-                <div className="spk-review-full-title">{STAGE_UI_TEXT.review.endTitlePrefix} {currentPartDisplayNumber}</div>
+                <div className="spk-review-full-title">{STAGE_UI_TEXT.review.endTitlePrefix} {currentPartTitle}</div>
                 <div className="spk-review-full-sub">{STAGE_UI_TEXT.review.subtitle}</div>
 
                 {partReviewAudioUrls[currentPartIdx] ? (
@@ -2050,12 +2186,34 @@ const IeltsSpeakingTest = () => {
                 {renderPartQuestionPrompt(currentQ, currentQIdx)}
               </div>
 
+              {/* Prep notes for Part 2 ────────────────────────────────────── */}
+              {phase === "preparing" && isCueCard && (
+                <div className="spk-prep-notes" style={{ padding: '0 20px', marginBottom: 12 }}>
+                  <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: 6 }}>{STAGE_UI_TEXT.part.prepHint}</p>
+                  <textarea
+                    value={prepNotes}
+                    onChange={(e) => setPrepNotes(e.target.value)}
+                    placeholder={STAGE_UI_TEXT.part.notesPlaceholder}
+                    rows={5}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: '14px', outline: 'none', resize: 'vertical', boxSizing: 'border-box' }}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </div>
+              )}
+
               {/* Mic button + status ────────────────────────────────────────── */}
               <div className="spk-mic-area">
                 {phase === "idle" && (
-                  <p className="spk-idle-hint">
-                    {micIdleHint}
-                  </p>
+                  isCueCard ? (
+                    <button className="spk-next-btn spk-ready-btn"
+                      onClick={() => startPrep()}
+                      style={{ padding: '12px 32px', fontSize: '16px', fontWeight: 600, background: '#7e22ce', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer' }}
+                    >
+                      {STAGE_UI_TEXT.part.readyButton}
+                    </button>
+                  ) : (
+                    <p className="spk-idle-hint">{micIdleHint}</p>
+                  )
                 )}
                 {phase === "recording" && (
                   <div className="spk-rec-status">

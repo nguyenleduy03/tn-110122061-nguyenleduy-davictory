@@ -270,7 +270,7 @@ async function transformGroup(baseUrl, group) {
     feType = 'short-answer-group';
   } else if (contentType === 'SHARED_OPTIONS_DROPDOWN') {
     feType = 'mcq_dropdown_group';
-  } else if (contentType === 'SPEAKING_CUECARD' || contentType === 'SPEAKING_INTERVIEW' || contentType === 'SPEAKING_DISCUSSION' || contentType === 'SPEAKING_NEW_FORMAT' || contentType === 'SPEAKING_PART0') {
+  } else if (contentType === 'SPEAKING_CUECARD' || contentType === 'SPEAKING_INTERVIEW' || contentType === 'SPEAKING_DISCUSSION' || contentType === 'SPEAKING_NEW_FORMAT' || contentType === 'SPEAKING_PART0' || contentType === 'SPEAKING_PART2' || contentType === 'SPEAKING_PART3') {
     // SPEAKING: Parse passageText JSON for group-level data
     let groupData = {};
     if (group.passageText) {
@@ -304,7 +304,7 @@ async function transformGroup(baseUrl, group) {
     return questions.map((q) => {
       const num = resolveDbQuestionNumber(q);
 
-      if (contentType === 'SPEAKING_CUECARD') {
+      if (contentType === 'SPEAKING_CUECARD' || contentType === 'SPEAKING_PART2') {
         // Clean bulletPoints: remove empty strings and extract text from HTML lists
         const rawBullets = groupData.bulletPoints || [];
         const cleanedBullets = rawBullets
@@ -339,7 +339,7 @@ async function transformGroup(baseUrl, group) {
         };
       }
 
-      if (contentType === 'SPEAKING_INTERVIEW' || contentType === 'SPEAKING_DISCUSSION') {
+      if (contentType === 'SPEAKING_INTERVIEW' || contentType === 'SPEAKING_DISCUSSION' || contentType === 'SPEAKING_PART3') {
         // Filter out questions with empty questionText
         if (!q.questionText || !q.questionText.trim()) {
           return null;
@@ -1864,10 +1864,20 @@ export const ieltsApi = {
   // ─── Generate dynamic speaking test ─────────────────────────────
   generateDynamicSpeakingTest: async (config, candidateProfile) => {
     const baseUrl = API_CONFIG.BASE_URL;
-    return await apiFetch(`${baseUrl}/speaking-bank/generate`, {
+    const token = localStorage.getItem('authToken');
+    const res = await fetch(`${baseUrl}/speaking-gen/build`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ config, candidateProfile })
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ config, candidateProfile }),
+      signal: AbortSignal.timeout(15000),
     });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.message || body.error || `HTTP ${res.status}`);
+    }
+    return res.json();
   }
 };

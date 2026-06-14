@@ -1,12 +1,12 @@
 package com.victory.DAVictory.service;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.victory.DAVictory.dto.*;
 import com.victory.DAVictory.entity.SpeakingCombo;
 import com.victory.DAVictory.entity.SpeakingFrame;
+import com.victory.DAVictory.entity.SpeakingGeneratedQuestion;
 import com.victory.DAVictory.repository.SpeakingComboRepository;
 import com.victory.DAVictory.repository.SpeakingFrameRepository;
+import com.victory.DAVictory.repository.SpeakingGeneratedQuestionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -22,13 +22,16 @@ public class SpeakingGenerationService {
 
     private final SpeakingFrameRepository frameRepository;
     private final SpeakingComboRepository comboRepository;
-    private final ObjectMapper objectMapper;
+    private final SpeakingGeneratedQuestionRepository snapshotRepository;
     private final Random random = new Random();
 
     private static final List<WarmUpQuestion> DEFAULT_WARM_UP = List.of(
         new WarmUpQuestion("Hello, my name is (examiner's name). What's your full name?", "NAME"),
         new WarmUpQuestion("Where do you live? / Where do you come from?", "HOMETOWN"),
-        new WarmUpQuestion("Are you a student or do you have a job?", "STUDENT_WORK"),
+        new WarmUpQuestion("Are you a student?", "STUDENT"),
+        new WarmUpQuestion("Do you enjoy your study?", "STUDENT"),
+        new WarmUpQuestion("Do you work?", "WORK"),
+        new WarmUpQuestion("Do you enjoy your job?", "WORK"),
         new WarmUpQuestion("Do you enjoy your job / study?", "GENERAL")
     );
 
@@ -36,18 +39,35 @@ public class SpeakingGenerationService {
         SpeakingGenerationResponse response = new SpeakingGenerationResponse();
         SpeakingNewFormatData config = request.getConfig();
 
-        // 1. Part 0: Warm-up
-        if (config != null && config.isIncludeWarmUp()) {
-            response.setWarmUpQuestions(DEFAULT_WARM_UP);
-        }
-
         String profile = request.getCandidateProfile() != null
             ? request.getCandidateProfile().toUpperCase() : "STUDENT";
 
-        if (config != null && "INLINE".equalsIgnoreCase(config.getMode())) {
+        // 1. Warm-up (filtered by profile)
+        if (config != null && Boolean.TRUE.equals(config.getIncludeWarmUp())) {
+            List<WarmUpQuestion> source = config.getWarmUpQuestions() != null
+                && !config.getWarmUpQuestions().isEmpty()
+                ? config.getWarmUpQuestions() : DEFAULT_WARM_UP;
+
+            List<WarmUpQuestion> filtered = source.stream()
+                .filter(q -> {
+                    String type = q.getType() != null ? q.getType().toUpperCase() : "";
+                    if (type.equals("NAME") || type.equals("HOMETOWN") || type.equals("GENERAL")) return true;
+                    if (type.equals("STUDENT_WORK")) return true;
+                    if (type.equals("STUDENT")) return "STUDENT".equals(profile);
+                    if (type.equals("WORK")) return "WORK".equals(profile);
+                    return true;
+                })
+                .collect(Collectors.toList());
+            response.setWarmUpQuestions(filtered);
+        }
+
+        if (config != null) {
             generateInline(response, config, profile);
-        } else {
-            generateFromBank(response, config, profile);
+        }
+
+        // 4. Create snapshot if attemptId provided
+        if (request.getAttemptId() != null) {
+            createSnapshot(request.getAttemptId(), response);
         }
 
         return response;
@@ -57,7 +77,7 @@ public class SpeakingGenerationService {
     private void generateInline(SpeakingGenerationResponse response, SpeakingNewFormatData config, String profile) {
         List<SpeakingFrame> part1Frames = new ArrayList<>();
 
-        // 2. Part 1: Mandatory frames
+        // Mandatory frames
         List<InlineFrame> mandatoryFrames = new ArrayList<>();
         if (config.getFrames() != null) {
             for (InlineFrame f : config.getFrames()) {
@@ -75,11 +95,11 @@ public class SpeakingGenerationService {
 
         if (!mandatoryFrames.isEmpty()) {
             InlineFrame selected = mandatoryFrames.get(random.nextInt(mandatoryFrames.size()));
-            int count = Math.max(1, selected.getRandomCount() > 0 ? selected.getRandomCount() : config.getMandatoryQuestionCount());
+            int count = Math.max(1, intVal(config.getMandatoryQuestionCount(), 5));
             part1Frames.add(toSpeakingFrame(selected, count));
         }
 
-        // 3. Part 1: Optional frames
+        // Optional frames
         List<InlineFrame> optionalFrames = new ArrayList<>();
         if (config.getFrames() != null) {
             for (InlineFrame f : config.getFrames()) {
@@ -90,109 +110,119 @@ public class SpeakingGenerationService {
         }
 
         Collections.shuffle(optionalFrames, random);
-        int optFrameCount = Math.min(config.getOptionalFrameCount(), optionalFrames.size());
+        int optFrameCount = Math.min(intVal(config.getOptionalFrameCount(), 2), optionalFrames.size());
         for (int i = 0; i < optFrameCount; i++) {
             InlineFrame f = optionalFrames.get(i);
-            int count = Math.max(1, f.getRandomCount() > 0 ? f.getRandomCount() : config.getOptionalQuestionCount());
+            int count = Math.max(1, intVal(config.getOptionalQuestionCount(), 4));
             part1Frames.add(toSpeakingFrame(f, count));
         }
-
         response.setPart1Frames(part1Frames);
 
-        // 4. Part 2 + 3: Combo
+        // Combo
         if (config.getCombo() != null) {
             InlineCombo ic = config.getCombo();
-            SpeakingCombo combo = new SpeakingCombo();
-            combo.setTitle(ic.getTitle() != null ? ic.getTitle() : "Inline Combo");
-            combo.setCueCardPrompt(ic.getCueCardPrompt() != null ? ic.getCueCardPrompt() : "");
-            combo.setBulletPoints(toJsonString(ic.getBulletPoints()));
-            int followUpCount = ic.getRandomFollowUpCount() > 0 ? ic.getRandomFollowUpCount() : 3;
-            combo.setFollowUpQuestions(pickRandomFromList(ic.getFollowUpQuestions(), followUpCount));
-            int p3Count = ic.getPart3RandomCount() > 0 ? ic.getPart3RandomCount() : config.getPart3QuestionCount();
-            combo.setPart3Questions(pickRandomFromList(ic.getPart3Questions(), p3Count));
-            response.setCombo(combo);
+            if (ic.getBulletPoints() != null || ic.getCueCardPrompt() != null || 
+                ic.getPart3Questions() != null || ic.getFollowUpQuestions() != null) {
+                SpeakingCombo combo = new SpeakingCombo();
+                combo.setTitle(ic.getTitle() != null ? ic.getTitle() : "Inline Combo");
+                combo.setCueCardPrompt(ic.getCueCardPrompt() != null ? ic.getCueCardPrompt() : "");
+                if (ic.getBulletPoints() != null) {
+                    combo.setBulletPoints(new ArrayList<>(pickFromList(ic.getBulletPoints(), ic.getBulletPoints().size())));
+                }
+                if (ic.getFollowUpQuestions() != null) {
+                    int followUpCount = ic.getRandomFollowUpCount() != null && ic.getRandomFollowUpCount() > 0 ? ic.getRandomFollowUpCount() : 3;
+                    combo.setFollowUpQuestions(pickFromList(ic.getFollowUpQuestions(), followUpCount));
+                }
+                if (ic.getPart3Questions() != null) {
+                    int p3Count = Math.max(1, intVal(config.getPart3QuestionCount(), 5));
+                    combo.setPart3Questions(pickFromList(ic.getPart3Questions(), p3Count));
+                }
+                response.setCombo(combo);
+            }
         }
     }
 
-    // === BANK mode ===
-    private void generateFromBank(SpeakingGenerationResponse response, SpeakingNewFormatData config, String profile) {
-        List<SpeakingFrame> part1Frames = new ArrayList<>();
+    // === Snapshot ===
+    private void createSnapshot(Long attemptId, SpeakingGenerationResponse response) {
+        snapshotRepository.deleteBySpeakingAttemptId(attemptId);
+        List<SpeakingGeneratedQuestion> snapshots = new ArrayList<>();
 
-        // 1. Mandatory
-        List<SpeakingFrame> mandatoryFrames = frameRepository.findByFrameTypeAndIsActiveTrue("MANDATORY");
-        List<SpeakingFrame> profileSpecificMandatory = new ArrayList<>();
-
-        for (SpeakingFrame frame : mandatoryFrames) {
-            String name = frame.getName().toUpperCase();
-            if (name.equals("HOME") || name.equals("HOMETOWN")) {
-                profileSpecificMandatory.add(frame);
-            } else if (profile.equals("STUDENT") && name.equals("STUDY")) {
-                profileSpecificMandatory.add(frame);
-            } else if (profile.equals("WORK") && name.equals("WORK")) {
-                profileSpecificMandatory.add(frame);
+        // Part 1
+        if (response.getPart1Frames() != null) {
+            for (SpeakingFrame frame : response.getPart1Frames()) {
+                List<String> questions = frame.getQuestions();
+                if (questions == null) continue;
+                for (int i = 0; i < questions.size(); i++) {
+                    SpeakingGeneratedQuestion q = new SpeakingGeneratedQuestion();
+                    q.setSpeakingAttemptId(attemptId);
+                    q.setPart("PART1");
+                    q.setQuestionIndex(i + 1);
+                    q.setQuestionText(questions.get(i));
+                    q.setFrameName(frame.getName());
+                    snapshots.add(q);
+                }
             }
         }
 
-        if (!profileSpecificMandatory.isEmpty()) {
-            SpeakingFrame selected = profileSpecificMandatory.get(random.nextInt(profileSpecificMandatory.size()));
-            int count = config != null ? config.getMandatoryQuestionCount() : 5;
-            selected.setQuestions(pickRandomQuestions(selected.getQuestions(), count));
-            part1Frames.add(selected);
+        // Combo (Part 2 + 3)
+        if (response.getCombo() != null) {
+            SpeakingCombo combo = response.getCombo();
+
+            // Part 2 questions
+            if (combo.getBulletPoints() != null) {
+                for (int i = 0; i < combo.getBulletPoints().size(); i++) {
+                    SpeakingGeneratedQuestion q = new SpeakingGeneratedQuestion();
+                    q.setSpeakingAttemptId(attemptId);
+                    q.setPart("PART2");
+                    q.setQuestionIndex(i + 1);
+                    q.setQuestionText(combo.getBulletPoints().get(i));
+                    q.setComboTitle(combo.getTitle());
+                    snapshots.add(q);
+                }
+            }
+            if (combo.getFollowUpQuestions() != null) {
+                for (int i = 0; i < combo.getFollowUpQuestions().size(); i++) {
+                    SpeakingGeneratedQuestion q = new SpeakingGeneratedQuestion();
+                    q.setSpeakingAttemptId(attemptId);
+                    q.setPart("PART2");
+                    q.setQuestionIndex(combo.getBulletPoints().size() + i + 1);
+                    q.setQuestionText(combo.getFollowUpQuestions().get(i));
+                    q.setComboTitle(combo.getTitle());
+                    snapshots.add(q);
+                }
+            }
+
+            // Part 3
+            if (combo.getPart3Questions() != null) {
+                for (int i = 0; i < combo.getPart3Questions().size(); i++) {
+                    SpeakingGeneratedQuestion q = new SpeakingGeneratedQuestion();
+                    q.setSpeakingAttemptId(attemptId);
+                    q.setPart("PART3");
+                    q.setQuestionIndex(i + 1);
+                    q.setQuestionText(combo.getPart3Questions().get(i));
+                    q.setComboTitle(combo.getTitle());
+                    snapshots.add(q);
+                }
+            }
         }
 
-        // 2. Optional
-        if (config != null) {
-            List<SpeakingFrame> optionalFramesToUse = new ArrayList<>();
-            if (config.isAutoRandomOptionalFrames()) {
-                List<SpeakingFrame> allOptional = frameRepository.findByFrameTypeAndIsActiveTrue("OPTIONAL");
-                Collections.shuffle(allOptional, random);
-                int count = Math.min(config.getOptionalFrameCount(), allOptional.size());
-                for (int i = 0; i < count; i++) optionalFramesToUse.add(allOptional.get(i));
-            } else if (config.getSelectedOptionalFrameIds() != null) {
-                optionalFramesToUse = frameRepository.findAllById(config.getSelectedOptionalFrameIds());
-            }
-
-            int optCount = config.getOptionalQuestionCount();
-            for (SpeakingFrame frame : optionalFramesToUse) {
-                frame.setQuestions(pickRandomQuestions(frame.getQuestions(), optCount));
-                part1Frames.add(frame);
-            }
-
-            // 3. Combo
-            if (config.getSelectedComboId() != null) {
-                comboRepository.findById(config.getSelectedComboId()).ifPresent(combo -> {
-                    combo.setPart3Questions(pickRandomQuestions(combo.getPart3Questions(), config.getPart3QuestionCount()));
-                    response.setCombo(combo);
-                });
-            }
+        if (!snapshots.isEmpty()) {
+            snapshotRepository.saveAll(snapshots);
         }
-
-        response.setPart1Frames(part1Frames);
     }
 
     // === Helpers ===
+
+    private static int intVal(Integer value, int fallback) {
+        return value != null ? value : fallback;
+    }
 
     private SpeakingFrame toSpeakingFrame(InlineFrame f, int count) {
         SpeakingFrame frame = new SpeakingFrame();
         frame.setName(f.getName() != null ? f.getName() : "");
         frame.setFrameType(f.getFrameType() != null ? f.getFrameType() : "OPTIONAL");
-        List<String> selected = pickFromList(f.getQuestions(), count);
-        frame.setQuestions(toJsonString(selected));
+        frame.setQuestions(pickFromList(f.getQuestions(), count));
         return frame;
-    }
-
-    private String pickRandomQuestions(String questionsJson, int count) {
-        if (questionsJson == null || questionsJson.isBlank()) return "[]";
-        try {
-            List<String> all = objectMapper.readValue(questionsJson, new TypeReference<List<String>>() {});
-            return toJsonString(pickFromList(all, count));
-        } catch (Exception e) {
-            return questionsJson;
-        }
-    }
-
-    private String pickRandomFromList(List<String> list, int count) {
-        return toJsonString(pickFromList(list, count));
     }
 
     private List<String> pickFromList(List<String> list, int count) {
@@ -201,14 +231,5 @@ public class SpeakingGenerationService {
         Collections.shuffle(copy, random);
         int actual = Math.min(count, copy.size());
         return copy.subList(0, actual);
-    }
-
-    private String toJsonString(List<String> list) {
-        if (list == null) return "[]";
-        try {
-            return objectMapper.writeValueAsString(list);
-        } catch (Exception e) {
-            return "[]";
-        }
     }
 }

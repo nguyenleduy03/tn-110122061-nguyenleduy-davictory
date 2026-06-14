@@ -7,7 +7,6 @@ import { toRoman, loadImageFile, toPlainText, countBlankTokens, getNextQuestionN
 
 const SpeakingInterviewBlock = ({ group, onUpdate, onDelete, onSelect, selected, dragHandleProps }) => {
   const questions = group.questions ?? [];
-  const interviewType = group.interviewType ?? 'PART1';
   const classification = group.classification ?? 'GENERAL';
   const frameName = group.frameName ?? '';
   const frameType = group.frameType ?? 'OPTIONAL';
@@ -67,18 +66,8 @@ const SpeakingInterviewBlock = ({ group, onUpdate, onDelete, onSelect, selected,
       onClick={(e) => { e.stopPropagation(); onSelect(group); }}>
       <GroupToolbar group={group} dragHandleProps={dragHandleProps} onDelete={onDelete} />
 
-      {/* Part type toggle */}
-      <div className="exam-spk-type-row" onClick={(e) => e.stopPropagation()}>
-        {[['PART1', 'Part 1 · Interview'], ['PART3', 'Part 3 · Discussion']].map(([v, lbl]) => (
-          <button key={v} type="button"
-            className={`exam-spk-type-btn${interviewType === v ? ' active' : ''}`}
-            onClick={() => onUpdate(group.id, { interviewType: v })}>{lbl}</button>
-        ))}
-      </div>
-
-      {interviewType === 'PART1' && (
-        <>
-          <div className="exam-wt-section" onClick={(e) => e.stopPropagation()} style={{ display: 'flex', gap: 12 }}>
+      {/* Part 1 - Interview fields */}
+      <div className="exam-wt-section" onClick={(e) => e.stopPropagation()} style={{ display: 'flex', gap: 12 }}>
             <div style={{ flex: 1 }}>
               <label className="exam-wt-label" style={{ fontSize: '0.85em', marginBottom: 4, display: 'block' }}>Tên Frame</label>
               <input type="text" value={frameName}
@@ -126,8 +115,6 @@ const SpeakingInterviewBlock = ({ group, onUpdate, onDelete, onSelect, selected,
               <option value="STUDY">Study</option>
             </select>
           </div>
-        </>
-      )}
 
       {/* Instructions */}
       <div className="exam-wt-section" onClick={(e) => e.stopPropagation()}>
@@ -136,9 +123,7 @@ const SpeakingInterviewBlock = ({ group, onUpdate, onDelete, onSelect, selected,
         </label>
         <RichInput
           value={group.partInstruction ?? ''}
-          placeholder={interviewType === 'PART1'
-            ? 'VD: In this part, the examiner asks you about yourself and familiar topics...'
-            : 'VD: In this part, the examiner asks further questions related to the topic in Part 2...'}
+          placeholder='VD: In this part, the examiner asks you about yourself and familiar topics...'
           onChange={(html) => onUpdate(group.id, { partInstruction: html })}
         />
       </div>

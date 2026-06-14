@@ -23,8 +23,10 @@ import IframePreviewModal from '../components/testBuilder/IframePreviewModal';
 import PropertiesPanel from '../components/testBuilder/PropertiesPanel';
 import ErrorBoundary from '../components/common/ErrorBoundary';
 import VersionHistoryModal from '../components/common/VersionHistoryModal';
+import SpeakingReviewModal from '../components/testBuilder/SpeakingReviewModal';
 import { testBuilderApi, buildSavePayload, parseLoadedTest } from '../services/testBuilderApi';
 import { authApi } from '../services/authApi';
+import { API_CONFIG } from '../config/api';
 import '../styles/testBuilder.css';
 
 // Roles cho phép dùng Test Builder
@@ -268,6 +270,9 @@ const TestBuilder = () => {
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [showExitWarning, setShowExitWarning] = useState(false);
   const [showVersionHistory, setShowVersionHistory] = useState(false);
+  const [showSpeakingReview, setShowSpeakingReview] = useState(false);
+  const [speakingReviewData, setSpeakingReviewData] = useState(null);
+  const [speakingReviewLoading, setSpeakingReviewLoading] = useState(false);
   const pendingNavigationRef = useRef(null);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
@@ -801,11 +806,7 @@ const TestBuilder = () => {
             title: `Part 1 - Interview ${groupIdx}`,
             passageText: '',
             fromQuestion: null, toQuestion: null,
-            questions: [
-              makeQ(1, 'SPEAKING_INTERVIEW', { questionText: '' }),
-              makeQ(2, 'SPEAKING_INTERVIEW', { questionText: '' }),
-              makeQ(3, 'SPEAKING_INTERVIEW', { questionText: '' }),
-            ],
+            questions: [],
           };
 
         case 'SPEAKING_CUECARD':
@@ -1649,6 +1650,96 @@ const TestBuilder = () => {
     }
   };
 
+  // ------------ Review Speaking ------------
+  const [reviewProfile, setReviewProfile] = useState('STUDENT');
+  const handleReviewSpeaking = async (profile) => {
+    if (activeSkill !== 'SPEAKING' || !sessions.SPEAKING) return;
+    const candidateProfile = typeof profile === 'string' ? profile : reviewProfile;
+    setReviewProfile(candidateProfile);
+    setShowSpeakingReview(true);
+    setSpeakingReviewLoading(true);
+    setSpeakingReviewData(null);
+    try {
+      let config = null;
+      const speakingParts = sessions.SPEAKING;
+
+      for (const part of speakingParts) {
+        for (const group of (part.questionGroups || [])) {
+          if (group.contentType === 'SPEAKING_PART0' && group.passageText) {
+            config = { ...JSON.parse(group.passageText), mode: 'INLINE' };
+          }
+        }
+      }
+
+      if (config) {
+        const frames = [];
+        let comboData = {};
+        for (const part of speakingParts) {
+          for (const group of (part.questionGroups || [])) {
+            if (group.contentType === 'SPEAKING_INTERVIEW' || group.contentType === 'SPEAKING_PART1') {
+              let qTexts;
+              if (group.contentType === 'SPEAKING_PART1') {
+                qTexts = (group.topics || []).flatMap(t => t.questions || []);
+              } else {
+                qTexts = (group.questions || []).map(q => q.questionText || q.text || '').filter(Boolean);
+              }
+              if (qTexts.length > 0) {
+                frames.push({
+                  name: group.frameName || group.name || '',
+                  introPrompt: group.partInstruction || '',
+                  frameType: group.frameType || 'OPTIONAL',
+                  profile: group.profile || 'BOTH',
+                  questions: qTexts,
+                  randomCount: group.randomCount || 0
+                });
+              }
+            }
+            if (group.contentType === 'SPEAKING_PART2') {
+              comboData.title = group.topic || 'Cue Card';
+              comboData.cueCardPrompt = group.topic || '';
+              comboData.bulletPoints = (group.bulletPoints || []).map(b => b);
+              comboData.followUpQuestions = (group.followUpQuestions || []).map(f => f);
+              comboData.randomFollowUpCount = group.randomFollowUpCount || 0;
+            }
+            if (group.contentType === 'SPEAKING_PART3') {
+              const qTexts = (group.questions || []).map(q => q.text || q.questionText || '').filter(Boolean);
+              comboData.title = group.theme || comboData.title || 'Discussion';
+              comboData.part3Questions = qTexts;
+              comboData.part3RandomCount = group.randomCount || 0;
+            }
+          }
+        }
+        config.frames = frames;
+        config.combo = comboData;
+      }
+
+      const token = localStorage.getItem('authToken');
+      const body = (() => {
+        const seen = new WeakSet();
+        return JSON.stringify({ config, candidateProfile }, (_, v) => {
+          if (typeof v === 'object' && v !== null) {
+            if (seen.has(v)) return;
+            seen.add(v);
+          }
+          return v;
+        });
+      })();
+      const res = await fetch(`${API_CONFIG.BASE_URL}/speaking-gen/build`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { 'Authorization': `Bearer ${token}` } : {}) },
+        body
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const generatedData = await res.json();
+      setSpeakingReviewData(generatedData);
+    } catch (err) {
+      console.error('Review speaking failed:', err);
+      setSpeakingReviewData(null);
+    } finally {
+      setSpeakingReviewLoading(false);
+    }
+  };
+
   // ------------ Render session header ------------
 
   const renderSessionHeader = () => {
@@ -1705,25 +1796,26 @@ const TestBuilder = () => {
   return (
     <ErrorBoundary>
       <div className="tb-page">
-        <BuilderHeader
-          test={test}
-          onTestChange={updateTest}
-          onSave={() => handleSave({})}
-          onPreview={() => setPreviewMode(true)}
-          onSubmitReview={handleSubmitReview}
-          saving={saving}
-          onShuffle={handleShuffle}
-          shuffling={shuffling}
-          saveMessage={saveMessage}
-          autoSaveEnabled={autoSaveEnabled}
-          onToggleAutoSave={() => setAutoSaveEnabled((prev) => !prev)}
-          onSkillModeChange={handleSkillModeChange}
-          showFormatToolbar={showFormatToolbar}
-          onToggleFormatToolbar={() => setShowFormatToolbar(!showFormatToolbar)}
-          seriesLabel={test.seriesLabel}
-          savedTestId={savedTestId}
-          previewMode={previewMode}
-          onPreviewToggle={async () => {
+          <BuilderHeader
+            test={test}
+            onTestChange={updateTest}
+            onSave={() => handleSave({})}
+            onPreview={() => setPreviewMode(true)}
+            onSubmitReview={handleSubmitReview}
+            saving={saving}
+            onShuffle={handleShuffle}
+            shuffling={shuffling}
+            saveMessage={saveMessage}
+            autoSaveEnabled={autoSaveEnabled}
+            onToggleAutoSave={() => setAutoSaveEnabled((prev) => !prev)}
+            onSkillModeChange={handleSkillModeChange}
+            showFormatToolbar={showFormatToolbar}
+            onToggleFormatToolbar={() => setShowFormatToolbar(!showFormatToolbar)}
+            seriesLabel={test.seriesLabel}
+            savedTestId={savedTestId}
+            previewMode={previewMode}
+            onReviewSpeaking={handleReviewSpeaking}
+            onPreviewToggle={async () => {
             if (hasChangedSinceEntryRef.current && savedTestId) {
               try {
                 await handleSave({});
@@ -1907,6 +1999,15 @@ const TestBuilder = () => {
             skillType={(test?.singleSkill || activeSkill || 'READING').toLowerCase()}
             isVisible={previewMode}
             onClose={() => setPreviewMode(false)}
+          />
+        )}
+
+        {showSpeakingReview && (
+          <SpeakingReviewModal
+            data={speakingReviewData}
+            loading={speakingReviewLoading}
+            onClose={() => setShowSpeakingReview(false)}
+            onRegenerate={handleReviewSpeaking}
           />
         )}
 

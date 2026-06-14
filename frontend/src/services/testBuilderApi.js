@@ -300,8 +300,12 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
     }
 
     // Lọc các part có questionGroups — bỏ qua struct để không mất Part 2/Part 3
+    // Riêng Speaking: luôn giữ tất cả 4 part (Part 0-3) kể cả rỗng
     const partPayloads = realParts
-      .filter(part => (part.questionGroups ?? []).length > 0)
+      .filter(part => {
+        if (skillKey === 'SPEAKING') return true;
+        return (part.questionGroups ?? []).length > 0;
+      })
       .map((part) => {
       const structPart = structPartByOrder[part.orderIndex];
 
@@ -811,6 +815,7 @@ function serializeGroupContent(group, part, sessions) {
   if (ct === 'SPEAKING_PART0') {
     return group.passageText || JSON.stringify({
       includeWarmUp: true,
+      warmUpQuestions: [],
       optionalFrameCount: 2,
       mandatoryQuestionCount: 5,
       optionalQuestionCount: 4,
@@ -1212,6 +1217,29 @@ export function parseLoadedTest(data) {
         questionGroups: [],
       });
     }
+
+    // Luôn đảm bảo Speaking có đủ Part 1, 2, 3
+    const REQUIRED_SPEAKING_PARTS = [
+      { orderIndex: 1, name: 'Part 1 – Introduction & Interview', totalQuestions: 13,
+        instructions: 'Giám khảo hỏi về bản thân, gia đình, sở thích (4-5 phút)' },
+      { orderIndex: 2, name: 'Part 2 – Long Turn (Cue Card)', totalQuestions: 1,
+        instructions: 'Nói về chủ đề cho sẵn trong 1-2 phút sau 1 phút chuẩn bị' },
+      { orderIndex: 3, name: 'Part 3 – Two-way Discussion', totalQuestions: 4,
+        instructions: 'Thảo luận sâu hơn về chủ đề trong Part 2 (4-5 phút)' },
+    ];
+    for (const required of REQUIRED_SPEAKING_PARTS) {
+      if (!speakingParts.some(p => p.orderIndex === required.orderIndex)) {
+        speakingParts.push({
+          id: nextId++,
+          orderIndex: required.orderIndex,
+          name: required.name,
+          totalQuestions: required.totalQuestions,
+          instructions: required.instructions,
+          questionGroups: [],
+        });
+      }
+    }
+    speakingParts.sort((a, b) => a.orderIndex - b.orderIndex);
 
     // Resolve Part 2 ↔ Part 3 links — clear stale ID trước, resolve sau
     const allSpeakingGroups = speakingParts.flatMap(p => p.questionGroups || []);

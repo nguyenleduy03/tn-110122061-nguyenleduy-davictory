@@ -7,7 +7,9 @@
 #   ./manage.sh stop backend    → Stop riêng
 #   ./manage.sh log ai-writing  → Xem log
 #   ./manage.sh log chroma      → Xem log ChromaDB
+#   ./manage.sh build backend   → Build backend
 #   ./manage.sh build frontend  → Build frontend
+#   ./manage.sh bebuild         → Build backend (shortcut)
 #   ./manage.sh febuild         → Build frontend (shortcut)
 # ===============================================================
 set -uo pipefail
@@ -153,8 +155,22 @@ start_svc() {
       cd "$dir"
       nohup "$runner" spring-boot:run > "$(_log_file "$svc")" 2>&1 &
       echo $! > "$(_pid_file "$svc")"
-      sleep 2
-      if _running "$svc"; then _ok "$name sẵn sàng (PID: $(cat "$(_pid_file "$svc")"))"; else _err "$name khởi động thất bại"; return 1; fi
+      echo -e "  ${YELLOW}→${NC} Đợi backend khởi động..."
+      local waited=0
+      local health_url="http://localhost:${port}/api/test-structure/sessions?testType=ACADEMIC"
+      while true; do
+        if _running "$svc" && curl -sf -o /dev/null "$health_url" 2>/dev/null; then
+          break
+        fi
+        waited=$((waited + 1))
+        if [ $waited -ge 120 ]; then
+          _err "$name khởi động quá lâu (>120s)"
+          return 1
+        fi
+        sleep 1
+      done
+      sleep 3
+      _ok "$name sẵn sàng (PID: $(cat "$(_pid_file "$svc")"), ~${waited}s)"
       ;;
     frontend)
       local dir; dir=$(_dir "$svc")
@@ -219,6 +235,22 @@ start_svc() {
       fi
       ;;
   esac
+}
+
+# Build backend production
+build_backend() {
+  local dir; dir=$(_dir "backend")
+  local runner; runner=$(_maven_runner "backend")
+  [[ -z "$runner" ]] && { _err "Maven không tìm thấy"; return 1; }
+  cd "$dir"
+  echo -e "  Building backend..."
+  "$runner" clean package -DskipTests 2>&1 | tail -20
+  if [[ $? -eq 0 ]]; then
+    echo -e "  ${GREEN}✓${NC} Build backend hoàn tất"
+  else
+    _err "Build backend thất bại"
+    return 1
+  fi
 }
 
 # Build frontend production
@@ -325,9 +357,10 @@ menu() {
     echo "    [2] Dừng tất cả"
     echo "    [3] Khởi động lại tất cả"
     echo "    [4] Build frontend"
-    echo "    [5] Build AI test frontend"
-    echo "    [6] Start all AI (compose up)"
-    echo "    [7] Stop all AI (compose down)"
+    echo "    [5] Build backend"
+    echo "    [6] Build AI test frontend"
+    echo "    [7] Start all AI (compose up)"
+    echo "    [8] Stop all AI (compose down)"
     echo ""
     for pair in "b:backend" "f:frontend" "w:ai-writing" "p:ai-speaking" "c:chroma" "r:redis"; do
       local key="${pair%%:*}"
@@ -364,9 +397,10 @@ menu() {
          for s in backend frontend ai-writing chroma; do start_svc "$s"; done
          _docker_service restart ai-speaking redis 2>&1 ;;
       4) build_frontend ;;
-      5) build_ai_frontend ;;
-      6) _docker_service up -d --build ai-speaking redis ;;
-      7) _docker_service stop ai-speaking redis ;;
+      5) build_backend ;;
+      6) build_ai_frontend ;;
+      7) _docker_service up -d --build ai-speaking redis ;;
+      8) _docker_service stop ai-speaking redis ;;
       Sb) stop_svc backend;;        Rb) stop_svc backend; sleep 1; start_svc backend;;
       Sf) stop_svc frontend;;       Rf) stop_svc frontend; sleep 1; start_svc frontend;;
       Sw) stop_svc ai-writing;;     Rw) stop_svc ai-writing; sleep 1; start_svc ai-writing;;
@@ -442,6 +476,7 @@ else
     build)
       [[ $# -eq 0 ]] && { echo "Usage: $0 build <service>"; exit 1; }
       case $1 in
+        backend) build_backend ;;
         frontend) build_frontend ;;
         ai-test-frontend) build_ai_frontend ;;
         ai-frontend) build_ai_frontend ;;
@@ -458,6 +493,9 @@ else
           ;;
       esac
       ;;
+    bebuild)
+      build_backend
+      ;;
     febuild)
       build_frontend
       ;;
@@ -465,7 +503,7 @@ else
       build_ai_frontend
       ;;
     *)
-      echo "Usage: $0 [status|start|stop|restart|log|build|febuild|aibuild] [service...]"
+      echo "Usage: $0 [status|start|stop|restart|log|build|bebuild|febuild|aibuild] [service...]"
       echo ""
       echo "  Services: backend frontend ai-writing ai-speaking chroma redis"
       exit 1

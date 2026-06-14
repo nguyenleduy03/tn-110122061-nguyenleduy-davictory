@@ -41,6 +41,10 @@ public class SpeakingRecording {
     @Column
     private Long fileSizeBytes; // Kích thước file (bytes)
 
+    @Column
+    private Long generatedQuestionId;
+    // FK → speaking_generated_questions.id (nullable, null cho data cũ)
+
     @Column(length = 10)
     private String recordingPart;
     // PART1, PART2, PART3 (xác định đây là file của phần nào)

@@ -1,5 +1,6 @@
 package com.victory.DAVictory.entity;
 
+import com.victory.DAVictory.config.StringListConverter;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -8,9 +9,14 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
-@Table(name = "speaking_frames")
+@Table(name = "speaking_frames", indexes = {
+    @Index(name = "idx_frame_is_active", columnList = "isActive"),
+    @Index(name = "idx_frame_type_active", columnList = "frameType, isActive")
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -21,13 +27,14 @@ public class SpeakingFrame {
     private Long id;
 
     @Column(nullable = false, length = 100)
-    private String name; // e.g., "Home", "Work", "Music"
+    private String name;
 
     @Column(nullable = false, length = 20)
-    private String frameType; // "MANDATORY" or "OPTIONAL"
+    private String frameType;
 
+    @Convert(converter = StringListConverter.class)
     @Column(columnDefinition = "JSON")
-    private String questions; // JSON array of strings containing the questions
+    private List<String> questions = new ArrayList<>();
 
     @Column(nullable = false)
     private Boolean isActive = true;

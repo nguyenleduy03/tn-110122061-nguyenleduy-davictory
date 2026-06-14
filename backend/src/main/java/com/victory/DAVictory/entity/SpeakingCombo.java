@@ -1,5 +1,6 @@
 package com.victory.DAVictory.entity;
 
+import com.victory.DAVictory.config.StringListConverter;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -8,9 +9,13 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
-@Table(name = "speaking_combos")
+@Table(name = "speaking_combos", indexes = {
+    @Index(name = "idx_combo_is_active", columnList = "isActive")
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -21,21 +26,22 @@ public class SpeakingCombo {
     private Long id;
 
     @Column(nullable = false, length = 200)
-    private String title; // Title for admin management (e.g., "Combo: A memorable journey")
+    private String title;
 
-    // --- Part 2 Data ---
     @Column(nullable = false, columnDefinition = "TEXT")
     private String cueCardPrompt;
 
+    @Convert(converter = StringListConverter.class)
     @Column(columnDefinition = "JSON")
-    private String bulletPoints; // JSON array of strings
+    private List<String> bulletPoints = new ArrayList<>();
 
+    @Convert(converter = StringListConverter.class)
     @Column(columnDefinition = "JSON")
-    private String followUpQuestions; // JSON array of strings
+    private List<String> followUpQuestions = new ArrayList<>();
 
-    // --- Part 3 Data ---
+    @Convert(converter = StringListConverter.class)
     @Column(columnDefinition = "JSON")
-    private String part3Questions; // JSON array of strings
+    private List<String> part3Questions = new ArrayList<>();
 
     @Column(nullable = false)
     private Boolean isActive = true;

@@ -31,7 +31,7 @@ export const TYPE_META = {
   SHARED_OPTIONS_DROPDOWN:{ label: 'Dropdown chung',       bg: '#e0f2fe', color: '#0369a1' },
   WRITING_TASK:           { label: 'Writing',              bg: '#fef9c3', color: '#a16207' },
   SPEAKING_INTERVIEW:     { label: 'Part 1 - Interview',  bg: '#fce7f3', color: '#be185d' },
-  SPEAKING_CUECARD:       { label: 'Part 2 - Cue Card',   bg: '#fdf4ff', color: '#7e22ce' },
+  SPEAKING_CUECARD:       { label: 'Part 2+3',           bg: '#fdf4ff', color: '#7e22ce' },
   SPEAKING_DISCUSSION:    { label: 'Part 3 - Discussion', bg: '#ede9fe', color: '#6d28d9' },
   SPEAKING_PART1:         { label: 'Speaking Part 1',      bg: '#dbeafe', color: '#1e40af' },
   SPEAKING_PART2:         { label: 'Speaking Part 2',      bg: '#fef3c7', color: '#b45309' },

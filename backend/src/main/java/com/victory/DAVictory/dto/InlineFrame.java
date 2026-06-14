@@ -14,5 +14,5 @@ public class InlineFrame {
     private String frameType;  // MANDATORY / OPTIONAL
     private String profile;    // STUDENT / WORK / BOTH (cho mandatory)
     private List<String> questions;
-    private int randomCount;
+    private Integer randomCount;
 }

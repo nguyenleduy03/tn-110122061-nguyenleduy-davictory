@@ -35,6 +35,7 @@ com/victory/DAVictory/repository/TeacherProfileRepository.class
 com/victory/DAVictory/dto/TestSaveRequest$AnswerSave.class
 com/victory/DAVictory/repository/StudentSkillScoreRepository.class
 com/victory/DAVictory/controller/TestController.class
+com/victory/DAVictory/config/StringListConverter$1.class
 com/victory/DAVictory/dto/TestQuestionGroupRequest.class
 com/victory/DAVictory/enums/TestStatus.class
 com/victory/DAVictory/enums/SkillType.class
@@ -51,6 +52,7 @@ com/victory/DAVictory/entity/GuestExamAttempt.class
 com/victory/DAVictory/dto/AssignmentResponse.class
 com/victory/DAVictory/dto/QuestionGroupRequest$QuestionRequest.class
 com/victory/DAVictory/dto/ExamAttemptSubmitRequest.class
+com/victory/DAVictory/entity/SpeakingGeneratedQuestion.class
 com/victory/DAVictory/dto/LoginRequest.class
 com/victory/DAVictory/entity/SpeakingFrame.class
 com/victory/DAVictory/entity/Assignment.class
@@ -64,6 +66,7 @@ com/victory/DAVictory/entity/QuestionGroup.class
 com/victory/DAVictory/repository/DifficultyLevelRepository.class
 com/victory/DAVictory/entity/QuestionOption.class
 com/victory/DAVictory/dto/TestFullResponse$QuestionResp.class
+com/victory/DAVictory/dto/SpeakingSnapshotRequest$SnapshotQuestion.class
 com/victory/DAVictory/dto/TestFullResponse$SessionResp.class
 com/victory/DAVictory/dto/AIBatchGradingStatusDTO.class
 com/victory/DAVictory/entity/WritingScoringCriteria.class
@@ -124,7 +127,7 @@ com/victory/DAVictory/dto/AIBatchGradingRequestDTO.class
 com/victory/DAVictory/entity/AssignmentSubmission.class
 com/victory/DAVictory/dto/ExamAttemptFilterRequest.class
 com/victory/DAVictory/entity/ClassTeacher.class
-com/victory/DAVictory/service/SpeakingGenerationService$1.class
+com/victory/DAVictory/config/StringListConverter.class
 com/victory/DAVictory/repository/TestStatisticRepository.class
 com/victory/DAVictory/entity/WritingFeedbackTemplate.class
 com/victory/DAVictory/repository/UserRepository.class
@@ -207,6 +210,7 @@ com/victory/DAVictory/repository/WritingScoringCriteriaRepository.class
 com/victory/DAVictory/entity/TestPart.class
 com/victory/DAVictory/repository/TestVersionRepository.class
 com/victory/DAVictory/entity/UserActivityLog.class
+com/victory/DAVictory/repository/SpeakingGeneratedQuestionRepository.class
 com/victory/DAVictory/dto/TestSaveRequest.class
 com/victory/DAVictory/entity/Test.class
 com/victory/DAVictory/dto/AttemptAnswerSave.class
@@ -269,6 +273,7 @@ com/victory/DAVictory/service/FullTestProgressService.class
 com/victory/DAVictory/dto/TestRequest.class
 com/victory/DAVictory/repository/StudentWritingSubmissionRepository.class
 com/victory/DAVictory/dto/TestResponse$SessionSummary.class
+com/victory/DAVictory/dto/SpeakingSnapshotRequest.class
 com/victory/DAVictory/dto/QuestionGroupRequest$AnswerRequest.class
 com/victory/DAVictory/dto/TestResultResponse$QuestionResult.class
 com/victory/DAVictory/repository/MediaFileRepository.class

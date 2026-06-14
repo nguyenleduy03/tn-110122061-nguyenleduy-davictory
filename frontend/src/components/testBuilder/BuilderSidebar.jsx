@@ -62,8 +62,7 @@ const PALETTE_ITEMS = [
   // ── SPEAKING only ──
   { type: 'group', contentType: 'SPEAKING_PART0',       label: 'Part 0 - Cấu hình',      icon: Settings, skills: ['SPEAKING'] },
   { type: 'group', contentType: 'SPEAKING_INTERVIEW',   label: 'Part 1 - Interview',     icon: Mic, skills: ['SPEAKING'] },
-  { type: 'group', contentType: 'SPEAKING_CUECARD',     label: 'Part 2 - Cue Card',      icon: Mic, skills: ['SPEAKING'] },
-  { type: 'group', contentType: 'SPEAKING_DISCUSSION',  label: 'Part 3 - Discussion',    icon: Mic, skills: ['SPEAKING'] },
+  { type: 'group', contentType: 'SPEAKING_CUECARD',     label: 'Part 2 & 3 - Cue Card + Discussion', icon: Mic, skills: ['SPEAKING'] },
   // ── CUSTOM (all) ──
   { type: 'group', contentType: 'CUSTOM',              label: 'Tự thiết kế (Custom)',    icon: ClipboardList, skills: ['READING', 'LISTENING', 'WRITING', 'SPEAKING'] },
 ];
@@ -89,8 +88,7 @@ const TYPE_META = {
   WRITING_TASK:          { label: 'WT', bg: '#fef9c3', color: '#a16207' },
   SPEAKING_PART0:        { label: 'P0', bg: '#fff7ed', color: '#c2410c' },
   SPEAKING_INTERVIEW:    { label: 'P1', bg: '#fce7f3', color: '#be185d' },
-  SPEAKING_CUECARD:      { label: 'P2', bg: '#fdf4ff', color: '#7e22ce' },
-  SPEAKING_DISCUSSION:   { label: 'P3', bg: '#ede9fe', color: '#6d28d9' },
+  SPEAKING_CUECARD:      { label: 'P2+3', bg: '#fdf4ff', color: '#7e22ce' },
   MATCHING_FEATURES:     { label: 'MF', bg: '#f3e8ff', color: '#7c3aed' },
   CUSTOM:                { label: 'CT', bg: '#fff7ed', color: '#c2410c' },
 };
@@ -103,7 +101,6 @@ const PALETTE_ORDER = {
   SPEAKING_PART0: 14,
   SPEAKING_INTERVIEW: 15,
   SPEAKING_CUECARD: 16,
-  SPEAKING_DISCUSSION: 17,
   MATCHING_HEADING: 20,
   MATCHING_FEATURES: 21,
   MATCHING_FILLABLE: 22,
