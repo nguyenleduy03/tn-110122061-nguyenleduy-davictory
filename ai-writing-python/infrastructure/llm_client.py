@@ -83,16 +83,20 @@ class GroqClient:
             try:
                 resp = await client.chat.completions.create(
                     model=model,
-                    temperature=temperature if temperature is not None else self.settings.groq_temperature,
-                    max_tokens=(max_tokens if max_tokens is not None else self.settings.groq_max_tokens) or None,
+                    temperature=temperature if temperature is not None else self.settings.nvidia_temperature,
+                    max_tokens=(max_tokens if max_tokens is not None else self.settings.nvidia_max_tokens) or None,
+                    timeout=30,
                     messages=[
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": user_prompt},
                     ],
                 )
                 usage = resp.usage
+                content = resp.choices[0].message.content
+                if not content:
+                    raise AIProviderError(f"Model {model} returned empty response. Thử lại với model khác.")
                 return LLMResponse(
-                    content=resp.choices[0].message.content or "",
+                    content=content,
                     model=resp.model,
                     prompt_tokens=usage.prompt_tokens if usage else 0,
                     completion_tokens=usage.completion_tokens if usage else 0,

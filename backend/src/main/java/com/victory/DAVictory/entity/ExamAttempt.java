@@ -78,6 +78,10 @@ public class ExamAttempt {
     @Column(length = 50)
     private String attemptType; // FULL_TEST, SINGLE_SKILL, PRACTICE_FULL_TEST, PRACTICE_SINGLE_SKILL, CUSTOM
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "exam_id")
+    private Exam exam;
+
     @Column(nullable = false)
     private Boolean isActive = true;
 

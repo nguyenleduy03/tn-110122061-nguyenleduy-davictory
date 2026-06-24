@@ -3113,11 +3113,11 @@
     flex: 1;
     overflow-y: auto;
     display: flex;
-    justify-content: center;
+    flex-direction: column;
     align-items: center;
+    justify-content: center;
     padding: var(--spk-space-2xl);
     background: #eef1f4;
-    min-height: calc(100vh - 200px);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -3252,20 +3252,19 @@
 .spk-intro-instructions {
     display: flex;
     flex-direction: column;
-    gap: 14px;
-    width: min(var(--spk-content-max-width), var(--spk-content-width-ratio));
-    margin: 0 auto;
-    font-size: clamp(16px, 1.35vw, 30px);
-    line-height: 1.45;
-    color: #244c74;
-    font-weight: 700;
-    max-width: 100%;
-    margin: 0 auto;
+    gap: 16px;
+    width: fit-content !important;
+    max-width: 800px;
+    margin: 30px auto !important;
+    font-size: 20px !important;
+    line-height: 1.6;
+    color: #374151;
+    font-weight: 500;
     padding: 0;
     background: transparent;
     border-radius: 0;
     border-left: none;
-    text-align: center;
+    text-align: left !important;
 }
 
 .spk-intro-instruction-part {
@@ -3352,13 +3351,13 @@
     border-radius: var(--spk-radius-sm);
     padding: var(--spk-space-lg) 18px;
     width: 100%;
-    font-size: 16px;
+    font-size: 22px;
     line-height: 1.75;
     box-shadow: none;
 }
 
 .spk-cuecard-topic {
-    font-size: 18px;
+    font-size: 26px;
     font-weight: 700;
     color: #0f172a;
     margin-bottom: var(--spk-space-lg);
@@ -3366,7 +3365,7 @@
 }
 
 .spk-cuecard-label {
-    font-size: 15px;
+    font-size: 17px;
     font-weight: 600;
     color: #334155;
     margin: var(--spk-space-md) 0 var(--spk-space-sm);
@@ -3802,27 +3801,52 @@
 }
 
 .spk-intro-section-title {
-    margin: 0;
-    font-size: clamp(16px, 2.2vw, 30px);
+    margin: 0 0 16px 0;
+    font-size: 22px;
     font-weight: 700;
-    color: #c56682;
+    color: #c0001c;
     letter-spacing: 0.02em;
-    text-align: center;
+    text-align: center !important;
+    text-transform: uppercase;
+}
+
+.spk-intro-instruction {
+    font-size: inherit !important;
+    line-height: inherit !important;
+    text-align: left !important;
+    display: block !important;
+    margin: 0 auto !important;
 }
 
 .spk-intro-instruction p,
 .spk-intro-instruction div,
+.spk-intro-instruction span,
 .spk-intro-instruction h1,
 .spk-intro-instruction h2,
 .spk-intro-instruction h3,
 .spk-intro-instruction h4,
 .spk-intro-instruction h5,
-.spk-intro-instruction h6,
+.spk-intro-instruction h6 {
+    margin: 0 !important;
+    text-align: left !important;
+    font-size: inherit !important;
+    line-height: inherit !important;
+    display: block !important;
+}
+
 .spk-intro-instruction ul,
-.spk-intro-instruction ol,
+.spk-intro-instruction ol {
+    display: inline-block !important;
+    text-align: left !important;
+    padding-left: 2em;
+    font-size: 0.85em !important;
+    margin: 1em auto !important;
+}
+
 .spk-intro-instruction li {
-    margin: 0;
-    text-align: center;
+    display: list-item !important;
+    text-align: left !important;
+    margin-bottom: 0.5em;
 }
 
 .spk-intro-instruction>*+* {
@@ -4112,7 +4136,7 @@
     margin: 0 0 6px;
     transform: translateY(-60px);
     color: #244c74;
-    font-size: clamp(24px, 4vw, 40px);
+    font-size: clamp(20px, 3vw, 32px);
     line-height: 1.05;
     font-weight: 700;
     text-transform: uppercase;
@@ -4176,7 +4200,7 @@
     max-width: 860px;
     text-align: center;
     color: #374151;
-    font-size: clamp(20px, 1.45vw, 28px);
+    font-size: clamp(16px, 1.4vw, 20px);
     line-height: 1.45;
 }
 
@@ -4646,8 +4670,8 @@
     }
 
     .spk-intro-instruction {
-        font-size: 18px;
-        line-height: 1.4;
+        font-size: 22px;
+        line-height: 1.5;
     }
 
     .spk-part-status-row {
@@ -4792,11 +4816,11 @@
 
 /* ── Speaking Stability Overrides (kept with Speaking section) ─────────── */
 .spk-intro-title {
-    font-size: clamp(20px, 2.2vw, 25px);
+    font-size: 18px;
     font-weight: 700;
     text-transform: uppercase;
     color: #244c74;
-    text-align: center;
+    text-align: center !important;
     margin: 0;
     line-height: 1.2;
 }
@@ -4820,6 +4844,7 @@
 .spk-intro-title.spk-intro-title-rich h5,
 .spk-intro-title.spk-intro-title-rich h6 {
     margin: 0;
+    text-align: center;
 }
 
 .spk-intro-title.spk-intro-title-rich ul,
@@ -8046,4 +8071,142 @@ body.text-size-xlarge .options-fs-overlay {
 .icon-btn--active {
     background-color: rgba(0, 0, 0, 0.08);
     border-radius: 6px;
+}
+/* --- Refined Speaking Test UI --- */
+
+.spk-progress-container {
+  width: 100%;
+  height: 6px;
+  background: #e5e7eb;
+  border-radius: 3px;
+  margin: 20px 0;
+  overflow: hidden;
+}
+
+.spk-progress-bar {
+  height: 100%;
+  background: #2563eb;
+  transition: width 0.3s ease;
+}
+
+.spk-thinking-spinner-wrap {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  padding: 12px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  z-index: 10;
+  border: 1px solid #f3f4f6;
+}
+
+.spk-part-header {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  min-height: 72px;
+  width: 100%;
+  padding: 0 12px;
+}
+
+.spk-thinking-timer-header {
+  position: absolute;
+  left: 50%;
+  top: 70%;
+  transform: translate(-50%, -50%) scale(1.1); /* Larger and more prominent */
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+}
+
+.spk-part-title-banner {
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #4b5563; /* Darker for better visibility */
+  margin: 0 !important;
+  text-align: left;
+}
+
+.spk-next-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px !important; /* Smaller button to balance with title */
+  font-size: 13px !important;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: #fff;
+  background: #c0001c;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(192, 0, 28, 0.15);
+}
+
+.spk-part-question-label {
+  font-size: 13px; /* Reduced from default */
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.spk-question-display-wrap {
+  position: relative;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+/* Fix for Part 2/Cue card instruction size */
+.spk-cuecard-container {
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+
+
+/* --- Mic Active Animation --- */
+.spk-mic-active {
+  animation: spk-mic-pulse 1.5s infinite;
+}
+
+@keyframes spk-mic-pulse {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.15); opacity: 0.8; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.spk-timer-urgent {
+    color: #dc2626 !important;
+    animation: spk-timer-flash 1s infinite;
+    font-weight: 700 !important;
+}
+
+@keyframes spk-timer-flash {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+/* --- Circle Countdown Animation --- */
+@keyframes spk-circle-countdown {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: 163.36; }
 }

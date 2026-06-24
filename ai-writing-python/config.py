@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     groq_api_key: str = ""
     groq_api_key_2: str = ""
     groq_base_url: str = "https://api.groq.com"
-    groq_model: str = "llama-3.3-70b-versatile"
+    groq_model: str = "qwen/qwen3-32b"
     groq_temperature: float = 0.1
     groq_max_tokens: int = 0
 
@@ -60,6 +60,7 @@ class Settings(BaseSettings):
     few_shot_count: int = 1
     max_essay_length: int = 4000
 
+
     @property
     def db_url(self) -> str:
         return f"mysql+aiomysql://{self.db_user}:{self.db_password}@{self.db_host}:{self.db_port}/{self.db_name}"
@@ -67,6 +68,18 @@ class Settings(BaseSettings):
     @property
     def groq_api_keys(self) -> list[str]:
         return [k for k in [self.groq_api_key, self.groq_api_key_2] if k]
+
+
+MODEL_CONTEXT: dict[str, dict] = {
+    "qwen/qwen3-32b": {"context_window": 131072, "max_completion": 40960, "tpm_limit": 300000},
+    "llama-3.1-8b-instant": {"context_window": 131072, "max_completion": 131072, "tpm_limit": 12000},
+    "openai/gpt-oss-120b": {"context_window": 131072, "max_completion": 65536, "tpm_limit": 8000},
+    "nvidia/llama-3.1-nemotron-70b-instruct": {"context_window": 131072, "max_completion": 32768, "tpm_limit": 12000},
+}
+
+TOKEN_BUFFER: int = 1000
+MAX_TOTAL_TOKENS: int = 12000
+MIN_COMPLETION_TOKENS: int = 1500
 
 
 @lru_cache

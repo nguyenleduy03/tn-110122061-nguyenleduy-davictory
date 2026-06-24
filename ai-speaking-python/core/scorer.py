@@ -7,7 +7,7 @@ from pathlib import Path
 from statistics import stdev
 
 from loguru import logger
-from infrastructure.llm_client import OpenAIClient, AIProviderError
+from infrastructure.llm_client import OpenAIClient, NvidiaClient, GroqClient, AIProviderError
 from models.scoring import SpeakingResult, CriteriaScore
 from models.analysis import FeatureAnalysis, PronunciationResult
 from models.session import SpeakingTurn
@@ -18,8 +18,13 @@ _HERE = Path(__file__).parent.parent
 
 
 class ScoringPipeline:
-    def __init__(self):
-        self.llm = OpenAIClient()
+    def __init__(self, provider: str = "nvidia"):
+        if provider == "nvidia":
+            self.llm = NvidiaClient()
+        elif provider == "groq":
+            self.llm = GroqClient()
+        else:
+            self.llm = OpenAIClient()
 
     async def evaluate(self, session_id: str, user_id: str, turns: list[SpeakingTurn],
                        features: FeatureAnalysis, pronunciation: PronunciationResult,

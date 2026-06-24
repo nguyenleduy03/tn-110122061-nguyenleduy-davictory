@@ -16,9 +16,9 @@ services:
     build:
       context: ./ai-speaking-python
       dockerfile: Dockerfile
-    command: uvicorn main:app --host 0.0.0.0 --port 5183 --workers 2
+    command: uvicorn main:app --host 0.0.0.0 --port 5181 --workers 1
     ports:
-      - "5183:5183"
+      - "5181:5181"
     env_file:
       - ./ai-speaking-python/.env
     environment:

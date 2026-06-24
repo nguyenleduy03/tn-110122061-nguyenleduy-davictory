@@ -221,6 +221,40 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/files/upload").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/files/**").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
 
+                        // ===== AGENT UPLOADS (public, proxied to Python) =====
+                        .requestMatchers(HttpMethod.GET, "/api/agent/uploads/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/agent/report/export-pdf").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/agent/posts").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/agent/posts/*").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/agent/posts-list").permitAll()
+
+                        // ===== AGENT =====
+                        .requestMatchers(HttpMethod.POST, "/api/agent/query").hasAnyRole("MANAGER", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/agent/agents").hasAnyRole("MANAGER", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/agent/sessions/*/progress").hasAnyRole("MANAGER", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/agent/sessions/*/tasks").hasAnyRole("MANAGER", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/agent/sessions/*/stream").hasAnyRole("MANAGER", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/agent/posts").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/agent/posts/*").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/agent/posts/*/publish").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/agent/posts/*").hasAnyRole("MANAGER", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/agent/config").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/agent/config/*").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/agent/actions/pending").hasAnyRole("MANAGER", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/agent/actions/*/approve").hasAnyRole("MANAGER", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/agent/actions/*/reject").hasAnyRole("MANAGER", "ADMIN")
+
+                        // ===== CATEGORIES =====
+                        .requestMatchers(HttpMethod.GET, "/api/agent/categories").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/agent/categories").hasAnyRole("MANAGER", "ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/agent/categories/**").hasAnyRole("MANAGER", "ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/agent/categories/**").hasAnyRole("MANAGER", "ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/agent/posts/*/category").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/agent/posts/*/category").permitAll()
+
+                        // ===== INTERNAL (agent queries, localhost only) =====
+                        .requestMatchers("/api/internal/**").permitAll()
+
                         // ===== ADMIN =====
                         .requestMatchers("/api/admin/drive/**").hasAnyRole("ADMIN", "MANAGER")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
@@ -230,6 +264,18 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/assignments/**").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/assignments/**").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/assignments/**").authenticated()
+
+                        // ===== EXAM =====
+                        .requestMatchers(HttpMethod.POST, "/api/exams").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/exams/**").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/exams/**").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/exams/*/start").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/exams/*/close").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/exams").hasAnyRole("TEACHER", "MANAGER", "ADMIN")
+                        .requestMatchers("/api/exams/available").authenticated()
+                        .requestMatchers("/api/exams/*/verify-password").authenticated()
+                        .requestMatchers("/api/exams/*/check-access").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/exams/*").authenticated()
 
                         // Tất cả các request còn lại: cần đăng nhập
                         .anyRequest().authenticated())

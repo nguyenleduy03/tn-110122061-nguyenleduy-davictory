@@ -3,12 +3,13 @@ import {
   Mic, MessageSquare, Volume2, Play, Send, CheckCircle,
   ChevronRight, StopCircle, BarChart3, RefreshCw, Plus,
   RotateCw, AlertCircle, PlayCircle, Settings, Database,
-  Cpu, Clock, User, ShieldCheck
+  Cpu, Clock, User, ShieldCheck, GraduationCap
 } from 'lucide-react';
 import { speakingApi } from '../api/speakingApi';
 import ResponseViewer from '../components/ResponseViewer';
 import { useHeader } from '../context/HeaderContext';
 import { BandScore, CriterionMeter } from '../components/ScoreDisplay';
+import TeacherSpeakingGrader from '../components/TeacherSpeakingGrader';
 
 export default function Speaking() {
   const [tab, setTab] = useState('chat');
@@ -17,6 +18,7 @@ export default function Speaking() {
   const tabDefs = [
     { key: 'chat', label: 'Practice Session', icon: MessageSquare, onClick: () => setTab('chat') },
     { key: 'tts', label: 'Voice Test', icon: Volume2, onClick: () => setTab('tts') },
+    { key: 'grader', label: 'Chấm Speaking', icon: GraduationCap, onClick: () => setTab('grader') },
     { key: 'admin', label: 'Advanced', icon: Settings, onClick: () => setTab('admin') },
   ];
 
@@ -267,6 +269,10 @@ export default function Speaking() {
             </div>
           )}
         </div>
+      )}
+
+      {tab === 'grader' && (
+        <TeacherSpeakingGrader />
       )}
 
       {tab === 'tts' && (

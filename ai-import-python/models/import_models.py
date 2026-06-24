@@ -96,6 +96,23 @@ class CreateResponse(BaseModel):
     message: str = ""
 
 
+class ParseResponse(BaseModel):
+    task_id: str = ""
+    status: str = ""
+    raw_text: str = ""
+    text_length: int = 0
+    filename: str = ""
+    file_type: str = ""
+    ocr_used: bool = False
+
+
+class StructureRequest(BaseModel):
+    task_id: str
+    text: str
+    skill_hint: str = ""
+    test_type: str = "ACADEMIC"
+
+
 class StatusResponse(BaseModel):
     task_id: str
     status: str

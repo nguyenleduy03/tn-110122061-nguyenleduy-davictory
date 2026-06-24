@@ -160,6 +160,7 @@ const IeltsWritingTest = () => {
     const navigate = useNavigate();
     const isFullTest = searchParams.get('fullTest') === 'true';
     const mode = searchParams.get('mode') || 'practice';
+    const examId = searchParams.get('examId') || null;
     const assignmentId = searchParams.get('assignment');
     const selectedPartsParam = searchParams.get('parts') || '';
     const startPartNumber = Number.parseInt(searchParams.get('startPart') || '', 10);
@@ -679,7 +680,7 @@ const IeltsWritingTest = () => {
                     return ieltsApi.submitGuestAttempt(attemptId, timeTakenSeconds, guestAnswers);
                 }
 
-                return ieltsApi.submitAnswers(testId, 'WRITING', writingPayloadWithDrive, timeTakenSeconds);
+                return ieltsApi.submitAnswers(testId, 'WRITING', writingPayloadWithDrive, timeTakenSeconds, null, examId);
             })
             .then((resp) => {
                 clearDraftByTest('writing', testId);

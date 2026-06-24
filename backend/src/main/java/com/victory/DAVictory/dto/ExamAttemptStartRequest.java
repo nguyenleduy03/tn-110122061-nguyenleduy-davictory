@@ -9,4 +9,5 @@ public class ExamAttemptStartRequest {
     private Long testId;
     private SkillType skillType;
     private Integer timeLimitSeconds;
+    private Long examId;
 }

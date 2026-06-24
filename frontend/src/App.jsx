@@ -55,6 +55,12 @@ const TestApiPage = lazy(() => import('./pages/TestApiPage'))
 const AITestCenter = lazy(() => import('./pages/AITestCenter'))
 const AITestImport = lazy(() => import('./pages/AITestImport'))
 const TestBuilderV2 = lazy(() => import('./pages/TestBuilderV2'))
+const ExamManager = lazy(() => import('./pages/teacher/ExamManager'))
+const StudentExams = lazy(() => import('./pages/student/StudentExams'))
+const AgentWorkspace = lazy(() => import('./pages/AgentWorkspace'))
+const AdminAgents = lazy(() => import('./pages/AdminAgents'))
+const BlogPage = lazy(() => import('./pages/BlogPage'))
+const BlogDetail = lazy(() => import('./pages/BlogDetail'))
 
 function AppContent() {
   useTokenExpiry();
@@ -76,6 +82,8 @@ function AppContent() {
           <Route path="/" element={<HomePage />} />
           <Route path="/test-api" element={<TestApiPage />} />
           <Route path="/exam-library" element={<ExamLibrary />} />
+          <Route path="/blog" element={<BlogPage />} />
+          <Route path="/blog/:id" element={<BlogDetail />} />
 
           {/* Test routes — yêu cầu đăng nhập (STUDENT role) để gọi BE API */}
           <Route path="/test/reading" element={<ProtectedRoute><IeltsReadingTest /></ProtectedRoute>} />
@@ -138,6 +146,10 @@ function AppContent() {
           <Route path="/teacher/assignments/templates" element={<RoleBasedRoute requiredRole="TEACHER"><AssignmentTemplates /></RoleBasedRoute>} />
           <Route path="/teacher/assignments/create" element={<RoleBasedRoute requiredRole="TEACHER"><CreateAssignment /></RoleBasedRoute>} />
 
+          {/* Exam routes */}
+          <Route path="/teacher/exams" element={<RoleBasedRoute requiredRole="TEACHER"><ExamManager /></RoleBasedRoute>} />
+          <Route path="/student/exams" element={<RoleBasedRoute requiredRole="STUDENT"><StudentExams /></RoleBasedRoute>} />
+
           {/* Student assignment routes */}
           <Route path="/student/lms" element={<RoleBasedRoute requiredRole="STUDENT"><StudentLms /></RoleBasedRoute>} />
           <Route path="/student/assignments/:id" element={<RoleBasedRoute requiredRole="STUDENT"><AssignmentDetail /></RoleBasedRoute>} />
@@ -148,6 +160,10 @@ function AppContent() {
           <Route path="/teacher/grade/writing/:id" element={<RoleBasedRoute requiredRole="TEACHER"><GradeWriting /></RoleBasedRoute>} />
           <Route path="/teacher/grade/speaking/:id" element={<RoleBasedRoute requiredRole="TEACHER"><GradeSpeaking /></RoleBasedRoute>} />
           <Route path="/teacher/grade/assignment/:submissionId" element={<RoleBasedRoute requiredRole="TEACHER"><GradeAssignment /></RoleBasedRoute>} />
+
+          {/* Agent Workspace - Unified UI */}
+          <Route path="/agent/*" element={<RoleBasedRoute requiredRole="MANAGER"><AgentWorkspace /></RoleBasedRoute>} />
+          <Route path="/admin/agents" element={<RoleBasedRoute requiredRole="ADMIN"><AdminAgents /></RoleBasedRoute>} />
         </Routes>
       </Suspense>
   )

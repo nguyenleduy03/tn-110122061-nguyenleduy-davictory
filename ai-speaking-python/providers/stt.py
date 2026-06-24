@@ -1,12 +1,12 @@
 """STT & TTS providers for AI Speaking Service."""
 
 from loguru import logger
-from infrastructure.llm_client import OpenAIClient, AIProviderError
+from infrastructure.llm_client import GroqClient, OpenAIClient, AIProviderError
 
 
 class STTProvider:
     def __init__(self):
-        self.client = OpenAIClient()
+        self.client = GroqClient()
 
     async def transcribe(self, audio_data: bytes, filename: str = "audio.webm") -> dict:
         if not audio_data:
@@ -21,11 +21,13 @@ class STTProvider:
 
 class TTSProvider:
     def __init__(self):
-        self.client = OpenAIClient()
+        self.client = GroqClient()
 
-    async def synthesize(self, text: str, voice: str = "alloy") -> bytes:
+    async def synthesize(self, text: str, voice: str = "troy") -> bytes:
         if not text.strip():
             raise ValueError("No text for TTS")
+        if len(text) > 200:
+            raise ValueError("Text exceeds 200 character limit for Groq TTS")
         try:
             audio = await self.client.synthesize(text, voice)
             logger.info(f"TTS: {len(audio)} bytes")

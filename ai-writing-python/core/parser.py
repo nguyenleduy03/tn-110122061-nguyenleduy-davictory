@@ -213,6 +213,8 @@ class ResponseParser:
 
     def _extract_json(self, content: str) -> dict:
         content = content.strip()
+        if not content:
+            raise ParseError("LLM returned empty response—có thể model đang lỗi hoặc request timeout.", content)
         if content.startswith("```json"):
             content = content[7:]
         elif content.startswith("```"):
@@ -224,15 +226,22 @@ class ResponseParser:
             return json.loads(content)
         except json.JSONDecodeError:
             pass
-        # Find JSON object start and try to close if truncated
         m = re.search(r"\{", content, re.DOTALL)
         if m:
             start = m.start()
             json_str = content[start:]
-            # Try parsing as-is, then with progressively more closing braces
-            for i in range(10):
+            for i in range(50):
                 try:
                     return json.loads(json_str + "}" * i)
+                except json.JSONDecodeError:
+                    continue
+            fixed = re.sub(r'(?<=[\[,{])\s*$', '', json_str)
+            fixed = re.sub(r'("(?:\\.|[^"\\])*)$', r'\1"', fixed)
+            fixed = re.sub(r',\s*\}', '\n}', fixed)
+            fixed = re.sub(r',\s*\]', '\n]', fixed)
+            for i in range(50):
+                try:
+                    return json.loads(fixed + "}" * i)
                 except json.JSONDecodeError:
                     continue
         raise ParseError("Cannot extract JSON", content)

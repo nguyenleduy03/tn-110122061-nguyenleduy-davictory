@@ -148,6 +148,7 @@ const IeltsListeningTest = () => {
     const durationOverrideMinutes = Number.parseInt(searchParams.get('duration') || '', 10);
     const noTimeLimit = searchParams.get('noTimeLimit') === 'true' || searchParams.get('duration') === '0';
     const allowReviewInExam = mode === 'exam' ? searchParams.get('allowReview') !== 'false' : false;
+    const examId = searchParams.get('examId') || null;
     const selectedPracticeParts = useMemo(() => {
         return Array.from(new Set(
             selectedPartsParam
@@ -983,7 +984,7 @@ const IeltsListeningTest = () => {
                 matchingAnswer: Array.isArray(ans) ? JSON.stringify(ans) : null,
                 isFlagged: bookmarks[qId] || false
             })))
-            : ieltsApi.submitAnswers(testId, 'LISTENING', answers, timeSpentSeconds, testData);
+            : ieltsApi.submitAnswers(testId, 'LISTENING', answers, timeSpentSeconds, testData, examId);
 
         submitPromise
             .then((resp) => {

@@ -7,14 +7,18 @@ import logoImage from '../../../logo.png';
 const NAV_ITEMS = [
   { label: 'Trang chủ', path: '/' },
   { label: 'Thư viện đề thi', path: '/exam-library' },
-  { label: 'IELTS Tips', path: '/tips' },
+  { label: 'IELTS Tips', path: '/blog' },
   { label: 'IELTS Prep', path: '/prep' },
   { label: 'Khóa học IELTS', path: '/courses' },
   { label: 'Học trực tiếp', path: '/live' },
 ];
 
 const STUDENT_NAV_ITEMS = [
-  { label: 'Bài tập của tôi', path: '/student/lms' },
+  { label: 'LMS', path: '/student/lms' },
+];
+
+const AGENT_NAV_ITEMS = [
+  { label: 'AI Workspace', path: '/agent/chat' },
 ];
 
 const normalizeRoles = (roles) => {
@@ -28,10 +32,14 @@ const isTeacherOrAbove = (roles) => {
   return ['ADMIN', 'MANAGER', 'TEACHER'].some((r) => rolesArray.includes(r));
 };
 
+const isManagerOrAbove = (roles) => {
+  const rolesArray = normalizeRoles(roles);
+  return ['ADMIN', 'MANAGER'].some((r) => rolesArray.includes(r));
+};
+
 const getWorkspaceLabel = (isAdmin, isManager) => {
   if (isAdmin) return 'Quản trị';
-  if (isManager) return 'Bảng quản lý';
-  return 'LMS giảng viên';
+  return 'LMS';
 };
 
 const Navbar = () => {
@@ -116,15 +124,16 @@ const Navbar = () => {
                   {item.label}
                 </Link>
               ))}
-              {user && isStudent && (
+              {user && isStudent && STUDENT_NAV_ITEMS.map((item) => (
                 <Link
-                  to="/student/lms"
-                  className={`mobile-nav-link${location.pathname.startsWith('/student') ? ' active' : ''}`}
+                  key={item.path}
+                  to={item.path}
+                  className={`mobile-nav-link${location.pathname.startsWith(item.path) ? ' active' : ''}`}
                   onClick={() => setMobileMenuOpen(false)}
                 >
-                  LMS
+                  {item.label}
                 </Link>
-              )}
+              ))}
               {user && isTeacherOrAbove(user.roles) && (
                 <Link
                   to={isAdmin ? '/admin' : (isManager ? '/manager' : '/lms/teacher')}
@@ -138,6 +147,21 @@ const Navbar = () => {
                 >
                   {getWorkspaceLabel(isAdmin, isManager)}
                 </Link>
+              )}
+              {user && isManagerOrAbove(user.roles) && (
+                <div className="mobile-nav-section">
+                  <div className="mobile-nav-section-title">AI Agent</div>
+                  {AGENT_NAV_ITEMS.map((item) => (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      className={`mobile-nav-link${location.pathname.startsWith(item.path) ? ' active' : ''}`}
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </div>
               )}
             </div>
           </div>
@@ -154,15 +178,16 @@ const Navbar = () => {
               <ChevronDown size={13} />
             </Link>
           ))}
-          {user && isStudent && (
+          {user && isStudent && STUDENT_NAV_ITEMS.map((item) => (
             <Link
-              to="/student/lms"
-              className={`nav-link${location.pathname.startsWith('/student') ? ' nav-link-active' : ''}`}
+              key={item.path}
+              to={item.path}
+              className={`nav-link${location.pathname.startsWith(item.path) ? ' nav-link-active' : ''}`}
             >
-              LMS
+              {item.label}
               <ChevronDown size={13} />
             </Link>
-          )}
+          ))}
           {user && isTeacherOrAbove(user.roles) && (
             <Link
               to={isAdmin ? '/admin' : (isManager ? '/manager' : '/lms/teacher')}
@@ -176,6 +201,15 @@ const Navbar = () => {
               <ChevronDown size={13} />
             </Link>
           )}
+          {user && isManagerOrAbove(user.roles) && AGENT_NAV_ITEMS.map((item) => (
+            <Link
+              key={item.path}
+              to={item.path}
+              className={`nav-link${location.pathname.startsWith(item.path) ? ' nav-link-active' : ''}`}
+            >
+              {item.label}
+            </Link>
+          ))}
         </div>
 
         <div className="nav-actions">
@@ -210,12 +244,12 @@ const Navbar = () => {
                       <span>Thông tin cá nhân</span>
                     </Link>
 
-                    {isStudent && (
-                      <Link to="/student/lms" className="user-dropdown-item">
+                    {isStudent && STUDENT_NAV_ITEMS.map((item) => (
+                      <Link key={item.path} to={item.path} className="user-dropdown-item">
                         <FilePlus size={16} />
-                        <span>LMS</span>
+                        <span>{item.label}</span>
                       </Link>
-                    )}
+                    ))}
 
                     {isTeacherOrAbove(user.roles) && (
                       <Link to={isAdmin ? '/admin' : (isManager ? '/manager' : '/lms/teacher')} className="user-dropdown-item">
@@ -223,6 +257,12 @@ const Navbar = () => {
                         <span>{isAdmin ? 'Quản trị hệ thống' : getWorkspaceLabel(isAdmin, isManager)}</span>
                       </Link>
                     )}
+                    {isManagerOrAbove(user.roles) && AGENT_NAV_ITEMS.map((item) => (
+                      <Link key={item.path} to={item.path} className="user-dropdown-item">
+                        <FilePlus size={16} />
+                        <span>AI Agent: {item.label}</span>
+                      </Link>
+                    ))}
 
                     <Link to="/settings" className="user-dropdown-item">
                       <Settings size={16} />

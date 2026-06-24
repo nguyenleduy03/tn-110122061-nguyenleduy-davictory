@@ -24,6 +24,7 @@ import PropertiesPanel from '../components/testBuilder/PropertiesPanel';
 import ErrorBoundary from '../components/common/ErrorBoundary';
 import VersionHistoryModal from '../components/common/VersionHistoryModal';
 import SpeakingReviewModal from '../components/testBuilder/SpeakingReviewModal';
+import AIImportModal from '../components/ai/AIImportModal';
 import { testBuilderApi, buildSavePayload, parseLoadedTest } from '../services/testBuilderApi';
 import { authApi } from '../services/authApi';
 import { API_CONFIG } from '../config/api';
@@ -271,6 +272,7 @@ const TestBuilder = () => {
   const [showExitWarning, setShowExitWarning] = useState(false);
   const [showVersionHistory, setShowVersionHistory] = useState(false);
   const [showSpeakingReview, setShowSpeakingReview] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [speakingReviewData, setSpeakingReviewData] = useState(null);
   const [speakingReviewLoading, setSpeakingReviewLoading] = useState(false);
   const pendingNavigationRef = useRef(null);
@@ -539,7 +541,7 @@ const TestBuilder = () => {
     }
   };
 
-  const addGroup = (part, contentType = 'STANDALONE') => {
+  const addGroup = (part, contentType = 'READING_PASSAGE') => {
     // Ràng buộc: MATCHING_HEADING chỉ được thêm khi part đã có READING_PASSAGE với multiParagraph = true
     if (contentType === 'MATCHING_HEADING') {
       const hasMultiPassage = (part.questionGroups ?? []).some(
@@ -1378,8 +1380,7 @@ const TestBuilder = () => {
         const partId = Number(overData.partId);
         const part = parts.find((p) => p.id === partId);
         if (part) {
-          // Don't allow dropping READING_PASSAGE into question pane
-          const ct = activeData.contentType === 'READING_PASSAGE' ? 'STANDALONE' : activeData.contentType;
+          const ct = activeData.contentType === 'READING_PASSAGE' ? 'READING_PASSAGE' : activeData.contentType;
           const finalCt = activeData.contentType === 'SPEAKING_CUECARD' ? 'SPEAKING_PART2' : ct;
           const newGroup = addGroup(part, finalCt);
           if (newGroup && finalCt === 'SPEAKING_PART2') {
@@ -1793,8 +1794,21 @@ const TestBuilder = () => {
     );
   }
 
+  const handleImportConfirm = (testId) => {
+    setShowImportModal(false);
+    if (testId) {
+      navigate(`/teacher/tests/${testId}/edit`, { replace: true });
+    }
+  };
+
   return (
     <ErrorBoundary>
+      {showImportModal && (
+        <AIImportModal
+          onClose={() => setShowImportModal(false)}
+          onImport={handleImportConfirm}
+        />
+      )}
       <div className="tb-page">
           <BuilderHeader
             test={test}
@@ -1828,6 +1842,7 @@ const TestBuilder = () => {
           activeSkill={activeSkill}
           hasUnsavedChanges={hasUnsavedChanges}
           onOpenVersionHistory={savedTestId ? () => setShowVersionHistory(true) : undefined}
+          onOpenImport={() => setShowImportModal(true)}
           onNavigate={(path) => {
             if (hasChangedSinceEntryRef.current) {
               pendingNavigationRef.current = path;

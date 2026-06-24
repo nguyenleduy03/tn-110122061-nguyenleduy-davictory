@@ -66,3 +66,58 @@ class SpeakingResultDTO(BaseModel):
             confidence_score=r.confidence_score,
             provider=r.provider, model=r.model, latency_ms=r.latency_ms, status=r.status,
         )
+
+
+@dataclass
+class PerQuestionScore:
+    question_index: int = 0
+    question_text: str = ""
+    transcript: str = ""
+    band: float = 0.0
+    fluency_coherence: float = 0.0
+    lexical_resource: float = 0.0
+    grammatical_range: float = 0.0
+    pronunciation: float = 0.0
+    feedback: str = ""
+
+
+@dataclass
+class ExamGradeResult:
+    overall: SpeakingResult = field(default_factory=SpeakingResult)
+    per_question: list[PerQuestionScore] = field(default_factory=list)
+
+
+class PerQuestionScoreDTO(BaseModel):
+    question_index: int
+    question_text: str = ""
+    transcript: str = ""
+    band: float = 0.0
+    criteria: dict = {}
+    feedback: str = ""
+
+
+class ExamGradeResultDTO(BaseModel):
+    overall: SpeakingResultDTO = None
+    per_question: list[PerQuestionScoreDTO] = []
+
+    @classmethod
+    def from_result(cls, r: ExamGradeResult) -> "ExamGradeResultDTO":
+        return cls(
+            overall=SpeakingResultDTO.from_result(r.overall),
+            per_question=[
+                PerQuestionScoreDTO(
+                    question_index=q.question_index,
+                    question_text=q.question_text,
+                    transcript=q.transcript,
+                    band=q.band,
+                    criteria={
+                        "fluencyCoherence": q.fluency_coherence,
+                        "lexicalResource": q.lexical_resource,
+                        "grammaticalRangeAccuracy": q.grammatical_range,
+                        "pronunciation": q.pronunciation,
+                    },
+                    feedback=q.feedback,
+                )
+                for q in r.per_question
+            ],
+        )

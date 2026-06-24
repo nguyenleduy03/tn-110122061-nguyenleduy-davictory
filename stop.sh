@@ -80,15 +80,20 @@ else
   echo "✓ Không có Maven"
 fi
 
-# 4. Dừng Node frontend (Vite / serve.js)
-NODE_PIDS=$(ps aux | grep -E "node.*serve\.js|vite" | grep -v grep | awk '{print $2}' || true)
-if [[ -n "$NODE_PIDS" ]]; then
-  echo "$NODE_PIDS" | while read -r pid; do
-    [[ -n "$pid" ]] && { echo "  - Dừng Node PID: $pid"; kill -9 "$pid" 2>/dev/null || true; }
-  done
-else
-  echo "✓ Không có Node frontend"
-fi
+  # 4. Dừng Node frontend (Vite) hoặc Python static server
+  PY_PIDS=$(ps aux | grep "python.*serve.py" | grep -v grep | awk '{print $2}' || true)
+  if [[ -n "$PY_PIDS" ]]; then
+    echo "[frontend] Đang dừng Python static server PID: $PY_PIDS"
+    kill $PY_PIDS 2>/dev/null || true
+  fi
+  NODE_PIDS=$(ps aux | grep -E "node.*serve\.js|vite" | grep -v grep | awk '{print $2}' || true)
+  if [[ -n "$NODE_PIDS" ]]; then
+    echo "[frontend] Đang dừng PID: $NODE_PIDS"
+    kill $NODE_PIDS 2>/dev/null || true
+    echo "[frontend] ✓ Đã dừng"
+  else
+    echo "✓ Không có Node frontend"
+  fi
 
 # 5-6. Dừng theo port
 for port in 8080 5173; do

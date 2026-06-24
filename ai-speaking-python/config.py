@@ -16,9 +16,12 @@ class Settings(BaseSettings):
     groq_api_key: str = ""
     groq_api_key_2: str = ""
     groq_base_url: str = "https://api.groq.com"
-    groq_model: str = "llama-3.3-70b-versatile"
+    groq_model: str = "qwen/qwen3-32b"
     groq_temperature: float = 0.3
     groq_max_tokens: int = 1024
+    groq_stt_model: str = "whisper-large-v3-turbo"
+    groq_tts_model: str = "canopylabs/orpheus-v1-english"
+    groq_tts_voice: str = "troy"
 
     nvidia_api_key: str = ""
     nvidia_base_url: str = "https://integrate.api.nvidia.com/v1"

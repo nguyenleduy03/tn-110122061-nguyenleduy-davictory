@@ -61,8 +61,9 @@ export const writingApi = {
     return axios.post(`${writingAdminBase}/samples`, data);
   },
 
-  getConfig() {
-    return axios.get(`${writingAdminBase}/config`);
+  getConfig(taskType) {
+    const params = taskType ? { task_type: taskType } : {};
+    return axios.get(`${writingAdminBase}/config`, { params });
   },
 
   getStats() {

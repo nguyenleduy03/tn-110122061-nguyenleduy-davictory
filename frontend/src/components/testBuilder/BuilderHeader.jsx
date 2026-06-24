@@ -6,7 +6,7 @@ import {
   Bold, Italic, Underline, Strikethrough,
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
   ListOrdered, Undo2, Redo2, Eraser, Subscript, Superscript,
-  ChevronDown, ChevronUp,
+  ChevronDown, ChevronUp, Upload,
 } from 'lucide-react';
 
 const STATUS_LABELS = {
@@ -71,6 +71,7 @@ const BuilderHeader = ({
   onOpenVersionHistory,
   hasUnsavedChanges,
   onNavigate,
+  onOpenImport,
 }) => {
   const [activeFormats, setActiveFormats] = useState({});
   const [customFontSize, setCustomFontSize] = useState(String(DEFAULT_FONT_SIZE));
@@ -832,6 +833,10 @@ const BuilderHeader = ({
             </div>
 
             <div className="tb-toolbar-group tb-action-group">
+              <button className="tb-tool-btn" onClick={onOpenImport} title="Import đề thi từ tài liệu (PDF/DOCX/TXT)"
+                style={{ background: '#f0f7ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}>
+                <Upload size={15} /><span>Import</span>
+              </button>
               <button className="tb-tool-btn" onClick={onShuffle} disabled={shuffling} title="Trộn đề ngẫu nhiên">
                 <Shuffle size={15} /><span>{shuffling ? 'Đang trộn...' : 'Trộn đề'}</span>
               </button>

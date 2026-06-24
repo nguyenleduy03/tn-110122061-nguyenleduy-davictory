@@ -4,7 +4,7 @@ import uuid
 
 from loguru import logger
 
-from config import get_settings, get_active_model
+from config import get_settings, get_active_model, MODEL_CONTEXT, TOKEN_BUFFER, MIN_COMPLETION_TOKENS
 from infrastructure.llm_client import GroqClient, NvidiaClient, AIProviderError
 from infrastructure.cache import TTLCache
 from infrastructure.quota import QuotaManager, QuotaExceeded
@@ -191,7 +191,47 @@ class GradingOrchestrator:
             full_user_prompt = pc.to_full_prompt()
             full_prompt = f"[SYSTEM PROMPT]\n{pc.system_prompt}\n\n[USER PROMPT]\n{full_user_prompt}"
 
-            resp = await self._get_llm().chat(pc.system_prompt, full_user_prompt)
+            # === DYNAMIC MAX TOKENS ===
+            model_id = get_active_model() or self.settings.groq_model
+            ctx = MODEL_CONTEXT.get(model_id, {})
+            tpm_limit = ctx.get("tpm_limit", 8000)
+            prompt_tokens_est = int((len(full_user_prompt) + len(pc.system_prompt)) / 3)
+            max_completion = tpm_limit - prompt_tokens_est - TOKEN_BUFFER
+            max_completion = min(max_completion, 6000)
+            max_completion = max(MIN_COMPLETION_TOKENS, max_completion)
+
+            if max_completion < MIN_COMPLETION_TOKENS:
+                reason = f"Essay quá dài ({word_count} words, ~{prompt_tokens_est} tokens). Chỉ còn {max(0, max_completion)} tokens cho câu trả lời, không đủ để chấm điểm. Vui lòng rút gọn essay hoặc nâng cấp API."
+                logger.warning(f"Skipping LLM call for {submission_id}: {reason}")
+                result = GradingResult(
+                    submission_id=submission_id,
+                    status="FAILED",
+                    error_message=reason,
+                    overall_band=1.0,
+                    overall_feedback=reason,
+                )
+                result.grading_id = str(uuid.uuid4())
+                result.provider = "local"
+                result.model = "rule-based"
+                result.latency_ms = int((time.time() - start) * 1000)
+                self.quota.increment(user_id, role)
+                if not skip_cache:
+                    self.cache.put(cache_key, result)
+                return result
+
+            pc2 = self.prompt.build(
+                rubric=rubric, essay=essay_text,
+                task_type=task_type, topic=topic, prompt_text=prompt_text,
+                word_count=word_count,
+                chart_type=chart_type, essay_type=essay_type, letter_type=letter_type,
+                max_completion_tokens=max_completion,
+            )
+            if pre_note:
+                pc2.user_section = f"=== LOCAL PRE-CHECK ===\n{pre_note}\n\n{pc2.user_section}"
+            full_user_prompt = pc2.to_full_prompt()
+            full_prompt = f"[SYSTEM PROMPT]\n{pc2.system_prompt}\n\n[USER PROMPT]\n{full_user_prompt}"
+
+            resp = await self._get_llm().chat(pc2.system_prompt, full_user_prompt, max_tokens=max_completion)
             latency_ms = int((time.time() - start) * 1000)
 
             result = self.parser.parse(resp.content, task_type)

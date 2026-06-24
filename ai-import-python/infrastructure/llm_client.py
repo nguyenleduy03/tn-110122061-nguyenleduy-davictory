@@ -1,7 +1,7 @@
 """LLM clients for AI Import Service - Groq + NVIDIA providers."""
 
 from dataclasses import dataclass
-from groq import AsyncGroq, RateLimitError
+from groq import AsyncGroq, RateLimitError, APIError
 from openai import AsyncOpenAI
 from loguru import logger
 
@@ -91,6 +91,15 @@ class GroqClient:
                 last_error = e
                 logger.warning(f"Rate limit, rotating key (attempt {attempt + 1})")
                 continue
+            except APIError as e:
+                last_error = e
+                status = e.response.status_code if hasattr(e, 'response') and hasattr(e.response, 'status_code') else 0
+                if status in (413, 429) or 'rate_limit' in str(e).lower() or 'request too large' in str(e).lower():
+                    logger.warning(f"API limit ({status}), rotating key (attempt {attempt + 1})")
+                    continue
+                if attempt < len(self.clients) - 1:
+                    logger.warning(f"API error, rotating key: {e}")
+                    continue
             except Exception as e:
                 last_error = e
                 if attempt < len(self.clients) - 1:

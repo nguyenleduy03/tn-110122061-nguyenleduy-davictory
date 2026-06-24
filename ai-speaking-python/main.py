@@ -1,7 +1,7 @@
 """AI Speaking Service - FastAPI application entrypoint.
 
 Usage:
-    uvicorn main:app --host 0.0.0.0 --port 5183 --reload
+    uvicorn main:app --host 0.0.0.0 --port 5181 --reload
 """
 
 from fastapi import FastAPI
@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from api.session import router as session_router
 from api.scoring import router as scoring_router
 from api.admin import router as admin_router
+from api.exam import router as exam_router
 
 
 app = FastAPI(
@@ -23,8 +24,9 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, 
 app.include_router(session_router)
 app.include_router(scoring_router)
 app.include_router(admin_router)
+app.include_router(exam_router)
 
 
 @app.get("/health")
 async def health():
-    return {"status": "healthy", "service": "ai-speaking-python", "port": 5183}
+    return {"status": "healthy", "service": "ai-speaking-python", "port": 5181}

@@ -1,7 +1,9 @@
 package com.victory.DAVictory.config;
 
+import com.victory.DAVictory.entity.AgentConfig;
 import com.victory.DAVictory.entity.Role;
 import com.victory.DAVictory.entity.User;
+import com.victory.DAVictory.repository.AgentConfigRepository;
 import com.victory.DAVictory.repository.RoleRepository;
 import com.victory.DAVictory.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +25,7 @@ public class DataInitializer implements CommandLineRunner {
 
     private final RoleRepository roleRepository;
     private final UserRepository userRepository;
+    private final AgentConfigRepository agentConfigRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Override
@@ -30,6 +33,7 @@ public class DataInitializer implements CommandLineRunner {
     public void run(String... args) {
         initRoles();
         initDefaultUsers();
+        initAgentConfigs();
     }
 
     private void initRoles() {
@@ -49,6 +53,18 @@ public class DataInitializer implements CommandLineRunner {
                 roleRepository.save(role);
                 log.info("✅ Tạo role: {}", r[0]);
             }
+        }
+    }
+
+    private void initAgentConfigs() {
+        if (!agentConfigRepository.findByToolName("__default__").isPresent()) {
+            AgentConfig config = new AgentConfig();
+            config.setToolName("__default__");
+            config.setModel("llama-3.3-70b-versatile");
+            config.setTemperature(0.1);
+            config.setIsActive(true);
+            agentConfigRepository.save(config);
+            log.info("✅ Tạo agent config mặc định");
         }
     }
 

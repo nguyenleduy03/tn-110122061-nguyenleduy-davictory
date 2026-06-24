@@ -29,13 +29,14 @@ const MIME = {
 
 // [path_prefix, target_url]
 const API_PROXY_RULES = [
-  ['/api/ai/speaking/scoring', 'http://localhost:5183'],
-  ['/api/ai/speaking', 'http://localhost:5183'],
-  ['/api/admin/speaking', 'http://localhost:5183'],
+  ['/api/ai/speaking/scoring', 'http://localhost:5181'],
+  ['/api/ai/speaking', 'http://localhost:5181'],
+  ['/api/admin/speaking', 'http://localhost:5181'],
   ['/api/ai/writing', 'http://localhost:5182'],
   ['/api/ai/evaluation', 'http://localhost:5182'],
   ['/api/admin/ai', 'http://localhost:5182'],
-
+  ['/api/ai/import', 'http://localhost:5186'],
+  ['/api/agent', 'http://localhost:5187'],
 ];
 
 const BACKEND = 'http://localhost:8080';
@@ -128,6 +129,6 @@ server.listen(PORT, '127.0.0.1', () => {
   console.log(`[serve] Production server running on http://127.0.0.1:${PORT}`);
   console.log(`[serve] Main FE: ${MAIN_DIST}`);
   console.log(`[serve] AI Test UI: ${AI_TEST_DIST} -> /ai-test/`);
-  console.log(`[serve] Proxying AI APIs -> Python services (5182, 5183)`);
+  console.log(`[serve] Proxying AI APIs -> Python services (5182, 5181)`);
   console.log(`[serve] Proxying /api/* -> ${BACKEND}`);
 });

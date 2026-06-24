@@ -309,22 +309,27 @@ const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isRevie
             try {
                 const storedRaw = localStorage.getItem(timerStorageKey);
                 const stored = storedRaw ? JSON.parse(storedRaw) : null;
+                
+                // Only use stored time if it's within a reasonable session window (e.g., 2 hours)
+                // and matches the current duration.
+                const isRecent = stored && (Date.now() - (stored.savedAt || 0) < 2 * 60 * 60 * 1000);
+
                 if (
                     stored
+                    && isRecent
                     && Number.isFinite(stored.durationSeconds)
                     && stored.durationSeconds === durationSeconds
                 ) {
                     if (Number.isFinite(stored.remainingSeconds)) {
                         remainingSeconds = Math.max(0, Math.floor(stored.remainingSeconds));
-                    } else if (Number.isFinite(stored.deadlineMs)) {
-                        // Backward compatibility with older deadline-based timer state.
-                        remainingSeconds = Math.max(0, Math.ceil((stored.deadlineMs - Date.now()) / 1000));
                     }
                 } else {
+                    // Start fresh and clear old data
+                    localStorage.removeItem(timerStorageKey);
                     persistRemainingTime(remainingSeconds, durationSeconds);
                 }
             } catch {
-                // Ignore malformed timer cache and continue with initial remaining time.
+                localStorage.removeItem(timerStorageKey);
             }
         }
 

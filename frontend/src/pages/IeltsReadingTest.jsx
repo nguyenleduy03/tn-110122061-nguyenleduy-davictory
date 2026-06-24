@@ -400,6 +400,7 @@ const IeltsReadingTest = () => {
     const durationOverrideMinutes = Number.parseInt(searchParams.get('duration') || '', 10);
     const noTimeLimit = searchParams.get('noTimeLimit') === 'true' || searchParams.get('duration') === '0';
     const allowReviewInExam = mode === 'exam' ? searchParams.get('allowReview') !== 'false' : false;
+    const examId = searchParams.get('examId') || null;
     const selectedPracticeParts = useMemo(() => {
         return Array.from(new Set(
             selectedPartsParam
@@ -857,7 +858,7 @@ const IeltsReadingTest = () => {
                     isFlagged: bookmarks[qId] || false,
                 }))
             )
-            : await ieltsApi.submitAnswers(testId, 'READING', answers, timeSpentSeconds, testData);
+            : await ieltsApi.submitAnswers(testId, 'READING', answers, timeSpentSeconds, testData, examId);
 
         if (resp) {
             sessionStorage.setItem('lastScore_reading', JSON.stringify(resp));

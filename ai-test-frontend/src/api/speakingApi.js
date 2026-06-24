@@ -2,6 +2,12 @@ import axios from 'axios';
 
 const speakingBase = '/api/ai/speaking';
 const speakingAdminBase = '/api/admin/speaking';
+const mainApiBase = '';
+
+const authHeaders = () => {
+  const token = localStorage.getItem('authToken');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
 
 export const speakingApi = {
   createSession(config = {}, userId = 1, userName = 'Test User', userRole = 'STUDENT') {
@@ -86,5 +92,39 @@ export const speakingApi = {
 
   clearCache() {
     return axios.post(`${speakingAdminBase}/cache/clear`);
+  },
+
+  // ========== Exam Grading (Teacher) APIs ==========
+
+  gradeExam(questions, files) {
+    const formData = new FormData();
+    formData.append('questions', JSON.stringify(questions));
+    files.forEach((f) => formData.append('files', f));
+    return axios.post(`${speakingBase}/exam-grade`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+
+  getMyClasses() {
+    return axios.get(`/api/class-management/my`, { headers: authHeaders() });
+  },
+
+  getAttemptsByClass(classId) {
+    return axios.get(`/api/exam-attempts/class/${classId}`, { headers: authHeaders() });
+  },
+
+  getSpeakingAttempt(attemptId) {
+    return axios.get(`/api/speaking/attempts/${attemptId}`, { headers: authHeaders() });
+  },
+
+  getSpeakingSnapshot(attemptId) {
+    return axios.get(`/api/speaking-gen/snapshot/${attemptId}`, { headers: authHeaders() });
+  },
+
+  downloadAudio(fileId) {
+    return axios.get(`/api/files/preview/${fileId}`, {
+      headers: authHeaders(),
+      responseType: 'blob',
+    });
   },
 };

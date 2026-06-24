@@ -4,7 +4,7 @@ import uuid
 
 from loguru import logger
 
-from models.import_models import ParseResult, PreviewResponse, CreateResponse, StatusResponse, SectionPreview
+from models.import_models import ParseResult, ParseResponse, PreviewResponse, CreateResponse, StatusResponse, SectionPreview
 from core.parser_factory import ParserFactory
 from core.ai_structurer import AIStructurer, StructurerError
 from core.test_mapper import TestMapper
@@ -24,31 +24,61 @@ class ImportOrchestrator:
                               ttl_seconds=self.settings.cache_ttl_minutes * 60)
         self._tasks: dict[str, dict] = {}
 
-    async def parse_document(self, content: bytes, filename: str,
-                             skill_hint: str = "", test_type: str = "ACADEMIC") -> PreviewResponse:
+    async def parse_file(self, content: bytes, filename: str) -> ParseResponse:
         task_id = str(uuid.uuid4())[:8]
-        self._tasks[task_id] = {"status": "PROCESSING"}
+        self._tasks[task_id] = {"status": "PARSED"}
+        logger.info(f"[{task_id}] Bắt đầu parse file: {filename} ({len(content)} bytes)")
 
         parse_result = await self.parser.parse(content, filename)
+        logger.debug(f"[{task_id}] Parse kết quả: success={parse_result.success}, text_length={parse_result.text_length}, ocr={parse_result.ocr_used}")
+
         if not parse_result.success:
-            return PreviewResponse(task_id=task_id, status="FAILED",
-                                   skill=skill_hint, title=filename)
+            self._tasks[task_id] = {"status": "FAILED"}
+            logger.error(f"[{task_id}] Parse file thất bại: {filename}")
+            return ParseResponse(task_id=task_id, status="FAILED", filename=filename)
 
-        detected_skill = skill_hint or self._detect_skill(parse_result.raw_text)
-        preview = await self.structurer.structure(
-            parse_result.raw_text, detected_skill, test_type)
-        preview.task_id = task_id
-        preview.skill = detected_skill
+        self.cache.put(f"raw_{task_id}", parse_result.raw_text)
+        self._tasks[task_id] = {"status": "PARSED"}
+        logger.info(f"[{task_id}] Parse thành công: {parse_result.text_length} chars, ocr={parse_result.ocr_used}")
+        return ParseResponse(
+            task_id=task_id,
+            status="PARSED",
+            raw_text=parse_result.raw_text,
+            text_length=parse_result.text_length,
+            filename=parse_result.filename,
+            file_type=parse_result.file_type,
+            ocr_used=parse_result.ocr_used,
+        )
 
-        self._tasks[task_id] = {"status": "COMPLETED", "result": preview}
-        self.cache.put(task_id, preview)
-        logger.info(f"Parsed {filename}: {preview.total_questions} questions, skill={preview.skill}")
-        return preview
+    async def structure_text(self, task_id: str, text: str,
+                             skill_hint: str = "", test_type: str = "ACADEMIC") -> PreviewResponse:
+        self._tasks[task_id] = {"status": "PROCESSING"}
+        text_len = len(text)
+        logger.info(f"[{task_id}] Bắt đầu structure: text_len={text_len}, skill_hint={skill_hint}, test_type={test_type}")
+
+        try:
+            detected_skill = skill_hint or self._detect_skill(text)
+            logger.debug(f"[{task_id}] Skill detected: {detected_skill}")
+
+            preview = await self.structurer.structure(text, detected_skill, test_type)
+            preview.task_id = task_id
+            preview.skill = detected_skill
+
+            self._tasks[task_id] = {"status": "COMPLETED", "result": preview}
+            self.cache.put(task_id, preview)
+            logger.info(f"[{task_id}] Structure thành công: {preview.total_questions} questions, skill={preview.skill}")
+            return preview
+        except StructurerError as e:
+            self._tasks[task_id] = {"status": "FAILED"}
+            logger.error(f"[{task_id}] Structure thất bại: {e}")
+            raise
 
     async def create_test(self, preview: PreviewResponse, test_type: str,
-                          title: str, user_id: int) -> CreateResponse:
+                          title: str, user_id: int,
+                          target_band: str = "7.0") -> CreateResponse:
         try:
-            save_data = self.mapper.map_to_save_request(preview, test_type, title, user_id)
+            save_data = self.mapper.map_to_save_request(
+                preview, test_type, title, user_id, target_band)
             result = await self.backend.save_test(save_data, user_id)
             test_id = result.get("id", 0)
             return CreateResponse(success=True, test_id=test_id,
@@ -73,6 +103,9 @@ class ImportOrchestrator:
         return StatusResponse(task_id=task_id, status=status,
                              progress=task.get("progress", ""),
                              result=result)
+
+    def get_parsed_text(self, task_id: str) -> str | None:
+        return self.cache.get(f"raw_{task_id}")
 
     def _detect_skill(self, text: str) -> str:
         upper = text.upper()[:5000]

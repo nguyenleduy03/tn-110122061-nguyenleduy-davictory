@@ -1627,7 +1627,7 @@ export const ieltsApi = {
     };
   },
 
-  submitAnswers: async (testId, skillType, answers, timeSpentSeconds = null, testData = null) => {
+  submitAnswers: async (testId, skillType, answers, timeSpentSeconds = null, testData = null, examId = null) => {
     const baseUrl = API_CONFIG.BASE_URL;
 
     console.log('📝 Raw Answers:', answers);
@@ -1726,7 +1726,7 @@ export const ieltsApi = {
     const startResp = await apiFetch(`${baseUrl}/exam-attempts/start`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ testId, skillType, timeLimitSeconds: null }),
+      body: JSON.stringify({ testId, skillType, timeLimitSeconds: null, examId }),
     });
 
     const submitResp = await apiFetch(`${baseUrl}/exam-attempts/${startResp.id}/submit`, {

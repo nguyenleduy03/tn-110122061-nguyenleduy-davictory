@@ -9,6 +9,7 @@ import {
     BarChart3,
     Settings,
     GraduationCap,
+    Calendar,
 } from 'lucide-react';
 import Navbar from '../layout/Navbar';
 import { authApi } from '../../services/authApi';
@@ -21,6 +22,7 @@ let inMemoryBadgeCounts = null;
 const NAV_ITEMS = [
     { label: 'Tổng quan', path: '/lms/teacher', icon: LayoutDashboard },
     { label: 'Lớp học', path: '/lms/teacher/classes', icon: Users, badgeKey: 'classes' },
+    { label: 'Kỳ thi', path: '/teacher/exams', icon: Calendar },
     { label: 'Đề thi', path: '/lms/teacher/tests', icon: FolderOpen },
     { label: 'Bài tập', path: '/lms/teacher/assignments', icon: ClipboardList },
     { label: 'Bài nộp', path: '/lms/teacher/submissions', icon: FileText, badgeKey: 'submissions' },

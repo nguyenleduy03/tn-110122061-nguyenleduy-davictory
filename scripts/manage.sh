@@ -14,7 +14,7 @@ WRITING_DIR="$PROJECT_DIR/ai-writing-python"
 SPEAKING_DIR="$PROJECT_DIR/ai-speaking-python"
 
 WRITING_PORT=5182
-SPEAKING_PORT=5183
+SPEAKING_PORT=5181
 
 start_service() {
     local name=$1 dir=$2 port=$3

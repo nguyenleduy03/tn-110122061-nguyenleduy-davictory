@@ -49,6 +49,8 @@ public class ExamAttemptService {
     private final AtomicBoolean examHistoryTableChecked = new AtomicBoolean(false);
 
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ExamRepository examRepository;
+    private final ExamService examService;
 
     @Transactional
     public ExamAttemptResponse startAttempt(String username, ExamAttemptStartRequest req) {
@@ -57,6 +59,11 @@ public class ExamAttemptService {
 
         if (req.getTestId() == null || req.getSkillType() == null) {
             throw new RuntimeException("Thiếu testId hoặc skillType");
+        }
+
+        // Check exam access if examId is provided
+        if (req.getExamId() != null) {
+            examService.checkStudentCanAccess(req.getExamId(), user.getId());
         }
 
         Test test = testRepository.findById(req.getTestId())
@@ -92,6 +99,12 @@ public class ExamAttemptService {
         attempt.setStartedAt(LocalDateTime.now());
         attempt.setTimeLimitSeconds(timeLimitSeconds);
         attempt.setAttemptNumber(attemptNumber);
+
+        if (req.getExamId() != null) {
+            Exam exam = examRepository.findById(req.getExamId())
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy kỳ thi"));
+            attempt.setExam(exam);
+        }
 
         attempt = examAttemptRepository.save(attempt);
         return toResponse(attempt);

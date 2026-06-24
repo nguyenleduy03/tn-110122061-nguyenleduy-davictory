@@ -5,6 +5,11 @@ from models.rubric import WritingRubric, RubricBandDetail
 
 _TEMPLATES = Path(__file__).parent.parent / "templates"
 
+_SYS_PROMPT_MAP = {
+    "TASK1_ACADEMIC": "sys_role_t1_academic.txt",
+    "TASK1_GENERAL": "sys_role_t1_general.txt",
+}
+
 
 @dataclass
 class PromptContext:
@@ -64,13 +69,15 @@ class PromptBuilder:
 
     def build(self, rubric: WritingRubric, essay: str,
               task_type: str, topic: str, prompt_text: str, word_count: int,
-              chart_type: str = "", essay_type: str = "", letter_type: str = "") -> PromptContext:
-        system = self._load("system_role.txt") or "You are an official IELTS Writing Examiner."
+              chart_type: str = "", essay_type: str = "", letter_type: str = "",
+              max_completion_tokens: int = 0) -> PromptContext:
+        sys_file = _SYS_PROMPT_MAP.get(task_type, "sys_role_t2.txt")
+        system = self._load(sys_file) or self._load("system_role.txt") or "You are an official IELTS Writing Examiner."
         schema = self._load("output_schema.json") or '{"analysis":{},"scores":{},"overallBand":6.0}'
 
         rubric_sec = self._rubric_text(rubric)
         user = self._user_text(rubric_sec, essay, task_type, topic, prompt_text, word_count, schema,
-                               chart_type, essay_type, letter_type)
+                               chart_type, essay_type, letter_type, max_completion_tokens)
 
         return PromptContext(
             system_prompt=system,
@@ -104,7 +111,8 @@ class PromptBuilder:
 
     def _user_text(self, rubric_sec: str, essay: str,
                    task_type: str, topic: str, prompt_text: str, word_count: int, schema: str,
-                   chart_type: str = "", essay_type: str = "", letter_type: str = "") -> str:
+                   chart_type: str = "", essay_type: str = "", letter_type: str = "",
+                   max_completion_tokens: int = 0) -> str:
         parts = ["=== GRADING TASK ==="]
         parts.append(f"Task Type: {task_type}")
 
@@ -113,11 +121,11 @@ class PromptBuilder:
             parts.append(f"Chart Type: {chart_type}")
             parts.append(f"Visual Guide: {_TASK1_CHART_GUIDE[chart_type]}")
         elif task_type == "TASK1_GENERAL":
-            lt = letter_type or "formal"  # default to formal
+            lt = letter_type or "formal"
             parts.append(f"Letter Type: {lt}")
             if lt in _LETTER_GUIDE:
                 parts.append(f"Letter Guide: {_LETTER_GUIDE[lt]}")
-        elif essay_type in _TASK2_ESSAY_GUIDE:
+        elif task_type in ("TASK2_ACADEMIC", "TASK2_GENERAL") and essay_type in _TASK2_ESSAY_GUIDE:
             parts.append(f"Essay Type: {essay_type}")
             parts.append(f"Essay Guide: {_TASK2_ESSAY_GUIDE[essay_type]}")
 
@@ -141,7 +149,7 @@ class PromptBuilder:
         if rubric_sec:
             parts.append("=== DETAILED RUBRIC ===\n" + rubric_sec + "\n")
 
-        parts.append("=== STUDENT ESSAY ===\n" + essay[:4000] + "\n")
+        parts.append("=== STUDENT ESSAY ===\n" + essay + "\n")
 
         parts.append("""=== TWO-STEP GRADING PROCESS ===
 
@@ -174,9 +182,10 @@ Finally, provide a band_justification explaining:
 - Why each criterion received its band
 - Why higher bands were NOT awarded (be specific)
 
-You MUST output valid JSON following this exact schema:
-
 """)  # noqa: E501
+        if max_completion_tokens > 0:
+            parts.append(f"\nTOKEN BUDGET: Your response must fit in ~{max_completion_tokens} tokens. Prioritize: band scores (all 4 criteria), evidence, key feedback. Be concise.\n")
+        parts.append("You MUST output valid JSON following this exact schema:\n")
         parts.append(schema)
         parts.append("\n\nOutput ONLY valid JSON — no markdown, no extra text.")
         return "\n".join(parts)

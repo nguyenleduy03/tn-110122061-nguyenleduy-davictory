@@ -523,6 +523,7 @@ export default function LmsSubmissionDetail() {
     const records = [];
     const seen = new Set();
     const urlToPartLabel = new Map();
+    const partCounters = {};
     let fallbackPartCounter = 1;
 
     const resolvePartLabel = (normalizedUrl, preferredLabel) => {
@@ -546,14 +547,19 @@ export default function LmsSubmissionDetail() {
       return nextLabel;
     };
 
-    const pushRecord = (url, preferredLabel) => {
+    const pushRecord = (url, preferredLabel, transcript) => {
       const normalizedUrl = String(url || '').trim();
       if (!normalizedUrl || seen.has(normalizedUrl)) return;
       if (!isLikelyAudioUrl(normalizedUrl)) return;
 
-      const label = resolvePartLabel(normalizedUrl, preferredLabel);
+      const baseLabel = resolvePartLabel(normalizedUrl, preferredLabel);
+      if (preferredLabel) {
+        partCounters[preferredLabel] = (partCounters[preferredLabel] || 0) + 1;
+        records.push({ label: `${baseLabel} - Câu ${partCounters[preferredLabel]}`, url: normalizedUrl, transcript: transcript || '' });
+      } else {
+        records.push({ label: baseLabel, url: normalizedUrl, transcript: transcript || '' });
+      }
       seen.add(normalizedUrl);
-      records.push({ label, url: normalizedUrl });
     };
 
     (submission?.answers || []).forEach((answer, index) => {
@@ -572,6 +578,15 @@ export default function LmsSubmissionDetail() {
 
     if (submission?.audioUrl) {
       pushRecord(submission.audioUrl, null);
+    }
+
+    if (Array.isArray(submission?.recordings)) {
+      submission.recordings.forEach((rec) => {
+        const partLabel = rec.recordingPart
+          ? `Part ${rec.recordingPart.replace(/PART/i, '').trim()}`
+          : null;
+        pushRecord(rec.audioUrl, partLabel, rec.transcript);
+      });
     }
 
     return records;
@@ -780,6 +795,27 @@ export default function LmsSubmissionDetail() {
                       {record.label}
                     </div>
                     <audio controls src={record.url} style={{ width: '100%' }} />
+                    {record.transcript ? (
+                      <details style={{ marginTop: 8 }}>
+                        <summary style={{ fontSize: 12, color: '#3b82f6', cursor: 'pointer', fontWeight: 600 }}>
+                          Transcript
+                        </summary>
+                        <div style={{
+                          marginTop: 8,
+                          padding: 10,
+                          background: '#f0f9ff',
+                          border: '1px solid #bfdbfe',
+                          borderRadius: 6,
+                          fontSize: 13,
+                          lineHeight: 1.6,
+                          whiteSpace: 'pre-wrap',
+                          wordBreak: 'break-word',
+                          color: '#1e40af'
+                        }}>
+                          {record.transcript}
+                        </div>
+                      </details>
+                    ) : null}
                   </div>
                 ))
               ) : (

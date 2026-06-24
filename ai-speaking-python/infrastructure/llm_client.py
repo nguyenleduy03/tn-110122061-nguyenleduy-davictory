@@ -87,6 +87,27 @@ class GroqClient:
                 raise
             raise AIProviderError(f"Groq API: {e}")
 
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=2, max=10))
+    async def transcribe(self, audio_data: bytes, filename: str = "audio.webm") -> dict:
+        s = get_settings()
+        client = self._next()
+        try:
+            resp = await client.audio.transcriptions.create(
+                model=s.groq_stt_model, file=(filename, audio_data), response_format="verbose_json")
+            return resp.model_dump() if hasattr(resp, "model_dump") else dict(resp)
+        except Exception as e:
+            raise AIProviderError(f"Groq STT: {e}")
+
+    async def synthesize(self, text: str, voice: str | None = None) -> bytes:
+        s = get_settings()
+        client = self._next()
+        try:
+            resp = await client.audio.speech.create(
+                model=s.groq_tts_model, voice=voice or s.groq_tts_voice, input=text, response_format="wav")
+            return resp.content
+        except Exception as e:
+            raise AIProviderError(f"Groq TTS: {e}")
+
 
 class OpenAIClient:
     def __init__(self):

@@ -530,6 +530,21 @@ button {
   color: var(--primary-color);
 }
 
+.mobile-nav-section {
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-light, #e2e8f0);
+}
+
+.mobile-nav-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted, #94a3b8);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 4px 12px 8px;
+}
+
 @media (max-width: 1024px) {
   .mobile-menu-toggle {
     display: block;

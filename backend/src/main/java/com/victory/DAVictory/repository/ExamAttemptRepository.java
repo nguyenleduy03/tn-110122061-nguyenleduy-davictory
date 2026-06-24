@@ -65,5 +65,11 @@ public interface ExamAttemptRepository extends JpaRepository<ExamAttempt, Long> 
        int clearTestReferenceByTestId(@Param("testId") Long testId);
 
        void deleteByTestId(Long testId);
+
+    List<ExamAttempt> findByExamId(Long examId);
+
+    List<ExamAttempt> findByExamIdAndUserId(Long examId, Long userId);
+
+    int countByExamIdAndUserId(Long examId, Long userId);
 }
 

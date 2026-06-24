@@ -67,6 +67,12 @@ app:
     import:
       service:
         url: ${AI_IMPORT_SERVICE_URL:http://localhost:5186}
+    agent:
+      service:
+        url: ${AI_AGENT_SERVICE_URL:http://localhost:5187}
+  agent:
+    uploads:
+      dir: ${AI_AGENT_UPLOADS_DIR:../ai-agent-python/uploads}
 
 logging:
   

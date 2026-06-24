@@ -72,61 +72,59 @@ const uploadToGoogleDriveWithProgress = (file, accessToken, onProgress) => new P
   xhr.send(file);
 });
 
+const sanitizeSegment = (value) => String(value || '')
+  .trim()
+  .replace(/[\\/:*?"<>|]/g, '_')
+  .replace(/\s+/g, '_');
+
+const findOrCreateFolder = async (accessToken, parentId, name) => {
+  const escaped = name.replace(/'/g, "\\'");
+  const query = `mimeType='application/vnd.google-apps.folder' and trashed=false and name='${escaped}' and '${parentId}' in parents`;
+  const listResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name)`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!listResponse.ok) {
+    throw new Error(`Google Drive folder lookup failed: ${await listResponse.text()}`);
+  }
+  const listData = await listResponse.json();
+  if (listData.files?.length) return listData.files[0].id;
+
+  const createResponse = await fetch('https://www.googleapis.com/drive/v3/files?fields=id', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      name,
+      mimeType: 'application/vnd.google-apps.folder',
+      parents: [parentId],
+    }),
+  });
+  if (!createResponse.ok) {
+    throw new Error(`Google Drive folder create failed: ${await createResponse.text()}`);
+  }
+  const createData = await createResponse.json();
+  return createData.id;
+};
+
+const resolveFolderPathSegments = async (accessToken, parentId, path) => {
+  const segments = String(path || '').split('/').map(sanitizeSegment).filter(Boolean);
+  let current = parentId;
+  for (let idx = 0; idx < segments.length; idx += 1) {
+    current = await findOrCreateFolder(accessToken, current, segments[idx]);
+  }
+  return current;
+};
+
 const uploadDirectToGoogleDrive = async (file, mediaType, module, testTitle, testId, options = {}) => {
   const onProgress = options.onProgress;
   onProgress?.(5, 'Đang lấy cấu hình Google Drive...');
   const { accessToken, rootFolderId, folderPath } = await getDriveUploadConfig(mediaType, module, testTitle, testId, options);
   const fileName = file.name || `upload-${Date.now()}`;
 
-  const sanitizeSegment = (value) => String(value || '')
-    .trim()
-    .replace(/[\\/:*?"<>|]/g, '_')
-    .replace(/\s+/g, '_');
-
-  const findOrCreateFolder = async (parentId, name) => {
-    const escaped = name.replace(/'/g, "\\'");
-    const query = `mimeType='application/vnd.google-apps.folder' and trashed=false and name='${escaped}' and '${parentId}' in parents`;
-    const listResponse = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=files(id,name)`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    if (!listResponse.ok) {
-      throw new Error(`Google Drive folder lookup failed: ${await listResponse.text()}`);
-    }
-    const listData = await listResponse.json();
-    if (listData.files?.length) return listData.files[0].id;
-
-    const createResponse = await fetch('https://www.googleapis.com/drive/v3/files?fields=id', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        name,
-        mimeType: 'application/vnd.google-apps.folder',
-        parents: [parentId],
-      }),
-    });
-    if (!createResponse.ok) {
-      throw new Error(`Google Drive folder create failed: ${await createResponse.text()}`);
-    }
-    const createData = await createResponse.json();
-    return createData.id;
-  };
-
-  const resolveFolderPath = async (parentId, path) => {
-    const segments = String(path || '').split('/').map(sanitizeSegment).filter(Boolean);
-    let current = parentId;
-    for (let idx = 0; idx < segments.length; idx += 1) {
-      const segment = segments[idx];
-      onProgress?.(10 + Math.round((idx / Math.max(1, segments.length + 1)) * 10), `Đang chuẩn bị thư mục Drive (${idx + 1}/${segments.length})...`);
-      current = await findOrCreateFolder(current, segment);
-    }
-    return current;
-  };
-
   onProgress?.(15, 'Đang chuẩn bị thư mục lưu trữ...');
-  const folderId = await resolveFolderPath(rootFolderId, folderPath);
+  const folderId = await resolveFolderPathSegments(accessToken, rootFolderId, folderPath);
 
   onProgress?.(20, 'Đang tải file lên Google Drive...');
   const created = await uploadToGoogleDriveWithProgress(file, accessToken, (percent, message) => {
@@ -173,7 +171,54 @@ const uploadDirectToGoogleDrive = async (file, mediaType, module, testTitle, tes
   };
 };
 
+const uploadFileToFolder = async (file, accessToken, folderId) => {
+  const created = await uploadToGoogleDriveWithProgress(file, accessToken, () => {});
+  const fileId = created.id;
+
+  const moveResponse = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?addParents=${encodeURIComponent(folderId)}&fields=id`, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({}),
+  });
+  if (!moveResponse.ok) {
+    throw new Error(`Google Drive folder move failed: ${await moveResponse.text()}`);
+  }
+
+  const permResponse = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/permissions`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ role: 'reader', type: 'anyone' }),
+  });
+  if (!permResponse.ok) {
+    throw new Error(`Google Drive permission failed: ${await permResponse.text()}`);
+  }
+
+  return { id: fileId, url: `/api/files/preview/${fileId}` };
+};
+
 export const fileApi = {
+  /**
+   * Resolve Drive folder path once, returns accessToken + folderId for reuse
+   */
+  resolveDriveFolder: async (mediaType, module, testTitle, testId, options = {}) => {
+    const config = await getDriveUploadConfig(mediaType, module, testTitle, testId, options);
+    const folderId = await resolveFolderPathSegments(config.accessToken, config.rootFolderId, config.folderPath);
+    return { accessToken: config.accessToken, folderId };
+  },
+
+  /**
+   * Upload file to an already-resolved Drive folder (skip config + folder lookup)
+   */
+  uploadToFolder: async (file, accessToken, folderId) => {
+    return uploadFileToFolder(file, accessToken, folderId);
+  },
+
   /**
    * Upload file lên Google Drive
    * @param {File} file - File object từ input

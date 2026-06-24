@@ -1,5 +1,6 @@
 package com.victory.DAVictory.controller;
 
+import com.victory.DAVictory.dto.SpeakingAttemptResponse;
 import com.victory.DAVictory.dto.SpeakingGradeRequest;
 import com.victory.DAVictory.service.SpeakingService;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +17,23 @@ import java.util.Map;
 public class SpeakingController {
 
     private final SpeakingService speakingService;
+
+    /**
+     * Xem chi tiết bài nói (kèm recordings, transcript).
+     */
+    @GetMapping("/attempts/{attemptId}")
+    @PreAuthorize("hasAnyRole('TEACHER', 'MANAGER', 'ADMIN')")
+    public ResponseEntity<?> getAttemptDetail(
+            @PathVariable Long attemptId,
+            Authentication authentication) {
+        try {
+            String teacherUsername = authentication.getName();
+            SpeakingAttemptResponse response = speakingService.getAttemptDetail(attemptId, teacherUsername);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
 
     /**
      * Chấm bài Speaking.

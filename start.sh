@@ -76,9 +76,15 @@ start_frontend() {
     fi
   fi
 
-  echo "[frontend] Đang khởi động..."
+  echo "[frontend] Đang khởi động (static server)..."
   cd "$ROOT_DIR/frontend"
-  nohup npm run dev -- --host 0.0.0.0 >"$FRONTEND_LOG" 2>&1 &
+
+  # Sử dụng Python static server thay vì Vite dev server
+  if command -v python3 &>/dev/null; then
+    nohup python3 serve.py >"$FRONTEND_LOG" 2>&1 &
+  else
+    nohup npm run dev -- --host 0.0.0.0 >"$FRONTEND_LOG" 2>&1 &
+  fi
 
   local pid=$!
   echo "$pid" > "$FRONTEND_PID_FILE"

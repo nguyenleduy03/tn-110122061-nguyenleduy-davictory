@@ -71,8 +71,7 @@ const TASK_OPTIONS = [
   { label: 'All Tasks', value: 'all' },
   { label: 'Task 1 Academic', value: 'TASK1_ACADEMIC' },
   { label: 'Task 1 General', value: 'TASK1_GENERAL' },
-  { label: 'Task 2 Academic', value: 'TASK2_ACADEMIC' },
-  { label: 'Task 2 General', value: 'TASK2_GENERAL' },
+  { label: 'Task 2', value: 'TASK2_ACADEMIC' },
 ];
 
 export default function Samples() {

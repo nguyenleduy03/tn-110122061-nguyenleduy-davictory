@@ -43,11 +43,11 @@ class BackendClient:
                 raise BackendClientError(f"Backend unreachable: {e}")
 
     async def save_test(self, test_data: dict, user_id: int) -> dict:
-        """Call POST /api/test-builder/save-full to create a test."""
+        """Call internal endpoint POST /api/internal/ai/import/save-test to create a test."""
         test_data["createdByUserId"] = user_id
         test_data["createVersion"] = True
         logger.info(f"Saving test: {test_data.get('title', 'Untitled')}")
-        return await self._post("/api/test-builder/save-full", test_data)
+        return await self._post("/api/internal/ai/import/save-test", test_data)
 
     async def get_master_sessions(self, test_type: str = "ACADEMIC") -> list[dict]:
         """Get master session templates."""

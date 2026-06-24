@@ -187,10 +187,32 @@ async def list_models():
 
 
 @router.get("/config")
-async def get_config():
+async def get_config(task_type: str = ""):
+    from config import MIN_COMPLETION_TOKENS, TOKEN_BUFFER, MODEL_CONTEXT
+    from pathlib import Path as _P
     s = get_settings()
     active = get_active_model() or s.groq_model
     provider = "nvidia" if active.startswith("nvidia/") else "groq"
+
+    model_id = active
+    ctx = MODEL_CONTEXT.get(model_id, {"context_window": 131072, "max_completion": 32768, "tpm_limit": 8000})
+
+    # Calculate system overhead per task type
+    sys_map = {
+        "TASK1_ACADEMIC": "sys_role_t1_academic.txt",
+        "TASK1_GENERAL": "sys_role_t1_general.txt",
+    }
+    sys_file = sys_map.get(task_type, "sys_role_t2.txt")
+    sys_path = _PROMPT_DIR / sys_file
+    sys_tokens = 1500
+    try:
+        if sys_path.exists():
+            sys_tokens = int(len(sys_path.read_text(encoding="utf-8")) / 3.5)
+    except Exception:
+        pass
+    user_overhead = 2700  # rubric + schema + instructions (roughly fixed)
+    sys_overhead = sys_tokens + user_overhead
+
     return {
         "provider": provider, "model": active, "configModel": s.groq_model,
         "skillConfig": dict(_skill_config),
@@ -200,6 +222,13 @@ async def get_config():
         "keys": {
             "groq": {"env": len(s.groq_api_keys), "extra": sum(1 for v in _extra_keys.values() if v["provider"] == "groq"), "total": len(s.groq_api_keys) + sum(1 for v in _extra_keys.values() if v["provider"] == "groq")},
             "nvidia": {"env": 1 if s.nvidia_api_key else 0, "extra": sum(1 for v in _extra_keys.values() if v["provider"] == "nvidia"), "total": (1 if s.nvidia_api_key else 0) + sum(1 for v in _extra_keys.values() if v["provider"] == "nvidia")},
+        },
+        "tokenLimits": {
+            "maxTotal": ctx.get("tpm_limit", 8000),
+            "minCompletion": MIN_COMPLETION_TOKENS,
+            "sysOverhead": sys_overhead,
+            "buffer": TOKEN_BUFFER,
+            "contextWindow": ctx["context_window"],
         },
     }
 
@@ -291,7 +320,10 @@ from pathlib import Path as _Path
 _PROMPT_DIR = _Path(__file__).parent.parent / "templates"
 
 _PROMPT_NAMES = {
-    "system_role.txt": "System Role — Hướng dẫn giám khảo IELTS",
+    "system_role.txt": "System Role — Hướng dẫn giám khảo IELTS (fallback)",
+    "sys_role_t1_academic.txt": "System Role — Task 1 Academic (biểu đồ, bảng, map)",
+    "sys_role_t1_general.txt": "System Role — Task 1 General (letter)",
+    "sys_role_t2.txt": "System Role — Task 2 (essay)",
     "output_schema.json": "Output Schema — Định dạng JSON đầu ra",
     "rubric_data.json": "Rubric Data — Band descriptors từng loại task",
     "classify_prompt.txt": "Classify Prompt — Prompt phân loại bài viết",

@@ -57,7 +57,6 @@ const PALETTE_ITEMS = [
   { type: 'group', contentType: 'SUMMARY_COMPLETION_SELECT', label: 'Summary (Select)',  icon: List, skills: ['LISTENING', 'READING'] },
   { type: 'group', contentType: 'NOTE_COMPLETION_DRAG', label: 'Note (Drag)',            icon: List, skills: ['LISTENING'] },
   // ── WRITING / SPEAKING only ──
-  { type: 'group', contentType: 'STANDALONE',           label: 'Câu độc lập',            icon: FileText, skills: ['LISTENING', 'WRITING', 'SPEAKING'] },
   { type: 'group', contentType: 'WRITING_TASK',         label: 'Writing Task',           icon: PenLine, skills: ['WRITING'] },
   // ── SPEAKING only ──
   { type: 'group', contentType: 'SPEAKING_PART0',       label: 'Part 0 - Cấu hình',      icon: Settings, skills: ['SPEAKING'] },

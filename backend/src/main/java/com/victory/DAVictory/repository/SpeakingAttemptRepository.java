@@ -31,4 +31,6 @@ public interface SpeakingAttemptRepository extends JpaRepository<SpeakingAttempt
     @Query("SELECT MAX(a.overallBandScore) FROM SpeakingAttempt a " +
            "WHERE a.user.id = :userId AND a.overallBandScore IS NOT NULL")
     Optional<Double> findMaxBandScoreByUser(@Param("userId") Long userId);
+
+    Optional<SpeakingAttempt> findByExamAttemptId(Long examAttemptId);
 }

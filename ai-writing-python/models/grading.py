@@ -80,8 +80,11 @@ class GradingResponse(BaseModel):
     reference_sample_ids: list[int] = []
     full_prompt: str = ""
     prompt_version: str = ""
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
     latency_ms: int = 0
     status: str = "COMPLETED"
+    error_message: str = ""
 
     @classmethod
     def from_result(cls, r: GradingResult) -> "GradingResponse":
@@ -104,7 +107,9 @@ class GradingResponse(BaseModel):
             weakness_summary=r.weakness_summary,
             reference_sample_ids=r.reference_sample_ids,
             full_prompt=r.full_prompt,
-            prompt_version=r.prompt_version, latency_ms=r.latency_ms, status=r.status,
+            prompt_version=r.prompt_version,
+            prompt_tokens=r.prompt_tokens, completion_tokens=r.completion_tokens,
+            latency_ms=r.latency_ms, status=r.status, error_message=r.error_message,
         )
 
 

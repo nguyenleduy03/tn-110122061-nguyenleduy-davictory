@@ -338,8 +338,7 @@ export default function Admin() {
             <div className="form-group"><label>Task Type</label><select id="adminSampleTask" defaultValue="TASK2_ACADEMIC">
               <option value="TASK1_ACADEMIC">Task 1 Academic</option>
               <option value="TASK1_GENERAL">Task 1 General</option>
-              <option value="TASK2_ACADEMIC">Task 2 Academic</option>
-              <option value="TASK2_GENERAL">Task 2 General</option>
+              <option value="TASK2_ACADEMIC">Task 2</option>
             </select></div>
             <div className="form-group"><label>Band</label><input id="adminSampleBand" type="number" defaultValue="7.0" step="0.5" /></div>
           </div>

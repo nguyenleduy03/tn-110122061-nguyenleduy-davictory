@@ -107,9 +107,13 @@ const createToneSampleUrl = (durationSec = 8, frequency = 440, sampleRate = 4410
 };
 
 const PREP_SECONDS = 60;
+const PREP_PREVIEW_SECONDS = 10;
+const THINK_SECONDS_P1 = 5;
+const THINK_SECONDS_P3 = 10;
 const THINK_SECONDS = 5;
 const STANDARD_PART_DURATION_SECONDS = 5 * 60;
-const CUE_CARD_PART_DURATION_SECONDS = 2 * 60;
+const CUE_CARD_PART_DURATION_SECONDS = 190; // 10s preview + 60s prep + 120s speaking
+const TOTAL_MAX_SPEAKING_TIME = 14 * 60;
 
 const isCueCardQuestion = (question) =>
   Array.isArray(question?.bulletPoints) && question.bulletPoints.length > 0;
@@ -189,25 +193,26 @@ const STAGE_UI_TEXT = {
     noInstruction: 'No instruction provided.',
   },
   part: {
+    titles: ['Warm Up', 'Part 1', 'Part 2', 'Part 3'],
     thinkPrefix: 'Time to Think',
     nextQuestion: 'Next Question',
-    completePart: 'Hoàn thành Part',
+    completePart: 'Complete Part',
     idleHintAnswer: 'Press the microphone to start recording your answer',
     recordingPrefix: 'Recording',
     doneHint: '✓ Answer recorded',
     stopRecording: 'Stop recording',
     autoRecording: 'Recording starts automatically',
-    readyButton: 'Tôi đã sẵn sàng',
-    prepHint: 'Chuẩn bị trong 1 phút. Bạn có thể ghi chú bên dưới.',
-    notesPlaceholder: 'Ghi chú của bạn...',
+    readyButton: "I'm ready",
+    prepHint: 'You have 1 minute to prepare. You can take notes below.',
+    notesPlaceholder: 'Your notes...',
   },
   review: {
     resetPart: 'Reset This Part',
-    nextPart: 'Phần tiếp theo',
-    submit: 'Nộp bài',
+    nextPart: 'Next Part',
+    submit: 'Submit Exam',
     endTitlePrefix: "IT'S THE END OF PART",
     subtitle: 'You can review your part recording by clicking the Play button below',
-    missingRecording: 'Chưa có bản ghi cho part này',
+    missingRecording: 'No recording available for this part',
     continuePrefix: 'YOU CAN CLICK',
     continueAction: 'NEXT PART',
     continueSuffix: 'TO CONTINUE',
@@ -410,6 +415,73 @@ const CueCard = ({ question }) => (
   </div>
 );
 
+// ── Thinking Progress Component ──────────────────────────────────────────────
+const ThinkingProgress = ({ total }) => {
+  const [timeLeft, setTimeLeft] = useState(total);
+  const radius = 26;
+  const circumference = 163.36;
+
+  useEffect(() => {
+    const startTime = Date.now();
+    const endTime = startTime + total * 1000;
+
+    const timer = setInterval(() => {
+      const now = Date.now();
+      const remaining = Math.max(0, (endTime - now) / 1000);
+      setTimeLeft(remaining);
+
+      if (remaining <= 0) {
+        clearInterval(timer);
+      }
+    }, 50); // Update every 50ms for smoothness
+
+    return () => clearInterval(timer);
+  }, [total]);
+
+  return (
+    <div className="spk-thinking-circle-wrap">
+      <svg width="64" height="64" viewBox="0 0 64 64">
+        {/* Background Circle */}
+        <circle
+          cx="32"
+          cy="32"
+          r={radius}
+          stroke="#e5e7eb"
+          strokeWidth="5"
+          fill="transparent"
+        />
+        {/* Progress Circle with Smooth CSS Animation */}
+        <circle
+          cx="32"
+          cy="32"
+          r={radius}
+          stroke="#2563eb"
+          strokeWidth="5"
+          fill="transparent"
+          strokeDasharray={circumference}
+          strokeDashoffset={0}
+          strokeLinecap="round"
+          style={{
+            animation: `spk-circle-countdown ${total}s linear forwards`,
+            transform: 'rotate(-90deg) scaleX(-1)',
+            transformOrigin: '50% 50%'
+          }}
+        />        {/* Seconds Text */}
+        <text 
+          x="32" 
+          y="38" 
+          textAnchor="middle" 
+          fontSize="16" 
+          fontWeight="700" 
+          fill="#1e40af"
+        >
+          {Math.ceil(timeLeft)}
+        </text>
+      </svg>
+    </div>
+  );
+};
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 const IeltsSpeakingTest = () => {
   const [testData, setTestData] = useState(null);
@@ -432,6 +504,7 @@ const IeltsSpeakingTest = () => {
   const durationOverrideMinutes = Number.parseInt(searchParams.get('duration') || '', 10);
   const noTimeLimit = searchParams.get('noTimeLimit') === 'true' || searchParams.get('duration') === '0';
   const allowReviewInExam = mode === 'exam' ? searchParams.get('allowReview') !== 'false' : false;
+  const examId = searchParams.get('examId') || null;
   const selectedPracticeParts = useMemo(() => {
     return Array.from(new Set(
       selectedPartsParam
@@ -747,9 +820,10 @@ const IeltsSpeakingTest = () => {
   const [currentPartIdx, setCurrentPartIdx] = useState(0);
   const [currentQIdx, setCurrentQIdx] = useState(0);
 
-  // phase: idle | preparing | recording | done
+  // phase: idle | preview | preparing | recording | done
   const [phase, setPhase] = useState("idle");
   const [prepSeconds, setPrepSeconds] = useState(PREP_SECONDS);
+  const [previewSecondsLeft, setPreviewSecondsLeft] = useState(PREP_PREVIEW_SECONDS);
   const [recSeconds, setRecSeconds] = useState(0);
   const [thinkSecondsLeft, setThinkSecondsLeft] = useState(THINK_SECONDS);
   const [partSecondsLeft, setPartSecondsLeft] = useState(0);
@@ -962,8 +1036,14 @@ const IeltsSpeakingTest = () => {
   const currentPart = testData?.parts?.[currentPartIdx];
   const currentQ = currentPart?.questions?.[currentQIdx];
   const totalParts = testData?.parts?.length ?? 0;
-  const currentPartDisplayNumber = currentPart?.partNumber ?? (currentPartIdx + 1);
-  const currentPartTitle = currentPart?.title || currentPart?.name || `Part ${currentPartDisplayNumber}`;
+  
+  const currentPartTitle = useMemo(() => {
+    if (currentPartIdx < STAGE_UI_TEXT.part.titles.length) {
+      return STAGE_UI_TEXT.part.titles[currentPartIdx];
+    }
+    return currentPart?.title || currentPart?.name || `Part ${currentPartIdx + 1}`;
+  }, [currentPartIdx, currentPart]);
+  
   const currentPartTitleHtml = formatSpeakingHtml(currentPartTitle) || currentPartTitle;
 
   const partInstructions = useMemo(() => {
@@ -1157,9 +1237,45 @@ const IeltsSpeakingTest = () => {
   }, [micCheckUrl, micCheckDuration]);
 
   // ── Start recording ────────────────────────────────────────────────────────
+  const playStartBeep = useCallback(() => {
+    try {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) return;
+      const ctx = new AudioContextClass();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, ctx.currentTime); // A5 note
+      gain.gain.setValueAtTime(0, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.2, ctx.currentTime + 0.05);
+      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.2);
+      
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      
+      osc.start();
+      osc.stop(ctx.currentTime + 0.2);
+    } catch (e) {
+      console.warn('Failed to play start beep:', e);
+    }
+  }, []);
+
+  // ── Stop recording ─────────────────────────────────────────────────────────
+  const stopRecording = useCallback(() => {
+    clearInterval(timerRef.current);
+    const recorder = mediaRecorderRef.current;
+    if (recorder && recorder.state !== 'inactive') {
+      recorder.stop();
+    }
+  }, []);
+
   const startRecording = useCallback(async () => {
     const stream = await ensureMic();
     if (!stream) return;
+    
+    playStartBeep(); // Play beep sound
+    
     clearInterval(timerRef.current);
     chunksRef.current = [];
     const qId = questionId; // capture current question id at this moment
@@ -1187,19 +1303,24 @@ const IeltsSpeakingTest = () => {
     setRecSeconds(0);
     setAnalyser(analyserRef.current);
     timerRef.current = setInterval(
-      () => setRecSeconds((s) => s + 1),
+      () => setRecSeconds((s) => {
+        const nextSec = s + 1;
+        if (isCueCard && nextSec >= 120) {
+          clearInterval(timerRef.current);
+          stopRecording();
+          return 120;
+        }
+        return nextSec;
+      }),
       1000
     );
-  }, [ensureMic, questionId]);
+  }, [ensureMic, questionId, isCueCard, stopRecording]);
 
-  // ── Stop recording ─────────────────────────────────────────────────────────
-  const stopRecording = useCallback(() => {
-    clearInterval(timerRef.current);
-    const recorder = mediaRecorderRef.current;
-    if (recorder && recorder.state !== 'inactive') {
-      recorder.stop();
-    }
-  }, []);
+  const startPreview = useCallback(async () => {
+    await ensureMic();
+    setPhase("preview");
+    setPreviewSecondsLeft(PREP_PREVIEW_SECONDS);
+  }, [ensureMic]);
 
   // ── Start preparation (Part 2) ─────────────────────────────────────────────
   const startPrep = useCallback(async () => {
@@ -1219,7 +1340,7 @@ const IeltsSpeakingTest = () => {
         return s - 1;
       });
     }, 1000);
-  }, [startRecording, currentQ]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [startRecording, currentQ, ensureMic]);
 
   const skipPrep = useCallback(() => {
     clearInterval(timerRef.current);
@@ -1435,7 +1556,7 @@ const IeltsSpeakingTest = () => {
 
     if (phase === 'idle') {
       if (isCueCard) {
-        startPrep();
+        startPreview();
       } else {
         clearInterval(timerRef.current);
         autoStartTriggeredRef.current = true;
@@ -1443,6 +1564,11 @@ const IeltsSpeakingTest = () => {
         setPrepSeconds(0);
         void startRecording();
       }
+      return;
+    }
+
+    if (phase === 'preview') {
+      startPrep();
       return;
     }
 
@@ -1456,41 +1582,47 @@ const IeltsSpeakingTest = () => {
       : { type: 'review' };
 
     if (phase === 'recording') {
-      if (isCueCard && recSeconds < 105 && currentQ?.followUpQuestions?.length > 0) {
-        // Inject follow-up question
-        const randomFollowUp = currentQ.followUpQuestions[Math.floor(Math.random() * currentQ.followUpQuestions.length)];
-        const followUpQ = {
-          id: `q-followup-${Date.now()}`,
-          number: (currentQ.number || 1) + 0.5,
-          type: 'speaking',
-          questionTypeCode: 'SPEAKING_DISCUSSION',
-          topic: currentQ.topic,
-          text: randomFollowUp,
-          partInstruction: 'Follow-up question:',
-          interviewType: 'PART2_FOLLOWUP'
-        };
+      if (isCueCard && currentQ?.followUpQuestions?.length > 0) {
+        let numToInject = 0;
+        if (recSeconds <= 90) { // Under 1m30s
+          numToInject = 2;
+        } else if (recSeconds <= 105) { // Around 1m45s
+          numToInject = 1;
+        }
         
-        setTestData(prev => {
-          const newParts = [...prev.parts];
-          const partToUpdate = { ...newParts[currentPartIdx] };
-          if (partToUpdate.questions) {
-             const newQuestions = [...partToUpdate.questions];
-             newQuestions.splice(currentQIdx + 1, 0, followUpQ);
-             partToUpdate.questions = newQuestions;
+        if (numToInject > 0) {
+          const availableFollowUps = [...currentQ.followUpQuestions];
+          const injected = [];
+          
+          for (let i = 0; i < numToInject && availableFollowUps.length > 0; i++) {
+            const randomIndex = Math.floor(Math.random() * availableFollowUps.length);
+            const text = availableFollowUps.splice(randomIndex, 1)[0];
+            injected.push({
+              id: `q-followup-${Date.now()}-${i}`,
+              number: (currentQ.number || 1) + (0.1 * (i + 1)),
+              type: 'speaking',
+              questionTypeCode: 'SPEAKING_DISCUSSION',
+              topic: currentQ.topic,
+              text: text,
+              partInstruction: 'Follow-up question:',
+              interviewType: 'PART2_FOLLOWUP'
+            });
           }
-          if (partToUpdate.questionGroups) {
-             partToUpdate.questionGroups = partToUpdate.questionGroups.map(g => {
-                if (g.questions && g.questions.some(q => q.id === currentQ.id)) {
-                   const newGQs = [...g.questions];
-                   newGQs.push(followUpQ);
-                   return { ...g, questions: newGQs };
-                }
-                return g;
-             });
+          
+          if (injected.length > 0) {
+            setTestData(prev => {
+              const newParts = [...prev.parts];
+              const partToUpdate = { ...newParts[currentPartIdx] };
+              if (partToUpdate.questions) {
+                 const newQuestions = [...partToUpdate.questions];
+                 newQuestions.splice(currentQIdx + 1, 0, ...injected);
+                 partToUpdate.questions = newQuestions;
+              }
+              newParts[currentPartIdx] = partToUpdate;
+              return { ...prev, parts: newParts };
+            });
           }
-          newParts[currentPartIdx] = partToUpdate;
-          return { ...prev, parts: newParts };
-        });
+        }
         
         nextTransition = { type: 'next', partIdx: currentPartIdx, qIdx: currentQIdx + 1 };
       }
@@ -1528,7 +1660,13 @@ const IeltsSpeakingTest = () => {
   useEffect(() => {
     if (stage !== 'part' || !currentQ) return;
     autoStartTriggeredRef.current = false;
-    setThinkSecondsLeft(THINK_SECONDS);
+    
+    // Part 1: 5s, Part 3: 10s
+    let thinkTime = THINK_SECONDS;
+    if (currentPartIdx === 1) thinkTime = THINK_SECONDS_P1;
+    if (currentPartIdx === 3) thinkTime = THINK_SECONDS_P3;
+    
+    setThinkSecondsLeft(thinkTime);
   }, [stage, currentPartIdx, currentQIdx, currentQ]);
 
   useEffect(() => {
@@ -1553,7 +1691,26 @@ const IeltsSpeakingTest = () => {
     }, 1000);
 
     return () => clearInterval(thinkTimer);
-  }, [stage, phase, thinkSecondsLeft, isCueCard, startPrep, startRecording]);
+  }, [stage, phase, thinkSecondsLeft, isCueCard, startRecording]);
+
+  // Preview timer logic for Part 2
+  useEffect(() => {
+    if (stage !== 'part' || phase !== 'preview') return;
+
+    if (previewSecondsLeft <= 0) {
+      startPrep();
+      return;
+    }
+
+    const previewTimer = setInterval(() => {
+      setPreviewSecondsLeft((s) => {
+        if (s <= 1) return 0;
+        return s - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(previewTimer);
+  }, [stage, phase, previewSecondsLeft, startPrep]);
 
   const buildDriveSubmissionAnswers = useCallback(async () => {
     const parts = testData?.parts || [];
@@ -1572,7 +1729,6 @@ const IeltsSpeakingTest = () => {
     const resolvedTestTitle = isUntitledLike(rawTestTitle)
       ? resolvedTestCode
       : rawTestTitle;
-    const driveAnswers = {};
 
     const blobFromObjectUrl = async (objectUrl) => {
       if (!objectUrl) return null;
@@ -1584,83 +1740,84 @@ const IeltsSpeakingTest = () => {
       return blob && blob.size > 0 ? blob : null;
     };
 
-    const resolvePartUploadBlob = async (part, partIdx) => {
-      const reviewBlob = partReviewAudioBlobsRef.current?.[partIdx];
-      if (reviewBlob && reviewBlob.size > 0) {
-        return reviewBlob;
-      }
+    const resolveQuestionBlob = async (questionId) => {
+      const pendingBlob = pendingAudioBlobsRef.current[questionId];
+      if (pendingBlob && pendingBlob.size > 0) return pendingBlob;
 
-      const reviewUrl = partReviewAudioUrls?.[partIdx];
-      if (reviewUrl) {
-        const blob = await blobFromObjectUrl(reviewUrl);
-        if (blob) return blob;
-      }
-
-      const questionBlobs = [];
-      for (const question of (part?.questions || [])) {
-        const qId = question?.id;
-        if (!qId) continue;
-
-        const pendingBlob = pendingAudioBlobsRef.current[qId];
-        if (pendingBlob && pendingBlob.size > 0) {
-          questionBlobs.push(pendingBlob);
-          continue;
-        }
-
-        const sourceUrl = pendingAudioUrlsRef.current[qId] || audioUrls[qId];
-        if (!sourceUrl) continue;
-        const sourceBlob = await blobFromObjectUrl(sourceUrl);
-        if (sourceBlob) {
-          questionBlobs.push(sourceBlob);
-        }
-      }
-
-      if (!questionBlobs.length) return null;
-
-      const mergedBlob = await mergeRecordingBlobs(questionBlobs);
-      return mergedBlob && mergedBlob.size > 0 ? mergedBlob : null;
+      const sourceUrl = pendingAudioUrlsRef.current[questionId] || audioUrls[questionId];
+      if (!sourceUrl) return null;
+      const sourceBlob = await blobFromObjectUrl(sourceUrl);
+      return sourceBlob && sourceBlob.size > 0 ? sourceBlob : null;
     };
 
+    // Step 1: Collect all question uploads
+    const allUploads = [];
     for (let partIdx = 0; partIdx < parts.length; partIdx += 1) {
       const part = parts[partIdx];
       const partDisplayNumber = part?.partNumber || (partIdx + 1);
       const partQuestions = (part?.questions || []).filter((q) => Boolean(q?.id));
       if (!partQuestions.length) continue;
 
-      try {
-        const uploadBlob = await resolvePartUploadBlob(part, partIdx);
-        if (!uploadBlob) {
-          continue;
-        }
+      const safePartNumber = toSafeFileSegment(partDisplayNumber) || String(partIdx + 1);
+      for (let qIdx = 0; qIdx < partQuestions.length; qIdx += 1) {
+        const question = partQuestions[qIdx];
+        const blob = await resolveQuestionBlob(question.id);
+        if (!blob) continue;
 
-        const mimeType = uploadBlob.type && uploadBlob.type.startsWith('audio/') ? uploadBlob.type : 'audio/wav';
-        const extension = mimeType.includes('wav')
-          ? 'wav'
-          : (mimeType.includes('ogg') ? 'ogg' : 'webm');
-        const safePartNumber = toSafeFileSegment(partDisplayNumber) || String(partIdx + 1);
-        const fileName = `part_${safePartNumber}.${extension}`;
-        const uploadFile = new File([uploadBlob], fileName, { type: mimeType });
-
-        const uploaded = await fileApi.uploadSpeakingAudio(uploadFile, resolvedTestTitle, testId, {
-          skillName: 'SPEAKING',
-          testCode: resolvedTestCode,
-        });
-        const driveUrl = String(uploaded?.url || '').trim();
-        if (!driveUrl) {
-          throw new Error('Drive upload succeeded but returned empty URL');
-        }
-
-        partQuestions.forEach((question) => {
-          driveAnswers[question.id] = driveUrl;
-        });
-      } catch (error) {
-        const reason = error?.message || 'Unknown error';
-        throw new Error(`Không thể upload ghi âm Part ${partDisplayNumber}: ${reason}`);
+        const mimeType = blob.type?.startsWith('audio/') ? blob.type : 'audio/webm';
+        const fileName = `${testId || 'speaking'}_Part${safePartNumber}_Q${qIdx + 1}.webm`;
+        const uploadFile = new File([blob], fileName, { type: mimeType });
+        allUploads.push({ file: uploadFile, questionId: question.id });
       }
     }
 
+    if (!allUploads.length) return {};
+
+    // Step 2: Resolve Drive folder ONCE
+    const storedUser = authApi.getStoredUser();
+    const classCode = storedUser?.classCode
+      || storedUser?.class?.code
+      || storedUser?.clazz?.code
+      || storedUser?.currentClass?.code
+      || storedUser?.activeClass?.code
+      || storedUser?.classes?.[0]?.code
+      || storedUser?.classes?.[0]?.classCode
+      || 'GENERAL';
+    const studentCode = storedUser?.studentCode
+      || storedUser?.candidateCode
+      || storedUser?.code
+      || storedUser?.id
+      || storedUser?.username
+      || 'UNKNOWN_STUDENT';
+
+    let driveFolder;
+    try {
+      driveFolder = await fileApi.resolveDriveFolder('AUDIO', 'SPEAKING', resolvedTestTitle, testId, {
+        classCode,
+        studentCode,
+        skillName: 'SPEAKING',
+        testCode: resolvedTestCode,
+      });
+    } catch (error) {
+      throw new Error(`Không thể kết nối Google Drive: ${error.message}`);
+    }
+
+    // Step 3: Upload all files in parallel
+    const results = await Promise.all(allUploads.map(({ file }) =>
+      fileApi.uploadToFolder(file, driveFolder.accessToken, driveFolder.folderId)
+    ));
+
+    // Step 4: Map each question to its URL
+    const driveAnswers = {};
+    allUploads.forEach((upload, idx) => {
+      const result = results[idx];
+      const driveUrl = String(result?.url || '').trim();
+      if (!driveUrl) return;
+      driveAnswers[upload.questionId] = driveUrl;
+    });
+
     return driveAnswers;
-  }, [audioUrls, partReviewAudioUrls, testData, testId]);
+  }, [audioUrls, testData, testId]);
 
   const submitTest = useCallback(() => {
     if (submitInFlightRef.current) return;
@@ -1694,7 +1851,7 @@ const IeltsSpeakingTest = () => {
           return ieltsApi.submitGuestAttempt(attemptId, timeSpentSeconds, guestAnswers);
         }
 
-        return ieltsApi.submitAnswers(testId, 'SPEAKING', driveAnswers, timeSpentSeconds, testData);
+        return ieltsApi.submitAnswers(testId, 'SPEAKING', driveAnswers, timeSpentSeconds, testData, examId);
       });
 
     localStorage.removeItem(`ieltsTimerDeadline_${timerPersistKey}`);
@@ -1854,7 +2011,7 @@ const IeltsSpeakingTest = () => {
     .join(" ");
 
   const isThinking = stage === 'part' && phase === 'idle' && thinkSecondsLeft > 0 && !isCueCard;
-  const canAdvanceQuestion = phase === "recording" || phase === "done" || phase === 'preparing' || isThinking;
+  const canAdvanceQuestion = phase === "recording" || phase === "done" || phase === 'preparing' || phase === 'preview' || isThinking;
   const micButtonDisabled = stage === 'part' && !(phase === 'idle' && isCueCard);
   const micCheckHeaderSeconds = stage === 'mic-test'
     ? Math.max(0, 20 - micCheckSeconds)
@@ -1920,36 +2077,36 @@ const IeltsSpeakingTest = () => {
       />
 
       {/* Main card ──────────────────────────────────────────────────────── */}
-      <main className="spk-main">
+      <main className="spk-main" style={{ justifyContent: (stage === 'part' && phase === "preparing" && isCueCard) ? 'flex-start' : 'center' }}>
         {requiresClassification ? (
           <div className="spk-card spk-unified-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '40px' }}>
-            <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '24px', color: '#1f2937' }}>Thông tin thí sinh</h2>
+            <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '24px', color: '#1f2937' }}>Candidate Information</h2>
 
             <div style={{ width: '100%', maxWidth: 400, marginBottom: 20, textAlign: 'left' }}>
               <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: 6 }}>
-                Họ và tên <span style={{ color: '#dc2626' }}>*</span>
+                Full Name <span style={{ color: '#dc2626' }}>*</span>
               </label>
               <input type="text" value={candidateName}
                 onChange={(e) => setCandidateName(e.target.value)}
-                placeholder="Nguyễn Văn A"
+                placeholder="John Doe"
                 style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: '15px', outline: 'none', boxSizing: 'border-box' }}
               />
             </div>
 
             <div style={{ width: '100%', maxWidth: 400, marginBottom: 24, textAlign: 'left' }}>
               <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: 6 }}>
-                Quê quán
+                Hometown / City
               </label>
               <input type="text" value={candidateHometown}
                 onChange={(e) => setCandidateHometown(e.target.value)}
-                placeholder="Hà Nội"
+                placeholder="London"
                 style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: '15px', outline: 'none', boxSizing: 'border-box' }}
               />
             </div>
 
             <div style={{ width: '100%', maxWidth: 400, marginBottom: 28, textAlign: 'left' }}>
               <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: 6 }}>
-                Bạn đang đi làm hay đi học? <span style={{ color: '#dc2626' }}>*</span>
+                Are you working or studying? <span style={{ color: '#dc2626' }}>*</span>
               </label>
               <div style={{ display: 'flex', gap: 12 }}>
                 <button
@@ -1962,7 +2119,7 @@ const IeltsSpeakingTest = () => {
                   }}
                   onClick={() => setUserClassification('WORK')}
                 >
-                  💼 Đi làm
+                  💼 Working
                 </button>
                 <button
                   style={{
@@ -1974,7 +2131,7 @@ const IeltsSpeakingTest = () => {
                   }}
                   onClick={() => setUserClassification('STUDENT')}
                 >
-                  🎓 Đi học
+                  🎓 Studying
                 </button>
               </div>
             </div>
@@ -1988,11 +2145,14 @@ const IeltsSpeakingTest = () => {
               }}
               onClick={() => handleClassification(userClassification)}
             >
-              Bắt đầu làm bài
+              Start Exam
             </button>
           </div>
         ) : (
-        <div className="spk-card spk-unified-card">
+        <div 
+          className="spk-card spk-unified-card" 
+          style={(stage === 'part' && (phase === 'preparing' || phase === 'recording') && isCueCard) ? { height: 'auto', maxHeight: 'none', overflow: 'visible' } : {}}
+        >
           {stage === 'mic-test' && (
             <div className="spk-stage-screen spk-check-stage spk-check-mic-only">
               <h2 className="spk-check-mic-title">TEST YOUR MICROPHONE</h2>
@@ -2026,17 +2186,7 @@ const IeltsSpeakingTest = () => {
                 </>
               ) : (
                 <>
-                  <h3 className="spk-check-mic-title">Skip Test</h3>
-                  <p className="spk-check-mic-desc">Bỏ qua kiểm tra mic và vào bài thi</p>
-                  <p className="spk-check-mic-disclaimer">Đảm bảo micro đang hoạt động trước khi bỏ qua.</p>
-                  <div className="spk-mic-actions">
-                    <button className="spk-next-btn spk-check-mic-start-btn"
-                      onClick={() => startPartWithIndex(0)}>
-                      Skip
-                    </button>
-                  </div>
-                
-                <div className="spk-check-mic-center">
+                  <div className="spk-check-mic-center">
                     <div className={`spk-check-mic-icon ${micCheckStatus === 'recording' ? 'is-recording' : ''}`} aria-hidden="true">
                       <Mic size={40} />
                     </div>
@@ -2049,7 +2199,7 @@ const IeltsSpeakingTest = () => {
                   )}
 
                   <p className="spk-check-mic-desc">
-                    To complete this activity, you must allow access to your system's microphone.
+                    Please test your microphone before starting. Allow browser microphone access if prompted.
                   </p>
 
                   <div className="spk-check-mic-actions">
@@ -2063,6 +2213,7 @@ const IeltsSpeakingTest = () => {
                           startMicCheckRecording();
                         }
                       }}
+                      style={{ background: micCheckStatus === 'recording' ? '#dc2626' : '#2563eb', color: 'white', padding: '10px 24px', borderRadius: 8, border: 'none', fontWeight: 600, cursor: 'pointer' }}
                     >
                       {micCheckStatus === 'recording' ? 'Stop' : 'Test Microphone'}
                     </button>
@@ -2071,6 +2222,7 @@ const IeltsSpeakingTest = () => {
                       className="spk-next-btn spk-check-mic-skip-btn"
                       onClick={() => startPartWithIndex(0)}
                       type="button"
+                      style={{ background: '#f3f4f6', color: '#374151', padding: '10px 24px', borderRadius: 8, border: 'none', fontWeight: 600, cursor: 'pointer' }}
                     >
                       Skip
                     </button>
@@ -2163,50 +2315,118 @@ const IeltsSpeakingTest = () => {
           )}
 
           {stage === 'part' && (
-            <div className="spk-stage-screen spk-part-live">
-              <div className="spk-intro-topbar spk-part-topbar">
-                <div className="spk-intro-topbar-spacer" aria-hidden="true" />
-                <div
-                  className="spk-intro-title spk-intro-title-rich"
-                  role="heading"
-                  aria-level={2}
-                  dangerouslySetInnerHTML={{ __html: currentPartTitleHtml }}
+            <div className="spk-stage-screen spk-part-live spk-minimal-stage">
+              <div className="spk-part-header">
+                <div className="spk-part-title-banner">
+                  {currentPartTitle}
+                </div>
+
+                {/* Thinking Timer Circle - Level with Next button */}
+                {stage === 'part' && (
+                  <>
+                    {(phase === 'idle' && !isCueCard && thinkSecondsLeft > 0) && (
+                      <div className="spk-thinking-timer-header">
+                        <ThinkingProgress 
+                          total={currentPartIdx === 1 ? THINK_SECONDS_P1 : (currentPartIdx === 3 ? THINK_SECONDS_P3 : THINK_SECONDS)} 
+                        />
+                      </div>
+                    )}
+                    {isCueCard && phase === 'preview' && (
+                      <div className="spk-thinking-timer-header">
+                        <ThinkingProgress total={PREP_PREVIEW_SECONDS} />
+                      </div>
+                    )}
+                    {isCueCard && phase === 'preparing' && (
+                      <div className="spk-thinking-timer-header">
+                        <ThinkingProgress total={currentQ?.prepSeconds || PREP_SECONDS} />
+                      </div>
+                    )}
+                  </>
+                )}
+                
+                {canAdvanceQuestion && (
+                  <button 
+                    className="spk-next-btn"
+                    onClick={goNext}
+                  >
+                    {isLastQ ? STAGE_UI_TEXT.part.completePart : STAGE_UI_TEXT.part.nextQuestion} 
+                    <ChevronRight size={16} />
+                  </button>
+                )}
+              </div>
+
+              <div className="spk-progress-container">
+                <div 
+                  className="spk-progress-bar" 
+                  style={{ width: `${((currentQIdx + 1) / (currentPart?.questions?.length || 1)) * 100}%` }}
                 />
-                <button
-                  className="spk-next-btn spk-part-next-top"
-                  onClick={goNext}
-                  disabled={!canAdvanceQuestion}
-                >
-                  {partTopActionLabel}
-                  {canAdvanceQuestion && <ChevronRight size={18} />}
-                </button>
               </div>
 
-              <div className="spk-part-question-stage">
-                {renderPartQuestionPrompt(currentQ, currentQIdx)}
-              </div>
+              <div className="spk-part-question-stage" style={{
+                display: 'flex',
+                flexDirection: (phase === 'preparing' || phase === 'recording') && isCueCard ? 'row' : 'column',
+                gap: '24px',
+                alignItems: 'stretch',
+                width: '100%',
+                flex: 1,
+                minHeight: 0
+              }}>
+                <div style={{ flex: 1, minWidth: 0, position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                  {/* Part 2 Preview Phase */}
+                  {phase === 'preview' && (
+                    <div className="spk-preview-box">
+                      <div className="spk-preview-title">Read the topic carefully</div>
+                      <div className="spk-preview-timer">{previewSecondsLeft}s</div>
+                    </div>
+                  )}
 
-              {/* Prep notes for Part 2 ────────────────────────────────────── */}
-              {phase === "preparing" && isCueCard && (
-                <div className="spk-prep-notes" style={{ padding: '0 20px', marginBottom: 12 }}>
-                  <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: 6 }}>{STAGE_UI_TEXT.part.prepHint}</p>
-                  <textarea
+                  {/* Question Display (Always show in part stage) */}
+                  <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, minHeight: 0 }}>
+                    {isCueCard && phase === 'idle' ? (
+                      <div className="spk-cuecard-hidden-msg" style={{ textAlign: 'center', color: '#6b7280', fontSize: '18px', fontWeight: 500 }}>
+                         Click "I'm ready" to view the topic
+                      </div>
+                    ) : renderPartQuestionPrompt(currentQ, currentQIdx)}
+                  </div>
+                </div>
+
+                {/* Prep Notes (Right Column) ────────────────────────────────────── */}
+                {(phase === "preparing" || phase === "recording") && isCueCard && (
+                  <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+                    <textarea
                     value={prepNotes}
                     onChange={(e) => setPrepNotes(e.target.value)}
+                    onInput={(e) => {
+                      e.target.style.height = 'auto';
+                      e.target.style.height = e.target.scrollHeight + 'px';
+                    }}
                     placeholder={STAGE_UI_TEXT.part.notesPlaceholder}
-                    rows={5}
-                    style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: '14px', outline: 'none', resize: 'vertical', boxSizing: 'border-box' }}
+                    style={{ 
+                      width: '100%', 
+                      height: '300px',
+                      minHeight: 0,
+                      padding: '12px 16px', 
+                      borderRadius: 8, 
+                      border: '1px solid #d1d5db', 
+                      fontSize: '15px', 
+                      outline: 'none', 
+                      resize: 'vertical', 
+                      boxSizing: 'border-box', 
+                      backgroundColor: '#f9fafb',
+                      fontFamily: 'inherit',
+                      overflow: 'auto'
+                    }}
                     onClick={(e) => e.stopPropagation()}
-                  />
-                </div>
-              )}
+                    />                  </div>
+                )}
+              </div>
 
               {/* Mic button + status ────────────────────────────────────────── */}
-              <div className="spk-mic-area">
+              <div className="spk-mic-area" style={{ marginTop: 20 }}>
                 {phase === "idle" && (
                   isCueCard ? (
                     <button className="spk-next-btn spk-ready-btn"
-                      onClick={() => startPrep()}
+                      onClick={() => startPreview()}
                       style={{ padding: '12px 32px', fontSize: '16px', fontWeight: 600, background: '#7e22ce', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer' }}
                     >
                       {STAGE_UI_TEXT.part.readyButton}
@@ -2215,14 +2435,22 @@ const IeltsSpeakingTest = () => {
                     <p className="spk-idle-hint">{micIdleHint}</p>
                   )
                 )}
+                
+                {phase === "preparing" && (
+                  <div className={`spk-rec-status ${prepSeconds <= 10 ? 'spk-timer-urgent' : ''}`}>
+                    <span>Preparation: {fmtTime(prepSeconds)}</span>
+                  </div>
+                )}
+
                 {phase === "recording" && (
-                  <div className="spk-rec-status">
+                  <div className={`spk-rec-status ${recSeconds >= 110 && isCueCard ? 'spk-timer-urgent' : ''}`}>
                     <span className="spk-rec-dot" />
                     <span>{STAGE_UI_TEXT.part.recordingPrefix} · {fmtTime(recSeconds)}</span>
                   </div>
                 )}
+                
                 {phase === "done" && (
-                  <p className="spk-done-hint">{STAGE_UI_TEXT.part.doneHint}</p>
+                   <p className="spk-done-hint">{STAGE_UI_TEXT.part.doneHint}</p>
                 )}
 
                 <button
@@ -2231,8 +2459,13 @@ const IeltsSpeakingTest = () => {
                   disabled={micButtonDisabled}
                   title={micButtonAriaLabel}
                   aria-label={micButtonAriaLabel}
+                  style={{
+                    background: phase === 'recording' ? '#dc2626' : '#f3f4f6',
+                    color: phase === 'recording' ? '#fff' : '#9ca3af',
+                    boxShadow: phase === 'recording' ? '0 0 15px rgba(220, 38, 38, 0.4)' : 'none'
+                  }}
                 >
-                  {phase === "recording" ? <MicOff size={38} /> : <Mic size={38} />}
+                  {phase === "recording" ? <Mic size={38} className="spk-mic-active" /> : <MicOff size={38} />}
                 </button>
 
                 {/* Waveform */}
@@ -2247,7 +2480,6 @@ const IeltsSpeakingTest = () => {
                   </p>
                 )}
               </div>
-
             </div>
           )}
         </div>
@@ -2258,4 +2490,3 @@ const IeltsSpeakingTest = () => {
 };
 
 export default IeltsSpeakingTest;
-

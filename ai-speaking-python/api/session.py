@@ -29,7 +29,7 @@ class SubmitAnswerReq(BaseModel):
 
 class TTSRequest(BaseModel):
     text: str
-    voice: str = "alloy"
+    voice: str = "troy"
 
 
 @router.post("/sessions")
@@ -115,6 +115,6 @@ async def evaluate_session(session_id: str, x_user_id: str = Header(default=""))
 async def text_to_speech(req: TTSRequest):
     try:
         audio = await tts.synthesize(req.text, req.voice)
-        return StreamingResponse(io.BytesIO(audio), media_type="audio/mpeg")
+        return StreamingResponse(io.BytesIO(audio), media_type="audio/wav")
     except Exception as e:
         raise HTTPException(400, f"TTS failed: {e}")
