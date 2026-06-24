@@ -53,3 +53,6 @@ ai-writing-service/data/tmp/*
 
 # Run files
 .run/*
+.venv/
+venv/
+__pycache__/
