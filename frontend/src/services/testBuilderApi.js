@@ -263,7 +263,13 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
     // giúp frontend nhận diện được skill khi load lại.
     const isSelectedSingleSkill = !isFullTest && allowedSkills?.includes(skillKey);
     const hasContent = parts.some(p => (p.questionGroups?.length ?? 0) > 0);
-    if (!isSelectedSingleSkill && !hasContent) continue;
+    // Full test: gửi tất cả skills (kể cả rỗng) để backend tạo session mặc định
+    // Single skill: chỉ gửi skill được chọn (kể cả rỗng)
+    if (isFullTest) {
+      // Always include for full test
+    } else if (!isSelectedSingleSkill && !hasContent) {
+      continue;
+    }
 
     // Xây map orderIndex → structPart để lookup nhanh, tránh fallback sai
     const structPartByOrder = {};
@@ -299,13 +305,8 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
       }
     }
 
-    // Lọc các part có questionGroups — bỏ qua struct để không mất Part 2/Part 3
-    // Riêng Speaking: luôn giữ tất cả 4 part (Part 0-3) kể cả rỗng
+    // Giữ tất cả các part kể cả rỗng để backend duy trì cấu trúc
     const partPayloads = realParts
-      .filter(part => {
-        if (skillKey === 'SPEAKING') return true;
-        return (part.questionGroups ?? []).length > 0;
-      })
       .map((part) => {
       const structPart = structPartByOrder[part.orderIndex];
 

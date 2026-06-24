@@ -169,6 +169,8 @@ public class SecurityConfig {
                         .hasAnyRole("TEACHER", "MANAGER", "ADMIN")
 
                         // ===== SPEAKING =====
+                        .requestMatchers("/api/ai/speaking/test/**")
+                        .hasAnyRole("STUDENT", "TEACHER", "MANAGER", "ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/speaking/start")
                         .hasAnyRole("STUDENT", "TEACHER", "MANAGER", "ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/speaking/*/submit")

@@ -96,6 +96,7 @@ class GroqClient:
                 model=s.groq_stt_model, file=(filename, audio_data), response_format="verbose_json")
             return resp.model_dump() if hasattr(resp, "model_dump") else dict(resp)
         except Exception as e:
+            logger.error(f"Groq STT failed: {e}")
             raise AIProviderError(f"Groq STT: {e}")
 
     async def synthesize(self, text: str, voice: str | None = None) -> bytes:

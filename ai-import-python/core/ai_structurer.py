@@ -16,7 +16,7 @@ VALID_QUESTION_TYPES = {
     "SENTENCE_COMPLETION", "SUMMARY_COMPLETION", "NOTE_COMPLETION",
     "FLOW_CHART", "DIAGRAM_LABELLING", "MATCHING_HEADINGS", "MATCHING",
     "WRITING_TASK1", "WRITING_TASK2", "SPEAKING_PART1", "SPEAKING_PART2",
-    "SPEAKING_PART3", "FORM_COMPLETION",
+    "SPEAKING_PART3", "FORM_COMPLETION", "TABLE_COMPLETION",
 }
 
 VALID_SKILLS = {"LISTENING", "READING", "WRITING", "SPEAKING"}
@@ -29,19 +29,20 @@ VALID_CONTENT_TYPES = {
 
 SKILL_QUESTION_TYPES = {
     "LISTENING": {"MCQ", "FILL_BLANK", "SHORT_ANSWER", "NOTE_COMPLETION",
-                  "SENTENCE_COMPLETION", "FORM_COMPLETION"},
+                  "SENTENCE_COMPLETION", "FORM_COMPLETION", "TABLE_COMPLETION",
+                  "MATCHING", "MATCHING_HEADINGS"},
     "READING": {"MCQ", "TFNG", "YNNG", "MATCHING_HEADINGS", "MATCHING",
                 "FILL_BLANK", "SHORT_ANSWER", "SENTENCE_COMPLETION",
                 "SUMMARY_COMPLETION", "NOTE_COMPLETION", "FLOW_CHART",
-                "DIAGRAM_LABELLING"},
+                "DIAGRAM_LABELLING", "TABLE_COMPLETION"},
     "WRITING": {"WRITING_TASK1", "WRITING_TASK2"},
     "SPEAKING": {"SPEAKING_PART1", "SPEAKING_PART2", "SPEAKING_PART3"},
 }
 
 
 _SKILL_CONTENT_TYPES = {
-    "LISTENING": {"READING_PASSAGE", "TABLE", "NOTE_COMPLETION"},
-    "READING": {"READING_PASSAGE", "TABLE", "FLOW_CHART", "DIAGRAM"},
+    "LISTENING": {"READING_PASSAGE", "TABLE", "NOTE_COMPLETION", "TABLE_COMPLETION"},
+    "READING": {"READING_PASSAGE", "TABLE", "FLOW_CHART", "DIAGRAM", "TABLE_COMPLETION"},
     "WRITING": {"WRITING_PASSAGE"},
     "SPEAKING": {"SPEAKING_INTERVIEW", "SPEAKING_CUECARD", "SPEAKING_DISCUSSION"},
 }
@@ -51,7 +52,8 @@ _QUESTION_CONTENT_MAP = {
     "FILL_BLANK": "READING_PASSAGE", "SHORT_ANSWER": "READING_PASSAGE",
     "SENTENCE_COMPLETION": "READING_PASSAGE", "SUMMARY_COMPLETION": "SUMMARY_COMPLETION",
     "NOTE_COMPLETION": "NOTE_COMPLETION", "FLOW_CHART": "FLOW_CHART",
-    "DIAGRAM_LABELLING": "DIAGRAM", "MATCHING_HEADINGS": "MATCHING_HEADING",
+    "TABLE_COMPLETION": "TABLE_COMPLETION", "DIAGRAM_LABELLING": "DIAGRAM",
+    "MATCHING_HEADINGS": "MATCHING_HEADING",
     "MATCHING": "MATCHING_FEATURES", "FORM_COMPLETION": "NOTE_COMPLETION",
     "WRITING_TASK1": "WRITING_PASSAGE", "WRITING_TASK2": "WRITING_PASSAGE",
     "SPEAKING_PART1": "SPEAKING_INTERVIEW", "SPEAKING_PART2": "SPEAKING_CUECARD",
@@ -68,19 +70,39 @@ class AIStructurer:
         self.llm = GroqClient()
 
     async def structure(self, raw_text: str, skill_hint: str = "",
-                        test_type: str = "ACADEMIC") -> PreviewResponse:
+                        test_type: str = "ACADEMIC",
+                        part: str = "",
+                        question_type: str = "") -> PreviewResponse:
         system = self._load_prompt()
-        user = self._build_user_prompt(raw_text, skill_hint, test_type)
+        max_len = 4000
+        combined = {"skill": skill_hint or self._guess_skill(raw_text),
+                    "title": "", "sections": []}
+        raw_responses = []
 
         try:
-            resp = await self.llm.chat(system, user)
-            data = self._extract_json(resp.content)
-            if data.get("skill") == "UNKNOWN" or not data.get("sections"):
+            chunks = self._split_text(raw_text, max_len)
+            for idx, chunk in enumerate(chunks):
+                prefix = f"\n\n[Chunk {idx + 1} of {len(chunks)}]\n" if len(chunks) > 1 else ""
+                user = f"{prefix}{self._build_user_prompt(chunk, skill_hint, test_type, part, question_type)}"
+                resp = await self.llm.chat(system, user)
+                raw_responses.append(resp.content)
+                data = self._extract_json(resp.content)
+                if data.get("sections"):
+                    combined["sections"].extend(data["sections"])
+                if not combined["title"] and data.get("title"):
+                    combined["title"] = data["title"]
+
+            if not combined["sections"]:
                 logger.warning("LLM returned empty result, retrying...")
                 data = self._fallback_extract(raw_text, skill_hint)
-            self._validate(data)
-            data = self._filter_by_skill(data)
-            return self._map_to_preview(data, resp.content)
+                combined["sections"] = data.get("sections", [])
+                combined["title"] = data.get("title", "Imported Test")
+
+            self._validate(combined)
+            combined = self._filter_by_skill(combined)
+            combined = self._detect_table_correction(raw_text, combined)
+            combined = self._enforce_question_type(question_type, combined)
+            return self._map_to_preview(combined, "\n\n".join(raw_responses))
         except AIProviderError as e:
             raise StructurerError(f"LLM error: {e}")
         except StructurerError:
@@ -88,6 +110,76 @@ class AIStructurer:
         except Exception as e:
             logger.error(f"Structure failed: {e}")
             raise StructurerError(str(e))
+
+    async def structure_from_image(self, image_bytes: bytes, image_mime: str,
+                                    skill_hint: str = "", test_type: str = "ACADEMIC",
+                                    part: str = "") -> PreviewResponse:
+        system = self._load_prompt()
+        skill = skill_hint or "READING"
+        header = ""
+        if skill_hint:
+            header += f"Skill: {skill_hint}\n"
+        if part:
+            header += f"Part: {part}\n"
+        header += f"Test Type: {test_type}\n\n"
+        user = (
+            header +
+            "This is a PHOTO of an IELTS test document. "
+            "Extract ALL questions, options, and answers into the JSON format specified in the system prompt. "
+            "If the image contains a TABLE with rows and columns, use TABLE_COMPLETION.\n\n"
+            "## DETAILED EXTRACTION RULES\n"
+            "1. Read EVERY word in the image carefully - do not skip any text.\n"
+            "2. If there is a TABLE: copy ALL rows and columns into 'passage_text' as markdown table:\n"
+            "   | Header1 | Header2 | Header3 |\n"
+            "   | --- | --- | --- |\n"
+            "   | Row1Col1 | Row1Col2 | Row1Col3 |\n"
+            "3. For EACH question number, fill 'text' with the surrounding description "
+            "(e.g. 'Hotel dining room has view of the ______').\n"
+            "4. Extract the CORRECT ANSWER for each blank and place it in 'correct_answer'.\n"
+            "5. IMPORTANT: Always use _____ (3+ underscores) to mark blanks in passage_text. "
+            "Do NOT use dots (...), dashes (---), or question marks (???) for blanks.\n"
+            "6. Do NOT leave 'text', 'passage_text', or 'correct_answer' empty if the information is visible.\n"
+            "7. Match each blank to its question number correctly.\n"
+            "Return ONLY the JSON object, no extra text."
+        )
+        try:
+            resp = await self.llm.chat_with_image(system, user, image_bytes, image_mime)
+            logger.info(f"Vision raw response ({len(resp.content)} chars): {resp.content[:300]}")
+            data = self._extract_json(resp.content)
+            if not data.get("sections"):
+                logger.warning("Vision returned empty sections, using fallback")
+                data = {"skill": skill, "title": "Imported Test", "sections": []}
+            combined = {"skill": skill, "title": data.get("title", "Imported Test"),
+                        "sections": data.get("sections", [])}
+            self._validate(combined)
+            combined = self._filter_by_skill(combined)
+            return self._map_to_preview(combined, resp.content)
+        except AIProviderError as e:
+            raise StructurerError(f"Vision LLM error: {e}")
+        except StructurerError:
+            raise
+        except Exception as e:
+            logger.error(f"Structure from image failed: {e}")
+            raise StructurerError(str(e))
+
+    def _split_text(self, text: str, max_len: int) -> list[str]:
+        if len(text) <= max_len:
+            return [text]
+        chunks = []
+        lines = text.split("\n")
+        current = []
+        current_len = 0
+        for line in lines:
+            line_len = len(line) + 1
+            if current_len + line_len > max_len and current:
+                chunks.append("\n".join(current))
+                current = []
+                current_len = 0
+            current.append(line)
+            current_len += line_len
+        if current:
+            chunks.append("\n".join(current))
+        return chunks or [text]
 
     def _validate(self, data: dict):
         errors = []
@@ -131,14 +223,6 @@ class AIStructurer:
         if not valid_qt:
             return data
 
-        _SKILL_QT_OVERRIDE = {
-            "LISTENING": {
-                "FILL_BLANK": "NOTE_COMPLETION",
-                "MCQ": "READING_PASSAGE",
-                "SHORT_ANSWER": "NOTE_COMPLETION",
-            },
-        }
-
         removed = 0
         fixed = 0
         for sec in data.get("sections", []):
@@ -150,8 +234,7 @@ class AIStructurer:
                     continue
                 ct = g.get("content_type", "")
                 if ct not in valid_ct:
-                    override = _SKILL_QT_OVERRIDE.get(skill, {}).get(qt)
-                    g["content_type"] = override or _QUESTION_CONTENT_MAP.get(qt, "READING_PASSAGE")
+                    g["content_type"] = _QUESTION_CONTENT_MAP.get(qt, "READING_PASSAGE")
                     fixed += 1
                 good.append(g)
             sec["groups"] = good
@@ -160,6 +243,64 @@ class AIStructurer:
             logger.warning(f"Removed {removed} group(s) with types invalid for skill '{skill}'")
         if fixed:
             logger.info(f"Fixed {fixed} group(s) content_type for skill '{skill}'")
+        return data
+
+    def _detect_table_correction(self, raw_text: str, data: dict) -> dict:
+        upper = raw_text.upper()
+        has_table_keywords = any(kw in upper for kw in [
+            "COMPLETE THE TABLE", "TABLE BELOW", "TABLE ABOVE",
+            "TABLE COMPLETION", "ROW", "COLUMNS"])
+        has_table_separator = ("[TABLE FROM PAGE" in upper or "[TABLE FROM OCR]" in upper) and "|" in raw_text
+
+        if not has_table_keywords and not has_table_separator:
+            return data
+
+        fixed = 0
+        for sec in data.get("sections", []):
+            for g in sec.get("groups", []):
+                qt = g.get("question_type", "")
+                if qt == "FILL_BLANK" or qt == "NOTE_COMPLETION":
+                    g["question_type"] = "TABLE_COMPLETION"
+                    g["content_type"] = "TABLE_COMPLETION"
+                    fixed += 1
+
+        if fixed:
+            logger.info(f"Table detection: corrected {fixed} group(s) to TABLE_COMPLETION")
+        return data
+
+    def _enforce_question_type(self, question_type: str, data: dict) -> dict:
+        if not question_type:
+            return data
+
+        content_map = {
+            "MCQ": ("MCQ", "MULTIPLE_CHOICE_GROUP"),
+            "FILL_BLANK": ("FILL_BLANK", "NOTE_COMPLETION"),
+            "NOTE_COMPLETION": ("NOTE_COMPLETION", "NOTE_COMPLETION"),
+            "SENTENCE_COMPLETION": ("SENTENCE_COMPLETION", "SENTENCE_COMPLETION"),
+            "SHORT_ANSWER": ("SHORT_ANSWER", "SHORT_ANSWER_GROUP"),
+            "SUMMARY_COMPLETION": ("SUMMARY_COMPLETION", "SUMMARY_COMPLETION"),
+            "TABLE_COMPLETION": ("TABLE_COMPLETION", "TABLE_COMPLETION"),
+            "MATCHING": ("MATCHING", "DRAG_MATCHING"),
+            "SHARED_OPTIONS_DROPDOWN": ("MATCHING", "SHARED_OPTIONS_DROPDOWN"),
+            "MATCHING_HEADINGS": ("MATCHING_HEADINGS", "MATCHING_HEADING"),
+            "TFNG": ("TFNG", "TRUE_FALSE_NG"),
+            "YNNG": ("YNNG", "TRUE_FALSE_NG"),
+            "FLOW_CHART": ("FLOW_CHART", "FLOW_CHART"),
+            "DIAGRAM_LABELLING": ("DIAGRAM_LABELLING", "DIAGRAM"),
+            "FORM_COMPLETION": ("FORM_COMPLETION", "NOTE_COMPLETION"),
+        }
+
+        qt, ct = content_map.get(question_type, (question_type, "READING_PASSAGE"))
+        fixed = 0
+        for sec in data.get("sections", []):
+            for g in sec.get("groups", []):
+                if g.get("question_type") != qt:
+                    g["question_type"] = qt
+                    g["content_type"] = ct
+                    fixed += 1
+
+        if fixed:
+            logger.info(f"Enforced question_type={qt}, content_type={ct} for {fixed} group(s)")
         return data
 
     def _fallback_extract(self, raw_text: str, skill_hint: str) -> dict:
@@ -290,16 +431,25 @@ TYPES: MCQ(A/B/C/D), TFNG(TRUE/FALSE/NOT GIVEN), YNNG(YES/NO/NOT GIVEN), FILL_BL
 OUTPUT: {"skill":"READING","title":"","sections":[{"title":"","part_order":1,"groups":[{"title":"Q1-5","question_type":"MCQ","content_type":"READING_PASSAGE","instructions":"","passage_text":"","questions":[{"number":1,"text":"","options":[{"label":"A","text":"","correct":true}],"answers":[],"correct_answer":"A"}]}]}]}
 Return ONLY valid JSON. No extra text."""
 
-    def _build_user_prompt(self, raw_text: str, skill_hint: str, test_type: str) -> str:
-        max_len = 4000
-        trimmed = raw_text[:max_len] + ("..." if len(raw_text) > max_len else "")
-        hint = f"Hint: This appears to be a {skill_hint} test.\n" if skill_hint else ""
-        return f"""{hint}Test Type: {test_type}
+    def _build_user_prompt(self, raw_text: str, skill_hint: str, test_type: str, part: str = "",
+                           question_type: str = "") -> str:
+        lines = []
+        if skill_hint:
+            lines.append(f"Skill: {skill_hint}")
+        if part:
+            lines.append(f"Part: {part}")
+        if question_type:
+            lines.append(f"Question Type: {question_type} (OUTPUT ONLY this type)")
+        lines.append(f"Test Type: {test_type}")
+        header = "\n".join(lines) + "\n\n" if lines else ""
+        return f"""{header}## DOCUMENT CONTENT (text of {part or 'this part'})
+{raw_text}
 
-## DOCUMENT CONTENT
-{trimmed}
-
-Analyze the document above and extract the complete IELTS test structure in the JSON format specified."""
+Extract ALL questions, options, and answers from this {part or 'document'}.
+{ f'IMPORTANT: The user has specified the question type is "{question_type}". Output ONLY groups with question_type="{question_type}" and content_type matching this type.' if question_type else '' }
+- Keep exact numbering.
+- Group questions by type.
+- Output ONLY valid JSON."""
 
     def _extract_json(self, content: str) -> dict:
         content = content.strip()

@@ -3,7 +3,9 @@ import {
   Mic, MessageSquare, Volume2, Play, Send, CheckCircle,
   ChevronRight, StopCircle, BarChart3, RefreshCw, Plus,
   RotateCw, AlertCircle, PlayCircle, Settings, Database,
-  Cpu, Clock, User, ShieldCheck, GraduationCap
+  Cpu, Clock, User, ShieldCheck, GraduationCap,
+  BookOpen, Zap, Square, Upload, Target, Sparkles, Brain,
+  FileText, Quote, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { speakingApi } from '../api/speakingApi';
 import ResponseViewer from '../components/ResponseViewer';
@@ -17,6 +19,7 @@ export default function Speaking() {
 
   const tabDefs = [
     { key: 'chat', label: 'Practice Session', icon: MessageSquare, onClick: () => setTab('chat') },
+    { key: 'practice', label: 'Luyện nói', icon: Mic, onClick: () => setTab('practice') },
     { key: 'tts', label: 'Voice Test', icon: Volume2, onClick: () => setTab('tts') },
     { key: 'grader', label: 'Chấm Speaking', icon: GraduationCap, onClick: () => setTab('grader') },
     { key: 'admin', label: 'Advanced', icon: Settings, onClick: () => setTab('admin') },
@@ -120,6 +123,222 @@ export default function Speaking() {
       setLoading(false);
     }
   }
+
+  // ── Practice tab state ───────────────────────────────────
+  const PARTS = [
+    { value: 'PART1', label: 'Part 1 — Introduction & Interview', desc: 'Câu hỏi cá nhân về chủ đề quen thuộc' },
+    { value: 'PART2', label: 'Part 2 — Cue Card', desc: 'Nói về chủ đề trong 1-2 phút' },
+    { value: 'PART3', label: 'Part 3 — Discussion', desc: 'Câu hỏi thảo luận trừu tượng' },
+  ];
+  const [practiceStep, setPracticeStep] = useState('setup'); // setup | recording | evaluating | results
+  const [selectedParts, setSelectedParts] = useState(['PART1', 'PART2', 'PART3']);
+  const [practiceTopic, setPracticeTopic] = useState('');
+  const [customQuestion, setCustomQuestion] = useState('');
+  const [practiceSessionId, setPracticeSessionId] = useState(null);
+  const [currentPartIdx, setCurrentPartIdx] = useState(0);
+  const [currentQuestion, setCurrentQuestion] = useState(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recSeconds, setRecSeconds] = useState(0);
+  const [audioBlob, setAudioBlob] = useState(null);
+  const [audioUrl2, setAudioUrl2] = useState(null);
+  const [practiceResult, setPracticeResult] = useState(null);
+  const [practiceLoading, setPracticeLoading] = useState(false);
+  const [practiceError, setPracticeError] = useState(null);
+  const [practiceScanStage, setPracticeScanStage] = useState(0);
+  const mediaRecorderRef = useRef(null);
+  const streamRef = useRef(null);
+  const chunksRef = useRef([]);
+  const timerRef = useRef(null);
+  const scanTimerRef = useRef(null);
+
+  const togglePart = (value) => {
+    setSelectedParts(prev =>
+      prev.includes(value) ? prev.filter(v => v !== value) : [...prev, value]
+    );
+  };
+
+  const resetPractice = () => {
+    setPracticeStep('setup');
+    setPracticeSessionId(null);
+    setCurrentPartIdx(0);
+    setCurrentQuestion(null);
+    setAudioBlob(null);
+    setAudioUrl2(null);
+    setPracticeError(null);
+    setPracticeResult(null);
+    setCustomQuestion('');
+  };
+
+  const handlePracticeStart = async () => {
+    if (selectedParts.length === 0) {
+      setPracticeError('Vui lòng chọn ít nhất 1 part.');
+      return;
+    }
+    if (!customQuestion.trim() && selectedParts.length === 0) {
+      setPracticeError('Vui lòng nhập câu hỏi hoặc chọn part.');
+      return;
+    }
+    setPracticeLoading(true);
+    setPracticeError(null);
+    try {
+      const config = { topic: customQuestion || practiceTopic, focusArea: selectedParts.join(','), practiceMode: 'practice' };
+      const res = await speakingApi.createSession(config);
+      const sid = res.data?.sessionId || res.data?.id;
+      if (!sid) throw new Error('Không thể tạo session');
+      setPracticeSessionId(sid);
+      setPracticeStep('recording');
+      const qRes = await speakingApi.generateQuestion(sid);
+      if (customQuestion.trim()) {
+        setCurrentQuestion({ question: customQuestion.trim(), text: customQuestion.trim() });
+      } else {
+        setCurrentQuestion(qRes.data);
+      }
+    } catch (err) {
+      setPracticeError(err.response?.data?.error || err.response?.data?.detail || err.message);
+    } finally {
+      setPracticeLoading(false);
+    }
+  };
+
+  const ensureMic = async () => {
+    try {
+      if (!streamRef.current) {
+        streamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
+      }
+      return streamRef.current;
+    } catch {
+      setPracticeError('Vui lòng cấp quyền microphone để ghi âm.');
+      return null;
+    }
+  };
+
+  const startRecording = () => {
+    ensureMic().then(stream => {
+      if (!stream) return;
+      chunksRef.current = [];
+      const mr = new MediaRecorder(stream);
+      mr.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
+      mr.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        if (blob.size > 0) { setAudioBlob(blob); setAudioUrl2(URL.createObjectURL(blob)); }
+        setIsRecording(false);
+        setRecSeconds(0);
+        if (timerRef.current) clearInterval(timerRef.current);
+      };
+      mr.start();
+      mediaRecorderRef.current = mr;
+      setIsRecording(true);
+      setRecSeconds(0);
+      timerRef.current = setInterval(() => setRecSeconds(s => s + 1), 1000);
+    });
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+    streamRef.current?.getTracks().forEach(t => t.stop());
+    streamRef.current = null;
+  };
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setAudioBlob(file);
+    setAudioUrl2(URL.createObjectURL(file));
+  };
+
+  const handlePracticeSubmit = async () => {
+    if (!audioBlob) { setPracticeError('Vui lòng ghi âm hoặc tải lên file audio.'); return; }
+    setPracticeLoading(true);
+    setPracticeError(null);
+    try {
+      await speakingApi.submitAudio(practiceSessionId, audioBlob);
+      if (currentPartIdx < selectedParts.length - 1) {
+        setCurrentPartIdx(prev => prev + 1);
+        await speakingApi.nextPhase(practiceSessionId);
+        const qRes = await speakingApi.generateQuestion(practiceSessionId);
+        setCurrentQuestion(qRes.data);
+        setAudioBlob(null); setAudioUrl2(null);
+      } else {
+        setPracticeStep('evaluating');
+        setPracticeScanStage(0);
+        scanTimerRef.current = setInterval(() => {
+          setPracticeScanStage(prev => prev < 3 ? prev + 1 : prev);
+        }, 1000);
+        const evalRes = await speakingApi.evaluateSession(practiceSessionId, 1);
+        setPracticeResult(evalRes.data || evalRes);
+        setPracticeScanStage(4);
+        setTimeout(() => setPracticeStep('results'), 600);
+      }
+    } catch (err) {
+      setPracticeError(err.response?.data?.error || err.message);
+    } finally {
+      setPracticeLoading(false);
+      if (scanTimerRef.current) clearInterval(scanTimerRef.current);
+    }
+  };
+
+  const formatTime = (s) => {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${m}:${sec.toString().padStart(2, '0')}`;
+  };
+
+  const getCriteriaList = () => {
+    const r = practiceResult;
+    if (!r) return [];
+    const src = r.criteria || r;
+    const keys = ['fluencyCoherence', 'lexicalResource', 'grammaticalRangeAccuracy', 'pronunciation'];
+    const labels = {
+      fluencyCoherence: { label: 'Fluency & Coherence', color: '#4F46E5' },
+      lexicalResource: { label: 'Lexical Resource', color: '#F59E0B' },
+      grammaticalRangeAccuracy: { label: 'Grammatical Range & Accuracy', color: '#EF4444' },
+      pronunciation: { label: 'Pronunciation', color: '#10B981' },
+    };
+    return keys.map(k => {
+      const c = src[k] || {};
+      return { key: k, ...(labels[k] || { label: k, color: '#64748b' }), band: c.band || 0, strengths: c.strengths || [], weaknesses: c.weaknesses || [], detailedFeedback: c.detailedFeedback || c.detailed_feedback || '' };
+    });
+  };
+
+  const renderPracticeResults = () => {
+    if (!practiceResult) return null;
+    const overall = practiceResult.overall_band || practiceResult.overallBand || 0;
+    const criteriaList = getCriteriaList();
+    return (
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: '24px' }}>
+        <div>
+          {criteriaList.map(c => (
+            <CriterionMeter key={c.key} label={c.label} band={c.band} color={c.color} icon={Brain} />
+          ))}
+        </div>
+        <div>
+          <div className="card" style={{ background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', color: 'white', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+            <BandScore band={overall} size={120} />
+            <h3 style={{ marginTop: '16px', fontSize: '1.25rem', fontWeight: 800 }}>Speaking Performance</h3>
+            <p style={{ fontSize: '0.875rem', opacity: 0.9, marginTop: '8px' }}>Overall IELTS Band Score</p>
+          </div>
+          {practiceResult.overall_feedback && (
+            <div className="card" style={{ marginTop: '12px' }}>
+              <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>{practiceResult.overall_feedback}</p>
+            </div>
+          )}
+          {practiceResult.improvement_priority?.length > 0 && (
+            <div className="card" style={{ marginTop: '12px' }}>
+              <h4 style={{ fontSize: '0.875rem', fontWeight: 700, marginBottom: '8px' }}>Ưu tiên cải thiện:</h4>
+              <ol style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', paddingLeft: '20px', lineHeight: 1.8 }}>
+                {practiceResult.improvement_priority.map((item, i) => <li key={i}>{item}</li>)}
+              </ol>
+            </div>
+          )}
+          <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', marginTop: '12px' }} onClick={resetPractice}>
+            <RefreshCw size={16} /> Làm bài khác
+          </button>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="animate-fade">
@@ -268,6 +487,134 @@ export default function Speaking() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {tab === 'practice' && (
+        <div className="animate-fade">
+          {practiceError && (
+            <div className="card" style={{ marginBottom: '16px', padding: '16px', borderLeft: '4px solid var(--danger)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--danger)', fontSize: '0.875rem' }}>
+                <AlertCircle size={18} /> {practiceError}
+              </div>
+            </div>
+          )}
+
+          {/* Setup */}
+          {practiceStep === 'setup' && (
+            <div className="card" style={{ maxWidth: '700px', margin: '0 auto' }}>
+              <div style={{ padding: '24px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ background: 'var(--primary-light)', color: 'var(--primary)', padding: '10px', borderRadius: '12px' }}>
+                  <Mic size={24} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Luyện nói IELTS Speaking</h3>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Chọn part, ghi âm câu trả lời và nhận điểm ngay</p>
+                </div>
+              </div>
+              <div style={{ padding: '24px' }}>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '12px' }}>Chọn Part muốn luyện tập</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
+                  {PARTS.map(p => (
+                    <label key={p.value} style={{
+                      display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '12px 16px',
+                      borderRadius: '10px', border: selectedParts.includes(p.value) ? '2px solid var(--primary)' : '2px solid var(--border)',
+                      background: selectedParts.includes(p.value) ? 'var(--primary-light)' : '#fff', cursor: 'pointer',
+                    }}>
+                      <input type="checkbox" checked={selectedParts.includes(p.value)} onChange={() => togglePart(p.value)}
+                        style={{ marginTop: 3, accentColor: 'var(--primary)' }} />
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{p.label}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>{p.desc}</div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '8px' }}>
+                  Câu hỏi tự nhập <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(giống chấm Writing — bỏ qua AI generate)</span>
+                </label>
+                <textarea style={{ width: '100%', padding: '12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', minHeight: '80px', marginBottom: '12px', resize: 'vertical', fontSize: '0.875rem' }}
+                  placeholder="Nhập câu hỏi của bạn vào đây... VD: Describe a memorable holiday you have had."
+                  value={customQuestion} onChange={e => setCustomQuestion(e.target.value)} />
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '8px' }}>Chủ đề (tùy chọn)</label>
+                <input style={{ width: '100%', padding: '12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', marginBottom: '20px' }}
+                  placeholder="VD: Environment, Technology, Education..." value={practiceTopic} onChange={e => setPracticeTopic(e.target.value)} />
+                <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}
+                  onClick={handlePracticeStart} disabled={practiceLoading || (!customQuestion.trim() && selectedParts.length === 0)}>
+                  {practiceLoading ? <><RotateCw className="spin" size={18} /> Đang tạo phiên...</> : <><Mic size={18} /> Bắt đầu luyện nói</>}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Recording */}
+          {practiceStep === 'recording' && (
+            <div className="card" style={{ maxWidth: '700px', margin: '0 auto' }}>
+              <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border-light)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ background: 'var(--primary-light)', color: 'var(--primary)', padding: '8px', borderRadius: '50%' }}>
+                    <Mic size={20} />
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: '1rem' }}>Part {currentPartIdx + 1}: {selectedParts[currentPartIdx]}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{(currentPartIdx + 1)} / {selectedParts.length}</div>
+                  </div>
+                </div>
+              </div>
+              <div style={{ padding: '24px' }}>
+                {currentQuestion && (
+                  <div style={{ background: '#F0F9FF', borderRadius: '10px', padding: '16px', marginBottom: '20px', border: '1px solid #BAE6FD' }}>
+                    <div style={{ fontSize: '0.7rem', fontWeight: 600, color: '#0369A1', marginBottom: '8px', textTransform: 'uppercase' }}>Câu hỏi</div>
+                    <div style={{ fontSize: '0.9375rem', lineHeight: 1.6, color: '#0C4A6E', whiteSpace: 'pre-wrap' }}>
+                      {currentQuestion.question || currentQuestion.text || JSON.stringify(currentQuestion)}
+                    </div>
+                  </div>
+                )}
+                {audioUrl2 && (
+                  <div style={{ background: '#F0FDF4', borderRadius: '10px', padding: '16px', marginBottom: '16px', border: '1px solid #BBF7D0' }}>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#15803D', marginBottom: '8px' }}>Đã ghi âm ({formatTime(recSeconds)})</div>
+                    <audio src={audioUrl2} controls style={{ width: '100%' }} />
+                  </div>
+                )}
+                <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginBottom: '16px' }}>
+                  {!isRecording ? (
+                    <button className="btn btn-primary" onClick={startRecording}>
+                      <Mic size={18} /> Ghi âm
+                    </button>
+                  ) : (
+                    <button className="btn btn-danger" onClick={stopRecording}
+                      style={{ background: 'var(--danger)', color: 'white', border: 'none', padding: '10px 20px', borderRadius: 'var(--radius-md)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                      <Square size={18} /> Dừng ({formatTime(recSeconds)})
+                    </button>
+                  )}
+                  <label className="btn btn-outline" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Upload size={18} /> Tải file
+                    <input type="file" accept="audio/*" hidden onChange={handleFileUpload} />
+                  </label>
+                </div>
+                <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}
+                  onClick={handlePracticeSubmit} disabled={practiceLoading || !audioBlob}>
+                  {practiceLoading ? <><RotateCw className="spin" size={18} /> Đang xử lý...</> : <><Send size={18} /> {currentPartIdx < selectedParts.length - 1 ? 'Nộp & Part tiếp theo' : 'Nộp & Đánh giá'}</>}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Evaluating */}
+          {practiceStep === 'evaluating' && (
+            <div className="card" style={{ maxWidth: '500px', margin: '60px auto', textAlign: 'center', padding: '40px' }}>
+              <div style={{ marginBottom: '20px' }}>
+                <Sparkles size={48} style={{ animation: 'spin 1.5s linear infinite', color: 'var(--primary)' }} />
+              </div>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '8px' }}>AI đang đánh giá bài nói...</h3>
+              <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
+                {['Nhận diện giọng nói...', 'Phân tích ngôn ngữ...', 'Chấm điểm 4 tiêu chí...', 'Tạo nhận xét...'][practiceScanStage] || 'Đang xử lý...'}
+              </p>
+            </div>
+          )}
+
+          {/* Results */}
+          {practiceStep === 'results' && renderPracticeResults()}
         </div>
       )}
 

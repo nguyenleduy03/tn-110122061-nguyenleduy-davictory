@@ -18,13 +18,27 @@ _HERE = Path(__file__).parent.parent
 
 
 class ScoringPipeline:
-    def __init__(self, provider: str = "nvidia"):
+    def __init__(self, provider: str = "groq"):
         if provider == "nvidia":
             self.llm = NvidiaClient()
         elif provider == "groq":
             self.llm = GroqClient()
         else:
             self.llm = OpenAIClient()
+
+    def _get_criterion(self, c: dict, keys: list[str], code: str, name: str) -> CriteriaScore:
+        d = {}
+        for k in keys:
+            v = c.get(k, {})
+            if isinstance(v, dict):
+                d = v; break
+            elif isinstance(v, (int, float)):
+                d = {"band": v, "strengths": [], "weaknesses": [], "detailedFeedback": ""}; break
+        return CriteriaScore(code=code, display_name=name,
+            band=round_ielts_band(float(d.get("band", 5.0))),
+            strengths=[str(s) for s in d.get("strengths", [])],
+            weaknesses=[str(w) for w in d.get("weaknesses", [])],
+            detailed_feedback=str(d.get("detailedFeedback", "") or d.get("detailed_feedback", "")))
 
     async def evaluate(self, session_id: str, user_id: str, turns: list[SpeakingTurn],
                        features: FeatureAnalysis, pronunciation: PronunciationResult,
@@ -38,29 +52,22 @@ class ScoringPipeline:
         pron = f"Band: {pronunciation.band:.1f} | Confidence: {pronunciation.confidence_ratio:.3f} | Speech Rate: {pronunciation.speech_rate:.1f} wpm | Hesitation: {pronunciation.hesitation_ratio:.3f}" if pronunciation.has_audio else f"Audio: NOT AVAILABLE (text-only) | Hesitation: {pronunciation.hesitation_ratio:.3f}"
 
         rub_text = self._rubric_text(rubric)
-        user = f"{rub_text}\n\n=== SPEAKING TRANSCRIPT ({part}) ===\n{transcript}\n\n=== NLP FEATURES ===\n{feat}\n\n=== PRONUNCIATION ===\n{pron}\n\n=== OUTPUT (JSON only) ===\n{schema}"
+        user = f"{rub_text}\n\n=== SPEAKING TRANSCRIPT ({part}) ===\n{transcript}\n\n=== NLP FEATURES ===\n{feat}\n\n=== PRONUNCIATION ===\n{pron}\n\n### Instructions: Rate the candidate on each criterion (1-9). Return ONLY valid JSON using EXACTLY this structure with these EXACT criterion keys:\n{{\n  \"overallBand\": 6.5,\n  \"criteria\": {{\n    \"fluency_coherence\": {{\"band\": 6, \"strengths\": [], \"weaknesses\": [], \"detailedFeedback\": \"\"}},\n    \"lexical_resource\": {{\"band\": 6, \"strengths\": [], \"weaknesses\": [], \"detailedFeedback\": \"\"}},\n    \"grammatical_range_accuracy\": {{\"band\": 6, \"strengths\": [], \"weaknesses\": [], \"detailedFeedback\": \"\"}},\n    \"pronunciation\": {{\"band\": 6, \"strengths\": [], \"weaknesses\": [], \"detailedFeedback\": \"\"}}\n  }},\n  \"overallFeedback\": \"\",\n  \"improvementPriority\": [],\n  \"confidenceScore\": 0.85\n}}"
 
         try:
             start = time.time()
             resp = await self.llm.chat(system, user, temperature=0.1, max_tokens=2048)
             lat = int((time.time() - start) * 1000)
 
+            logger.info(f"LLM response: {resp.content[:300]}")
             data = self._extract_json(resp.content)
             overall = round_ielts_band(float(data.get("overallBand", 5.0)))
             c = data.get("criteria", {})
 
-            def pc(key, code, name):
-                d = c.get(key, {})
-                return CriteriaScore(code=code, display_name=name,
-                    band=round_ielts_band(float(d.get("band", 5.0))),
-                    strengths=[str(s) for s in d.get("strengths", [])],
-                    weaknesses=[str(w) for w in d.get("weaknesses", [])],
-                    detailed_feedback=str(d.get("detailedFeedback", "")))
-
-            fc = pc("fluency_coherence", "FC", "Fluency & Coherence")
-            lr = pc("lexical_resource", "LR", "Lexical Resource")
-            gra = pc("grammatical_range_accuracy", "GRA", "Grammatical Range & Accuracy")
-            p = pc("pronunciation", "P", "Pronunciation")
+            fc = self._get_criterion(c, ["fluency_coherence", "fluencyAndCoherence", "fluency"], "FC", "Fluency & Coherence")
+            lr = self._get_criterion(c, ["lexical_resource", "lexicalResource", "lexical"], "LR", "Lexical Resource")
+            gra = self._get_criterion(c, ["grammatical_range_accuracy", "grammaticalRangeAccuracy", "grammarAndVocabulary", "grammar"], "GRA", "Grammatical Range & Accuracy")
+            p = self._get_criterion(c, ["pronunciation"], "P", "Pronunciation")
 
             all_s = [f"[{x.display_name}] {s}" for x in [fc, lr, gra, p] for s in x.strengths]
             all_w = [f"[{x.display_name}] {w}" for x in [fc, lr, gra, p] for w in x.weaknesses]

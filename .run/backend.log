@@ -34,22 +34,22 @@
 
  :: Spring Boot ::                (v4.0.3)
 
-2026-06-24T09:59:17.306+07:00  INFO 843714 --- [DAVictory] [           main] c.v.DAVictory.DaVictoryApplication       : Starting DaVictoryApplication using Java 21.0.11 with PID 843714 (/home/hv/DuAn/DAVictory/backend/target/classes started by hv in /home/hv/DuAn/DAVictory/backend)
-2026-06-24T09:59:17.311+07:00  INFO 843714 --- [DAVictory] [           main] c.v.DAVictory.DaVictoryApplication       : No active profile set, falling back to 1 default profile: "default"
-2026-06-24T09:59:19.036+07:00  INFO 843714 --- [DAVictory] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
-2026-06-24T09:59:19.332+07:00  INFO 843714 --- [DAVictory] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 283 ms. Found 71 JPA repository interfaces.
-2026-06-24T09:59:20.478+07:00  INFO 843714 --- [DAVictory] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 8080 (http)
-2026-06-24T09:59:20.502+07:00  INFO 843714 --- [DAVictory] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
-2026-06-24T09:59:20.502+07:00  INFO 843714 --- [DAVictory] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/11.0.18]
-2026-06-24T09:59:20.629+07:00  INFO 843714 --- [DAVictory] [           main] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 3226 ms
-2026-06-24T09:59:20.948+07:00  INFO 843714 --- [DAVictory] [           main] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
-2026-06-24T09:59:21.012+07:00  INFO 843714 --- [DAVictory] [           main] org.hibernate.orm.core                   : HHH000001: Hibernate ORM core version 7.2.4.Final
-2026-06-24T09:59:21.619+07:00  INFO 843714 --- [DAVictory] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
-2026-06-24T09:59:21.659+07:00  INFO 843714 --- [DAVictory] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
-2026-06-24T09:59:21.896+07:00  INFO 843714 --- [DAVictory] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@40db6136
-2026-06-24T09:59:21.899+07:00  INFO 843714 --- [DAVictory] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
-2026-06-24T09:59:21.979+07:00  WARN 843714 --- [DAVictory] [           main] org.hibernate.orm.deprecation            : HHH90000025: MySQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
-2026-06-24T09:59:22.006+07:00  INFO 843714 --- [DAVictory] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+2026-06-25T02:21:36.963+07:00  INFO 473659 --- [DAVictory] [           main] c.v.DAVictory.DaVictoryApplication       : Starting DaVictoryApplication using Java 21.0.11 with PID 473659 (/home/hv/DuAn/DAVictory/backend/target/classes started by hv in /home/hv/DuAn/DAVictory/backend)
+2026-06-25T02:21:36.966+07:00  INFO 473659 --- [DAVictory] [           main] c.v.DAVictory.DaVictoryApplication       : No active profile set, falling back to 1 default profile: "default"
+2026-06-25T02:21:38.150+07:00  INFO 473659 --- [DAVictory] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-06-25T02:21:38.391+07:00  INFO 473659 --- [DAVictory] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 231 ms. Found 71 JPA repository interfaces.
+2026-06-25T02:21:39.242+07:00  INFO 473659 --- [DAVictory] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 8080 (http)
+2026-06-25T02:21:39.258+07:00  INFO 473659 --- [DAVictory] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-06-25T02:21:39.259+07:00  INFO 473659 --- [DAVictory] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/11.0.18]
+2026-06-25T02:21:39.359+07:00  INFO 473659 --- [DAVictory] [           main] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 2315 ms
+2026-06-25T02:21:39.585+07:00  INFO 473659 --- [DAVictory] [           main] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-06-25T02:21:39.634+07:00  INFO 473659 --- [DAVictory] [           main] org.hibernate.orm.core                   : HHH000001: Hibernate ORM core version 7.2.4.Final
+2026-06-25T02:21:40.092+07:00  INFO 473659 --- [DAVictory] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-06-25T02:21:40.123+07:00  INFO 473659 --- [DAVictory] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-06-25T02:21:40.284+07:00  INFO 473659 --- [DAVictory] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@762f8ff6
+2026-06-25T02:21:40.285+07:00  INFO 473659 --- [DAVictory] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-06-25T02:21:40.341+07:00  WARN 473659 --- [DAVictory] [           main] org.hibernate.orm.deprecation            : HHH90000025: MySQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-06-25T02:21:40.358+07:00  INFO 473659 --- [DAVictory] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
 	Database JDBC URL [jdbc:mysql://localhost:3306/DAVictory?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&cachePrepStmts=true&useServerPrepStmts=true&rewriteBatchedStatements=true]
 	Database driver: MySQL Connector/J
 	Database dialect: MySQLDialect
@@ -61,349 +61,32 @@
 	Pool: DataSourceConnectionProvider
 	Minimum pool size: undefined/unknown
 	Maximum pool size: undefined/unknown
-2026-06-24T09:59:25.372+07:00  INFO 843714 --- [DAVictory] [           main] org.hibernate.orm.core                   : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
-2026-06-24T09:59:26.194+07:00  INFO 843714 --- [DAVictory] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
-2026-06-24T09:59:26.378+07:00  INFO 843714 --- [DAVictory] [           main] o.s.d.j.r.query.QueryEnhancerFactories   : Hibernate is in classpath; If applicable, HQL parser will be used.
-2026-06-24T09:59:28.622+07:00  INFO 843714 --- [DAVictory] [           main] c.v.DAVictory.config.PublicIpService     : ✅ Lấy IP từ https://api.ipify.org: 113.170.157.64
-2026-06-24T09:59:28.624+07:00  INFO 843714 --- [DAVictory] [           main] c.v.DAVictory.config.PublicIpService     : 🌐 Public IP đã phát hiện: 113.170.157.64
-2026-06-24T09:59:28.641+07:00  INFO 843714 --- [DAVictory] [           main] c.victory.DAVictory.config.CorsConfig    : CORS: Thêm IP public 113.170.157.64 vào allowed origins
-2026-06-24T09:59:28.643+07:00  INFO 843714 --- [DAVictory] [           main] c.victory.DAVictory.config.CorsConfig    : CORS allowed origin patterns: flexible matching enabled
-2026-06-24T09:59:31.298+07:00  INFO 843714 --- [DAVictory] [           main] eAuthenticationProviderManagerConfigurer : Global AuthenticationManager configured with AuthenticationProvider bean with name authenticationProvider
-2026-06-24T09:59:31.298+07:00  WARN 843714 --- [DAVictory] [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with an AuthenticationProvider bean. UserDetailsService beans will not be used by Spring Security for automatically configuring username/password login. Consider removing the AuthenticationProvider bean. Alternatively, consider using the UserDetailsService in a manually instantiated DaoAuthenticationProvider. If the current configuration is intentional, to turn off this warning, increase the logging level of 'org.springframework.security.config.annotation.authentication.configuration.InitializeUserDetailsBeanManagerConfigurer' to ERROR
-2026-06-24T09:59:33.977+07:00  WARN 843714 --- [DAVictory] [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
-2026-06-24T09:59:34.669+07:00  INFO 843714 --- [DAVictory] [           main] o.s.v.b.OptionalValidatorFactoryBean     : Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
-2026-06-24T09:59:37.435+07:00  INFO 843714 --- [DAVictory] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat started on port 8080 (http) with context path '/'
-2026-06-24T09:59:37.451+07:00  INFO 843714 --- [DAVictory] [           main] c.v.DAVictory.DaVictoryApplication       : Started DaVictoryApplication in 20.867 seconds (process running for 21.46)
-2026-06-24T09:59:37.876+07:00  INFO 843714 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    : 🔧 [TestStructureInitializer] Bắt đầu khởi tạo cấu trúc IELTS...
-2026-06-24T09:59:37.892+07:00  INFO 843714 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ DifficultyLevels (5 cấp độ)
-2026-06-24T09:59:37.918+07:00  INFO 843714 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ Sessions (Listening / Reading / Writing / Speaking × Academic & General)
-2026-06-24T09:59:38.007+07:00  INFO 843714 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ Parts (các phần trong mỗi kỹ năng)
-2026-06-24T09:59:38.080+07:00  INFO 843714 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ QuestionTypes (14 loại câu hỏi IELTS)
-2026-06-24T09:59:38.080+07:00  INFO 843714 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    : ✅ [TestStructureInitializer] Hoàn tất khởi tạo cấu trúc IELTS.
-2026-06-24T09:59:38.104+07:00  INFO 843714 --- [DAVictory] [nio-8080-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
-2026-06-24T09:59:38.104+07:00  INFO 843714 --- [DAVictory] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
-2026-06-24T09:59:38.109+07:00  INFO 843714 --- [DAVictory] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 4 ms
-🔍 Saving 10 questions for group: Questions 1-10
-📝 Question 1: Full Name: | Answers: 1
-💾 Saving 1 answers for question ID: 132436, text: Full Name:
-📝 Answer 1 INPUT: 'Jennifer Smith' (length: 14)
-✅ Saved answer 1 with ID: 92597, text: 'Jennifer Smith' (length: 14)
-✅ Successfully saved question 1
-📝 Question 2: Nationality: | Answers: 1
-💾 Saving 1 answers for question ID: 132437, text: Nationality:
-📝 Answer 1 INPUT: 'Australian' (length: 10)
-✅ Saved answer 1 with ID: 92598, text: 'Australian' (length: 10)
-✅ Successfully saved question 2
-📝 Question 3: Date of Birth: | Answers: 1
-💾 Saving 1 answers for question ID: 132438, text: Date of Birth:
-📝 Answer 1 INPUT: '16 September 2001' (length: 17)
-✅ Saved answer 1 with ID: 92599, text: '16 September 2001' (length: 17)
-✅ Successfully saved question 3
-📝 Question 4: Address: | Answers: 1
-💾 Saving 1 answers for question ID: 132439, text: Address:
-📝 Answer 1 INPUT: 'Victoria' (length: 8)
-✅ Saved answer 1 with ID: 92600, text: 'Victoria' (length: 8)
-✅ Successfully saved question 4
-📝 Question 5: Postcode: | Answers: 1
-💾 Saving 1 answers for question ID: 132440, text: Postcode:
-📝 Answer 1 INPUT: 'BS14 7KP' (length: 8)
-✅ Saved answer 1 with ID: 92601, text: 'BS14 7KP' (length: 8)
-✅ Successfully saved question 5
-📝 Question 6: Telephone Number: | Answers: 1
-💾 Saving 1 answers for question ID: 132441, text: Telephone Number:
-📝 Answer 1 INPUT: '07843 256781' (length: 12)
-✅ Saved answer 1 with ID: 92602, text: '07843 256781' (length: 12)
-✅ Successfully saved question 6
-📝 Question 7: Course Applied For: | Answers: 1
-💾 Saving 1 answers for question ID: 132442, text: Course Applied For:
-📝 Answer 1 INPUT: 'IELTS Preparation' (length: 17)
-✅ Saved answer 1 with ID: 92603, text: 'IELTS Preparation' (length: 17)
-✅ Successfully saved question 7
-📝 Question 8: Starting Date: | Answers: 1
-💾 Saving 1 answers for question ID: 132443, text: Starting Date:
-📝 Answer 1 INPUT: '5 August' (length: 8)
-✅ Saved answer 1 with ID: 92604, text: '5 August' (length: 8)
-✅ Successfully saved question 8
-📝 Question 9: Preferred Study Time: | Answers: 1
-💾 Saving 1 answers for question ID: 132444, text: Preferred Study Time:
-📝 Answer 1 INPUT: 'Evening' (length: 7)
-✅ Saved answer 1 with ID: 92605, text: 'Evening' (length: 7)
-✅ Successfully saved question 9
-📝 Question 10: Monthly Tuition Fee: | Answers: 1
-💾 Saving 1 answers for question ID: 132445, text: Monthly Tuition Fee:
-📝 Answer 1 INPUT: '120' (length: 3)
-✅ Saved answer 1 with ID: 92606, text: '120' (length: 3)
-✅ Successfully saved question 10
-✅ Created version 1 for test 175 (10 questions)
-🗑️ Cleaning up unused group: 47436
-🔍 Saving 10 questions for group: Questions 1-10
-📝 Question 1: Full Name: | Answers: 1
-💾 Saving 1 answers for question ID: 132446, text: Full Name:
-📝 Answer 1 INPUT: 'Jennifer Smith' (length: 14)
-✅ Saved answer 1 with ID: 92607, text: 'Jennifer Smith' (length: 14)
-✅ Successfully saved question 1
-📝 Question 2: Nationality: | Answers: 1
-💾 Saving 1 answers for question ID: 132447, text: Nationality:
-📝 Answer 1 INPUT: 'Australian' (length: 10)
-✅ Saved answer 1 with ID: 92608, text: 'Australian' (length: 10)
-✅ Successfully saved question 2
-📝 Question 3: Date of Birth: | Answers: 1
-💾 Saving 1 answers for question ID: 132448, text: Date of Birth:
-📝 Answer 1 INPUT: '16 September 2001' (length: 17)
-✅ Saved answer 1 with ID: 92609, text: '16 September 2001' (length: 17)
-✅ Successfully saved question 3
-📝 Question 4: Address: | Answers: 1
-💾 Saving 1 answers for question ID: 132449, text: Address:
-📝 Answer 1 INPUT: 'Victoria' (length: 8)
-✅ Saved answer 1 with ID: 92610, text: 'Victoria' (length: 8)
-✅ Successfully saved question 4
-📝 Question 5: Postcode: | Answers: 1
-💾 Saving 1 answers for question ID: 132450, text: Postcode:
-📝 Answer 1 INPUT: 'BS14 7KP' (length: 8)
-✅ Saved answer 1 with ID: 92611, text: 'BS14 7KP' (length: 8)
-✅ Successfully saved question 5
-📝 Question 6: Telephone Number: | Answers: 1
-💾 Saving 1 answers for question ID: 132451, text: Telephone Number:
-📝 Answer 1 INPUT: '07843 256781' (length: 12)
-✅ Saved answer 1 with ID: 92612, text: '07843 256781' (length: 12)
-✅ Successfully saved question 6
-📝 Question 7: Course Applied For: | Answers: 1
-💾 Saving 1 answers for question ID: 132452, text: Course Applied For:
-📝 Answer 1 INPUT: 'IELTS Preparation' (length: 17)
-✅ Saved answer 1 with ID: 92613, text: 'IELTS Preparation' (length: 17)
-✅ Successfully saved question 7
-📝 Question 8: Starting Date: | Answers: 1
-💾 Saving 1 answers for question ID: 132453, text: Starting Date:
-📝 Answer 1 INPUT: '5 August' (length: 8)
-✅ Saved answer 1 with ID: 92614, text: '5 August' (length: 8)
-✅ Successfully saved question 8
-📝 Question 9: Preferred Study Time: | Answers: 1
-💾 Saving 1 answers for question ID: 132454, text: Preferred Study Time:
-📝 Answer 1 INPUT: 'Evening' (length: 7)
-✅ Saved answer 1 with ID: 92615, text: 'Evening' (length: 7)
-✅ Successfully saved question 9
-📝 Question 10: Monthly Tuition Fee: | Answers: 1
-💾 Saving 1 answers for question ID: 132455, text: Monthly Tuition Fee:
-📝 Answer 1 INPUT: '120' (length: 3)
-✅ Saved answer 1 with ID: 92616, text: '120' (length: 3)
-✅ Successfully saved question 10
-✅ Created version 1 for test 176 (10 questions)
-🗑️ Cleaning up unused group: 47437
-🔍 Saving 10 questions for group: Questions 1-10
-📝 Question 1: Full Name | Answers: 1
-💾 Saving 1 answers for question ID: 132456, text: Full Name
-📝 Answer 1 INPUT: 'Jennifer Smith' (length: 14)
-✅ Saved answer 1 with ID: 92617, text: 'Jennifer Smith' (length: 14)
-✅ Successfully saved question 1
-📝 Question 2: Nationality | Answers: 1
-💾 Saving 1 answers for question ID: 132457, text: Nationality
-📝 Answer 1 INPUT: 'Australian' (length: 10)
-✅ Saved answer 1 with ID: 92618, text: 'Australian' (length: 10)
-✅ Successfully saved question 2
-📝 Question 3: Date of Birth | Answers: 1
-💾 Saving 1 answers for question ID: 132458, text: Date of Birth
-📝 Answer 1 INPUT: '16 September 2001' (length: 17)
-✅ Saved answer 1 with ID: 92619, text: '16 September 2001' (length: 17)
-✅ Successfully saved question 3
-📝 Question 4: Address | Answers: 1
-💾 Saving 1 answers for question ID: 132459, text: Address
-📝 Answer 1 INPUT: 'Victoria' (length: 8)
-✅ Saved answer 1 with ID: 92620, text: 'Victoria' (length: 8)
-✅ Successfully saved question 4
-📝 Question 5: Postcode | Answers: 1
-💾 Saving 1 answers for question ID: 132460, text: Postcode
-📝 Answer 1 INPUT: 'BS14 7KP' (length: 8)
-✅ Saved answer 1 with ID: 92621, text: 'BS14 7KP' (length: 8)
-✅ Successfully saved question 5
-📝 Question 6: Telephone Number | Answers: 1
-💾 Saving 1 answers for question ID: 132461, text: Telephone Number
-📝 Answer 1 INPUT: '07843 256781' (length: 12)
-✅ Saved answer 1 with ID: 92622, text: '07843 256781' (length: 12)
-✅ Successfully saved question 6
-📝 Question 7: Course Applied For | Answers: 1
-💾 Saving 1 answers for question ID: 132462, text: Course Applied For
-📝 Answer 1 INPUT: 'IELTS Preparation' (length: 17)
-✅ Saved answer 1 with ID: 92623, text: 'IELTS Preparation' (length: 17)
-✅ Successfully saved question 7
-📝 Question 8: Starting Date | Answers: 1
-💾 Saving 1 answers for question ID: 132463, text: Starting Date
-📝 Answer 1 INPUT: '5 August' (length: 8)
-✅ Saved answer 1 with ID: 92624, text: '5 August' (length: 8)
-✅ Successfully saved question 8
-📝 Question 9: Preferred Study Time | Answers: 1
-💾 Saving 1 answers for question ID: 132464, text: Preferred Study Time
-📝 Answer 1 INPUT: 'Evening' (length: 7)
-✅ Saved answer 1 with ID: 92625, text: 'Evening' (length: 7)
-✅ Successfully saved question 9
-📝 Question 10: Monthly Tuition Fee | Answers: 1
-💾 Saving 1 answers for question ID: 132465, text: Monthly Tuition Fee
-📝 Answer 1 INPUT: '120' (length: 3)
-✅ Saved answer 1 with ID: 92626, text: '120' (length: 3)
-✅ Successfully saved question 10
-✅ Created version 1 for test 177 (10 questions)
-🗑️ Cleaning up unused group: 47438
-🔍 Saving 10 questions for group: Questions 1-10
-📝 Question 1: Full Name: | Answers: 1
-💾 Saving 1 answers for question ID: 132466, text: Full Name:
-📝 Answer 1 INPUT: 'Jennifer Smith' (length: 14)
-✅ Saved answer 1 with ID: 92627, text: 'Jennifer Smith' (length: 14)
-✅ Successfully saved question 1
-📝 Question 2: Nationality: | Answers: 1
-💾 Saving 1 answers for question ID: 132467, text: Nationality:
-📝 Answer 1 INPUT: 'Australian' (length: 10)
-✅ Saved answer 1 with ID: 92628, text: 'Australian' (length: 10)
-✅ Successfully saved question 2
-📝 Question 3: Date of Birth: | Answers: 1
-💾 Saving 1 answers for question ID: 132468, text: Date of Birth:
-📝 Answer 1 INPUT: '16 September 2001' (length: 17)
-✅ Saved answer 1 with ID: 92629, text: '16 September 2001' (length: 17)
-✅ Successfully saved question 3
-📝 Question 4: Address: | Answers: 1
-💾 Saving 1 answers for question ID: 132469, text: Address:
-📝 Answer 1 INPUT: 'Victoria' (length: 8)
-✅ Saved answer 1 with ID: 92630, text: 'Victoria' (length: 8)
-✅ Successfully saved question 4
-📝 Question 5: Postcode: | Answers: 1
-💾 Saving 1 answers for question ID: 132470, text: Postcode:
-📝 Answer 1 INPUT: 'BS14 7KP' (length: 8)
-✅ Saved answer 1 with ID: 92631, text: 'BS14 7KP' (length: 8)
-✅ Successfully saved question 5
-📝 Question 6: Telephone Number: | Answers: 1
-💾 Saving 1 answers for question ID: 132471, text: Telephone Number:
-📝 Answer 1 INPUT: '07843 256781' (length: 12)
-✅ Saved answer 1 with ID: 92632, text: '07843 256781' (length: 12)
-✅ Successfully saved question 6
-📝 Question 7: Course Applied For: | Answers: 1
-💾 Saving 1 answers for question ID: 132472, text: Course Applied For:
-📝 Answer 1 INPUT: 'IELTS Preparation' (length: 17)
-✅ Saved answer 1 with ID: 92633, text: 'IELTS Preparation' (length: 17)
-✅ Successfully saved question 7
-📝 Question 8: Starting Date: | Answers: 1
-💾 Saving 1 answers for question ID: 132473, text: Starting Date:
-📝 Answer 1 INPUT: '5 August' (length: 8)
-✅ Saved answer 1 with ID: 92634, text: '5 August' (length: 8)
-✅ Successfully saved question 8
-📝 Question 9: Preferred Study Time: | Answers: 1
-💾 Saving 1 answers for question ID: 132474, text: Preferred Study Time:
-📝 Answer 1 INPUT: 'Evening' (length: 7)
-✅ Saved answer 1 with ID: 92635, text: 'Evening' (length: 7)
-✅ Successfully saved question 9
-📝 Question 10: Monthly Tuition Fee: | Answers: 1
-💾 Saving 1 answers for question ID: 132475, text: Monthly Tuition Fee:
-📝 Answer 1 INPUT: '120' (length: 3)
-✅ Saved answer 1 with ID: 92636, text: '120' (length: 3)
-✅ Successfully saved question 10
-✅ Created version 1 for test 178 (10 questions)
-🗑️ Cleaning up unused group: 47439
-🔍 Saving 10 questions for group: Questions 1-10
-📝 Question 1: Full Name: | Answers: 1
-💾 Saving 1 answers for question ID: 132476, text: Full Name:
-📝 Answer 1 INPUT: 'Jennifer Smith' (length: 14)
-✅ Saved answer 1 with ID: 92637, text: 'Jennifer Smith' (length: 14)
-✅ Successfully saved question 1
-📝 Question 2: Nationality: | Answers: 1
-💾 Saving 1 answers for question ID: 132477, text: Nationality:
-📝 Answer 1 INPUT: 'Australian' (length: 10)
-✅ Saved answer 1 with ID: 92638, text: 'Australian' (length: 10)
-✅ Successfully saved question 2
-📝 Question 3: Date of Birth: | Answers: 1
-💾 Saving 1 answers for question ID: 132478, text: Date of Birth:
-📝 Answer 1 INPUT: '16 September 2001' (length: 17)
-✅ Saved answer 1 with ID: 92639, text: '16 September 2001' (length: 17)
-✅ Successfully saved question 3
-📝 Question 4: Address: | Answers: 1
-💾 Saving 1 answers for question ID: 132479, text: Address:
-📝 Answer 1 INPUT: 'Victoria' (length: 8)
-✅ Saved answer 1 with ID: 92640, text: 'Victoria' (length: 8)
-✅ Successfully saved question 4
-📝 Question 5: Postcode: | Answers: 1
-💾 Saving 1 answers for question ID: 132480, text: Postcode:
-📝 Answer 1 INPUT: 'BS14 7KP' (length: 8)
-✅ Saved answer 1 with ID: 92641, text: 'BS14 7KP' (length: 8)
-✅ Successfully saved question 5
-📝 Question 6: Telephone Number: | Answers: 1
-💾 Saving 1 answers for question ID: 132481, text: Telephone Number:
-📝 Answer 1 INPUT: '07843 256781' (length: 12)
-✅ Saved answer 1 with ID: 92642, text: '07843 256781' (length: 12)
-✅ Successfully saved question 6
-📝 Question 7: Course Applied For: | Answers: 1
-💾 Saving 1 answers for question ID: 132482, text: Course Applied For:
-📝 Answer 1 INPUT: 'IELTS Preparation' (length: 17)
-✅ Saved answer 1 with ID: 92643, text: 'IELTS Preparation' (length: 17)
-✅ Successfully saved question 7
-📝 Question 8: Starting Date: | Answers: 1
-💾 Saving 1 answers for question ID: 132483, text: Starting Date:
-📝 Answer 1 INPUT: '5 August' (length: 8)
-✅ Saved answer 1 with ID: 92644, text: '5 August' (length: 8)
-✅ Successfully saved question 8
-📝 Question 9: Preferred Study Time: | Answers: 1
-💾 Saving 1 answers for question ID: 132484, text: Preferred Study Time:
-📝 Answer 1 INPUT: 'Evening' (length: 7)
-✅ Saved answer 1 with ID: 92645, text: 'Evening' (length: 7)
-✅ Successfully saved question 9
-📝 Question 10: Monthly Tuition Fee: | Answers: 1
-💾 Saving 1 answers for question ID: 132485, text: Monthly Tuition Fee:
-📝 Answer 1 INPUT: '120' (length: 3)
-✅ Saved answer 1 with ID: 92646, text: '120' (length: 3)
-✅ Successfully saved question 10
-✅ Created version 1 for test 179 (10 questions)
-🗑️ Cleaning up unused group: 47440
-🔍 Saving 10 questions for group: Questions 1-10
-📝 Question 1: Full Name: | Answers: 1
-💾 Saving 1 answers for question ID: 132486, text: Full Name:
-📝 Answer 1 INPUT: 'Jennifer Smith' (length: 14)
-✅ Saved answer 1 with ID: 92647, text: 'Jennifer Smith' (length: 14)
-✅ Successfully saved question 1
-📝 Question 2: Nationality: | Answers: 1
-💾 Saving 1 answers for question ID: 132487, text: Nationality:
-📝 Answer 1 INPUT: 'Australian' (length: 10)
-✅ Saved answer 1 with ID: 92648, text: 'Australian' (length: 10)
-✅ Successfully saved question 2
-📝 Question 3: Date of Birth: | Answers: 1
-💾 Saving 1 answers for question ID: 132488, text: Date of Birth:
-📝 Answer 1 INPUT: '16 September 2001' (length: 17)
-✅ Saved answer 1 with ID: 92649, text: '16 September 2001' (length: 17)
-✅ Successfully saved question 3
-📝 Question 4: Address: | Answers: 1
-💾 Saving 1 answers for question ID: 132489, text: Address:
-📝 Answer 1 INPUT: 'Victoria' (length: 8)
-✅ Saved answer 1 with ID: 92650, text: 'Victoria' (length: 8)
-✅ Successfully saved question 4
-📝 Question 5: Postcode: | Answers: 1
-💾 Saving 1 answers for question ID: 132490, text: Postcode:
-📝 Answer 1 INPUT: 'BS14 7KP' (length: 8)
-✅ Saved answer 1 with ID: 92651, text: 'BS14 7KP' (length: 8)
-✅ Successfully saved question 5
-📝 Question 6: Telephone Number: | Answers: 1
-💾 Saving 1 answers for question ID: 132491, text: Telephone Number:
-📝 Answer 1 INPUT: '07843 256781' (length: 12)
-✅ Saved answer 1 with ID: 92652, text: '07843 256781' (length: 12)
-✅ Successfully saved question 6
-📝 Question 7: Course Applied For: | Answers: 1
-💾 Saving 1 answers for question ID: 132492, text: Course Applied For:
-📝 Answer 1 INPUT: 'IELTS Preparation' (length: 17)
-✅ Saved answer 1 with ID: 92653, text: 'IELTS Preparation' (length: 17)
-✅ Successfully saved question 7
-📝 Question 8: Starting Date: | Answers: 1
-💾 Saving 1 answers for question ID: 132493, text: Starting Date:
-📝 Answer 1 INPUT: '5 August' (length: 8)
-✅ Saved answer 1 with ID: 92654, text: '5 August' (length: 8)
-✅ Successfully saved question 8
-📝 Question 9: Preferred Study Time: | Answers: 1
-💾 Saving 1 answers for question ID: 132494, text: Preferred Study Time:
-📝 Answer 1 INPUT: 'Evening' (length: 7)
-✅ Saved answer 1 with ID: 92655, text: 'Evening' (length: 7)
-✅ Successfully saved question 9
-📝 Question 10: Monthly Tuition Fee: | Answers: 1
-💾 Saving 1 answers for question ID: 132495, text: Monthly Tuition Fee:
-📝 Answer 1 INPUT: '120' (length: 3)
-✅ Saved answer 1 with ID: 92656, text: '120' (length: 3)
-✅ Successfully saved question 10
-✅ Created version 1 for test 180 (10 questions)
-2026-06-24T10:54:37.430+07:00  INFO 843714 --- [DAVictory] [nio-8080-exec-1] o.apache.coyote.http11.Http11Processor   : Error parsing HTTP request header
+2026-06-25T02:21:42.896+07:00  INFO 473659 --- [DAVictory] [           main] org.hibernate.orm.core                   : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-06-25T02:21:43.553+07:00  INFO 473659 --- [DAVictory] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-06-25T02:21:43.689+07:00  INFO 473659 --- [DAVictory] [           main] o.s.d.j.r.query.QueryEnhancerFactories   : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-06-25T02:21:45.361+07:00  INFO 473659 --- [DAVictory] [           main] c.v.DAVictory.config.PublicIpService     : ✅ Lấy IP từ https://api.ipify.org: 113.170.157.64
+2026-06-25T02:21:45.361+07:00  INFO 473659 --- [DAVictory] [           main] c.v.DAVictory.config.PublicIpService     : 🌐 Public IP đã phát hiện: 113.170.157.64
+2026-06-25T02:21:45.368+07:00  INFO 473659 --- [DAVictory] [           main] c.victory.DAVictory.config.CorsConfig    : CORS: Thêm IP public 113.170.157.64 vào allowed origins
+2026-06-25T02:21:45.368+07:00  INFO 473659 --- [DAVictory] [           main] c.victory.DAVictory.config.CorsConfig    : CORS allowed origin patterns: flexible matching enabled
+2026-06-25T02:21:47.453+07:00  INFO 473659 --- [DAVictory] [           main] eAuthenticationProviderManagerConfigurer : Global AuthenticationManager configured with AuthenticationProvider bean with name authenticationProvider
+2026-06-25T02:21:47.453+07:00  WARN 473659 --- [DAVictory] [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with an AuthenticationProvider bean. UserDetailsService beans will not be used by Spring Security for automatically configuring username/password login. Consider removing the AuthenticationProvider bean. Alternatively, consider using the UserDetailsService in a manually instantiated DaoAuthenticationProvider. If the current configuration is intentional, to turn off this warning, increase the logging level of 'org.springframework.security.config.annotation.authentication.configuration.InitializeUserDetailsBeanManagerConfigurer' to ERROR
+2026-06-25T02:21:49.515+07:00  WARN 473659 --- [DAVictory] [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-06-25T02:21:50.013+07:00  INFO 473659 --- [DAVictory] [           main] o.s.v.b.OptionalValidatorFactoryBean     : Failed to set up a Bean Validation provider: jakarta.validation.NoProviderFoundException: Unable to create a Configuration, because no Jakarta Validation provider could be found. Add a provider like Hibernate Validator (RI) to your classpath.
+2026-06-25T02:21:51.052+07:00  INFO 473659 --- [DAVictory] [           main] o.s.boot.tomcat.TomcatWebServer          : Tomcat started on port 8080 (http) with context path '/'
+2026-06-25T02:21:51.061+07:00  INFO 473659 --- [DAVictory] [           main] c.v.DAVictory.DaVictoryApplication       : Started DaVictoryApplication in 14.654 seconds (process running for 15.129)
+2026-06-25T02:21:51.321+07:00  INFO 473659 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    : 🔧 [TestStructureInitializer] Bắt đầu khởi tạo cấu trúc IELTS...
+2026-06-25T02:21:51.335+07:00  INFO 473659 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ DifficultyLevels (5 cấp độ)
+2026-06-25T02:21:51.357+07:00  INFO 473659 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ Sessions (Listening / Reading / Writing / Speaking × Academic & General)
+2026-06-25T02:21:51.399+07:00  INFO 473659 --- [DAVictory] [nio-8080-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-06-25T02:21:51.400+07:00  INFO 473659 --- [DAVictory] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-06-25T02:21:51.404+07:00  INFO 473659 --- [DAVictory] [nio-8080-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 4 ms
+2026-06-25T02:21:51.417+07:00  INFO 473659 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ Parts (các phần trong mỗi kỹ năng)
+2026-06-25T02:21:51.463+07:00  INFO 473659 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    :   ✅ QuestionTypes (14 loại câu hỏi IELTS)
+2026-06-25T02:21:51.463+07:00  INFO 473659 --- [DAVictory] [           main] c.v.D.config.TestStructureInitializer    : ✅ [TestStructureInitializer] Hoàn tất khởi tạo cấu trúc IELTS.
+2026-06-25T03:10:59.899+07:00  INFO 473659 --- [DAVictory] [nio-8080-exec-7] o.apache.coyote.http11.Http11Processor   : Error parsing HTTP request header
  Note: further occurrences of HTTP request parsing errors will be logged at DEBUG level.
 
-java.lang.IllegalArgumentException: Invalid character found in method name [0x160x030x010x000xee0x010x000x000xea0x030x030xf00x1dY0xfb0x1110xdb0xd0h0xdfh0xd00xfa0xd30x19-|0x83=0xb70xd3W0x170x160xc00xf90xca0xae0xba&0xf30xcc ]. HTTP method names must be tokens
+java.lang.IllegalArgumentException: Invalid character found in method name [0x160x030x010x010x0c0x010x000x010x080x030x030xc7K0x060xfd0x0d50xfe}`g0xf2h0x9c0x050x9e}0x1d0xa40xd4Fu0xaf'.0xf0U0xff0xe10xea0xaa0xc00xa2 ]. HTTP method names must be tokens
 	at org.apache.coyote.http11.Http11InputBuffer.parseRequestLine(Http11InputBuffer.java:391) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
 	at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:270) ~[tomcat-embed-core-11.0.18.jar:11.0.18]
 	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:63) ~[tomcat-embed-core-11.0.18.jar:11.0.18]

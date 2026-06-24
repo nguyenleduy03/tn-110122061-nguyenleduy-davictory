@@ -3,6 +3,7 @@
 from fastapi import APIRouter, Header, HTTPException, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+from loguru import logger
 import io
 
 from core.orchestrator import SpeakingOrchestrator, SessionNotFound
@@ -76,12 +77,13 @@ async def submit_answer(session_id: str, req: SubmitAnswerReq):
 async def upload_audio(session_id: str, file: UploadFile = File(...)):
     try:
         audio_data = await file.read()
-        result = await stt.transcribe(audio_data, file.filename or "audio.webm")
+        result = await stt.transcribe(audio_data, "audio.webm")
         duration = result.get("duration", 0)
         return await orch.submit_audio(session_id, audio_data, int(duration * 1000) if duration else 0, result)
     except SessionNotFound:
         raise HTTPException(404, "Session not found")
     except Exception as e:
+        logger.error(f"Audio upload failed for session {session_id}: {e}")
         raise HTTPException(400, f"Audio processing failed: {e}")
 
 

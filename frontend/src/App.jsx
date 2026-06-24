@@ -128,6 +128,7 @@ function AppContent() {
 
           {/* AI Features */}
           <Route path="/ai-test" element={<ProtectedRoute><AITestCenter /></ProtectedRoute>} />
+          <Route path="/ai-test/speaking" element={<ProtectedRoute><AITestCenter /></ProtectedRoute>} />
           <Route path="/ai-import" element={<RoleBasedRoute requiredRole="TEACHER"><AITestImport /></RoleBasedRoute>} />
 
           <Route path="/lms/teacher" element={<RoleBasedRoute requiredRole="TEACHER"><LmsTeacherDashboard /></RoleBasedRoute>} />

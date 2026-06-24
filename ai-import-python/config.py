@@ -19,7 +19,8 @@ class Settings(BaseSettings):
     groq_api_key_4: str = ""
     groq_api_key_5: str = ""
     groq_base_url: str = "https://api.groq.com"
-    groq_model: str = "qwen/qwen3-32b"
+    groq_model: str = "openai/gpt-oss-120b"
+    groq_vision_model: str = "meta-llama/llama-4-scout-17b-16e-instruct"
     groq_temperature: float = 0.1
     groq_max_tokens: int = 3000
 

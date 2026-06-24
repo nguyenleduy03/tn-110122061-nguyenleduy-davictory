@@ -1,6 +1,7 @@
 """Main orchestrator for AI Import Service."""
 
 import uuid
+from pathlib import Path
 
 from loguru import logger
 
@@ -11,6 +12,8 @@ from core.test_mapper import TestMapper
 from infrastructure.backend_client import BackendClient, BackendClientError
 from infrastructure.cache import TTLCache
 from config import get_settings
+
+_IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".tif", ".webp"}
 
 
 class ImportOrchestrator:
@@ -24,10 +27,27 @@ class ImportOrchestrator:
                               ttl_seconds=self.settings.cache_ttl_minutes * 60)
         self._tasks: dict[str, dict] = {}
 
-    async def parse_file(self, content: bytes, filename: str) -> ParseResponse:
+    async def parse_file(self, content: bytes, filename: str, mode: str = "ocr") -> ParseResponse:
         task_id = str(uuid.uuid4())[:8]
         self._tasks[task_id] = {"status": "PARSED"}
-        logger.info(f"[{task_id}] Bắt đầu parse file: {filename} ({len(content)} bytes)")
+        logger.info(f"[{task_id}] Bắt đầu parse: {filename} ({len(content)} bytes), mode={mode}")
+
+        ext = Path(filename).suffix.lower()
+        is_image = ext in _IMAGE_EXTS
+
+        if mode == "vision" and is_image:
+            self.cache.put(f"img_{task_id}", content)
+            mime = "image/png" if ext == ".png" else "image/jpeg"
+            logger.info(f"[{task_id}] Vision mode: cached image, mime={mime}")
+            return ParseResponse(
+                task_id=task_id,
+                status="PARSED",
+                raw_text="",
+                text_length=0,
+                filename=filename,
+                file_type=ext.lstrip("."),
+                ocr_used=False,
+            )
 
         parse_result = await self.parser.parse(content, filename)
         logger.debug(f"[{task_id}] Parse kết quả: success={parse_result.success}, text_length={parse_result.text_length}, ocr={parse_result.ocr_used}")
@@ -51,16 +71,25 @@ class ImportOrchestrator:
         )
 
     async def structure_text(self, task_id: str, text: str,
-                             skill_hint: str = "", test_type: str = "ACADEMIC") -> PreviewResponse:
+                             skill_hint: str = "", test_type: str = "ACADEMIC",
+                             part: str = "",
+                             question_type: str = "") -> PreviewResponse:
         self._tasks[task_id] = {"status": "PROCESSING"}
-        text_len = len(text)
-        logger.info(f"[{task_id}] Bắt đầu structure: text_len={text_len}, skill_hint={skill_hint}, test_type={test_type}")
+        logger.info(f"[{task_id}] Bắt đầu structure: text_len={len(text)}, skill_hint={skill_hint}, test_type={test_type}, part={part}, qtype={question_type}")
 
         try:
-            detected_skill = skill_hint or self._detect_skill(text)
-            logger.debug(f"[{task_id}] Skill detected: {detected_skill}")
+            img_data = self.cache.get(f"img_{task_id}")
+            if img_data:
+                detected_skill = skill_hint or "READING"
+                ext = ""
+                mime = "image/jpeg"
+                preview = await self.structurer.structure_from_image(
+                    img_data, mime, detected_skill, test_type, part)
+            else:
+                detected_skill = skill_hint or self._detect_skill(text)
+                logger.debug(f"[{task_id}] Skill detected: {detected_skill}")
+                preview = await self.structurer.structure(text, detected_skill, test_type, part, question_type)
 
-            preview = await self.structurer.structure(text, detected_skill, test_type)
             preview.task_id = task_id
             preview.skill = detected_skill
 

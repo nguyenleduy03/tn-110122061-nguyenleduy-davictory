@@ -111,6 +111,8 @@ class StructureRequest(BaseModel):
     text: str
     skill_hint: str = ""
     test_type: str = "ACADEMIC"
+    part: str = ""
+    question_type: str = ""
 
 
 class StatusResponse(BaseModel):

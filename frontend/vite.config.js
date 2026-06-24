@@ -40,6 +40,10 @@ export default defineConfig(async () => {
         clientPort: 443
       },
       proxy: {
+        '/api/ai/speaking': {
+          target: 'http://localhost:5181',
+          changeOrigin: true,
+        },
         '/api': {
           target: `http://localhost:${BACKEND_PORT}`,
           changeOrigin: true,

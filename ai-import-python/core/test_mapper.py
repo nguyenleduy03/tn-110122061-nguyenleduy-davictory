@@ -1,6 +1,7 @@
 """Test mapper - converts AI preview into Backend TestSaveRequest format."""
 
 import json
+import re
 from loguru import logger
 
 
@@ -18,6 +19,7 @@ QUESTION_TYPE_MAP = {
     "MATCHING_HEADINGS": {"code": "MATCHING_HEADINGS", "hasOptions": False, "hasTextAnswer": False},
     "MATCHING": {"code": "MATCHING", "hasOptions": False, "hasTextAnswer": False},
     "FORM_COMPLETION": {"code": "FILL_BLANK", "hasOptions": False, "hasTextAnswer": True},
+    "TABLE_COMPLETION": {"code": "FILL_BLANK", "hasOptions": False, "hasTextAnswer": True},
     "WRITING_TASK1": {"code": "WRITING_TASK1", "hasOptions": False, "hasTextAnswer": False},
     "WRITING_TASK2": {"code": "WRITING_TASK2", "hasOptions": False, "hasTextAnswer": False},
     "SPEAKING_PART1": {"code": "SPEAKING_PART1", "hasOptions": False, "hasTextAnswer": False},
@@ -33,6 +35,7 @@ CONTENT_TYPE_MAP = {
     "SHORT_ANSWER": "READING_PASSAGE",
     "SENTENCE_COMPLETION": "READING_PASSAGE",
     "FORM_COMPLETION": "NOTE_COMPLETION",
+    "TABLE_COMPLETION": "TABLE_COMPLETION",
     "SUMMARY_COMPLETION": "SUMMARY_COMPLETION",
     "NOTE_COMPLETION": "NOTE_COMPLETION",
     "FLOW_CHART": "FLOW_CHART",
@@ -190,9 +193,19 @@ class TestMapper:
             return raw_passage
 
         if ct == "NOTE_COMPLETION":
+            note_text = re.sub(r"_{3,}(?:\s+|$)", "[blank] ", raw_passage)
+            note_text = re.sub(r"_{3,}", "[blank]", note_text)
             return json.dumps({
-                "noteText": raw_passage,
+                "noteText": note_text,
                 "title": grp.title or "Notes"
+            })
+
+        if ct == "TABLE_COMPLETION":
+            note_text = re.sub(r"_{3,}(?:\s+|$)", "[blank] ", raw_passage)
+            note_text = re.sub(r"_{3,}", "[blank]", note_text)
+            return json.dumps({
+                "tableTitle": grp.title or "",
+                "noteText": note_text,
             })
 
         if ct == "SUMMARY_COMPLETION":

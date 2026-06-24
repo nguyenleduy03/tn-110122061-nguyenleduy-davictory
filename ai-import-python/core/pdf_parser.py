@@ -4,6 +4,7 @@ import io
 from loguru import logger
 
 from models.import_models import ParseResult
+from core.ocr_utils import ocr_with_table_detection
 
 
 class PdfParser:
@@ -11,6 +12,9 @@ class PdfParser:
         result = ParseResult(success=True, filename=filename, file_type="pdf")
         try:
             text = self._extract_text_pymupdf(content)
+            tables_text = self._extract_tables_pdfplumber(content)
+            if tables_text:
+                text = text + "\n\n" + tables_text if text else tables_text
             result.text_length = len(text)
             if result.text_length < 100:
                 logger.info(f"PDF has only {result.text_length} chars, trying OCR...")
@@ -54,11 +58,43 @@ class PdfParser:
             logger.error("No PDF library available (pymupdf or pdfplumber)")
             return ""
 
+    def _extract_tables_pdfplumber(self, content: bytes) -> str:
+        try:
+            import pdfplumber
+            table_parts = []
+            with pdfplumber.open(io.BytesIO(content)) as pdf:
+                for page_num, page in enumerate(pdf.pages):
+                    tables = page.extract_tables()
+                    for ti, table in enumerate(tables):
+                        if not table or len(table) < 2:
+                            continue
+                        col_count = max(len(row) for row in table if row)
+                        if col_count < 2:
+                            continue
+                        lines = []
+                        for ri, row in enumerate(table):
+                            cells = [str(c).strip() if c else "" for c in (row or [])]
+                            while len(cells) < col_count:
+                                cells.append("")
+                            line = " | ".join(cells)
+                            lines.append(line)
+                            if ri == 0:
+                                lines.append(" | ".join(["---"] * col_count))
+                        if lines:
+                            table_parts.append(f"[Table from page {page_num + 1}]\n" + "\n".join(lines))
+            if table_parts:
+                logger.info(f"Extracted {len(table_parts)} table(s) from PDF")
+            return "\n\n".join(table_parts)
+        except ImportError:
+            return ""
+        except Exception as e:
+            logger.warning(f"Table extraction failed: {e}")
+            return ""
+
     def _ocr_extract(self, content: bytes) -> str:
         try:
             import fitz
             from PIL import Image
-            import pytesseract
             from config import get_settings
 
             settings = get_settings()
@@ -68,8 +104,7 @@ class PdfParser:
                 page = doc[page_num]
                 pix = page.get_pixmap(dpi=200)
                 img = Image.open(io.BytesIO(pix.tobytes("png")))
-                text = pytesseract.image_to_string(img, lang=settings.ocr_language,
-                                                    config="--psm 6")
+                text = ocr_with_table_detection(img, settings.ocr_language)
                 if text.strip():
                     parts.append(text.strip())
             doc.close()

@@ -15,6 +15,9 @@ class Settings(BaseSettings):
 
     groq_api_key: str = ""
     groq_api_key_2: str = ""
+    groq_api_key_3: str = ""
+    groq_api_key_4: str = ""
+    groq_api_key_5: str = ""
     groq_base_url: str = "https://api.groq.com"
     groq_model: str = "qwen/qwen3-32b"
     groq_temperature: float = 0.3
@@ -58,7 +61,7 @@ class Settings(BaseSettings):
 
     @property
     def groq_api_keys(self) -> list[str]:
-        return [k for k in [self.groq_api_key, self.groq_api_key_2] if k]
+        return [k for k in [self.groq_api_key, self.groq_api_key_2, self.groq_api_key_3, self.groq_api_key_4, self.groq_api_key_5] if k]
 
 
 @lru_cache

@@ -1794,10 +1794,206 @@ const TestBuilder = () => {
     );
   }
 
-  const handleImportConfirm = (testId) => {
+  // ─── Import AI: load preview vào Test Builder ───
+  const loadFromImport = (preview, targetPartId = null) => {
+    const skill = preview.skill?.toUpperCase();
+    if (!skill || !['LISTENING', 'READING', 'WRITING', 'SPEAKING'].includes(skill)) return;
+
+    const newSessions = { ...sessions };
+    const parts = [...(newSessions[skill] || [])];
+
+    const typeMap = {
+      'FILL_BLANK': 'FILL_IN_BLANK',
+      'TABLE_COMPLETION': 'FILL_IN_BLANK',
+      'MCQ': 'MULTIPLE_CHOICE',
+      'TFNG': 'TRUE_FALSE_NG',
+      'YNNG': 'YES_NO_NG',
+      'SHORT_ANSWER': 'SHORT_ANSWER',
+      'SENTENCE_COMPLETION': 'SENTENCE_COMPLETION',
+      'SUMMARY_COMPLETION': 'SUMMARY_COMPLETION',
+      'NOTE_COMPLETION': 'FILL_IN_BLANK',
+      'MATCHING_HEADINGS': 'MATCHING_HEADING',
+      'MATCHING': 'DRAG_MATCHING',
+      'WRITING_TASK1': 'WRITING_TASK',
+      'WRITING_TASK2': 'WRITING_TASK',
+      'SPEAKING_PART1': 'SPEAKING_INTERVIEW',
+      'SPEAKING_PART2': 'SPEAKING_CUECARD',
+      'SPEAKING_PART3': 'SPEAKING_DISCUSSION',
+      'FLOW_CHART': 'FILL_IN_BLANK',
+      'DIAGRAM_LABELLING': 'FILL_IN_BLANK',
+    };
+    const ctMap = {
+      'FILL_BLANK': 'NOTE_COMPLETION',
+      'FORM_COMPLETION': 'NOTE_COMPLETION',
+      'MCQ': 'MULTIPLE_CHOICE_GROUP',
+      'TFNG': 'TRUE_FALSE_NG',
+      'YNNG': 'TRUE_FALSE_NG',
+      'SHORT_ANSWER': 'SHORT_ANSWER_GROUP',
+      'SENTENCE_COMPLETION': 'SENTENCE_COMPLETION',
+      'SUMMARY_COMPLETION': 'SUMMARY_COMPLETION',
+      'NOTE_COMPLETION': 'NOTE_COMPLETION',
+      'TABLE_COMPLETION': 'TABLE_COMPLETION',
+      'MATCHING_HEADINGS': 'MATCHING_HEADING',
+      'MATCHING': 'DRAG_MATCHING',
+      'WRITING_TASK1': 'WRITING_TASK',
+      'WRITING_TASK2': 'WRITING_TASK',
+      'SPEAKING_PART1': 'SPEAKING_INTERVIEW',
+      'SPEAKING_PART2': 'SPEAKING_CUECARD',
+      'SPEAKING_PART3': 'SPEAKING_DISCUSSION',
+      'FLOW_CHART': 'FLOW_CHART',
+      'DIAGRAM_LABELLING': 'DIAGRAM',
+    };
+
+    preview.sections?.forEach((sec) => {
+      let part;
+      if (targetPartId) {
+        part = parts.find(p => p.id === targetPartId);
+      }
+      if (!part) {
+        const partIdx = (sec.part_order || 1) - 1;
+        part = parts[partIdx];
+      }
+      if (!part) {
+        const partId = nextId();
+        part = {
+          id: partId,
+          name: `Part ${sec.part_order || parts.length + 1}`,
+          orderIndex: sec.part_order || parts.length + 1,
+          totalQuestions: 0,
+          instructions: '',
+          questionGroups: [],
+        };
+        parts.push(part);
+      }
+
+      sec.groups?.forEach((grp) => {
+        const typeName = typeMap[grp.question_type] || 'FILL_IN_BLANK';
+        const contentType = grp.content_type && grp.content_type !== grp.question_type
+          ? grp.content_type
+          : (ctMap[grp.question_type] || 'READING_PASSAGE');
+        const fromQ = (part.totalQuestions || 0) + 1;
+        const toQ = fromQ + (grp.questions?.length || 0) - 1;
+        const groupId = nextId();
+
+        const seedExtra = {};
+        if (contentType === 'NOTE_COMPLETION') {
+          seedExtra.noteText = (grp.passage_text || '').replace(/_{3,}|\.{3,}|-{3,}|\?{2,}/g, '[blank] ');
+          seedExtra.title = grp.title || '';
+        }
+        if (contentType === 'TABLE_COMPLETION') {
+          const pt = grp.passage_text || '';
+          const lines = pt.split('\n').filter(l => l.trim() && !l.startsWith('['));
+          const tableRows = lines.filter(l => !l.includes('---'))
+            .map(l => l.split('|').map(c => c.trim()).filter(c => c));
+
+          if (tableRows.length >= 2) {
+            const numCols = Math.max(...tableRows.map(r => r.length));
+            const hasHeader = tableRows.length > 1;
+
+            const cols = Array.from({ length: numCols }, (_, i) => ({
+              id: `c${nextId()}`,
+              header: hasHeader ? (tableRows[0][i] || '') : ''
+            }));
+
+            const dataRows = hasHeader ? tableRows.slice(1) : tableRows;
+            const rows = dataRows.map((rowData, ri) => {
+              const cells = {};
+              cols.forEach((col, ci) => {
+                let val = rowData[ci] || '';
+                val = val.replace(/_{3,}|\.{3,}|-{3,}|\?{2,}/g, '[blank]');
+                cells[col.id] = val;
+              });
+              return { id: `r${nextId()}`, cells };
+            });
+
+            seedExtra.tableTitle = grp.title || '';
+            seedExtra.columns = cols;
+            seedExtra.tableRows = rows;
+            seedExtra.questions = [];
+            seedExtra.passageText = '';
+          } else {
+            const fallbackCols = [`c${nextId()}`, `c${nextId()}`].map(id => ({ id, header: '' }));
+            const qList = grp.questions || [];
+            const fallbackRows = qList.map((q, qi) => {
+              const cellId = fallbackCols[1].id;
+              const hasBlank = /_{3,}|\.{3,}|-{3,}|\?{2,}/.test(q.text || '');
+              return {
+                id: `r${nextId()}`,
+                cells: {
+                  [fallbackCols[0].id]: q.text || `Q${fromQ + qi}`,
+                  [cellId]: hasBlank ? '[blank]' : (q.correct_answer || '[blank]')
+                }
+              };
+            });
+            if (fallbackRows.length === 0) {
+              const c1 = fallbackCols[1]?.id || `c${nextId()}`;
+              fallbackRows.push({ id: `r${nextId()}`, cells: { [fallbackCols[0].id]: '', [c1]: '[blank]' } });
+            }
+            seedExtra.tableTitle = grp.title || '';
+            seedExtra.columns = fallbackCols;
+            seedExtra.tableRows = fallbackRows;
+            seedExtra.questions = [];
+          }
+        }
+        if (contentType === 'TRUE_FALSE_NG') {
+          seedExtra.isYesNo = grp.question_type === 'YNNG';
+        }
+
+        const newGroup = {
+          id: groupId,
+          partId: part.id,
+          contentType,
+          title: grp.title || '',
+          orderIndex: (part.questionGroups?.length || 0) + 1,
+          passageText: contentType === 'NOTE_COMPLETION' ? '' : (grp.passage_text || ''),
+          fromQuestion: fromQ,
+          toQuestion: toQ > fromQ ? toQ : null,
+          instructions: grp.instructions || '',
+          audioUrl: '',
+          imageUrl: '',
+          questions: (grp.questions || []).map((q, qi) => ({
+            id: nextId(),
+            groupId,
+            partId: part.id,
+            questionNumber: fromQ + qi,
+            questionText: q.text || '',
+            answerText: q.answers?.[0]?.text || '',
+            questionType: { typeName },
+            options: (q.options || []).map((o, oi) => ({
+              id: nextId(),
+              optionLabel: o.label || '',
+              optionText: o.text || '',
+              isCorrect: !!o.correct,
+              orderIndex: oi,
+            })),
+            answers: (q.answers || []).map((a, ai) => ({
+              answerText: a.text || '',
+              alternativeAnswers: null,
+              isCaseSensitive: false,
+              isSample: false,
+              blankIndex: ai,
+            })),
+            points: 1,
+            orderIndex: qi + 1,
+          })),
+          ...seedExtra,
+        };
+
+        if (!part.questionGroups) part.questionGroups = [];
+        part.questionGroups.push(newGroup);
+        part.totalQuestions = (part.totalQuestions || 0) + (grp.questions?.length || 0);
+      });
+    });
+
+    newSessions[skill] = parts;
+    setSessions(newSessions);
+    setActiveSkill(skill);
     setShowImportModal(false);
-    if (testId) {
-      navigate(`/teacher/tests/${testId}/edit`, { replace: true });
+  };
+
+  const handleImportConfirm = ({ preview, targetPartId }) => {
+    if (preview?.sections?.length > 0) {
+      loadFromImport(preview, targetPartId);
     }
   };
 
@@ -1807,6 +2003,9 @@ const TestBuilder = () => {
         <AIImportModal
           onClose={() => setShowImportModal(false)}
           onImport={handleImportConfirm}
+          initialSkill={activeSkill}
+          initialPartId={selection?.type === 'part' ? selection.data.id : null}
+          parts={sessions[activeSkill] ?? []}
         />
       )}
       <div className="tb-page">

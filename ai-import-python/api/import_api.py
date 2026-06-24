@@ -16,15 +16,16 @@ orch = ImportOrchestrator()
 @router.post("/parse")
 async def parse_document(
     file: UploadFile = File(...),
+    mode: str = Form("ocr"),
 ):
-    logger.info(f"POST /parse - file={file.filename}, content_type={file.content_type}")
+    logger.info(f"POST /parse - file={file.filename}, content_type={file.content_type}, mode={mode}")
     try:
         content = await file.read()
         logger.debug(f"  Đọc file: {len(content)} bytes")
         if not content:
             logger.warning("  File rỗng")
             raise HTTPException(400, "Empty file")
-        result = await orch.parse_file(content, file.filename or "upload")
+        result = await orch.parse_file(content, file.filename or "upload", mode)
         logger.info(f"  Kết quả: task_id={result.task_id}, status={result.status}, text_length={result.text_length}")
         return result.model_dump()
     except HTTPException:
@@ -36,10 +37,10 @@ async def parse_document(
 
 @router.post("/structure")
 async def structure_document(req: StructureRequest):
-    logger.info(f"POST /structure - task_id={req.task_id}, text_len={len(req.text)}, skill_hint={req.skill_hint}")
+    logger.info(f"POST /structure - task_id={req.task_id}, text_len={len(req.text)}, skill_hint={req.skill_hint}, qtype={req.question_type}")
     try:
         preview = await orch.structure_text(
-            req.task_id, req.text, req.skill_hint, req.test_type)
+            req.task_id, req.text, req.skill_hint, req.test_type, req.part, req.question_type)
         logger.info(f"  Kết quả: status={preview.status}, questions={preview.total_questions}, skill={preview.skill}")
         return preview.model_dump()
     except StructurerError as e:

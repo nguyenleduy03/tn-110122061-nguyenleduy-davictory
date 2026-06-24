@@ -137,6 +137,7 @@ com/victory/DAVictory/entity/TestVersion.class
 com/victory/DAVictory/repository/QuestionTypeRepository.class
 com/victory/DAVictory/service/QuestionBankService.class
 com/victory/DAVictory/entity/QuestionStatistic.class
+com/victory/DAVictory/controller/AISpeakingTestController.class
 com/victory/DAVictory/controller/TestStructureController.class
 com/victory/DAVictory/dto/QuestionGroupResponse$OptionResp.class
 com/victory/DAVictory/repository/AgentActionRepository.class

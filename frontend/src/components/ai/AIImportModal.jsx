@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import aiImportApi from '../../services/aiImportApi';
 
 const questionTypeColors = {
@@ -21,18 +21,80 @@ const questionTypeColors = {
   SPEAKING_PART3: { bg: '#fce7f3', text: '#9d174d' },
 };
 
-export default function AIImportModal({ onClose, onImport }) {
-  const [step, setStep] = useState('select'); // select | review | preview | saving
-  const [skill, setSkill] = useState('');
+export default function AIImportModal({ onClose, onImport, initialSkill = '', initialPartId = null, parts = [] }) {
+  const [step, setStep] = useState('select');
+  const [skill, setSkill] = useState(initialSkill);
+  const [targetPartId, setTargetPartId] = useState(initialPartId || '__new__');
   const [testType, setTestType] = useState('ACADEMIC');
   const [file, setFile] = useState(null);
+  const [mode, setMode] = useState('ocr');
   const [preview, setPreview] = useState(null);
   const [parseData, setParseData] = useState(null);
   const [editableText, setEditableText] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingLabel, setLoadingLabel] = useState('');
   const [error, setError] = useState('');
+  const [questionType, setQuestionType] = useState('');
   const fileRef = useRef(null);
+
+  useEffect(() => {
+    if (initialSkill) setSkill(initialSkill);
+  }, [initialSkill]);
+
+  useEffect(() => {
+    if (initialPartId) setTargetPartId(initialPartId);
+    else if (initialSkill) setTargetPartId('__new__');
+  }, [initialPartId, initialSkill]);
+
+  const isImageFile = (f) => {
+    if (!f) return false;
+    const ext = f.name?.split('.').pop()?.toLowerCase();
+    return ['jpg', 'jpeg', 'png', 'bmp', 'tiff', 'tif', 'webp'].includes(ext);
+  };
+
+  useEffect(() => {
+    if (file && isImageFile(file)) {
+      setMode('vision');
+    } else if (file) {
+      setMode('ocr');
+    }
+  }, [file]);
+
+  const partName = (id) => {
+    if (id === '__new__') return 'Thêm thành Part mới';
+    const p = parts.find(x => x.id === id);
+    return p ? p.name : 'Thêm thành Part mới';
+  };
+
+  const renderTable = (text) => {
+    if (!text) return null;
+    const lines = text.split('\n').filter(l => l.trim() && !l.startsWith('['));
+    const dataLines = lines.filter(l => !l.includes('---'));
+    if (dataLines.length < 2) return null;
+    const rows = dataLines.map(l => l.split('|').map(c => c.trim()));
+    const maxCols = Math.max(...rows.map(r => r.length));
+    if (maxCols < 2) return null;
+    return (
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, marginTop: 4 }}>
+        <thead>
+          <tr>
+            {rows[0].map((h, i) => (
+              <th key={i} style={{ border: '1px solid #d1d5db', padding: '4px 6px', backgroundColor: '#f3f4f6', textAlign: 'left', fontWeight: 600 }}>{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.slice(1).map((row, ri) => (
+            <tr key={ri} style={{ backgroundColor: ri % 2 === 0 ? '#fff' : '#f9fafb' }}>
+              {Array.from({ length: maxCols }).map((_, ci) => (
+                <td key={ci} style={{ border: '1px solid #d1d5db', padding: '4px 6px' }}>{row[ci] || ''}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    );
+  };
 
   const handleFileDrop = (e) => {
     e.preventDefault();
@@ -51,6 +113,24 @@ export default function AIImportModal({ onClose, onImport }) {
     }
   };
 
+  const handlePaste = (e) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const item of items) {
+      if (item.type?.startsWith('image/')) {
+        const blob = item.getAsFile();
+        if (blob) {
+          const ext = blob.name?.split('.').pop() || 'png';
+          const f = new File([blob], `paste_${Date.now()}.${ext}`, { type: blob.type });
+          setFile(f);
+          setError('');
+          e.preventDefault();
+        }
+        break;
+      }
+    }
+  };
+
   const handleParse = async () => {
     if (!file || !skill) {
       setError('Vui lòng chọn file và kỹ năng');
@@ -60,15 +140,15 @@ export default function AIImportModal({ onClose, onImport }) {
     setLoadingLabel('Đang đọc file...');
     setError('');
     try {
-      const parseResp = await aiImportApi.parseDocument(file);
+      const parseResp = await aiImportApi.parseDocument(file, skill, testType, mode);
       const data = parseResp.data;
-      if (data.status !== 'PARSED' || !data.raw_text) {
+      if (data.status !== 'PARSED' || (!data.raw_text && mode !== 'vision')) {
         setError('Không thể đọc nội dung từ file. Vui lòng thử lại.');
         setLoading(false);
         return;
       }
       setParseData(data);
-      setEditableText(data.raw_text);
+      setEditableText(data.raw_text || '');
       setStep('review');
     } catch (err) {
       setError(err.response?.data?.error || err.response?.data?.detail || err.message || 'Parse failed');
@@ -78,7 +158,7 @@ export default function AIImportModal({ onClose, onImport }) {
   };
 
   const handleStructure = async () => {
-    if (!parseData?.task_id || !editableText.trim()) {
+    if (!parseData?.task_id || (!editableText.trim() && mode !== 'vision')) {
       setError('Không có nội dung để phân tích');
       return;
     }
@@ -86,8 +166,9 @@ export default function AIImportModal({ onClose, onImport }) {
     setLoadingLabel('AI đang phân tích...');
     setError('');
     try {
+      const partLabel = targetPartId === '__new__' ? '' : partName(targetPartId);
       const structResp = await aiImportApi.structureDocument(
-        parseData.task_id, editableText, skill, testType
+        parseData.task_id, editableText, skill, testType, partLabel, questionType
       );
       const data = structResp.data;
       if (data.status === 'COMPLETED' && data.sections?.length > 0) {
@@ -103,33 +184,15 @@ export default function AIImportModal({ onClose, onImport }) {
     }
   };
 
-  const handleImport = async () => {
-    if (!preview?.task_id) return;
-    setStep('saving');
-    setError('');
-    try {
-      const resp = await aiImportApi.createTest(
-        preview.task_id,
-        preview.title || file?.name?.replace(/\.[^/.]+$/, '') || 'Imported Test',
-        testType,
-        preview.sections,
-        null
-      );
-      const data = resp.data;
-      if (data.success || data.test_id) {
-        onImport(data.test_id);
-      } else {
-        setError(data.message || 'Create failed');
-        setStep('preview');
-      }
-    } catch (err) {
-      setError(err.response?.data?.error || err.response?.data?.message || err.message || 'Create failed');
-      setStep('preview');
-    }
+  const handleImport = () => {
+    if (!preview) return;
+    onImport({ preview, targetPartId: targetPartId === '__new__' ? null : targetPartId });
   };
 
   const resetForm = () => {
     setFile(null);
+    setMode('ocr');
+    setQuestionType('');
     setPreview(null);
     setParseData(null);
     setEditableText('');
@@ -140,7 +203,7 @@ export default function AIImportModal({ onClose, onImport }) {
   const isValid = file && skill;
 
   return (
-    <div style={{
+    <div tabIndex={-1} onPaste={handlePaste} style={{
       position: 'fixed', inset: 0, zIndex: 9999,
       backgroundColor: 'rgba(0,0,0,0.5)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -178,22 +241,57 @@ export default function AIImportModal({ onClose, onImport }) {
         {step === 'select' && (
           <>
             <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
-              <div style={{ flex: 1, minWidth: 150 }}>
-                <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 4 }}>
-                  Kỹ năng <span style={{ color: '#dc2626' }}>*</span>
-                </label>
-                <select value={skill} onChange={e => setSkill(e.target.value)}
-                  style={{
+              {initialSkill ? (
+                <div style={{ flex: 1, minWidth: 150 }}>
+                  <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 4 }}>
+                    Kỹ năng
+                  </label>
+                  <div style={{
                     padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd',
-                    width: '100%', fontSize: 14, backgroundColor: '#fff',
+                    width: '100%', fontSize: 14, backgroundColor: '#f3f4f6', color: '#555',
                   }}>
-                  <option value="">-- Chọn kỹ năng --</option>
-                  <option value="LISTENING">Listening</option>
-                  <option value="READING">Reading</option>
-                  <option value="WRITING">Writing</option>
-                  <option value="SPEAKING">Speaking</option>
-                </select>
-              </div>
+                    {skill === 'LISTENING' ? 'Listening' :
+                     skill === 'READING' ? 'Reading' :
+                     skill === 'WRITING' ? 'Writing' :
+                     skill === 'SPEAKING' ? 'Speaking' : skill}
+                    {' '}(tự động)
+                  </div>
+                </div>
+              ) : (
+                <div style={{ flex: 1, minWidth: 150 }}>
+                  <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 4 }}>
+                    Kỹ năng <span style={{ color: '#dc2626' }}>*</span>
+                  </label>
+                  <select value={skill} onChange={e => setSkill(e.target.value)}
+                    style={{
+                      padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd',
+                      width: '100%', fontSize: 14, backgroundColor: '#fff',
+                    }}>
+                    <option value="">-- Chọn kỹ năng --</option>
+                    <option value="LISTENING">Listening</option>
+                    <option value="READING">Reading</option>
+                    <option value="WRITING">Writing</option>
+                    <option value="SPEAKING">Speaking</option>
+                  </select>
+                </div>
+              )}
+              {!initialSkill && (
+                <div style={{ flex: 1, minWidth: 150 }}>
+                  <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 4 }}>
+                    Import vào Part
+                  </label>
+                  <select value={targetPartId} onChange={e => setTargetPartId(e.target.value)}
+                    style={{
+                      padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd',
+                      width: '100%', fontSize: 14, backgroundColor: '#fff',
+                    }}>
+                    <option value="__new__">+ Thêm thành Part mới</option>
+                    {parts.map(p => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div style={{ flex: 1, minWidth: 150 }}>
                 <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 4 }}>
                   Loại đề
@@ -207,6 +305,37 @@ export default function AIImportModal({ onClose, onImport }) {
                   <option value="GENERAL">General Training</option>
                 </select>
               </div>
+              <div style={{ flex: 1, minWidth: 200 }}>
+                <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 4 }}>
+                  Loại câu hỏi <span style={{ color: '#6b7280', fontWeight: 400 }}>(tùy chọn)</span>
+                </label>
+                <select value={questionType} onChange={e => setQuestionType(e.target.value)}
+                  style={{
+                    padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd',
+                    width: '100%', fontSize: 14, backgroundColor: '#fff',
+                  }}>
+                  <option value="">Tự động (AI tự đoán)</option>
+                  <optgroup label="─ Điền / Ghi ─">
+                    <option value="FILL_BLANK">Fill Blank / Note</option>
+                    <option value="SENTENCE_COMPLETION">Sentence Completion</option>
+                    <option value="SHORT_ANSWER">Short Answer</option>
+                    <option value="SUMMARY_COMPLETION">Summary Completion</option>
+                    <option value="TABLE_COMPLETION">Table Completion</option>
+                    <option value="FORM_COMPLETION">Form Completion</option>
+                  </optgroup>
+                  <optgroup label="─ Chọn ─">
+                    <option value="MCQ">Multiple Choice (MCQ)</option>
+                    <option value="TFNG">True / False / NG</option>
+                    <option value="MATCHING">Matching</option>
+                    <option value="MATCHING_HEADINGS">Matching Headings</option>
+                    <option value="SHARED_OPTIONS_DROPDOWN">Dropdown (lựa chọn chung)</option>
+                  </optgroup>
+                  <optgroup label="─ Khác ─">
+                    <option value="FLOW_CHART">Flow-chart</option>
+                    <option value="DIAGRAM_LABELLING">Diagram Labelling</option>
+                  </optgroup>
+                </select>
+              </div>
             </div>
 
             <div onDrop={handleFileDrop} onDragOver={e => e.preventDefault()}
@@ -217,7 +346,7 @@ export default function AIImportModal({ onClose, onImport }) {
                 cursor: 'pointer', backgroundColor: file ? '#eff6ff' : '#fafafa',
                 marginBottom: 16, transition: 'all 0.2s',
               }}>
-              <input ref={fileRef} type="file" accept=".pdf,.docx,.doc,.txt"
+              <input ref={fileRef} type="file" accept=".pdf,.docx,.doc,.txt,.jpg,.jpeg,.png,.bmp,.tiff,.tif,.webp"
                 onChange={handleFileSelect} style={{ display: 'none' }} />
               {file ? (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
@@ -233,9 +362,73 @@ export default function AIImportModal({ onClose, onImport }) {
                 <div>
                   <span style={{ fontSize: 32 }}>📁</span>
                   <div style={{ marginTop: 8, fontWeight: 500 }}>Kéo thả file hoặc click để chọn</div>
-                  <div style={{ color: '#888', fontSize: 13, marginTop: 4 }}>Hỗ trợ PDF, DOCX, TXT</div>
+                  <div style={{ color: '#888', fontSize: 13, marginTop: 4 }}>Hỗ trợ PDF, DOCX, TXT, ảnh (JPG/PNG) — có thể paste ảnh từ clipboard</div>
                 </div>
               )}
+            </div>
+
+            {file && isImageFile(file) && (
+              <div style={{
+                display: 'flex', gap: 12, marginBottom: 16, padding: '6px 0',
+                alignItems: 'center',
+              }}>
+                <span style={{ fontSize: 13, fontWeight: 600, marginRight: 4 }}>Chế độ đọc:</span>
+                <label style={{
+                  display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer',
+                  padding: '5px 12px', borderRadius: 6, fontSize: 13, fontWeight: 500,
+                  backgroundColor: mode === 'ocr' ? '#dbeafe' : '#f3f4f6',
+                  border: mode === 'ocr' ? '1px solid #93c5fd' : '1px solid #ddd',
+                }}>
+                  <input type="radio" name="mode" value="ocr" checked={mode === 'ocr'}
+                    onChange={() => setMode('ocr')} style={{ margin: 0 }} />
+                  OCR (đọc chữ)
+                </label>
+                <label style={{
+                  display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer',
+                  padding: '5px 12px', borderRadius: 6, fontSize: 13, fontWeight: 500,
+                  backgroundColor: mode === 'vision' ? '#dbeafe' : '#f3f4f6',
+                  border: mode === 'vision' ? '1px solid #93c5fd' : '1px solid #ddd',
+                }}>
+                  <input type="radio" name="mode" value="vision" checked={mode === 'vision'}
+                    onChange={() => setMode('vision')} style={{ margin: 0 }} />
+                  Vision AI (xem ảnh)
+                </label>
+              </div>
+            )}
+
+            <div style={{
+              marginTop: 12, marginBottom: 12, borderTop: '1px solid #e5e7eb', paddingTop: 12,
+            }}>
+              <details>
+                <summary style={{ fontSize: 13, fontWeight: 600, cursor: 'pointer', color: '#2563eb', userSelect: 'none' }}>
+                  📝 Hoặc paste text trực tiếp
+                </summary>
+                <textarea value={editableText} onChange={e => {
+                  setEditableText(e.target.value);
+                  setError('');
+                }}
+                  style={{
+                    width: '100%', minHeight: 120, padding: 10, fontSize: 13, marginTop: 8,
+                    border: '1px solid #ddd', borderRadius: 8, fontFamily: 'monospace',
+                    lineHeight: 1.5, resize: 'vertical', whiteSpace: 'pre-wrap',
+                  }}
+                  placeholder="Paste nội dung câu hỏi vào đây...&#10;VD: Questions 1-5&#10;Complete the table below.&#10;..." />
+                <button onClick={() => {
+                  if (!editableText.trim() || !skill) {
+                    setError('Vui lòng paste nội dung và chọn kỹ năng');
+                    return;
+                  }
+                  setParseData({ task_id: `paste_${Date.now()}` });
+                  setStep('review');
+                }} disabled={!editableText.trim() || !skill} style={{
+                  marginTop: 8, padding: '8px 20px', borderRadius: 8, border: 'none',
+                  backgroundColor: !editableText.trim() || !skill ? '#ccc' : '#059673',
+                  color: '#fff', fontWeight: 600, cursor: !editableText.trim() || !skill ? 'not-allowed' : 'pointer',
+                  fontSize: 14,
+                }}>
+                  🤖 Gửi lên AI Phân Tích
+                </button>
+              </details>
             </div>
 
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
@@ -249,7 +442,7 @@ export default function AIImportModal({ onClose, onImport }) {
                 color: '#fff', fontWeight: 600, cursor: !isValid || loading ? 'not-allowed' : 'pointer',
                 fontSize: 14,
               }}>
-                {loading ? `🔄 ${loadingLabel}` : '📄 Đọc Nội Dung File'}
+                {loading ? `🔄 ${loadingLabel}` : mode === 'vision' ? '📸 Gửi Ảnh Lên AI Vision' : '📄 Đọc Nội Dung File'}
               </button>
             </div>
           </>
@@ -257,39 +450,94 @@ export default function AIImportModal({ onClose, onImport }) {
 
         {step === 'review' && (
           <>
-            <div style={{
-              backgroundColor: '#eff6ff', border: '1px solid #bfdbfe',
-              borderRadius: 8, padding: 14, marginBottom: 16,
-            }}>
-              <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>
-                📄 Nội dung đã trích xuất ({parseData?.text_length || 0} ký tự)
+            {mode === 'vision' ? (
+              <div style={{
+                backgroundColor: '#fefce8', border: '1px solid #fde68a',
+                borderRadius: 8, padding: 14, marginBottom: 16,
+              }}>
+                <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>
+                  📸 Ảnh đã sẵn sàng
+                </div>
+                <div style={{ fontSize: 13, color: '#555' }}>
+                  AI sẽ đọc trực tiếp từ ảnh bằng Vision AI. Nhấn "Gửi lên AI Vision" để phân tích.
+                </div>
+                {file && (
+                  <div style={{ marginTop: 8 }}>
+                    <img src={URL.createObjectURL(file)} alt="Preview"
+                      style={{ maxWidth: '100%', maxHeight: 300, borderRadius: 8, border: '1px solid #ddd' }} />
+                  </div>
+                )}
               </div>
-              <div style={{ fontSize: 13, color: '#555' }}>
-                Kiểm tra và chỉnh sửa nội dung, sau đó bấm "Gửi lên AI" để phân tích thành đề thi.
-                <br />Nội dung sẽ được cắt ở 4000 ký tự khi gửi lên AI.
+            ) : (
+              <div style={{
+                backgroundColor: '#eff6ff', border: '1px solid #bfdbfe',
+                borderRadius: 8, padding: 14, marginBottom: 16,
+              }}>
+                <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>
+                  📄 Nội dung đã trích xuất ({parseData?.text_length || 0} ký tự)
+                </div>
+                <div style={{ fontSize: 13, color: '#555' }}>
+                  Kiểm tra và chỉnh sửa nội dung, sau đó bấm "Gửi lên AI" để phân tích thành đề thi.
+                </div>
+              </div>
+            )}
+
+            {mode !== 'vision' && (
+              <textarea value={editableText} onChange={e => setEditableText(e.target.value)}
+                style={{
+                  width: '100%', minHeight: 300, padding: 12, fontSize: 13,
+                  border: '1px solid #ddd', borderRadius: 8, fontFamily: 'monospace',
+                  lineHeight: 1.5, resize: 'vertical', marginBottom: 16,
+                  whiteSpace: 'pre-wrap',
+                }} />
+            )}
+
+            <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+              <div style={{ flex: 1, minWidth: 200 }}>
+                <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 4 }}>
+                  Loại câu hỏi
+                </label>
+                <select value={questionType} onChange={e => setQuestionType(e.target.value)}
+                  style={{
+                    padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd',
+                    width: '100%', fontSize: 14, backgroundColor: '#fff',
+                  }}>
+                  <option value="">Tự động (AI tự đoán)</option>
+                  <optgroup label="─ Điền / Ghi ─">
+                    <option value="FILL_BLANK">Fill Blank / Note</option>
+                    <option value="SENTENCE_COMPLETION">Sentence Completion</option>
+                    <option value="SHORT_ANSWER">Short Answer</option>
+                    <option value="SUMMARY_COMPLETION">Summary Completion</option>
+                    <option value="TABLE_COMPLETION">Table Completion</option>
+                    <option value="FORM_COMPLETION">Form Completion</option>
+                  </optgroup>
+                  <optgroup label="─ Chọn ─">
+                    <option value="MCQ">Multiple Choice (MCQ)</option>
+                    <option value="TFNG">True / False / NG</option>
+                    <option value="MATCHING">Matching</option>
+                    <option value="MATCHING_HEADINGS">Matching Headings</option>
+                    <option value="SHARED_OPTIONS_DROPDOWN">Dropdown (lựa chọn chung)</option>
+                  </optgroup>
+                  <optgroup label="─ Khác ─">
+                    <option value="FLOW_CHART">Flow-chart</option>
+                    <option value="DIAGRAM_LABELLING">Diagram Labelling</option>
+                  </optgroup>
+                </select>
               </div>
             </div>
-
-            <textarea value={editableText} onChange={e => setEditableText(e.target.value)}
-              style={{
-                width: '100%', minHeight: 300, padding: 12, fontSize: 13,
-                border: '1px solid #ddd', borderRadius: 8, fontFamily: 'monospace',
-                lineHeight: 1.5, resize: 'vertical', marginBottom: 16,
-                whiteSpace: 'pre-wrap',
-              }} />
 
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button onClick={() => { setStep('select'); setParseData(null); }} style={{
                 padding: '8px 20px', borderRadius: 8, border: '1px solid #ddd',
                 backgroundColor: '#fff', cursor: 'pointer', fontSize: 14,
               }}>← Quay lại</button>
-              <button onClick={handleStructure} disabled={loading || !editableText.trim()} style={{
+              <button onClick={handleStructure} disabled={loading || (!editableText.trim() && mode !== 'vision')} style={{
                 padding: '8px 20px', borderRadius: 8, border: 'none',
-                backgroundColor: loading || !editableText.trim() ? '#ccc' : '#2563eb',
-                color: '#fff', fontWeight: 600, cursor: loading || !editableText.trim() ? 'not-allowed' : 'pointer',
+                backgroundColor: loading || (!editableText.trim() && mode !== 'vision') ? '#ccc' : '#2563eb',
+                color: '#fff', fontWeight: 600, cursor: loading || (!editableText.trim() && mode !== 'vision') ? 'not-allowed' : 'pointer',
                 fontSize: 14,
               }}>
-                {loading ? `🔄 ${loadingLabel}` : '🤖 Gửi lên AI Phân Tích'}
+                {loading ? `🔄 ${loadingLabel}` : mode === 'vision' ? '🤖 Gửi Lên AI Vision' : '🤖 Gửi lên AI Phân Tích'}
               </button>
             </div>
           </>
@@ -312,6 +560,7 @@ export default function AIImportModal({ onClose, onImport }) {
                 </div>
                 <div><strong>Tổng:</strong> {preview.total_questions} câu</div>
                 <div><strong>Sections:</strong> {preview.sections?.length || 0}</div>
+                <div><strong>Import vào:</strong> {partName(targetPartId)}</div>
               </div>
             </div>
 
@@ -347,16 +596,25 @@ export default function AIImportModal({ onClose, onImport }) {
                     </div>
                     {group.passage_text && group.content_type !== 'NOTE_COMPLETION' && (
                       <div style={{
-                        fontSize: 12, color: '#555', maxHeight: 50, overflow: 'hidden',
+                        fontSize: 12, color: '#555',
                         backgroundColor: '#f9fafb', padding: '4px 8px', borderRadius: 4,
                         borderLeft: '3px solid #d1d5db', marginBottom: 4,
                       }}>
-                        <span style={{ fontWeight: 600, color: '#1e40af' }}>
-                          {group.content_type === 'READING_PASSAGE' ? '📖 Đoạn văn:' :
-                           group.content_type === 'WRITING_PASSAGE' ? '✏️ Đề bài:' :
-                           group.content_type === 'SPEAKING_CUECARD' ? '🎴 Cue Card:' : '📄 Nội dung:'}
-                        </span>{' '}
-                        {group.passage_text.substring(0, 200)}{group.passage_text.length > 200 ? '...' : ''}
+                        {group.content_type === 'TABLE_COMPLETION' ? (
+                          <>
+                            <span style={{ fontWeight: 600, color: '#1e40af', display: 'block', marginBottom: 4 }}>📊 Bảng:</span>
+                            {renderTable(group.passage_text)}
+                          </>
+                        ) : (
+                          <>
+                            <span style={{ fontWeight: 600, color: '#1e40af' }}>
+                              {group.content_type === 'READING_PASSAGE' ? '📖 Đoạn văn:' :
+                               group.content_type === 'WRITING_PASSAGE' ? '✏️ Đề bài:' :
+                               group.content_type === 'SPEAKING_CUECARD' ? '🎴 Cue Card:' : '📄 Nội dung:'}
+                            </span>{' '}
+                            {group.passage_text.substring(0, 200)}{group.passage_text.length > 200 ? '...' : ''}
+                          </>
+                        )}
                       </div>
                     )}
                     {group.questions?.slice(0, 2).map((q, qi) => (

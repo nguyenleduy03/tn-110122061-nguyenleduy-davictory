@@ -22,9 +22,12 @@ const getCurrentUserId = () => {
 };
 
 const aiImportApi = {
-  parseDocument(file) {
+  parseDocument(file, skillHint = '', testType = 'ACADEMIC', mode = 'ocr') {
     const formData = new FormData();
     formData.append('file', file);
+    if (skillHint) formData.append('skillHint', skillHint);
+    if (testType) formData.append('testType', testType);
+    formData.append('mode', mode);
     return axios.post('ai/import/parse', formData, {
       baseURL: API_CONFIG.BASE_URL,
       timeout: 180000,
@@ -35,13 +38,16 @@ const aiImportApi = {
     });
   },
 
-  structureDocument(taskId, text, skillHint = '', testType = 'ACADEMIC') {
-    return api.post('ai/import/structure', {
+  structureDocument(taskId, text, skillHint = '', testType = 'ACADEMIC', part = '', questionType = '') {
+    const body = {
       task_id: taskId,
       text: text,
       skill_hint: skillHint,
       test_type: testType,
-    }, {
+    };
+    if (part) body.part = part;
+    if (questionType) body.question_type = questionType;
+    return api.post('ai/import/structure', body, {
       headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
       timeout: 180000,
     });
@@ -50,7 +56,6 @@ const aiImportApi = {
   createTest(taskId, title, testType, sections, createdByUserId = null, targetBand = '7.0') {
     return api.post('ai/import/create', {
       task_id: taskId,
-      taskId,
       test_type: testType,
       title,
       target_band: targetBand,

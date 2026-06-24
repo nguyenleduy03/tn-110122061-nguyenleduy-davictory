@@ -4,9 +4,14 @@ import com.victory.DAVictory.dto.SpeakingResultDTO;
 import com.victory.DAVictory.exception.AIGradingException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.multipart.MultipartFile;
+
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 
 import java.util.Map;
 
@@ -126,6 +131,22 @@ public class AISpeakingBridgeService {
         } catch (Exception e) {
             log.error("Failed to advance phase: {}", e.getMessage());
             throw new AIGradingException("Failed to advance phase: " + e.getMessage());
+        }
+    }
+
+    public Map<String, Object> uploadAudio(String sessionId, MultipartFile file) {
+        try {
+            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+            body.add("file", file.getResource());
+            return restClient.post()
+                    .uri(aiSpeakingServiceUrl + "/api/ai/speaking/sessions/{sessionId}/audio", sessionId)
+                    .contentType(MediaType.MULTIPART_FORM_DATA)
+                    .body(body)
+                    .retrieve()
+                    .body(Map.class);
+        } catch (Exception e) {
+            log.error("Failed to upload audio: {}", e.getMessage());
+            throw new AIGradingException("Failed to upload audio: " + e.getMessage());
         }
     }
 }

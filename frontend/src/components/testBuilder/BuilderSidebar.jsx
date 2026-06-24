@@ -38,16 +38,13 @@ const PALETTE_ITEMS = [
   { type: 'group', contentType: 'MATCHING_HEADINGS_FILLABLE', label: 'Match Headings (Fill)', icon: ClipboardList, skills: ['READING', 'LISTENING'] },
   // ── LISTENING + READING ──
   { type: 'group', contentType: 'AUDIO_TRANSCRIPT',     label: 'Audio / Nghe',           icon: Headphones, skills: ['LISTENING'] },
-  { type: 'group', contentType: 'MAP',                  label: 'Bản đồ',                 icon: BookOpen, skills: ['LISTENING'] },
   { type: 'group', contentType: 'MAP_LABELLING',        label: 'Map Labelling',          icon: BookOpen, skills: ['LISTENING'] },
   { type: 'group', contentType: 'IMAGE_NOTE_FORM',      label: 'Ảnh + Note Form',        icon: ImageIcon, skills: ['LISTENING', 'READING'] },
-  { type: 'group', contentType: 'DIAGRAM',              label: 'Sơ đồ / Chart',          icon: ClipboardList, skills: ['LISTENING', 'READING'] },
-  { type: 'group', contentType: 'TABLE',                label: 'Bảng / Form',            icon: ClipboardList, skills: ['LISTENING', 'READING', 'WRITING'] },
   { type: 'group', contentType: 'MULTIPLE_CHOICE_GROUP',label: 'Multiple Choice',        icon: List, skills: ['LISTENING', 'READING'] },
   { type: 'group', contentType: 'SENTENCE_COMPLETION',  label: 'Sentence Completion',    icon: PenLine, skills: ['LISTENING', 'READING'] },
   { type: 'group', contentType: 'SHORT_ANSWER_GROUP',   label: 'Short Answer',           icon: PenLine, skills: ['LISTENING', 'READING'] },
-  { type: 'group', contentType: 'DRAG_MATCHING',        label: 'Drag Matching',          icon: List, skills: ['LISTENING', 'READING'] },
   { type: 'group', contentType: 'TABLE_COMPLETION',     label: 'Table Completion',       icon: ClipboardList, skills: ['LISTENING', 'READING'] },
+  { type: 'group', contentType: 'DRAG_MATCHING',        label: 'Drag Matching',          icon: List, skills: ['LISTENING', 'READING'] },
   { type: 'group', contentType: 'FLOW_CHART',           label: 'Flow-chart Completion',  icon: ClipboardList, skills: ['LISTENING', 'READING'] },
   { type: 'group', contentType: 'FLOW_CHART_TEXT',      label: 'Flow-chart (Điền text)', icon: PenLine,     skills: ['LISTENING', 'READING'] },
   // ── Biến thể mới: Fill-in → Drag-drop ──
@@ -55,7 +52,6 @@ const PALETTE_ITEMS = [
   { type: 'group', contentType: 'SENTENCE_COMPLETION_DRAG', label: 'Sentence (Drag)',    icon: List, skills: ['LISTENING', 'READING'] },
   { type: 'group', contentType: 'SUMMARY_COMPLETION_DRAG', label: 'Summary (Drag)',      icon: List, skills: ['LISTENING', 'READING'] },
   { type: 'group', contentType: 'SUMMARY_COMPLETION_SELECT', label: 'Summary (Select)',  icon: List, skills: ['LISTENING', 'READING'] },
-  { type: 'group', contentType: 'NOTE_COMPLETION_DRAG', label: 'Note (Drag)',            icon: List, skills: ['LISTENING'] },
   // ── WRITING / SPEAKING only ──
   { type: 'group', contentType: 'WRITING_TASK',         label: 'Writing Task',           icon: PenLine, skills: ['WRITING'] },
   // ── SPEAKING only ──

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import aiApi from '../services/aiApi';
 import {
   Sparkles, Send, RotateCw, AlertCircle, CheckCircle2, ChevronDown, ChevronUp,
@@ -7,6 +8,7 @@ import {
   Scan, Clock, Activity, FileSearch, BarChart3, Hash, Tag, MapPin
 } from 'lucide-react';
 import Navbar from '../components/layout/Navbar';
+import AISpeakingTest from '../components/AISpeakingTest';
 import '../styles/aiTestCenter.css';
 
 const TASK_TYPES = [
@@ -45,7 +47,7 @@ const LETTER_TYPES = [
 
 const SERVICES = [
   { id: 'writing', label: 'Writing AI', icon: PenLine, desc: 'Chấm điểm IELTS Writing', color: '#a16207', bgColor: '#fef9c3' },
-  { id: 'speaking', label: 'Speaking AI', icon: Mic, desc: 'Chấm điểm IELTS Speaking', color: '#be185d', bgColor: '#fce7f3', coming: true },
+  { id: 'speaking', label: 'Speaking AI', icon: Mic, desc: 'Chấm điểm IELTS Speaking', color: '#be185d', bgColor: '#fce7f3' },
 ];
 
 const SCAN_STAGES = [
@@ -83,13 +85,15 @@ const LETTER_TYPE_LABELS = {
 };
 
 export default function AITestCenter() {
+  const location = useLocation();
+  const initialService = location.pathname.includes('/speaking') ? 'speaking' : 'writing';
   const [essayText, setEssayText] = useState('');
   const [taskType, setTaskType] = useState('TASK2_ACADEMIC');
   const [topic, setTopic] = useState('');
   const [chartType, setChartType] = useState('');
   const [essayType, setEssayType] = useState('');
   const [letterType, setLetterType] = useState('');
-  const [service, setService] = useState('writing');
+  const [service, setService] = useState(initialService);
   const [showRawPrompt, setShowRawPrompt] = useState(false);
   const [loading, setLoading] = useState(false);
   const [scanStage, setScanStage] = useState(0);
@@ -167,170 +171,173 @@ export default function AITestCenter() {
             <span className="gradient-text">AI</span>
           </h1>
           <p className="ai-test-hero-sub">
-            Dán bài IELTS Writing của bạn vào và để AI chấm điểm với phân tích chi tiết từng tiêu chí,
-            gợi ý sửa lỗi ngữ pháp, từ vựng và cấu trúc bài viết.
+            {service === 'writing'
+              ? 'Dán bài IELTS Writing của bạn vào và để AI chấm điểm với phân tích chi tiết từng tiêu chí, gợi ý sửa lỗi ngữ pháp, từ vựng và cấu trúc bài viết.'
+              : 'Chọn part, ghi âm câu trả lời và để AI chấm điểm IELTS Speaking với phân tích 4 tiêu chí Fluency, Lexical Resource, Grammatical Range và Pronunciation.'}
           </p>
         </div>
       </section>
 
-      {/* Input Section */}
-      <section className="ai-test-input-section">
-        <div className="ai-test-container">
-          <div className="ai-test-card">
-            <div className="ai-test-card-header">
-              <Brain size={22} />
-              <span>Nhập bài viết cần kiểm tra</span>
-            </div>
-            <div className="ai-test-card-body">
-              <div className="ai-test-options">
-                <div className="ai-test-option-group">
-                  <label className="ai-test-label">Dịch vụ AI</label>
-                  <div className="ai-test-service-grid">
-                    {SERVICES.map(s => {
-                      const Icon = s.icon;
-                      return (
-                        <button
-                          key={s.id}
-                          className={`ai-test-service-btn${service === s.id ? ' active' : ''}${s.coming ? ' coming' : ''}`}
-                          onClick={() => !s.coming && setService(s.id)}
-                          style={service === s.id ? { borderColor: s.color, background: s.bgColor } : {}}
-                        >
-                          <Icon size={20} style={{ color: s.color }} />
-                          <div>
-                            <div className="ai-test-service-name">{s.label}</div>
-                            <div className="ai-test-service-desc">{s.desc}</div>
-                          </div>
-                          {s.coming && <span className="ai-test-coming-badge">Sắp ra mắt</span>}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="ai-test-option-row">
-                  <div className="ai-test-option-group">
-                    <label className="ai-test-label">Loại task</label>
-                    <select
-                      className="ai-test-select"
-                      value={taskType}
-                      onChange={e => { setTaskType(e.target.value); resetForm(); }}
-                    >
-                      {TASK_TYPES.map(t => (
-                        <option key={t.value} value={t.value}>{t.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="ai-test-option-group">
-                    <label className="ai-test-label">Chủ đề (tùy chọn)</label>
-                    <input
-                      className="ai-test-input"
-                      placeholder="VD: Environment, Education..."
-                      value={topic}
-                      onChange={e => setTopic(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                {/* Sub-type selectors */}
-                {taskType === 'TASK1_ACADEMIC' && (
-                  <div className="ai-test-option-group">
-                    <label className="ai-test-label">Loại biểu đồ</label>
-                    <select className="ai-test-select" value={chartType} onChange={e => setChartType(e.target.value)}>
-                      {CHART_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-                    </select>
-                    <span className="ai-test-subtype-hint">Để trống để AI tự nhận diện từ đề bài</span>
-                  </div>
-                )}
-                {taskType === 'TASK1_GENERAL' && (
-                  <div className="ai-test-option-group">
-                    <label className="ai-test-label">Loại thư</label>
-                    <select className="ai-test-select" value={letterType} onChange={e => setLetterType(e.target.value)}>
-                      {LETTER_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-                    </select>
-                    <span className="ai-test-subtype-hint">Để trống để AI tự nhận diện từ đề bài</span>
-                  </div>
-                )}
-                {(taskType === 'TASK2_ACADEMIC' || taskType === 'TASK2_GENERAL') && (
-                  <div className="ai-test-option-group">
-                    <label className="ai-test-label">Dạng bài luận</label>
-                    <select className="ai-test-select" value={essayType} onChange={e => setEssayType(e.target.value)}>
-                      {ESSAY_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-                    </select>
-                    <span className="ai-test-subtype-hint">Để trống để AI tự nhận diện từ đề bài</span>
-                  </div>
-                )}
+      {service === 'writing' && (
+        <section className="ai-test-input-section">
+          <div className="ai-test-container">
+            <div className="ai-test-card">
+              <div className="ai-test-card-header">
+                <Brain size={22} />
+                <span>Nhập bài viết cần kiểm tra</span>
               </div>
-
-              <div className="ai-test-textarea-wrap">
-                {showRawPrompt ? (
-                  <div style={{
-                    padding: 16, background: '#1f2937', borderRadius: 8,
-                    minHeight: 300, fontSize: 13,
-                    fontFamily: "'Monaco','Menlo','Consolas',monospace",
-                    whiteSpace: 'pre-wrap', wordWrap: 'break-word',
-                    color: '#e2e8f0', lineHeight: 1.6, marginBottom: 8,
-                  }}>
-                    <div style={{ marginBottom: 12, color: '#94a3b8', fontSize: 12 }}>
-                      ⚡ Payload gốc gửi đến backend → Python service → LLM
+              <div className="ai-test-card-body">
+                <div className="ai-test-options">
+                  <div className="ai-test-option-group">
+                    <label className="ai-test-label">Dịch vụ AI</label>
+                    <div className="ai-test-service-grid">
+                      {SERVICES.map(s => {
+                        const Icon = s.icon;
+                        return (
+                          <button
+                            key={s.id}
+                            className={`ai-test-service-btn${service === s.id ? ' active' : ''}`}
+                            onClick={() => setService(s.id)}
+                            style={service === s.id ? { borderColor: s.color, background: s.bgColor } : {}}
+                          >
+                            <Icon size={20} style={{ color: s.color }} />
+                            <div>
+                              <div className="ai-test-service-name">{s.label}</div>
+                              <div className="ai-test-service-desc">{s.desc}</div>
+                            </div>
+                          </button>
+                        );
+                      })}
                     </div>
-                    <div style={{ color: '#60a5fa', fontSize: 11, marginBottom: 4 }}>task_type: {taskType}</div>
-                    <div style={{ color: '#60a5fa', fontSize: 11, marginBottom: 4 }}>topic: {topic || '(không có)'}</div>
-                    <div style={{ color: '#60a5fa', fontSize: 11, marginBottom: 4 }}>chart_type: {chartType || '(tự động)'}</div>
-                    <div style={{ color: '#60a5fa', fontSize: 11, marginBottom: 4 }}>essay_type: {essayType || '(tự động)'}</div>
-                    <div style={{ color: '#60a5fa', fontSize: 11, marginBottom: 8 }}>letter_type: {letterType || '(tự động)'}</div>
-                    <div style={{ color: '#34d399', fontSize: 11, marginBottom: 8 }}>
-                      word_count: {essayText.trim() ? essayText.trim().split(/\s+/).length : 0}
-                    </div>
-                    <div style={{ borderTop: '1px solid #334155', paddingTop: 12, color: '#fbbf24', fontSize: 11, marginBottom: 8 }}>essayText:</div>
-                    <div style={{ color: '#e2e8f0', whiteSpace: 'pre-wrap' }}>{essayText.trim() || '(trống)'}</div>
                   </div>
-                ) : (
-                  <textarea
-                    className="ai-test-textarea"
-                    placeholder="Dán bài IELTS Writing của bạn vào đây..."
-                    value={essayText}
-                    onChange={e => setEssayText(e.target.value)}
-                    rows={12}
-                  />
-                )}
-                <div className="ai-test-textarea-footer">
-                  <span className="ai-test-word-count">
-                    {essayText.trim() ? `${essayText.trim().split(/\s+/).length} từ` : ''}
-                  </span>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <button type="button" onClick={() => setShowRawPrompt(v => !v)}
-                      style={{
-                        padding: '6px 12px', fontSize: 12, fontWeight: 600, borderRadius: 6,
-                        border: '1px solid #d1d5db',
-                        background: showRawPrompt ? '#3b82f6' : 'transparent',
-                        color: showRawPrompt ? '#fff' : '#6b7280', cursor: 'pointer',
-                        display: 'inline-flex', alignItems: 'center', gap: 4,
-                      }}
-                    >
-                      <Code size={14} />
-                      {showRawPrompt ? 'Soạn thảo' : 'Xem nội dung gửi LLM'}
-                    </button>
-                    <button
-                      className={`ai-test-submit-btn${loading ? ' loading' : ''}`}
-                      onClick={handleTest}
-                      disabled={loading || !essayText.trim()}
-                    >
-                      {loading ? (
-                        <><RotateCw size={18} className="spin" /> Đang phân tích...</>
-                      ) : (
-                        <><Send size={18} /> Kiểm tra ngay</>
-                      )}
-                    </button>
+
+                  <div className="ai-test-option-row">
+                    <div className="ai-test-option-group">
+                      <label className="ai-test-label">Loại task</label>
+                      <select
+                        className="ai-test-select"
+                        value={taskType}
+                        onChange={e => { setTaskType(e.target.value); resetForm(); }}
+                      >
+                        {TASK_TYPES.map(t => (
+                          <option key={t.value} value={t.value}>{t.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="ai-test-option-group">
+                      <label className="ai-test-label">Chủ đề (tùy chọn)</label>
+                      <input
+                        className="ai-test-input"
+                        placeholder="VD: Environment, Education..."
+                        value={topic}
+                        onChange={e => setTopic(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Sub-type selectors */}
+                  {taskType === 'TASK1_ACADEMIC' && (
+                    <div className="ai-test-option-group">
+                      <label className="ai-test-label">Loại biểu đồ</label>
+                      <select className="ai-test-select" value={chartType} onChange={e => setChartType(e.target.value)}>
+                        {CHART_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                      </select>
+                      <span className="ai-test-subtype-hint">Để trống để AI tự nhận diện từ đề bài</span>
+                    </div>
+                  )}
+                  {taskType === 'TASK1_GENERAL' && (
+                    <div className="ai-test-option-group">
+                      <label className="ai-test-label">Loại thư</label>
+                      <select className="ai-test-select" value={letterType} onChange={e => setLetterType(e.target.value)}>
+                        {LETTER_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                      </select>
+                      <span className="ai-test-subtype-hint">Để trống để AI tự nhận diện từ đề bài</span>
+                    </div>
+                  )}
+                  {(taskType === 'TASK2_ACADEMIC' || taskType === 'TASK2_GENERAL') && (
+                    <div className="ai-test-option-group">
+                      <label className="ai-test-label">Dạng bài luận</label>
+                      <select className="ai-test-select" value={essayType} onChange={e => setEssayType(e.target.value)}>
+                        {ESSAY_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                      </select>
+                      <span className="ai-test-subtype-hint">Để trống để AI tự nhận diện từ đề bài</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="ai-test-textarea-wrap">
+                  {showRawPrompt ? (
+                    <div style={{
+                      padding: 16, background: '#1f2937', borderRadius: 8,
+                      minHeight: 300, fontSize: 13,
+                      fontFamily: "'Monaco','Menlo','Consolas',monospace",
+                      whiteSpace: 'pre-wrap', wordWrap: 'break-word',
+                      color: '#e2e8f0', lineHeight: 1.6, marginBottom: 8,
+                    }}>
+                      <div style={{ marginBottom: 12, color: '#94a3b8', fontSize: 12 }}>
+                        ⚡ Payload gốc gửi đến backend → Python service → LLM
+                      </div>
+                      <div style={{ color: '#60a5fa', fontSize: 11, marginBottom: 4 }}>task_type: {taskType}</div>
+                      <div style={{ color: '#60a5fa', fontSize: 11, marginBottom: 4 }}>topic: {topic || '(không có)'}</div>
+                      <div style={{ color: '#60a5fa', fontSize: 11, marginBottom: 4 }}>chart_type: {chartType || '(tự động)'}</div>
+                      <div style={{ color: '#60a5fa', fontSize: 11, marginBottom: 4 }}>essay_type: {essayType || '(tự động)'}</div>
+                      <div style={{ color: '#60a5fa', fontSize: 11, marginBottom: 8 }}>letter_type: {letterType || '(tự động)'}</div>
+                      <div style={{ color: '#34d399', fontSize: 11, marginBottom: 8 }}>
+                        word_count: {essayText.trim() ? essayText.trim().split(/\s+/).length : 0}
+                      </div>
+                      <div style={{ borderTop: '1px solid #334155', paddingTop: 12, color: '#fbbf24', fontSize: 11, marginBottom: 8 }}>essayText:</div>
+                      <div style={{ color: '#e2e8f0', whiteSpace: 'pre-wrap' }}>{essayText.trim() || '(trống)'}</div>
+                    </div>
+                  ) : (
+                    <textarea
+                      className="ai-test-textarea"
+                      placeholder="Dán bài IELTS Writing của bạn vào đây..."
+                      value={essayText}
+                      onChange={e => setEssayText(e.target.value)}
+                      rows={12}
+                    />
+                  )}
+                  <div className="ai-test-textarea-footer">
+                    <span className="ai-test-word-count">
+                      {essayText.trim() ? `${essayText.trim().split(/\s+/).length} từ` : ''}
+                    </span>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <button type="button" onClick={() => setShowRawPrompt(v => !v)}
+                        style={{
+                          padding: '6px 12px', fontSize: 12, fontWeight: 600, borderRadius: 6,
+                          border: '1px solid #d1d5db',
+                          background: showRawPrompt ? '#3b82f6' : 'transparent',
+                          color: showRawPrompt ? '#fff' : '#6b7280', cursor: 'pointer',
+                          display: 'inline-flex', alignItems: 'center', gap: 4,
+                        }}
+                      >
+                        <Code size={14} />
+                        {showRawPrompt ? 'Soạn thảo' : 'Xem nội dung gửi LLM'}
+                      </button>
+                      <button
+                        className={`ai-test-submit-btn${loading ? ' loading' : ''}`}
+                        onClick={handleTest}
+                        disabled={loading || !essayText.trim()}
+                      >
+                        {loading ? (
+                          <><RotateCw size={18} className="spin" /> Đang phân tích...</>
+                        ) : (
+                          <><Send size={18} /> Kiểm tra ngay</>
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
+
+      {service === 'speaking' && <AISpeakingTest />}
 
       {/* Scanning Animation */}
-      {loading && (
+      {service === 'writing' && loading && (
         <section className="ai-test-scan-section">
           <div className="ai-test-container">
             <div className="ai-test-scan-card">
@@ -366,7 +373,7 @@ export default function AITestCenter() {
       )}
 
       {/* Error */}
-      {error && (
+      {service === 'writing' && error && (
         <section className="ai-test-result-section">
           <div className="ai-test-container">
             <div className="ai-test-error">
@@ -380,7 +387,7 @@ export default function AITestCenter() {
       )}
 
       {/* Results */}
-      {result && (
+      {service === 'writing' && result && (
         <section className="ai-test-result-section">
           <div className="ai-test-container">
             {/* Task Info Card */}

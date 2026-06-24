@@ -1,5 +1,6 @@
 """LLM clients for AI Import Service - Groq + NVIDIA providers."""
 
+import base64
 from dataclasses import dataclass
 from groq import AsyncGroq, RateLimitError, APIError
 from openai import AsyncOpenAI
@@ -106,3 +107,34 @@ class GroqClient:
                     logger.warning(f"Error, rotating key: {e}")
                     continue
         raise AIProviderError(str(last_error))
+
+    async def chat_with_image(self, system: str, user: str, image_bytes: bytes,
+                               image_mime: str = "image/png") -> LLMResponse:
+        s = self.settings
+        b64 = base64.b64encode(image_bytes).decode()
+        for attempt in range(max(1, len(self.clients))):
+            client = self._next()
+            try:
+                resp = await client.chat.completions.create(
+                    model=s.groq_vision_model,
+                    temperature=0.1,
+                    max_tokens=4096,
+                    response_format={"type": "json_object"},
+                    messages=[{"role": "system", "content": system},
+                              {"role": "user", "content": [
+                                  {"type": "text", "text": user},
+                                  {"type": "image_url",
+                                   "image_url": {"url": f"data:{image_mime};base64,{b64}"}}
+                              ]}],
+                )
+                usage = resp.usage
+                return LLMResponse(content=resp.choices[0].message.content or "",
+                                   model=resp.model,
+                                   prompt_tokens=usage.prompt_tokens if usage else 0,
+                                   completion_tokens=usage.completion_tokens if usage else 0,
+                                   total_tokens=usage.total_tokens if usage else 0)
+            except Exception as e:
+                logger.warning(f"Vision API error (attempt {attempt + 1}): {e}")
+                if attempt < len(self.clients) - 1:
+                    continue
+                raise AIProviderError(str(e))
