@@ -41,6 +41,8 @@ const API_PROXY_RULES = [
 
 const BACKEND = 'http://localhost:8080';
 
+const proxyAgent = new http.Agent({ keepAlive: true, maxSockets: 100, maxFreeSockets: 10 });
+
 function proxyTo(url, target, req, res) {
   const targetUrl = new URL(target);
   const options = {
@@ -49,6 +51,7 @@ function proxyTo(url, target, req, res) {
     port: targetUrl.port,
     path: url.pathname + url.search,
     headers: { ...req.headers, host: targetUrl.host },
+    agent: proxyAgent,
   };
 
   const proxyReq = http.request(options, (proxyRes) => {
@@ -57,8 +60,14 @@ function proxyTo(url, target, req, res) {
   });
 
   proxyReq.on('error', () => {
-    res.writeHead(504, { 'Content-Type': 'text/plain; charset=utf-8' });
-    res.end('504 Gateway Timeout - Backend unavailable');
+    if (!res.destroyed && !res.headersSent) {
+      res.writeHead(504, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end('504 Gateway Timeout - Backend unavailable');
+    }
+  });
+
+  res.on('close', () => {
+    if (!res.writableFinished) proxyReq.destroy();
   });
 
   req.pipe(proxyReq);
@@ -124,6 +133,9 @@ const server = http.createServer((req, res) => {
   const fallback = path.join(MAIN_DIST, 'index.html');
   serveStatic(res, filePath, fallback);
 });
+
+server.keepAliveTimeout = 5000;
+server.timeout = 0;
 
 server.listen(PORT, '127.0.0.1', () => {
   console.log(`[serve] Production server running on http://127.0.0.1:${PORT}`);

@@ -121,6 +121,18 @@ export const speakingApi = {
     return axios.get(`/api/speaking-gen/snapshot/${attemptId}`, { headers: authHeaders() });
   },
 
+  filterAttempts(filterData) {
+    return axios.post('/api/exam-attempts/filter', filterData, { headers: authHeaders() });
+  },
+
+  getExamAttemptDetail(attemptId) {
+    return axios.get(`/api/exam-attempts/${attemptId}/detail`, { headers: authHeaders() });
+  },
+
+  getTestFull(testId) {
+    return axios.get(`/api/test-builder/${testId}/full`, { headers: authHeaders() });
+  },
+
   downloadAudio(fileId) {
     return axios.get(`/api/files/preview/${fileId}`, {
       headers: authHeaders(),

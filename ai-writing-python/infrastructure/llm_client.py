@@ -38,8 +38,8 @@ class NvidiaClient:
         try:
             resp = await self.client.chat.completions.create(
                 model=model,
-                temperature=temperature if temperature is not None else self.settings.nvidia_temperature,
-                max_tokens=(max_tokens if max_tokens is not None else self.settings.nvidia_max_tokens) or None,
+                    temperature=temperature if temperature is not None else self.settings.groq_temperature,
+                    max_tokens=(max_tokens if max_tokens is not None else self.settings.groq_max_tokens) or None,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
@@ -84,7 +84,7 @@ class GroqClient:
                 resp = await client.chat.completions.create(
                     model=model,
                     temperature=temperature if temperature is not None else self.settings.nvidia_temperature,
-                    max_tokens=(max_tokens if max_tokens is not None else self.settings.nvidia_max_tokens) or None,
+                    max_tokens=(max_tokens if max_tokens is not None else self.settings.groq_max_tokens) or None,
                     timeout=30,
                     messages=[
                         {"role": "system", "content": system_prompt},

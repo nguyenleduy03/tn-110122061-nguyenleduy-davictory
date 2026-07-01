@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     groq_api_key: str = ""
     groq_api_key_2: str = ""
     groq_base_url: str = "https://api.groq.com"
-    groq_model: str = "qwen/qwen3-32b"
+    groq_model: str = "llama-3.1-8b-instant"
     groq_temperature: float = 0.1
     groq_max_tokens: int = 0
 
@@ -71,15 +71,15 @@ class Settings(BaseSettings):
 
 
 MODEL_CONTEXT: dict[str, dict] = {
-    "qwen/qwen3-32b": {"context_window": 131072, "max_completion": 40960, "tpm_limit": 300000},
-    "llama-3.1-8b-instant": {"context_window": 131072, "max_completion": 131072, "tpm_limit": 12000},
-    "openai/gpt-oss-120b": {"context_window": 131072, "max_completion": 65536, "tpm_limit": 8000},
+    "qwen/qwen3-32b": {"context_window": 131072, "max_completion": 40960, "tpm_limit": 6000},
+    "llama-3.1-8b-instant": {"context_window": 131072, "max_completion": 131072, "tpm_limit": 6000},
+    "openai/gpt-oss-120b": {"context_window": 131072, "max_completion": 65536, "tpm_limit": 6000},
     "nvidia/llama-3.1-nemotron-70b-instruct": {"context_window": 131072, "max_completion": 32768, "tpm_limit": 12000},
 }
 
-TOKEN_BUFFER: int = 1000
-MAX_TOTAL_TOKENS: int = 12000
-MIN_COMPLETION_TOKENS: int = 1500
+TOKEN_BUFFER: int = 500
+MAX_TOTAL_TOKENS: int = 6000
+MIN_COMPLETION_TOKENS: int = 1000
 
 
 @lru_cache

@@ -20,6 +20,10 @@ dependencies = [
     "Pillow>=10.0.0",
 ]
 
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["api*", "core*", "infrastructure*", "models*"]
+
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "pytest-asyncio>=0.24"]
 

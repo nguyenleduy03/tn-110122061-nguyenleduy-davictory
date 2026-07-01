@@ -522,18 +522,21 @@ public class ExamAttemptService {
             // Admin sees all
             attempts = examAttemptRepository.findAll();
         } else {
-            // Teacher sees attempts from their classes
+            // Teacher sees attempts from their classes + own attempts
             List<Long> teacherClasses = classTeacherRepository
                 .findByUserIdAndIsActiveTrue(teacher.getId())
                 .stream()
                 .map(ct -> ct.getClazz().getId())
                 .toList();
             
-            List<Long> studentIds = classStudentRepository.findAll().stream()
+            List<Long> studentIds = new java.util.ArrayList<>(classStudentRepository.findAll().stream()
                 .filter(cs -> teacherClasses.contains(cs.getClazz().getId()))
                 .map(cs -> cs.getUser().getId())
                 .distinct()
-                .toList();
+                .toList());
+            
+            // Include teacher's own attempts
+            studentIds.add(teacher.getId());
             
             if (studentIds.isEmpty()) {
                 return List.of();
@@ -819,19 +822,22 @@ public class ExamAttemptService {
         for (AttemptAnswerSave save : answers) {
             if (save.getQuestionId() == null)
                 continue;
-            Question question = questionRepository.findById(save.getQuestionId())
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy question ID=" + save.getQuestionId()));
+            Question question = questionRepository.findById(save.getQuestionId()).orElse(null);
 
-            AttemptAnswer attemptAnswer = attemptAnswerRepository
-                    .findByExamAttemptIdAndQuestionId(attempt.getId(), question.getId())
-                    .orElseGet(AttemptAnswer::new);
+            AttemptAnswer attemptAnswer = new AttemptAnswer();
+            if (question != null) {
+                attemptAnswer = attemptAnswerRepository
+                        .findByExamAttemptIdAndQuestionId(attempt.getId(), question.getId())
+                        .orElseGet(AttemptAnswer::new);
+                attemptAnswer.setQuestion(question);
+            }
 
             attemptAnswer.setExamAttempt(attempt);
-            attemptAnswer.setQuestion(question);
             attemptAnswer.setSelectedOptionLabel(save.getSelectedOptionLabel());
             attemptAnswer.setTextAnswer(save.getTextAnswer());
             attemptAnswer.setMatchingAnswer(save.getMatchingAnswer());
             attemptAnswer.setIsFlagged(save.getIsFlagged() != null ? save.getIsFlagged() : false);
+            attemptAnswer.setSpeakingPart(save.getSpeakingPart());
             attemptAnswer.setAnsweredAt(LocalDateTime.now());
 
             boolean isAnswered = hasAnyAnswer(save);
@@ -1130,11 +1136,12 @@ public class ExamAttemptService {
         List<AttemptAnswer> answers = attemptAnswerRepository.findByExamAttemptIdOrderByQuestionIdAsc(attempt.getId());
         r.setAnswers(answers.stream().map(ans -> {
             var dto = new AttemptAnswerSave();
-            dto.setQuestionId(ans.getQuestion().getId());
+            dto.setQuestionId(ans.getQuestion() != null ? ans.getQuestion().getId() : null);
             dto.setTextAnswer(ans.getTextAnswer());
             dto.setSelectedOptionLabel(ans.getSelectedOptionLabel());
             dto.setMatchingAnswer(ans.getMatchingAnswer());
             dto.setIsFlagged(ans.getIsFlagged());
+            dto.setSpeakingPart(ans.getSpeakingPart());
             return dto;
         }).toList());
 

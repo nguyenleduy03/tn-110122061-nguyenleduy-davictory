@@ -1,1 +1,5 @@
+com/victory/DAVictory/repository/BlogPostRepositoryTest.class
+com/victory/DAVictory/security/SecurityConfigTest.class
+com/victory/DAVictory/service/BlogPostServiceTest.class
 com/victory/DAVictory/DaVictoryApplicationTests.class
+com/victory/DAVictory/controller/GuestExamControllerTest.class

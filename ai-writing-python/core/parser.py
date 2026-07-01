@@ -215,6 +215,17 @@ class ResponseParser:
         content = content.strip()
         if not content:
             raise ParseError("LLM returned empty response—có thể model đang lỗi hoặc request timeout.", content)
+        content = re.sub(r'<think>.*?(</think>|$)', '', content, flags=re.DOTALL)
+        content = re.sub(r'(<[^>]+>|\*\*|```)', '', content)
+        idx = content.find('{')
+        if idx > 0:
+            content = content[idx:]
+        elif idx < 0:
+            idx = content.find('[')
+            if idx >= 0:
+                content = content[idx:]
+        if not content:
+            raise ParseError("LLM returned no JSON content after stripping tags.", content)
         if content.startswith("```json"):
             content = content[7:]
         elif content.startswith("```"):

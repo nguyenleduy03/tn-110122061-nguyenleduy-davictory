@@ -4,6 +4,7 @@ import com.victory.DAVictory.dto.SpeakingAttemptResponse;
 import com.victory.DAVictory.dto.SpeakingGradeRequest;
 import com.victory.DAVictory.service.SpeakingService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -31,7 +32,7 @@ public class SpeakingController {
             SpeakingAttemptResponse response = speakingService.getAttemptDetail(attemptId, teacherUsername);
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
         }
     }
 

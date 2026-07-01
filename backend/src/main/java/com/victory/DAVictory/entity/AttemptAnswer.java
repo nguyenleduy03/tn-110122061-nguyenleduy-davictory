@@ -32,7 +32,7 @@ public class AttemptAnswer {
     private ExamAttempt examAttempt;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "question_id", nullable = false)
+    @JoinColumn(name = "question_id", nullable = true)
     private Question question;
 
     @Column(columnDefinition = "TEXT")
@@ -61,6 +61,9 @@ public class AttemptAnswer {
 
     @Column(columnDefinition = "TEXT")
     private String correctionNote; // Ghi chú sửa bài của giảng viên
+
+    @Column(length = 20)
+    private String speakingPart; // WARMUP, PART1, PART2, PART2_FOLLOWUP, PART3
 
     @Column
     private LocalDateTime answeredAt; // Thời điểm trả lời câu này

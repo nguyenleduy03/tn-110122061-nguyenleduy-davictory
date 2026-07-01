@@ -1153,6 +1153,15 @@ export default function LmsGradeSubmission() {
     const partCounters = {};
     let fallbackPartCounter = 1;
 
+    const PART_LABELS = {
+      WARMUP: 'Warm-up',
+      PART0: 'Warm-up',
+      PART1: 'Part 1',
+      PART2: 'Part 2',
+      PART2_FOLLOWUP: 'Part 2 - Follow-up',
+      PART3: 'Part 3',
+    };
+
     const resolvePartLabel = (normalizedUrl, preferredLabel) => {
       if (urlToPartLabel.has(normalizedUrl)) {
         return urlToPartLabel.get(normalizedUrl);
@@ -1179,19 +1188,35 @@ export default function LmsGradeSubmission() {
       if (!normalizedUrl || seen.has(normalizedUrl)) return;
       if (!isLikelyAudioUrl(normalizedUrl)) return;
 
-      const baseLabel = resolvePartLabel(normalizedUrl, preferredLabel);
-      if (preferredLabel) {
-        partCounters[preferredLabel] = (partCounters[preferredLabel] || 0) + 1;
-        records.push({ label: `${baseLabel} - Câu ${partCounters[preferredLabel]}`, url: normalizedUrl, transcript: transcript || '' });
+      const label = PART_LABELS[preferredLabel] || preferredLabel;
+
+      const baseLabel = resolvePartLabel(normalizedUrl, label);
+      if (label) {
+        partCounters[label] = (partCounters[label] || 0) + 1;
+        records.push({ label: `${baseLabel} - Câu ${partCounters[label]}`, url: normalizedUrl, transcript: transcript || '' });
       } else {
         records.push({ label: baseLabel, url: normalizedUrl, transcript: transcript || '' });
       }
       seen.add(normalizedUrl);
     };
 
+    // Process recordings first (they have correct recordingPart)
+    if (Array.isArray(submission?.recordings)) {
+      submission.recordings.forEach((rec) => {
+        const partLabel = rec.recordingPart
+          ? (PART_LABELS[rec.recordingPart] || `Part ${rec.recordingPart.replace(/PART/i, '').trim()}`)
+          : null;
+        pushRecord(rec.audioUrl, partLabel, rec.transcript);
+      });
+    }
+
+    // Then process answers as fallback
     (submission?.answers || []).forEach((answer, index) => {
-      const questionKey = normalizeQuestionKey(answer?.questionId || index + 1);
-      const partLabel = questionIdToPartLabelMap.get(questionKey) || null;
+      let partLabel = answer?.speakingPart || null;
+      if (!partLabel && answer?.questionId != null) {
+        const questionKey = normalizeQuestionKey(answer.questionId);
+        partLabel = questionIdToPartLabelMap.get(questionKey) || null;
+      }
       pushRecord(answer?.audioUrl, partLabel);
       pushRecord(answer?.textAnswer, partLabel);
       pushRecord(answer?.selectedOptionLabel, partLabel);
@@ -1205,16 +1230,6 @@ export default function LmsGradeSubmission() {
 
     if (submission?.audioUrl) {
       pushRecord(submission.audioUrl, null);
-    }
-
-    // Thêm recordings từ SpeakingAttempt (có transcript)
-    if (Array.isArray(submission?.recordings)) {
-      submission.recordings.forEach((rec) => {
-        const partLabel = rec.recordingPart
-          ? `Part ${rec.recordingPart.replace(/PART/i, '').trim()}`
-          : null;
-        pushRecord(rec.audioUrl, partLabel, rec.transcript);
-      });
     }
 
     return records;

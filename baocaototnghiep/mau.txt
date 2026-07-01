@@ -1,0 +1,189 @@
+YÊU CẦU VIẾT BÁO CÁO ĐỒ ÁN TỐT NGHIỆP THEO BIỂU MẪU BM5 – ĐẠI HỌC TRÀ VINH
+
+Agent cần vừa đọc mã nguồn dự án, vừa viết báo cáo đồ án tốt nghiệp theo cấu trúc và quy định trình bày sau.
+
+1. THÔNG TIN CHUNG
+
+Tên trường:
+ĐẠI HỌC TRÀ VINH
+TRƯỜNG KỸ THUẬT VÀ CÔNG NGHỆ
+
+Loại báo cáo:
+ĐỒ ÁN TỐT NGHIỆP
+
+Thông tin sinh viên:
+
+* Giảng viên hướng dẫn: ThS. Nguyễn Bảo Ân
+* Sinh viên thực hiện: Nguyễn Lê Duy
+* Mã số sinh viên: [điền MSSV]
+* Lớp: DA22TTD
+* Khóa: [điền khóa]
+* Địa điểm: Vĩnh Long
+* Thời gian: tháng … năm 2026
+
+Tên đề tài:
+XÂY DỰNG HỆ THỐNG WEBSITE HỖ TRỢ LUYỆN THI IELTS CHO TRUNG TÂM NGOẠI NGỮ – TIN HỌC VICTORY
+
+2. THỨ TỰ CÁC PHẦN TRONG BÁO CÁO
+
+Báo cáo cần trình bày theo thứ tự sau:
+
+1. Trang bìa cứng
+
+2. Trang lót
+
+3. Lời mở đầu
+
+4. Lời cảm ơn
+
+5. Nhận xét của cơ quan thực tập nếu có
+
+6. Nhận xét của giảng viên hướng dẫn
+
+7. Nhận xét của giảng viên chấm nếu có
+
+8. Mục lục
+
+9. Danh mục các bảng, sơ đồ, hình
+
+10. Kí hiệu các cụm từ viết tắt
+
+11. Nội dung chính của báo cáo
+
+12. Kết luận
+
+13. Phụ lục
+
+14. Danh mục tài liệu tham khảo
+
+15. QUY ĐỊNH TRÌNH BÀY
+
+* Tiêu đề chương, mục lớn phải in đậm và in hoa.
+
+* Bắt đầu đánh số trang từ Chương 1.
+
+* Các chương, mục và tiểu mục đánh số theo dạng:
+  Chương 1
+  1.1
+  1.1.1
+  1.1.1.1
+
+* Không trình bày mục lục quá 4 cấp.
+
+* Chữ số thứ nhất chỉ số chương.
+
+* Chữ số thứ hai chỉ mục trong chương.
+
+* Chữ số thứ ba trở đi chỉ tiểu mục.
+
+4. CẤU TRÚC NỘI DUNG CHÍNH ĐỀ XUẤT
+
+CHƯƠNG 1: TỔNG QUAN ĐỀ TÀI
+
+1.1. Lý do chọn đề tài
+Trình bày nhu cầu luyện thi IELTS tại trung tâm, khó khăn trong quản lý đề thi, lớp học, bài làm, chấm điểm và theo dõi tiến độ học viên.
+
+1.2. Mục tiêu đề tài
+Trình bày mục tiêu xây dựng website hỗ trợ luyện thi IELTS gồm quản lý người dùng, lớp học, đề thi, bài làm, kết quả, chấm điểm và hỗ trợ giáo viên.
+
+1.3. Đối tượng và phạm vi nghiên cứu
+Trình bày các nhóm người dùng: học viên, giáo viên, quản trị viên và khách làm bài thi thử.
+
+1.4. Phương pháp thực hiện
+Trình bày phương pháp khảo sát, phân tích yêu cầu, thiết kế hệ thống, xây dựng cơ sở dữ liệu, lập trình backend/frontend, kiểm thử và đánh giá.
+
+1.5. Ý nghĩa thực tiễn của đề tài
+Trình bày lợi ích đối với trung tâm Victory, giáo viên và học viên.
+
+CHƯƠNG 2: CƠ SỞ LÝ THUYẾT VÀ CÔNG NGHỆ SỬ DỤNG
+
+2.1. Tổng quan về hệ thống luyện thi IELTS trực tuyến
+2.2. Tổng quan về bài thi IELTS
+2.3. Công nghệ Backend: Spring Boot, Java, REST API, JWT
+2.4. Công nghệ Frontend
+2.5. Cơ sở dữ liệu MySQL
+2.6. Các kỹ thuật liên quan: xác thực, phân quyền, upload media, lưu bài làm, chấm điểm
+2.7. Công cụ hỗ trợ phát triển và kiểm thử
+
+CHƯƠNG 3: PHÂN TÍCH VÀ THIẾT KẾ HỆ THỐNG
+
+3.1. Khảo sát hiện trạng
+3.2. Yêu cầu chức năng
+3.3. Yêu cầu phi chức năng
+3.4. Tác nhân hệ thống
+3.5. Biểu đồ Use Case
+3.6. Đặc tả Use Case
+3.7. Biểu đồ tuần tự
+3.8. Thiết kế cơ sở dữ liệu
+3.9. Thiết kế giao diện
+3.10. Thiết kế kiến trúc hệ thống
+
+CHƯƠNG 4: XÂY DỰNG VÀ TRIỂN KHAI HỆ THỐNG
+
+4.1. Môi trường phát triển
+4.2. Cấu trúc mã nguồn
+4.3. Xây dựng chức năng đăng ký, đăng nhập, phân quyền
+4.4. Xây dựng chức năng quản lý người dùng
+4.5. Xây dựng chức năng quản lý lớp học
+4.6. Xây dựng chức năng quản lý đề thi
+4.7. Xây dựng chức năng làm bài thi
+4.8. Xây dựng chức năng nộp bài và lưu kết quả
+4.9. Xây dựng chức năng chấm điểm
+4.10. Xây dựng chức năng báo cáo, thống kê
+4.11. Một số giao diện chính của hệ thống
+
+CHƯƠNG 5: KIỂM THỬ VÀ ĐÁNH GIÁ
+
+5.1. Mục tiêu kiểm thử
+5.2. Các chức năng kiểm thử
+5.3. Kịch bản kiểm thử
+5.4. Kết quả kiểm thử
+5.5. Đánh giá ưu điểm
+5.6. Hạn chế còn tồn tại
+
+KẾT LUẬN
+
+Trình bày các nội dung đã thực hiện được, kết quả đạt được, hạn chế và hướng phát triển trong tương lai.
+
+PHỤ LỤC
+
+Đưa vào các hình ảnh giao diện, mã nguồn tiêu biểu, bảng dữ liệu, API, tài liệu kiểm thử hoặc tài liệu liên quan.
+
+DANH MỤC TÀI LIỆU THAM KHẢO
+
+Tài liệu tham khảo cần xếp cuối cùng, sau phụ lục. Sắp xếp theo ABC. Tài liệu tiếng Việt xếp theo tên tác giả Việt Nam. Tài liệu tiếng Anh xếp theo họ tác giả nước ngoài.
+
+5. DANH MỤC BẢNG, SƠ ĐỒ, HÌNH
+
+Cách đánh số:
+
+* Bảng 1.1: bảng thứ nhất trong Chương 1
+* Bảng 1.2: bảng thứ hai trong Chương 1
+* Hình 2.1: hình thứ nhất trong Chương 2
+* Sơ đồ 3.1: sơ đồ thứ nhất trong Chương 3
+
+Cuối mỗi bảng, sơ đồ, hình phải có ghi chú hoặc nguồn nếu có trích dẫn.
+
+6. DANH MỤC TỪ VIẾT TẮT GỢI Ý
+
+AI: Artificial Intelligence
+API: Application Programming Interface
+CSDL: Cơ sở dữ liệu
+DB: Database
+ERD: Entity Relationship Diagram
+IELTS: International English Language Testing System
+JWT: JSON Web Token
+REST: Representational State Transfer
+UI: User Interface
+UX: User Experience
+
+7. YÊU CẦU KHI AGENT VIẾT BÁO CÁO
+
+Agent phải đọc mã nguồn dự án trước khi viết.
+Khi viết từng chương, phải bám sát chức năng thật trong code.
+Không bịa chức năng chưa có.
+Nếu chức năng có trong database hoặc API nhưng chưa hoàn thiện giao diện, phải ghi đúng trạng thái.
+Văn phong báo cáo phải trang trọng, rõ ràng, phù hợp đồ án tốt nghiệp ngành Công nghệ thông tin.
+Không viết như quảng cáo sản phẩm.
+Không viết quá chung chung.
+Mỗi chương cần có nội dung liên hệ trực tiếp với hệ thống DAVictory IELTS.

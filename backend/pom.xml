@@ -12,7 +12,7 @@
 	<artifactId>DAVictory</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>DAVictory</name>
-	<description>ILETS Test website project for Spring Boot</description>
+	<description>IELTS Test website project for Spring Boot</description>
 	<url/>
 	<licenses>
 		<license/>

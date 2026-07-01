@@ -4,7 +4,7 @@ import uuid
 
 from loguru import logger
 
-from config import get_settings, get_active_model, MODEL_CONTEXT, TOKEN_BUFFER, MIN_COMPLETION_TOKENS
+from config import get_settings, get_active_model, MODEL_CONTEXT, TOKEN_BUFFER, MIN_COMPLETION_TOKENS, MAX_TOTAL_TOKENS
 from infrastructure.llm_client import GroqClient, NvidiaClient, AIProviderError
 from infrastructure.cache import TTLCache
 from infrastructure.quota import QuotaManager, QuotaExceeded
@@ -196,8 +196,8 @@ class GradingOrchestrator:
             ctx = MODEL_CONTEXT.get(model_id, {})
             tpm_limit = ctx.get("tpm_limit", 8000)
             prompt_tokens_est = int((len(full_user_prompt) + len(pc.system_prompt)) / 3)
-            max_completion = tpm_limit - prompt_tokens_est - TOKEN_BUFFER
-            max_completion = min(max_completion, 6000)
+            total_budget = min(tpm_limit, MAX_TOTAL_TOKENS)
+            max_completion = total_budget - prompt_tokens_est - TOKEN_BUFFER
             max_completion = max(MIN_COMPLETION_TOKENS, max_completion)
 
             if max_completion < MIN_COMPLETION_TOKENS:

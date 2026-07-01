@@ -1598,7 +1598,7 @@ const IeltsSpeakingTest = () => {
             const randomIndex = Math.floor(Math.random() * availableFollowUps.length);
             const text = availableFollowUps.splice(randomIndex, 1)[0];
             injected.push({
-              id: `q-followup-${Date.now()}-${i}`,
+              id: -(Date.now() + i),
               number: (currentQ.number || 1) + (0.1 * (i + 1)),
               type: 'speaking',
               questionTypeCode: 'SPEAKING_DISCUSSION',
@@ -1751,6 +1751,7 @@ const IeltsSpeakingTest = () => {
     };
 
     // Step 1: Collect all question uploads
+    const PART_NAMES = ['PART0', 'PART1', 'PART2', 'PART3'];
     const allUploads = [];
     for (let partIdx = 0; partIdx < parts.length; partIdx += 1) {
       const part = parts[partIdx];
@@ -1764,10 +1765,11 @@ const IeltsSpeakingTest = () => {
         const blob = await resolveQuestionBlob(question.id);
         if (!blob) continue;
 
+        const speakingPart = question.interviewType || PART_NAMES[partIdx] || `PART${partIdx + 1}`;
         const mimeType = blob.type?.startsWith('audio/') ? blob.type : 'audio/webm';
         const fileName = `${testId || 'speaking'}_Part${safePartNumber}_Q${qIdx + 1}.webm`;
         const uploadFile = new File([blob], fileName, { type: mimeType });
-        allUploads.push({ file: uploadFile, questionId: question.id });
+        allUploads.push({ file: uploadFile, questionId: question.id, speakingPart });
       }
     }
 
@@ -1807,13 +1809,17 @@ const IeltsSpeakingTest = () => {
       fileApi.uploadToFolder(file, driveFolder.accessToken, driveFolder.folderId)
     ));
 
-    // Step 4: Map each question to its URL
+    // Step 4: Map each question to its URL + speaking part
     const driveAnswers = {};
     allUploads.forEach((upload, idx) => {
       const result = results[idx];
       const driveUrl = String(result?.url || '').trim();
       if (!driveUrl) return;
-      driveAnswers[upload.questionId] = driveUrl;
+      driveAnswers[upload.questionId] = {
+        selectedOptionLabel: driveUrl,
+        textAnswer: driveUrl,
+        speakingPart: upload.speakingPart,
+      };
     });
 
     return driveAnswers;

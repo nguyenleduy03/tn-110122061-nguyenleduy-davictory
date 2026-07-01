@@ -1637,7 +1637,7 @@ export const ieltsApi = {
       const normalized = String(rawId).trim();
       if (!normalized) return null;
 
-      const exactMatch = normalized.match(/^q?(\d+)$/i);
+      const exactMatch = normalized.match(/^-?q?(\d+)$/i);
       if (exactMatch) {
         const parsed = Number(exactMatch[1]);
         return Number.isFinite(parsed) ? parsed : null;
@@ -1713,11 +1713,17 @@ export const ieltsApi = {
         selectedOptionLabel = value;
       }
 
+      let speakingPart = null;
+      if (value && typeof value === 'object' && !Array.isArray(value)) {
+        speakingPart = toNullableText(value.speakingPart);
+      }
+
       return {
         questionId,
         textAnswer,
         selectedOptionLabel,
         matchingAnswer,
+        speakingPart,
       };
     }).filter(Boolean);
 

@@ -10,4 +10,5 @@ public class AttemptAnswerSave {
     private String textAnswer;
     private String matchingAnswer;
     private Boolean isFlagged;
+    private String speakingPart; // WARMUP, PART1, PART2, PART2_FOLLOWUP, PART3
 }
