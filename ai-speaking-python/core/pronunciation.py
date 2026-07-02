@@ -1,5 +1,7 @@
 """Pronunciation engine for word confidence analysis."""
 
+import statistics
+
 from config import get_settings
 from models.analysis import PronunciationResult
 from models.session import SpeakingTurn
@@ -25,11 +27,31 @@ class PronunciationEngine:
 
         if whisper_segments:
             r.has_audio = True
-            lc = sum(1 for seg in whisper_segments for w in seg.get("words", []) if w.get("confidence", 1.0) < self.s.min_word_confidence)
-            total = sum(len(seg.get("words", [])) for seg in whisper_segments)
+
+            # Flatten all word entries with their timing
+            all_word_timings = []
+            for seg in whisper_segments:
+                for w in seg.get("words", []):
+                    all_word_timings.append(w)
+
+            lc = sum(1 for w in all_word_timings if w.get("confidence", 1.0) < self.s.min_word_confidence)
+            total = len(all_word_timings)
             r.low_confidence_word_count = lc
             r.total_word_count = max(r.total_word_count, total)
             r.confidence_ratio = 1.0 - (lc / max(total, 1))
+
+            # Compute pause_ratio: gaps between words / total duration
+            timings = [(w.get("start", 0), w.get("end", 0)) for w in all_word_timings if w.get("start") is not None and w.get("end") is not None]
+            if len(timings) >= 2:
+                total_duration = timings[-1][1] - timings[0][0]
+                pauses = sum(max(0, timings[i + 1][0] - timings[i][1]) for i in range(len(timings) - 1))
+                r.pause_ratio = pauses / max(total_duration, 0.001)
+
+            # Compute word_duration_std: variation in word speaking duration
+            durations = [e - s for s, e in timings]
+            if len(durations) >= 2:
+                r.word_duration_std = statistics.stdev(durations)
+
             r.band = self._calc_audio_band(r)
         else:
             r.has_audio = False
@@ -40,12 +62,12 @@ class PronunciationEngine:
 
     def _calc_audio_band(self, r: PronunciationResult) -> float:
         cr, sr, hr = r.confidence_ratio, r.speech_rate, r.hesitation_ratio
-        if cr > 0.95 and 100 <= sr <= 160 and hr < 0.02: return 9.0
-        if cr > 0.90 and 90 <= sr <= 170 and hr < 0.04: return 8.0
-        if cr > 0.85 and 80 <= sr <= 180 and hr < 0.06: return 7.0
-        if cr > 0.80 and 70 <= sr <= 190 and hr < 0.09: return 6.0
-        if cr > 0.70 and 60 <= sr <= 200 and hr < 0.12: return 5.0
-        if cr > 0.60 and sr >= 50: return 4.0
+        if cr > 0.98 and 120 <= sr <= 170 and hr < 0.01: return 9.0
+        if cr > 0.95 and 100 <= sr <= 180 and hr < 0.03: return 8.0
+        if cr > 0.90 and 80 <= sr <= 200 and hr < 0.06: return 7.0
+        if cr > 0.80 and 60 <= sr <= 220 and hr < 0.10: return 6.0
+        if cr > 0.70 and sr >= 40 and hr < 0.15: return 5.0
+        if cr > 0.50 and sr >= 30: return 4.0
         return 3.0
 
     def _calc_text_band(self, r: PronunciationResult) -> float:

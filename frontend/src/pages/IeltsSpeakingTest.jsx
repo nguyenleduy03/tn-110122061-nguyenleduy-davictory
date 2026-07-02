@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { createPortal } from "react-dom";
 import {
   Mic,
   MicOff,
@@ -12,7 +13,6 @@ import {
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import "../styles/ieltsTest.css";
 import TestHeader from "../components/common/TestHeader";
-import GuestInfoForm from "../components/common/GuestInfoForm";
 import { ieltsApi } from "../services/ieltsApi";
 import { authApi } from "../services/authApi";
 import { fileApi } from "../services/fileApi";
@@ -71,40 +71,6 @@ const fmtTime = (sec) => {
   return `${m}:${s}`;
 };
 
-const createToneSampleUrl = (durationSec = 8, frequency = 440, sampleRate = 44100) => {
-  const samples = Math.max(1, Math.floor(durationSec * sampleRate));
-  const buffer = new ArrayBuffer(44 + samples * 2);
-  const view = new DataView(buffer);
-
-  const writeString = (offset, text) => {
-    for (let i = 0; i < text.length; i += 1) {
-      view.setUint8(offset + i, text.charCodeAt(i));
-    }
-  };
-
-  writeString(0, "RIFF");
-  view.setUint32(4, 36 + samples * 2, true);
-  writeString(8, "WAVE");
-  writeString(12, "fmt ");
-  view.setUint32(16, 16, true);
-  view.setUint16(20, 1, true);
-  view.setUint16(22, 1, true);
-  view.setUint32(24, sampleRate, true);
-  view.setUint32(28, sampleRate * 2, true);
-  view.setUint16(32, 2, true);
-  view.setUint16(34, 16, true);
-  writeString(36, "data");
-  view.setUint32(40, samples * 2, true);
-
-  const amplitude = 0.3;
-  for (let i = 0; i < samples; i += 1) {
-    const sample = Math.sin((2 * Math.PI * frequency * i) / sampleRate);
-    const value = Math.max(-1, Math.min(1, sample * amplitude));
-    view.setInt16(44 + i * 2, value * 0x7fff, true);
-  }
-
-  return URL.createObjectURL(new Blob([buffer], { type: "audio/wav" }));
-};
 
 const PREP_SECONDS = 60;
 const PREP_PREVIEW_SECONDS = 10;
@@ -486,9 +452,6 @@ const ThinkingProgress = ({ total }) => {
 const IeltsSpeakingTest = () => {
   const [testData, setTestData] = useState(null);
   const [previewRefreshTick, setPreviewRefreshTick] = useState(0);
-  const [showGuestForm, setShowGuestForm] = useState(false);
-  const [guestInfo, setGuestInfo] = useState(null);
-  const [isGuest, setIsGuest] = useState(false);
   const [attemptId, setAttemptId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -500,7 +463,6 @@ const IeltsSpeakingTest = () => {
   const mode = searchParams.get('mode') || 'practice';
   const assignmentId = searchParams.get('assignment');
   const selectedPartsParam = searchParams.get('parts') || '';
-  const startPartNumber = Number.parseInt(searchParams.get('startPart') || '', 10);
   const durationOverrideMinutes = Number.parseInt(searchParams.get('duration') || '', 10);
   const noTimeLimit = searchParams.get('noTimeLimit') === 'true' || searchParams.get('duration') === '0';
   const allowReviewInExam = mode === 'exam' ? searchParams.get('allowReview') !== 'false' : false;
@@ -529,22 +491,10 @@ const IeltsSpeakingTest = () => {
   }, [timerPersistKey, navigate]);
 
   useEffect(() => {
-    const savedGuestInfo = sessionStorage.getItem('guestExamInfo');
-    if (savedGuestInfo) {
-      try {
-        const info = JSON.parse(savedGuestInfo);
-        setGuestInfo(info);
-        setIsGuest(true);
-        return;
-      } catch {
-        sessionStorage.removeItem('guestExamInfo');
-      }
-    }
-
     if (!ieltsApi.isAuthenticated()) {
-      setShowGuestForm(true);
+      navigate('/login', { replace: true });
     }
-  }, []);
+  }, [navigate]);
 
   const handleClassification = async (profile) => {
     setUserClassification(profile);
@@ -557,7 +507,7 @@ const IeltsSpeakingTest = () => {
           if ((g.contentType === 'SPEAKING_PART0' || g.contentType === 'SPEAKING_NEW_FORMAT') && g.passageText) {
             try {
               config = JSON.parse(g.passageText);
-            } catch (e) { continue; }
+            } catch { continue; }
             break;
           }
         }
@@ -602,7 +552,7 @@ const IeltsSpeakingTest = () => {
           // Part 2 cue card (dữ liệu từ group, không phải question)
           if (tc === 'SPEAKING_CUECARD' || tc === 'SPEAKING_PART2' || gc === 'SPEAKING_PART2') {
             let parsedPt = {};
-            if (g.passageText) { try { parsedPt = JSON.parse(g.passageText); } catch(e) {} }
+            if (g.passageText) { try { parsedPt = JSON.parse(g.passageText); } catch { /* ignore */ } }
             const get = (field) => firstQ[field] || g[field] || parsedPt[field];
             comboData.title = get('topic') || 'Cue Card';
             comboData.cueCardPrompt = get('topic') || '';
@@ -634,12 +584,12 @@ const IeltsSpeakingTest = () => {
                 } else if (meta.partInstruction) {
                   questions = [meta.partInstruction.replace(/<[^>]*>/g, '').trim()];
                 }
-              } catch (e) {}
+              } catch { /* ignore */ }
             }
             // Lấy title cho Part 3 (từ theme trong passageText hoặc firstQ)
             let p3Title = firstQ.topic || g.theme || '';
             if (!p3Title && g.passageText) {
-              try { const m = JSON.parse(g.passageText); p3Title = m.theme || p3Title; } catch(e) {}
+              try { const m = JSON.parse(g.passageText); p3Title = m.theme || p3Title; } catch { /* ignore */ }
             }
             comboData.title = p3Title || comboData.title || 'Discussion';
             comboData.part3Questions = questions;
@@ -659,7 +609,7 @@ const IeltsSpeakingTest = () => {
         const g = p.questionGroups?.[0];
         if (g?.partInstruction) return g.partInstruction;
         if (g?.passageText) {
-          try { const m = JSON.parse(g.passageText); if (m.partInstruction) return m.partInstruction; } catch(e) {}
+          try { const m = JSON.parse(g.passageText); if (m.partInstruction) return m.partInstruction; } catch { /* ignore */ }
         }
         return p.instruction || '';
       });
@@ -668,7 +618,7 @@ const IeltsSpeakingTest = () => {
       const gen = await ieltsApi.generateDynamicSpeakingTest(config, profile);
 
       // 4. Build parts với numeric IDs (để submission hoạt động)
-      const getArr = (v) => Array.isArray(v) ? v : (typeof v === 'string' ? (() => { try { return JSON.parse(v); } catch(e) { return []; } })() : []);
+      const getArr = (v) => Array.isArray(v) ? v : (typeof v === 'string' ? (() => { try { return JSON.parse(v); } catch { return []; } })() : []);
       let fakeId = 0; // negative counter cho câu hỏi không có real ID
 
       const warmUpQs = (gen.warmUpQuestions || []).map((q, i) => ({
@@ -779,7 +729,7 @@ const IeltsSpeakingTest = () => {
       if (gen.part1Frames) {
         gen.part1Frames.forEach(f => {
           const qs = getArr(f.questions);
-          qs.forEach((t, i) => snap.push({
+          qs.forEach((t) => snap.push({
             part: 'PART1', questionIndex: snap.length + 1,
             questionText: t, frameName: f.name || '', comboTitle: ''
           }));
@@ -791,7 +741,7 @@ const IeltsSpeakingTest = () => {
         if (gen.combo.cueCardPrompt) {
           snap.push({ part: 'PART2', questionIndex: 1, questionText: stripHtml(gen.combo.cueCardPrompt), frameName: '', comboTitle: stripHtml(gen.combo.title) });
         }
-        bullets.forEach((t, i) => snap.push({
+        bullets.forEach((t) => snap.push({
           part: 'PART2', questionIndex: snap.length + 1,
           questionText: stripHtml(t), frameName: '', comboTitle: stripHtml(gen.combo.title)
         }));
@@ -826,7 +776,6 @@ const IeltsSpeakingTest = () => {
   const [previewSecondsLeft, setPreviewSecondsLeft] = useState(PREP_PREVIEW_SECONDS);
   const [recSeconds, setRecSeconds] = useState(0);
   const [thinkSecondsLeft, setThinkSecondsLeft] = useState(THINK_SECONDS);
-  const [partSecondsLeft, setPartSecondsLeft] = useState(0);
   const [recordingStopSeq, setRecordingStopSeq] = useState(0);
   const [startTime] = useState(() => Date.now());
 
@@ -835,29 +784,19 @@ const IeltsSpeakingTest = () => {
 
   const [requiresClassification, setRequiresClassification] = useState(false);
   const [userClassification, setUserClassification] = useState(null);
-  const [candidateName, setCandidateName] = useState('');
-  const [candidateHometown, setCandidateHometown] = useState('');
+
   const [prepNotes, setPrepNotes] = useState('');
 
-  const [audioInputDevices, setAudioInputDevices] = useState([]);
-  const [audioOutputDevices, setAudioOutputDevices] = useState([]);
   const [selectedInputId, setSelectedInputId] = useState('');
-  const [selectedOutputId, setSelectedOutputId] = useState('');
-
-  const [headphoneChecked, setHeadphoneChecked] = useState(false);
-  const [headphoneCurrentTime, setHeadphoneCurrentTime] = useState(0);
-  const [headphoneDuration, setHeadphoneDuration] = useState(8);
-  const [isHeadphonePlaying, setIsHeadphonePlaying] = useState(false);
-  const [headphoneSampleUrl, setHeadphoneSampleUrl] = useState('');
 
   const [micCheckStatus, setMicCheckStatus] = useState('idle'); // idle | recording | recorded
   const [micCheckSeconds, setMicCheckSeconds] = useState(0);
   const [micCheckUrl, setMicCheckUrl] = useState('');
-  const [micCheckCurrentTime, setMicCheckCurrentTime] = useState(0);
-  const [micCheckDuration, setMicCheckDuration] = useState(0);
-  const [isMicCheckPlaying, setIsMicCheckPlaying] = useState(false);
+
 
   const [audioUrls, setAudioUrls] = useState({}); // { questionId: objectURL }
+  const audioUrlsRef = useRef({});
+  useEffect(() => { audioUrlsRef.current = audioUrls; }, [audioUrls]);
   const [partReviewAudioUrls, setPartReviewAudioUrls] = useState({}); // { partIdx: objectURL }
   const [micAllowed, setMicAllowed] = useState(null); // null | true | false
 
@@ -873,8 +812,6 @@ const IeltsSpeakingTest = () => {
   const micCheckTimerRef = useRef(null);
   const audioCtxRef = useRef(null);
   const analyserRef = useRef(null);
-  const headphoneAudioRef = useRef(null);
-  const micCheckAudioRef = useRef(null);
   const autoStartTriggeredRef = useRef(false);
   const pendingTransitionRef = useRef(null);
   const pendingAudioUrlsRef = useRef({});
@@ -882,7 +819,64 @@ const IeltsSpeakingTest = () => {
   const partReviewAudioBlobsRef = useRef({});
   const submitInFlightRef = useRef(false);
   const generatedSnapshotRef = useRef([]);
+  const uploadedDriveUrlsRef = useRef({});
+  const driveFolderRef = useRef(null);
+  const initialCheckDoneRef = useRef(false);
+  const submittedRef = useRef(false);
   const [analyser, setAnalyser] = useState(null);
+  const [showResumeModal, setShowResumeModal] = useState(false);
+  const [resumeInfo, setResumeInfo] = useState(null);
+
+  const CHECKPOINT_KEY = useMemo(
+    () => `ieltsSpeakingCheckpoint_${testId}_${mode}`,
+    [testId, mode]
+  );
+
+  const saveCheckpoint = useCallback(() => {
+    if (submittedRef.current) return;
+    const checkpoint = {
+      stage,
+      currentPartIdx,
+      currentQIdx,
+      phase,
+      driveUrls: { ...uploadedDriveUrlsRef.current },
+      savedAt: Date.now(),
+    };
+    try {
+      sessionStorage.setItem(CHECKPOINT_KEY, JSON.stringify(checkpoint));
+    } catch { /* ignore */ }
+  }, [stage, currentPartIdx, currentQIdx, phase, CHECKPOINT_KEY]);
+
+  const clearCheckpoint = useCallback(() => {
+    try { sessionStorage.removeItem(CHECKPOINT_KEY); } catch { /* ignore */ }
+    uploadedDriveUrlsRef.current = {};
+  }, [CHECKPOINT_KEY]);
+
+  const handleResume = useCallback(() => {
+    if (!resumeInfo) return;
+    uploadedDriveUrlsRef.current = { ...resumeInfo.driveUrls };
+    const resumePartIdx = resumeInfo.currentPartIdx;
+    setShowResumeModal(false);
+    setResumeInfo(null);
+    clearCheckpoint();
+    if (testData?.parts?.[resumePartIdx]) {
+      setStage('part-intro');
+      setCurrentPartIdx(resumePartIdx);
+      setCurrentQIdx(0);
+      setPhase('idle');
+    }
+  }, [resumeInfo, testData, clearCheckpoint]);
+
+  const handleRestart = useCallback(() => {
+    submittedRef.current = false;
+    setShowResumeModal(false);
+    setResumeInfo(null);
+    clearCheckpoint();
+    setStage('mic-test');
+    setCurrentPartIdx(0);
+    setCurrentQIdx(0);
+    setPhase('idle');
+  }, [clearCheckpoint]);
 
   useEffect(() => {
     const handlePreviewRefresh = (event) => {
@@ -940,16 +934,6 @@ const IeltsSpeakingTest = () => {
         }
       }
 
-      if (isGuest && guestInfo && !attemptId) {
-        ieltsApi.startGuestAttempt(guestInfo, testId, 'SPEAKING')
-          .then((attempt) => {
-            setAttemptId(attempt.id);
-          })
-          .catch((startError) => {
-            console.error('[Speaking] Failed to start guest attempt:', startError);
-          });
-      }
-
       // Kiểm tra xem có cần phân loại Work/Study không (định dạng cũ)
       const hasClassification = configuredData.parts?.[0]?.questionGroups?.some(
         g => g.classification === 'WORK' || g.classification === 'STUDY'
@@ -980,7 +964,29 @@ const IeltsSpeakingTest = () => {
         : `Không thể tải bài thi: ${err.message}`);
       setLoading(false);
     });
-  }, [testId, mode, isFullTest, selectedPracticeParts, durationOverrideMinutes, noTimeLimit, previewRefreshTick, isGuest, guestInfo, attemptId]);
+  }, [testId, mode, isFullTest, selectedPracticeParts, durationOverrideMinutes, noTimeLimit, previewRefreshTick, attemptId, searchParams]);
+
+  useEffect(() => {
+    if (!testData || loading || requiresClassification) return;
+    // Chỉ chạy một lần khi load trang, tránh bị kích hoạt lại khi testData thay đổi giữa bài thi
+    if (initialCheckDoneRef.current) return;
+    initialCheckDoneRef.current = true;
+
+    let checkpoint;
+    try {
+      const raw = sessionStorage.getItem(CHECKPOINT_KEY);
+      if (!raw) return;
+      checkpoint = JSON.parse(raw);
+    } catch { return; }
+
+    if (!checkpoint || !Number.isFinite(checkpoint.currentPartIdx)) return;
+
+    // Không hiện modal nếu bài thi đã được nộp
+    if (getSubmittedRedirect(timerPersistKey)) return;
+
+    setResumeInfo(checkpoint);
+    setShowResumeModal(true);
+  }, [testData, loading, requiresClassification, mode, CHECKPOINT_KEY, clearCheckpoint, timerPersistKey]);
 
   useEffect(() => {
     if (!micCheckUrl) return undefined;
@@ -996,8 +1002,6 @@ const IeltsSpeakingTest = () => {
       try {
         const devices = await navigator.mediaDevices.enumerateDevices();
         const inputs = devices.filter((d) => d.kind === 'audioinput');
-
-        setAudioInputDevices(inputs);
 
         if (!selectedInputId && inputs.length > 0) {
           setSelectedInputId(inputs[0].deviceId);
@@ -1015,6 +1019,7 @@ const IeltsSpeakingTest = () => {
   }, [selectedInputId]);
 
   useEffect(() => {
+    const pendingUrls = pendingAudioUrlsRef.current;
     return () => {
       clearInterval(timerRef.current);
       clearInterval(partTimerRef.current);
@@ -1026,7 +1031,7 @@ const IeltsSpeakingTest = () => {
         streamRef.current.getTracks().forEach((t) => t.stop());
       if (audioCtxRef.current) audioCtxRef.current.close();
       Object.values(audioUrls).forEach((url) => URL.revokeObjectURL(url));
-      Object.values(pendingAudioUrlsRef.current).forEach((url) => URL.revokeObjectURL(url));
+      Object.values(pendingUrls).forEach((url) => URL.revokeObjectURL(url));
       Object.values(partReviewAudioUrls).forEach((url) => URL.revokeObjectURL(url));
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1059,17 +1064,6 @@ const IeltsSpeakingTest = () => {
     return list;
   }, [currentPart]);
 
-  const initialPartIndex = useMemo(() => {
-    if (!Number.isFinite(startPartNumber) || startPartNumber <= 0 || !testData?.parts?.length) {
-      return 0;
-    }
-    const idx = testData.parts.findIndex((p, i) => {
-      const parsedPartNo = Number.parseInt(String(p?.partNumber ?? ''), 10);
-      const partNo = Number.isFinite(parsedPartNo) && parsedPartNo > 0 ? parsedPartNo : (i + 1);
-      return partNo === startPartNumber;
-    });
-    return idx >= 0 ? idx : 0;
-  }, [startPartNumber, testData]);
   const questionId = currentQ?.id;
   const isCueCard = isCueCardQuestion(currentQ);
   const isLastQ =
@@ -1138,23 +1132,6 @@ const IeltsSpeakingTest = () => {
     }
   }, [selectedInputId]);
 
-  const toggleHeadphonePlayback = useCallback(async () => {
-    const audio = headphoneAudioRef.current;
-    if (!audio) return;
-
-    try {
-      if (audio.paused) {
-        if (audio.currentTime >= (audio.duration || headphoneDuration)) {
-          audio.currentTime = 0;
-        }
-        await audio.play();
-      } else {
-        audio.pause();
-      }
-    } catch {
-      // Ignore autoplay or device routing errors.
-    }
-  }, [headphoneDuration]);
 
   const stopMicCheckRecording = useCallback(() => {
     clearInterval(micCheckTimerRef.current);
@@ -1178,15 +1155,6 @@ const IeltsSpeakingTest = () => {
       setMicCheckUrl('');
     }
 
-    const micAudio = micCheckAudioRef.current;
-    if (micAudio) {
-      micAudio.pause();
-      micAudio.currentTime = 0;
-    }
-    setIsMicCheckPlaying(false);
-    setMicCheckCurrentTime(0);
-    setMicCheckDuration(0);
-
     micCheckChunksRef.current = [];
     const recorder = new MediaRecorder(stream);
     recorder.ondataavailable = (event) => {
@@ -1197,7 +1165,6 @@ const IeltsSpeakingTest = () => {
       const url = URL.createObjectURL(blob);
       setMicCheckUrl(url);
       setMicCheckStatus('recorded');
-      setMicCheckCurrentTime(0);
       setAnalyser(null);
     };
 
@@ -1217,24 +1184,6 @@ const IeltsSpeakingTest = () => {
       });
     }, 1000);
   }, [ensureMic, micCheckUrl, stopMicCheckRecording]);
-
-  const toggleMicCheckPlayback = useCallback(async () => {
-    const audio = micCheckAudioRef.current;
-    if (!audio || !micCheckUrl) return;
-
-    try {
-      if (audio.paused) {
-        if (audio.currentTime >= (audio.duration || micCheckDuration || 0)) {
-          audio.currentTime = 0;
-        }
-        await audio.play();
-      } else {
-        audio.pause();
-      }
-    } catch {
-      // Ignore playback errors.
-    }
-  }, [micCheckUrl, micCheckDuration]);
 
   // ── Start recording ────────────────────────────────────────────────────────
   const playStartBeep = useCallback(() => {
@@ -1271,6 +1220,7 @@ const IeltsSpeakingTest = () => {
   }, []);
 
   const startRecording = useCallback(async () => {
+    if (mediaRecorderRef.current?.state === 'recording') return;
     const stream = await ensureMic();
     if (!stream) return;
     
@@ -1314,7 +1264,12 @@ const IeltsSpeakingTest = () => {
       }),
       1000
     );
-  }, [ensureMic, questionId, isCueCard, stopRecording]);
+  }, [ensureMic, questionId, isCueCard, stopRecording, playStartBeep]);
+
+  const startRecordingRef = useRef(startRecording);
+  useEffect(() => { startRecordingRef.current = startRecording; }, [startRecording]);
+  const testDataRef = useRef(testData);
+  useEffect(() => { testDataRef.current = testData; }, [testData]);
 
   const startPreview = useCallback(async () => {
     await ensureMic();
@@ -1423,9 +1378,66 @@ const IeltsSpeakingTest = () => {
       setRecSeconds(0);
       setPrepSeconds(PREP_SECONDS);
       setAnalyser(null);
+      clearCheckpoint();
     },
-    []
+    [clearCheckpoint]
   );
+
+  const uploadCurrentPartToDrive = useCallback(async (partIdx) => {
+    const part = testData?.parts?.[partIdx];
+    if (!part) return;
+
+    const questions = (part.questions || []).filter(q => Boolean(q?.id));
+    const toUpload = questions.filter(q => !uploadedDriveUrlsRef.current[q.id]);
+    if (!toUpload.length) return;
+
+    const rawTestTitle =
+      testData?.testTitle || testData?.title || testData?.sessionName || `Speaking_Test_${testId}`;
+    const normalizedTitle = toSafeFileSegment(rawTestTitle);
+    const fallbackTestCode = `Speaking_Test_${testId || 'UNKNOWN'}`;
+    const resolvedTestCode = (!normalizedTitle || isUntitledLike(normalizedTitle)) ? fallbackTestCode : normalizedTitle;
+    const resolvedTestTitle = isUntitledLike(rawTestTitle) ? resolvedTestCode : rawTestTitle;
+
+    try {
+      if (!driveFolderRef.current) {
+        const storedUser = authApi.getStoredUser();
+        const classCode = storedUser?.classCode || storedUser?.class?.code || storedUser?.clazz?.code
+          || storedUser?.currentClass?.code || storedUser?.activeClass?.code
+          || storedUser?.classes?.[0]?.code || storedUser?.classes?.[0]?.classCode || 'GENERAL';
+        const studentCode = storedUser?.studentCode || storedUser?.candidateCode
+          || storedUser?.code || storedUser?.id || storedUser?.username || 'UNKNOWN_STUDENT';
+
+        driveFolderRef.current = await fileApi.resolveDriveFolder('AUDIO', 'SPEAKING', resolvedTestTitle, testId, {
+          classCode, studentCode, skillName: 'SPEAKING', testCode: resolvedTestCode,
+        });
+      }
+
+      const PART_NAMES = ['PART0', 'PART1', 'PART2', 'PART3'];
+      for (const q of toUpload) {
+        const url = audioUrlsRef.current[q.id];
+        if (!url) continue;
+
+        const resp = await fetch(url);
+        if (!resp.ok) continue;
+        const blob = await resp.blob();
+        if (!blob || blob.size <= 0) continue;
+
+        const safeNum = toSafeFileSegment(String(part.partNumber || partIdx + 1)) || String(partIdx + 1);
+        const qNum = q.number || (questions.indexOf(q) + 1);
+        const mimeType = blob.type?.startsWith('audio/') ? blob.type : 'audio/webm';
+        const fileName = `${testId || 'speaking'}_Part${safeNum}_Q${qNum}.webm`;
+        const file = new File([blob], fileName, { type: mimeType });
+
+        const result = await fileApi.uploadToFolder(file, driveFolderRef.current.accessToken, driveFolderRef.current.folderId);
+        const driveUrl = String(result?.url || '').trim();
+        if (driveUrl) {
+          uploadedDriveUrlsRef.current[q.id] = driveUrl;
+        }
+      }
+    } catch (err) {
+      console.warn('[Speaking] Part upload failed (non-critical):', err);
+    }
+  }, [testData, testId]);
 
   const goPartReview = useCallback(() => {
     if (phase === 'recording') {
@@ -1444,7 +1456,19 @@ const IeltsSpeakingTest = () => {
     setPhase('idle');
     setAnalyser(null);
     setStage('part-review');
-  }, [phase, stopRecording, currentPartIdx, commitCurrentPartRecordings, buildPartReviewAudio]);
+
+    if (mode !== 'exam') {
+      setTimeout(() => {
+        if (submittedRef.current) return;
+        uploadCurrentPartToDrive(partIdx)
+          .catch(() => {})
+          .finally(() => {
+            if (submittedRef.current) return;
+            try { saveCheckpoint(); } catch { /* ignore */ }
+          });
+      }, 0);
+    }
+  }, [phase, stopRecording, currentPartIdx, commitCurrentPartRecordings, buildPartReviewAudio, mode, uploadCurrentPartToDrive, saveCheckpoint]);
 
   const resetCurrentPart = useCallback(() => {
     const questions = currentPart?.questions ?? [];
@@ -1483,17 +1507,14 @@ const IeltsSpeakingTest = () => {
     autoStartTriggeredRef.current = false;
     clearInterval(partTimerRef.current);
     const durationSec = getPartDurationSec(testData?.parts?.[currentPartIdx]);
-    setPartSecondsLeft(durationSec);
     if (durationSec > 0) {
+      let secondsLeft = durationSec;
       partTimerRef.current = setInterval(() => {
-        setPartSecondsLeft((s) => {
-          if (s <= 1) {
-            clearInterval(partTimerRef.current);
-            goPartReview();
-            return 0;
-          }
-          return s - 1;
-        });
+        secondsLeft -= 1;
+        if (secondsLeft <= 0) {
+          clearInterval(partTimerRef.current);
+          goPartReview();
+        }
       }, 1000);
     }
     setStage('part');
@@ -1519,7 +1540,8 @@ const IeltsSpeakingTest = () => {
     setPrepSeconds(PREP_SECONDS);
     setThinkSecondsLeft(THINK_SECONDS);
     setAnalyser(null);
-  }, [testData]);
+    clearCheckpoint();
+  }, [testData, clearCheckpoint]);
 
   const startPartQuestions = useCallback(() => {
     const part = testData?.parts?.[currentPartIdx];
@@ -1527,7 +1549,6 @@ const IeltsSpeakingTest = () => {
 
     clearInterval(partTimerRef.current);
     const durationSec = getPartDurationSec(part);
-    setPartSecondsLeft(durationSec);
     setStage('part');
     setCurrentQIdx(0);
     autoStartTriggeredRef.current = false;
@@ -1537,17 +1558,15 @@ const IeltsSpeakingTest = () => {
     setAnalyser(null);
 
     if (durationSec <= 0) return;
+    let secondsLeft = durationSec;
     partTimerRef.current = setInterval(() => {
-      setPartSecondsLeft((s) => {
-        if (s <= 1) {
-          clearInterval(partTimerRef.current);
-          goPartReview();
-          return 0;
-        }
-        return s - 1;
-      });
+      secondsLeft -= 1;
+      if (secondsLeft <= 0) {
+        clearInterval(partTimerRef.current);
+        goPartReview();
+      }
     }, 1000);
-  }, [getPartDurationSec, goPartReview, testData]);
+  }, [getPartDurationSec, goPartReview, testData, currentPartIdx]);
 
   const goNext = useCallback(() => {
     if (!currentPart) return;
@@ -1641,7 +1660,7 @@ const IeltsSpeakingTest = () => {
     } else {
       goPartReview();
     }
-  }, [currentPart, currentQIdx, currentPartIdx, phase, thinkSecondsLeft, startRecording, skipPrep, stopRecording, navigateTo, goPartReview, isCueCard, recSeconds, currentQ]);
+  }, [currentPart, currentQIdx, currentPartIdx, phase, startRecording, skipPrep, stopRecording, navigateTo, goPartReview, isCueCard, recSeconds, currentQ, startPrep, startPreview]);
 
   useEffect(() => {
     if (!recordingStopSeq) return;
@@ -1651,11 +1670,24 @@ const IeltsSpeakingTest = () => {
     pendingTransitionRef.current = null;
     if (pending.type === 'next') {
       navigateTo(pending.partIdx, pending.qIdx);
+
+      // Part 2 follow-up: đợi state ổn định rồi ghi âm ngay
+      if (pending.partIdx === 2 && pending.qIdx > 0) {
+        const destPartIdx = pending.partIdx;
+        const destQIdx = pending.qIdx;
+        setTimeout(() => {
+          if (mediaRecorderRef.current?.state === 'recording') return;
+          if (testDataRef.current?.parts?.[destPartIdx]?.questions?.[destQIdx]) {
+            startRecordingRef.current();
+          }
+        }, 30);
+      }
+
       return;
     }
 
     goPartReview();
-  }, [recordingStopSeq, navigateTo, goPartReview]);
+  }, [recordingStopSeq, navigateTo, goPartReview, phase, isCueCard]);
 
   useEffect(() => {
     if (stage !== 'part' || !currentQ) return;
@@ -1773,7 +1805,10 @@ const IeltsSpeakingTest = () => {
       }
     }
 
-    if (!allUploads.length) return {};
+    // Merge with previously uploaded Drive URLs
+    const mergedAnswers = { ...uploadedDriveUrlsRef.current };
+
+    if (!allUploads.length) return mergedAnswers;
 
     // Step 2: Resolve Drive folder ONCE
     const storedUser = authApi.getStoredUser();
@@ -1810,27 +1845,23 @@ const IeltsSpeakingTest = () => {
     ));
 
     // Step 4: Map each question to its URL + speaking part
-    const driveAnswers = {};
     allUploads.forEach((upload, idx) => {
       const result = results[idx];
       const driveUrl = String(result?.url || '').trim();
       if (!driveUrl) return;
-      driveAnswers[upload.questionId] = {
+      mergedAnswers[upload.questionId] = {
         selectedOptionLabel: driveUrl,
         textAnswer: driveUrl,
         speakingPart: upload.speakingPart,
       };
     });
 
-    return driveAnswers;
+    return mergedAnswers;
   }, [audioUrls, testData, testId]);
 
   const submitTest = useCallback(() => {
     if (submitInFlightRef.current) return;
-    if (isGuest && !attemptId) {
-      alert('Vui lòng chờ hệ thống khởi tạo lượt làm bài khách trước khi nộp.');
-      return;
-    }
+    submittedRef.current = true;
     submitInFlightRef.current = true;
 
     const timeSpentSeconds = Math.floor((Date.now() - startTime) / 1000);
@@ -1842,23 +1873,9 @@ const IeltsSpeakingTest = () => {
 
     // Upload audio recordings to Drive first, then submit with Drive URLs.
     const submitPromise = buildDriveSubmissionAnswers()
-      .then((driveAnswers) => {
-        if (isGuest && attemptId) {
-          const guestAnswers = Object.entries(driveAnswers).map(([questionId, selectedOptionLabel]) => {
-            const parsedQuestionId = Number.parseInt(questionId, 10);
-            if (!Number.isFinite(parsedQuestionId)) return null;
-
-            return {
-              questionId: parsedQuestionId,
-              selectedOptionLabel: String(selectedOptionLabel || ''),
-            };
-          }).filter(Boolean);
-
-          return ieltsApi.submitGuestAttempt(attemptId, timeSpentSeconds, guestAnswers);
-        }
-
-        return ieltsApi.submitAnswers(testId, 'SPEAKING', driveAnswers, timeSpentSeconds, testData, examId);
-      });
+      .then((driveAnswers) =>
+        ieltsApi.submitAnswers(testId, 'SPEAKING', driveAnswers, timeSpentSeconds, testData, examId)
+      );
 
     localStorage.removeItem(`ieltsTimerDeadline_${timerPersistKey}`);
 
@@ -1874,6 +1891,7 @@ const IeltsSpeakingTest = () => {
             ieltsApi.clearFullTestProgress(testId).catch(() => { });
             submitPromise
               .then(() => {
+                clearCheckpoint();
                 const nextUrl = `/test/${next.skill}/${next.testId}?fullTest=true&mode=${session.mode || mode}`;
                 markTestSubmitted(timerPersistKey, nextUrl);
                 navigate(nextUrl);
@@ -1890,6 +1908,7 @@ const IeltsSpeakingTest = () => {
           ieltsApi.clearFullTestProgress(testId).catch(() => { });
           submitPromise
             .then(() => {
+              clearCheckpoint();
               const completeParams = new URLSearchParams({
                 mode: session.mode || mode,
                 skill: 'speaking',
@@ -1918,6 +1937,7 @@ const IeltsSpeakingTest = () => {
 
     submitPromise
       .then(async (resp) => {
+        clearCheckpoint();
         const examId = resp?.id || resp?.attemptId;
         // Save snapshot of generated questions
         if (examId && generatedSnapshotRef.current.length > 0) {
@@ -1975,6 +1995,9 @@ const IeltsSpeakingTest = () => {
     timerPersistKey,
     assignmentId,
     buildDriveSubmissionAnswers,
+    clearCheckpoint,
+    attemptId,
+    examId,
   ]);
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -1996,18 +2019,6 @@ const IeltsSpeakingTest = () => {
   if (!testData)
     return <div style={{ padding: "50px" }}>No test data available</div>;
 
-  if (showGuestForm) {
-    return <GuestInfoForm
-      onSubmit={(data) => {
-        setGuestInfo(data);
-        sessionStorage.setItem('guestExamInfo', JSON.stringify(data));
-        setIsGuest(true);
-        setShowGuestForm(false);
-      }}
-      onCancel={() => navigate(-1)}
-    />;
-  }
-
   const micBtnClass = [
     "spk-mic-btn",
     phase === "recording" ? "recording" : "",
@@ -2022,11 +2033,7 @@ const IeltsSpeakingTest = () => {
   const micCheckHeaderSeconds = stage === 'mic-test'
     ? Math.max(0, 20 - micCheckSeconds)
     : null;
-  const partTopActionLabel = phase === 'preparing'
-    ? `Chuẩn bị ${fmtTime(prepSeconds)}`
-    : isThinking
-      ? `${STAGE_UI_TEXT.part.thinkPrefix} ${fmtTime(thinkSecondsLeft)}`
-      : (isLastQ ? STAGE_UI_TEXT.part.completePart : STAGE_UI_TEXT.part.nextQuestion);
+
   const micIdleHint = isCueCard
     ? STAGE_UI_TEXT.part.idleHintCueCard
     : STAGE_UI_TEXT.part.idleHintAnswer;
@@ -2086,29 +2093,7 @@ const IeltsSpeakingTest = () => {
       <main className="spk-main" style={{ justifyContent: (stage === 'part' && phase === "preparing" && isCueCard) ? 'flex-start' : 'center' }}>
         {requiresClassification ? (
           <div className="spk-card spk-unified-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '40px' }}>
-            <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '24px', color: '#1f2937' }}>Candidate Information</h2>
-
-            <div style={{ width: '100%', maxWidth: 400, marginBottom: 20, textAlign: 'left' }}>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: 6 }}>
-                Full Name <span style={{ color: '#dc2626' }}>*</span>
-              </label>
-              <input type="text" value={candidateName}
-                onChange={(e) => setCandidateName(e.target.value)}
-                placeholder="John Doe"
-                style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: '15px', outline: 'none', boxSizing: 'border-box' }}
-              />
-            </div>
-
-            <div style={{ width: '100%', maxWidth: 400, marginBottom: 24, textAlign: 'left' }}>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: 6 }}>
-                Hometown / City
-              </label>
-              <input type="text" value={candidateHometown}
-                onChange={(e) => setCandidateHometown(e.target.value)}
-                placeholder="London"
-                style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #d1d5db', fontSize: '15px', outline: 'none', boxSizing: 'border-box' }}
-              />
-            </div>
+            <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '24px', color: '#1f2937' }}>Thông tin thí sinh</h2>
 
             <div style={{ width: '100%', maxWidth: 400, marginBottom: 28, textAlign: 'left' }}>
               <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, color: '#374151', marginBottom: 6 }}>
@@ -2143,11 +2128,11 @@ const IeltsSpeakingTest = () => {
             </div>
 
             <button
-              disabled={!candidateName.trim() || !userClassification}
+              disabled={!userClassification}
               style={{
                 padding: '12px 40px', fontSize: '16px', fontWeight: 600, color: 'white',
-                background: (!candidateName.trim() || !userClassification) ? '#9ca3af' : '#2563eb',
-                border: 'none', borderRadius: 8, cursor: (!candidateName.trim() || !userClassification) ? 'not-allowed' : 'pointer',
+                background: !userClassification ? '#9ca3af' : '#2563eb',
+                border: 'none', borderRadius: 8, cursor: !userClassification ? 'not-allowed' : 'pointer',
               }}
               onClick={() => handleClassification(userClassification)}
             >
@@ -2491,6 +2476,39 @@ const IeltsSpeakingTest = () => {
         </div>
         )}
       </main>
+
+      {showResumeModal && resumeInfo && createPortal(
+        <div className="exam-away-overlay">
+          <div className="exam-away-card">
+            <h3 className="exam-away-title">Tiếp tục bài thi</h3>
+            <p className="exam-away-text">
+              Bạn đang ở <strong>{testData?.parts?.[resumeInfo.currentPartIdx]?.title || `Part ${resumeInfo.currentPartIdx + 1}`}</strong>. 
+              Dữ liệu ghi âm các part trước đã được lưu.
+            </p>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 20 }}>
+              <button
+                onClick={handleRestart}
+                style={{
+                  padding: '10px 20px', borderRadius: 6, border: '1px solid #d1d5db',
+                  background: '#fff', cursor: 'pointer', fontSize: 14, fontWeight: 600, color: '#374151'
+                }}
+              >
+                Làm lại từ đầu
+              </button>
+              <button
+                onClick={handleResume}
+                style={{
+                  padding: '10px 20px', borderRadius: 6, border: 'none',
+                  background: '#1e3a8a', color: '#fff', cursor: 'pointer', fontSize: 14, fontWeight: 600
+                }}
+              >
+                Tiếp tục
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 };

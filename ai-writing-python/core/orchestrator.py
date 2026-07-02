@@ -2,6 +2,7 @@ import json
 import time
 import uuid
 
+import httpx
 from loguru import logger
 
 from config import get_settings, get_active_model, MODEL_CONTEXT, TOKEN_BUFFER, MIN_COMPLETION_TOKENS, MAX_TOTAL_TOKENS
@@ -30,8 +31,12 @@ class GradingOrchestrator:
         self.parser = ResponseParser()
 
     def _get_llm(self):
-        active = get_active_model() or self.settings.groq_model
-        if active.startswith("nvidia/"):
+        active = get_active_model() or ""
+        if active:
+            if active.startswith("nvidia/"):
+                return self.nvidia_llm
+            return self.groq_llm
+        if self.settings.scoring_provider == "nvidia":
             return self.nvidia_llm
         return self.groq_llm
 
@@ -91,7 +96,8 @@ class GradingOrchestrator:
                     prompt_text: str = "", question_group_id: int | None = None,
                     task_type: str | None = None, topic: str = "",
                     skip_cache: bool = False,
-                    chart_type: str = "", essay_type: str = "", letter_type: str = "") -> GradingResult:
+                    chart_type: str = "", essay_type: str = "", letter_type: str = "",
+                    image_url: str = "") -> GradingResult:
         self.quota.check(user_id, role)
 
         cache_key = f"grade:{submission_id}"
@@ -173,17 +179,24 @@ class GradingOrchestrator:
                     f"Grammatical Range is capped at Band 6.0."
                 )
 
+            logger.info(f"Step rubric: loading rubric for {task_type}")
             rubric = load_rubric(task_type)
+            logger.info(f"Step rubric: loaded OK")
 
+            logger.info(f"Step retriever: querying samples...")
             retrieval = self.retriever.retrieve(essay_text, task_type)
             samples = retrieval.samples
+            logger.info(f"Step retriever: got {len(samples)} samples")
 
+            logger.info(f"Step prompt_build: building prompt...")
             pc = self.prompt.build(
                 rubric=rubric, essay=essay_text,
                 task_type=task_type, topic=topic, prompt_text=prompt_text,
                 word_count=word_count,
                 chart_type=chart_type, essay_type=essay_type, letter_type=letter_type,
+                image_url=image_url,
             )
+            logger.info(f"Step prompt_build: prompt built OK")
 
             if pre_note:
                 pc.user_section = f"=== LOCAL PRE-CHECK ===\n{pre_note}\n\n{pc.user_section}"
@@ -199,6 +212,7 @@ class GradingOrchestrator:
             total_budget = min(tpm_limit, MAX_TOTAL_TOKENS)
             max_completion = total_budget - prompt_tokens_est - TOKEN_BUFFER
             max_completion = max(MIN_COMPLETION_TOKENS, max_completion)
+            logger.info(f"Step tokens: model={model_id}, prompt_tokens={prompt_tokens_est}, max_completion={max_completion}")
 
             if max_completion < MIN_COMPLETION_TOKENS:
                 reason = f"Essay quá dài ({word_count} words, ~{prompt_tokens_est} tokens). Chỉ còn {max(0, max_completion)} tokens cho câu trả lời, không đủ để chấm điểm. Vui lòng rút gọn essay hoặc nâng cấp API."
@@ -219,10 +233,12 @@ class GradingOrchestrator:
                     self.cache.put(cache_key, result)
                 return result
 
+            logger.info(f"Step prompt2: building second prompt...")
             pc2 = self.prompt.build(
                 rubric=rubric, essay=essay_text,
                 task_type=task_type, topic=topic, prompt_text=prompt_text,
                 word_count=word_count,
+                image_url=image_url,
                 chart_type=chart_type, essay_type=essay_type, letter_type=letter_type,
                 max_completion_tokens=max_completion,
             )
@@ -230,11 +246,27 @@ class GradingOrchestrator:
                 pc2.user_section = f"=== LOCAL PRE-CHECK ===\n{pre_note}\n\n{pc2.user_section}"
             full_user_prompt = pc2.to_full_prompt()
             full_prompt = f"[SYSTEM PROMPT]\n{pc2.system_prompt}\n\n[USER PROMPT]\n{full_user_prompt}"
+            logger.info(f"Step prompt2: built OK (prompt length: {len(full_user_prompt)} chars)")
 
-            resp = await self._get_llm().chat(pc2.system_prompt, full_user_prompt, max_tokens=max_completion)
+            llm = self._get_llm()
+            logger.info(f"Step llm: using {type(llm).__name__}, active_model={get_active_model()}")
+            if image_url and isinstance(llm, GroqClient):
+                try:
+                    vision_desc = await self.describe_image(image_url)
+                    full_user_prompt = f"=== IMAGE/CHART DESCRIPTION ===\n{vision_desc}\n\n{full_user_prompt}"
+                    resp = await llm.chat(pc2.system_prompt, full_user_prompt, max_tokens=max_completion)
+                except Exception as e:
+                    logger.warning(f"Vision description failed, falling back to text-only: {e}")
+                    resp = await llm.chat(pc2.system_prompt, full_user_prompt, max_tokens=max_completion)
+            else:
+                logger.info(f"Step llm: calling chat...")
+                resp = await llm.chat(pc2.system_prompt, full_user_prompt, max_tokens=max_completion)
             latency_ms = int((time.time() - start) * 1000)
+            logger.info(f"Step llm: chat done, resp length={len(resp.content)}, model={resp.model}")
 
+            logger.info(f"Step parse: parsing response...")
             result = self.parser.parse(resp.content, task_type)
+            logger.info(f"Step parse: parsed OK, overall_band={result.overall_band}")
 
             # === LOCAL BAND ENFORCEMENT ===
             max_bands = {code: 9.0 for code in ["TR", "CC", "LR", "GRA"]}
@@ -311,6 +343,34 @@ class GradingOrchestrator:
         except Exception as e:
             logger.exception(f"Grading failed for {submission_id}")
             raise
+
+    async def describe_image(self, image_url: str) -> str:
+        """Download image and send to vision model for description. Returns text description."""
+        if not image_url.startswith(('http://', 'https://')):
+            image_url = f"https://davictory.io.vn{image_url}"
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                img_resp = await client.get(image_url)
+                img_resp.raise_for_status()
+                img_bytes = img_resp.content
+                img_mime = img_resp.headers.get("content-type", "image/png")
+        except Exception as e:
+            raise AIProviderError(f"Failed to download image: {e}")
+
+        system = "You are an IELTS examiner assistant. Describe charts and diagrams precisely for grading purposes."
+        user = ("Describe this IELTS Task 1 visual in EXACT detail following this structure:\n\n"
+                "1. CHART TYPE: What kind of visual is it? (bar chart, line graph, pie chart, table, map, process, etc.)\n"
+                "2. SUBJECT: What data does it show? List categories, time periods, locations, units.\n"
+                "3. KEY DATA POINTS: List the most important numbers with their categories. Be precise.\n"
+                "4. TRENDS: Describe the main trends — increases, decreases, fluctuations, stability.\n"
+                "5. COMPARISONS: Notable differences and similarities between categories.\n"
+                "6. NOTABLE FEATURES: Highest/lowest values, outliers, significant changes.\n\n"
+                "Be factual and objective. Use exact numbers when visible. "
+                "This description will be used by an IELTS examiner to evaluate a student's Task 1 essay.")
+
+        resp = await self.groq_llm.chat_with_image(system, user, img_bytes, img_mime, require_json=False)
+        logger.info(f"Vision description ({len(resp.content)} chars) in {resp.completion_tokens} tokens")
+        return resp.content
 
     async def generate_feedback(self, essay_text: str, task_type: str,
                                   topic: str, prompt_text: str,

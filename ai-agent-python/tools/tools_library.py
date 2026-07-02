@@ -505,13 +505,13 @@ class GetExamScores(BaseTool):
         days = date_map.get(params.get("period", ""))
         where_date = f" AND ea.started_at >= DATE_SUB(NOW(), INTERVAL {days} DAY)" if days else ""
         rows = await _run_sql(f"""
-            SELECT t.id, t.title, t.test_type,
+            SELECT e.id, e.title, e.exam_type,
                    COUNT(ea.id) as total_attempts,
                    ROUND(AVG(ea.band_score), 2) as avg_band,
                    COUNT(DISTINCT ea.user_id) as unique_students
-            FROM tests t
-            LEFT JOIN exam_attempts ea ON ea.test_id = t.id AND ea.band_score IS NOT NULL{where_date}
-            GROUP BY t.id, t.title, t.test_type
+            FROM exams e
+            LEFT JOIN exam_attempts ea ON ea.exam_id = e.id AND ea.band_score IS NOT NULL{where_date}
+            GROUP BY e.id, e.title, e.exam_type
             ORDER BY total_attempts DESC
             LIMIT {limit}
         """)

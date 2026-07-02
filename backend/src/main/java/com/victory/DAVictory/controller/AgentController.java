@@ -39,7 +39,7 @@ public class AgentController {
     @PreAuthorize("hasAnyRole('MANAGER', 'ADMIN')")
     public ResponseEntity<?> query(@RequestBody AgentChatRequest request, Authentication auth) {
         Long userId = getUserId(auth);
-        var result = agentBridgeService.query(request.getMessage(), userId, request.getSession_id(), request.getAgent_mode());
+        var result = agentBridgeService.query(request.getMessage(), userId, request.getSession_id(), request.getAgent_mode(), request.getMode());
         return ResponseEntity.ok(result);
     }
 

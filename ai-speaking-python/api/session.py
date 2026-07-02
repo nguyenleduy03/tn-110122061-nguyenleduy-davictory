@@ -113,6 +113,24 @@ async def evaluate_session(session_id: str, x_user_id: str = Header(default=""))
         raise HTTPException(404, "Session not found")
 
 
+@router.post("/sessions/{session_id}/pronunciation")
+async def analyze_pronunciation(session_id: str):
+    try:
+        return await orch.analyze_pronunciation(session_id)
+    except SessionNotFound:
+        raise HTTPException(404, "Session not found")
+
+
+@router.post("/sessions/{session_id}/score")
+async def score_session(session_id: str, x_user_id: str = Header(default="")):
+    try:
+        result = await orch.score_session(session_id, x_user_id)
+        from models.scoring import SpeakingResultDTO
+        return SpeakingResultDTO.from_result(result)
+    except SessionNotFound:
+        raise HTTPException(404, "Session not found")
+
+
 @router.post("/tts")
 async def text_to_speech(req: TTSRequest):
     try:

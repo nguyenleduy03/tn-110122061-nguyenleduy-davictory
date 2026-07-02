@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useRef } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import {
   LayoutGrid,
@@ -58,28 +58,7 @@ const SKILL_META = {
   SPEAKING: { Icon: Mic, color: '#9f1239', btnColor: '#881337', label: 'Speaking' },
 };
 
-const SKILL_MODE_META = {
-  LISTENING: {
-    estimatedTime: '30 mins',
-    practiceHint: 'Train with instant feedback and review answers after submitting.',
-    examHint: 'Run a full simulation flow and still review your answers after submission.',
-  },
-  READING: {
-    estimatedTime: '60 mins',
-    practiceHint: 'Practice by section and analyze mistakes immediately.',
-    examHint: 'Full exam condition with fixed timer and review available after finishing.',
-  },
-  WRITING: {
-    estimatedTime: '60 mins',
-    practiceHint: 'Focus on structure and ideas with flexible practice flow.',
-    examHint: 'Timed writing simulation with full exam pacing.',
-  },
-  SPEAKING: {
-    estimatedTime: '12-15 mins',
-    practiceHint: 'Practice each speaking part with comfortable pacing.',
-    examHint: 'Simulated speaking flow with realistic examiner timing.',
-  },
-};
+
 
 const SKILL_PRACTICE_SETUP = {
   LISTENING: { parts: [1, 2, 3, 4], timeOptions: [10, 20, 30, 32, 0], defaultTime: 32 },
@@ -148,12 +127,35 @@ const parseResumeFromTimerKey = (storageKey, skill, testId) => {
   };
 };
 
+// Kiểm tra xem có tiến trình nháp (draft) đang làm dở hay không
+const hasActiveDraft = (skill, testId) => {
+  if (typeof window === 'undefined') return false;
+  const safeSkill = String(skill || '').toLowerCase();
+  const safeTestId = String(testId || '').trim();
+  const prefix = `ieltsDraft_${safeSkill}_`;
+  const suffix = `_${safeTestId}`;
+
+  for (let i = 0; i < localStorage.length; i += 1) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith(prefix) && key.endsWith(suffix)) {
+      const payload = parseJsonSafe(localStorage.getItem(key), null);
+      if (payload && hasMeaningfulSkillDraft(skill, payload)) {
+        return true;
+      }
+    }
+  }
+  return false;
+};
+
 // Check if test has been completed (submitted or viewed result)
 const isTestCompleted = (skill, testId) => {
   if (typeof window === 'undefined') return false;
   const safeSkill = String(skill || '').toLowerCase();
   const safeTestId = String(testId || '').trim();
   if (!safeSkill || !safeTestId) return false;
+
+  // Nếu đang làm dở (có draft hoạt động), xem như bài thi chưa hoàn thành (đang làm lại)
+  if (hasActiveDraft(skill, testId)) return false;
 
   // Check if viewed result (for all skills)
   const viewedKey = `ieltsResultViewed_${safeSkill}_${safeTestId}`;
@@ -167,6 +169,68 @@ const isTestCompleted = (skill, testId) => {
   }
 
   return false;
+};
+
+// Phát hiện tiến trình làm bài dở của kỹ năng lẻ
+const detectSkillResume = (skill, testId) => {
+  if (!testId || typeof window === 'undefined') return null;
+
+  // Bỏ qua khôi phục nếu bài thi đã nộp/hoàn thành
+  if (isTestCompleted(skill, testId)) return null;
+
+  const prefix = `ieltsDraft_${skill.toLowerCase()}_`;
+  const suffix = `_${testId}`;
+  let latest = null;
+  let latestTimer = null;
+  const now = Date.now();
+
+  for (let i = 0; i < localStorage.length; i += 1) {
+    const key = localStorage.key(i);
+    if (!key || !key.startsWith(prefix) || !key.endsWith(suffix)) continue;
+
+    const payload = parseJsonSafe(localStorage.getItem(key), null);
+    if (!payload || typeof payload !== 'object') continue;
+    if (!hasMeaningfulSkillDraft(skill, payload)) continue;
+
+    const mode = key.slice(prefix.length, key.length - suffix.length) || 'practice';
+    const savedAt = Number(payload.savedAt) || 0;
+    if (!latest || savedAt > latest.savedAt) {
+      const fallbackQuery = mode === 'exam' ? 'mode=exam&allowReview=true' : `mode=${mode}`;
+      latest = {
+        mode,
+        queryString: payload.queryString || fallbackQuery,
+        savedAt,
+      };
+    }
+  }
+
+  for (let i = 0; i < localStorage.length; i += 1) {
+    const key = localStorage.key(i);
+    if (!key || !key.startsWith('ieltsTimerDeadline_')) continue;
+
+    const parsedTimer = parseResumeFromTimerKey(key, skill, testId);
+    if (!parsedTimer) continue;
+
+    const timerPayload = parseJsonSafe(localStorage.getItem(key), null);
+    if (!timerPayload || typeof timerPayload !== 'object') continue;
+
+    const deadlineMs = Number(timerPayload.deadlineMs);
+    if (!Number.isFinite(deadlineMs) || deadlineMs <= now) continue;
+
+    const savedAt = Number(timerPayload.savedAt) || 0;
+    if (!latestTimer || savedAt > latestTimer.savedAt) {
+      const resumeQuery = parsedTimer.mode === 'exam'
+        ? 'mode=exam&allowReview=true'
+        : `mode=${parsedTimer.mode}`;
+      latestTimer = {
+        mode: parsedTimer.mode,
+        queryString: resumeQuery,
+        savedAt,
+      };
+    }
+  }
+
+  return latest || latestTimer || null;
 };
 
 function BookCover({ series, index, small }) {
@@ -213,28 +277,28 @@ function SeriesCard({ series, index, onSelect }) {
 }
 
 /* ── SKILL tab view: flat test grid ── */
-function TestGrid({ tests }) {
+function TestGrid({ tests, onStartTest }) {
   if (tests.length === 0) return <div className="el-empty">Không tìm thấy đề thi phù hợp.</div>;
   return (
     <div className="test-grid">
       {tests.map(test => (
-        <Link
+        <button
           key={test.id}
-          to={`/test/${test.skill.toLowerCase()}/${test.id}`}
+          type="button"
           className="test-grid-item"
+          onClick={() => onStartTest(test.skill, test.id, null)}
         >
           <span className="test-grid-name">{test.name}</span>
-        </Link>
+        </button>
       ))}
     </div>
   );
 }
 
 /* ── SERIES DETAIL view ── */
-function SeriesDetail({ series, index, onBack, fullTestProgress }) {
+function SeriesDetail({ series, fullTestProgress, onOpenSkillModal }) {
   const [showFullTestModal, setShowFullTestModal] = useState(false);
-  const [skillModeModal, setSkillModeModal] = useState(null);
-  const timeMenuRef = useRef(null);
+  const [mountTime] = useState(() => Date.now());
   const navigate = useNavigate();
 
   const skillGroups = useMemo(() => {
@@ -260,7 +324,7 @@ function SeriesDetail({ series, index, onBack, fullTestProgress }) {
   const skillResumeMap = useMemo(() => {
     const map = {};
     if (typeof window === 'undefined') return map;
-    const now = Date.now();
+    const now = mountTime;
 
     available.forEach((skill) => {
       const testId = String(skillGroups[skill]?.[0]?.id || '');
@@ -328,7 +392,7 @@ function SeriesDetail({ series, index, onBack, fullTestProgress }) {
     });
 
     return map;
-  }, [available, skillGroups]);
+  }, [available, skillGroups, mountTime]);
 
   const clearSubmittedLockForRoute = (skill, testId, rawQuery = '') => {
     const queryString = String(rawQuery || '').replace(/^\?/, '');
@@ -355,7 +419,8 @@ function SeriesDetail({ series, index, onBack, fullTestProgress }) {
     });
   };
 
-  const handleStartFullTest = () => {
+  const handleStartFullTest = (chosenMode) => {
+    const mode = chosenMode || 'practice';
     const sections = available.map((s, i) => ({
       skill: s.toLowerCase(),
       testId: skillGroups[s][0].id,
@@ -367,7 +432,7 @@ function SeriesDetail({ series, index, onBack, fullTestProgress }) {
       totalSections: sections.length,
       sections,
       currentSection: 0,
-      mode: 'practice',
+      mode: mode,
     };
 
     if (hasRemoteFullTestProgress) {
@@ -404,100 +469,16 @@ function SeriesDetail({ series, index, onBack, fullTestProgress }) {
 
     sections.forEach((section) => {
       sessionStorage.removeItem(`ieltsFullTestSnapshot_${section.skill}_${section.testId}`);
+      localStorage.removeItem(`ieltsResultViewed_${section.skill}_${section.testId}`);
     });
 
-    clearSubmittedLocksForSections(sections, 'fullTest=true&mode=practice');
+    clearSubmittedLocksForSections(sections, `fullTest=true&mode=${mode}`);
 
     setShowFullTestModal(false);
-    navigate(`/test/${sections[0].skill}/${sections[0].testId}?fullTest=true&mode=practice`);
+    navigate(`/test/${sections[0].skill}/${sections[0].testId}?fullTest=true&mode=${mode}`);
   };
 
-  const openSkillModeModal = (skill, testId) => {
-    const setup = SKILL_PRACTICE_SETUP[skill] || SKILL_PRACTICE_SETUP.READING;
-    setSkillModeModal({
-      skill,
-      testId,
-      selectedParts: [...setup.parts],
-      practiceDuration: setup.defaultTime,
-      isTimeMenuOpen: false,
-    });
-  };
 
-  const closeSkillModeModal = () => {
-    setSkillModeModal(null);
-  };
-
-  const togglePracticePart = (partNo) => {
-    setSkillModeModal((prev) => {
-      if (!prev) return prev;
-      const exists = prev.selectedParts.includes(partNo);
-      return {
-        ...prev,
-        isTimeMenuOpen: false,
-        selectedParts: exists
-          ? prev.selectedParts.filter((p) => p !== partNo)
-          : [...prev.selectedParts, partNo].sort((a, b) => a - b),
-      };
-    });
-  };
-
-  const setPracticeDuration = (minutes) => {
-    setSkillModeModal((prev) => {
-      if (!prev) return prev;
-      return { ...prev, practiceDuration: minutes, isTimeMenuOpen: false };
-    });
-  };
-
-  const togglePracticeDurationMenu = () => {
-    setSkillModeModal((prev) => {
-      if (!prev) return prev;
-      return { ...prev, isTimeMenuOpen: !prev.isTimeMenuOpen };
-    });
-  };
-
-  useEffect(() => {
-    if (!skillModeModal?.isTimeMenuOpen) return undefined;
-
-    const handleClickOutsideTimeMenu = (event) => {
-      if (timeMenuRef.current && !timeMenuRef.current.contains(event.target)) {
-        setSkillModeModal((prev) => {
-          if (!prev) return prev;
-          return { ...prev, isTimeMenuOpen: false };
-        });
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutsideTimeMenu);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutsideTimeMenu);
-    };
-  }, [skillModeModal?.isTimeMenuOpen]);
-
-  const handleStartSkillMode = (mode) => {
-    if (!skillModeModal) return;
-    const { skill, testId, selectedParts, practiceDuration } = skillModeModal;
-    if (mode === 'practice' && (!selectedParts || selectedParts.length === 0)) return;
-
-    const params = new URLSearchParams();
-    params.set('mode', mode);
-    if (mode === 'practice') {
-      const sortedParts = [...selectedParts].sort((a, b) => a - b);
-      params.set('parts', sortedParts.join(','));
-      params.set('startPart', String(sortedParts[0]));
-      if (Number.isFinite(practiceDuration) && practiceDuration > 0) {
-        params.set('duration', String(practiceDuration));
-      } else {
-        params.set('noTimeLimit', 'true');
-      }
-    } else if (mode === 'exam') {
-      params.set('allowReview', 'true');
-    }
-
-    closeSkillModeModal();
-    const queryString = params.toString();
-    clearSubmittedLockForRoute(skill, testId, queryString);
-    navigate(`/test/${skill.toLowerCase()}/${testId}?${queryString}`);
-  };
 
   return (
     <div className="series-detail">
@@ -534,19 +515,7 @@ function SeriesDetail({ series, index, onBack, fullTestProgress }) {
                 style={{ background: m.btnColor }}
                 onClick={() => {
                   const resume = skillResumeMap[skill];
-                  if (resume) {
-                    const rawQuery = String(resume.queryString || '').replace(/^\?/, '');
-                    const query = rawQuery || `mode=${resume.mode || 'practice'}`;
-                    const normalizedParams = new URLSearchParams(query);
-                    if ((normalizedParams.get('mode') || 'practice') === 'exam' && !normalizedParams.has('allowReview')) {
-                      normalizedParams.set('allowReview', 'true');
-                    }
-                    const normalizedQuery = normalizedParams.toString();
-                    clearSubmittedLockForRoute(skill, testId, normalizedQuery);
-                    navigate(`/test/${skill.toLowerCase()}/${testId}?${normalizedQuery}`);
-                    return;
-                  }
-                  openSkillModeModal(skill, testId);
+                  onOpenSkillModal(skill, testId, resume || null);
                 }}
               >
                 {buttonText}
@@ -587,173 +556,80 @@ function SeriesDetail({ series, index, onBack, fullTestProgress }) {
 
       {/* Full Test Modal */}
       {showFullTestModal && (
-        <div className="ft-overlay" onClick={() => setShowFullTestModal(false)}>
-          <div className="ft-modal" onClick={e => e.stopPropagation()}>
-            <button className="ft-modal-close" onClick={() => setShowFullTestModal(false)}>
+        <div className="sm-overlay" onClick={() => setShowFullTestModal(false)}>
+          <div className="sm-modal" onClick={e => e.stopPropagation()}>
+            <button className="sm-close" onClick={() => setShowFullTestModal(false)}>
               <X size={20} />
             </button>
-            <div className="ft-modal-icon">
-              <MonitorCheck size={56} color="#1e3a8a" strokeWidth={1.2} />
-            </div>
-            <h3 className="ft-modal-title">IELTS Full Test</h3>
-            <div className="ft-modal-hint">
-              <HelpCircle size={36} color="#e5a020" strokeWidth={1.2} />
-              <p>Simulation test mode is the best option to experience the real IELTS on computer.</p>
-            </div>
-            <div className="ft-modal-info">
-              <strong>Test information</strong>
-              <ul>
-                <li>This test includes the Listening, Reading, Writing and Speaking sections.</li>
-                <li>It takes about 3 hours to complete (same as the real IELTS test).</li>
-                {hasSavedFullTestProgress && (
-                  <li>Bạn đang có tiến trình làm dở. Hệ thống sẽ mở lại đúng vị trí đang làm.</li>
-                )}
-              </ul>
-            </div>
-            <p className="ft-modal-confirm-text">Please confirm if you would like to continue.</p>
-            <button className="ft-modal-confirm-btn" onClick={handleStartFullTest}>
-              {hasSavedFullTestProgress ? 'Tiếp tục full test' : 'Xác nhận'}
-            </button>
+
+            {hasSavedFullTestProgress ? (
+              <div style={{ padding: '20px 0', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+                <MonitorCheck size={56} color="#1e3a8a" strokeWidth={1.2} />
+                <h3 className="ft-modal-title">IELTS Full Test</h3>
+                <div className="ft-modal-hint" style={{ width: '100%', textAlign: 'left' }}>
+                  <HelpCircle size={36} color="#e5a020" strokeWidth={1.2} />
+                  <p>Bạn đang có tiến trình làm dở. Hệ thống sẽ mở lại đúng vị trí đang làm.</p>
+                </div>
+                <button
+                  className="sm-start-btn"
+                  onClick={() => handleStartFullTest()}
+                  style={{ maxWidth: '300px', margin: '10px auto 0' }}
+                >
+                  Tiếp tục full test
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="sm-head" style={{ '--sm-accent': '#1e3a8a', marginBottom: '24px' }}>
+                  <MonitorCheck size={36} />
+                  <h3>Choose your Full Test mode</h3>
+                  <p>Select a mode that fits your current training goal.</p>
+                </div>
+
+                <div className="sm-cards">
+                  <div className="sm-card practice" style={{ '--sm-accent': '#3b82f6' }}>
+                    <div className="sm-card-title-row">
+                      <Target size={19} />
+                      <h4>Practice Mode</h4>
+                    </div>
+                    <p>Practice all skills (Listening, Reading, Writing, Speaking) with comfortable pacing and review enabled.</p>
+                    <div className="sm-meta" style={{ marginTop: '20px', marginBottom: '20px' }}>
+                      <span><Timer size={14} /> Flexible time limit</span>
+                      <span><HelpCircle size={14} /> Review enabled</span>
+                    </div>
+                    <button className="sm-start-btn" onClick={() => handleStartFullTest('practice')}>
+                      Start practice <ChevronRight size={16} />
+                    </button>
+                  </div>
+
+                  <div className="sm-card exam" style={{ '--sm-accent': '#1e3a8a' }}>
+                    <div className="sm-card-title-row">
+                      <Laptop size={19} />
+                      <h4>Simulation Mode</h4>
+                    </div>
+                    <p>Simulated full test flow with realistic examiner timing. Strict exam mode.</p>
+                    <div className="sm-meta" style={{ marginTop: '20px', marginBottom: '20px' }}>
+                      <span><Timer size={14} /> ~3 hours</span>
+                      <span><HelpCircle size={14} /> Strict exam mode</span>
+                    </div>
+                    <button className="sm-start-btn" onClick={() => handleStartFullTest('exam')}>
+                      Start simulation <ChevronRight size={16} />
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
 
-      {/* Skill Mode Modal */}
-      {skillModeModal && (() => {
-        const modalSkill = skillModeModal.skill;
-        const meta = SKILL_META[modalSkill];
-        const modeMeta = SKILL_MODE_META[modalSkill] || SKILL_MODE_META.READING;
-        const practiceSetup = SKILL_PRACTICE_SETUP[modalSkill] || SKILL_PRACTICE_SETUP.READING;
-        const selectedParts = skillModeModal.selectedParts || [];
-        const practiceDuration = Number.isFinite(skillModeModal.practiceDuration)
-          ? skillModeModal.practiceDuration
-          : practiceSetup.defaultTime;
-        const canStartPractice = selectedParts.length > 0;
-        const noTimeLimit = practiceDuration === 0;
-        const heading = `${meta?.label || 'Skill'} mode`;
-        const timeOptions = Array.from(new Set([...(practiceSetup.timeOptions || []), 0])).sort((a, b) => {
-          if (a === 0) return 1;
-          if (b === 0) return -1;
-          return a - b;
-        });
-        const isTimeMenuOpen = Boolean(skillModeModal.isTimeMenuOpen);
-        const getTimeLabel = (mins) => (mins === 0 ? 'No time limit' : `${mins} mins`);
-
-        return (
-          <div className="sm-overlay" onClick={closeSkillModeModal}>
-            <div className="sm-modal" onClick={(e) => e.stopPropagation()}>
-              <button className="sm-close" onClick={closeSkillModeModal}>
-                <X size={20} />
-              </button>
-
-              <div className="sm-head" style={{ '--sm-accent': meta?.btnColor || '#1e3a8a' }}>
-                {meta?.Icon ? <meta.Icon size={30} /> : <LayoutGrid size={30} />}
-                <h3>Choose your {heading}</h3>
-                <p>Select a mode that fits your current training goal.</p>
-              </div>
-
-              <div className="sm-cards">
-                <div className="sm-card practice" style={{ '--sm-accent': meta?.color || '#1e3a8a' }}>
-                  <div className="sm-card-title-row">
-                    <Target size={19} />
-                    <h4>Practice Mode</h4>
-                  </div>
-                  <p>{modeMeta.practiceHint}</p>
-
-                  <div className="sm-practice-step">
-                    <div className="sm-practice-label">1. Choose part(s) to practice:</div>
-                    <div className="sm-part-grid">
-                      {practiceSetup.parts.map((partNo) => {
-                        const checked = selectedParts.includes(partNo);
-                        return (
-                          <button
-                            type="button"
-                            key={partNo}
-                            className={`sm-part-chip${checked ? ' active' : ''}`}
-                            onClick={() => togglePracticePart(partNo)}
-                          >
-                            <span>Part {partNo}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <div className="sm-practice-step">
-                    <div className="sm-practice-label">2. Choose a time limit:</div>
-                    <div className="sm-time-select-wrap" ref={timeMenuRef}>
-                      <button
-                        type="button"
-                        className={`sm-time-select${isTimeMenuOpen ? ' open' : ''}`}
-                        onClick={togglePracticeDurationMenu}
-                        aria-haspopup="listbox"
-                        aria-expanded={isTimeMenuOpen}
-                        aria-label="Choose practice time limit"
-                      >
-                        <span>{getTimeLabel(practiceDuration)}</span>
-                        <ChevronDown size={16} className="sm-time-caret" />
-                      </button>
-
-                      {isTimeMenuOpen && (
-                        <div className="sm-time-dropdown" role="listbox" aria-label="Time options">
-                          {timeOptions.map((mins) => {
-                            const active = mins === practiceDuration;
-                            return (
-                              <button
-                                type="button"
-                                key={mins}
-                                className={`sm-time-option${active ? ' active' : ''}`}
-                                role="option"
-                                aria-selected={active}
-                                onClick={() => setPracticeDuration(mins)}
-                              >
-                                {getTimeLabel(mins)}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="sm-meta">
-                    <span><Timer size={14} /> {noTimeLimit ? 'No time limit' : `${practiceDuration} mins`}</span>
-                    <span><HelpCircle size={14} /> Review enabled</span>
-                  </div>
-                  <button
-                    className="sm-start-btn"
-                    onClick={() => handleStartSkillMode('practice')}
-                    disabled={!canStartPractice}
-                  >
-                    Start practice <ChevronRight size={16} />
-                  </button>
-                </div>
-
-                <div className="sm-card exam" style={{ '--sm-accent': meta?.btnColor || '#1e3a8a' }}>
-                  <div className="sm-card-title-row">
-                    <Laptop size={19} />
-                    <h4>Simulation Mode</h4>
-                  </div>
-                  <p>{modeMeta.examHint}</p>
-                  <div className="sm-meta">
-                    <span><Timer size={14} /> {modeMeta.estimatedTime}</span>
-                    <span><HelpCircle size={14} /> Strict exam mode</span>
-                  </div>
-                  <button className="sm-start-btn" onClick={() => handleStartSkillMode('exam')}>
-                    Start simulation <ChevronRight size={16} />
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
     </div>
   );
 }
 
 export default function ExamLibrary() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [activeType, setActiveType] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSeries, setSelectedSeries] = useState(null);
@@ -762,6 +638,8 @@ export default function ExamLibrary() {
   const [loadingTests, setLoadingTests] = useState(true);
   const [fetchError, setFetchError] = useState(null);
   const [fullTestProgressMap, setFullTestProgressMap] = useState({});
+  // Modal chọn chế độ thi kỹ năng lẻ
+  const [skillModeModal, setSkillModeModal] = useState(null); // { skill, testId, resume }
 
   useEffect(() => {
     const forceExit = sessionStorage.getItem('forceExitFullscreen') === 'true';
@@ -947,6 +825,68 @@ export default function ExamLibrary() {
     setSearchParams(next, { replace: true });
   };
 
+  // Mở modal chọn chế độ thi kỹ năng lẻ
+  const handleOpenSkillModal = (skill, testId, resume) => {
+    const activeResume = resume || detectSkillResume(skill, testId);
+    setSkillModeModal({ skill, testId, resume: activeResume });
+  };
+
+  // Khi người dùng chọn chế độ từ modal kỹ năng lẻ
+  const handleStartSkillMode = (mode) => {
+    if (!skillModeModal) return;
+    const { skill, testId, resume } = skillModeModal;
+    setSkillModeModal(null);
+
+    // Nếu tiếp tục bài làm dở (mode === null là signal resume)
+    if (resume && mode === null) {
+      const rawQuery = String(resume.queryString || '').replace(/^\?/, '');
+      const query = rawQuery || `mode=${resume.mode || 'practice'}`;
+      const normalizedParams = new URLSearchParams(query);
+      // Resume giữ nguyên allowReview theo chế độ gốc, không thay đổi
+      const normalizedQuery = normalizedParams.toString();
+      const persistKey = buildTimerPersistKey({
+        skill: String(skill || '').toLowerCase(),
+        testId,
+        mode: normalizedParams.get('mode') || 'practice',
+        isFullTest: false,
+        queryString: normalizedQuery,
+      });
+      clearSubmittedLock(persistKey);
+      navigate(`/test/${skill.toLowerCase()}/${testId}?${normalizedQuery}`);
+      return;
+    }
+
+    // Xóa kết quả đã xem trước đó để bắt đầu đợt thi mới (cho phép nút Tiếp tục hiển thị nếu thoát ra giữa chừng)
+    const safeSkill = String(skill).toLowerCase();
+    localStorage.removeItem(`ieltsResultViewed_${safeSkill}_${testId}`);
+
+    const setup = SKILL_PRACTICE_SETUP[String(skill).toUpperCase()] || SKILL_PRACTICE_SETUP.READING;
+    const params = new URLSearchParams();
+    params.set('mode', mode || 'practice');
+    const sortedParts = [...setup.parts].sort((a, b) => a - b);
+    params.set('parts', sortedParts.join(','));
+    params.set('startPart', String(sortedParts[0]));
+
+    // KHÔNG set ?duration ở đây → trang thi sẽ dùng totalMinutes từ server
+    // (tức là thời gian admin đặt trong TestBuilder, không phải hardcode)
+    if (mode === 'exam') {
+      // Simulation: thi nghiêm ngặt, không cho xem lại kết quả trong khi thi
+      params.set('allowReview', 'false');
+    }
+    // Practice mode: không set duration, không set allowReview → trang thi tự dùng server time
+
+    const queryString = params.toString();
+    const persistKey = buildTimerPersistKey({
+      skill: String(skill || '').toLowerCase(),
+      testId,
+      mode: mode || 'practice',
+      isFullTest: false,
+      queryString,
+    });
+    clearSubmittedLock(persistKey);
+    navigate(`/test/${skill.toLowerCase()}/${testId}?${queryString}`);
+  };
+
   return (
     <div className="exam-library-page">
       <Navbar />
@@ -985,36 +925,42 @@ export default function ExamLibrary() {
             {/* Type tabs */}
             {!selectedSeries && (
               <div className="el-type-tabs">
-                {TYPE_TABS.map(({ key, label, Icon }) => (
-                  <button
-                    key={key}
-                    className={`el-type-tab${activeType === key ? ' active' : ''}`}
-                    onClick={() => {
-                      setActiveType(key);
-                      setSelectedSeries(null);
-                      const next = new URLSearchParams(searchParams);
-                      next.delete('seriesId');
-                      setSearchParams(next, { replace: true });
-                    }}
-                  >
-                    <Icon size={16} /> {label}
-                  </button>
-                ))}
+                {TYPE_TABS.map((tab) => {
+                  const TabIcon = tab.Icon;
+                  return (
+                    <button
+                      key={tab.key}
+                      className={`el-type-tab${activeType === tab.key ? ' active' : ''}`}
+                      onClick={() => {
+                        setActiveType(tab.key);
+                        setSelectedSeries(null);
+                        const next = new URLSearchParams(searchParams);
+                        next.delete('seriesId');
+                        setSearchParams(next, { replace: true });
+                      }}
+                    >
+                      <TabIcon size={16} /> {tab.label}
+                    </button>
+                  );
+                })}
               </div>
             )}
 
             {/* Skill pills */}
             {!selectedSeries && (
               <div className="el-skill-pills">
-                {SKILL_PILLS.map(({ key, label, Icon }) => (
-                  <button
-                    key={key}
-                    className={`el-skill-pill${activeSkill === key ? ' active' : ''}`}
-                    onClick={() => setActiveSkill(key)}
-                  >
-                    <Icon size={14} /> {label}
-                  </button>
-                ))}
+                {SKILL_PILLS.map((pill) => {
+                  const PillIcon = pill.Icon;
+                  return (
+                    <button
+                      key={pill.key}
+                      className={`el-skill-pill${activeSkill === pill.key ? ' active' : ''}`}
+                      onClick={() => setActiveSkill(pill.key)}
+                    >
+                      <PillIcon size={14} /> {pill.label}
+                    </button>
+                  );
+                })}
               </div>
             )}
 
@@ -1048,6 +994,7 @@ export default function ExamLibrary() {
                   setSearchParams(next, { replace: true });
                 }}
                 fullTestProgress={fullTestProgressMap[String(selectedSeries.backendId)] || null}
+                onOpenSkillModal={handleOpenSkillModal}
               />
             ) : activeSkill === 'ALL' ? (
               <div className="el-series-list">
@@ -1064,12 +1011,95 @@ export default function ExamLibrary() {
                 }
               </div>
             ) : (
-              <TestGrid tests={flatTests} />
+              <TestGrid tests={flatTests} onStartTest={handleOpenSkillModal} />
             )}
           </div>
 
         </div>
       )}
+
+      {/* Skill Mode Modal - hiện cho tất cả kỹ năng lẻ */}
+      {skillModeModal && (() => {
+        const { skill, resume } = skillModeModal;
+        const m = SKILL_META[String(skill).toUpperCase()] || SKILL_META.READING;
+        const SkillIcon = m.Icon;
+        return (
+          <div className="sm-overlay" onClick={() => setSkillModeModal(null)}>
+            <div className="sm-modal" onClick={e => e.stopPropagation()}>
+              <button className="sm-close" onClick={() => setSkillModeModal(null)}>
+                <X size={20} />
+              </button>
+
+              {resume ? (
+                <div style={{ padding: '20px 0', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+                  <SkillIcon size={56} color={m.color} strokeWidth={1.2} />
+                  <h3 className="ft-modal-title">{m.label}</h3>
+                  <div className="ft-modal-hint" style={{ width: '100%', textAlign: 'left' }}>
+                    <HelpCircle size={36} color="#e5a020" strokeWidth={1.2} />
+                    <p>Bạ đang có tiến trình làm dở. Hệ thống sẽ mở lại đúng vị trí đang làm.</p>
+                  </div>
+                  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                    <button
+                      className="sm-start-btn"
+                      onClick={() => handleStartSkillMode(null)}
+                      style={{ maxWidth: '220px' }}
+                    >
+                      Tiếp tục làm
+                    </button>
+                    <button
+                      className="sm-start-btn"
+                      onClick={() => handleStartSkillMode('practice')}
+                      style={{ maxWidth: '220px', background: '#64748b' }}
+                    >
+                      Bắt đầu lại
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="sm-head" style={{ '--sm-accent': m.color, marginBottom: '24px' }}>
+                    <SkillIcon size={36} />
+                    <h3>Choose your {m.label} mode</h3>
+                    <p>Select a mode that fits your current training goal.</p>
+                  </div>
+
+                  <div className="sm-cards">
+                    <div className="sm-card practice" style={{ '--sm-accent': '#3b82f6' }}>
+                      <div className="sm-card-title-row">
+                        <Target size={19} />
+                        <h4>Practice Mode</h4>
+                      </div>
+                      <p>Practice {m.label.toLowerCase()} skills with flexible pacing and review enabled after submission.</p>
+                      <div className="sm-meta" style={{ marginTop: '20px', marginBottom: '20px' }}>
+                        <span><Timer size={14} /> Flexible time limit</span>
+                        <span><HelpCircle size={14} /> Review enabled</span>
+                      </div>
+                      <button className="sm-start-btn" onClick={() => handleStartSkillMode('practice')}>
+                        Start practice <ChevronRight size={16} />
+                      </button>
+                    </div>
+
+                    <div className="sm-card exam" style={{ '--sm-accent': '#1e3a8a' }}>
+                      <div className="sm-card-title-row">
+                        <Laptop size={19} />
+                        <h4>Simulation Mode</h4>
+                      </div>
+                      <p>Simulated exam condition with realistic timing and strict exam mode.</p>
+                      <div className="sm-meta" style={{ marginTop: '20px', marginBottom: '20px' }}>
+                        <span><Timer size={14} /> Timed exam</span>
+                        <span><HelpCircle size={14} /> Strict exam mode</span>
+                      </div>
+                      <button className="sm-start-btn" onClick={() => handleStartSkillMode('exam')}>
+                        Start simulation <ChevronRight size={16} />
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

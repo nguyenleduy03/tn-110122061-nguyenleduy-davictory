@@ -9,31 +9,31 @@
   },
   "scores": {
     "taskResponse": {
-      "band": 7.0,
+      "band": 0.0,
       "bandJustification": "Explain why this band was chosen and why higher band was not awarded.",
       "boundary": { "detected": false, "closerTo": 0.0, "reason": "" }
     },
     "coherenceCohesion": {
-      "band": 7.5,
+      "band": 0.0,
       "bandJustification": "Explain why this band was chosen and why higher band was not awarded.",
-      "boundary": { "detected": true, "closerTo": 8.0, "reason": "Explain boundary" }
+      "boundary": { "detected": false, "closerTo": 0.0, "reason": "" }
     },
     "lexicalResource": {
-      "band": 7.0,
+      "band": 0.0,
       "bandJustification": "Explain why this band was chosen and why higher band was not awarded.",
       "boundary": { "detected": false, "closerTo": 0.0, "reason": "" }
     },
     "grammaticalRange": {
-      "band": 7.0,
+      "band": 0.0,
       "bandJustification": "Explain why this band was chosen and why higher band was not awarded.",
       "boundary": { "detected": false, "closerTo": 0.0, "reason": "" }
     }
   },
-  "overallBand": 7.0,
+  "overallBand": 0.0,
   "overallFeedback": "Overall feedback paragraph summarizing main strengths and areas for improvement.",
   "bandJustification": "Overall explanation of why these bands were assigned.",
   "bandBoundarySummary": "Summary of any boundary cases across all criteria.",
-  "confidence": 0.82,
+  "confidence": 0.0,
   "confidenceReason": "Explain factors influencing your confidence level.",
   "strengthSummary": "Brief summary of the essay's key strengths.",
   "weaknessSummary": "Brief summary of the essay's main weaknesses.",

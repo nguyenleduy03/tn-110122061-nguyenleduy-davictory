@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useLayoutEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from "react";
 import { Check, ChevronLeft, ChevronRight, ArrowLeftRight } from "lucide-react";
 import { useSearchParams, useNavigate, useParams } from "react-router-dom";
 import "../styles/ieltsTest.css";
@@ -18,7 +18,7 @@ import { isQuestionMetaLabel } from "../utils/questionLabelUtils";
 import { computeFullTestProgressPercent, getFullTestSessionState, parseJsonSafe } from "../utils/fullTestProgress";
 import { buildTimerPersistKey, clearDraftByTest, markTestSubmitted, getSubmittedRedirect } from "../utils/testRuntimeState";
 import { useNotes } from "../hooks/useNotes";
-import { assignmentApi } from "../services/assignmentApi";
+
 
 const normalizeGroupInstructionText = (value) => {
     const blockTag = '(?:p|div|blockquote|li|ul|ol|h[1-6])';
@@ -163,7 +163,7 @@ const resolveHeadingGapWidth = (text, maxWidth = 900) => {
     return Math.max(220, Math.min(maxWidth, desiredWidth));
 };
 
-const HeadingGap = ({ qId, number, answer, correctAnswer, handleAnswerChange, isActive, setActiveQuestion, bookmarks, toggleBookmark, isReview }) => {
+const HeadingGap = ({ qId, number, answer, correctAnswer, handleAnswerChange, isActive, setActiveQuestion, bookmarks, isReview }) => {
     const handleDragOver = (e) => { if (isReview) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
     const handleDrop = (e) => {
         if (isReview) return;
@@ -234,7 +234,7 @@ const PassageContentStatic = React.memo(({ content }) => {
     );
 });
 
-const PassageRenderer = ({ part, answers, handleAnswerChange, activeQuestion, setActiveQuestion, bookmarks, toggleBookmark, isReview, testData, matchingHeadingZoneWidth }) => {
+const PassageRenderer = ({ part, answers, handleAnswerChange, activeQuestion, setActiveQuestion, bookmarks, isReview, testData, matchingHeadingZoneWidth }) => {
     const [gaps, setGaps] = React.useState([]);
     const containerRef = React.useRef(null);
     const questionNumberById = React.useMemo(() => {
@@ -576,7 +576,7 @@ const IeltsReadingTest = () => {
                 : `Không thể tải bài thi: ${err.message}`);
             setLoading(false);
         });
-    }, [testId, isReview, mode, isFullTest, selectedPracticeParts, startPartNumber, durationOverrideMinutes, noTimeLimit, setCurrentPartIndex, highlightStorageKey, previewRefreshTick]);
+    }, [testId, isReview, mode, isFullTest, selectedPracticeParts, startPartNumber, durationOverrideMinutes, noTimeLimit, setCurrentPartIndex, highlightStorageKey, previewRefreshTick, searchParams]);
 
     useEffect(() => {
         if (!isGuest || !guestInfo || attemptId || !testId || !testData || isReview) return;
@@ -865,6 +865,10 @@ const IeltsReadingTest = () => {
         }
         clearDraftByTest('reading', testId);
         localStorage.removeItem(`ieltsTimerDeadline_${timerPersistKey}`);
+        if (highlightStorageKey) {
+            try { sessionStorage.removeItem(highlightStorageKey); } catch {}
+            try { sessionStorage.removeItem(`${highlightStorageKey}:question-highlights`); } catch {}
+        }
 
         // Nếu là bài tập, submit vào assignment API
         if (assignmentId && resp?.attemptId) {
@@ -909,12 +913,12 @@ const IeltsReadingTest = () => {
         return count;
     };
 
-    const getTotalCount = (partIndex) => {
+    const getTotalCount = useCallback((partIndex) => {
         if (!testData) return 0;
         const p = testData.parts[partIndex];
         const flatQs = p.questions.flatMap(q => q.subQuestions ? q.subQuestions : q).filter((question) => !question?.isSample);
         return flatQs.reduce((sum, q) => sum + (q.numberRange ? q.numberRange.length : 1), 0);
-    };
+    }, [testData]);
 
     const partQuestionStartNumber = useMemo(() => {
         if (!testData?.parts?.length) return 1;
@@ -922,7 +926,7 @@ const IeltsReadingTest = () => {
             .slice(0, currentPartIndex)
             .reduce((sum, _, idx) => sum + getTotalCount(idx), 0);
         return priorQuestions + 1;
-    }, [testData, currentPartIndex]);
+    }, [testData, currentPartIndex, getTotalCount]);
 
     if (loading) return (
         <div className="test-loading-screen">
@@ -950,11 +954,7 @@ const IeltsReadingTest = () => {
     }
     if (!testData || !part) return null;
 
-    const fillInBlankQuestions = part.questions.filter(q => q.type === 'fill-in-the-blank');
-    const multiChoiceQuestions = part.questions.filter(q => q.type === 'multiple-choice');
-    const dragDropQuestions = part.questions.filter(q => q.type === 'drag-and-drop' || q.type === 'matching_heading' || q.type === 'matching_info');
-    const summaryCompletionQuestions = part.questions.filter(q => q.type === 'summary-completion');
-    const imageDragDropQuestions = part.questions.filter(q => q.type === 'image-drag-drop');
+
 
     const matchingHeadingOptions = part.questions
         .filter(q => q.type === 'matching_heading')
@@ -1164,7 +1164,7 @@ const IeltsReadingTest = () => {
                     )}
                     <PassageRenderer part={part} answers={answers} handleAnswerChange={handleAnswerChange}
                         bookmarks={bookmarks}
-                        toggleBookmark={toggleBookmark} activeQuestion={activeQuestion} setActiveQuestion={setActiveQuestion} isReview={isReview} testData={testData} matchingHeadingZoneWidth={matchingHeadingZoneWidth} />
+                        activeQuestion={activeQuestion} setActiveQuestion={setActiveQuestion} isReview={isReview} testData={testData} matchingHeadingZoneWidth={matchingHeadingZoneWidth} />
                 </div>
 
                 <div className="divider" onMouseDown={handleDragStart}>

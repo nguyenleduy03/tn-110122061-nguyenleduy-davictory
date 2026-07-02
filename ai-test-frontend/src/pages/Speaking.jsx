@@ -5,13 +5,36 @@ import {
   RotateCw, AlertCircle, PlayCircle, Settings, Database,
   Cpu, Clock, User, ShieldCheck, GraduationCap,
   BookOpen, Zap, Square, Upload, Target, Sparkles, Brain,
-  FileText, Quote, ChevronDown, ChevronUp
+  FileText, Quote, ChevronDown, ChevronUp, Activity, Hash,
+  Layers, Code, CheckCircle2,
 } from 'lucide-react';
 import { speakingApi } from '../api/speakingApi';
 import ResponseViewer from '../components/ResponseViewer';
 import { useHeader } from '../context/HeaderContext';
 import { BandScore, CriterionMeter } from '../components/ScoreDisplay';
 import TeacherSpeakingGrader from '../components/TeacherSpeakingGrader';
+import AudioVisualizer from '../components/AudioVisualizer';
+
+const SPEAKING_STAGE_LOGS = {
+  0: [
+    { type: 'sys', text: 'Processing speech stream input...' },
+    { type: 'nlp', text: 'Running STT transcribe (Whisper Model)...' },
+    { type: 'nlp', text: 'Speech transcript extracted.' }
+  ],
+  1: [
+    { type: 'nlp', text: 'Computing speech rate (words per minute)...' },
+    { type: 'nlp', text: 'Scanning for hesitations & discourse markers...' },
+    { type: 'nlp', text: 'Analyzing grammatical diversity index...' }
+  ],
+  2: [
+    { type: 'ai', text: 'Assessing Fluency & Pronunciation criteria...' },
+    { type: 'ai', text: 'Evaluating vocabulary richness (lexical variety)...' }
+  ],
+  3: [
+    { type: 'ielts', text: 'Mapping performance against IELTS Speaking descriptors...' },
+    { type: 'sys', text: 'Synthesizing overall feedback and recommendations...' }
+  ]
+};
 
 export default function Speaking() {
   const [tab, setTab] = useState('chat');
@@ -130,7 +153,7 @@ export default function Speaking() {
     { value: 'PART2', label: 'Part 2 — Cue Card', desc: 'Nói về chủ đề trong 1-2 phút' },
     { value: 'PART3', label: 'Part 3 — Discussion', desc: 'Câu hỏi thảo luận trừu tượng' },
   ];
-  const [practiceStep, setPracticeStep] = useState('setup'); // setup | recording | evaluating | results
+  const [practiceStep, setPracticeStep] = useState('setup'); // setup | recording | submitting | analyzing | scoring | results
   const [selectedParts, setSelectedParts] = useState(['PART1', 'PART2', 'PART3']);
   const [practiceTopic, setPracticeTopic] = useState('');
   const [customQuestion, setCustomQuestion] = useState('');
@@ -145,11 +168,38 @@ export default function Speaking() {
   const [practiceLoading, setPracticeLoading] = useState(false);
   const [practiceError, setPracticeError] = useState(null);
   const [practiceScanStage, setPracticeScanStage] = useState(0);
+  const [showRawData, setShowRawData] = useState(false);
+  const [practiceTranscript, setPracticeTranscript] = useState('');
+  const [practiceMetrics, setPracticeMetrics] = useState(null);
   const mediaRecorderRef = useRef(null);
   const streamRef = useRef(null);
   const chunksRef = useRef([]);
   const timerRef = useRef(null);
   const scanTimerRef = useRef(null);
+  const practiceAudioRef = useRef(null);
+  const [practicePlaying, setPracticePlaying] = useState(false);
+
+  const [liveLogs, setLiveLogs] = useState([]);
+  const logStreamEndRef = useRef(null);
+
+  useEffect(() => {
+    if (practiceStep === 'analyzing' || practiceStep === 'scoring') {
+      const logs = SPEAKING_STAGE_LOGS[practiceScanStage] || [];
+      if (practiceScanStage === 0) setLiveLogs([]);
+      logs.forEach((log, index) => {
+        const timer = setTimeout(() => {
+          setLiveLogs(prev => [...prev, { ...log, id: `${practiceScanStage}-${index}` }]);
+        }, index * 250);
+        return () => clearTimeout(timer);
+      });
+    } else {
+      setLiveLogs([]);
+    }
+  }, [practiceScanStage, practiceStep]);
+
+  useEffect(() => {
+    logStreamEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [liveLogs]);
 
   const togglePart = (value) => {
     setSelectedParts(prev =>
@@ -167,6 +217,8 @@ export default function Speaking() {
     setPracticeError(null);
     setPracticeResult(null);
     setCustomQuestion('');
+    setPracticeTranscript('');
+    setPracticeMetrics(null);
   };
 
   const handlePracticeStart = async () => {
@@ -253,7 +305,11 @@ export default function Speaking() {
     setPracticeLoading(true);
     setPracticeError(null);
     try {
-      await speakingApi.submitAudio(practiceSessionId, audioBlob);
+      // Step 1: Submit audio → get transcript
+      const subRes = await speakingApi.submitAudio(practiceSessionId, audioBlob);
+      const transcript = subRes.data?.text || '';
+      setPracticeTranscript(transcript);
+
       if (currentPartIdx < selectedParts.length - 1) {
         setCurrentPartIdx(prev => prev + 1);
         await speakingApi.nextPhase(practiceSessionId);
@@ -261,21 +317,29 @@ export default function Speaking() {
         setCurrentQuestion(qRes.data);
         setAudioBlob(null); setAudioUrl2(null);
       } else {
-        setPracticeStep('evaluating');
         setPracticeScanStage(0);
+        setLiveLogs([]);
+        if (scanTimerRef.current) clearInterval(scanTimerRef.current);
         scanTimerRef.current = setInterval(() => {
-          setPracticeScanStage(prev => prev < 3 ? prev + 1 : prev);
-        }, 1000);
-        const evalRes = await speakingApi.evaluateSession(practiceSessionId, 1);
+          setPracticeScanStage(s => (s < 3 ? s + 1 : s));
+        }, 2000);
+
+        // Step 2: Analyze pronunciation
+        setPracticeStep('analyzing');
+        const pronRes = await speakingApi.analyzePronunciation(practiceSessionId);
+        setPracticeMetrics(pronRes.data);
+
+        // Step 3: Score
+        setPracticeStep('scoring');
+        const evalRes = await speakingApi.scoreSession(practiceSessionId, 1);
         setPracticeResult(evalRes.data || evalRes);
-        setPracticeScanStage(4);
-        setTimeout(() => setPracticeStep('results'), 600);
+        setPracticeStep('results');
+        if (scanTimerRef.current) clearInterval(scanTimerRef.current);
       }
     } catch (err) {
       setPracticeError(err.response?.data?.error || err.message);
     } finally {
       setPracticeLoading(false);
-      if (scanTimerRef.current) clearInterval(scanTimerRef.current);
     }
   };
 
@@ -306,33 +370,186 @@ export default function Speaking() {
     if (!practiceResult) return null;
     const overall = practiceResult.overall_band || practiceResult.overallBand || 0;
     const criteriaList = getCriteriaList();
+    const hasAudio = !!audioUrl2;
+
+    // Compute NLP metrics from answer text
+    const answerText = practiceTranscript;
+    const words = answerText ? answerText.split(/\s+/).filter(Boolean) : [];
+    const sentences = answerText ? answerText.split(/[.!?]+/).filter(s => s.trim()) : [];
+    const uniqueWords = new Set(words.map(w => w.toLowerCase()));
+    const hesitationCount = words.filter(w => /^(um|uh|er|ah|like|hmm)$/i.test(w)).length;
+    const discourseCount = words.filter(w => /^(however|therefore|moreover|furthermore|nevertheless|consequently|in addition|on the other hand|for example|in conclusion|firstly|secondly|finally)$/i.test(w)).length;
+
     return (
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: '24px' }}>
-        <div>
-          {criteriaList.map(c => (
-            <CriterionMeter key={c.key} label={c.label} band={c.band} color={c.color} icon={Brain} />
-          ))}
-        </div>
-        <div>
-          <div className="card" style={{ background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)', color: 'white', border: 'none', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-            <BandScore band={overall} size={120} />
-            <h3 style={{ marginTop: '16px', fontSize: '1.25rem', fontWeight: 800 }}>Speaking Performance</h3>
-            <p style={{ fontSize: '0.875rem', opacity: 0.9, marginTop: '8px' }}>Overall IELTS Band Score</p>
-          </div>
-          {practiceResult.overall_feedback && (
-            <div className="card" style={{ marginTop: '12px' }}>
-              <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>{practiceResult.overall_feedback}</p>
+      <div className="animate-fade" style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: '20px' }}>
+        {/* LEFT COLUMN */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* Audio player */}
+          {hasAudio && (
+            <div className="card glass-premium" style={{ padding: 0, overflow: 'hidden' }}>
+              <div style={{ padding: '12px 16px', background: 'var(--primary-light)', borderBottom: '1px solid var(--border)', fontWeight: 800, fontSize: '0.875rem', color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Mic size={16} /> File ghi âm
+              </div>
+              <div style={{ padding: '16px', background: 'white' }}>
+                <audio ref={practiceAudioRef} controls src={audioUrl2} style={{ width: '100%' }}
+                  onPlay={() => setPracticePlaying(true)}
+                  onPause={() => setPracticePlaying(false)}
+                  onEnded={() => setPracticePlaying(false)} />
+                <div style={{ marginTop: '8px' }}>
+                  <AudioVisualizer audioRef={practiceAudioRef} isPlaying={practicePlaying} height={36} barCount={40} />
+                </div>
+              </div>
             </div>
           )}
+
+          {/* Question */}
+          {customQuestion && (
+            <div className="card glass-premium" style={{ padding: 0, overflow: 'hidden' }}>
+              <div style={{ padding: '12px 16px', background: '#FFF7ED', borderBottom: '1px solid #FED7AA', fontWeight: 800, fontSize: '0.875rem', color: '#9A3412', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <MessageSquare size={16} /> Câu hỏi
+              </div>
+              <div style={{ padding: '16px', background: 'white', fontSize: '0.9375rem', lineHeight: 1.6, color: 'var(--text-secondary)', fontWeight: 500 }}>
+                {customQuestion}
+              </div>
+            </div>
+          )}
+
+          {/* Transcript */}
+          {practiceTranscript && (
+            <div className="card glass-premium" style={{ padding: 0, overflow: 'hidden' }}>
+              <div style={{ padding: '12px 16px', background: '#E0F2FE', borderBottom: '1px solid #BAE6FD', fontWeight: 800, fontSize: '0.875rem', color: '#0369A1', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <MessageSquare size={16} /> Chuyển văn bản (STT)
+              </div>
+              <div style={{ padding: '16px', background: 'white', fontSize: '0.9375rem', lineHeight: 1.6, color: 'var(--text-main)', whiteSpace: 'pre-wrap', fontWeight: 500 }}>
+                {practiceTranscript}
+              </div>
+            </div>
+          )}
+
+          {/* Criteria bars */}
+          <div className="card glass-premium">
+            <h4 style={{ fontSize: '1rem', fontWeight: 800, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-main)' }}>
+              <BarChart3 size={18} color="var(--primary)" /> Điểm tiêu chí
+            </h4>
+            {criteriaList.map(c => (
+              <CriterionMeter key={c.key} label={c.label} band={c.band} color={c.color} icon={Brain} />
+            ))}
+          </div>
+
+          {/* Raw data viewer */}
+          <div className="card glass-premium" style={{ padding: '12px 16px' }}>
+            <div onClick={() => setShowRawData(!showRawData)}
+              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}>
+              <span style={{ fontSize: '0.875rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)' }}>
+                <Code size={16} color="var(--primary)" /> Raw response từ AI
+              </span>
+              {showRawData ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </div>
+            {showRawData && (
+              <pre style={{ marginTop: '12px', fontSize: '0.75rem', background: '#1E293B', color: '#E2E8F0', padding: '12px', borderRadius: '8px', overflow: 'auto', maxHeight: '300px', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
+                {JSON.stringify(practiceResult, null, 2)}
+              </pre>
+            )}
+          </div>
+        </div>
+
+        {/* RIGHT COLUMN */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* Overall band */}
+          <div className="card glass-premium neon-glow-primary" style={{
+            background: 'linear-gradient(135deg, #1e1b4b 0%, #311042 100%)', color: 'white',
+            border: '1px solid rgba(99, 102, 241, 0.2)', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
+            padding: '32px'
+          }}>
+            <BandScore band={overall} size={130} />
+            <h3 style={{ marginTop: '14px', fontSize: '1.4rem', fontWeight: 800, background: 'linear-gradient(90deg, #fff 0%, #e0e7ff 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Speaking Performance</h3>
+            {practiceResult.confidenceScore != null && (
+              <p style={{ fontSize: '0.8rem', opacity: 0.85, display: 'flex', alignItems: 'center', gap: '4px', marginTop: '6px' }}>
+                <Sparkles size={12} /> Độ tin cậy: {Math.round(practiceResult.confidenceScore * 100)}%
+              </p>
+            )}
+          </div>
+
+          {/* NLP Metrics */}
+          {words.length > 0 && (
+            <div className="card glass-premium">
+              <h4 style={{ fontSize: '1rem', fontWeight: 800, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-main)' }}>
+                <Activity size={18} color="var(--primary)" /> Phân tích ngôn ngữ
+              </h4>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                {[
+                  { label: 'Số từ', value: words.length, icon: Hash },
+                  { label: 'Số câu', value: sentences.length, icon: FileText },
+                  { label: 'Đa dạng từ', value: words.length ? (uniqueWords.size / words.length).toFixed(3) : '0', icon: BookOpen },
+                  { label: 'Câu TB', value: sentences.length ? (words.length / sentences.length).toFixed(1) : '0', icon: BarChart3 },
+                  { label: 'Từ đệm', value: hesitationCount, icon: AlertCircle },
+                  { label: 'Discourse', value: discourseCount, icon: Layers },
+                ].map((m, i) => (
+                  <div key={i} style={{ padding: '8px 10px', background: 'var(--bg-main)', borderRadius: 'var(--radius-sm)' }}>
+                    <div style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <m.icon size={12} /> {m.label}
+                    </div>
+                    <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)' }}>{m.value}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Strengths */}
+          {criteriaList.some(c => c.strengths.length > 0) && (
+            <div className="card glass-premium" style={{ background: 'rgba(240, 253, 244, 0.45)', borderColor: 'rgba(187, 247, 208, 0.3)' }}>
+              <h4 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#166534', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <CheckCircle size={16} /> Điểm mạnh
+              </h4>
+              {criteriaList.filter(c => c.strengths.length > 0).map((c, i) => (
+                <div key={i} style={{ marginBottom: '8px' }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#15803D' }}>{c.label}:</span>
+                  {c.strengths.map((s, j) => <p key={j} style={{ fontSize: '0.85rem', color: '#166534', margin: '2px 0 2px 8px', fontWeight: 500 }}>• {s}</p>)}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Weaknesses */}
+          {criteriaList.some(c => c.weaknesses.length > 0) && (
+            <div className="card glass-premium" style={{ background: 'rgba(254, 242, 242, 0.45)', borderColor: 'rgba(254, 202, 202, 0.3)' }}>
+              <h4 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#991B1B', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <AlertCircle size={16} /> Điểm yếu
+              </h4>
+              {criteriaList.filter(c => c.weaknesses.length > 0).map((c, i) => (
+                <div key={i} style={{ marginBottom: '8px' }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#991B1B' }}>{c.label}:</span>
+                  {c.weaknesses.map((w, j) => <p key={j} style={{ fontSize: '0.85rem', color: '#991B1B', margin: '2px 0 2px 8px', fontWeight: 500 }}>• {w}</p>)}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Overall feedback */}
+          {practiceResult.overall_feedback && (
+            <div className="card glass-premium">
+              <h4 style={{ fontSize: '1rem', fontWeight: 800, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-main)' }}>
+                <Quote size={16} color="var(--primary)" /> Nhận xét tổng quát
+              </h4>
+              <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.6, fontWeight: 500 }}>{practiceResult.overall_feedback}</p>
+            </div>
+          )}
+
+          {/* Improvement priority */}
           {practiceResult.improvement_priority?.length > 0 && (
-            <div className="card" style={{ marginTop: '12px' }}>
-              <h4 style={{ fontSize: '0.875rem', fontWeight: 700, marginBottom: '8px' }}>Ưu tiên cải thiện:</h4>
-              <ol style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', paddingLeft: '20px', lineHeight: 1.8 }}>
+            <div className="card glass-premium" style={{ background: 'rgba(254, 252, 232, 0.45)', borderColor: 'rgba(245, 158, 11, 0.3)', borderLeft: '5px solid #F59E0B' }}>
+              <h4 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#92400E', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Zap size={16} className="ai-pulse" /> Ưu tiên cải thiện
+              </h4>
+              <ol style={{ fontSize: '0.9rem', color: '#78350F', paddingLeft: '20px', lineHeight: 1.8, fontWeight: 500 }}>
                 {practiceResult.improvement_priority.map((item, i) => <li key={i}>{item}</li>)}
               </ol>
             </div>
           )}
-          <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center', marginTop: '12px' }} onClick={resetPractice}>
+
+          {/* Reset button */}
+          <button className="btn btn-primary-grad" style={{ width: '100%', justifyContent: 'center', padding: '14px' }} onClick={resetPractice}>
             <RefreshCw size={16} /> Làm bài khác
           </button>
         </div>
@@ -493,7 +710,7 @@ export default function Speaking() {
       {tab === 'practice' && (
         <div className="animate-fade">
           {practiceError && (
-            <div className="card" style={{ marginBottom: '16px', padding: '16px', borderLeft: '4px solid var(--danger)' }}>
+            <div className="card glass-premium" style={{ marginBottom: '16px', padding: '16px', borderLeft: '4px solid var(--danger)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--danger)', fontSize: '0.875rem' }}>
                 <AlertCircle size={18} /> {practiceError}
               </div>
@@ -502,44 +719,46 @@ export default function Speaking() {
 
           {/* Setup */}
           {practiceStep === 'setup' && (
-            <div className="card" style={{ maxWidth: '700px', margin: '0 auto' }}>
+            <div className="card glass-premium" style={{ maxWidth: '700px', margin: '0 auto' }}>
               <div style={{ padding: '24px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{ background: 'var(--primary-light)', color: 'var(--primary)', padding: '10px', borderRadius: '12px' }}>
+                <div style={{ background: 'var(--primary-light)', color: 'var(--primary)', padding: '10px', borderRadius: '12px', boxShadow: '0 4px 10px rgba(79, 70, 229, 0.1)' }}>
                   <Mic size={24} />
                 </div>
                 <div>
-                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Luyện nói IELTS Speaking</h3>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Chọn part, ghi âm câu trả lời và nhận điểm ngay</p>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)' }}>Luyện nói IELTS Speaking</h3>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 500 }}>Chọn part, ghi âm câu trả lời và nhận điểm ngay</p>
                 </div>
               </div>
               <div style={{ padding: '24px' }}>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '12px' }}>Chọn Part muốn luyện tập</label>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 700, marginBottom: '12px', color: 'var(--text-secondary)' }}>Chọn Part muốn luyện tập</label>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
                   {PARTS.map(p => (
                     <label key={p.value} style={{
-                      display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '12px 16px',
+                      display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '14px 16px',
                       borderRadius: '10px', border: selectedParts.includes(p.value) ? '2px solid var(--primary)' : '2px solid var(--border)',
                       background: selectedParts.includes(p.value) ? 'var(--primary-light)' : '#fff', cursor: 'pointer',
+                      boxShadow: selectedParts.includes(p.value) ? '0 4px 12px rgba(79, 70, 229, 0.08)' : 'none',
+                      transition: 'all 0.2s'
                     }}>
                       <input type="checkbox" checked={selectedParts.includes(p.value)} onChange={() => togglePart(p.value)}
                         style={{ marginTop: 3, accentColor: 'var(--primary)' }} />
                       <div>
-                        <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{p.label}</div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>{p.desc}</div>
+                        <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}>{p.label}</div>
+                        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 2, fontWeight: 500 }}>{p.desc}</div>
                       </div>
                     </label>
                   ))}
                 </div>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '8px' }}>
-                  Câu hỏi tự nhập <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(giống chấm Writing — bỏ qua AI generate)</span>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 700, marginBottom: '8px', color: 'var(--text-secondary)' }}>
+                  Câu hỏi tự nhập <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>(giống chấm Writing — bỏ qua AI generate)</span>
                 </label>
-                <textarea style={{ width: '100%', padding: '12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', minHeight: '80px', marginBottom: '12px', resize: 'vertical', fontSize: '0.875rem' }}
+                <textarea style={{ width: '100%', padding: '12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', minHeight: '80px', marginBottom: '16px', resize: 'vertical', fontSize: '0.875rem', outline: 'none', transition: 'border-color 0.2s' }}
                   placeholder="Nhập câu hỏi của bạn vào đây... VD: Describe a memorable holiday you have had."
                   value={customQuestion} onChange={e => setCustomQuestion(e.target.value)} />
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '8px' }}>Chủ đề (tùy chọn)</label>
-                <input style={{ width: '100%', padding: '12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', marginBottom: '20px' }}
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 700, marginBottom: '8px', color: 'var(--text-secondary)' }}>Chủ đề (tùy chọn)</label>
+                <input style={{ width: '100%', padding: '12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', marginBottom: '24px', outline: 'none', transition: 'border-color 0.2s' }}
                   placeholder="VD: Environment, Technology, Education..." value={practiceTopic} onChange={e => setPracticeTopic(e.target.value)} />
-                <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}
+                <button className="btn btn-primary-grad" style={{ width: '100%', justifyContent: 'center', padding: '14px' }}
                   onClick={handlePracticeStart} disabled={practiceLoading || (!customQuestion.trim() && selectedParts.length === 0)}>
                   {practiceLoading ? <><RotateCw className="spin" size={18} /> Đang tạo phiên...</> : <><Mic size={18} /> Bắt đầu luyện nói</>}
                 </button>
@@ -549,50 +768,65 @@ export default function Speaking() {
 
           {/* Recording */}
           {practiceStep === 'recording' && (
-            <div className="card" style={{ maxWidth: '700px', margin: '0 auto' }}>
+            <div className="card glass-premium" style={{ maxWidth: '700px', margin: '0 auto' }}>
               <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border-light)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <div style={{ background: 'var(--primary-light)', color: 'var(--primary)', padding: '8px', borderRadius: '50%' }}>
                     <Mic size={20} />
                   </div>
                   <div>
-                    <div style={{ fontWeight: 700, fontSize: '1rem' }}>Part {currentPartIdx + 1}: {selectedParts[currentPartIdx]}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{(currentPartIdx + 1)} / {selectedParts.length}</div>
+                    <div style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--text-main)' }}>Part {currentPartIdx + 1}: {selectedParts[currentPartIdx]}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>{(currentPartIdx + 1)} / {selectedParts.length}</div>
                   </div>
                 </div>
               </div>
               <div style={{ padding: '24px' }}>
                 {currentQuestion && (
                   <div style={{ background: '#F0F9FF', borderRadius: '10px', padding: '16px', marginBottom: '20px', border: '1px solid #BAE6FD' }}>
-                    <div style={{ fontSize: '0.7rem', fontWeight: 600, color: '#0369A1', marginBottom: '8px', textTransform: 'uppercase' }}>Câu hỏi</div>
-                    <div style={{ fontSize: '0.9375rem', lineHeight: 1.6, color: '#0C4A6E', whiteSpace: 'pre-wrap' }}>
+                    <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#0369A1', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Câu hỏi</div>
+                    <div style={{ fontSize: '0.95rem', lineHeight: 1.6, color: '#0C4A6E', whiteSpace: 'pre-wrap', fontWeight: 500 }}>
                       {currentQuestion.question || currentQuestion.text || JSON.stringify(currentQuestion)}
                     </div>
                   </div>
                 )}
                 {audioUrl2 && (
                   <div style={{ background: '#F0FDF4', borderRadius: '10px', padding: '16px', marginBottom: '16px', border: '1px solid #BBF7D0' }}>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#15803D', marginBottom: '8px' }}>Đã ghi âm ({formatTime(recSeconds)})</div>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#15803D', marginBottom: '8px' }}>Đã ghi âm ({formatTime(recSeconds)})</div>
                     <audio src={audioUrl2} controls style={{ width: '100%' }} />
                   </div>
                 )}
-                <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginBottom: '16px' }}>
+
+                {/* Animated sound wave co-operating visualizer when recording */}
+                {isRecording && (
+                  <div className="sound-wave-container active" style={{ marginBottom: '20px' }}>
+                    <div className="wave-bar active"></div>
+                    <div className="wave-bar active"></div>
+                    <div className="wave-bar active"></div>
+                    <div className="wave-bar active"></div>
+                    <div className="wave-bar active"></div>
+                    <div className="wave-bar active"></div>
+                    <div className="wave-bar active"></div>
+                    <div className="wave-bar active"></div>
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginBottom: '20px' }}>
                   {!isRecording ? (
-                    <button className="btn btn-primary" onClick={startRecording}>
+                    <button className="btn btn-primary-grad" onClick={startRecording} style={{ padding: '10px 24px' }}>
                       <Mic size={18} /> Ghi âm
                     </button>
                   ) : (
                     <button className="btn btn-danger" onClick={stopRecording}
-                      style={{ background: 'var(--danger)', color: 'white', border: 'none', padding: '10px 20px', borderRadius: 'var(--radius-md)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                      <Square size={18} /> Dừng ({formatTime(recSeconds)})
+                      style={{ background: 'var(--danger)', color: 'white', border: 'none', padding: '10px 24px', borderRadius: 'var(--radius-md)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', boxShadow: '0 4px 10px rgba(239, 68, 68, 0.3)' }}>
+                      <Square size={16} /> Dừng ({formatTime(recSeconds)})
                     </button>
                   )}
-                  <label className="btn btn-outline" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <label className="btn btn-outline" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px' }}>
                     <Upload size={18} /> Tải file
                     <input type="file" accept="audio/*" hidden onChange={handleFileUpload} />
                   </label>
                 </div>
-                <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}
+                <button className="btn btn-primary-grad" style={{ width: '100%', justifyContent: 'center', padding: '14px' }}
                   onClick={handlePracticeSubmit} disabled={practiceLoading || !audioBlob}>
                   {practiceLoading ? <><RotateCw className="spin" size={18} /> Đang xử lý...</> : <><Send size={18} /> {currentPartIdx < selectedParts.length - 1 ? 'Nộp & Part tiếp theo' : 'Nộp & Đánh giá'}</>}
                 </button>
@@ -600,16 +834,68 @@ export default function Speaking() {
             </div>
           )}
 
-          {/* Evaluating */}
-          {practiceStep === 'evaluating' && (
-            <div className="card" style={{ maxWidth: '500px', margin: '60px auto', textAlign: 'center', padding: '40px' }}>
-              <div style={{ marginBottom: '20px' }}>
-                <Sparkles size={48} style={{ animation: 'spin 1.5s linear infinite', color: 'var(--primary)' }} />
+          {/* Evaluating loader and logs chamber */}
+          {(practiceStep === 'analyzing' || practiceStep === 'scoring') && (
+            <div className="card glass-premium neon-glow-primary animate-fade" style={{ maxWidth: '550px', margin: '40px auto', padding: '28px', border: '1px solid rgba(79, 70, 229, 0.3)' }}>
+              <div className="radar-scanner">
+                <Mic size={36} className="ai-pulse" style={{ color: 'var(--primary)', zIndex: 3 }} />
+                <div className="radar-pulse-ring" style={{ width: '120px', height: '120px', top: '-10px', left: '-10px' }} />
               </div>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '8px' }}>AI đang đánh giá bài nói...</h3>
-              <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
-                {['Nhận diện giọng nói...', 'Phân tích ngôn ngữ...', 'Chấm điểm 4 tiêu chí...', 'Tạo nhận xét...'][practiceScanStage] || 'Đang xử lý...'}
-              </p>
+              
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, textAlign: 'center', marginBottom: '24px', color: 'var(--text-main)' }}>
+                {practiceStep === 'analyzing' ? 'Đang phân tích phát âm với AI...' : 'Đang tiến hành chấm điểm nói...'}
+              </h3>
+              
+              {/* Audio visualizer wave */}
+              <div className="sound-wave-container active" style={{ marginBottom: '24px' }}>
+                <div className="wave-bar active"></div>
+                <div className="wave-bar active"></div>
+                <div className="wave-bar active"></div>
+                <div className="wave-bar active"></div>
+                <div className="wave-bar active"></div>
+                <div className="wave-bar active"></div>
+                <div className="wave-bar active"></div>
+                <div className="wave-bar active"></div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '24px' }}>
+                {[
+                  { label: 'Nhận dạng giọng nói (STT)...' },
+                  { label: 'Phân tích chỉ số ngôn ngữ & Tốc độ nói...' },
+                  { label: 'Đánh giá 4 tiêu chí chuẩn IELTS...' },
+                  { label: 'Tổng hợp nhận xét chi tiết...' }
+                ].map((s, i) => (
+                  <div key={i} style={{ 
+                    display: 'flex', alignItems: 'center', gap: '12px', 
+                    opacity: i > practiceScanStage ? 0.35 : 1, 
+                    transform: i === practiceScanStage ? 'translateX(8px)' : 'none',
+                    transition: 'all 0.4s'
+                  }}>
+                    <div style={{ 
+                      width: '28px', height: '28px', borderRadius: '8px', 
+                      background: i < practiceScanStage ? 'var(--secondary)' : i === practiceScanStage ? 'var(--primary)' : 'var(--border-light)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white',
+                      boxShadow: i === practiceScanStage ? '0 0 10px var(--primary)' : 'none',
+                      transition: 'all 0.3s'
+                    }}>
+                      {i < practiceScanStage ? <CheckCircle2 size={16} /> : i === practiceScanStage ? <RotateCw className="spin" size={16} /> : <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>{i+1}</span>}
+                    </div>
+                    <span style={{ fontSize: '0.95rem', fontWeight: i === practiceScanStage ? 600 : 400, color: i === practiceScanStage ? 'var(--primary)' : 'var(--text-secondary)' }}>
+                      {s.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Log stream console */}
+              <div className="log-stream">
+                {liveLogs.map((log, index) => (
+                  <div key={log.id || index} className={`log-item ${log.type}`}>
+                    &gt; {log.text}
+                  </div>
+                ))}
+                <div ref={logStreamEndRef} />
+              </div>
             </div>
           )}
 

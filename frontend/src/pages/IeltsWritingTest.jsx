@@ -10,7 +10,7 @@ import { useScrollbarActivity } from "../hooks/useScrollbarActivity";
 import TextHighlighter from "../components/common/TextHighlighter";
 import NotesPanel from "../components/common/NotesPanel";
 import { ieltsApi } from "../services/ieltsApi";
-import { assignmentApi } from "../services/assignmentApi";
+
 import { fileApi } from "../services/fileApi";
 import { authApi } from "../services/authApi";
 import { formatTextWithWhitespace, normalizeRichHtml, preserveBlockLineBreaks, stripInlineStyles } from "../utils/textFormatters";
@@ -34,11 +34,7 @@ const toHtmlContent = (value) => {
     return stripInlineStyles(preserveBlockLineBreaks(normalized));
 };
 
-const toComparableText = (value) => String(value || '')
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .toLowerCase();
+
 
 const toSafeFileSegment = (value) => String(value || '')
     .trim()
@@ -300,7 +296,7 @@ const IeltsWritingTest = () => {
                 : `Không thể tải bài thi: ${err.message}`);
             setLoading(false);
         });
-    }, [testId, mode, isFullTest, selectedPracticeParts, startPartNumber, durationOverrideMinutes, noTimeLimit, previewRefreshTick, isGuest, guestInfo, attemptId]);
+    }, [testId, mode, isFullTest, selectedPracticeParts, startPartNumber, durationOverrideMinutes, noTimeLimit, previewRefreshTick, isGuest, guestInfo, attemptId, searchParams]);
 
     useEffect(() => {
         if (!isFullTest || !testData || !testId) return undefined;

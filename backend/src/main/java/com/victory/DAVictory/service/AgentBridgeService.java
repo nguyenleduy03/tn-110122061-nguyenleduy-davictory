@@ -46,14 +46,15 @@ public class AgentBridgeService {
         this.agentActionRepository = agentActionRepository;
     }
 
-    public Map<String, Object> query(String message, Long userId, Long sessionId, Boolean agentMode) {
-        log.info("Agent query: message={}, userId={}, sessionId={}, agentMode={}", message, userId, sessionId, agentMode);
+    public Map<String, Object> query(String message, Long userId, Long sessionId, Boolean agentMode, String mode) {
+        log.info("Agent query: message={}, userId={}, sessionId={}, agentMode={}, mode={}", message, userId, sessionId, agentMode, mode);
         try {
             var body = new java.util.HashMap<String, Object>();
             body.put("message", message);
             body.put("user_id", userId != null ? userId : 0);
             if (sessionId != null) body.put("session_id", sessionId);
             body.put("agent_mode", agentMode != null && agentMode);
+            if (mode != null && !mode.isBlank()) body.put("mode", mode);
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);

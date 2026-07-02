@@ -12,6 +12,7 @@ from tools.tools_library import (
     GetClassScores, GetExamScores, GetTeacherProductivity,
     GetTestTypeStats, GetAllClasses,
 )
+from tools.overview_stats import GetOverviewDashboard
 
 TOOL_MAP = {
     "GetCenterStats": GetCenterStats(),
@@ -25,17 +26,103 @@ TOOL_MAP = {
     "GetTeacherProductivity": GetTeacherProductivity(),
     "GetTestTypeStats": GetTestTypeStats(),
     "GetAllClasses": GetAllClasses(),
+    "GetOverviewDashboard": GetOverviewDashboard(),
 }
 
 PERIOD_LABELS = {"week": "tuần", "month": "tháng", "quarter": "quý", "year": "năm"}
 
 SYSTEM_PROMPT = (
     "Bạn là chuyên gia phân tích dữ liệu giáo dục tại trung tâm Anh ngữ DAVictory. "
-    "Viết báo cáo bằng tiếng Việt, chuyên nghiệp. "
+    "Viết báo cáo hoàn toàn bằng tiếng Việt, chuyên nghiệp, dễ đọc. "
     "CHỈ dùng số liệu được cung cấp. KHÔNG tự bịa số. "
     "Dùng markdown cơ bản (**, bảng, bullet). "
-    "KHÔNG dùng emoji, KHÔNG có thẻ think, KHÔNG có HTML."
+    "KHÔNG dùng emoji, KHÔNG có thẻ think, KHÔNG có HTML. "
+    "KHÔNG dùng tên tiếng Anh kỹ thuật như GetExamScores, GetStudentScores, total_attempts, avg_band, raw_score, unique_students. "
+    "Dùng tiếng Việt thuần túy cho mọi nhãn, tên cột và tiêu đề."
 )
+
+# Bảng dịch các key/cột dữ liệu từ tiếng Anh sang tiếng Việt để báo cáo sạch sẽ
+_VI_TRANSLATIONS = {
+    # Tên cột dữ liệu
+    "total_attempts": "Tổng lượt thi",
+    "avg_band": "Điểm TB",
+    "unique_students": "Số HV",
+    "full_name": "Họ tên",
+    "name": "Tên",
+    "title": "Tên",
+    "exam_type": "Loại kỳ thi",
+    "test_type": "Loại đề",
+    "total_tests": "Tổng đề thi",
+    "full_tests": "Đề full test",
+    "single_skill_tests": "Đề đơn kỹ năng",
+    "single_skill": "Đề đơn kỹ năng",
+    "by_skill": "Theo kỹ năng",
+    "total_submissions": "Bài nộp",
+    "avg_score": "Điểm TB",
+    "completion_rate": "Tỉ lệ hoàn thành",
+    "completed_attempts": "Lượt hoàn thành",
+    "new_users": "HV mới",
+    "total_users": "Tổng người dùng",
+    "total_classes": "Tổng lớp học",
+    "total_exam_attempts": "Tổng lượt thi",
+    "avg_raw_score": "Điểm thô TB",
+    "avg_band_score": "Điểm band TB",
+    "best_band": "Điểm cao nhất",
+    "worst_band": "Điểm thấp nhất",
+    "student_count": "Số học viên",
+    "teacher_count": "Số giáo viên",
+    "total_tests_created": "Số đề đã tạo",
+    "total_classes_teaching": "Số lớp phụ trách",
+    "total_teachers": "Tổng giáo viên",
+    "period": "Kỳ",
+    "description": "Mô tả",
+    "status": "Trạng thái",
+    "created_at": "Ngày tạo",
+    "updated_at": "Ngày cập nhật",
+    # Kỹ năng IELTS
+    "LISTENING": "Nghe",
+    "READING": "Đọc",
+    "WRITING": "Viết",
+    "SPEAKING": "Nói",
+    "UNKNOWN": "Khác",
+    # Loại đề thi
+    "ACADEMIC": "Academic",
+    "GENERAL": "General",
+    # Vai trò
+    "STUDENT": "Học viên",
+    "TEACHER": "Giáo viên",
+    "MANAGER": "Quản lý",
+    "ADMIN": "Admin",
+    # Nhóm dữ liệu
+    "students": "Học viên",
+    "classes": "Lớp học",
+    "exams": "Kỳ thi",
+    "teachers": "Giáo viên",
+    "test_types": "Loại đề thi",
+    "kpi": "KPI",
+    "test_stats": "Thống kê đề thi",
+    "items": "Chỉ số",
+    "speaking": "Speaking",
+    # Tiêu chí Speaking
+    "avg_fluency_coherence": "Trôi chảy & Mạch lạc",
+    "avg_lexical_resource": "Vốn từ vựng",
+    "avg_grammatical_range": "Ngữ pháp & Chính xác",
+    "avg_pronunciation": "Phát âm",
+    "avg_overall_band": "Điểm tổng",
+    "total_sessions": "Số phiên",
+}
+
+
+def _translate_to_vietnamese(obj):
+    """Dịch các key/cột tiếng Anh sang tiếng Việt trong dữ liệu."""
+    if isinstance(obj, dict):
+        return {
+            _VI_TRANSLATIONS.get(k, k): _translate_to_vietnamese(v)
+            for k, v in obj.items()
+        }
+    if isinstance(obj, list):
+        return [_translate_to_vietnamese(item) for item in obj]
+    return _VI_TRANSLATIONS.get(obj, obj)
 
 
 def _calc_date_range(period: str) -> tuple[datetime, datetime]:
@@ -65,7 +152,19 @@ class ReportGenerator:
         start_date, end_date = _calc_date_range(period)
         date_range = f"{start_date.strftime('%d/%m/%Y')} \u2013 {end_date.strftime('%d/%m/%Y')}"
 
-        all_data = await self._collect_all_data(template["sections"], period)
+        is_overview = template.get("category") == "tong_quan"
+        dashboard_data = None
+        all_data = {}
+
+        if is_overview:
+            try:
+                tool = TOOL_MAP["GetOverviewDashboard"]
+                dashboard_data = await tool.execute({"period": period}, {})
+            except Exception as e:
+                logger.error(f"Failed to fetch overview dashboard: {e}")
+
+        if not dashboard_data:
+            all_data = await self._collect_all_data(template["sections"], period)
 
         result = dict(template)
         result["generated_at"] = datetime.now().isoformat()
@@ -74,8 +173,17 @@ class ReportGenerator:
         result["date_range"] = date_range
         result["sections"] = []
 
+        if is_overview and dashboard_data:
+            result["kpi_cards"] = dashboard_data.get("kpi_cards", [])
+            result["dashboard_charts"] = dashboard_data.get("charts", {})
+
         for section in template["sections"]:
-            section_data = self._extract_section_data(section, all_data)
+            if is_overview and dashboard_data:
+                # Use raw database data from the dashboard to guarantee 100% accurate LLM analysis
+                section_data = _translate_to_vietnamese(dashboard_data.get("raw_data", {}))
+            else:
+                section_data = self._extract_section_data(section, all_data)
+                
             data_str = json.dumps(section_data, indent=2, ensure_ascii=False)
             prompt = section["llm_prompt"].format(
                 period_label=period_label,
@@ -86,14 +194,16 @@ class ReportGenerator:
             content = await self._call_llm(section["heading"], prompt)
 
             charts_with_data = []
-            for chart_def in section.get("charts", []):
-                chart_data = self._build_chart_data(chart_def, all_data)
-                if chart_data:
-                    charts_with_data.append({
-                        "type": chart_def["type"],
-                        "title": chart_def["title"],
-                        "data": chart_data,
-                    })
+            if not is_overview:
+                # Backward compatibility for non-overview reports
+                for chart_def in section.get("charts", []):
+                    chart_data = self._build_chart_data(chart_def, all_data)
+                    if chart_data:
+                        charts_with_data.append({
+                            "type": chart_def["type"],
+                            "title": chart_def["title"],
+                            "data": chart_data,
+                        })
 
             result["sections"].append({
                 "heading": section["heading"],
@@ -137,7 +247,7 @@ class ReportGenerator:
             tool_name = hint["tool"]
             if tool_name in all_data:
                 data[tool_name] = all_data[tool_name]
-        return data
+        return _translate_to_vietnamese(data)
 
     @staticmethod
     def _build_chart_data(chart_def: dict, all_data: dict) -> list:

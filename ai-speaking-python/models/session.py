@@ -26,6 +26,7 @@ class SpeakingTurn:
     asked_at: str = ""
     answered_at: str = ""
     part: str = "PART1"
+    whisper_segments: list[dict] = field(default_factory=list)
 
     @classmethod
     def create(cls, session_id: str, turn_number: int, question: str, part: str) -> "SpeakingTurn":

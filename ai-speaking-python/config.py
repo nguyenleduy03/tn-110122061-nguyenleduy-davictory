@@ -52,6 +52,8 @@ class Settings(BaseSettings):
     expected_speech_rate_min: int = 80
     expected_speech_rate_max: int = 160
 
+    scoring_provider: str = "nvidia"
+
     session_max_turns: int = 50
     session_max_duration_minutes: int = 30
 

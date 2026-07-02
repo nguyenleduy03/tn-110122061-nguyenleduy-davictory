@@ -8210,3 +8210,49 @@ body.text-size-xlarge .options-fs-overlay {
   from { stroke-dashoffset: 0; }
   to { stroke-dashoffset: 163.36; }
 }
+
+/* ── Exam Security ──────────────────────────────────────────────────── */
+.exam-away-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: exam-away-fadein 0.3s ease;
+}
+
+.exam-away-card {
+    width: min(440px, 96vw);
+    background: #fff;
+    border-radius: 12px;
+    padding: 32px 28px 28px;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35);
+    text-align: center;
+}
+
+.exam-away-icon {
+    color: #dc2626;
+    margin-bottom: 12px;
+}
+
+.exam-away-title {
+    margin: 0 0 8px;
+    font-size: 20px;
+    font-weight: 800;
+    color: #111;
+}
+
+.exam-away-text {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.55;
+    color: #374151;
+}
+
+@keyframes exam-away-fadein {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}

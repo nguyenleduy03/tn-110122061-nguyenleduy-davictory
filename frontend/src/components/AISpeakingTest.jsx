@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   Mic, Square, Play, RotateCw, Send, CheckCircle2, AlertCircle,
   Sparkles, Brain, Target, FileText, Clock, Quote,
@@ -39,12 +39,21 @@ export default function AISpeakingTest({ onBack }) {
   const [expandedRaw, setExpandedRaw] = useState(false);
   const [activeResultTab, setActiveResultTab] = useState('overview');
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [loadingQuestion, setLoadingQuestion] = useState(false);
 
   const mediaRecorderRef = useRef(null);
   const streamRef = useRef(null);
   const chunksRef = useRef([]);
   const timerRef = useRef(null);
   const scanTimerRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (scanTimerRef.current) clearInterval(scanTimerRef.current);
+      streamRef.current?.getTracks().forEach(t => t.stop());
+    };
+  }, []);
 
   const togglePart = (value) => {
     setSelectedParts(prev =>
@@ -85,6 +94,8 @@ export default function AISpeakingTest({ onBack }) {
   };
 
   const loadQuestion = async (sid) => {
+    setLoadingQuestion(true);
+    setError(null);
     try {
       const res = await speakingApi.getQuestion(sid);
       setCurrentQuestion(res.data);
@@ -94,14 +105,17 @@ export default function AISpeakingTest({ onBack }) {
       setRecSeconds(0);
     } catch (err) {
       setError('Không thể tạo câu hỏi: ' + (err.response?.data?.error || err.message));
+    } finally {
+      setLoadingQuestion(false);
     }
   };
 
   const ensureMic = async () => {
     try {
-      if (!streamRef.current) {
-        streamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(t => t.stop());
       }
+      streamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
       return streamRef.current;
     } catch {
       setError('Vui lòng cấp quyền truy cập microphone để ghi âm.');
@@ -140,6 +154,10 @@ export default function AISpeakingTest({ onBack }) {
     }
     streamRef.current?.getTracks().forEach(t => t.stop());
     streamRef.current = null;
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
   }, []);
 
   const handleFileUpload = (e) => {
@@ -446,7 +464,19 @@ export default function AISpeakingTest({ onBack }) {
                   />
                 </div>
               </div>
-              <div style={{ marginTop: 20, textAlign: 'center' }}>
+              <div style={{ marginTop: 20, textAlign: 'center', display: 'flex', gap: 12, justifyContent: 'center' }}>
+                {onBack && (
+                  <button
+                    onClick={onBack}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 24px',
+                      borderRadius: 10, border: '1px solid #e2e8f0', background: '#fff',
+                      color: '#64748b', fontWeight: 600, fontSize: 14, cursor: 'pointer',
+                    }}
+                  >
+                    ← Quay lại
+                  </button>
+                )}
                 <button
                   className="ai-test-submit-btn"
                   onClick={handleStart}
@@ -482,7 +512,11 @@ export default function AISpeakingTest({ onBack }) {
                 </div>
               ) : (
                 <div style={{ textAlign: 'center', padding: 20, color: '#94a3b8' }}>
-                  Đang tạo câu hỏi...
+                  {loadingQuestion ? (
+                    <><RotateCw size={20} className="spin" style={{ verticalAlign: 'middle', marginRight: 8 }} /> Đang tạo câu hỏi...</>
+                  ) : (
+                    'Đang tải câu hỏi...'
+                  )}
                 </div>
               )}
 

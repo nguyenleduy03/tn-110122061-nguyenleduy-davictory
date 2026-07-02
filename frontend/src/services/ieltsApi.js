@@ -1267,6 +1267,14 @@ async function transformGroup(baseUrl, group) {
 //  getTestSession
 //  Tải đề thi từ backend theo testId và skill (READING / LISTENING / …)
 // ═══════════════════════════════════════════════════════════════════
+// Thời gian mặc định chuẩn IELTS theo kỹ năng (phút)
+const IELTS_DEFAULT_MINUTES = {
+  LISTENING: 32,
+  READING: 60,
+  WRITING: 60,
+  SPEAKING: 15,
+};
+
 export const ieltsApi = {
   getTestSession: async (testId, mode = 'READING', fallbackSkills = []) => {
     const baseUrl = API_CONFIG.BASE_URL;
@@ -1572,7 +1580,11 @@ export const ieltsApi = {
       candidateName: 'Guest Student',
       candidateId: 'DEFAULT-ID',
       testType: testData.testType || `Academic ${targetMode.charAt(0) + targetMode.slice(1).toLowerCase()}`,
-      totalMinutes: targetSession.durationMinutes || testData.durationMinutes || 60,
+      // Ưu tiên: thời gian admin đặt cho session này > thời gian chung của đề > chuẩn IELTS theo kỹ năng
+      totalMinutes: targetSession.durationMinutes
+        || testData.durationMinutes
+        || IELTS_DEFAULT_MINUTES[targetMode]
+        || 60,
       audioUrl: targetMode === 'LISTENING' ? (listeningAudioPlayCount ? populatedParts.find((p) => p.audioUrl)?.audioUrl || null : null) : undefined,
       audioPlayCount: targetMode === 'LISTENING' ? listeningAudioPlayCount : undefined,
       parts: populatedParts,
@@ -1622,7 +1634,7 @@ export const ieltsApi = {
       candidateName: 'Guest Student',
       candidateId: testData.id || testId,
       testType: testData.testType || 'Academic Writing',
-      totalMinutes: writingSession.durationMinutes || 60,
+      totalMinutes: writingSession.durationMinutes || IELTS_DEFAULT_MINUTES.WRITING || 60,
       parts: mappedParts,
     };
   },

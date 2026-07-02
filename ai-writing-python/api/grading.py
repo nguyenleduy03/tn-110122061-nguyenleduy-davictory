@@ -9,7 +9,7 @@ from core.retriever import SampleRetriever
 from core.parser import ParseError
 from infrastructure.llm_client import AIProviderError
 from infrastructure.quota import QuotaExceeded
-from models.grading import GradingResponse, TestGradeRequest, FeedbackRequest, BatchRequest, ApprovalRequest, RejectRequest, ClassifyRequest
+from models.grading import GradingResponse, TestGradeRequest, DescribeImageRequest, FeedbackRequest, BatchRequest, ApprovalRequest, RejectRequest, ClassifyRequest
 
 router = APIRouter(prefix="/api/ai/writing", tags=["grading"])
 orch = GradingOrchestrator()
@@ -81,6 +81,22 @@ async def grade_submission(submission_id: int,
         raise HTTPException(400, str(e))
 
 
+@router.post("/describe-image")
+async def describe_image(req: DescribeImageRequest):
+    try:
+        image_url = req.image_url
+        if not image_url.startswith(('http://', 'https://')):
+            image_url = f"https://davictory.io.vn{image_url}"
+        description = await orch.describe_image(image_url)
+        return {"description": description}
+    except QuotaExceeded as e:
+        raise HTTPException(429, str(e))
+    except AIProviderError as e:
+        raise HTTPException(503, str(e))
+    except Exception as e:
+        raise HTTPException(400, str(e))
+
+
 @router.post("/test-grade")
 async def test_grade(req: TestGradeRequest):
     try:
@@ -88,7 +104,7 @@ async def test_grade(req: TestGradeRequest):
                                   question_group_id=None, task_type=req.task_type,
                                   topic=req.topic, skip_cache=True,
                                   chart_type=req.chart_type, essay_type=req.essay_type,
-                                  letter_type=req.letter_type)
+                                  letter_type=req.letter_type, image_url=req.image_url)
         return GradingResponse.from_result(result)
     except QuotaExceeded as e:
         raise HTTPException(429, str(e))

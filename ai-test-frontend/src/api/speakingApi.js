@@ -125,6 +125,16 @@ export const speakingApi = {
     return axios.post('/api/exam-attempts/filter', filterData, { headers: authHeaders() });
   },
 
+  analyzePronunciation(sessionId) {
+    return axios.post(`${speakingBase}/sessions/${sessionId}/pronunciation`);
+  },
+
+  scoreSession(sessionId, userId = 1) {
+    return axios.post(`${speakingBase}/sessions/${sessionId}/score`, null, {
+      headers: { 'X-User-Id': String(userId) },
+    });
+  },
+
   getExamAttemptDetail(attemptId) {
     return axios.get(`/api/exam-attempts/${attemptId}/detail`, { headers: authHeaders() });
   },

@@ -350,41 +350,57 @@ REPORT_TEMPLATES = [
         "icon": "\U0001f4da",
         "sections": [
             {
-                "heading": "Tình hình học tập trong tuần",
-                "description": "Tổng quan tình hình học tập các lớp",
+                "heading": "Tổng quan hoạt động học tập tuần",
+                "description": "Các chỉ số hoạt động học tập chính trong tuần",
                 "data_hints": [
-                    {"tool": "GetCenterStats", "params": {"period": "week"}},
                     {"tool": "GetPeriodStats", "params": {"period": "week"}},
-                    {"tool": "GetExamScores", "params": {"period": "week"}},
+                    {"tool": "GetWritingStats", "params": {"period": "week"}},
+                    {"tool": "GetSpeakingStats", "params": {"period": "week"}},
+                    {"tool": "GetCenterStats", "params": {"period": "week"}},
                 ],
                 "charts": [
                     {
                         "type": "bar",
-                        "title": "Lượt thi trong tuần",
+                        "title": "Chỉ số hoạt động tuần",
                         "data_source": {
-                            "tool": "GetExamScores",
-                            "source_key": "exams",
-                            "label_key": "title",
-                            "value_key": "total_attempts",
-                            "max_key": "total_attempts",
+                            "tool": "GetPeriodStats",
+                            "fields": [
+                                {"label": "HV mới", "key": "new_users", "max": 50},
+                                {"label": "Lượt thi", "key": "total_exam_attempts", "max": 200},
+                                {"label": "HV tham gia thi", "key": "unique_students", "max": 100},
+                                {"label": "Tỉ lệ HT (%)", "key": "completion_rate", "max": 100},
+                            ]
+                        }
+                    },
+                    {
+                        "type": "donut",
+                        "title": "Tỉ lệ hoàn thành bài thi",
+                        "data_source": {
+                            "tool": "GetPeriodStats",
+                            "fields": [
+                                {"label": "Hoàn thành", "key": "completed_attempts"},
+                                {"label": "Chưa hoàn thành", "key": "completed_attempts", "complement_of": "total_exam_attempts"},
+                            ]
                         }
                     }
                 ],
                 "llm_prompt": (
-                    "Viết phần TÌNH HÌNH HỌC TẬP TRONG {period_label_upper} cho báo cáo ({date_range}).\n\n"
+                    "Viết phần TỔNG QUAN HOẠT ĐỘNG HỌC TẬP TUẦN cho báo cáo ({date_range}).\n\n"
                     "Dữ liệu:\n{data}\n\n"
                     "Yêu cầu:\n"
-                    "- Tổng quan 3-5 câu về tình hình tuần\n"
-                    "- Nêu số lớp, số học viên, lượt thi\n"
-                    "- CHỈ dùng số liệu từ dữ liệu trên"
+                    "- Viết 4-6 câu tổng quan về tình hình học tập trong tuần\n"
+                    "- Nêu rõ: số học viên mới đăng ký, tổng lượt thi, số học viên tham gia thi, điểm band TB, tỉ lệ hoàn thành\n"
+                    "- Nêu số bài Writing được nộp và số phiên Speaking được thực hiện trong tuần\n"
+                    "- Lưu ý: GetCenterStats trả về số lượng được tạo trong tuần (không phải tổng tích lũy toàn hệ thống)\n"
+                    "- CHỈ dùng số liệu từ dữ liệu trên, KHÔNG bịa số"
                 ),
             },
             {
-                "heading": "Kết quả kiểm tra",
-                "description": "Phân tích kết quả kiểm tra trong kỳ",
+                "heading": "Kết quả kiểm tra theo lớp và học sinh",
+                "description": "Điểm trung bình, lượt thi và thành tích nổi bật",
                 "data_hints": [
-                    {"tool": "GetPeriodStats", "params": {"period": "week"}},
-                    {"tool": "GetClassScores", "params": {"period": "week"}},
+                    {"tool": "GetClassScores", "params": {"period": "week", "limit": 15}},
+                    {"tool": "GetStudentScores", "params": {"period": "week", "limit": 10}},
                 ],
                 "charts": [
                     {
@@ -397,16 +413,98 @@ REPORT_TEMPLATES = [
                             "value_key": "avg_band",
                             "max": 9
                         }
+                    },
+                    {
+                        "type": "bar",
+                        "title": "Top 10 học sinh điểm cao",
+                        "data_source": {
+                            "tool": "GetStudentScores",
+                            "source_key": "students",
+                            "label_key": "full_name",
+                            "value_key": "avg_band",
+                            "max": 9
+                        }
                     }
                 ],
                 "llm_prompt": (
-                    "Viết phần KẾT QUẢ KIỂM TRA cho báo cáo {period_label} ({date_range}).\n\n"
+                    "Viết phần KẾT QUẢ KIỂM TRA THEO LỚP VÀ HỌC SINH cho báo cáo tuần ({date_range}).\n\n"
                     "Dữ liệu:\n{data}\n\n"
                     "Yêu cầu:\n"
-                    "- Phân tích 5-7 câu về kết quả\n"
-                    "- So sánh điểm TB giữa các lớp\n"
-                    "- Nhận xét về tỉ lệ hoàn thành\n"
+                    "- Phân tích 5-7 câu\n"
+                    "- So sánh điểm TB giữa các lớp, chỉ ra lớp đạt kết quả tốt nhất và thấp nhất\n"
+                    "- Nêu học sinh có thành tích nổi bật (điểm cao, số lần thi nhiều)\n"
+                    "- Nhận xét về sự chênh lệch giữa các lớp và nguyên nhân có thể\n"
                     "- CHỈ dùng số liệu từ dữ liệu trên"
+                ),
+            },
+            {
+                "heading": "Kết quả theo kỳ thi và kỹ năng",
+                "description": "Phân tích theo kỳ thi, Writing và Speaking",
+                "data_hints": [
+                    {"tool": "GetExamScores", "params": {"period": "week", "limit": 10}},
+                    {"tool": "GetWritingStats", "params": {"period": "week"}},
+                    {"tool": "GetSpeakingStats", "params": {"period": "week"}},
+                ],
+                "charts": [
+                    {
+                        "type": "bar",
+                        "title": "Điểm TB theo kỳ thi",
+                        "data_source": {
+                            "tool": "GetExamScores",
+                            "source_key": "exams",
+                            "label_key": "title",
+                            "value_key": "avg_band",
+                            "max": 9
+                        }
+                    },
+                    {
+                        "type": "bar",
+                        "title": "Điểm trung bình Writing",
+                        "data_source": {
+                            "tool": "GetWritingStats",
+                            "fields": [
+                                {"label": "Writing avg score", "key": "avg_score", "max": 9},
+                            ]
+                        }
+                    },
+                    {
+                        "type": "bar",
+                        "title": "Điểm thành phần Speaking",
+                        "data_source": {
+                            "tool": "GetSpeakingStats",
+                            "fields": [
+                                {"label": "Trôi chảy & Mạch lạc", "key": "avg_fluency_coherence", "max": 9},
+                                {"label": "Vốn từ vựng", "key": "avg_lexical_resource", "max": 9},
+                                {"label": "Ngữ pháp & Chính xác", "key": "avg_grammatical_range", "max": 9},
+                                {"label": "Phát âm", "key": "avg_pronunciation", "max": 9},
+                            ]
+                        }
+                    }
+                ],
+                "llm_prompt": (
+                    "Viết phần KẾT QUẢ THEO KỲ THI VÀ KỸ NĂNG cho báo cáo tuần ({date_range}).\n\n"
+                    "Dữ liệu:\n{data}\n\n"
+                    "Yêu cầu:\n"
+                    "- Phân tích 5-7 câu\n"
+                    "- Nhận xét điểm TB các kỳ thi được tổ chức trong tuần\n"
+                    "- Đánh giá điểm Writing trung bình và 4 tiêu chí Speaking\n"
+                    "- Chỉ ra kỹ năng nào mạnh, kỹ năng nào cần cải thiện\n"
+                    "- CHỈ dùng số liệu từ dữ liệu trên"
+                ),
+            },
+            {
+                "heading": "Đề xuất cải thiện",
+                "description": "Các đề xuất dựa trên dữ liệu tuần",
+                "data_hints": [],
+                "charts": [],
+                "llm_prompt": (
+                    "Viết phần ĐỀ XUẤT CẢI THIỆN cho báo cáo tuần ({date_range}).\n\n"
+                    "Dữ liệu tuần này:\n{data}\n\n"
+                    "Yêu cầu:\n"
+                    "- Đưa ra 4-5 đề xuất cụ thể, khả thi\n"
+                    "- Mỗi đề xuất phải gắn với số liệu từ dữ liệu\n"
+                    "- Ưu tiên cải thiện lớp học hoặc kỹ năng có điểm thấp\n"
+                    "- Viết bằng tiếng Việt, chuyên nghiệp"
                 ),
             },
         ]
@@ -626,10 +724,12 @@ REPORT_TEMPLATES = [
                     "Viết phần TỔNG KẾT THI CỬ QUÝ cho báo cáo ({date_range}).\n\n"
                     "Dữ liệu:\n{data}\n\n"
                     "Yêu cầu:\n"
-                    "- Tổng quan 4-6 câu\n"
-                    "- Kết quả các kỳ thi, điểm TB, số lượt thi\n"
-                    "- Cơ cấu đề thi\n"
-                    "- CHỈ dùng số liệu từ dữ liệu trên"
+                    "- Viết hoàn toàn bằng tiếng Việt, tránh dùng từ tiếng Anh kỹ thuật\n"
+                    "- Tổng quan 4-6 câu về kết quả thi cử trong quý\n"
+                    "- Nêu các kỳ thi chính, điểm trung bình, số lượt thi\n"
+                    "- Phân tích cơ cấu đề thi (full test vs đơn kỹ năng, phân bố kỹ năng)\n"
+                    "- KHÔNG dùng tên cột tiếng Anh như total_attempts, avg_band, test_type\n"
+                    "- CHỈ dùng số liệu từ dữ liệu trên, KHÔNG bịa số"
                 ),
             },
             {
@@ -656,10 +756,12 @@ REPORT_TEMPLATES = [
                     "Viết phần THỐNG KÊ TỔNG HỢP cho báo cáo thi quý ({date_range}).\n\n"
                     "Dữ liệu:\n{data}\n\n"
                     "Yêu cầu:\n"
+                    "- Viết hoàn toàn bằng tiếng Việt, tránh dùng từ tiếng Anh kỹ thuật\n"
                     "- Phân tích sâu 5-7 câu\n"
-                    "- Số học viên, lượt thi, điểm TB, tỉ lệ HT\n"
-                    "- Học viên xuất sắc, điểm cao nhất\n"
-                    "- CHỈ dùng số liệu từ dữ liệu trên"
+                    "- Số học viên tham gia, tổng lượt thi, điểm trung bình, tỉ lệ hoàn thành\n"
+                    "- Nêu học viên xuất sắc, điểm cao nhất, số lần thi\n"
+                    "- KHÔNG dùng tên cột tiếng Anh như full_name, total_attempts, best_band\n"
+                    "- CHỈ dùng số liệu từ dữ liệu trên, KHÔNG bịa số"
                 ),
             },
         ]

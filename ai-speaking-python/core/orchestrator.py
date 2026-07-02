@@ -72,6 +72,7 @@ class SpeakingOrchestrator:
             raise SessionNotFound("No active question")
         if whisper_result:
             t.answer_text = whisper_result.get("text", "")
+            t.whisper_segments = whisper_result.get("segments", [])
         t.answer_duration_ms = duration_ms
         self.sessions.update(s)
         return {"sessionId": s.id, "transcribed": bool(whisper_result), "text": t.answer_text}
@@ -101,13 +102,47 @@ class SpeakingOrchestrator:
         if not turns:
             return SpeakingResult(session_id=session_id, user_id=user_id or s.user_id, status="FAILED", error_message="No answered turns")
 
-        features = self.analyzer.analyze(turns)
-        pron = self.pron.analyze(turns)
-
-        result = await self.scorer.evaluate(session_id, user_id or s.user_id, turns, features, pron, s.current_phase)
+        pron = await self._analyze_pron(session_id)
+        result = await self.scorer.evaluate(session_id, user_id or s.user_id, turns, pron["features"], pron["pronunciation"], s.current_phase)
         if result.status == "COMPLETED":
             self.cache.put(ck, result)
         return result
+
+    async def analyze_pronunciation(self, session_id: str) -> dict:
+        pron = await self._analyze_pron(session_id)
+        f = pron["features"]
+        p = pron["pronunciation"]
+        return {
+            "wordCount": f.word_count,
+            "sentenceCount": f.sentence_count,
+            "lexicalDiversity": f.lexical_diversity,
+            "avgSentenceLength": f.avg_sentence_length,
+            "hesitationCount": f.hesitation_count,
+            "discourseCount": f.discourse_marker_count,
+            "speechRate": p.speech_rate,
+            "confidenceRatio": p.confidence_ratio,
+            "hesitationRatio": p.hesitation_ratio,
+            "pauseRatio": p.pause_ratio,
+            "wordDurationStd": p.word_duration_std,
+            "pronunciationBand": p.band,
+        }
+
+    async def score_session(self, session_id: str, user_id: str = "") -> SpeakingResult:
+        s = self.get_session(session_id)
+        pron = await self._analyze_pron(session_id)
+        turns = s.get_answered_turns()
+        result = await self.scorer.evaluate(session_id, user_id or s.user_id, turns, pron["features"], pron["pronunciation"], s.current_phase)
+        if result.status == "COMPLETED":
+            self.cache.put(f"speaking_result:{session_id}", result)
+        return result
+
+    async def _analyze_pron(self, session_id: str) -> dict:
+        s = self.get_session(session_id)
+        turns = s.get_answered_turns()
+        features = self.analyzer.analyze(turns)
+        segments = [seg for t in turns for seg in t.whisper_segments] if any(t.whisper_segments for t in turns) else None
+        pron = self.pron.analyze(turns, whisper_segments=segments)
+        return {"features": features, "pronunciation": pron}
 
     def get_result(self, session_id: str) -> SpeakingResult | None:
         return self.cache.get(f"speaking_result:{session_id}")

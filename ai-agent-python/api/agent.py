@@ -401,6 +401,202 @@ async def export_report_pdf(request: Request):
     )
 
 
+@router.post("/report/analyze-metric")
+async def analyze_report_metric(request: Request):
+    """Deep AI analysis of a specific report metric based on actual DB queries."""
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(400, "Invalid JSON body")
+
+    metric_key = body.get("metric_key", "").strip()
+    metric_value = body.get("metric_value")
+    period = body.get("period", "month").strip()
+    question = body.get("question", "").strip()
+
+    if not metric_key:
+        raise HTTPException(400, "Missing metric_key")
+    if not question:
+        question = f"Tại sao chỉ số {metric_key} lại có kết quả như vậy? Hãy phân tích chi tiết."
+
+    # Define days interval based on period
+    days = {"week": 7, "month": 30, "quarter": 90, "year": 365}.get(period, 30)
+
+    # 1. Fetch deep context from DB based on metric key to guarantee 100% accurate reasoning
+    db_context = {}
+    try:
+        if metric_key == "avg_band_score":
+            db_context["score_by_class"] = await _run_sql(f"""
+                SELECT c.name, ROUND(AVG(ea.band_score), 2) as avg_score, COUNT(ea.id) as attempts
+                FROM classes c
+                JOIN class_students cs ON cs.class_id = c.id
+                LEFT JOIN exam_attempts ea ON ea.user_id = cs.user_id
+                WHERE ea.band_score IS NOT NULL AND ea.started_at >= DATE_SUB(NOW(), INTERVAL {days} DAY)
+                GROUP BY c.id, c.name
+                ORDER BY avg_score ASC
+            """)
+            db_context["score_distribution"] = await _run_sql(f"""
+                SELECT ROUND(band_score, 1) as score, COUNT(*) as count
+                FROM exam_attempts
+                WHERE band_score IS NOT NULL AND started_at >= DATE_SUB(NOW(), INTERVAL {days} DAY)
+                GROUP BY score ORDER BY score DESC
+            """)
+            db_context["score_by_skill"] = await _run_sql(f"""
+                SELECT s.skill_type, ROUND(AVG(ea.band_score), 2) as avg_score
+                FROM exam_attempts ea
+                JOIN sessions s ON s.id = ea.session_id
+                WHERE ea.band_score IS NOT NULL AND ea.started_at >= DATE_SUB(NOW(), INTERVAL {days} DAY)
+                GROUP BY s.skill_type
+            """)
+
+        elif metric_key == "exam_attempts":
+            db_context["attempts_by_test"] = await _run_sql(f"""
+                SELECT t.title, COUNT(ea.id) as attempts, ROUND(AVG(ea.band_score), 2) as avg_score
+                FROM exam_attempts ea
+                JOIN tests t ON t.id = ea.test_id
+                WHERE ea.started_at >= DATE_SUB(NOW(), INTERVAL {days} DAY)
+                GROUP BY t.id, t.title ORDER BY attempts DESC LIMIT 10
+            """)
+            db_context["attempts_by_day"] = await _run_sql(f"""
+                SELECT DATE(started_at) as date, COUNT(*) as count
+                FROM exam_attempts
+                WHERE started_at >= DATE_SUB(NOW(), INTERVAL {days} DAY)
+                GROUP BY DATE(started_at) ORDER BY date DESC LIMIT 10
+            """)
+
+        elif metric_key == "completion_rate":
+            db_context["status_breakdown"] = await _run_sql(f"""
+                SELECT status, COUNT(*) as count
+                FROM exam_attempts
+                WHERE started_at >= DATE_SUB(NOW(), INTERVAL {days} DAY)
+                GROUP BY status
+            """)
+            db_context["unfinished_by_class"] = await _run_sql(f"""
+                SELECT c.name, COUNT(ea.id) as unfinished_attempts
+                FROM classes c
+                JOIN class_students cs ON cs.class_id = c.id
+                JOIN exam_attempts ea ON ea.user_id = cs.user_id
+                WHERE ea.status = 'IN_PROGRESS' AND ea.started_at >= DATE_SUB(NOW(), INTERVAL {days} DAY)
+                GROUP BY c.id, c.name ORDER BY unfinished_attempts DESC
+            """)
+
+        elif metric_key in ("total_users", "new_users"):
+            db_context["role_breakdown"] = await _run_sql("""
+                SELECT r.name as role, COUNT(*) as count
+                FROM users u
+                JOIN user_roles ur ON ur.user_id = u.id
+                JOIN roles r ON r.id = ur.role_id
+                WHERE u.deleted_at IS NULL GROUP BY r.name
+            """)
+            db_context["new_users_by_day"] = await _run_sql(f"""
+                SELECT DATE(created_at) as date, COUNT(*) as count
+                FROM users
+                WHERE created_at >= DATE_SUB(NOW(), INTERVAL {days} DAY) AND deleted_at IS NULL
+                GROUP BY DATE(created_at) ORDER BY date DESC LIMIT 10
+            """)
+
+        elif metric_key == "writing_submissions":
+            db_context["submissions_by_prompt"] = await _run_sql(f"""
+                SELECT wp.title, COUNT(sws.id) as submissions
+                FROM student_writing_submissions sws
+                JOIN writing_prompts wp ON wp.id = sws.writing_prompt_id
+                WHERE sws.submitted_at >= DATE_SUB(NOW(), INTERVAL {days} DAY)
+                GROUP BY wp.id, wp.title ORDER BY submissions DESC LIMIT 5
+            """)
+            db_context["status_breakdown"] = await _run_sql(f"""
+                SELECT status, COUNT(*) as count
+                FROM student_writing_submissions
+                WHERE submitted_at >= DATE_SUB(NOW(), INTERVAL {days} DAY)
+                GROUP BY status
+            """)
+
+        elif metric_key == "speaking_attempts":
+            db_context["scores_by_part"] = await _run_sql(f"""
+                SELECT speaking_part, COUNT(*) as count, ROUND(AVG(overall_band_score), 2) as avg_score
+                FROM speaking_attempts
+                WHERE started_at >= DATE_SUB(NOW(), INTERVAL {days} DAY)
+                GROUP BY speaking_part
+            """)
+            db_context["status_breakdown"] = await _run_sql(f"""
+                SELECT status, COUNT(*) as count
+                FROM speaking_attempts
+                WHERE started_at >= DATE_SUB(NOW(), INTERVAL {days} DAY)
+                GROUP BY status
+            """)
+
+        elif metric_key == "top_classes":
+            db_context["class_scores"] = await _run_sql(f"""
+                SELECT c.name, ROUND(AVG(ea.band_score), 2) as avg_score, COUNT(DISTINCT cs.user_id) as student_count
+                FROM classes c
+                JOIN class_students cs ON cs.class_id = c.id
+                LEFT JOIN exam_attempts ea ON ea.user_id = cs.user_id
+                WHERE ea.band_score IS NOT NULL AND ea.started_at >= DATE_SUB(NOW(), INTERVAL {days} DAY)
+                GROUP BY c.id, c.name ORDER BY avg_score DESC
+            """)
+
+        elif metric_key == "score_distribution":
+            db_context["score_distribution"] = await _run_sql(f"""
+                SELECT
+                    CASE
+                        WHEN band_score >= 7.5 THEN '7.5-9.0'
+                        WHEN band_score >= 6.0 THEN '6.0-7.0'
+                        WHEN band_score >= 4.5 THEN '4.5-5.5'
+                        WHEN band_score >= 3.0 THEN '3.0-4.0'
+                        ELSE '0-2.5'
+                    END as band_range,
+                    COUNT(*) as count
+                FROM exam_attempts
+                WHERE band_score IS NOT NULL AND started_at >= DATE_SUB(NOW(), INTERVAL {days} DAY)
+                GROUP BY band_range ORDER BY count DESC
+            """)
+
+    except Exception as e:
+        logger.warning(f"Failed to fetch metric deep context for {metric_key}: {e}")
+
+    # 2. Build LLM prompt with exact database numbers
+    from infrastructure.llm_client import get_groq_client
+    client = get_groq_client()
+
+    db_context_str = json.dumps(db_context, indent=2, ensure_ascii=False) if db_context else "Không có dữ liệu chi tiết."
+    
+    system_prompt = (
+        "Bạn là chuyên gia phân tích dữ liệu giáo dục tại trung tâm Anh ngữ DAVictory.\n"
+        "Nhiệm vụ của bạn là giải đáp thắc mắc của người quản lý về các chỉ số hoạt động của trung tâm.\n"
+        "Hãy phân tích và trả lời câu hỏi bằng tiếng Việt một cách sâu sắc, chuyên nghiệp.\n"
+        "CHỈ sử dụng dữ liệu thực tế từ Database được cung cấp dưới đây. KHÔNG được bịa đặt số liệu hay phán đoán vô căn cứ.\n"
+        "Nếu dữ liệu không đủ để kết luận điều gì đó, hãy nói rõ dựa trên dữ liệu hiện có.\n"
+        "Trình bày mạch lạc, sử dụng markdown để nhấn mạnh các điểm cốt lõi."
+    )
+
+    user_prompt = (
+        f"Chỉ số cần phân tích: {metric_key}\n"
+        f"Giá trị hiện tại của chỉ số: {metric_value}\n"
+        f"Kỳ báo cáo: {period} (khoảng thời gian {days} ngày gần đây)\n\n"
+        f"Dữ liệu chi tiết từ Database:\n{db_context_str}\n\n"
+        f"Câu hỏi của Quản lý: \"{question}\"\n\n"
+        f"Hãy trả lời và phân tích chi tiết nguyên nhân dẫn đến kết quả của chỉ số này dựa trên dữ liệu thật."
+    )
+
+    try:
+        result = await asyncio.wait_for(
+            client.create_completion(
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                max_tokens=1024
+            ),
+            timeout=25.0
+        )
+        content = (result.content or "").strip()
+        content = re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL).strip()
+        content = re.sub(r"</?think>", "", content).strip()
+        return {"analysis": content, "success": True}
+    except Exception as e:
+        logger.error(f"LLM analysis failed for metric {metric_key}: {e}")
+        return {"error": f"Không thể phân tích chỉ số do lỗi hệ thống: {str(e)}", "success": False}
+
+
 @router.put("/posts/{post_id}/category")
 async def assign_post_category(post_id: int, body: dict):
     """Assign a category to a blog post."""

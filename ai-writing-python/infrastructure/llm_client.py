@@ -1,11 +1,13 @@
 """LLM clients for AI Writing Service - Groq + NVIDIA providers with key rotation."""
 
+import base64
 from dataclasses import dataclass
 from groq import AsyncGroq, RateLimitError
 from openai import AsyncOpenAI
 from loguru import logger
 
 from config import get_settings, get_active_model
+import httpx
 
 
 @dataclass
@@ -112,3 +114,49 @@ class GroqClient:
                     logger.warning(f"Groq error, rotating key: {e}")
                     continue
         raise AIProviderError(f"Groq API failed after all attempts: {last_error}")
+
+    async def chat_with_image(self, system: str, user: str, image_bytes: bytes,
+                               image_mime: str = "image/png",
+                               require_json: bool = True) -> LLMResponse:
+        s = self.settings
+        b64 = base64.b64encode(image_bytes).decode()
+        last_error = None
+        kwargs = {
+            "model": s.groq_vision_model,
+            "temperature": 0.1,
+            "max_tokens": 4096,
+            "messages": [{"role": "system", "content": system},
+                         {"role": "user", "content": [
+                             {"type": "text", "text": user},
+                             {"type": "image_url",
+                              "image_url": {"url": f"data:{image_mime};base64,{b64}"}}
+                         ]}],
+        }
+        if require_json:
+            kwargs["response_format"] = {"type": "json_object"}
+        for attempt in range(max(1, len(self.clients))):
+            client = self._next()
+            try:
+                resp = await client.chat.completions.create(**kwargs)
+                content = resp.choices[0].message.content
+                if not content:
+                    raise AIProviderError(f"Vision model {s.groq_vision_model} returned empty response.")
+                usage = resp.usage
+                return LLMResponse(
+                    content=content,
+                    model=resp.model,
+                    provider="groq",
+                    prompt_tokens=usage.prompt_tokens if usage else 0,
+                    completion_tokens=usage.completion_tokens if usage else 0,
+                    total_tokens=usage.total_tokens if usage else 0,
+                )
+            except RateLimitError as e:
+                last_error = e
+                logger.warning(f"Vision rate limit, rotating key (attempt {attempt + 1})")
+                continue
+            except Exception as e:
+                last_error = e
+                if attempt < len(self.clients) - 1:
+                    logger.warning(f"Vision error, rotating key: {e}")
+                    continue
+        raise AIProviderError(f"Vision model failed after all attempts: {last_error}")

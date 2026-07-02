@@ -127,7 +127,6 @@ const IeltsListeningTest = () => {
     const [startTime] = useState(() => Date.now());
     const audioRef = useRef(null);
     const containerRef = useRef(null);
-    const [audioObjectUrl, setAudioObjectUrl] = useState(null);
     const audioResumeRef = useRef({ partIndex: 0, seconds: 0 });
     const audioCycleCountRef = useRef(0);
     const currentPartIndexRef = useRef(0);
@@ -247,7 +246,7 @@ const IeltsListeningTest = () => {
                 setGuestInfo(info);
                 setIsGuest(true);
                 return;
-            } catch (e) {
+            } catch {
                 sessionStorage.removeItem('guestExamInfo');
             }
         }
@@ -289,7 +288,7 @@ const IeltsListeningTest = () => {
         const count = Number(testData?.audioPlayCount);
         return Number.isFinite(count) && count > 0 ? Math.floor(count) : 1;
     }, [testData?.audioPlayCount]);
-    const effectiveAudioUrl = audioObjectUrl || playableAudioUrl;
+    const effectiveAudioUrl = playableAudioUrl;
 
     const advanceToNextListeningPart = useCallback(() => {
         if (!testData?.parts?.length) return false;
@@ -306,46 +305,6 @@ const IeltsListeningTest = () => {
     }, [setCurrentPartIndex, testData]);
 
     useEffect(() => {
-        let active = true;
-
-        if (!playableAudioUrl) {
-            setAudioObjectUrl((prev) => {
-                if (prev) URL.revokeObjectURL(prev);
-                return null;
-            });
-            return undefined;
-        }
-
-        setAudioObjectUrl((prev) => {
-            if (prev) URL.revokeObjectURL(prev);
-            return null;
-        });
-
-        const loadAudioBlob = async () => {
-            try {
-                const res = await fetch(playableAudioUrl);
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                const blob = await res.blob();
-                if (!active) return;
-                const nextUrl = URL.createObjectURL(blob);
-                setAudioObjectUrl((prev) => {
-                    if (prev) URL.revokeObjectURL(prev);
-                    return nextUrl;
-                });
-            } catch {
-                if (!active) return;
-                setAudioObjectUrl(null);
-            }
-        };
-
-        loadAudioBlob();
-
-        return () => {
-            active = false;
-        };
-    }, [playableAudioUrl]);
-
-    useEffect(() => {
         currentPartIndexRef.current = currentPartIndex;
     }, [currentPartIndex]);
 
@@ -354,9 +313,21 @@ const IeltsListeningTest = () => {
         if (!audioEl) return undefined;
 
         const syncCurrentTime = () => {
+            const currentTime = audioEl.currentTime;
+            if (!Number.isFinite(currentTime)) return;
+
+            // Tránh ghi đè thời gian đã lưu khi đang seek
+            if (audioEl.seeking) return;
+
+            // Nếu người dùng chưa bấm nghe (chưa click Play), tránh việc các sự kiện timeupdate ban đầu
+            // (thường báo currentTime = 0 khi load) ghi đè lên vị trí resume đã khôi phục.
+            if (!audioUserInitiatedRef.current && currentTime === 0 && audioResumeRef.current.seconds > 0) {
+                return;
+            }
+
             audioResumeRef.current = {
                 partIndex: currentPartIndexRef.current,
-                seconds: Number.isFinite(audioEl.currentTime) ? audioEl.currentTime : 0,
+                seconds: currentTime,
             };
         };
 
@@ -407,7 +378,7 @@ const IeltsListeningTest = () => {
             audioEl.removeEventListener('loadedmetadata', restoreCurrentTime);
             audioEl.removeEventListener('ended', handleEnded);
         };
-    }, [currentPartIndex, effectiveAudioUrl, audioPlayCycles, advanceToNextListeningPart]);
+    }, [currentPartIndex, effectiveAudioUrl, audioPlayCycles, advanceToNextListeningPart, setCurrentPartIndex]);
 
     useEffect(() => {
         if (!audioStarted || isReview || !audioUserInitiatedRef.current) return;
@@ -577,7 +548,7 @@ const IeltsListeningTest = () => {
                 : `Không thể tải bài thi: ${err.message}`);
             setLoading(false);
         });
-    }, [testId, isReview, mode, isFullTest, selectedPracticeParts, startPartNumber, durationOverrideMinutes, noTimeLimit, setCurrentPartIndex, isGuest, guestInfo, attemptId, highlightStorageKey, previewRefreshTick]);
+    }, [testId, isReview, mode, isFullTest, selectedPracticeParts, startPartNumber, durationOverrideMinutes, noTimeLimit, setCurrentPartIndex, isGuest, guestInfo, attemptId, highlightStorageKey, previewRefreshTick, navigate, searchParams]);
 
     useEffect(() => {
         if (!isFullTest || isReview || !partCount || !testId) return undefined;
@@ -993,6 +964,9 @@ const IeltsListeningTest = () => {
                 }
                 clearDraftByTest('listening', testId);
                 localStorage.removeItem(`ieltsTimerDeadline_${timerPersistKey}`);
+                if (highlightStorageKey) {
+                    try { sessionStorage.removeItem(highlightStorageKey); } catch {}
+                }
 
                 // Nếu là bài tập, submit vào assignment API
                 if (assignmentId && resp?.attemptId) {
@@ -1047,12 +1021,12 @@ const IeltsListeningTest = () => {
         return count;
     };
 
-    const getTotalCount = (partIndex) => {
+    const getTotalCount = useCallback((partIndex) => {
         if (!testData) return 0;
         const p = testData.parts[partIndex];
         const flatQs = (p.questions?.flatMap(q => q.subQuestions ? q.subQuestions : q) || []).filter((question) => !question?.isSample);
         return flatQs.reduce((sum, q) => sum + (q.numberRange ? q.numberRange.length : 1), 0);
-    };
+    }, [testData]);
 
     const partQuestionStartNumber = useMemo(() => {
         if (!testData?.parts?.length) return 1;
@@ -1060,7 +1034,7 @@ const IeltsListeningTest = () => {
             .slice(0, currentPartIndex)
             .reduce((sum, _, idx) => sum + getTotalCount(idx), 0);
         return priorQuestions + 1;
-    }, [testData, currentPartIndex]);
+    }, [testData, currentPartIndex, getTotalCount]);
 
     if (loading) return (
         <div className="test-loading-screen">

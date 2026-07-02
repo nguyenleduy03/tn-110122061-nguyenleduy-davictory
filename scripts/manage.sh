@@ -28,7 +28,7 @@ start_service() {
 
     echo "[$name] Starting on port $port..."
     cd "$dir"
-    nohup uvicorn main:app --host 0.0.0.0 --port "$port" --workers 2 \
+    nohup .venv/bin/python -m uvicorn main:app --host 0.0.0.0 --port "$port" --workers 1 \
         --log-level info > "$log_file" 2>&1 &
     echo $! > "$pid_file"
     sleep 2

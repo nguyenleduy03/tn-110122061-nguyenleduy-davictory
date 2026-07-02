@@ -122,6 +122,11 @@ class TestGradeRequest(BaseModel):
     chart_type: str = Field(default="", alias="chartType")
     essay_type: str = Field(default="", alias="essayType")
     letter_type: str = Field(default="", alias="letterType")
+    image_url: str = Field(default="", alias="imageUrl")
+
+
+class DescribeImageRequest(BaseModel):
+    image_url: str = Field(default="", alias="imageUrl")
 
 
 class ClassifyRequest(BaseModel):

@@ -11,11 +11,16 @@ export const writingApi = {
   },
 
   testGrade(essayText, taskType = 'TASK2_ACADEMIC', topic = 'Education',
-            promptText = '', chartType = '', essayType = '', letterType = '') {
+            promptText = '', chartType = '', essayType = '', letterType = '',
+            imageUrl = '') {
     return axios.post(`${writingBase}/test-grade`, {
       essayText, taskType, topic, promptText,
-      chartType, essayType, letterType,
+      chartType, essayType, letterType, imageUrl,
     });
+  },
+
+  describeImage(imageUrl) {
+    return axios.post(`${writingBase}/describe-image`, { imageUrl });
   },
 
   classify(essayText, promptText = '') {
@@ -96,5 +101,11 @@ export const writingApi = {
 
   matchSamples(essayText, taskType = 'TASK2_ACADEMIC') {
     return axios.post(`${writingBase}/match-samples`, { essay_text: essayText, task_type: taskType });
+  },
+
+  getTestFull(testId) {
+    const token = localStorage.getItem('authToken');
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    return axios.get(`/api/test-builder/${testId}/full`, { headers });
   },
 };

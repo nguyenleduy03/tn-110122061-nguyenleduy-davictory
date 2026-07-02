@@ -30,5 +30,7 @@ class PronunciationResult:
     hesitation_ratio: float = 0.0
     low_confidence_word_count: int = 0
     total_word_count: int = 0
+    pause_ratio: float = 0.0
+    word_duration_std: float = 0.0
     issues: list[str] = field(default_factory=list)
     has_audio: bool = False

@@ -70,14 +70,14 @@ class PromptBuilder:
     def build(self, rubric: WritingRubric, essay: str,
               task_type: str, topic: str, prompt_text: str, word_count: int,
               chart_type: str = "", essay_type: str = "", letter_type: str = "",
-              max_completion_tokens: int = 0) -> PromptContext:
+              max_completion_tokens: int = 0, image_url: str = "") -> PromptContext:
         sys_file = _SYS_PROMPT_MAP.get(task_type, "sys_role_t2.txt")
         system = self._load(sys_file) or self._load("system_role.txt") or "You are an official IELTS Writing Examiner."
         schema = self._load("output_schema.json") or '{"analysis":{},"scores":{},"overallBand":6.0}'
 
         rubric_sec = self._rubric_text(rubric)
         user = self._user_text(rubric_sec, essay, task_type, topic, prompt_text, word_count, schema,
-                               chart_type, essay_type, letter_type, max_completion_tokens)
+                               chart_type, essay_type, letter_type, max_completion_tokens, image_url)
 
         return PromptContext(
             system_prompt=system,
@@ -112,7 +112,7 @@ class PromptBuilder:
     def _user_text(self, rubric_sec: str, essay: str,
                    task_type: str, topic: str, prompt_text: str, word_count: int, schema: str,
                    chart_type: str = "", essay_type: str = "", letter_type: str = "",
-                   max_completion_tokens: int = 0) -> str:
+                   max_completion_tokens: int = 0, image_url: str = "") -> str:
         parts = ["=== GRADING TASK ==="]
         parts.append(f"Task Type: {task_type}")
 
@@ -133,6 +133,10 @@ class PromptBuilder:
             parts.append(f"Topic: {topic}")
         if prompt_text:
             parts.append(f"Prompt: {prompt_text}")
+        if image_url:
+            parts.append(f"Image/Chart URL (provided to student): {image_url}")
+            if task_type == "TASK1_ACADEMIC":
+                parts.append("Note: The student was shown a visual (chart/diagram/map) for this task. The image URL is above. Evaluate based on the student's description and analysis of the visual data.")
 
         # Word count warning based on task type
         if task_type == "TASK1_GENERAL":

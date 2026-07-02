@@ -3,11 +3,12 @@ import {
   Sparkles, FileText, BarChart3, Layers, Brain, Target, BookOpen,
   Languages, Quote, TrendingUp, Zap, Database, Code, Clock, Cpu,
   RotateCw, ChevronDown, ChevronUp, AlertCircle, CheckCircle2,
-  Scan, FileSearch, Star, Info,
+  Scan, FileSearch, Star, Info, GraduationCap,
 } from 'lucide-react';
 import { writingApi } from '../api/writingApi';
 import { useHeader } from '../context/HeaderContext';
 import { BandScore, CriterionMeter } from '../components/ScoreDisplay';
+import TeacherWritingGrader from '../components/TeacherWritingGrader';
 
 const TASK_OPTIONS = [
   { value: 'AUTO', label: 'Tự động nhận diện' },
@@ -24,6 +25,34 @@ const SCAN_STAGES = [
   { label: 'Đang hoàn tất nhận xét...' },
 ];
 
+const STAGE_LOGS = {
+  0: [
+    { type: 'sys', text: 'Initializing IELTS Analysis Engine v2.4...' },
+    { type: 'sys', text: 'Scanning text payload for structure...' },
+    { type: 'sys', text: 'Normalizing vocabulary markers...' }
+  ],
+  1: [
+    { type: 'ai', text: 'Running task classification model...' },
+    { type: 'ai', text: 'Analyzing writing style & prompt matching...' },
+    { type: 'ai', text: 'Identifying academic descriptors...' }
+  ],
+  2: [
+    { type: 'nlp', text: 'Evaluating Grammatical Range & Accuracy...' },
+    { type: 'nlp', text: 'Calculating Cohesion density and discourse markers...' },
+    { type: 'nlp', text: 'Measuring Lexical Resource diversity index...' }
+  ],
+  3: [
+    { type: 'ielts', text: 'Cross-referencing against Band Descriptors...' },
+    { type: 'ielts', text: 'Performing confidence score verification...' },
+    { type: 'ielts', text: 'Applying off-topic penalty filters...' }
+  ],
+  4: [
+    { type: 'sys', text: 'Compiling feedback details...' },
+    { type: 'sys', text: 'Formulating action plan for improvement...' },
+    { type: 'sys', text: 'Finalizing JSON response payload...' }
+  ]
+};
+
 const CRITERIA = [
   { key: 'taskResponse', label: 'Task Response', color: '#4F46E5', icon: Target },
   { key: 'coherenceCohesion', label: 'Coherence & Cohesion', color: '#06B6D4', icon: Layers },
@@ -32,8 +61,18 @@ const CRITERIA = [
 ];
 
 export default function Writing() {
+  const [tab, setTab] = useState('grade');
   const { setTabs } = useHeader();
-  useEffect(() => { setTabs([]); }, []);
+
+  const tabDefs = [
+    { key: 'grade', label: 'Chấm điểm', icon: Sparkles, onClick: () => setTab('grade') },
+    { key: 'grader', label: 'Chấm Writing', icon: GraduationCap, onClick: () => setTab('grader') },
+  ];
+
+  useEffect(() => {
+    setTabs(tabDefs);
+    return () => setTabs([]);
+  }, []);
 
   const [essayText, setEssayText] = useState(() => sessionStorage.getItem('writing_essay') || '');
   const [taskType, setTaskType] = useState('AUTO');
@@ -47,11 +86,13 @@ export default function Writing() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [scanStage, setScanStage] = useState(0);
+  const [liveLogs, setLiveLogs] = useState([]);
   
   const [expandedSections, setExpandedSections] = useState({ overall: true });
   const [tokenLimits, setTokenLimits] = useState({ maxTotal: 12000, minCompletion: 500, sysOverhead: 4200, buffer: 1000 });
   const scanTimer = useRef(null);
   const resultRef = useRef(null);
+  const logStreamEndRef = useRef(null);
 
   const fetchTokenLimits = (tt) => {
     writingApi.getConfig(tt || taskType).then(r => {
@@ -67,6 +108,26 @@ export default function Writing() {
     return () => { clearInterval(interval); window.removeEventListener('focus', onFocus); };
   }, [taskType]);
 
+  useEffect(() => {
+    if (loading) {
+      const currentStageLogs = STAGE_LOGS[scanStage] || [];
+      if (scanStage === 0) setLiveLogs([]);
+      
+      currentStageLogs.forEach((log, index) => {
+        const timer = setTimeout(() => {
+          setLiveLogs(prev => [...prev, { ...log, id: `${scanStage}-${index}` }]);
+        }, index * 250);
+        return () => clearTimeout(timer);
+      });
+    } else {
+      setLiveLogs([]);
+    }
+  }, [scanStage, loading]);
+
+  useEffect(() => {
+    logStreamEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [liveLogs]);
+
   const wordCount = essayText.trim() ? essayText.trim().split(/\s+/).length : 0;
   const { maxTotal, sysOverhead, minCompletion } = tokenLimits;
   const essayTokens = Math.ceil(essayText.length / 3.5);
@@ -79,13 +140,14 @@ export default function Writing() {
     if (scanTimer.current) clearInterval(scanTimer.current);
     scanTimer.current = setInterval(() => {
       setScanStage(p => p < SCAN_STAGES.length - 1 ? p + 1 : p);
-    }, 800);
+    }, 1500);
   };
 
   async function handleGrade() {
     if (!essayText.trim()) { setError('Please paste your essay first.'); return; }
     setLoading(true);
     setScanStage(0);
+    setLiveLogs([]);
     setError(null);
     setResult(null);
     startScan();
@@ -112,16 +174,17 @@ export default function Writing() {
 
   return (
     <div className="animate-fade">
+      {tab === 'grade' && (
       <div className="grid-2">
         {/* INPUT CARD */}
-        <div className={`card ${loading ? 'ai-glow' : ''}`}>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div className={`card glass-premium ${loading ? 'neon-glow-primary' : ''}`}>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <FileText size={20} color="var(--primary)" />
             Phân tích IELTS Writing
           </h2>
           
           <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '8px' }}>Loại bài (Task Type)</label>
+            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 700, marginBottom: '8px', color: 'var(--text-secondary)' }}>Loại bài (Task Type)</label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
               {TASK_OPTIONS.map(o => (
                 <button 
@@ -130,14 +193,14 @@ export default function Writing() {
                   style={{
                     padding: '8px 16px',
                     fontSize: '0.875rem',
-                    fontWeight: 600,
+                    fontWeight: 700,
                     borderRadius: 'var(--radius-md)',
                     border: '1px solid var(--border)',
                     background: taskType === o.value ? 'var(--primary)' : 'white',
                     color: taskType === o.value ? 'white' : 'var(--text-secondary)',
                     cursor: 'pointer',
                     transition: 'var(--transition)',
-                    boxShadow: taskType === o.value ? '0 4px 12px rgba(79, 70, 229, 0.3)' : 'none'
+                    boxShadow: taskType === o.value ? '0 4px 12px rgba(79, 70, 229, 0.25)' : 'none'
                   }}
                 >
                   {o.label}
@@ -147,12 +210,13 @@ export default function Writing() {
           </div>
 
           <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '8px' }}>Đề bài (Optional)</label>
+            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 700, marginBottom: '8px', color: 'var(--text-secondary)' }}>Đề bài (Optional)</label>
             <textarea 
               style={{
                 width: '100%', padding: '12px', borderRadius: 'var(--radius-md)',
                 border: '1px solid var(--border)', background: 'var(--bg-main)',
-                fontSize: '0.9375rem', minHeight: '80px', resize: 'vertical'
+                fontSize: '0.9375rem', minHeight: '80px', resize: 'vertical',
+                transition: 'border-color 0.2s', outline: 'none'
               }}
               value={promptText} onChange={e => setPromptText(e.target.value)}
               placeholder="Dán đề bài tại đây để AI chấm chính xác hơn..."
@@ -161,8 +225,8 @@ export default function Writing() {
 
           <div style={{ marginBottom: '24px', position: 'relative' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <label style={{ fontSize: '0.875rem', fontWeight: 600 }}>Nội dung bài viết</label>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{wordCount} từ</span>
+              <label style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Nội dung bài viết</label>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>{wordCount} từ</span>
             </div>
             <div style={{ position: 'relative', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
               <textarea 
@@ -170,7 +234,7 @@ export default function Writing() {
                   width: '100%', padding: '16px', borderRadius: 'var(--radius-md)',
                   border: `1px solid ${loading ? 'var(--primary)' : 'var(--border)'}`, 
                   fontSize: '1rem', minHeight: '400px', resize: 'vertical', lineHeight: '1.6',
-                  transition: 'border-color 0.3s ease'
+                  transition: 'all 0.3s ease', outline: 'none'
                 }}
                 value={essayText} onChange={e => setEssayText(e.target.value)}
                 placeholder="Dán bài viết của bạn vào đây..."
@@ -179,14 +243,15 @@ export default function Writing() {
               {loading && (
                 <div className="scan-overlay">
                   <div className="scan-line" />
+                  <div className="scan-line-v" />
                 </div>
               )}
             </div>
           </div>
 
           {/* TOKEN USAGE BAR */}
-          <div style={{ marginBottom: '16px' }}>
-            <div style={{ height: '12px', borderRadius: '6px', background: 'var(--border-light)', overflow: 'hidden', display: 'flex' }}>
+          <div style={{ marginBottom: '20px' }}>
+            <div style={{ height: '10px', borderRadius: '5px', background: 'var(--border-light)', overflow: 'hidden', display: 'flex' }}>
               <div style={{
                 width: `${Math.min(100, Math.round(tokenRatio * (maxTotal / (maxTotal + 1)) * 100))}%`,
                 height: '100%',
@@ -199,13 +264,13 @@ export default function Writing() {
                   flex: 1,
                   height: '100%',
                   background: '#60A5FA',
-                  borderRadius: '0 6px 6px 0',
+                  borderRadius: '0 5px 5px 0',
                 }} />
               )}
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '6px', fontWeight: 500 }}>
               <span>{promptTokens.toLocaleString()} tokens</span>
-              <span style={{ color: isOverLimit ? 'var(--danger)' : '#2563EB', fontWeight: 600 }}>
+              <span style={{ color: isOverLimit ? 'var(--danger)' : '#2563EB', fontWeight: 700 }}>
                 {isOverLimit ? '⚠️ Quá tải' : `${available.toLocaleString()} tokens khả dụng`}
               </span>
               <span>MAX {maxTotal.toLocaleString()}</span>
@@ -220,11 +285,10 @@ export default function Writing() {
           )}
 
           <button 
-            className={`btn btn-primary ${loading ? 'ai-pulse' : ''}`} 
+            className={`btn btn-primary-grad ${loading ? 'ai-pulse' : ''}`} 
             style={{ 
               width: '100%', justifyContent: 'center', padding: '16px',
               fontSize: '1rem', borderRadius: 'var(--radius-md)',
-              boxShadow: '0 4px 14px 0 rgba(79, 70, 229, 0.39)',
               position: 'relative', overflow: 'hidden'
             }}
             onClick={handleGrade}
@@ -232,7 +296,7 @@ export default function Writing() {
           >
             {loading ? <RotateCw className="spin" size={20} /> : <Sparkles className="ai-float" size={20} />}
             <span style={{ marginLeft: '8px' }}>
-              {loading ? 'Đang chấm bài...' : 'Bắt đầu chấm bài với AI'}
+              {loading ? 'Đang phân tích bài...' : 'Bắt đầu chấm bài với AI'}
             </span>
           </button>
 
@@ -246,43 +310,59 @@ export default function Writing() {
         {/* RESULT COLUMN */}
         <div ref={resultRef}>
           {loading && (
-            <div className="card animate-fade glass ai-glow" style={{ border: '1px solid var(--primary-light)' }}>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Brain size={20} className="ai-pulse" style={{ color: 'var(--primary)' }} />
-                Hệ thống AI đang phân tích...
+            <div className="card glass-premium neon-glow-primary animate-fade" style={{ border: '1px solid rgba(79, 70, 229, 0.3)', padding: '28px' }}>
+              <div className="radar-scanner">
+                <Brain size={36} className="ai-pulse" style={{ color: 'var(--primary)', zIndex: 3 }} />
+                <div className="radar-pulse-ring" style={{ width: '120px', height: '120px', top: '-10px', left: '-10px' }} />
+              </div>
+              
+              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, textAlign: 'center', marginBottom: '24px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                Đang xử lý bài viết với AI...
               </h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
                 {SCAN_STAGES.map((s, i) => (
                   <div key={i} style={{ 
-                    display: 'flex', alignItems: 'center', gap: '12px', 
-                    opacity: i > scanStage ? 0.4 : 1, 
-                    transform: i === scanStage ? 'translateX(10px)' : 'none',
-                    transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
+                    display: 'flex', alignItems: 'center', gap: '14px', 
+                    opacity: i > scanStage ? 0.35 : 1, 
+                    transform: i === scanStage ? 'translateX(8px)' : 'none',
+                    transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)'
                   }}>
                     <div style={{ 
-                      width: '32px', height: '32px', borderRadius: '10px', 
+                      width: '28px', height: '28px', borderRadius: '8px', 
                       background: i < scanStage ? 'var(--secondary)' : i === scanStage ? 'var(--primary)' : 'var(--border-light)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white',
-                      boxShadow: i === scanStage ? '0 0 15px var(--primary)' : 'none'
+                      boxShadow: i === scanStage ? '0 0 10px var(--primary)' : 'none',
+                      transition: 'all 0.3s'
                     }}>
-                      {i < scanStage ? <CheckCircle2 size={18} /> : i === scanStage ? <RotateCw className="spin" size={18} /> : <span style={{ fontSize: '0.875rem', fontWeight: 700 }}>{i+1}</span>}
+                      {i < scanStage ? <CheckCircle2 size={16} /> : i === scanStage ? <RotateCw className="spin" size={16} /> : <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>{i+1}</span>}
                     </div>
-                    <span style={{ fontSize: '1rem', fontWeight: i === scanStage ? 600 : 400, color: i === scanStage ? 'var(--primary)' : 'var(--text-secondary)' }}>
+                    <span style={{ fontSize: '0.95rem', fontWeight: i === scanStage ? 600 : 400, color: i === scanStage ? 'var(--primary)' : 'var(--text-secondary)' }}>
                       {s.label}
                     </span>
                   </div>
                 ))}
               </div>
+
+              {/* Log stream console */}
+              <div className="log-stream">
+                {liveLogs.map((log, index) => (
+                  <div key={log.id || index} className={`log-item ${log.type}`}>
+                    &gt; {log.text}
+                  </div>
+                ))}
+                <div ref={logStreamEndRef} />
+              </div>
             </div>
           )}
 
           {!loading && !result && (
-            <div className="card" style={{ textAlign: 'center', padding: '80px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', borderStyle: 'dashed', borderWidth: '2px' }}>
-              <div className="ai-float" style={{ background: 'var(--primary-light)', color: 'var(--primary)', width: '80px', height: '80px', borderRadius: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '24px' }}>
+            <div className="card glass-premium" style={{ textAlign: 'center', padding: '80px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', borderStyle: 'dashed', borderWidth: '2px', borderColor: 'var(--border)' }}>
+              <div className="ai-float" style={{ background: 'var(--primary-light)', color: 'var(--primary)', width: '80px', height: '80px', borderRadius: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '24px', boxShadow: '0 8px 16px rgba(79, 70, 229, 0.15)' }}>
                 <Sparkles size={40} />
               </div>
-              <h3 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '12px' }}>Sẵn sàng chấm điểm</h3>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '1rem', maxWidth: '360px', lineHeight: 1.6 }}>
+              <h3 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: '12px' }}>Sẵn sàng chấm điểm</h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', maxWidth: '360px', lineHeight: 1.6, fontWeight: 500 }}>
                 Gửi bài viết của bạn để nhận phân tích chi tiết theo tiêu chuẩn IELTS và các lời khuyên cải thiện từ AI.
               </p>
             </div>
@@ -302,27 +382,27 @@ export default function Writing() {
 
           {result && !loading && result.status !== 'FAILED' && (
             <div className="animate-fade">
-              <div className="card ai-glow" style={{ 
+              <div className="card glass-premium neon-glow-primary" style={{ 
                 display: 'flex', alignItems: 'center', gap: '32px', 
-                background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)', 
-                color: 'white', border: 'none', padding: '32px',
+                background: 'linear-gradient(135deg, #1e1b4b 0%, #311042 100%)', 
+                color: 'white', border: '1px solid rgba(99, 102, 241, 0.2)', padding: '32px',
                 position: 'relative', overflow: 'hidden'
               }}>
-                <div style={{ position: 'absolute', top: '-20px', right: '-20px', opacity: 0.1 }}>
+                <div style={{ position: 'absolute', top: '-20px', right: '-20px', opacity: 0.08 }}>
                   <Brain size={150} />
                 </div>
-                <BandScore band={result.overallBand} size={150} />
+                <BandScore band={result.overallBand} size={130} />
                 <div style={{ zIndex: 1 }}>
-                  <h3 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '12px' }}>Kết quả đánh giá</h3>
+                  <h3 style={{ fontSize: '1.6rem', fontWeight: 800, marginBottom: '12px', background: 'linear-gradient(90deg, #fff 0%, #e0e7ff 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Kết quả đánh giá</h3>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '20px' }}>
-                    <span className="badge" style={{ background: 'rgba(255,255,255,0.2)', color: 'white', backdropFilter: 'blur(4px)' }}>
+                    <span className="badge" style={{ background: 'rgba(255,255,255,0.08)', color: 'white', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(4px)', fontWeight: 600 }}>
                       <Target size={14} style={{ marginRight: '4px' }} /> Độ tin cậy: {Math.round((result.confidenceScore || 0) * 100)}%
                     </span>
-                    <span className="badge" style={{ background: 'rgba(255,255,255,0.2)', color: 'white', backdropFilter: 'blur(4px)' }}>
+                    <span className="badge" style={{ background: 'rgba(255,255,255,0.08)', color: 'white', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(4px)', fontWeight: 600 }}>
                       <Clock size={14} style={{ marginRight: '4px' }} /> Thời gian: {result.latencyMs ? `${(result.latencyMs / 1000).toFixed(1)}s` : '-'}
                     </span>
                   </div>
-                  <p style={{ fontSize: '1rem', opacity: 0.95, lineHeight: 1.6, fontWeight: 500 }}>
+                  <p style={{ fontSize: '0.95rem', opacity: 0.9, lineHeight: 1.6, fontWeight: 500 }}>
                     {result.strengthSummary || 'Bài viết của bạn đã thể hiện tốt các yêu cầu trong barem điểm IELTS.'}
                   </p>
                 </div>
@@ -342,7 +422,7 @@ export default function Writing() {
                 ))}
               </div>
 
-              <div className="card">
+              <div className="card glass-premium">
                 <div 
                   onClick={() => setExpandedSections(p => ({ ...p, overall: !p.overall }))}
                   style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
@@ -363,8 +443,8 @@ export default function Writing() {
               </div>
 
               {result.improvementPriority?.length > 0 && (
-                <div className="card" style={{ background: '#FFFDF2', borderColor: '#FEF3C7', borderLeft: '5px solid #F59E0B' }}>
-                  <h3 style={{ fontSize: '1.2rem', fontWeight: 700, marginBottom: '20px', color: '#92400E', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div className="card glass-premium" style={{ background: 'rgba(254, 252, 232, 0.45)', borderColor: 'rgba(245, 158, 11, 0.3)', borderLeft: '5px solid #F59E0B' }}>
+                  <h3 style={{ fontSize: '1.2rem', fontWeight: 800, marginBottom: '20px', color: '#92400E', display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <Zap size={20} className="ai-pulse" />
                     Ưu tiên cải thiện
                   </h3>
@@ -386,6 +466,11 @@ export default function Writing() {
           )}
         </div>
       </div>
+      )}
+
+      {tab === 'grader' && (
+        <TeacherWritingGrader />
+      )}
     </div>
   );
 }

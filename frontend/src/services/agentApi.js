@@ -140,6 +140,14 @@ const agentApi = {
   getReportTemplate(id) {
     return api.get(`/agent/report/templates/${id}`);
   },
+  analyzeMetric(metricKey, metricValue, period, question) {
+    return api.post('/agent/report/analyze-metric', {
+      metric_key: metricKey,
+      metric_value: metricValue,
+      period: period,
+      question: question
+    });
+  },
 };
 
 export default agentApi;

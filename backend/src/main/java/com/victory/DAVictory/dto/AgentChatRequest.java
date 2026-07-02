@@ -11,4 +11,5 @@ public class AgentChatRequest {
     private String message;
     private Long session_id;
     private Boolean agent_mode;
+    private String mode;
 }

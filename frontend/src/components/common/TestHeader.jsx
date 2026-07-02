@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Wifi, Bell, Menu, Send, ChevronRight, ChevronLeft, X, Contrast, ZoomIn, Check, LogOut, ArrowLeftRight, NotebookPen } from 'lucide-react';
+import { Wifi, Bell, Menu, Send, ChevronRight, ChevronLeft, X, Contrast, ZoomIn, Check, LogOut, ArrowLeftRight, NotebookPen, AlertTriangle } from 'lucide-react';
 import { authApi } from '../../services/authApi';
+import { useExamSecurity } from '../../hooks/useExamSecurity';
 
 const SERIES_LOGO_SRC = {
     IELTS: '/IELTS%20Logo.png',
@@ -182,6 +183,12 @@ const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isRevie
             document.removeEventListener('fullscreenchange', handleFullscreenChange);
         };
     }, [isReview, mode]);
+
+    const { awayCountdown } = useExamSecurity({
+        mode,
+        isReview,
+        submitTest,
+    });
 
     const handleReturnFullscreen = async () => {
         if (typeof document === 'undefined') return;
@@ -696,6 +703,19 @@ const TestHeader = ({ candidateName, candidateId, extraInfo, submitTest, isRevie
             {!isReview && showFullscreenWarning && createPortal(
                 <div className="fullscreen-warning-toast" role="status" aria-live="polite">
                     Bạn vừa thoát fullscreen. Bài thi yêu cầu chế độ toàn màn hình.
+                </div>,
+                document.body
+            )}
+
+            {!isReview && awayCountdown !== null && createPortal(
+                <div className="exam-away-overlay">
+                    <div className="exam-away-card">
+                        <AlertTriangle size={48} className="exam-away-icon" />
+                        <h3 className="exam-away-title">Bạn đã rời khỏi bài thi</h3>
+                        <p className="exam-away-text">
+                            Bài thi sẽ tự động nộp sau <strong>{awayCountdown}</strong> giây nếu bạn không quay lại.
+                        </p>
+                    </div>
                 </div>,
                 document.body
             )}

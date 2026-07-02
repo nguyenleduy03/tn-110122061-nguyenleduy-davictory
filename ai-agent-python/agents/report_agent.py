@@ -241,6 +241,22 @@ class ReportAgent(BaseAgent):
         return await self._start(input_text, user_context, client)
 
     async def _start(self, input_text: str, user_context: dict, client) -> AgentResult:
+        # Simple greeting check
+        g = input_text.lower().strip().replace("?", "").replace("!", "").replace(".", "")
+        if g in ["hi", "hello", "xin chào", "chào", "chào bạn", "hey", "chào ad", "chào robot"]:
+            return AgentResult(
+                success=True,
+                agent_type=self.name,
+                response=(
+                    "👋 **Xin chào! Tôi là Trợ lý Phân tích & Tạo báo cáo AI của DAVictory.**\n\n"
+                    "Tôi có thể hỗ trợ bạn các tác vụ phân tích số liệu thực tế:\n"
+                    "• Phân tích điểm thi trung bình của các lớp học.\n"
+                    "• Đánh giá năng suất soạn đề của giáo viên.\n"
+                    "• Thống kê tỷ lệ hoàn thành đề thi và số lượt hoạt động.\n\n"
+                    "Hãy nhập câu hỏi phân tích dữ liệu hoặc click vào các nút gợi ý nhanh bên dưới để bắt đầu nhé!"
+                )
+            )
+
         analysis = await _llm_analyze(input_text, client)
         period = analysis.get("period", "month")
         period_label = PERIOD_NAMES.get(period, "tháng")
@@ -261,6 +277,18 @@ class ReportAgent(BaseAgent):
             "metrics": metrics,
             "original_input": input_text,
         }
+
+        # Bypass confirm if it's a short query (under 12 words) or contains specific/abbreviated keywords
+        is_short_query = len(input_text.split()) < 12
+        t = input_text.lower()
+        contains_analysis_keywords = any(kw in t for kw in [
+            "phân tích", "đánh giá", "tại sao", "so sánh", "lớp", "học sinh", 
+            "giáo viên", "năng suất", "điểm", "tỉ lệ", "tỷ lệ", "thống kê",
+            "gv", "hv", "sv", "đề", "bài", "tạo", "nào", "ai", "mấy", "bao nhiêu"
+        ])
+
+        if is_short_query or contains_analysis_keywords:
+            return await self._chat_analysis(pending, user_context, client, input_text)
 
         response = (
             f"📊 **BÁO CÁO {period_label.upper()}** ({date_str})\n\n"
@@ -292,32 +320,195 @@ class ReportAgent(BaseAgent):
                 for t in new_analysis.get("tools", []):
                     if t not in pending["tools"]:
                         pending["tools"].append(t)
+                
+                metric_lines = "\n".join(f"  • {m}" for m in pending["metrics"])
+                return AgentResult(
+                    success=True,
+                    agent_type=self.name,
+                    response=(
+                        f"📊 **BÁO CÁO {pending['period_label'].upper()}** ({pending['date_str']})\n\n"
+                        f"Báo cáo sẽ gồm:\n{metric_lines}\n\n"
+                        f"✅ **Còn muốn thay đổi gì không?**\n"
+                        f'*(thêm/bỏ, hoặc "không, đủ rồi")*'
+                    ),
+                    pending_action=pending,
+                )
 
             if "bỏ" in u or "remove" in u or "xóa" in u:
                 remove_text = re.sub(r'(bỏ|remove|xóa)\s*', '', u, count=1).strip()
                 pending["metrics"] = [m for m in pending["metrics"] if remove_text.lower() not in m.lower()]
                 pending["tools"] = [t for t in pending["tools"] if remove_text.lower() not in t]
+                
+                if not pending["metrics"]:
+                    pending["metrics"] = ["Tổng quan trung tâm"]
+                    pending["tools"] = ["get_center_stats", "get_period_stats"]
+                
+                metric_lines = "\n".join(f"  • {m}" for m in pending["metrics"])
+                return AgentResult(
+                    success=True,
+                    agent_type=self.name,
+                    response=(
+                        f"📊 **BÁO CÁO {pending['period_label'].upper()}** ({pending['date_str']})\n\n"
+                        f"Báo cáo sẽ gồm:\n{metric_lines}\n\n"
+                        f"✅ **Còn muốn thay đổi gì không?**\n"
+                        f'*(thêm/bỏ, hoặc "không, đủ rồi")*'
+                    ),
+                    pending_action=pending,
+                )
 
-            if not pending["metrics"]:
-                pending["metrics"] = ["Tổng quan trung tâm"]
-                pending["tools"] = ["get_center_stats", "get_period_stats"]
-
-            metric_lines = "\n".join(f"  • {m}" for m in pending["metrics"])
-            pending["agent_name"] = "report"
-
-            return AgentResult(
-                success=True,
-                agent_type=self.name,
-                response=(
-                    f"📊 **BÁO CÁO {pending['period_label'].upper()}** ({pending['date_str']})\n\n"
-                    f"Báo cáo sẽ gồm:\n{metric_lines}\n\n"
-                    f"✅ **Còn muốn thay đổi gì không?**\n"
-                    f'*(thêm/bỏ, hoặc "không, đủ rồi")*'
-                ),
-                pending_action=pending,
-            )
+            # If user types anything else (like 'x', 'proceed', or random confirmation), generate the report directly
+            return await self._collect_and_generate(pending, user_context, client)
 
         return AgentResult(success=True, agent_type=self.name, response="Không thể xử lý. Vui lòng thử lại.")
+
+    def _build_chat_charts(self, processed: dict) -> list:
+        charts = []
+        
+        # 1. Điểm lớp
+        classes = processed.get("classes_data", [])
+        if classes:
+            charts.append({
+                "type": "bar",
+                "title": "Điểm trung bình theo lớp",
+                "data": [{"label": c.get("name", ""), "value": float(c.get("avg_band")) if c.get("avg_band") is not None else None, "max": 9} for c in classes[:8]]
+            })
+            
+        # 2. Điểm học sinh
+        students = processed.get("students", [])
+        if students:
+            charts.append({
+                "type": "bar",
+                "title": "Điểm band học sinh",
+                "data": [{"label": s.get("full_name", ""), "value": float(s.get("avg_band")) if s.get("avg_band") is not None else None, "max": 9} for s in students[:8]]
+            })
+            
+        # 3. Năng suất giáo viên
+        teachers = processed.get("teachers", [])
+        if teachers:
+            max_val = max((int(t.get("total_tests_created") or 0) for t in teachers), default=1)
+            charts.append({
+                "type": "bar",
+                "title": "Đề thi đã tạo của giáo viên",
+                "data": [{"label": t.get("full_name", ""), "value": int(t.get("total_tests_created") or 0), "max": max_val} for t in teachers[:8]]
+            })
+            
+        # 4. Cơ cấu đề thi
+        tt = processed.get("test_types", {})
+        if tt and tt.get("total_tests", 0) > 0:
+            charts.append({
+                "type": "donut",
+                "title": "Cơ cấu đề thi",
+                "data": [
+                    {"label": "Full Test", "value": int(tt.get("full_tests") or 0)},
+                    {"label": "Đơn kỹ năng", "value": int(tt.get("single_skill") or 0)}
+                ]
+            })
+            
+        # 5. Chi tiết Speaking
+        sp = processed.get("speaking", {})
+        if sp and sp.get("avg_overall") and sp.get("avg_overall") != "Chưa có dữ liệu":
+            try:
+                charts.append({
+                    "type": "bar",
+                    "title": "Điểm thành phần Speaking",
+                    "data": [
+                        {"label": "Trôi chảy & Mạch lạc", "value": float(sp.get("fc") or 0), "max": 9},
+                        {"label": "Vốn từ vựng", "value": float(sp.get("lr") or 0), "max": 9},
+                        {"label": "Ngữ pháp & Chính xác", "value": float(sp.get("gra") or 0), "max": 9},
+                        {"label": "Phát âm", "value": float(sp.get("p") or 0), "max": 9}
+                    ]
+                })
+            except Exception:
+                pass
+            
+        return charts
+
+    async def _chat_analysis(self, pending: dict, user_context: dict, client, question: str) -> AgentResult:
+        # Step 1: Collect data using the tools mapped
+        stats = {}
+        errors = []
+        period = pending.get("period", "month")
+
+        async def _call(name: str):
+            try:
+                tool = _get_tool_by_name(name)
+                if not tool:
+                    return
+                params = {}
+                if name in ("get_center_stats", "get_writing_stats", "get_revenue_data", "get_period_stats",
+                            "get_test_type_stats", "get_student_scores", "get_class_scores", "get_exam_scores"):
+                    params["period"] = period
+                result = await tool.execute(params, user_context)
+                if isinstance(result, dict):
+                    stats[name] = result
+            except Exception as e:
+                errors.append(f"{name}: {e}")
+
+        tools = pending.get("tools", ["get_center_stats", "get_period_stats"])
+        await asyncio.gather(*[_call(t) for t in tools])
+
+        processed = _preprocess(stats)
+        
+        # Format database context
+        import json as _json
+        sql_parts = []
+        for key, label in [("test_types", "THỐNG KÊ ĐỀ THI"), ("teachers", "GIẢNG VIÊN"),
+                           ("students", "ĐIỂM SINH VIÊN"), ("classes_data", "ĐIỂM LỚP"),
+                           ("exams", "ĐIỂM KỲ THI")]:
+            val = processed.get(key, {}) if key == "test_types" else processed.get(key, [])
+            if isinstance(val, list) and val:
+                sql_parts.append(f"{label}:\n" + _json.dumps(val, ensure_ascii=False, indent=2))
+            elif isinstance(val, dict) and val.get("total_tests", 0):
+                sql_parts.append(f"{label}:\n" + _json.dumps(val, ensure_ascii=False, indent=2))
+        
+        speaking = processed.get("speaking", {})
+        if speaking:
+            sql_parts.append("SPEAKING:\n" + _json.dumps(speaking, ensure_ascii=False, indent=2))
+            
+        sql_context = "\n".join(sql_parts)
+
+        # Step 2: Request LLM to write a focused, concise answer (5-8 sentences)
+        system_prompt = (
+            "Bạn là chuyên gia phân tích dữ liệu giáo dục tại trung tâm Anh ngữ DAVictory.\n"
+            "Hãy trả lởi câu hỏi của người dùng một cách ngắn gọn, súc tích (chỉ khoảng 5-8 câu), tập trung trực tiếp và duy nhất vào nội dung câu hỏi.\n"
+            "CHỈ sử dụng dữ liệu thực tế được cung cấp từ Database. KHÔNG tự bịa số liệu, KHÔNG phán đoán vô căn cứ.\n"
+            "Viết hoàn toàn bằng tiếng Việt. KHÔNG dùng tên cột/tiêu đề tiếng Anh như total_attempts, avg_band, full_name, raw_score.\n"
+            "KHÔNG chia thành nhiều section lớn (như Tổng quan, Điểm mạnh, Điểm yếu, Đề xuất). Trình bày mạch lạc bằng markdown."
+        )
+
+        user_prompt = (
+            f"Dữ liệu thực tế từ Database:\n{sql_context}\n\n"
+            f"Câu hỏi của người dùng: \"{question}\"\n\n"
+            f"Hãy phân tích dữ liệu thật ở trên và trả lời tập trung vào câu hỏi."
+        )
+
+        try:
+            resp = await asyncio.wait_for(
+                client.create_completion(
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt}
+                    ],
+                    max_tokens=600,
+                ),
+                timeout=20.0
+            )
+            content = (resp.content or "").strip()
+            content = re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL).strip()
+            content = re.sub(r"</?think>", "", content).strip()
+            
+            # Generate embedded visual charts based on DB results to enhance frontend rendering
+            chart_groups = self._build_chat_charts(processed)
+            
+            return AgentResult(
+                success=True, 
+                agent_type=self.name, 
+                response=content,
+                data={"chart_groups": chart_groups}
+            )
+        except Exception as e:
+            logger.error(f"LLM chat analysis failed: {e}")
+            return AgentResult(success=False, agent_type=self.name, error=str(e), response=f"Lỗi hệ thống khi phân tích dữ liệu: {e}")
 
     async def _collect_and_generate(self, pending: dict, user_context: dict, client) -> AgentResult:
         # Step 1: Collect data
@@ -527,7 +718,7 @@ class ReportAgent(BaseAgent):
                 result = await client.create_completion(
                     messages=[{
                         "role": "system",
-                        "content": f"Bạn là chuyên gia phân tích dữ liệu giáo dục. Viết section '{label}' của báo cáo.\nLuật: CHỈ dùng số liệu được cung cấp. KHÔNG tự bịa. Viết tiếng Việt ngắn gọn, chuyên nghiệp. KHÔNG có thẻ think."
+                        "content": f"Bạn là chuyên gia phân tích dữ liệu giáo dục. Viết section '{label}' của báo cáo.\nLuật: CHỈ dùng số liệu được cung cấp. KHÔNG tự bịa. Viết tiếng Việt ngắn gọn, chuyên nghiệp, không lẫn tiếng Anh kỹ thuật. KHÔNG có thẻ think."
                     }, {
                         "role": "user",
                         "content": instruction if attempt == 0 else instruction + "\n\n⚠️ Lần trước chưa có số liệu cụ thể. PHẢI dùng số liệu từ bảng!"

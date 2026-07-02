@@ -7,18 +7,21 @@ from pathlib import Path
 from statistics import stdev
 
 from loguru import logger
+from config import get_settings
 from infrastructure.llm_client import OpenAIClient, NvidiaClient, GroqClient, AIProviderError
 from models.scoring import SpeakingResult, CriteriaScore
 from models.analysis import FeatureAnalysis, PronunciationResult
 from models.session import SpeakingTurn
 from core.rubric import load_rubric, SpeakingRubric
-from core.calculator import round_ielts_band
+from core.calculator import round_ielts_band, calculate_overall_band
 
 _HERE = Path(__file__).parent.parent
 
 
 class ScoringPipeline:
-    def __init__(self, provider: str = "groq"):
+    def __init__(self, provider: str | None = None):
+        if provider is None:
+            provider = get_settings().scoring_provider or "nvidia"
         if provider == "nvidia":
             self.llm = NvidiaClient()
         elif provider == "groq":
@@ -49,7 +52,7 @@ class ScoringPipeline:
 
         transcript = "\n".join(f"[{t.part}] Q: {t.question_text}\nA: {t.answer_text}" for t in turns)
         feat = f"Words: {features.word_count} | Sentences: {features.sentence_count} | TTR: {features.lexical_diversity:.3f} | Avg Sent: {features.avg_sentence_length:.1f} | Hesitation: {features.hesitation_count} | Discourse: {features.discourse_marker_count} | Advanced Vocab: {features.advanced_vocab_count} | Dominant Tense: {features.dominant_tense} | Repetition: {features.repetition_count}"
-        pron = f"Band: {pronunciation.band:.1f} | Confidence: {pronunciation.confidence_ratio:.3f} | Speech Rate: {pronunciation.speech_rate:.1f} wpm | Hesitation: {pronunciation.hesitation_ratio:.3f}" if pronunciation.has_audio else f"Audio: NOT AVAILABLE (text-only) | Hesitation: {pronunciation.hesitation_ratio:.3f}"
+        pron = f"Speech Rate: {pronunciation.speech_rate:.1f} wpm | Hesitation: {pronunciation.hesitation_ratio:.3f} | Confidence: {pronunciation.confidence_ratio:.3f} | Pause Ratio: {pronunciation.pause_ratio:.3f} | Word Duration Std: {pronunciation.word_duration_std:.3f}s" if pronunciation.has_audio else f"Audio: NOT AVAILABLE (text-only) | Hesitation: {pronunciation.hesitation_ratio:.3f}"
 
         rub_text = self._rubric_text(rubric)
         user = f"{rub_text}\n\n=== SPEAKING TRANSCRIPT ({part}) ===\n{transcript}\n\n=== NLP FEATURES ===\n{feat}\n\n=== PRONUNCIATION ===\n{pron}\n\n### Instructions: Rate the candidate on each criterion (1-9). Return ONLY valid JSON using EXACTLY this structure with these EXACT criterion keys:\n{{\n  \"overallBand\": 6.5,\n  \"criteria\": {{\n    \"fluency_coherence\": {{\"band\": 6, \"strengths\": [], \"weaknesses\": [], \"detailedFeedback\": \"\"}},\n    \"lexical_resource\": {{\"band\": 6, \"strengths\": [], \"weaknesses\": [], \"detailedFeedback\": \"\"}},\n    \"grammatical_range_accuracy\": {{\"band\": 6, \"strengths\": [], \"weaknesses\": [], \"detailedFeedback\": \"\"}},\n    \"pronunciation\": {{\"band\": 6, \"strengths\": [], \"weaknesses\": [], \"detailedFeedback\": \"\"}}\n  }},\n  \"overallFeedback\": \"\",\n  \"improvementPriority\": [],\n  \"confidenceScore\": 0.85\n}}"
@@ -61,13 +64,22 @@ class ScoringPipeline:
 
             logger.info(f"LLM response: {resp.content[:300]}")
             data = self._extract_json(resp.content)
-            overall = round_ielts_band(float(data.get("overallBand", 5.0)))
             c = data.get("criteria", {})
 
             fc = self._get_criterion(c, ["fluency_coherence", "fluencyAndCoherence", "fluency"], "FC", "Fluency & Coherence")
             lr = self._get_criterion(c, ["lexical_resource", "lexicalResource", "lexical"], "LR", "Lexical Resource")
             gra = self._get_criterion(c, ["grammatical_range_accuracy", "grammaticalRangeAccuracy", "grammarAndVocabulary", "grammar"], "GRA", "Grammatical Range & Accuracy")
             p = self._get_criterion(c, ["pronunciation"], "P", "Pronunciation")
+
+            # Cap pronunciation if too far above other criteria
+            others = [x.band for x in [fc, lr, gra] if x.band > 0]
+            if others and p.band > 0:
+                avg_others = sum(others) / len(others)
+                if p.band > avg_others + 2.0:
+                    p.band = round_ielts_band(avg_others + 2.0)
+
+            # Compute overall from 4 criteria (not trusting LLM's overallBand)
+            overall = calculate_overall_band([x.band for x in [fc, lr, gra, p] if x.band > 0])
 
             all_s = [f"[{x.display_name}] {s}" for x in [fc, lr, gra, p] for s in x.strengths]
             all_w = [f"[{x.display_name}] {w}" for x in [fc, lr, gra, p] for w in x.weaknesses]
