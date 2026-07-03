@@ -71,5 +71,8 @@ public interface ExamAttemptRepository extends JpaRepository<ExamAttempt, Long> 
     List<ExamAttempt> findByExamIdAndUserId(Long examId, Long userId);
 
     int countByExamIdAndUserId(Long examId, Long userId);
+
+    @Query("SELECT FUNCTION('DATE', e.startedAt) AS date, COUNT(e) AS cnt FROM ExamAttempt e WHERE e.startedAt BETWEEN :from AND :to GROUP BY FUNCTION('DATE', e.startedAt) ORDER BY date ASC")
+    List<Object[]> countAttemptsByDate(@Param("from") java.time.LocalDateTime from, @Param("to") java.time.LocalDateTime to);
 }
 

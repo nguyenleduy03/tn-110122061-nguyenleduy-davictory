@@ -79,7 +79,7 @@ export const speakingApi = {
   },
 
   getConfig() {
-    return axios.get(`${speakingAdminBase}/config`);
+    return axios.get(`${speakingAdminBase}/config`, { headers: authHeaders() });
   },
 
   getRubric() {

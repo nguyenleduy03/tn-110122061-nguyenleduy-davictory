@@ -111,6 +111,8 @@ public class AdminAnalyticsController {
                 safe(() -> userRepo.countRegistrationsByDate(from, to), Collections.<Object[]>emptyList())));
         result.put("logins", aggregateByDate(
                 safe(() -> userRepo.countLoginsByDate(from, to), Collections.<Object[]>emptyList())));
+        result.put("attempts", aggregateByDate(
+                safe(() -> examAttemptRepo.countAttemptsByDate(from, to), Collections.<Object[]>emptyList())));
         return result;
     }
 

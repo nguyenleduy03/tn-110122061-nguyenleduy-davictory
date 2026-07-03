@@ -68,7 +68,9 @@ export const writingApi = {
 
   getConfig(taskType) {
     const params = taskType ? { task_type: taskType } : {};
-    return axios.get(`${writingAdminBase}/config`, { params });
+    const token = localStorage.getItem('authToken');
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    return axios.get(`${writingAdminBase}/config`, { params, headers });
   },
 
   getStats() {
