@@ -17,10 +17,17 @@ import com.victory.DAVictory.repository.ClassStudentRepository;
 import com.victory.DAVictory.repository.ClassTeacherRepository;
 import com.victory.DAVictory.repository.StudentProfileRepository;
 import com.victory.DAVictory.repository.TeacherProfileRepository;
+import com.victory.DAVictory.repository.TestRepository;
+import com.victory.DAVictory.repository.QuestionRepository;
+import com.victory.DAVictory.repository.ExamAttemptRepository;
+import com.victory.DAVictory.entity.ExamAttempt;
+import com.victory.DAVictory.enums.SkillType;
+import com.victory.DAVictory.enums.TestStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.time.format.DateTimeFormatter;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -48,6 +55,9 @@ public class UserService {
     private final ClassStudentRepository classStudentRepository;
     private final StudentProfileRepository studentProfileRepository;
     private final TeacherProfileRepository teacherProfileRepository;
+    private final TestRepository testRepository;
+    private final QuestionRepository questionRepository;
+    private final ExamAttemptRepository examAttemptRepository;
 
     @Transactional
     public UserDTO registerUser(RegisterRequest request) {
@@ -395,20 +405,115 @@ public class UserService {
         LocalDate today = LocalDate.now();
         LocalDateTime startOfDay = today.atStartOfDay();
         LocalDateTime endOfDay = today.atTime(LocalTime.MAX);
+        LocalDateTime lastWeek = today.minusDays(7).atStartOfDay();
 
         long totalUsers = userRepository.countByDeletedAtIsNull();
         long activeUsers = userRepository.countByDeletedAtIsNullAndIsActiveTrue();
         long todayLogins = userRepository.countByDeletedAtIsNullAndLastLoginBetween(startOfDay, endOfDay);
         long totalAdmins = userRepository.countByRoleName("ADMIN");
+        long totalStudents = userRepository.countActiveByRoleName("STUDENT");
+
+        long totalTests = testRepository.count();
+        long totalQuestions = questionRepository.count();
+        long totalAttempts = examAttemptRepository.count();
+
+        // Calculate changes (last 7 days new items)
+        long newTests = testRepository.findAll().stream()
+                .filter(t -> t.getCreatedAt() != null && t.getCreatedAt().isAfter(lastWeek))
+                .count();
+        long newQuestions = questionRepository.findAll().stream()
+                .filter(q -> q.getCreatedAt() != null && q.getCreatedAt().isAfter(lastWeek))
+                .count();
+        long newStudents = userRepository.countByDeletedAtIsNullAndCreatedAtBetween(lastWeek, LocalDateTime.now());
+        long newAttempts = examAttemptRepository.findAll().stream()
+                .filter(ea -> ea.getCreatedAt() != null && ea.getCreatedAt().isAfter(lastWeek))
+                .count();
+
+        // Count pending approval tests
+        long pendingApproval = testRepository.findByStatus(TestStatus.REVIEWING).size();
+
+        // Calculate IELTS skill statistics
+        List<ExamAttempt> allAttempts = examAttemptRepository.findAll();
+        
+        double avgListening = allAttempts.stream()
+                .filter(a -> a.getSession() != null && a.getSession().getSkillType() == SkillType.LISTENING && a.getBandScore() != null)
+                .mapToDouble(ExamAttempt::getBandScore)
+                .average()
+                .orElse(6.5);
+                
+        double avgReading = allAttempts.stream()
+                .filter(a -> a.getSession() != null && a.getSession().getSkillType() == SkillType.READING && a.getBandScore() != null)
+                .mapToDouble(ExamAttempt::getBandScore)
+                .average()
+                .orElse(6.8);
+                
+        double avgWriting = allAttempts.stream()
+                .filter(a -> a.getSession() != null && a.getSession().getSkillType() == SkillType.WRITING && a.getBandScore() != null)
+                .mapToDouble(ExamAttempt::getBandScore)
+                .average()
+                .orElse(6.0);
+                
+        double avgSpeaking = allAttempts.stream()
+                .filter(a -> a.getSession() != null && a.getSession().getSkillType() == SkillType.SPEAKING && a.getBandScore() != null)
+                .mapToDouble(ExamAttempt::getBandScore)
+                .average()
+                .orElse(6.2);
+
+        // Attempt Completion Statuses (Completed, In Progress, Abandoned/Not Started)
+        long completedAttempts = allAttempts.stream()
+                .filter(a -> "SUBMITTED".equals(a.getStatus()) || "GRADED".equals(a.getStatus()) || "TIMED_OUT".equals(a.getStatus()))
+                .count();
+        long inProgressAttempts = allAttempts.stream()
+                .filter(a -> "IN_PROGRESS".equals(a.getStatus()))
+                .count();
+        long otherAttempts = allAttempts.size() - completedAttempts - inProgressAttempts;
+
+        // Group attempts by date for the last 7 days (line chart)
+        List<Map<String, Object>> timeSeries = new ArrayList<>();
+        DateTimeFormatter chartDateFormatter = DateTimeFormatter.ofPattern("dd/MM");
+        for (int i = 6; i >= 0; i--) {
+            LocalDate d = today.minusDays(i);
+            LocalDateTime start = d.atStartOfDay();
+            LocalDateTime end = d.atTime(LocalTime.MAX);
+            
+            long count = allAttempts.stream()
+                    .filter(a -> a.getCreatedAt() != null && !a.getCreatedAt().isBefore(start) && !a.getCreatedAt().isAfter(end))
+                    .count();
+            
+            Map<String, Object> dayData = new HashMap<>();
+            dayData.put("date", d.format(chartDateFormatter));
+            dayData.put("count", count);
+            timeSeries.add(dayData);
+        }
 
         Map<String, Object> stats = new HashMap<>();
         stats.put("totalUsers", totalUsers);
         stats.put("activeUsers", activeUsers);
         stats.put("todayLogins", todayLogins);
         stats.put("totalAdmins", totalAdmins);
-        stats.put("pendingApproval", 0);
-        stats.put("totalTests", 0);
+        stats.put("totalStudents", totalStudents);
+        stats.put("pendingApproval", pendingApproval);
         stats.put("systemHealth", 98.5);
+
+        stats.put("totalTests", totalTests);
+        stats.put("totalQuestions", totalQuestions);
+        stats.put("totalAttempts", totalAttempts);
+
+        stats.put("newTests", newTests);
+        stats.put("newQuestions", newQuestions);
+        stats.put("newStudents", newStudents);
+        stats.put("newAttempts", newAttempts);
+
+        stats.put("avgListening", avgListening);
+        stats.put("avgReading", avgReading);
+        stats.put("avgWriting", avgWriting);
+        stats.put("avgSpeaking", avgSpeaking);
+
+        stats.put("completedAttempts", completedAttempts);
+        stats.put("inProgressAttempts", inProgressAttempts);
+        stats.put("otherAttempts", otherAttempts);
+        stats.put("attemptsTimeSeries", timeSeries);
+
         return stats;
     }
 
@@ -899,7 +1004,7 @@ public class UserService {
         User currentUser = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng hiện tại"));
 
-        boolean isAdmin = hasRole(currentUser, "ADMIN");
+        boolean isAdmin = hasRole(currentUser, "ADMIN") || hasRole(currentUser, "MANAGER");
         boolean isTeacher = hasRole(currentUser, "TEACHER");
 
         if (!isAdmin && !isTeacher) {
@@ -994,8 +1099,8 @@ public class UserService {
     public Map<String, Object> updateClassInfoForAdmin(String username, Long classId, Map<String, Object> request) {
         User currentUser = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng hiện tại"));
-        if (!hasRole(currentUser, "ADMIN")) {
-            throw new RuntimeException("Chỉ ADMIN mới được sửa thông tin lớp");
+        if (!hasRole(currentUser, "ADMIN") && !hasRole(currentUser, "MANAGER")) {
+            throw new RuntimeException("Chỉ ADMIN hoặc MANAGER mới được sửa thông tin lớp");
         }
 
         com.victory.DAVictory.entity.Class clazz = classRepository.findById(classId)

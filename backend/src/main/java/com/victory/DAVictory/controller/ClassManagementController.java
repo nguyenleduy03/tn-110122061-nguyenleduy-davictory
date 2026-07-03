@@ -64,6 +64,51 @@ public class ClassManagementController {
         }
     }
 
+    @PostMapping("/create")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<?> createClass(@RequestBody Map<String, Object> request) {
+        try {
+            return ResponseEntity.ok(userService.createClassForAdmin(request));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Lỗi khi tạo lớp: " + e.getMessage()));
+        }
+    }
+
+    @PostMapping("/assign-teacher")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<?> assignTeacher(@RequestBody Map<String, Object> request) {
+        try {
+            String classCode = request.get("classCode") != null ? String.valueOf(request.get("classCode")) : null;
+            String teacherId = request.get("teacherId") != null ? String.valueOf(request.get("teacherId")) : null;
+            String role = request.get("role") != null ? String.valueOf(request.get("role")) : "MAIN_TEACHER";
+            String notes = request.get("notes") != null ? String.valueOf(request.get("notes")) : "";
+            if (classCode == null || teacherId == null) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Thiếu classCode hoặc teacherId"));
+            }
+            return ResponseEntity.ok(userService.assignTeacherToClassByCode(classCode, Long.valueOf(teacherId), role, notes));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Lỗi khi phân công giảng viên: " + e.getMessage()));
+        }
+    }
+
+    @PutMapping("/classes/{classId}/teacher")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<?> updateClassTeacher(@PathVariable Long classId,
+                                                 @RequestBody Map<String, Object> request) {
+        try {
+            String teacherId = request.get("teacherId") != null ? String.valueOf(request.get("teacherId")) : null;
+            if (teacherId == null) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Thiếu teacherId"));
+            }
+            Map<String, Object> result = userService.assignTeacherToClassByCode(
+                    String.valueOf(request.getOrDefault("classCode", "")),
+                    Long.valueOf(teacherId), "MAIN_TEACHER", "");
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Lỗi khi cập nhật giảng viên: " + e.getMessage()));
+        }
+    }
+
     @PostMapping("/assign-students-by-class-code")
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'TEACHER')")
     public ResponseEntity<?> assignStudentsByClassCode(@RequestBody Map<String, Object> request, Authentication authentication) {
@@ -100,7 +145,7 @@ public class ClassManagementController {
     }
 
     @DeleteMapping("/classes/{classId}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<?> deleteClass(@PathVariable Long classId,
                                         @RequestBody Map<String, String> request,
                                         Authentication authentication) {

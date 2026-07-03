@@ -1,50 +1,55 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { GraduationCap, Search, Settings2, UserPlus, Users, School, Edit2, X, Save, FileText } from 'lucide-react';
+import { GraduationCap, Search, Settings2, UserPlus, Users, School, Edit2, X, Save, FileText, Plus, UserCheck, ArrowRightLeft } from 'lucide-react';
 import AdminLayout from '../components/admin/AdminLayout';
+import ManagerLayout from '../components/manager/ManagerLayout';
 import { authApi } from '../services/authApi';
 
 const panelStyle = {
   background: '#fff',
-  border: '1px solid #e5e7eb',
+  border: '1px solid #e2e8f0',
   borderRadius: 16,
   padding: 20,
-  boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.02)',
 };
 
 const inputStyle = {
   width: '100%',
-  border: '1px solid #d1d5db',
+  border: '2px solid #cbd5e1',
   borderRadius: 10,
   padding: '10px 14px',
   fontSize: 14,
   boxSizing: 'border-box',
-  transition: 'all 0.2s',
   outline: 'none',
 };
 
 const buttonPrimary = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 8,
   border: 0,
   borderRadius: 10,
-  background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+  background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
   color: '#fff',
   padding: '10px 16px',
   cursor: 'pointer',
-  fontWeight: 600,
-  fontSize: 14,
-  transition: 'all 0.2s',
-  boxShadow: '0 2px 4px rgba(37, 99, 235, 0.2)',
+  fontWeight: 700,
+  fontSize: 13,
+  minHeight: 44,
 };
 
 const buttonSecondary = {
-  border: '1px solid #d1d5db',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 8,
+  border: '1px solid #e2e8f0',
   borderRadius: 10,
   background: '#fff',
-  color: '#374151',
+  color: '#475569',
   padding: '10px 16px',
   cursor: 'pointer',
-  fontWeight: 600,
-  fontSize: 14,
-  transition: 'all 0.2s',
+  fontWeight: 700,
+  fontSize: 13,
+  minHeight: 44,
 };
 
 export default function ClassManagement() {
@@ -113,6 +118,13 @@ export default function ClassManagement() {
 
   const [isEditMode, setIsEditMode] = useState(false);
 
+  // Panel states for Assign Teacher & Handover Students
+  const [panelTeacherId, setPanelTeacherId] = useState('');
+  const [panelClassCode, setPanelClassCode] = useState('');
+  const [panelStudentCodes, setPanelStudentCodes] = useState('');
+  const [panelFromClass, setPanelFromClass] = useState('');
+  const [panelToClass, setPanelToClass] = useState('');
+
   useEffect(() => {
     let mounted = true;
     const loadData = async () => {
@@ -147,6 +159,7 @@ export default function ClassManagement() {
   }, [refreshTick]);
 
   const isAdmin = authApi.hasRole('ADMIN') || authApi.hasRole('MANAGER');
+  const Layout = authApi.hasRole('ADMIN') ? AdminLayout : ManagerLayout;
 
   const classes = useMemo(() => {
     const list = managementData?.classes || [];
@@ -264,11 +277,60 @@ export default function ClassManagement() {
     }
   };
 
+  const handlePanelAssignTeacher = async () => {
+    if (!panelClassCode) { alert('Vui lòng chọn lớp'); return; }
+    if (!panelTeacherId) { alert('Vui lòng chọn giảng viên'); return; }
+    try {
+      await authApi.assignTeacherByClassCode({ classCode: panelClassCode, teacherId: Number(panelTeacherId) });
+      alert('Đã phân công giảng viên thành công!');
+      setExpandedPanels(p => ({ ...p, assignTeacher: false }));
+      setPanelTeacherId(''); setPanelClassCode('');
+      setRefreshTick(prev => prev + 1);
+    } catch (err) {
+      alert('Lỗi: ' + (err.response?.data?.message || err.message));
+    }
+  };
+
+  const handlePanelHandoverStudents = async () => {
+    if (!panelFromClass) { alert('Vui lòng chọn lớp nguồn'); return; }
+    if (!panelToClass) { alert('Vui lòng chọn lớp đích'); return; }
+    if (panelFromClass === panelToClass) { alert('Lớp nguồn và lớp đích phải khác nhau'); return; }
+    const codes = panelStudentCodes.split('\n').map(s => s.trim()).filter(Boolean);
+    if (codes.length === 0) { alert('Vui lòng nhập mã học viên cần bàn giao'); return; }
+    if (!window.confirm(`Bàn giao ${codes.length} học viên từ lớp "${panelFromClass}" sang lớp "${panelToClass}"?`)) return;
+    try {
+      // Bước 1: Thêm vào lớp đích
+      const addResult = await authApi.assignStudentsByClassCode({ classCode: panelToClass, studentCodes: codes });
+      // Bước 2: Xóa khỏi lớp nguồn
+      const fromClass = managementData.classes.find(c => (c.code || c.classCode) === panelFromClass);
+      if (fromClass) {
+        const students = fromClass.students || [];
+        for (const s of students) {
+          const code = s.studentCode || s.username;
+          if (code && codes.includes(code)) {
+            try { await authApi.removeStudentFromClass(fromClass.id, s.id); } catch {}
+          }
+        }
+      }
+      alert(`Đã bàn giao ${codes.length} học viên từ "${panelFromClass}" sang "${panelToClass}"`);
+      setExpandedPanels(p => ({ ...p, handoverStudents: false }));
+      setPanelFromClass(''); setPanelToClass(''); setPanelStudentCodes('');
+      setRefreshTick(prev => prev + 1);
+    } catch (err) {
+      alert('Lỗi: ' + (err.response?.data?.message || err.message));
+    }
+  };
+
   const togglePanel = (panelName) => {
-    setExpandedPanels(prev => ({
-      ...prev,
-      [panelName]: !prev[panelName]
-    }));
+    const opening = !expandedPanels[panelName];
+    if (opening) {
+      setPanelClassCode('');
+      setPanelTeacherId('');
+      setPanelStudentCodes('');
+      setPanelFromClass('');
+      setPanelToClass('');
+    }
+    setExpandedPanels(prev => ({ ...prev, [panelName]: opening }));
   };
 
   const handleCreateClass = async () => {
@@ -536,90 +598,89 @@ export default function ClassManagement() {
 
   if (loading) {
     return (
-      <AdminLayout title="Quản lý giảng viên & lớp" subtitle="Đang tải dữ liệu...">
+      <Layout title="Quản lý lớp học" subtitle="Đang tải dữ liệu...">
         <div>Đang tải...</div>
-      </AdminLayout>
+      </Layout>
     );
   }
 
   if (!isAdmin) {
     return (
-      <AdminLayout title="Quản lý giảng viên & lớp">
+      <Layout title="Quản lý lớp học">
         <div style={{ textAlign: 'center', padding: 40 }}>
           <p style={{ color: '#dc2626' }}>Bạn không có quyền truy cập trang này!</p>
         </div>
-      </AdminLayout>
+      </Layout>
     );
   }
 
   return (
-    <AdminLayout title="Quản lý giảng viên & lớp" subtitle={`${classes.length} lớp học • ${managementData.teachers.length} giảng viên`}>
+    <Layout title="Quản lý lớp học" subtitle={`${classes.length} lớp học • ${managementData.teachers.length} giảng viên`}>
       <div style={{ display: 'grid', gap: 20 }}>
         {/* Stats Cards */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
-          <div style={{ ...panelStyle, background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', border: 'none' }}>
+          <div style={panelStyle}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
-                <div style={{ fontSize: 28, fontWeight: 800, color: '#1e40af', marginBottom: 4 }}>{classes.length}</div>
-                <div style={{ fontSize: 13, color: '#3b82f6', fontWeight: 600 }}>Tổng lớp học</div>
+                <div style={{ fontSize: 28, fontWeight: 800, color: '#0f172a', marginBottom: 4 }}>{classes.length}</div>
+                <div style={{ fontSize: 13, color: '#64748b', fontWeight: 600 }}>Tổng lớp học</div>
               </div>
-              <div style={{ width: 48, height: 48, borderRadius: 12, background: 'rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <School size={24} color="#3b82f6" />
+              <div style={{ width: 48, height: 48, borderRadius: 12, background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#3b82f6' }}>
+                <School size={24} />
               </div>
             </div>
           </div>
-          <div style={{ ...panelStyle, background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', border: 'none' }}>
+          <div style={panelStyle}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
-                <div style={{ fontSize: 28, fontWeight: 800, color: '#15803d', marginBottom: 4 }}>{managementData.teachers.length}</div>
-                <div style={{ fontSize: 13, color: '#16a34a', fontWeight: 600 }}>Giảng viên</div>
+                <div style={{ fontSize: 28, fontWeight: 800, color: '#0f172a', marginBottom: 4 }}>{managementData.teachers.length}</div>
+                <div style={{ fontSize: 13, color: '#64748b', fontWeight: 600 }}>Giảng viên</div>
               </div>
-              <div style={{ width: 48, height: 48, borderRadius: 12, background: 'rgba(22, 163, 74, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <GraduationCap size={24} color="#16a34a" />
+              <div style={{ width: 48, height: 48, borderRadius: 12, background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#22c55e' }}>
+                <GraduationCap size={24} />
               </div>
             </div>
           </div>
-          <div style={{ ...panelStyle, background: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)', border: 'none' }}>
+          <div style={panelStyle}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
-                <div style={{ fontSize: 28, fontWeight: 800, color: '#991b1b', marginBottom: 4 }}>
+                <div style={{ fontSize: 28, fontWeight: 800, color: '#0f172a', marginBottom: 4 }}>
                   {classes.reduce((sum, c) => sum + (c.studentCount || 0), 0)}
                 </div>
-                <div style={{ fontSize: 13, color: '#dc2626', fontWeight: 600 }}>Tổng học viên</div>
+                <div style={{ fontSize: 13, color: '#64748b', fontWeight: 600 }}>Tổng học viên</div>
               </div>
-              <div style={{ width: 48, height: 48, borderRadius: 12, background: 'rgba(220, 38, 38, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Users size={24} color="#dc2626" />
+              <div style={{ width: 48, height: 48, borderRadius: 12, background: '#fdf2f8', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ec4899' }}>
+                <Users size={24} />
               </div>
             </div>
           </div>
         </div>
 
         {/* Actions */}
-        <div style={panelStyle}>
-          <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
-            <button style={buttonSecondary} onClick={() => togglePanel('createClass')}>
-              + Tạo lớp mới
-            </button>
-            <button style={buttonSecondary} onClick={() => togglePanel('assignTeacher')}>
-              Gán giảng viên
-            </button>
-            <button style={buttonSecondary} onClick={() => togglePanel('handoverStudents')}>
-              Bàn giao học viên
-            </button>
-          </div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button className="admin-btn ghost small" onClick={() => togglePanel('createClass')}>
+            <Plus size={14} /> Tạo lớp mới
+          </button>
+          <button className="admin-btn ghost small" onClick={() => togglePanel('assignTeacher')}>
+            <UserPlus size={14} /> Gán giảng viên
+          </button>
+          <button className="admin-btn ghost small" onClick={() => togglePanel('handoverStudents')}>
+            <ArrowRightLeft size={14} /> Bàn giao học viên
+          </button>
+        </div>
 
-          {expandedPanels.createClass && (
-            <div style={{ border: '1px solid #e5e7eb', borderRadius: 16, padding: 20, marginBottom: 16, background: 'linear-gradient(135deg, #f9fafb 0%, #ffffff 100%)', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+        {expandedPanels.createClass && (
+            <div style={{ border: '1px solid #e2e8f0', borderRadius: 16, padding: 20, marginBottom: 16, background: 'linear-gradient(135deg, #f8fafc 0%, #ffffff 100%)', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
                 <div style={{ width: 40, height: 40, borderRadius: 10, background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <GraduationCap size={20} color="#fff" />
                 </div>
-                <h4 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#111827' }}>Tạo lớp mới</h4>
+                <h4 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#0f172a' }}>Tạo lớp mới</h4>
               </div>
 
               <div style={{ display: 'grid', gap: 12 }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Tên lớp <span style={{ color: '#ef4444' }}>*</span></label>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#475569', marginBottom: 6 }}>Tên lớp <span style={{ color: '#ef4444' }}>*</span></label>
                   <input
                     style={{ ...inputStyle, background: '#fff' }}
                     placeholder="VD: IELTS 6.5 - Sáng thứ 2, 4, 6"
@@ -630,7 +691,7 @@ export default function ClassManagement() {
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Mã lớp</label>
+                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#475569', marginBottom: 6 }}>Mã lớp</label>
                     <input
                       style={{ ...inputStyle, background: '#fff' }}
                       placeholder="VD: IELTS-001"
@@ -639,7 +700,7 @@ export default function ClassManagement() {
                     />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Sĩ số tối đa</label>
+                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#475569', marginBottom: 6 }}>Sĩ số tối đa</label>
                     <input
                       type="number"
                       min="1"
@@ -650,7 +711,7 @@ export default function ClassManagement() {
                     />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Loại lớp</label>
+                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#475569', marginBottom: 6 }}>Loại lớp</label>
                     <select
                       style={{ ...inputStyle, background: '#fff' }}
                       value={createForm.classType}
@@ -665,7 +726,7 @@ export default function ClassManagement() {
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Trình độ</label>
+                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#475569', marginBottom: 6 }}>Trình độ</label>
                     <select
                       style={{ ...inputStyle, background: '#fff' }}
                       value={createForm.level}
@@ -680,7 +741,7 @@ export default function ClassManagement() {
                     </select>
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Mục tiêu Band</label>
+                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#475569', marginBottom: 6 }}>Mục tiêu Band</label>
                     <input
                       style={{ ...inputStyle, background: '#fff' }}
                       placeholder="VD: 6.5"
@@ -692,7 +753,7 @@ export default function ClassManagement() {
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Ngày khai giảng</label>
+                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#475569', marginBottom: 6 }}>Ngày khai giảng</label>
                     <input
                       type="date"
                       style={{ ...inputStyle, background: '#fff' }}
@@ -701,7 +762,7 @@ export default function ClassManagement() {
                     />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Ngày bế giảng</label>
+                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#475569', marginBottom: 6 }}>Ngày bế giảng</label>
                     <input
                       type="date"
                       style={{ ...inputStyle, background: '#fff' }}
@@ -712,7 +773,7 @@ export default function ClassManagement() {
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Lịch học</label>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#475569', marginBottom: 6 }}>Lịch học</label>
                   <input
                     style={{ ...inputStyle, background: '#fff' }}
                     placeholder="VD: Thứ 2,4,6 - 18:00-20:00"
@@ -722,7 +783,7 @@ export default function ClassManagement() {
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Phòng học / Link online</label>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#475569', marginBottom: 6 }}>Phòng học / Link online</label>
                   <input
                     style={{ ...inputStyle, background: '#fff' }}
                     placeholder="VD: Phòng 301 hoặc https://zoom.us/..."
@@ -732,7 +793,7 @@ export default function ClassManagement() {
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Ghi chú</label>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#475569', marginBottom: 6 }}>Ghi chú</label>
                   <textarea
                     style={{ ...inputStyle, background: '#fff', minHeight: 60, resize: 'vertical' }}
                     placeholder="Ghi chú về lớp học..."
@@ -741,12 +802,12 @@ export default function ClassManagement() {
                   />
                 </div>
 
-                <div style={{ border: '2px dashed #d1d5db', borderRadius: 12, padding: 16, background: '#f9fafb', marginTop: 4 }}>
+                <div style={{ border: '2px dashed #e2e8f0', borderRadius: 12, padding: 16, background: '#f8fafc', marginTop: 4 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                    <Users size={16} color="#6b7280" />
-                    <div style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>Thêm học viên (tùy chọn)</div>
+                    <Users size={16} color="#64748b" />
+                    <div style={{ fontSize: 13, fontWeight: 600, color: '#475569' }}>Thêm học viên (tùy chọn)</div>
                   </div>
-                  <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 10 }}>Upload file CSV với cột: studentCode, fullName, email</div>
+                  <div style={{ fontSize: 12, color: '#64748b', marginBottom: 10 }}>Upload file CSV với cột: studentCode, fullName, email</div>
 
                   <label style={{
                     display: 'inline-flex',
@@ -754,22 +815,22 @@ export default function ClassManagement() {
                     gap: 8,
                     padding: '10px 16px',
                     background: '#fff',
-                    border: '1px solid #d1d5db',
+                    border: '1px solid #e2e8f0',
                     borderRadius: 10,
                     cursor: 'pointer',
                     fontSize: 13,
                     fontWeight: 600,
-                    color: '#374151',
+                    color: '#475569',
                     transition: 'all 0.2s',
                     boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
                   }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.background = '#f9fafb';
+                      e.currentTarget.style.background = '#f8fafc';
                       e.currentTarget.style.borderColor = '#3b82f6';
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.background = '#fff';
-                      e.currentTarget.style.borderColor = '#d1d5db';
+                      e.currentTarget.style.borderColor = '#e2e8f0';
                     }}
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -808,66 +869,144 @@ export default function ClassManagement() {
               </div>
             </div>
           )}
-        </div>
+
+          {expandedPanels.assignTeacher && (
+            <div style={{ border: '1px solid #e2e8f0', borderRadius: 16, padding: 20, marginBottom: 16, background: 'linear-gradient(135deg, #f8fafc 0%, #ffffff 100%)', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 10, background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <UserPlus size={20} color="#fff" />
+                </div>
+                <h4 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#0f172a' }}>Gán giảng viên</h4>
+              </div>
+              <div style={{ display: 'grid', gap: 12 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#475569', marginBottom: 6 }}>Chọn lớp</label>
+                  <select style={inputStyle} value={panelClassCode} onChange={e => setPanelClassCode(e.target.value)}>
+                    <option value="">-- Chọn lớp --</option>
+                    {(managementData.classes || []).map(c => (
+                      <option key={c.id} value={c.code || c.classCode}>{c.name} ({c.code || c.classCode})</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#475569', marginBottom: 6 }}>Giảng viên</label>
+                  <select style={inputStyle} value={panelTeacherId} onChange={e => setPanelTeacherId(e.target.value)}>
+                    <option value="">-- Chọn giảng viên --</option>
+                    {managementData.teachers.map(t => (
+                      <option key={t.id} value={t.id}>{t.fullName} ({t.email})</option>
+                    ))}
+                  </select>
+                </div>
+                <button style={{ ...buttonPrimary, marginTop: 4 }} onClick={handlePanelAssignTeacher}>
+                  <GraduationCap size={18} /> Phân công
+                </button>
+              </div>
+            </div>
+          )}
+
+          {expandedPanels.handoverStudents && (
+            <div style={{ border: '1px solid #e2e8f0', borderRadius: 16, padding: 20, marginBottom: 16, background: 'linear-gradient(135deg, #f8fafc 0%, #ffffff 100%)', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                <div style={{ width: 40, height: 40, borderRadius: 10, background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Users size={20} color="#fff" />
+                </div>
+                <h4 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#0f172a' }}>Bàn giao học viên</h4>
+              </div>
+              <div style={{ display: 'grid', gap: 12 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#475569', marginBottom: 6 }}>Từ lớp</label>
+                    <select style={inputStyle} value={panelFromClass} onChange={e => { setPanelFromClass(e.target.value); setPanelStudentCodes(''); }}>
+                      <option value="">-- Chọn lớp nguồn --</option>
+                      {(managementData.classes || []).map(c => (
+                        <option key={c.id} value={c.code || c.classCode}>{c.name} ({c.code || c.classCode})</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#475569', marginBottom: 6 }}>Sang lớp</label>
+                    <select style={inputStyle} value={panelToClass} onChange={e => setPanelToClass(e.target.value)}>
+                      <option value="">-- Chọn lớp đích --</option>
+                      {(managementData.classes || []).map(c => (
+                        <option key={c.id} value={c.code || c.classCode}>{c.name} ({c.code || c.classCode})</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#475569', marginBottom: 6 }}>Mã học viên cần bàn giao (mỗi dòng 1 mã)</label>
+                  <textarea style={{ ...inputStyle, minHeight: 80, resize: 'vertical' }} placeholder="HS001&#10;HS002&#10;HS003" value={panelStudentCodes} onChange={e => setPanelStudentCodes(e.target.value)} />
+                </div>
+                <button style={{ ...buttonPrimary, marginTop: 4 }} onClick={handlePanelHandoverStudents}>
+                  <ArrowRightLeft size={18} /> Bàn giao
+                </button>
+              </div>
+            </div>
+          )}
 
         {/* Class List */}
-        <div style={{ display: 'grid', gridTemplateColumns: selectedClassId ? '400px 1fr' : '1fr', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: selectedClassId ? '380px 1fr' : '1fr', gap: 16 }}>
           <div style={panelStyle}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-              <Search size={16} />
-              <input
-                style={{ ...inputStyle, margin: 0 }}
-                placeholder="Tìm kiếm lớp học..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+            <div className="admin-filter-row" style={{ marginBottom: 12 }}>
+              <div className="admin-search-wrap" style={{ minWidth: 0 }}>
+                <Search size={16} className="admin-search-icon" />
+                <input
+                  className="admin-input admin-input-search"
+                  placeholder="Tìm kiếm lớp học..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
             </div>
 
-            <div style={{ maxHeight: 400, overflowY: 'auto' }}>
+            <div style={{ maxHeight: 420, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
               {classes.map((c) => (
                 <div
                   key={c.id}
+                  className="admin-card-btn"
                   style={{
-                    border: '1px solid #e5e7eb',
-                    borderRadius: 10,
-                    padding: 12,
-                    marginBottom: 10,
-                    background: selectedClassId === c.id ? '#eff6ff' : '#fff',
+                    border: `1px solid ${selectedClassId === c.id ? '#6366f1' : '#e2e8f0'}`,
+                    borderRadius: 12,
+                    padding: '12px 14px',
+                    background: selectedClassId === c.id ? '#f8f8ff' : '#fff',
                     cursor: 'pointer',
-                    transition: 'all 0.2s'
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    transition: 'all 0.15s ease',
+                    boxShadow: selectedClassId === c.id ? '0 0 0 2px rgba(99,102,241,0.15)' : 'none'
                   }}
                   onClick={() => setSelectedClassId(selectedClassId === c.id ? null : c.id)}
+                  onMouseEnter={e => { if (selectedClassId !== c.id) { e.currentTarget.style.borderColor = '#c7d2fe'; e.currentTarget.style.background = '#fafaff'; } }}
+                  onMouseLeave={e => { if (selectedClassId !== c.id) { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.background = '#fff'; } }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <div style={{ fontWeight: 700, fontSize: 14 }}>{c.name}</div>
-                      <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
-                        {c.code || 'Chưa có mã'} • {c.activeStudentCount || 0} học viên
-                      </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>{c.name}</div>
+                    <div style={{ fontSize: 12, color: '#64748b', marginTop: 2, display: 'flex', gap: 8 }}>
+                      <span>{c.code || 'Chưa có mã'}</span>
+                      <span>•</span>
+                      <span>{c.activeStudentCount || 0} học viên</span>
                     </div>
-                    <button
-                      type="button"
-                      style={{
-                        padding: '4px 8px',
-                        fontSize: 12,
-                        background: '#fee2e2',
-                        color: '#dc2626',
-                        border: '1px solid #fecaca',
-                        borderRadius: 6,
-                        cursor: 'pointer',
-                        fontWeight: 600
-                      }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDeleteClassTarget(c);
-                        setDeleteClassPassword('');
-                      }}
-                    >
-                      Xóa
-                    </button>
                   </div>
+                  <span style={{
+                    padding: '2px 8px',
+                    borderRadius: 6,
+                    fontSize: 11,
+                    fontWeight: 600,
+                    background: c.status === 'ACTIVE' ? '#dcfce7' : c.status === 'UPCOMING' ? '#fef3c7' : '#f1f5f9',
+                    color: c.status === 'ACTIVE' ? '#166534' : c.status === 'UPCOMING' ? '#92400e' : '#64748b',
+                    marginLeft: 8,
+                    flexShrink: 0
+                  }}>
+                    {c.status === 'ACTIVE' ? 'Đang học' : c.status === 'UPCOMING' ? 'Sắp học' : c.status || 'N/A'}
+                  </span>
                 </div>
               ))}
+              {classes.length === 0 && (
+                <div style={{ textAlign: 'center', padding: 32, color: '#94a3b8', fontSize: 13 }}>
+                  Chưa có lớp học nào
+                </div>
+              )}
             </div>
           </div>
 
@@ -902,7 +1041,7 @@ export default function ClassManagement() {
                       style={{
                         padding: '6px 12px',
                         fontSize: 12,
-                        background: '#6b7280',
+                        background: '#64748b',
                         color: 'white',
                         border: 'none',
                         borderRadius: 4,
@@ -958,278 +1097,128 @@ export default function ClassManagement() {
               <div style={{ display: 'grid', gap: 20 }}>
                 {/* Thông tin cơ bản */}
                 <div>
-                  <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 600, color: '#1f2937' }}>
-                    Thông tin chi tiết lớp
+                  <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <School size={16} /> Thông tin lớp học
                   </h3>
 
-                  {/* Hiển thị thông tin */}
-                  <div style={{ background: isEditMode ? '#fef3c7' : '#f0f9ff', padding: 12, borderRadius: 6, border: `1px solid ${isEditMode ? '#fbbf24' : '#bae6fd'}`, marginBottom: 12 }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 13 }}>
-                      <div>
-                        <span style={{ color: '#6b7280', fontWeight: 600 }}>Tên lớp:</span>{' '}
-                        <span style={{ color: '#0c4a6e', fontWeight: 600 }}>{selectedClass.name}</span>
-                      </div>
-                      <div>
-                        <span style={{ color: '#6b7280', fontWeight: 600 }}>Mã lớp:</span>{' '}
-                        <span style={{ color: '#0c4a6e', fontFamily: 'monospace' }}>{selectedClass.code || 'N/A'}</span>
-                      </div>
-                      {selectedClass.center && (
-                        <div>
-                          <span style={{ color: '#6b7280', fontWeight: 600 }}>Trung tâm:</span>{' '}
-                          <span style={{ color: '#0c4a6e' }}>{selectedClass.center.name}</span>
-                        </div>
-                      )}
-                      <div>
-                        <span style={{ color: '#6b7280', fontWeight: 600 }}>Trình độ:</span>{' '}
-                        <span style={{ color: '#0c4a6e' }}>{selectedClass.level || 'Chưa xác định'}</span>
-                      </div>
-                      <div>
-                        <span style={{ color: '#6b7280', fontWeight: 600 }}>Mục tiêu Band:</span>{' '}
-                        <span style={{ color: '#0c4a6e' }}>{selectedClass.targetBand || 'Chưa xác định'}</span>
-                      </div>
-                      <div>
-                        <span style={{ color: '#6b7280', fontWeight: 600 }}>Loại lớp:</span>{' '}
-                        <span style={{ color: '#0c4a6e' }}>{selectedClass.classType || 'N/A'}</span>
-                      </div>
-                      <div>
-                        <span style={{ color: '#6b7280', fontWeight: 600 }}>Sĩ số tối đa:</span>{' '}
-                        <span style={{ color: '#0c4a6e' }}>{selectedClass.maxStudents || 'Không giới hạn'}</span>
-                      </div>
-                      <div>
-                        <span style={{ color: '#6b7280', fontWeight: 600 }}>Trạng thái:</span>{' '}
-                        <span style={{
-                          padding: '2px 8px',
-                          borderRadius: 4,
-                          fontSize: 11,
-                          fontWeight: 600,
-                          background: selectedClass.status === 'ACTIVE' ? '#dcfce7' : '#fee2e2',
-                          color: selectedClass.status === 'ACTIVE' ? '#166534' : '#991b1b'
-                        }}>
-                          {selectedClass.status || 'N/A'}
-                        </span>
-                      </div>
-                      <div>
-                        <span style={{ color: '#6b7280', fontWeight: 600 }}>Lịch học:</span>{' '}
-                        <span style={{ color: '#0c4a6e' }}>{selectedClass.schedule || 'Chưa có'}</span>
-                      </div>
-                      <div>
-                        <span style={{ color: '#6b7280', fontWeight: 600 }}>Phòng/Link:</span>{' '}
-                        <span style={{ color: '#0c4a6e', fontSize: 12 }}>{selectedClass.roomLocation || 'Chưa có'}</span>
-                      </div>
-                      {selectedClass.startDate && (
-                        <div>
-                          <span style={{ color: '#6b7280', fontWeight: 600 }}>Khai giảng:</span>{' '}
-                          <span style={{ color: '#0c4a6e' }}>{new Date(selectedClass.startDate).toLocaleDateString('vi-VN')}</span>
-                        </div>
-                      )}
-                      {selectedClass.endDate && (
-                        <div>
-                          <span style={{ color: '#6b7280', fontWeight: 600 }}>Bế giảng:</span>{' '}
-                          <span style={{ color: '#0c4a6e' }}>{new Date(selectedClass.endDate).toLocaleDateString('vi-VN')}</span>
-                        </div>
-                      )}
-                      {selectedClass.createdAt && (
-                        <div>
-                          <span style={{ color: '#6b7280', fontWeight: 600 }}>Ngày tạo:</span>{' '}
-                          <span style={{ color: '#0c4a6e' }}>{new Date(selectedClass.createdAt).toLocaleDateString('vi-VN')}</span>
-                        </div>
-                      )}
-                      {selectedClass.updatedAt && (
-                        <div>
-                          <span style={{ color: '#6b7280', fontWeight: 600 }}>Cập nhật:</span>{' '}
-                          <span style={{ color: '#0c4a6e' }}>{new Date(selectedClass.updatedAt).toLocaleDateString('vi-VN')}</span>
-                        </div>
-                      )}
+                  <div style={{
+                    background: '#fff',
+                    border: '1px solid #f1f5f9',
+                    borderRadius: 12,
+                    padding: 16,
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gap: '10px 24px',
+                    fontSize: 13
+                  }}>
+                    <div><span style={{ color: '#64748b' }}>Tên lớp:</span> <span style={{ color: '#0f172a', fontWeight: 600 }}>{selectedClass.name}</span></div>
+                    <div><span style={{ color: '#64748b' }}>Mã lớp:</span> <span style={{ color: '#0f172a', fontFamily: 'monospace', fontWeight: 600 }}>{selectedClass.code || 'N/A'}</span></div>
+                    {selectedClass.center && <div><span style={{ color: '#64748b' }}>Trung tâm:</span> <span style={{ color: '#0f172a' }}>{selectedClass.center.name}</span></div>}
+                    <div><span style={{ color: '#64748b' }}>Trạng thái:</span>{' '}
+                      <span style={{
+                        padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+                        background: selectedClass.status === 'ACTIVE' ? '#dcfce7' : selectedClass.status === 'UPCOMING' ? '#fef3c7' : '#f1f5f9',
+                        color: selectedClass.status === 'ACTIVE' ? '#166534' : selectedClass.status === 'UPCOMING' ? '#92400e' : '#64748b'
+                      }}>{selectedClass.status === 'ACTIVE' ? 'Đang hoạt động' : selectedClass.status === 'UPCOMING' ? 'Sắp diễn ra' : selectedClass.status || 'N/A'}</span>
                     </div>
-                    {selectedClass.notes && (
-                      <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #e5e7eb' }}>
-                        <span style={{ color: '#6b7280', fontWeight: 600 }}>Ghi chú:</span>{' '}
-                        <span style={{ color: '#0c4a6e' }}>{selectedClass.notes}</span>
-                      </div>
-                    )}
+                    {selectedClass.level && <div><span style={{ color: '#64748b' }}>Trình độ:</span> <span style={{ color: '#0f172a' }}>{selectedClass.level}</span></div>}
+                    {selectedClass.targetBand && <div><span style={{ color: '#64748b' }}>Mục tiêu Band:</span> <span style={{ color: '#0f172a' }}>{selectedClass.targetBand}</span></div>}
+                    {selectedClass.classType && <div><span style={{ color: '#64748b' }}>Loại lớp:</span> <span style={{ color: '#0f172a' }}>{selectedClass.classType}</span></div>}
+                    {selectedClass.maxStudents && <div><span style={{ color: '#64748b' }}>Sĩ số tối đa:</span> <span style={{ color: '#0f172a' }}>{selectedClass.maxStudents}</span></div>}
+                    {selectedClass.schedule && <div style={{ gridColumn: 'span 2' }}><span style={{ color: '#64748b' }}>Lịch học:</span> <span style={{ color: '#0f172a' }}>{selectedClass.schedule}</span></div>}
+                    {selectedClass.roomLocation && <div style={{ gridColumn: 'span 2' }}><span style={{ color: '#64748b' }}>Phòng/Link:</span> <span style={{ color: '#0f172a' }}>{selectedClass.roomLocation}</span></div>}
+                    {selectedClass.startDate && <div><span style={{ color: '#64748b' }}>Khai giảng:</span> <span style={{ color: '#0f172a' }}>{new Date(selectedClass.startDate).toLocaleDateString('vi-VN')}</span></div>}
+                    {selectedClass.endDate && <div><span style={{ color: '#64748b' }}>Bế giảng:</span> <span style={{ color: '#0f172a' }}>{new Date(selectedClass.endDate).toLocaleDateString('vi-VN')}</span></div>}
+                    {selectedClass.createdAt && <div><span style={{ color: '#64748b' }}>Ngày tạo:</span> <span style={{ color: '#0f172a' }}>{new Date(selectedClass.createdAt).toLocaleDateString('vi-VN')}</span></div>}
+                    {selectedClass.updatedAt && <div><span style={{ color: '#64748b' }}>Cập nhật:</span> <span style={{ color: '#0f172a' }}>{new Date(selectedClass.updatedAt).toLocaleDateString('vi-VN')}</span></div>}
+                    {selectedClass.notes && <div style={{ gridColumn: 'span 2', paddingTop: 8, borderTop: '1px solid #f1f5f9', marginTop: 4 }}>
+                      <span style={{ color: '#64748b' }}>Ghi chú:</span> <span style={{ color: '#0f172a' }}>{selectedClass.notes}</span>
+                    </div>}
                   </div>
 
                   {isEditMode && (
                     <>
-                      <h3 style={{ margin: '12px 0 8px', fontSize: 14, fontWeight: 600, color: '#1f2937', display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <FileText size={16} /> Chỉnh sửa thông tin
+                      <h3 style={{ margin: '16px 0 10px', fontSize: 14, fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <Edit2 size={16} /> Chỉnh sửa thông tin
                       </h3>
-                      <div style={{ background: '#f9fafb', padding: 12, borderRadius: 6, border: '1px solid #e5e7eb' }}>
-                        <div style={{ display: 'grid', gap: 8 }}>
-                          <div>
-                            <label style={{ fontSize: 12, color: '#6b7280', marginBottom: 4, display: 'block' }}>Tên lớp:</label>
-                            <input
-                              value={editForm.className}
-                              onChange={(e) => setEditForm(prev => ({ ...prev, className: e.target.value }))}
-                              style={{ ...inputStyle, margin: 0 }}
-                              placeholder="Tên lớp học"
-                            />
-                          </div>
-
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                            <div>
-                              <label style={{ fontSize: 12, color: '#6b7280', marginBottom: 4, display: 'block' }}>Trình độ:</label>
-                              <select
-                                value={editForm.level}
-                                onChange={(e) => setEditForm(prev => ({ ...prev, level: e.target.value }))}
-                                style={{ ...inputStyle, margin: 0 }}
-                              >
-                                <option value="">Chọn trình độ</option>
-                                <option value="BEGINNER">Beginner</option>
-                                <option value="ELEMENTARY">Elementary</option>
-                                <option value="INTERMEDIATE">Intermediate</option>
-                                <option value="UPPER_INTERMEDIATE">Upper Intermediate</option>
-                                <option value="ADVANCED">Advanced</option>
-                              </select>
-                            </div>
-                            <div>
-                              <label style={{ fontSize: 12, color: '#6b7280', marginBottom: 4, display: 'block' }}>Mục tiêu Band:</label>
-                              <input
-                                value={editForm.targetBand}
-                                onChange={(e) => setEditForm(prev => ({ ...prev, targetBand: e.target.value }))}
-                                style={{ ...inputStyle, margin: 0 }}
-                                placeholder="VD: 6.5"
-                              />
-                            </div>
-                          </div>
-
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                            <div>
-                              <label style={{ fontSize: 12, color: '#6b7280', marginBottom: 4, display: 'block' }}>Loại lớp:</label>
-                              <select
-                                value={editForm.classType}
-                                onChange={(e) => setEditForm(prev => ({ ...prev, classType: e.target.value }))}
-                                style={{ ...inputStyle, margin: 0 }}
-                              >
-                                <option value="OFFLINE">Offline</option>
-                                <option value="ONLINE">Online</option>
-                                <option value="HYBRID">Hybrid</option>
-                              </select>
-                            </div>
-                            <div>
-                              <label style={{ fontSize: 12, color: '#6b7280', marginBottom: 4, display: 'block' }}>Sĩ số tối đa:</label>
-                              <input
-                                type="number"
-                                value={editForm.maxStudents}
-                                onChange={(e) => setEditForm(prev => ({ ...prev, maxStudents: e.target.value }))}
-                                style={{ ...inputStyle, margin: 0 }}
-                                placeholder="VD: 20"
-                              />
-                            </div>
-                          </div>
-
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                            <div>
-                              <label style={{ fontSize: 12, color: '#6b7280', marginBottom: 4, display: 'block' }}>Ngày khai giảng:</label>
-                              <input
-                                type="date"
-                                value={editForm.startDate}
-                                onChange={(e) => setEditForm(prev => ({ ...prev, startDate: e.target.value }))}
-                                style={{ ...inputStyle, margin: 0 }}
-                              />
-                            </div>
-                            <div>
-                              <label style={{ fontSize: 12, color: '#6b7280', marginBottom: 4, display: 'block' }}>Ngày bế giảng:</label>
-                              <input
-                                type="date"
-                                value={editForm.endDate}
-                                onChange={(e) => setEditForm(prev => ({ ...prev, endDate: e.target.value }))}
-                                style={{ ...inputStyle, margin: 0 }}
-                              />
-                            </div>
-                          </div>
-
-                          <div>
-                            <label style={{ fontSize: 12, color: '#6b7280', marginBottom: 4, display: 'block' }}>Lịch học:</label>
-                            <input
-                              value={editForm.schedule}
-                              onChange={(e) => setEditForm(prev => ({ ...prev, schedule: e.target.value }))}
-                              style={{ ...inputStyle, margin: 0 }}
-                              placeholder="VD: Thứ 2,4,6 - 18:00-20:00"
-                            />
-                          </div>
-
-                          <div>
-                            <label style={{ fontSize: 12, color: '#6b7280', marginBottom: 4, display: 'block' }}>Phòng học / Link online:</label>
-                            <input
-                              value={editForm.roomLocation}
-                              onChange={(e) => setEditForm(prev => ({ ...prev, roomLocation: e.target.value }))}
-                              style={{ ...inputStyle, margin: 0 }}
-                              placeholder="VD: Phòng 301 hoặc https://zoom.us/..."
-                            />
-                          </div>
-
-                          <div>
-                            <label style={{ fontSize: 12, color: '#6b7280', marginBottom: 4, display: 'block' }}>Trạng thái:</label>
-                            <select
-                              value={editForm.status}
-                              onChange={(e) => setEditForm(prev => ({ ...prev, status: e.target.value }))}
-                              style={{ ...inputStyle, margin: 0 }}
-                            >
-                              <option value="UPCOMING">Sắp khai giảng</option>
-                              <option value="ACTIVE">Đang hoạt động</option>
-                              <option value="COMPLETED">Hoàn thành</option>
-                              <option value="CANCELLED">Đã hủy</option>
-                            </select>
-                          </div>
-
-                          <div>
-                            <label style={{ fontSize: 12, color: '#6b7280', marginBottom: 4, display: 'block' }}>Giảng viên chính:</label>
-
-                            <div style={{ display: 'flex', gap: 6 }}>
-                              <select
-                                value={editForm.teacherId}
-                                onChange={(e) => setEditForm(prev => ({ ...prev, teacherId: e.target.value }))}
-                                style={{ ...inputStyle, margin: 0, flex: 1 }}
-                              >
-                                <option value="">Chọn giảng viên</option>
-                                {managementData.teachers.map(t => (
-                                  <option key={t.id} value={t.id}>{t.fullName}</option>
-                                ))}
-                              </select>
-                              <button
-                                onClick={handleChangeTeacher}
-                                disabled={editLoading || !editForm.teacherId}
-                                style={{
-                                  padding: '8px 12px',
-                                  fontSize: 12,
-                                  background: editLoading ? '#9ca3af' : (!editForm.teacherId ? '#9ca3af' : '#2563eb'),
-                                  color: 'white',
-                                  border: 'none',
-                                  borderRadius: 4,
-                                  cursor: (editLoading || !editForm.teacherId) ? 'not-allowed' : 'pointer'
-                                }}
-                              >
-                                Đổi GV
-                              </button>
-                            </div>
-                          </div>
-
-                          <div>
-                            <label style={{ fontSize: 12, color: '#6b7280', marginBottom: 4, display: 'block' }}>Ghi chú:</label>
-                            <textarea
-                              value={editForm.notes}
-                              onChange={(e) => setEditForm(prev => ({ ...prev, notes: e.target.value }))}
-                              style={{ ...inputStyle, margin: 0, minHeight: 60, resize: 'vertical' }}
-                              placeholder="Ghi chú về lớp học..."
-                            />
-                          </div>
-
-                          <button
-                            onClick={handleUpdateClass}
-                            disabled={editLoading}
-                            style={{
-                              ...buttonPrimary,
-                              margin: 0,
-                              background: editLoading ? '#9ca3af' : '#059669',
-                              fontSize: 13,
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 6,
-                              justifyContent: 'center'
-                            }}
-                          >
-                            <Save size={16} /> {editLoading ? 'Đang lưu...' : 'Lưu thông tin lớp'}
+                      <div style={{
+                        background: '#f8fafc',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: 12,
+                        padding: 16,
+                        display: 'grid',
+                        gridTemplateColumns: '1fr 1fr',
+                        gap: 10
+                      }}>
+                        <div>
+                          <label style={{ fontSize: 12, color: '#64748b', marginBottom: 4, display: 'block' }}>Tên lớp</label>
+                          <input value={editForm.className} onChange={e => setEditForm(p => ({ ...p, className: e.target.value }))}
+                            style={inputStyle} placeholder="Tên lớp học" />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: 12, color: '#64748b', marginBottom: 4, display: 'block' }}>Trạng thái</label>
+                          <select value={editForm.status} onChange={e => setEditForm(p => ({ ...p, status: e.target.value }))} style={inputStyle}>
+                            <option value="UPCOMING">Sắp diễn ra</option>
+                            <option value="ACTIVE">Đang hoạt động</option>
+                            <option value="COMPLETED">Đã kết thúc</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label style={{ fontSize: 12, color: '#64748b', marginBottom: 4, display: 'block' }}>Trình độ</label>
+                          <select value={editForm.level} onChange={e => setEditForm(p => ({ ...p, level: e.target.value }))} style={inputStyle}>
+                            <option value="">--</option>
+                            <option value="BEGINNER">Beginner</option>
+                            <option value="ELEMENTARY">Elementary</option>
+                            <option value="INTERMEDIATE">Intermediate</option>
+                            <option value="UPPER_INTERMEDIATE">Upper Intermediate</option>
+                            <option value="ADVANCED">Advanced</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label style={{ fontSize: 12, color: '#64748b', marginBottom: 4, display: 'block' }}>Mục tiêu Band</label>
+                          <input value={editForm.targetBand} onChange={e => setEditForm(p => ({ ...p, targetBand: e.target.value }))}
+                            style={inputStyle} placeholder="VD: 6.5" />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: 12, color: '#64748b', marginBottom: 4, display: 'block' }}>Loại lớp</label>
+                          <select value={editForm.classType} onChange={e => setEditForm(p => ({ ...p, classType: e.target.value }))} style={inputStyle}>
+                            <option value="OFFLINE">Offline</option>
+                            <option value="ONLINE">Online</option>
+                            <option value="HYBRID">Hybrid</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label style={{ fontSize: 12, color: '#64748b', marginBottom: 4, display: 'block' }}>Sĩ số tối đa</label>
+                          <input type="number" value={editForm.maxStudents} onChange={e => setEditForm(p => ({ ...p, maxStudents: e.target.value }))}
+                            style={inputStyle} placeholder="VD: 20" />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: 12, color: '#64748b', marginBottom: 4, display: 'block' }}>Ngày khai giảng</label>
+                          <input type="date" value={editForm.startDate} onChange={e => setEditForm(p => ({ ...p, startDate: e.target.value }))} style={inputStyle} />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: 12, color: '#64748b', marginBottom: 4, display: 'block' }}>Ngày bế giảng</label>
+                          <input type="date" value={editForm.endDate} onChange={e => setEditForm(p => ({ ...p, endDate: e.target.value }))} style={inputStyle} />
+                        </div>
+                        <div style={{ gridColumn: 'span 2' }}>
+                          <label style={{ fontSize: 12, color: '#64748b', marginBottom: 4, display: 'block' }}>Lịch học</label>
+                          <input value={editForm.schedule} onChange={e => setEditForm(p => ({ ...p, schedule: e.target.value }))} style={inputStyle} placeholder="VD: Thứ 2,4,6 - 18:00-20:00" />
+                        </div>
+                        <div style={{ gridColumn: 'span 2' }}>
+                          <label style={{ fontSize: 12, color: '#64748b', marginBottom: 4, display: 'block' }}>Phòng học / Link online</label>
+                          <input value={editForm.roomLocation} onChange={e => setEditForm(p => ({ ...p, roomLocation: e.target.value }))} style={inputStyle} placeholder="VD: Phòng 301" />
+                        </div>
+                        <div style={{ gridColumn: 'span 2' }}>
+                          <label style={{ fontSize: 12, color: '#64748b', marginBottom: 4, display: 'block' }}>Ghi chú</label>
+                          <textarea value={editForm.notes} onChange={e => setEditForm(p => ({ ...p, notes: e.target.value }))}
+                            style={{ ...inputStyle, minHeight: 50, resize: 'vertical' }} placeholder="Ghi chú về lớp học..." />
+                        </div>
+                        <div style={{ gridColumn: 'span 2', display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 4 }}>
+                          <button className="admin-btn ghost small" onClick={() => { setIsEditMode(false); }}>
+                            <X size={14} /> Hủy
+                          </button>
+                          <button className="admin-btn primary small" onClick={handleUpdateClass} disabled={editLoading}>
+                            <Save size={14} /> {editLoading ? 'Đang lưu...' : 'Lưu thay đổi'}
                           </button>
                         </div>
                       </div>
@@ -1239,40 +1228,30 @@ export default function ClassManagement() {
 
                 {/* Giảng viên */}
                 <div>
-                  <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 600, color: '#1f2937' }}>
-                    Giảng viên ({(selectedClass.teachers || []).length})
+                  <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <GraduationCap size={16} /> Giảng viên ({(selectedClass.teachers || []).length})
                   </h3>
-                  <div style={{ maxHeight: 200, overflowY: 'auto', border: '1px solid #e5e7eb', borderRadius: 6 }}>
-                    {(selectedClass.teachers || []).length > 0 ? (
-                      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                        <thead>
-                          <tr style={{ background: '#f3f4f6' }}>
-                            <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 12, fontWeight: 600 }}>Họ tên</th>
-                            <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 12, fontWeight: 600 }}>Vai trò</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {selectedClass.teachers.map((t) => (
-                            <tr key={`${t.id}-${t.role}`} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                              <td style={{ padding: '8px 12px', fontSize: 13 }}>{t.fullName}</td>
-                              <td style={{ padding: '8px 12px', fontSize: 13 }}>
-                                <span style={{
-                                  padding: '2px 6px',
-                                  background: '#dbeafe',
-                                  color: '#1e40af',
-                                  borderRadius: 3,
-                                  fontSize: 11,
-                                  fontWeight: 600
-                                }}>
-                                  {t.role}
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    ) : (
-                      <div style={{ padding: 16, textAlign: 'center', color: '#6b7280', fontSize: 13 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {(selectedClass.teachers || []).length > 0 ? selectedClass.teachers.map((t) => (
+                      <div key={`${t.id}-${t.role}`} style={{
+                        display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
+                        background: '#f8fafc', border: '1px solid #f1f5f9', borderRadius: 10
+                      }}>
+                        <div style={{
+                          width: 32, height: 32, borderRadius: '50%', background: '#6366f1', color: '#fff',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0
+                        }}>{t.fullName?.[0] || '?'}</div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>{t.fullName}</div>
+                          <div style={{ fontSize: 11, color: '#64748b' }}>{t.email}</div>
+                        </div>
+                        <span style={{
+                          padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+                          background: '#eef2ff', color: '#4f46e5'
+                        }}>{t.role === 'MAIN_TEACHER' ? 'Chính' : t.role}</span>
+                      </div>
+                    )) : (
+                      <div style={{ padding: 16, textAlign: 'center', color: '#64748b', fontSize: 13, background: '#f8fafc', borderRadius: 10, border: '1px solid #f1f5f9' }}>
                         Chưa có giảng viên
                       </div>
                     )}
@@ -1282,66 +1261,35 @@ export default function ClassManagement() {
                 {/* Học viên */}
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                    <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#1f2937' }}>
-                      Học viên ({(selectedClass.students || []).length})
+                    <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Users size={16} /> Học viên ({(selectedClass.students || []).length})
                     </h3>
-                    <button
-                      onClick={() => {
-                        setShowAddStudents(true);
-                        loadAvailableStudents();
-                      }}
-                      style={{
-                        ...buttonSecondary,
-                        padding: '4px 8px',
-                        fontSize: 12
-                      }}
-                    >
-                      + Thêm học viên
+                    <button className="admin-btn ghost small" onClick={() => { setShowAddStudents(true); loadAvailableStudents(); }}>
+                      + Thêm
                     </button>
                   </div>
-                  <div style={{ maxHeight: 300, overflowY: 'auto', border: '1px solid #e5e7eb', borderRadius: 6 }}>
-                    {(selectedClass.students || []).length > 0 ? (
-                      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                        <thead>
-                          <tr style={{ background: '#f3f4f6' }}>
-                            <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 12, fontWeight: 600 }}>STT</th>
-                            <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 12, fontWeight: 600 }}>Họ tên</th>
-                            <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 12, fontWeight: 600 }}>Mã HV</th>
-                            <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 12, fontWeight: 600 }}>Thao tác</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {selectedClass.students.map((s, index) => (
-                            <tr key={s.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                              <td style={{ padding: '8px 12px', fontSize: 12, color: '#6b7280' }}>{index + 1}</td>
-                              <td style={{ padding: '8px 12px', fontSize: 13, fontWeight: 600 }}>
-                                {s.fullName || s.email || s.studentCode || 'N/A'}
-                              </td>
-                              <td style={{ padding: '8px 12px', fontSize: 12, fontFamily: 'monospace' }}>
-                                {s.studentCode || '-'}
-                              </td>
-                              <td style={{ padding: '8px 12px' }}>
-                                <button
-                                  onClick={() => handleRemoveStudent(s.id)}
-                                  style={{
-                                    padding: '2px 6px',
-                                    fontSize: 11,
-                                    background: '#fee2e2',
-                                    color: '#dc2626',
-                                    border: '1px solid #fecaca',
-                                    borderRadius: 3,
-                                    cursor: 'pointer'
-                                  }}
-                                >
-                                  Xóa
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    ) : (
-                      <div style={{ padding: 16, textAlign: 'center', color: '#6b7280', fontSize: 13 }}>
+                  <div style={{ maxHeight: 300, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    {(selectedClass.students || []).length > 0 ? selectedClass.students.map((s) => (
+                      <div key={s.id} style={{
+                        display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px',
+                        background: '#f8fafc', border: '1px solid #f1f5f9', borderRadius: 8
+                      }}>
+                        <div style={{
+                          width: 28, height: 28, borderRadius: '50%', background: '#3b82f6', color: '#fff',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, flexShrink: 0
+                        }}>{s.fullName?.[0] || '?'}</div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>{s.fullName || s.email || 'N/A'}</div>
+                          <div style={{ fontSize: 11, color: '#64748b' }}>{s.studentCode ? `Mã: ${s.studentCode}` : s.email || ''}</div>
+                        </div>
+                        <button onClick={() => handleRemoveStudent(s.id)} style={{
+                          width: 26, height: 26, borderRadius: 6, border: 'none', background: 'transparent',
+                          color: '#94a3b8', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 14, flexShrink: 0
+                        }} title="Xóa">✕</button>
+                      </div>
+                    )) : (
+                      <div style={{ padding: 16, textAlign: 'center', color: '#64748b', fontSize: 13, background: '#f8fafc', borderRadius: 10, border: '1px solid #f1f5f9' }}>
                         Chưa có học viên
                       </div>
                     )}
@@ -1354,112 +1302,64 @@ export default function ClassManagement() {
 
         {/* Add Students Modal */}
         {showAddStudents && (
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0,0,0,0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000
-          }}>
-            <div style={{
-              background: 'white',
-              borderRadius: 8,
-              padding: 24,
-              width: '90%',
-              maxWidth: 600,
-              maxHeight: '80vh',
-              overflow: 'auto'
-            }}>
-              <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 600 }}>
-                Thêm học viên vào lớp: {selectedClass?.name}
-              </h3>
+          <div className="admin-modal-overlay" onClick={() => { setShowAddStudents(false); setSelectedStudents([]); setStudentSearch(''); }}>
+            <div className="admin-modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 600 }}>
+              <div className="admin-modal-header">
+                <h2>Thêm học viên: {selectedClass?.name}</h2>
+                <button className="admin-modal-close" onClick={() => { setShowAddStudents(false); setSelectedStudents([]); setStudentSearch(''); }}>✕</button>
+              </div>
+              <div className="admin-modal-body">
+                <div style={{ marginBottom: 16 }}>
+                  <div className="admin-search-wrap" style={{ minWidth: 0 }}>
+                    <Search size={16} className="admin-search-icon" />
+                    <input className="admin-input admin-input-search" placeholder="Tìm theo mã hoặc tên..."
+                      value={studentSearch} onChange={(e) => setStudentSearch(e.target.value)} />
+                  </div>
+                </div>
 
-              {/* Search */}
-              <input
-                type="text"
-                placeholder="Tìm theo mã học viên hoặc tên..."
-                value={studentSearch}
-                onChange={(e) => setStudentSearch(e.target.value)}
-                style={{ ...inputStyle, margin: '0 0 16px 0' }}
-              />
-
-              {/* Student List */}
-              <div style={{ maxHeight: 300, overflowY: 'auto', border: '1px solid #e5e7eb', borderRadius: 6, marginBottom: 16 }}>
-                {selectableStudents.map(student => {
-                  const studentCode = student.studentCode || student.username;
-                  return (
-                    <div key={student.id} style={{
-                      padding: 12,
-                      borderBottom: '1px solid #f3f4f6',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center'
-                    }}>
-                      <div>
-                        <div style={{ fontWeight: 500, fontSize: 14 }}>{student.fullName}</div>
-                        <div style={{ fontSize: 12, color: '#6b7280' }}>Mã: {studentCode || 'N/A'}</div>
+                <div style={{ maxHeight: 300, overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: 10, marginBottom: 16 }}>
+                  {selectableStudents.map(student => {
+                    const code = student.studentCode || student.username;
+                    const selected = selectedStudents.includes(student.id);
+                    return (
+                      <div key={student.id} style={{
+                        padding: '10px 14px', borderBottom: '1px solid #f1f5f9',
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        background: selected ? '#f8f8ff' : '#fff'
+                      }}>
+                        <div>
+                          <div style={{ fontWeight: 600, fontSize: 14, color: '#0f172a' }}>{student.fullName}</div>
+                          <div style={{ fontSize: 12, color: '#64748b' }}>Mã: {code || 'N/A'}</div>
+                        </div>
+                        <button className={`admin-btn ${selected ? 'primary' : 'ghost'} small`} style={{ minHeight: 32, padding: '4px 10px' }}
+                          onClick={() => {
+                            if (selected) setSelectedStudents(prev => prev.filter(id => id !== student.id));
+                            else setSelectedStudents(prev => [...prev, student.id]);
+                          }}>
+                          {selected ? 'Bỏ chọn' : 'Chọn'}
+                        </button>
                       </div>
-                      <button
-                        onClick={() => {
-                          if (selectedStudents.includes(student.id)) {
-                            setSelectedStudents(prev => prev.filter(id => id !== student.id));
-                          } else {
-                            setSelectedStudents(prev => [...prev, student.id]);
-                          }
-                        }}
-                        style={{
-                          ...buttonSecondary,
-                          padding: '4px 8px',
-                          fontSize: 12,
-                          background: selectedStudents.includes(student.id) ? '#dbeafe' : '#f3f4f6'
-                        }}
-                      >
-                        {selectedStudents.includes(student.id) ? 'Bỏ chọn' : 'Chọn'}
-                      </button>
+                    );
+                  })}
+                  {selectableStudents.length === 0 && (
+                    <div style={{ padding: 24, color: '#64748b', fontSize: 13, textAlign: 'center' }}>
+                      Không có học viên phù hợp
                     </div>
-                  );
-                })}
-                {selectableStudents.length === 0 && (
-                  <div style={{ padding: 12, color: '#6b7280', fontSize: 13, textAlign: 'center' }}>
-                    Không có học viên phù hợp để thêm
+                  )}
+                </div>
+
+                {selectedStudents.length > 0 && (
+                  <div style={{ marginBottom: 16, fontSize: 14, fontWeight: 600, color: '#0f172a' }}>
+                    Đã chọn: {selectedStudents.length} học viên
                   </div>
                 )}
-              </div>
 
-              {/* Selected Count */}
-              {selectedStudents.length > 0 && (
-                <div style={{ marginBottom: 16, fontSize: 14, color: '#1f2937' }}>
-                  Đã chọn: {selectedStudents.length} học viên
+                <div className="admin-modal-actions">
+                  <button className="admin-btn ghost" onClick={() => { setShowAddStudents(false); setSelectedStudents([]); setStudentSearch(''); }}>Hủy</button>
+                  <button className="admin-btn primary" onClick={handleAddStudents} disabled={selectedStudents.length === 0}>
+                    Thêm {selectedStudents.length} học viên
+                  </button>
                 </div>
-              )}
-
-              {/* Actions */}
-              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                <button
-                  onClick={() => {
-                    setShowAddStudents(false);
-                    setSelectedStudents([]);
-                    setStudentSearch('');
-                  }}
-                  style={buttonSecondary}
-                >
-                  Hủy
-                </button>
-                <button
-                  onClick={handleAddStudents}
-                  disabled={selectedStudents.length === 0}
-                  style={{
-                    ...buttonPrimary,
-                    opacity: selectedStudents.length === 0 ? 0.5 : 1
-                  }}
-                >
-                  Thêm {selectedStudents.length} học viên
-                </button>
               </div>
             </div>
           </div>
@@ -1468,95 +1368,43 @@ export default function ClassManagement() {
 
       {/* Modal xác nhận xóa lớp */}
       {deleteClassTarget && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }} onClick={() => !deletingClass && setDeleteClassTarget(null)}>
-          <div style={{ background: 'white', borderRadius: 16, padding: 24, maxWidth: 450, width: '90%', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }} onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-              <div style={{ width: 48, height: 48, borderRadius: 12, background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2">
-                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-                  <line x1="12" y1="9" x2="12" y2="13" />
-                  <line x1="12" y1="17" x2="12.01" y2="17" />
-                </svg>
+        <div className="admin-modal-overlay" onClick={() => !deletingClass && setDeleteClassTarget(null)}>
+          <div className="admin-modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 450 }}>
+            <div className="admin-modal-header">
+              <h2>Xác nhận xóa lớp</h2>
+              <button className="admin-modal-close" onClick={() => setDeleteClassTarget(null)}>✕</button>
+            </div>
+            <div className="admin-modal-body">
+              <div style={{ padding: 16, background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 12, marginBottom: 16 }}>
+                <p style={{ margin: 0, fontSize: 14, color: '#991b1b' }}>
+                  Bạn sắp xóa lớp <strong>{deleteClassTarget.name}</strong> ({deleteClassTarget.code || 'Chưa có mã'})
+                </p>
+                <p style={{ margin: '8px 0 0', fontSize: 13, color: '#dc2626' }}>
+                  • Tất cả học viên sẽ bị gỡ khỏi lớp<br />
+                  • Giảng viên sẽ bị hủy phân công<br />
+                  • Dữ liệu lớp sẽ bị xóa vĩnh viễn
+                </p>
               </div>
-              <div>
-                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#111827' }}>Xác nhận xóa lớp</h3>
-                <p style={{ margin: '4px 0 0', fontSize: 13, color: '#6b7280' }}>Hành động này không thể hoàn tác</p>
+
+              <div className="admin-form-group">
+                <label>Nhập mật khẩu admin để xác nhận <span style={{ color: '#ef4444' }}>*</span></label>
+                <input type="password" value={deleteClassPassword}
+                  onChange={(e) => setDeleteClassPassword(e.target.value)}
+                  placeholder="Mật khẩu admin" disabled={deletingClass}
+                  onKeyPress={(e) => e.key === 'Enter' && handleDeleteClass()} />
               </div>
-            </div>
 
-            <div style={{ padding: 16, background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 12, marginBottom: 16 }}>
-              <p style={{ margin: 0, fontSize: 14, color: '#991b1b' }}>
-                Bạn sắp xóa lớp <strong>{deleteClassTarget.name}</strong> ({deleteClassTarget.code || 'Chưa có mã'})
-              </p>
-              <p style={{ margin: '8px 0 0', fontSize: 13, color: '#dc2626' }}>
-                • Tất cả học viên sẽ bị gỡ khỏi lớp<br />
-                • Giảng viên sẽ bị hủy phân công<br />
-                • Dữ liệu lớp sẽ bị xóa vĩnh viễn
-              </p>
-            </div>
-
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
-                Nhập mật khẩu admin để xác nhận <span style={{ color: '#ef4444' }}>*</span>
-              </label>
-              <input
-                type="password"
-                value={deleteClassPassword}
-                onChange={(e) => setDeleteClassPassword(e.target.value)}
-                placeholder="Mật khẩu admin"
-                disabled={deletingClass}
-                style={{
-                  width: '100%',
-                  padding: '10px 14px',
-                  borderRadius: 10,
-                  border: '1px solid #d1d5db',
-                  fontSize: 14,
-                  boxSizing: 'border-box'
-                }}
-                onKeyPress={(e) => e.key === 'Enter' && handleDeleteClass()}
-              />
-            </div>
-
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button
-                onClick={() => setDeleteClassTarget(null)}
-                disabled={deletingClass}
-                style={{
-                  flex: 1,
-                  padding: '10px 16px',
-                  borderRadius: 10,
-                  border: '1px solid #d1d5db',
-                  background: '#fff',
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                  fontSize: 14
-                }}
-              >
-                Hủy
-              </button>
-              <button
-                onClick={handleDeleteClass}
-                disabled={deletingClass}
-                style={{
-                  flex: 1,
-                  padding: '10px 16px',
-                  borderRadius: 10,
-                  border: 'none',
-                  background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)',
-                  color: 'white',
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                  fontSize: 14,
-                  opacity: deletingClass ? 0.6 : 1
-                }}
-              >
-                {deletingClass ? 'Đang xóa...' : 'Xác nhận xóa'}
-              </button>
+              <div className="admin-modal-actions">
+                <button className="admin-btn ghost" onClick={() => setDeleteClassTarget(null)} disabled={deletingClass}>Hủy</button>
+                <button className="admin-btn danger" onClick={handleDeleteClass} disabled={deletingClass}>
+                  {deletingClass ? 'Đang xóa...' : 'Xác nhận xóa'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
-    </AdminLayout>
+    </Layout>
   );
 }
 

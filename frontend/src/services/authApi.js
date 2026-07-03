@@ -329,15 +329,15 @@ VIC009998,Trần Thị,Bình,VIC009998@gmail.com,@VIC009998,VIC260312IE45A`;
     return response.data;
   },
 
-  // Tạo lớp nhanh từ màn quản lý admin
+  // Tạo lớp (cho ADMIN + MANAGER)
   createClassForAdmin: async (payload) => {
-    const response = await apiClient.post('/admin/users/create-class', payload);
+    const response = await apiClient.post('/class-management/create', payload);
     return response.data;
   },
 
-  // Phân công giáo viên quản lý lớp theo mã lớp
+  // Phân công giáo viên (cho ADMIN + MANAGER)
   assignTeacherByClassCode: async ({ classCode, teacherId, role = 'MAIN_TEACHER', notes = '' }) => {
-    const response = await apiClient.post('/admin/users/assign-teacher-by-class-code', {
+    const response = await apiClient.post('/class-management/assign-teacher', {
       classCode,
       teacherId,
       role,
@@ -346,9 +346,9 @@ VIC009998,Trần Thị,Bình,VIC009998@gmail.com,@VIC009998,VIC260312IE45A`;
     return response.data;
   },
 
-  // Bàn giao danh sách học viên vào lớp theo mã lớp
+  // Bàn giao danh sách học viên (cho ADMIN + MANAGER)
   assignStudentsByClassCode: async ({ classCode, studentCodes, notes = '' }) => {
-    const response = await apiClient.post('/admin/users/assign-students-by-class-code', {
+    const response = await apiClient.post('/class-management/assign-students-by-class-code', {
       classCode,
       studentCodes,
       notes,

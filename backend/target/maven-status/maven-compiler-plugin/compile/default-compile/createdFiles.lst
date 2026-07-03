@@ -77,6 +77,7 @@ com/victory/DAVictory/entity/QuestionGroup.class
 com/victory/DAVictory/repository/DifficultyLevelRepository.class
 com/victory/DAVictory/entity/QuestionOption.class
 com/victory/DAVictory/dto/TestFullResponse$QuestionResp.class
+com/victory/DAVictory/controller/AdminAnalyticsController.class
 com/victory/DAVictory/dto/SpeakingSnapshotRequest$SnapshotQuestion.class
 com/victory/DAVictory/dto/TestFullResponse$SessionResp.class
 com/victory/DAVictory/dto/AIBatchGradingStatusDTO.class
@@ -175,6 +176,7 @@ com/victory/DAVictory/entity/User.class
 com/victory/DAVictory/DaVictoryApplication.class
 com/victory/DAVictory/dto/ManualGradeRequest.class
 com/victory/DAVictory/service/TestShareLinkService$1.class
+com/victory/DAVictory/controller/AdminSettingsController.class
 com/victory/DAVictory/dto/SpeakingAttemptResponse.class
 com/victory/DAVictory/dto/AIGradingResponseDTO$CriteriaScoreDTO.class
 com/victory/DAVictory/repository/ClassTeacherRepository.class
@@ -191,6 +193,7 @@ com/victory/DAVictory/dto/GradeRequest.class
 com/victory/DAVictory/service/AssignmentService.class
 com/victory/DAVictory/controller/FullTestProgressController.class
 com/victory/DAVictory/entity/StudentProfile.class
+com/victory/DAVictory/controller/AdminTestApprovalController.class
 com/victory/DAVictory/dto/TestSubmissionRequest.class
 com/victory/DAVictory/service/TestManagementService.class
 com/victory/DAVictory/dto/SpeakingGradeRequest.class
@@ -206,6 +209,7 @@ com/victory/DAVictory/config/SecurityConfig.class
 com/victory/DAVictory/controller/WritingController.class
 com/victory/DAVictory/dto/TestResultResponse$SkillResult.class
 com/victory/DAVictory/entity/DifficultyLevel.class
+com/victory/DAVictory/service/AIBridgeService$2.class
 com/victory/DAVictory/controller/AIImportController.class
 com/victory/DAVictory/repository/TagRepository.class
 com/victory/DAVictory/dto/RegisterRequest.class
@@ -257,6 +261,7 @@ com/victory/DAVictory/entity/WritingScore.class
 com/victory/DAVictory/entity/MatchingPair.class
 com/victory/DAVictory/entity/Question.class
 com/victory/DAVictory/entity/UserSession.class
+com/victory/DAVictory/controller/AdminSystemHealthController.class
 com/victory/DAVictory/service/ExamAttemptService$3.class
 com/victory/DAVictory/controller/StudentWritingController.class
 com/victory/DAVictory/dto/QuestionGroupResponse$MatchingPairResp.class

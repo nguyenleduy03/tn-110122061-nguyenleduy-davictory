@@ -14,9 +14,9 @@ import '../../styles/manager.css';
 const NAV_ITEMS = [
     { label: 'Tổng quan', path: '/manager', icon: LayoutDashboard },
     { label: 'Lớp học', path: '/manager/classes', icon: School },
+    { label: 'Quản lý lớp', path: '/admin/teacher-class', icon: ShieldCheck },
     { label: 'Điều phối', path: '/manager/operations', icon: ClipboardCheck },
     { label: 'Báo cáo', path: '/manager/reports', icon: LineChart },
-    { label: 'Hệ thống', path: '/debug', icon: Activity },
 ];
 
 export default function ManagerLayout({ title, subtitle, children }) {

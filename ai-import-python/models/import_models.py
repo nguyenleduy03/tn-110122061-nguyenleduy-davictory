@@ -115,6 +115,34 @@ class StructureRequest(BaseModel):
     question_type: str = ""
 
 
+class ExtractionItem(BaseModel):
+    number: int = 0
+    text: str = ""
+    options: list[dict] = []
+    blank_context: str = ""
+    correct_answer: str = ""
+
+
+class FormatRequest(BaseModel):
+    task_id: str = ""
+    skill: str = ""
+    test_type: str = "ACADEMIC"
+    part: str = ""
+    question_type: str = ""
+    passage_text: str = ""
+    questions: list[ExtractionItem] = []
+
+
+class VisionExtractResponse(BaseModel):
+    task_id: str = ""
+    passage_text: str = ""
+    questions: list[ExtractionItem] = []
+    has_table: bool = False
+    suggested_skill: str = ""
+    suggested_part: str = ""
+    raw_ai_output: str = ""
+
+
 class StatusResponse(BaseModel):
     task_id: str
     status: str

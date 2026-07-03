@@ -134,7 +134,7 @@ public class TestController {
     }
 
     @GetMapping("/teacher-students")
-    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('TEACHER', 'MANAGER', 'ADMIN')")
     public ResponseEntity<?> getTeacherStudents(Authentication authentication) {
         try {
             String username = authentication.getName();

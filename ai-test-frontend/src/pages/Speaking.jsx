@@ -148,17 +148,10 @@ export default function Speaking() {
   }
 
   // ── Practice tab state ───────────────────────────────────
-  const PARTS = [
-    { value: 'PART1', label: 'Part 1 — Introduction & Interview', desc: 'Câu hỏi cá nhân về chủ đề quen thuộc' },
-    { value: 'PART2', label: 'Part 2 — Cue Card', desc: 'Nói về chủ đề trong 1-2 phút' },
-    { value: 'PART3', label: 'Part 3 — Discussion', desc: 'Câu hỏi thảo luận trừu tượng' },
-  ];
   const [practiceStep, setPracticeStep] = useState('setup'); // setup | recording | submitting | analyzing | scoring | results
-  const [selectedParts, setSelectedParts] = useState(['PART1', 'PART2', 'PART3']);
   const [practiceTopic, setPracticeTopic] = useState('');
   const [customQuestion, setCustomQuestion] = useState('');
   const [practiceSessionId, setPracticeSessionId] = useState(null);
-  const [currentPartIdx, setCurrentPartIdx] = useState(0);
   const [currentQuestion, setCurrentQuestion] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
   const [recSeconds, setRecSeconds] = useState(0);
@@ -201,16 +194,9 @@ export default function Speaking() {
     logStreamEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [liveLogs]);
 
-  const togglePart = (value) => {
-    setSelectedParts(prev =>
-      prev.includes(value) ? prev.filter(v => v !== value) : [...prev, value]
-    );
-  };
-
   const resetPractice = () => {
     setPracticeStep('setup');
     setPracticeSessionId(null);
-    setCurrentPartIdx(0);
     setCurrentQuestion(null);
     setAudioBlob(null);
     setAudioUrl2(null);
@@ -222,18 +208,19 @@ export default function Speaking() {
   };
 
   const handlePracticeStart = async () => {
-    if (selectedParts.length === 0) {
-      setPracticeError('Vui lòng chọn ít nhất 1 part.');
+    if (!customQuestion.trim() && !practiceTopic.trim()) {
+      setPracticeError('Vui lòng nhập câu hỏi hoặc chủ đề.');
       return;
     }
-    if (!customQuestion.trim() && selectedParts.length === 0) {
-      setPracticeError('Vui lòng nhập câu hỏi hoặc chọn part.');
+    const q = customQuestion.trim();
+    if (q && (q.split(/\s+/).length < 3 || q.length < 10)) {
+      setPracticeError('Câu hỏi không hợp lệ. Vui lòng nhập ít nhất 3 từ.');
       return;
     }
     setPracticeLoading(true);
     setPracticeError(null);
     try {
-      const config = { topic: customQuestion || practiceTopic, focusArea: selectedParts.join(','), practiceMode: 'practice' };
+      const config = { topic: customQuestion || practiceTopic, focusArea: 'PART2', practiceMode: 'practice' };
       const res = await speakingApi.createSession(config);
       const sid = res.data?.sessionId || res.data?.id;
       if (!sid) throw new Error('Không thể tạo session');
@@ -310,32 +297,24 @@ export default function Speaking() {
       const transcript = subRes.data?.text || '';
       setPracticeTranscript(transcript);
 
-      if (currentPartIdx < selectedParts.length - 1) {
-        setCurrentPartIdx(prev => prev + 1);
-        await speakingApi.nextPhase(practiceSessionId);
-        const qRes = await speakingApi.generateQuestion(practiceSessionId);
-        setCurrentQuestion(qRes.data);
-        setAudioBlob(null); setAudioUrl2(null);
-      } else {
-        setPracticeScanStage(0);
-        setLiveLogs([]);
-        if (scanTimerRef.current) clearInterval(scanTimerRef.current);
-        scanTimerRef.current = setInterval(() => {
-          setPracticeScanStage(s => (s < 3 ? s + 1 : s));
-        }, 2000);
+      setPracticeScanStage(0);
+      setLiveLogs([]);
+      if (scanTimerRef.current) clearInterval(scanTimerRef.current);
+      scanTimerRef.current = setInterval(() => {
+        setPracticeScanStage(s => (s < 3 ? s + 1 : s));
+      }, 2000);
 
-        // Step 2: Analyze pronunciation
-        setPracticeStep('analyzing');
-        const pronRes = await speakingApi.analyzePronunciation(practiceSessionId);
-        setPracticeMetrics(pronRes.data);
+      // Step 2: Analyze pronunciation
+      setPracticeStep('analyzing');
+      const pronRes = await speakingApi.analyzePronunciation(practiceSessionId);
+      setPracticeMetrics(pronRes.data);
 
-        // Step 3: Score
-        setPracticeStep('scoring');
-        const evalRes = await speakingApi.scoreSession(practiceSessionId, 1);
-        setPracticeResult(evalRes.data || evalRes);
-        setPracticeStep('results');
-        if (scanTimerRef.current) clearInterval(scanTimerRef.current);
-      }
+      // Step 3: Score
+      setPracticeStep('scoring');
+      const evalRes = await speakingApi.scoreSession(practiceSessionId, 1);
+      setPracticeResult(evalRes.data || evalRes);
+      setPracticeStep('results');
+      if (scanTimerRef.current) clearInterval(scanTimerRef.current);
     } catch (err) {
       setPracticeError(err.response?.data?.error || err.message);
     } finally {
@@ -725,41 +704,22 @@ export default function Speaking() {
                   <Mic size={24} />
                 </div>
                 <div>
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)' }}>Luyện nói IELTS Speaking</h3>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 500 }}>Chọn part, ghi âm câu trả lời và nhận điểm ngay</p>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)' }}>Luyện nói IELTS Speaking — Part 2 (Cue Card)</h3>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 500 }}>Nói về chủ đề trong 1-2 phút, ghi âm và nhận điểm ngay</p>
                 </div>
               </div>
               <div style={{ padding: '24px' }}>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 700, marginBottom: '12px', color: 'var(--text-secondary)' }}>Chọn Part muốn luyện tập</label>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
-                  {PARTS.map(p => (
-                    <label key={p.value} style={{
-                      display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '14px 16px',
-                      borderRadius: '10px', border: selectedParts.includes(p.value) ? '2px solid var(--primary)' : '2px solid var(--border)',
-                      background: selectedParts.includes(p.value) ? 'var(--primary-light)' : '#fff', cursor: 'pointer',
-                      boxShadow: selectedParts.includes(p.value) ? '0 4px 12px rgba(79, 70, 229, 0.08)' : 'none',
-                      transition: 'all 0.2s'
-                    }}>
-                      <input type="checkbox" checked={selectedParts.includes(p.value)} onChange={() => togglePart(p.value)}
-                        style={{ marginTop: 3, accentColor: 'var(--primary)' }} />
-                      <div>
-                        <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}>{p.label}</div>
-                        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 2, fontWeight: 500 }}>{p.desc}</div>
-                      </div>
-                    </label>
-                  ))}
-                </div>
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 700, marginBottom: '8px', color: 'var(--text-secondary)' }}>
-                  Câu hỏi tự nhập <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>(giống chấm Writing — bỏ qua AI generate)</span>
+                  Câu hỏi tự nhập <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>(để trống để AI tự generate)</span>
                 </label>
                 <textarea style={{ width: '100%', padding: '12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', minHeight: '80px', marginBottom: '16px', resize: 'vertical', fontSize: '0.875rem', outline: 'none', transition: 'border-color 0.2s' }}
-                  placeholder="Nhập câu hỏi của bạn vào đây... VD: Describe a memorable holiday you have had."
+                  placeholder="Nhập cue card của bạn vào đây... VD: Describe a memorable holiday you have had. You should say: where you went, who you were with, what you did, and why it was memorable."
                   value={customQuestion} onChange={e => setCustomQuestion(e.target.value)} />
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 700, marginBottom: '8px', color: 'var(--text-secondary)' }}>Chủ đề (tùy chọn)</label>
                 <input style={{ width: '100%', padding: '12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', marginBottom: '24px', outline: 'none', transition: 'border-color 0.2s' }}
                   placeholder="VD: Environment, Technology, Education..." value={practiceTopic} onChange={e => setPracticeTopic(e.target.value)} />
                 <button className="btn btn-primary-grad" style={{ width: '100%', justifyContent: 'center', padding: '14px' }}
-                  onClick={handlePracticeStart} disabled={practiceLoading || (!customQuestion.trim() && selectedParts.length === 0)}>
+                  onClick={handlePracticeStart} disabled={practiceLoading}>
                   {practiceLoading ? <><RotateCw className="spin" size={18} /> Đang tạo phiên...</> : <><Mic size={18} /> Bắt đầu luyện nói</>}
                 </button>
               </div>
@@ -769,15 +729,13 @@ export default function Speaking() {
           {/* Recording */}
           {practiceStep === 'recording' && (
             <div className="card glass-premium" style={{ maxWidth: '700px', margin: '0 auto' }}>
-              <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border-light)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div style={{ background: 'var(--primary-light)', color: 'var(--primary)', padding: '8px', borderRadius: '50%' }}>
-                    <Mic size={20} />
-                  </div>
-                  <div>
-                    <div style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--text-main)' }}>Part {currentPartIdx + 1}: {selectedParts[currentPartIdx]}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>{(currentPartIdx + 1)} / {selectedParts.length}</div>
-                  </div>
+              <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border-light)', display: 'flex', alignItems: 'center', gap: '12px', background: 'white' }}>
+                <div style={{ background: 'var(--primary-light)', color: 'var(--primary)', padding: '8px', borderRadius: '50%' }}>
+                  <Mic size={20} />
+                </div>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: '1rem', color: 'var(--text-main)' }}>Part 2 — Cue Card</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>Nói trong 1-2 phút</div>
                 </div>
               </div>
               <div style={{ padding: '24px' }}>
@@ -826,10 +784,10 @@ export default function Speaking() {
                     <input type="file" accept="audio/*" hidden onChange={handleFileUpload} />
                   </label>
                 </div>
-                <button className="btn btn-primary-grad" style={{ width: '100%', justifyContent: 'center', padding: '14px' }}
-                  onClick={handlePracticeSubmit} disabled={practiceLoading || !audioBlob}>
-                  {practiceLoading ? <><RotateCw className="spin" size={18} /> Đang xử lý...</> : <><Send size={18} /> {currentPartIdx < selectedParts.length - 1 ? 'Nộp & Part tiếp theo' : 'Nộp & Đánh giá'}</>}
-                </button>
+                  <button className="btn btn-primary-grad" style={{ width: '100%', justifyContent: 'center', padding: '14px' }}
+                    onClick={handlePracticeSubmit} disabled={practiceLoading || !audioBlob}>
+                    {practiceLoading ? <><RotateCw className="spin" size={18} /> Đang xử lý...</> : <><Send size={18} /> Nộp & Đánh giá</>}
+                  </button>
               </div>
             </div>
           )}

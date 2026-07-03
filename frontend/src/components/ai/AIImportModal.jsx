@@ -35,6 +35,9 @@ export default function AIImportModal({ onClose, onImport, initialSkill = '', in
   const [loadingLabel, setLoadingLabel] = useState('');
   const [error, setError] = useState('');
   const [questionType, setQuestionType] = useState('');
+  const [visionExtract, setVisionExtract] = useState(null);
+  const [editablePassageText, setEditablePassageText] = useState('');
+  const [editableQuestions, setEditableQuestions] = useState([]);
   const fileRef = useRef(null);
 
   useEffect(() => {
@@ -140,16 +143,36 @@ export default function AIImportModal({ onClose, onImport, initialSkill = '', in
     setLoadingLabel('Đang đọc file...');
     setError('');
     try {
-      const parseResp = await aiImportApi.parseDocument(file, skill, testType, mode);
-      const data = parseResp.data;
-      if (data.status !== 'PARSED' || (!data.raw_text && mode !== 'vision')) {
-        setError('Không thể đọc nội dung từ file. Vui lòng thử lại.');
-        setLoading(false);
-        return;
+      if (mode === 'vision') {
+        const resp = await aiImportApi.visionExtract(file, questionType, skill, testType, '');
+        const data = resp.data;
+        if (data.passage_text || data.questions?.length > 0) {
+          setVisionExtract(data);
+          setEditablePassageText(data.passage_text || '');
+          setEditableQuestions(data.questions?.map(q => ({
+            number: q.number || 0,
+            text: q.text || '',
+            options: q.options || [],
+            blank_context: q.blank_context || '',
+            correct_answer: q.correct_answer || '',
+          })) || []);
+          setParseData({ task_id: data.task_id });
+          setStep('vision_review');
+        } else {
+          setError('Vision không thể đọc nội dung từ ảnh. Vui lòng thử OCR hoặc chọn ảnh khác.');
+        }
+      } else {
+        const parseResp = await aiImportApi.parseDocument(file, skill, testType, mode);
+        const data = parseResp.data;
+        if (data.status !== 'PARSED' || !data.raw_text) {
+          setError('Không thể đọc nội dung từ file. Vui lòng thử lại.');
+          setLoading(false);
+          return;
+        }
+        setParseData(data);
+        setEditableText(data.raw_text || '');
+        setStep('review');
       }
-      setParseData(data);
-      setEditableText(data.raw_text || '');
-      setStep('review');
     } catch (err) {
       setError(err.response?.data?.error || err.response?.data?.detail || err.message || 'Parse failed');
     } finally {
@@ -189,6 +212,35 @@ export default function AIImportModal({ onClose, onImport, initialSkill = '', in
     onImport({ preview, targetPartId: targetPartId === '__new__' ? null : targetPartId });
   };
 
+  const handleFormatStructure = async () => {
+    if (!parseData?.task_id && !visionExtract?.task_id) {
+      setError('Không có dữ liệu để format');
+      return;
+    }
+    setLoading(true);
+    setLoadingLabel('AI đang format...');
+    setError('');
+    try {
+      const taskId = parseData?.task_id || visionExtract?.task_id;
+      const partLabel = targetPartId === '__new__' ? '' : partName(targetPartId);
+      const resp = await aiImportApi.formatStructure(
+        taskId, skill, testType, partLabel, questionType,
+        editablePassageText, editableQuestions.filter(q => q.text || q.correct_answer)
+      );
+      const data = resp.data;
+      if (data.status === 'COMPLETED' && data.sections?.length > 0) {
+        setPreview(data);
+        setStep('preview');
+      } else {
+        setError('AI không thể format dữ liệu. Vui lòng kiểm tra lại.');
+      }
+    } catch (err) {
+      setError(err.response?.data?.error || err.response?.data?.detail || err.message || 'Format failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const resetForm = () => {
     setFile(null);
     setMode('ocr');
@@ -196,6 +248,9 @@ export default function AIImportModal({ onClose, onImport, initialSkill = '', in
     setPreview(null);
     setParseData(null);
     setEditableText('');
+    setVisionExtract(null);
+    setEditablePassageText('');
+    setEditableQuestions([]);
     setStep('select');
     setError('');
   };
@@ -538,6 +593,171 @@ export default function AIImportModal({ onClose, onImport, initialSkill = '', in
                 fontSize: 14,
               }}>
                 {loading ? `🔄 ${loadingLabel}` : mode === 'vision' ? '🤖 Gửi Lên AI Vision' : '🤖 Gửi lên AI Phân Tích'}
+              </button>
+            </div>
+          </>
+        )}
+
+        {step === 'vision_review' && (
+          <>
+            <div style={{
+              backgroundColor: '#f0f9ff', border: '1px solid #bae6fd',
+              borderRadius: 8, padding: 14, marginBottom: 16,
+            }}>
+              <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 4 }}>
+                📝 Nội dung Vision đã trích xuất
+              </div>
+              <div style={{ fontSize: 13, color: '#555' }}>
+                Kiểm tra và chỉnh sửa nội dung bên dưới, sau đó bấm "Xác nhận & Gửi lên AI Format" để AI tạo cấu trúc đề thi hoàn chỉnh.
+              </div>
+            </div>
+
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 4 }}>
+                Passage / Nội dung chính
+              </label>
+              <textarea value={editablePassageText} onChange={e => setEditablePassageText(e.target.value)}
+                style={{
+                  width: '100%', minHeight: 120, padding: 10, fontSize: 13,
+                  border: '1px solid #ddd', borderRadius: 8, fontFamily: 'monospace',
+                  lineHeight: 1.5, resize: 'vertical', whiteSpace: 'pre-wrap',
+                }} />
+            </div>
+
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <label style={{ fontSize: 13, fontWeight: 600 }}>Câu hỏi ({editableQuestions.length})</label>
+                <button onClick={() => {
+                  setEditableQuestions([...editableQuestions, {
+                    number: editableQuestions.length + 1, text: '',
+                    options: [], blank_context: '', correct_answer: '',
+                  }]);
+                }} style={{
+                  padding: '4px 12px', borderRadius: 6, border: '1px solid #2563eb',
+                  backgroundColor: '#eff6ff', color: '#2563eb', cursor: 'pointer', fontSize: 12, fontWeight: 600,
+                }}>+ Thêm câu hỏi</button>
+              </div>
+              {editableQuestions.map((q, qi) => (
+                <div key={qi} style={{
+                  border: '1px solid #e5e7eb', borderRadius: 8, padding: 10,
+                  marginBottom: 8, backgroundColor: '#fafafa',
+                }}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6 }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: '#555', minWidth: 20 }}>Q</span>
+                    <input value={q.number} onChange={e => {
+                      const items = [...editableQuestions];
+                      items[qi] = { ...items[qi], number: parseInt(e.target.value) || 0 };
+                      setEditableQuestions(items);
+                    }} type="number" min="0" style={{
+                      width: 60, padding: '4px 8px', borderRadius: 4, border: '1px solid #ddd', fontSize: 13,
+                    }} />
+                    <input value={q.text} onChange={e => {
+                      const items = [...editableQuestions];
+                      items[qi] = { ...items[qi], text: e.target.value };
+                      setEditableQuestions(items);
+                    }} placeholder="Nội dung câu hỏi..." style={{
+                      flex: 1, padding: '4px 8px', borderRadius: 4, border: '1px solid #ddd',
+                      fontSize: 13, minWidth: 100,
+                    }} />
+                    <button onClick={() => {
+                      setEditableQuestions(editableQuestions.filter((_, i) => i !== qi));
+                    }} style={{
+                      background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: 16,
+                    }}>×</button>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <div style={{ flex: 1, minWidth: 120 }}>
+                      <label style={{ fontSize: 11, color: '#666', display: 'block' }}>Đáp án đúng</label>
+                      <input value={q.correct_answer} onChange={e => {
+                        const items = [...editableQuestions];
+                        items[qi] = { ...items[qi], correct_answer: e.target.value };
+                        setEditableQuestions(items);
+                      }} placeholder="VD: B, Paris, hotel..." style={{
+                        width: '100%', padding: '4px 8px', borderRadius: 4,
+                        border: '1px solid #ddd', fontSize: 12,
+                      }} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 120 }}>
+                      <label style={{ fontSize: 11, color: '#666', display: 'block' }}>Blank context</label>
+                      <input value={q.blank_context} onChange={e => {
+                        const items = [...editableQuestions];
+                        items[qi] = { ...items[qi], blank_context: e.target.value };
+                        setEditableQuestions(items);
+                      }} placeholder="(nếu có)..." style={{
+                        width: '100%', padding: '4px 8px', borderRadius: 4,
+                        border: '1px solid #ddd', fontSize: 12,
+                      }} />
+                    </div>
+                  </div>
+                  {q.options?.length > 0 && (
+                    <div style={{ marginTop: 6 }}>
+                      <label style={{ fontSize: 11, color: '#666', display: 'block', marginBottom: 4 }}>Options:</label>
+                      {q.options.map((opt, oi) => (
+                        <div key={oi} style={{ display: 'flex', gap: 4, marginBottom: 2, alignItems: 'center' }}>
+                          <span style={{ fontSize: 12, fontWeight: 600, minWidth: 20 }}>{opt.label}:</span>
+                          <input value={opt.text} onChange={e => {
+                            const items = [...editableQuestions];
+                            items[qi].options = [...items[qi].options];
+                            items[qi].options[oi] = { ...items[qi].options[oi], text: e.target.value };
+                            setEditableQuestions(items);
+                          }} style={{
+                            flex: 1, padding: '2px 6px', borderRadius: 4,
+                            border: '1px solid #ddd', fontSize: 12,
+                          }} />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+              <div style={{ flex: 1, minWidth: 200 }}>
+                <label style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 4 }}>
+                  Loại câu hỏi
+                </label>
+                <select value={questionType} onChange={e => setQuestionType(e.target.value)}
+                  style={{
+                    padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd',
+                    width: '100%', fontSize: 14, backgroundColor: '#fff',
+                  }}>
+                  <option value="">Tự động (AI tự đoán)</option>
+                  <optgroup label="─ Điền / Ghi ─">
+                    <option value="FILL_BLANK">Fill Blank / Note</option>
+                    <option value="SENTENCE_COMPLETION">Sentence Completion</option>
+                    <option value="SHORT_ANSWER">Short Answer</option>
+                    <option value="SUMMARY_COMPLETION">Summary Completion</option>
+                    <option value="TABLE_COMPLETION">Table Completion</option>
+                    <option value="FORM_COMPLETION">Form Completion</option>
+                  </optgroup>
+                  <optgroup label="─ Chọn ─">
+                    <option value="MCQ">Multiple Choice (MCQ)</option>
+                    <option value="TFNG">True / False / NG</option>
+                    <option value="MATCHING">Matching</option>
+                    <option value="MATCHING_HEADINGS">Matching Headings</option>
+                    <option value="SHARED_OPTIONS_DROPDOWN">Dropdown (lựa chọn chung)</option>
+                  </optgroup>
+                  <optgroup label="─ Khác ─">
+                    <option value="FLOW_CHART">Flow-chart</option>
+                    <option value="DIAGRAM_LABELLING">Diagram Labelling</option>
+                  </optgroup>
+                </select>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button onClick={() => { setStep('review'); }} style={{
+                padding: '8px 20px', borderRadius: 8, border: '1px solid #ddd',
+                backgroundColor: '#fff', cursor: 'pointer', fontSize: 14,
+              }}>← Quay lại</button>
+              <button onClick={handleFormatStructure} disabled={loading} style={{
+                padding: '8px 20px', borderRadius: 8, border: 'none',
+                backgroundColor: loading ? '#ccc' : '#059669',
+                color: '#fff', fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer',
+                fontSize: 14,
+              }}>
+                {loading ? `🔄 ${loadingLabel}` : '🤖 Xác nhận & Gửi lên AI Format'}
               </button>
             </div>
           </>

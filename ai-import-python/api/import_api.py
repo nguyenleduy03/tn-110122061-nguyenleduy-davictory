@@ -7,7 +7,7 @@ from loguru import logger
 from core.orchestrator import ImportOrchestrator
 from core.ai_structurer import StructurerError
 from infrastructure.backend_client import BackendClientError
-from models.import_models import CreateRequest, StructureRequest
+from models.import_models import CreateRequest, StructureRequest, FormatRequest
 
 router = APIRouter(prefix="/api/ai/import", tags=["ai-import"])
 orch = ImportOrchestrator()
@@ -48,6 +48,45 @@ async def structure_document(req: StructureRequest):
         raise HTTPException(422, str(e))
     except Exception as e:
         logger.error(f"  Lỗi structure: {e}")
+        raise HTTPException(500, str(e))
+
+
+@router.post("/vision-extract")
+async def vision_extract(
+    file: UploadFile = File(...),
+    question_type: str = Form(""),
+    skill_hint: str = Form(""),
+    test_type: str = Form("ACADEMIC"),
+    part: str = Form(""),
+):
+    logger.info(f"POST /vision-extract - file={file.filename}, qtype={question_type}, skill={skill_hint}")
+    try:
+        content = await file.read()
+        if not content:
+            raise HTTPException(400, "Empty file")
+        result = await orch.vision_extract(content, file.filename or "upload",
+                                            question_type, skill_hint, test_type, part)
+        return result.model_dump()
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"  Lỗi vision extract: {e}")
+        raise HTTPException(500, str(e))
+
+
+@router.post("/format-structure")
+async def format_structure(req: FormatRequest):
+    logger.info(f"POST /format-structure - task_id={req.task_id}, qtype={req.question_type}, skill={req.skill}, questions={len(req.questions)}")
+    try:
+        preview = await orch.format_structure(
+            req.task_id, req.passage_text, [q.model_dump() for q in req.questions],
+            req.question_type, req.skill, req.test_type, req.part)
+        return preview.model_dump()
+    except StructurerError as e:
+        logger.error(f"  Lỗi format structure: {e}")
+        raise HTTPException(422, str(e))
+    except Exception as e:
+        logger.error(f"  Lỗi format structure: {e}")
         raise HTTPException(500, str(e))
 
 

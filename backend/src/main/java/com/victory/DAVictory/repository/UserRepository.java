@@ -43,6 +43,14 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
     long countActiveByRoleName(@Param("roleName") String roleName);
 
     long countByDeletedAtIsNullAndLastLoginBetween(LocalDateTime start, LocalDateTime end);
+
+    long countByDeletedAtIsNullAndCreatedAtBetween(LocalDateTime start, LocalDateTime end);
+
+    @Query("SELECT FUNCTION('DATE', u.createdAt) AS date, COUNT(u) AS cnt FROM User u WHERE u.deletedAt IS NULL AND u.createdAt BETWEEN :from AND :to GROUP BY FUNCTION('DATE', u.createdAt) ORDER BY date ASC")
+    List<Object[]> countRegistrationsByDate(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
+
+    @Query("SELECT FUNCTION('DATE', u.lastLogin) AS date, COUNT(u) AS cnt FROM User u WHERE u.deletedAt IS NULL AND u.lastLogin IS NOT NULL AND u.lastLogin BETWEEN :from AND :to GROUP BY FUNCTION('DATE', u.lastLogin) ORDER BY date ASC")
+    List<Object[]> countLoginsByDate(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
     
     @Query("SELECT u FROM User u JOIN u.roles r WHERE r.id = :roleId")
     List<User> findByRoleId(@Param("roleId") Long roleId);

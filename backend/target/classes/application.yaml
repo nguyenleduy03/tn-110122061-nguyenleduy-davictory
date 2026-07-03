@@ -2,7 +2,7 @@ spring:
   application:
     name: DAVictory
   datasource:
-    url: jdbc:mysql://localhost:3306/DAVictory?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&cachePrepStmts=true&useServerPrepStmts=true&rewriteBatchedStatements=true
+    url: jdbc:mysql://localhost:3306/DAVictory?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&cachePrepStmts=true&useServerPrepStmts=true&rewriteBatchedStatements=true&zeroDateTimeBehavior=convertToNull
     username: root
     password: 1111
     driver-class-name: com.mysql.cj.jdbc.Driver

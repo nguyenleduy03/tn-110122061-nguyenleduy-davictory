@@ -158,4 +158,47 @@ public class AIBridgeService {
             return Map.of("taskId", taskId, "status", "UNKNOWN");
         }
     }
+
+    public Map<String, Object> importVisionExtract(byte[] content, String filename,
+                                                     String questionType, String skillHint,
+                                                     String testType, String part) {
+        log.info("AI import vision extract: {} ({} bytes), qtype={}", filename, content.length, questionType);
+        try {
+            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+            body.add("file", new ByteArrayResource(content) {
+                @Override
+                public String getFilename() { return filename; }
+            });
+            body.add("question_type", questionType != null ? questionType : "");
+            body.add("skill_hint", skillHint != null ? skillHint : "");
+            body.add("test_type", testType != null ? testType : "ACADEMIC");
+            body.add("part", part != null ? part : "");
+
+            var response = restClient.post()
+                .uri(aiImportServiceUrl + "/api/ai/import/vision-extract")
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .body(body)
+                .retrieve()
+                .body(Map.class);
+            return response;
+        } catch (Exception e) {
+            log.error("AI import vision extract failed: {}", e.getMessage());
+            throw new AIGradingException("Vision extract failed: " + e.getMessage());
+        }
+    }
+
+    public Map<String, Object> importFormatStructure(Map<String, Object> request) {
+        log.info("AI import format structure: qtype={}", request.getOrDefault("question_type", "?"));
+        try {
+            var response = restClient.post()
+                .uri(aiImportServiceUrl + "/api/ai/import/format-structure")
+                .body(request)
+                .retrieve()
+                .body(Map.class);
+            return response;
+        } catch (Exception e) {
+            log.error("AI import format structure failed: {}", e.getMessage());
+            throw new AIGradingException("Format structure failed: " + e.getMessage());
+        }
+    }
 }

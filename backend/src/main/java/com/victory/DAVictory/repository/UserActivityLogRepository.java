@@ -3,6 +3,8 @@ package com.victory.DAVictory.repository;
 import com.victory.DAVictory.entity.User;
 import com.victory.DAVictory.entity.UserActivityLog;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
@@ -26,4 +28,9 @@ public interface UserActivityLogRepository extends JpaRepository<UserActivityLog
     List<UserActivityLog> findByCreatedAtBetween(LocalDateTime startDate, LocalDateTime endDate);
     
     List<UserActivityLog> findByUserIdAndCreatedAtBetween(Long userId, LocalDateTime startDate, LocalDateTime endDate);
+
+    long countByActionAndCreatedAtBetween(String action, LocalDateTime startDate, LocalDateTime endDate);
+
+    @Query("SELECT FUNCTION('DATE', l.createdAt) AS date, COUNT(l) AS cnt FROM UserActivityLog l WHERE l.action = :action AND l.createdAt BETWEEN :from AND :to GROUP BY FUNCTION('DATE', l.createdAt) ORDER BY date ASC")
+    List<Object[]> countByActionAndCreatedAtBetweenGroupByDate(@Param("action") String action, @Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 }

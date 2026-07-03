@@ -19,6 +19,8 @@ _HERE = Path(__file__).parent.parent
 
 
 class ScoringPipeline:
+    _english_words: set[str] | None = None
+
     def __init__(self, provider: str | None = None):
         if provider is None:
             provider = get_settings().scoring_provider or "nvidia"
@@ -28,6 +30,30 @@ class ScoringPipeline:
             self.llm = GroqClient()
         else:
             self.llm = OpenAIClient()
+
+    @classmethod
+    def _load_english_words(cls) -> set[str]:
+        if cls._english_words is not None:
+            return cls._english_words
+        try:
+            with open("/usr/share/dict/words") as f:
+                cls._english_words = {w.strip().lower() for w in f if w.strip() and not w.startswith("#")}
+            logger.info(f"Loaded {len(cls._english_words)} English words from dictionary")
+        except Exception:
+            logger.warning("English dictionary not available, skipping content quality check")
+            cls._english_words = set()
+        return cls._english_words
+
+    @classmethod
+    def _meaningful_word_ratio(cls, text: str) -> float:
+        words = re.findall(r"\b[a-zA-Z]+\b", text)
+        if not words:
+            return 0.0
+        eng = cls._load_english_words()
+        if not eng:
+            return 1.0
+        matches = sum(1 for w in words if w.lower() in eng)
+        return matches / len(words)
 
     def _get_criterion(self, c: dict, keys: list[str], code: str, name: str) -> CriteriaScore:
         d = {}
@@ -47,6 +73,40 @@ class ScoringPipeline:
                        features: FeatureAnalysis, pronunciation: PronunciationResult,
                        part: str = "PART2") -> SpeakingResult:
         rubric = load_rubric()
+
+        # Gate: insufficient content → skip LLM, return low score
+        if features.word_count == 0:
+            return SpeakingResult(session_id=session_id, user_id=user_id, overall_band=1.0,
+                fluency_coherence=CriteriaScore(code="FC", display_name="Fluency & Coherence", band=1.0, weaknesses=["No response provided"], detailed_feedback="No speech detected"),
+                lexical_resource=CriteriaScore(code="LR", display_name="Lexical Resource", band=1.0, weaknesses=["No language produced"], detailed_feedback="No speech detected"),
+                grammatical_range=CriteriaScore(code="GRA", display_name="Grammatical Range & Accuracy", band=1.0, weaknesses=["No language produced"], detailed_feedback="No speech detected"),
+                pronunciation=CriteriaScore(code="P", display_name="Pronunciation", band=1.0, weaknesses=["No speech detected"], detailed_feedback="No speech detected"),
+                overall_feedback="No response provided. Please speak at least a complete sentence.",
+                improvement_priority=["Provide a spoken response to evaluate"],
+                confidence_score=1.0, status="COMPLETED")
+
+        if features.word_count < 8:
+            return SpeakingResult(session_id=session_id, user_id=user_id, overall_band=1.0,
+                fluency_coherence=CriteriaScore(code="FC", display_name="Fluency & Coherence", band=1.0, weaknesses=["Response too short to assess fluency"], detailed_feedback="Response too short"),
+                lexical_resource=CriteriaScore(code="LR", display_name="Lexical Resource", band=1.0, weaknesses=["Insufficient vocabulary to assess"], detailed_feedback="Response too short"),
+                grammatical_range=CriteriaScore(code="GRA", display_name="Grammatical Range & Accuracy", band=1.0, weaknesses=["Insufficient grammar to assess"], detailed_feedback="Response too short"),
+                pronunciation=CriteriaScore(code="P", display_name="Pronunciation", band=1.0, weaknesses=["Limited speech sample to assess pronunciation"], detailed_feedback="Response too short"),
+                overall_feedback="Response too short for accurate assessment. Please speak at least one complete sentence (8+ words).",
+                improvement_priority=["Speak more — at least one full sentence"],
+                confidence_score=1.0, status="COMPLETED")
+
+        # Gate: check for meaningful English content (gibberish detection)
+        answer_text = " ".join(t.answer_text for t in turns if t.answer_text.strip())
+        if self._meaningful_word_ratio(answer_text) < 0.5:
+            return SpeakingResult(session_id=session_id, user_id=user_id, overall_band=1.0,
+                fluency_coherence=CriteriaScore(code="FC", display_name="Fluency & Coherence", band=1.0, weaknesses=["Response contains little to no meaningful English"], detailed_feedback="Nonsense or gibberish detected"),
+                lexical_resource=CriteriaScore(code="LR", display_name="Lexical Resource", band=1.0, weaknesses=["No meaningful vocabulary to assess"], detailed_feedback="Nonsense or gibberish detected"),
+                grammatical_range=CriteriaScore(code="GRA", display_name="Grammatical Range & Accuracy", band=1.0, weaknesses=["No meaningful grammar to assess"], detailed_feedback="Nonsense or gibberish detected"),
+                pronunciation=CriteriaScore(code="P", display_name="Pronunciation", band=1.0, weaknesses=["Unintelligible speech"], detailed_feedback="Nonsense or gibberish detected"),
+                overall_feedback="Response does not contain enough meaningful English to evaluate. Please answer in real English sentences.",
+                improvement_priority=["Respond using real English words and sentences"],
+                confidence_score=1.0, status="COMPLETED")
+
         system = self._load("templates/system_role.txt") or "You are an official IELTS Speaking Examiner."
         schema = self._load("templates/output_schema.json") or json.dumps({"overallBand": 6.0, "criteria": {}, "overallFeedback": "", "improvementPriority": [], "confidenceScore": 0.85}, indent=2)
 

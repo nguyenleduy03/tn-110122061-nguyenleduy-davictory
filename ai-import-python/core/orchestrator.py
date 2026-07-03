@@ -5,7 +5,7 @@ from pathlib import Path
 
 from loguru import logger
 
-from models.import_models import ParseResult, ParseResponse, PreviewResponse, CreateResponse, StatusResponse, SectionPreview
+from models.import_models import ParseResult, ParseResponse, PreviewResponse, CreateResponse, StatusResponse, SectionPreview, VisionExtractResponse, ExtractionItem
 from core.parser_factory import ParserFactory
 from core.ai_structurer import AIStructurer, StructurerError
 from core.test_mapper import TestMapper
@@ -135,6 +135,69 @@ class ImportOrchestrator:
 
     def get_parsed_text(self, task_id: str) -> str | None:
         return self.cache.get(f"raw_{task_id}")
+
+    async def vision_extract(self, content: bytes, filename: str,
+                              question_type: str = "", skill_hint: str = "",
+                              test_type: str = "ACADEMIC",
+                              part: str = "") -> VisionExtractResponse:
+        task_id = str(uuid.uuid4())[:8]
+        self._tasks[task_id] = {"status": "EXTRACTING"}
+        logger.info(f"[{task_id}] Vision extract: {filename}, qtype={question_type}, skill={skill_hint}")
+
+        ext = Path(filename).suffix.lower()
+        mime = "image/png" if ext == ".png" else "image/jpeg"
+        self.cache.put(f"img_{task_id}", content)
+
+        try:
+            result = await self.structurer.extract_from_image(
+                content, mime, question_type, skill_hint, test_type, part)
+            items = []
+            for q in result.get("questions", []):
+                items.append(ExtractionItem(
+                    number=q.get("number", 0),
+                    text=q.get("text", ""),
+                    options=q.get("options", []),
+                    blank_context=q.get("blank_context", ""),
+                    correct_answer=q.get("correct_answer", ""),
+                ))
+            resp = VisionExtractResponse(
+                task_id=task_id,
+                passage_text=result.get("passage_text", ""),
+                questions=items,
+                has_table=result.get("has_table", False),
+                suggested_skill=result.get("suggested_skill", ""),
+                suggested_part=result.get("suggested_part", ""),
+                raw_ai_output=result.get("raw_ai_output", ""),
+            )
+            self.cache.put(task_id, resp)
+            self._tasks[task_id] = {"status": "EXTRACTED"}
+            logger.info(f"[{task_id}] Vision extract done: {len(items)} questions")
+            return resp
+        except StructurerError as e:
+            self._tasks[task_id] = {"status": "FAILED"}
+            logger.error(f"[{task_id}] Vision extract failed: {e}")
+            return VisionExtractResponse(task_id=task_id, status="FAILED")
+
+    async def format_structure(self, task_id: str, passage_text: str,
+                                questions: list, question_type: str,
+                                skill: str, test_type: str = "ACADEMIC",
+                                part: str = "") -> PreviewResponse:
+        self._tasks[task_id] = {"status": "FORMATTING"}
+        logger.info(f"[{task_id}] Format structure: qtype={question_type}, skill={skill}, questions={len(questions)}")
+
+        try:
+            preview = await self.structurer.format_structure(
+                passage_text, questions, question_type, skill, test_type, part)
+            preview.task_id = task_id
+            preview.skill = skill
+            self._tasks[task_id] = {"status": "COMPLETED", "result": preview}
+            self.cache.put(task_id, preview)
+            logger.info(f"[{task_id}] Format done: {preview.total_questions} questions")
+            return preview
+        except StructurerError as e:
+            self._tasks[task_id] = {"status": "FAILED"}
+            logger.error(f"[{task_id}] Format failed: {e}")
+            raise
 
     def _detect_skill(self, text: str) -> str:
         upper = text.upper()[:5000]

@@ -17,6 +17,7 @@ VALID_QUESTION_TYPES = {
     "FLOW_CHART", "DIAGRAM_LABELLING", "MATCHING_HEADINGS", "MATCHING",
     "WRITING_TASK1", "WRITING_TASK2", "SPEAKING_PART1", "SPEAKING_PART2",
     "SPEAKING_PART3", "FORM_COMPLETION", "TABLE_COMPLETION",
+    "SHARED_OPTIONS_DROPDOWN",
 }
 
 VALID_SKILLS = {"LISTENING", "READING", "WRITING", "SPEAKING"}
@@ -24,25 +25,34 @@ VALID_SKILLS = {"LISTENING", "READING", "WRITING", "SPEAKING"}
 VALID_CONTENT_TYPES = {
     "READING_PASSAGE", "TABLE", "FLOW_CHART", "DIAGRAM",
     "WRITING_PASSAGE", "SPEAKING_INTERVIEW", "SPEAKING_CUECARD",
-    "SPEAKING_DISCUSSION"
+    "SPEAKING_DISCUSSION", "NOTE_COMPLETION", "TABLE_COMPLETION",
+    "TRUE_FALSE_NG", "MULTIPLE_CHOICE_GROUP", "SHORT_ANSWER_GROUP",
+    "SENTENCE_COMPLETION", "SUMMARY_COMPLETION", "MATCHING_HEADING",
+    "DRAG_MATCHING", "MATCHING_FEATURES", "SHARED_OPTIONS_DROPDOWN",
 }
 
 SKILL_QUESTION_TYPES = {
     "LISTENING": {"MCQ", "FILL_BLANK", "SHORT_ANSWER", "NOTE_COMPLETION",
                   "SENTENCE_COMPLETION", "FORM_COMPLETION", "TABLE_COMPLETION",
-                  "MATCHING", "MATCHING_HEADINGS"},
+                  "MATCHING", "MATCHING_HEADINGS", "SHARED_OPTIONS_DROPDOWN"},
     "READING": {"MCQ", "TFNG", "YNNG", "MATCHING_HEADINGS", "MATCHING",
                 "FILL_BLANK", "SHORT_ANSWER", "SENTENCE_COMPLETION",
                 "SUMMARY_COMPLETION", "NOTE_COMPLETION", "FLOW_CHART",
-                "DIAGRAM_LABELLING", "TABLE_COMPLETION"},
+                "DIAGRAM_LABELLING", "TABLE_COMPLETION", "SHARED_OPTIONS_DROPDOWN"},
     "WRITING": {"WRITING_TASK1", "WRITING_TASK2"},
     "SPEAKING": {"SPEAKING_PART1", "SPEAKING_PART2", "SPEAKING_PART3"},
 }
 
 
 _SKILL_CONTENT_TYPES = {
-    "LISTENING": {"READING_PASSAGE", "TABLE", "NOTE_COMPLETION", "TABLE_COMPLETION"},
-    "READING": {"READING_PASSAGE", "TABLE", "FLOW_CHART", "DIAGRAM", "TABLE_COMPLETION"},
+    "LISTENING": {"READING_PASSAGE", "TABLE", "NOTE_COMPLETION", "TABLE_COMPLETION",
+                  "TRUE_FALSE_NG", "MULTIPLE_CHOICE_GROUP", "SHORT_ANSWER_GROUP",
+                  "SENTENCE_COMPLETION", "MATCHING_HEADING", "DRAG_MATCHING",
+                  "MATCHING_FEATURES", "SHARED_OPTIONS_DROPDOWN"},
+    "READING": {"READING_PASSAGE", "TABLE", "FLOW_CHART", "DIAGRAM", "TABLE_COMPLETION",
+                "TRUE_FALSE_NG", "MULTIPLE_CHOICE_GROUP", "SHORT_ANSWER_GROUP",
+                "SENTENCE_COMPLETION", "SUMMARY_COMPLETION", "MATCHING_HEADING",
+                "DRAG_MATCHING", "MATCHING_FEATURES", "SHARED_OPTIONS_DROPDOWN"},
     "WRITING": {"WRITING_PASSAGE"},
     "SPEAKING": {"SPEAKING_INTERVIEW", "SPEAKING_CUECARD", "SPEAKING_DISCUSSION"},
 }
@@ -58,6 +68,7 @@ _QUESTION_CONTENT_MAP = {
     "WRITING_TASK1": "WRITING_PASSAGE", "WRITING_TASK2": "WRITING_PASSAGE",
     "SPEAKING_PART1": "SPEAKING_INTERVIEW", "SPEAKING_PART2": "SPEAKING_CUECARD",
     "SPEAKING_PART3": "SPEAKING_DISCUSSION",
+    "SHARED_OPTIONS_DROPDOWN": "SHARED_OPTIONS_DROPDOWN",
 }
 
 
@@ -161,6 +172,200 @@ class AIStructurer:
         except Exception as e:
             logger.error(f"Structure from image failed: {e}")
             raise StructurerError(str(e))
+
+    _TYPE_TEMPLATES = {
+        "MCQ": '''"groups": [{"title": "Questions 1-5","question_type": "MCQ","content_type": "READING_PASSAGE","instructions": "","passage_text": "The passage text...","questions": [{"number": 1,"text": "Question text?","options": [{"label": "A","text": "Option A","correct": false},{"label": "B","text": "Option B","correct": true}],"answers": [],"correct_answer": "B"}]}]''',
+        "TFNG": '''"groups": [{"title": "Questions 1-5","question_type": "TFNG","content_type": "TRUE_FALSE_NG","instructions": "Do the following statements agree with the information...","passage_text": "","questions": [{"number": 1,"text": "Statement 1","options": [{"label":"TRUE","text":"TRUE","correct":false},{"label":"FALSE","text":"FALSE","correct":true},{"label":"NOT GIVEN","text":"NOT GIVEN","correct":false}],"answers": [],"correct_answer": "FALSE"}]}]''',
+        "YNNG": '''"groups": [{"title": "Questions 1-5","question_type": "YNNG","content_type": "TRUE_FALSE_NG","instructions": "","passage_text": "","questions": [{"number": 1,"text": "Statement 1","options": [{"label":"YES","text":"YES","correct":false},{"label":"NO","text":"NO","correct":true},{"label":"NOT GIVEN","text":"NOT GIVEN","correct":false}],"answers": [],"correct_answer": "NO"}]}]''',
+        "FILL_BLANK": '''"groups": [{"title": "Questions 1-5","question_type": "FILL_BLANK","content_type": "READING_PASSAGE","instructions": "Complete the sentences below. Write NO MORE THAN TWO WORDS...","passage_text": "The _____ is located near the river. You can see _____ from the window.","questions": [{"number": 1,"text": "The ______ is located near the river.","options": [],"answers": [{"text": "hotel","alternativeAnswers": "", "blankIndex": 0}],"correct_answer": "hotel"}]}]''',
+        "SHORT_ANSWER": '''"groups": [{"title": "Questions 1-5","question_type": "SHORT_ANSWER","content_type": "READING_PASSAGE","instructions": "Answer the questions below. Write NO MORE THAN THREE WORDS...","passage_text": "","questions": [{"number": 1,"text": "What is the capital of France?","options": [],"answers": [{"text": "Paris","blankIndex": 0}],"correct_answer": "Paris"}]}]''',
+        "SENTENCE_COMPLETION": '''"groups": [{"title": "Questions 1-5","question_type": "SENTENCE_COMPLETION","content_type": "READING_PASSAGE","instructions": "Complete the sentences below.","passage_text": "","questions": [{"number": 1,"text": "The museum was founded in ______.","options": [],"answers": [{"text": "1850","blankIndex": 0}],"correct_answer": "1850"}]}]''',
+        "SUMMARY_COMPLETION": '''"groups": [{"title": "Questions 1-5","question_type": "SUMMARY_COMPLETION","content_type": "SUMMARY_COMPLETION","instructions": "Complete the summary using the list of words...","passage_text": "The _____ is an important concept in modern physics. It was first proposed by _____ in the early 20th century.","questions": [{"number": 1,"text": "The ______ is an important concept...","options": [],"answers": [{"text": "theory of relativity","blankIndex": 0}],"correct_answer": "theory of relativity"}]}]''',
+        "NOTE_COMPLETION": '''"groups": [{"title": "Questions 1-5","question_type": "NOTE_COMPLETION","content_type": "NOTE_COMPLETION","instructions": "Complete the notes below.","passage_text": "Notes:\\n- Location: _____\\n- Date: _____\\n- Purpose: _____","questions": [{"number": 1,"text": "Location: ______","options": [],"answers": [{"text": "London","blankIndex": 0}],"correct_answer": "London"}]}]''',
+        "FORM_COMPLETION": '''"groups": [{"title": "Questions 1-5","question_type": "FORM_COMPLETION","content_type": "NOTE_COMPLETION","instructions": "Complete the form below.","passage_text": "Customer Name: _____\\nDate of Birth: _____\\nAddress: _____","questions": [{"number": 1,"text": "Customer Name: ______","options": [],"answers": [{"text": "John Smith","blankIndex": 0}],"correct_answer": "John Smith"}]}]''',
+        "TABLE_COMPLETION": '''"groups": [{"title": "Questions 1-5","question_type": "TABLE_COMPLETION","content_type": "TABLE_COMPLETION","instructions": "Complete the table below.","passage_text": "| City | Population | Country |\\n| --- | --- | --- |\\n| London | _____ | England |\\n| Paris | 2.1M | _____ |","questions": [{"number": 1,"text": "London population: ______","options": [],"answers": [{"text": "8.9M","blankIndex": 0}],"correct_answer": "8.9M"}]}]''',
+        "FLOW_CHART": '''"groups": [{"title": "Questions 1-5","question_type": "FLOW_CHART","content_type": "FLOW_CHART","instructions": "Complete the flow-chart.","passage_text": "Start → Step 1: _____ → Step 2: _____ → End","questions": [{"number": 1,"text": "Step 1: ______","options": [],"answers": [{"text": "Mix ingredients","blankIndex": 0}],"correct_answer": "Mix ingredients"}]}]''',
+        "DIAGRAM_LABELLING": '''"groups": [{"title": "Questions 1-5","question_type": "DIAGRAM_LABELLING","content_type": "DIAGRAM","instructions": "Label the diagram below.","passage_text": "Diagram description: ...","questions": [{"number": 1,"text": "Label part A: ______","options": [],"answers": [{"text": "engine","blankIndex": 0}],"correct_answer": "engine"}]}]''',
+        "MATCHING_HEADINGS": '''"groups": [{"title": "Questions 1-5","question_type": "MATCHING_HEADINGS","content_type": "MATCHING_HEADING","instructions": "Choose the correct heading for each paragraph.","passage_text": "","questions": [{"number": 1,"text": "Paragraph A","options": [{"label":"i","text":"Introduction to the topic","correct":true},{"label":"ii","text":"Historical background","correct":false}],"answers": [],"correct_answer": "i"}]}]''',
+        "MATCHING": '''"groups": [{"title": "Questions 1-5","question_type": "MATCHING","content_type": "MATCHING_FEATURES","instructions": "Match each statement with the correct person.","passage_text": "","questions": [{"number": 1,"text": "Discovered penicillin","options": [{"label":"A","text":"Alexander Fleming","correct":true},{"label":"B","text":"Marie Curie","correct":false}],"answers": [],"correct_answer": "A"}]}]''',
+        "WRITING_TASK1": '''"groups": [{"title": "Writing Task 1","question_type": "WRITING_TASK1","content_type": "WRITING_PASSAGE","instructions": "","passage_text": "The chart below shows...","questions": [{"number": 1,"text":"Write at least 150 words.","options":[],"answers":[],"correct_answer":""}]}]''',
+        "WRITING_TASK2": '''"groups": [{"title": "Writing Task 2","question_type": "WRITING_TASK2","content_type": "WRITING_PASSAGE","instructions": "","passage_text": "Some people think that...","questions": [{"number": 1,"text":"Write at least 250 words.","options":[],"answers":[],"correct_answer":""}]}]''',
+        "SPEAKING_PART1": '''"groups": [{"title": "Speaking Part 1","question_type": "SPEAKING_PART1","content_type": "SPEAKING_INTERVIEW","instructions": "The examiner asks you about yourself.","passage_text": "","questions": [{"number":1,"text":"Do you work or study?","options":[],"answers":[],"correct_answer":""}]}]''',
+        "SPEAKING_PART2": '''"groups": [{"title": "Speaking Part 2","question_type": "SPEAKING_PART2","content_type": "SPEAKING_CUECARD","instructions": "You will have 1 minute to prepare.","passage_text": "Describe a place you visited...","questions": [{"number":1,"text":"Describe a place you visited.","options":[],"answers":[],"correct_answer":""}]}]''',
+        "SPEAKING_PART3": '''"groups": [{"title": "Speaking Part 3","question_type": "SPEAKING_PART3","content_type": "SPEAKING_DISCUSSION","instructions": "The examiner asks further questions.","passage_text": "","questions": [{"number":1,"text":"What are the advantages of...?","options":[],"answers":[],"correct_answer":""}]}]''',
+        "SHARED_OPTIONS_DROPDOWN": '''"groups": [{"title": "Questions 1-5","question_type": "SHARED_OPTIONS_DROPDOWN","content_type": "SHARED_OPTIONS_DROPDOWN","instructions": "","passage_text": "The passage text with shared options table...","questions": [{"number": 25,"text": "Item 1","options": [],"answers": [{"text": "A","blankIndex": 0}],"correct_answer": "A"},{"number": 26,"text": "Item 2","options": [],"answers": [],"correct_answer": ""}]}]''',
+    }
+
+    def _get_type_template(self, question_type: str) -> str:
+        return self._TYPE_TEMPLATES.get(question_type, self._TYPE_TEMPLATES.get("MCQ", ""))
+
+    async def extract_from_image(self, image_bytes: bytes, image_mime: str,
+                                  question_type: str = "", skill_hint: str = "",
+                                  test_type: str = "ACADEMIC",
+                                  part: str = "") -> dict:
+        """Vision chỉ đọc ảnh, trả về component thô (passage_text, questions, ...)."""
+        skill = skill_hint or "READING"
+        header = ""
+        if skill_hint:
+            header += f"Skill: {skill_hint}\n"
+        if part:
+            header += f"Part: {part}\n"
+        if question_type:
+            header += f"Question Type: {question_type}\n"
+        header += f"Test Type: {test_type}\n\n"
+
+        if question_type:
+            template = self._get_type_template(question_type)
+            extra_instruction = ""
+            if question_type == "SHARED_OPTIONS_DROPDOWN":
+                extra_instruction = (
+                    "Put the shared options table (letter + description) into passage_text as a markdown table. "
+                    "Each question should have empty options array and correct_answer as a letter (A, B, C...).\n"
+                )
+            system = (
+                "You are an IELTS test expert. Extract questions and content from the image.\n"
+                f"The user specified question type = \"{question_type}\". Focus on extracting components for this type.\n"
+                "Return ONLY valid JSON in this format:\n"
+                '{"passage_text": "...","questions":[{"number":1,"text":"...","options":[{"label":"A","text":"..."}],"blank_context":"...","correct_answer":"..."}],"has_table":false,"suggested_skill":"LISTENING"}'
+            )
+            user = (
+                header +
+                f"The question type is \"{question_type}\". Reference structure:\n"
+                f"{template}\n\n"
+                + extra_instruction +
+                "Extract ALL visible content from this image. "
+                "Output ONLY the extraction JSON format described in system prompt. "
+                "Do NOT output the full section/group structure - just raw extracted components."
+            )
+        else:
+            system = (
+                "You are an IELTS test expert. Extract ALL text, questions, and content from the image.\n"
+                "Return ONLY valid JSON in this format:\n"
+                '{"passage_text": "...","questions":[{"number":1,"text":"...","options":[{"label":"A","text":"..."}],"blank_context":"...","correct_answer":"..."}],"has_table":false,"suggested_skill":"LISTENING"}'
+            )
+            user = (
+                header +
+                "Extract ALL visible content from this image. "
+                "If the image contains a TABLE, set has_table=true and include table content in passage_text as markdown.\n"
+                "Output ONLY the extraction JSON format described in system prompt."
+            )
+
+        try:
+            resp = await self.llm.chat_with_image(system, user, image_bytes, image_mime)
+            logger.info(f"Vision extract raw ({len(resp.content)} chars): {resp.content[:200]}")
+            return self._extract_extraction(resp.content)
+        except Exception as e:
+            logger.error(f"Vision extract failed: {e}")
+            return {"passage_text": "", "questions": [], "has_table": False,
+                    "suggested_skill": skill, "suggested_part": part, "raw_ai_output": ""}
+
+    def _extract_extraction(self, content: str) -> dict:
+        content = content.strip()
+        if content.startswith("```json"):
+            content = content[7:]
+        elif content.startswith("```"):
+            content = content[3:]
+        if content.endswith("```"):
+            content = content[:-3]
+        content = content.strip()
+        try:
+            data = json.loads(content)
+        except json.JSONDecodeError:
+            m = re.search(r"\{.*\}", content, re.DOTALL)
+            if m:
+                try:
+                    data = json.loads(m.group())
+                except json.JSONDecodeError:
+                    data = {}
+            else:
+                data = {}
+        return {
+            "passage_text": data.get("passage_text", ""),
+            "questions": data.get("questions", []),
+            "has_table": data.get("has_table", False),
+            "suggested_skill": data.get("suggested_skill", ""),
+            "suggested_part": data.get("suggested_part", ""),
+            "raw_ai_output": content,
+        }
+
+    async def format_structure(self, passage_text: str, questions: list,
+                                question_type: str, skill: str,
+                                test_type: str = "ACADEMIC",
+                                part: str = "") -> PreviewResponse:
+        """Nhận data đã confirm + type template → LLM format → PreviewResponse."""
+        qtype = question_type or "MCQ"
+        template = self._get_type_template(qtype)
+        system = (
+            "You are an IELTS test expert. Convert extracted test content into the correct structured JSON format.\n"
+            f"Output structure must use question_type=\"{qtype}\" and the appropriate content_type.\n"
+            "Return ONLY valid JSON. No extra text."
+        )
+        questions_json = json.dumps(questions, ensure_ascii=False, indent=2)
+        user = (
+            f"Skill: {skill}\n"
+            f"Test Type: {test_type}\n"
+            f"{'Part: ' + part if part else ''}\n\n"
+            f"Convert this extracted content into the exact JSON structure below for \"{qtype}\":\n\n"
+            f"{template}\n\n"
+            f"Extracted passage_text:\n{passage_text}\n\n"
+            f"Extracted questions:\n{questions_json}\n\n"
+            "Format the above data into the EXACT JSON structure shown above. "
+            "Output ONLY the JSON object with sections, groups, and questions."
+        )
+        try:
+            resp = await self.llm.chat(system, user)
+            logger.info(f"Format structure raw ({len(resp.content)} chars): {resp.content[:200]}")
+            data = self._extract_json(resp.content)
+            if not data.get("sections"):
+                logger.warning("Format returned empty, building from template")
+                data = self._build_from_template(question_type, skill, passage_text, questions)
+            combined = {"skill": skill, "title": data.get("title", "Imported Test"),
+                        "sections": data.get("sections", [])}
+            self._validate(combined)
+            combined = self._enforce_question_type(qtype, combined)
+            combined = self._filter_by_skill(combined)
+            return self._map_to_preview(combined, resp.content)
+        except Exception as e:
+            logger.error(f"Format structure failed: {e}")
+            data = self._build_from_template(question_type, skill, passage_text, questions)
+            combined = {"skill": skill, "title": "Imported Test", "sections": data.get("sections", [])}
+            combined = self._enforce_question_type(qtype, combined)
+            combined = self._filter_by_skill(combined)
+            return self._map_to_preview(combined, "")
+
+    def _build_from_template(self, question_type: str, skill: str,
+                              passage_text: str, questions: list) -> dict:
+        """Fallback: build sections/groups from type template when LLM fails."""
+        qtype = question_type or "MCQ"
+        content_type = _QUESTION_CONTENT_MAP.get(qtype, "READING_PASSAGE")
+        grp_title = "Questions"
+        qlist = []
+        for i, q in enumerate(questions or []):
+            qlist.append({
+                "number": q.get("number", i + 1),
+                "text": q.get("text", ""),
+                "options": q.get("options", []),
+                "answers": [{"text": q.get("correct_answer", "")}] if q.get("correct_answer") else [],
+                "correct_answer": q.get("correct_answer", ""),
+            })
+        if not qlist:
+            qlist.append({"number": 1, "text": "", "options": [], "answers": [], "correct_answer": ""})
+        return {
+            "skill": skill,
+            "title": "Imported Test",
+            "sections": [{
+                "title": "Questions",
+                "part_order": 1,
+                "groups": [{
+                    "title": grp_title,
+                    "question_type": qtype,
+                    "content_type": content_type,
+                    "instructions": "",
+                    "passage_text": passage_text,
+                    "questions": qlist,
+                }],
+            }],
+        }
 
     def _split_text(self, text: str, max_len: int) -> list[str]:
         if len(text) <= max_len:
@@ -281,7 +486,7 @@ class AIStructurer:
             "SUMMARY_COMPLETION": ("SUMMARY_COMPLETION", "SUMMARY_COMPLETION"),
             "TABLE_COMPLETION": ("TABLE_COMPLETION", "TABLE_COMPLETION"),
             "MATCHING": ("MATCHING", "DRAG_MATCHING"),
-            "SHARED_OPTIONS_DROPDOWN": ("MATCHING", "SHARED_OPTIONS_DROPDOWN"),
+            "SHARED_OPTIONS_DROPDOWN": ("SHARED_OPTIONS_DROPDOWN", "SHARED_OPTIONS_DROPDOWN"),
             "MATCHING_HEADINGS": ("MATCHING_HEADINGS", "MATCHING_HEADING"),
             "TFNG": ("TFNG", "TRUE_FALSE_NG"),
             "YNNG": ("YNNG", "TRUE_FALSE_NG"),
@@ -294,13 +499,15 @@ class AIStructurer:
         fixed = 0
         for sec in data.get("sections", []):
             for g in sec.get("groups", []):
-                if g.get("question_type") != qt:
+                if g.get("question_type") != qt or g.get("content_type") != ct:
                     g["question_type"] = qt
                     g["content_type"] = ct
                     fixed += 1
 
         if fixed:
             logger.info(f"Enforced question_type={qt}, content_type={ct} for {fixed} group(s)")
+        elif not data.get("sections"):
+            logger.info(f"No sections to enforce for {question_type}")
         return data
 
     def _fallback_extract(self, raw_text: str, skill_hint: str) -> dict:

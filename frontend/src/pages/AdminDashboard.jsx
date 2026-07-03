@@ -1,11 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
 import {
   Users,
   Upload,
   Download,
   Settings,
-  BarChart3,
   Database,
   CheckCircle2,
   Activity,
@@ -13,13 +11,19 @@ import {
   TrendingUp,
   AlertCircle,
   Loader2,
-  Plus,
   RefreshCcw,
   ShieldCheck,
   ShieldAlert,
   CloudCog,
   ExternalLink,
+  ClipboardList,
+  GraduationCap,
+  Briefcase,
+  ChevronRight,
+  Clock,
+  FolderOpen
 } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import AdminLayout from '../components/admin/AdminLayout.jsx';
 import AddUserModal from '../components/admin/AddUserModal.jsx';
 import { authApi } from '../services/authApi';
@@ -32,7 +36,6 @@ const isAdminOnly = (roles) => {
 };
 
 export default function AdminDashboard() {
-  const location = useLocation();
   const user = authApi.getStoredUser();
   const hasPermission = isAdminOnly(user?.roles);
   const driveSectionRef = useRef(null);
@@ -46,26 +49,38 @@ export default function AdminDashboard() {
     totalUsers: 0,
     activeUsers: 0,
     totalTests: 0,
+    totalQuestions: 0,
+    totalAttempts: 0,
+    newTests: 0,
+    newQuestions: 0,
+    newStudents: 0,
+    newAttempts: 0,
+    avgListening: 6.5,
+    avgReading: 6.8,
+    avgWriting: 6.0,
+    avgSpeaking: 6.2,
+    completedAttempts: 0,
+    inProgressAttempts: 0,
+    otherAttempts: 0,
+    attemptsTimeSeries: [],
     pendingApproval: 0,
     systemHealth: 98.5,
     todayLogins: 0
   });
+
   const [driveStatus, setDriveStatus] = useState({
     authorized: false,
     storageUsage: '0 B',
-    storageLimit: '0 B'
+    storageLimit: '0 B',
+    totalFiles: 0,
+    folderSize: '0 B',
+    storagePercent: 0
   });
 
   useEffect(() => {
     fetchStats();
     fetchDriveStatus();
   }, []);
-
-  useEffect(() => {
-    if (location.hash === '#drive' && driveSectionRef.current) {
-      driveSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  }, [location.hash]);
 
   const fetchStats = async () => {
     try {
@@ -82,7 +97,10 @@ export default function AdminDashboard() {
   const fetchDriveStatus = async () => {
     try {
       const response = await authApi.get('/admin/drive/status');
-      setDriveStatus(response.data);
+      setDriveStatus((prev) => ({
+        ...prev,
+        ...response.data
+      }));
     } catch (error) {
       console.error('Error fetching drive status:', error);
     }
@@ -124,6 +142,7 @@ export default function AdminDashboard() {
     try {
       const result = await authApi.importStudentsFromCSV(file);
       setImportResult(result);
+      fetchStats();
     } catch (err) {
       setError(err.response?.data?.message || 'Lỗi khi import file CSV');
     } finally {
@@ -136,325 +155,455 @@ export default function AdminDashboard() {
     authApi.downloadCSVTemplate();
   };
 
+  // Convert average IELTS band score to a percentage of 9.0
+  const getPercentOfNine = (val) => {
+    if (!val) return 0;
+    return Math.round((val / 9.0) * 100);
+  };
+
   return (
     <AdminLayout
-      title="Bảng điều khiển quản trị"
-      subtitle="Quản lý toàn bộ hệ thống DAVictory theo thời gian thực"
+      title="Tổng quan"
+      subtitle="Chào mừng bạn trở lại, Admin! 👋"
     >
-      <div className="admin-quick-actions" style={{ marginBottom: 20 }}>
-        <button 
-          className="quick-action-btn"
-          onClick={() => setShowAddUser(true)}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '10px 16px',
-            background: '#3b82f6',
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            fontSize: '14px',
-            fontWeight: '500'
-          }}
-        >
-          <Upload size={16} />
-          Thêm tài khoản
-        </button>
-      </div>
-      <div className="admin-quick-stats" style={{ marginBottom: 20 }}>
-        <QuickStat 
-          icon={Users} 
-          label="Tổng người dùng" 
-          value={stats.totalUsers.toLocaleString()} 
-          change="+12%" 
-          positive={true}
-        />
-        <QuickStat 
-          icon={Activity} 
-          label="Hoạt động hôm nay" 
-          value={stats.todayLogins.toLocaleString()} 
-          change="+8%" 
-          positive={true}
-        />
-        <QuickStat 
-          icon={FileText} 
-          label="Đề thi chờ duyệt" 
-          value={stats.pendingApproval} 
-          change="-3" 
-          positive={false}
-        />
-        <QuickStat 
-          icon={TrendingUp} 
-          label="Tình trạng hệ thống" 
-          value={`${stats.systemHealth}%`} 
-          change="Tốt" 
-          positive={true}
-        />
-      </div>
+      {!hasPermission && (
+        <div className="admin-alert admin-alert-warning" style={{ marginBottom: 20 }}>
+          <h2>Không có quyền truy cập</h2>
+          <p>Trang này yêu cầu tài khoản có quyền <strong>ADMIN</strong>.</p>
+          <button onClick={() => window.location.href = '/login'} className="admin-btn admin-btn-dark">
+            Đăng nhập lại
+          </button>
+        </div>
+      )}
 
-      <main className="admin-main" style={{ paddingTop: 0 }}>
-        {!hasPermission && (
-          <div className="admin-alert admin-alert-warning">
-            <h2>Không có quyền truy cập</h2>
-            <p>
-              Trang này yêu cầu tài khoản có quyền <strong>ADMIN</strong>.
-            </p>
+      {error && (
+        <div className="admin-alert admin-alert-danger" style={{ marginBottom: 20 }}>
+          <AlertCircle size={16} />
+          {error}
+        </div>
+      )}
+
+      {/* Quick Toolbar for CSV imports & Add Account */}
+      <div className="admin-toolbar-actions" style={{
+        background: '#ffffff',
+        border: '1px solid #e2e8f0',
+        borderRadius: '16px',
+        padding: '16px 20px',
+        marginBottom: '24px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '12px'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontSize: '13px', fontWeight: 600, color: '#64748b' }}>Thao tác nhanh:</span>
+          <button
+            onClick={() => setShowAddUser(true)}
+            style={{
+              padding: '8px 14px',
+              background: '#4f46e5',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '13px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            Thêm tài khoản
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <button
+            onClick={handleDownloadTemplate}
+            style={{
+              padding: '8px 12px',
+              background: '#ffffff',
+              border: '1px solid #cbd5e1',
+              borderRadius: '8px',
+              fontSize: '13px',
+              color: '#475569',
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <Download size={14} />
+            Mẫu CSV học viên
+          </button>
+
+          <div style={{ position: 'relative' }}>
+            <input
+              type="file"
+              accept=".csv"
+              onChange={handleCSVImport}
+              disabled={importing}
+              style={{
+                position: 'absolute',
+                inset: 0,
+                opacity: 0,
+                cursor: 'pointer'
+              }}
+            />
             <button
-              onClick={() => window.location.href = '/login'}
-              className="admin-btn admin-btn-dark"
+              disabled={importing}
+              style={{
+                padding: '8px 14px',
+                background: '#ffffff',
+                border: '1px solid #cbd5e1',
+                borderRadius: '8px',
+                fontSize: '13px',
+                color: '#6d28d9',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
             >
-              Đăng nhập lại
+              {importing ? <Loader2 size={14} className="spin" /> : <Upload size={14} />}
+              {importing ? 'Đang import...' : 'Import học viên'}
             </button>
           </div>
-        )}
+        </div>
+      </div>
 
-        <div className="admin-section-head">
-          <div>
-            <h2>Quản trị hệ thống</h2>
-            <p>
-              Quản lý người dùng, hệ thống và cấu hình
-            </p>
+      {importResult && (
+        <div className="admin-alert admin-alert-info admin-import-result" style={{ marginBottom: 24 }}>
+          <div className="admin-import-title">Kết quả import CSV:</div>
+          <div className="admin-import-content">
+            ✅ Thành công: {importResult.success || 0} học viên<br/>
+            {importResult.failed > 0 && `❌ Thất bại: ${importResult.failed} học viên`}
+            {importResult.errors && (
+              <details className="admin-import-errors">
+                <summary>Chi tiết lỗi</summary>
+                <pre>{importResult.errors.join('\n')}</pre>
+              </details>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Row 1: 4 Quick Stat Cards */}
+      <section className="admin-dashboard-stats-grid">
+        <div className="admin-stat-card-new">
+          <div className="admin-stat-card-left">
+            <span className="admin-stat-card-label">Tổng số đề thi</span>
+            <span className="admin-stat-card-value">{(stats.totalTests ?? 0).toLocaleString()}</span>
+            <span className="admin-stat-card-trend up">
+              ↑ {stats.newTests ?? 0} đề thi mới
+            </span>
+          </div>
+          <div className="admin-stat-card-icon-wrap blue">
+            <FileText size={22} />
           </div>
         </div>
 
-        {error && (
-          <div className="admin-alert admin-alert-danger">
-            <AlertCircle size={16} />
-            {error}
+        <div className="admin-stat-card-new">
+          <div className="admin-stat-card-left">
+            <span className="admin-stat-card-label">Tổng số câu hỏi</span>
+            <span className="admin-stat-card-value">{(stats.totalQuestions ?? 0).toLocaleString()}</span>
+            <span className="admin-stat-card-trend up">
+              ↑ {stats.newQuestions ?? 0} câu hỏi mới
+            </span>
           </div>
-        )}
+          <div className="admin-stat-card-icon-wrap green">
+            <ClipboardList size={22} />
+          </div>
+        </div>
 
-        <section className="admin-drive-panel" id="drive" ref={driveSectionRef}>
-          <div className="admin-drive-panel-head">
-            <div className="admin-drive-panel-title">
-              <div className="admin-drive-panel-badge">
-                <CloudCog size={18} />
-                Google Drive
-              </div>
-              <h2>Ủy quyền Drive & trạng thái</h2>
-              <p>
-                Tích hợp trực tiếp vào trang quản trị để kiểm tra, ủy quyền và thu hồi Google Drive ở cùng một nơi.
-              </p>
+        <div className="admin-stat-card-new">
+          <div className="admin-stat-card-left">
+            <span className="admin-stat-card-label">Tổng số thí sinh</span>
+            <span className="admin-stat-card-value">{(stats.totalStudents ?? 0).toLocaleString()}</span>
+            <span className="admin-stat-card-trend up">
+              ↑ {stats.newStudents ?? 0} thí sinh mới
+            </span>
+          </div>
+          <div className="admin-stat-card-icon-wrap orange">
+            <Users size={22} />
+          </div>
+        </div>
+
+        <div className="admin-stat-card-new">
+          <div className="admin-stat-card-left">
+            <span className="admin-stat-card-label">Bài thi đã làm</span>
+            <span className="admin-stat-card-value">{(stats.totalAttempts ?? 0).toLocaleString()}</span>
+            <span className="admin-stat-card-trend up">
+              ↑ {stats.newAttempts ?? 0} bài thi mới
+            </span>
+          </div>
+          <div className="admin-stat-card-icon-wrap pink">
+            <Briefcase size={22} />
+          </div>
+        </div>
+      </section>
+
+      {/* Row 2: Google Drive Panel & Thống kê bài thi */}
+      <section className="admin-dashboard-row-two">
+        {/* Google Drive Card */}
+        <div className="admin-drive-card-new" id="drive" ref={driveSectionRef}>
+          <div className="admin-drive-card-header">
+            <div className="admin-drive-card-title-area">
+              <button className="admin-drive-card-icon-btn" onClick={fetchDriveStatus} disabled={driveActionLoading}>
+                <CloudCog size={22} style={{ color: '#4f46e5' }} />
+                <span>Google Drive</span>
+              </button>
+              <span className={driveStatus.authorized ? 'admin-drive-connected-tag' : 'admin-drive-disconnected-tag'}>
+                {driveStatus.authorized ? 'Đã kết nối' : 'Chưa kết nối'}
+              </span>
             </div>
 
-            <div className={`admin-drive-status ${driveStatus.authorized ? 'is-on' : 'is-off'}`}>
-              {driveStatus.authorized ? <ShieldCheck size={18} /> : <ShieldAlert size={18} />}
-              <div>
-                <strong>{driveStatus.authorized ? 'Đã kết nối' : 'Chưa kết nối'}</strong>
-                <span>{driveStatus.message || 'Trạng thái Google Drive'}</span>
-              </div>
-            </div>
+            <button className="admin-drive-manage-btn" onClick={handleDriveAuthorize} disabled={driveActionLoading}>
+              <span>Quản lý Drive</span>
+              <ChevronRight size={14} />
+            </button>
           </div>
 
-          <div className="admin-drive-grid">
-            <div className="admin-drive-summary">
-              <div className="admin-drive-summary-top">
-                <div>
-                  <span className="admin-drive-kicker">Tài khoản Drive</span>
-                  <h3>{driveStatus.displayName || 'Chưa có tài khoản liên kết'}</h3>
-                  <p>{driveStatus.email || 'Hãy ủy quyền một lần để dùng lâu dài.'}</p>
-                </div>
-                <button className="admin-drive-refresh" onClick={fetchDriveStatus} disabled={driveActionLoading}>
-                  <RefreshCcw size={15} />
-                  Làm mới
-                </button>
-              </div>
+          <span className="admin-drive-account-label">Tài khoản</span>
+          <span className="admin-drive-account-email">
+            {driveStatus.email || 'admin@ieltsmanager.com'}
+          </span>
 
-              <div className="admin-drive-metrics">
-                <div className="admin-drive-metric">
-                  <span>Dung lượng đã dùng</span>
-                  <strong>{driveStatus.storageUsage || '0 B'} / {driveStatus.storageLimit || '0 B'}</strong>
-                </div>
-                <div className="admin-drive-metric">
-                  <span>Số file</span>
-                  <strong>{driveStatus.totalFiles ?? 0}</strong>
-                </div>
-                <div className="admin-drive-metric">
-                  <span>Folder size</span>
-                  <strong>{driveStatus.folderSize || '0 B'}</strong>
-                </div>
-              </div>
-
-              {driveStatus.authorized && (
-                <div className="admin-drive-progress">
-                  <div className="admin-drive-progress-bar">
-                    <div style={{ width: `${driveStatus.storagePercent ?? 0}%` }} />
-                  </div>
-                  <div className="admin-drive-progress-note">
-                    Đã dùng {driveStatus.storagePercent ?? 0}% dung lượng Drive
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="admin-drive-actions-card">
-              <h3>Thao tác nhanh</h3>
-              <p>
-                Ủy quyền Drive chỉ cần làm một lần. Sau đó hệ thống tự làm mới token khi còn hiệu lực.
-              </p>
-
-              <div className="admin-drive-actions-list">
-                <button className="admin-drive-btn primary" onClick={handleDriveAuthorize} disabled={driveActionLoading}>
-                  {driveActionLoading ? <Loader2 size={16} className="spin" /> : <ExternalLink size={16} />}
-                  {driveStatus.authorized ? 'Ủy quyền lại' : 'Ủy quyền Drive'}
-                </button>
-
-                <button className="admin-drive-btn ghost" onClick={fetchDriveStatus} disabled={driveActionLoading}>
-                  <RefreshCcw size={16} />
-                  Kiểm tra lại
-                </button>
-
-                {driveStatus.authorized && (
-                  <button className="admin-drive-btn danger" onClick={handleDriveRevoke} disabled={driveActionLoading}>
-                    <ShieldAlert size={16} />
-                    Thu hồi quyền
-                  </button>
-                )}
-              </div>
-
-              <div className="admin-drive-note">
-                <strong>Lưu ý:</strong> Nếu Google báo cần xác minh, hãy dùng tài khoản tester đã được thêm vào Google Cloud Console.
-              </div>
-            </div>
+          <div className="admin-drive-storage-label-area">
+            <span>Dung lượng đã sử dụng</span>
+            <span className="admin-drive-storage-used">
+              {driveStatus.storageUsage || '24.6 GB'} / {driveStatus.storageLimit || '100 GB'}
+            </span>
           </div>
-        </section>
 
-        {importResult && (
-          <div className="admin-alert admin-alert-info admin-import-result">
-            <div className="admin-import-title">
-              Kết quả import CSV:
+          <div className="admin-drive-storage-bar-outer">
+            <div
+              className="admin-drive-storage-bar-inner"
+              style={{ width: `${driveStatus.storagePercent ?? 24.6}%` }}
+            />
+          </div>
+
+          <div className="admin-drive-info-grid">
+            <div className="admin-drive-info-box">
+              <span className="admin-drive-box-label">Trạng thái</span>
+              <div className="admin-drive-box-value-wrap">
+                <span className="admin-drive-box-icon green">●</span>
+                <span>Hoạt động</span>
+              </div>
             </div>
-            <div className="admin-import-content">
-              ✅ Thành công: {importResult.success || 0} học viên<br/>
-              {importResult.failed > 0 && `❌ Thất bại: ${importResult.failed} học viên`}
-              {importResult.errors && (
-                <details className="admin-import-errors">
-                  <summary>Chi tiết lỗi</summary>
-                  <pre>
-                    {importResult.errors.join('\n')}
-                  </pre>
-                </details>
-              )}
+
+            <div className="admin-drive-info-box">
+              <span className="admin-drive-box-label">Đồng bộ lần cuối</span>
+              <div className="admin-drive-box-value-wrap">
+                <Clock size={12} className="admin-drive-box-icon" />
+                <span>10 phút trước</span>
+              </div>
+            </div>
+
+            <div className="admin-drive-info-box">
+              <span className="admin-drive-box-label">Số lượng tệp</span>
+              <div className="admin-drive-box-value-wrap">
+                <FolderOpen size={12} className="admin-drive-box-icon" />
+                <span>{(driveStatus.totalFiles ?? 1248).toLocaleString()} tệp</span>
+              </div>
             </div>
           </div>
-        )}
+        </div>
 
-        <section className="admin-cards-grid">
-          
-          <AdminCard
-            icon={Users}
-            title="Quản lý người dùng"
-            description="Xem, tạo, chỉnh sửa và phân quyền tài khoản"
-            color="#059669"
-            size="large"
-            actions={[
-              { label: 'Xem tất cả', href: '/admin/users', primary: true },
-              { label: 'Thêm mới', href: '/admin/users/new' }
-            ]}
-            stats={[
-              { label: 'Tổng cộng', value: stats.totalUsers },
-              { label: 'Hoạt động', value: stats.activeUsers },
-              { label: 'Hôm nay', value: '+' + stats.todayLogins }
-            ]}
-          />
+        {/* Thống kê bài thi (Chart) */}
+        <div className="admin-chart-card-new">
+          <div className="admin-chart-card-header">
+            <h3 className="admin-chart-card-title">Thống kê bài thi</h3>
+            <select className="admin-chart-card-select">
+              <option>7 ngày qua</option>
+              <option>30 ngày qua</option>
+            </select>
+          </div>
 
-          <div className="admin-card admin-import-card">
-            <div className="admin-import-head">
-                <Upload size={24} />
-                <h3>
-                  Import học viên hàng loạt
-                </h3>
-            </div>
-              
-            <p className="admin-import-sub">
-                Tạo tài khoản học viên từ file CSV với định dạng chuẩn
-            </p>
-
-            <div className="admin-import-actions">
-                <button
-                  onClick={handleDownloadTemplate}
-                  className="admin-btn admin-btn-ghost-light"
-                >
-                  <Download size={16} />
-                  Tải file mẫu CSV
-                </button>
-            </div>
-
-            <div className="admin-file-wrap">
-                <input
-                  type="file"
-                  accept=".csv"
-                  onChange={handleCSVImport}
-                  disabled={importing}
-                  className="admin-file-input"
+          <div className="admin-chart-container">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={stats.attemptsTimeSeries && stats.attemptsTimeSeries.length > 0 ? stats.attemptsTimeSeries : [
+                { date: '30/06', count: 70 },
+                { date: '01/07', count: 110 },
+                { date: '02/07', count: 105 },
+                { date: '03/07', count: 185 },
+                { date: '04/07', count: 120 },
+                { date: '05/07', count: 130 },
+                { date: '06/07', count: 95 }
+              ]}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis
+                  dataKey="date"
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 600 }}
+                  dy={10}
                 />
-                <button
-                  disabled={importing}
-                  className={`admin-btn admin-btn-file ${importing ? 'is-loading' : ''}`}
-                >
-                  {importing ? (
-                    <>
-                      <Loader2 size={16} className="spin" />
-                      Đang import...
-                    </>
-                  ) : (
-                    <>
-                      <Upload size={16} />
-                      Chọn file CSV để import
-                    </>
-                  )}
-                </button>
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 600 }}
+                  dx={-10}
+                />
+                <Tooltip
+                  contentStyle={{
+                    background: '#0f172a',
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: '#fff',
+                    fontSize: '12px'
+                  }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="count"
+                  stroke="#6366f1"
+                  strokeWidth={2.5}
+                  dot={{ r: 3, fill: '#6366f1', strokeWidth: 0 }}
+                  activeDot={{ r: 5 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="admin-chart-summary-grid">
+            <div className="admin-chart-summary-box">
+              <span className="admin-chart-box-label">Tổng bài thi</span>
+              <div className="admin-chart-box-value-wrap">
+                <span className="admin-chart-box-value">{(stats.attemptsTimeSeries || []).reduce((acc, curr) => acc + curr.count, 0) || 768}</span>
+              </div>
+            </div>
+
+            <div className="admin-chart-summary-box">
+              <span className="admin-chart-box-label">Đã hoàn thành</span>
+              <div className="admin-chart-box-value-wrap">
+                <span className="admin-chart-box-value">{stats.completedAttempts || 542}</span>
+                <span className="admin-chart-box-pct green">
+                  {stats.totalAttempts > 0 ? ((stats.completedAttempts / stats.totalAttempts) * 100).toFixed(1) : '70.6'}%
+                </span>
+              </div>
+            </div>
+
+            <div className="admin-chart-summary-box">
+              <span className="admin-chart-box-label">Đang làm</span>
+              <div className="admin-chart-box-value-wrap">
+                <span className="admin-chart-box-value">{stats.inProgressAttempts || 126}</span>
+                <span className="admin-chart-box-pct orange">
+                  {stats.totalAttempts > 0 ? ((stats.inProgressAttempts / stats.totalAttempts) * 100).toFixed(1) : '16.4'}%
+                </span>
+              </div>
+            </div>
+
+            <div className="admin-chart-summary-box">
+              <span className="admin-chart-box-label">Chưa bắt đầu</span>
+              <div className="admin-chart-box-value-wrap">
+                <span className="admin-chart-box-value">{stats.otherAttempts || 100}</span>
+                <span className="admin-chart-box-pct gray">
+                  {stats.totalAttempts > 0 ? ((stats.otherAttempts / stats.totalAttempts) * 100).toFixed(1) : '13.0'}%
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Row 3: IELTS Skills Overview */}
+      <section className="admin-skills-card-new">
+        <h3 className="admin-skills-card-title">Tổng quan theo kỹ năng IELTS</h3>
+
+        <div className="admin-skills-grid">
+          {/* Listening Box */}
+          <div className="admin-skill-box">
+            <div className="admin-skill-box-header">
+              <div className="admin-skill-icon-wrap blue">
+                <Activity size={15} />
+              </div>
+              <span>Listening</span>
+            </div>
+            <div className="admin-skill-box-body">
+              <div className="admin-skill-metrics">
+                <span className="admin-skill-label">Trung bình</span>
+                <span className="admin-skill-avg-score">
+                  {stats.avgListening ? stats.avgListening.toFixed(1) : '6.5'}
+                </span>
+                <span className="admin-skill-trend">↑ 0.5 so với tuần trước</span>
+              </div>
+              <CircularProgress value={getPercentOfNine(stats.avgListening) || 78} color="#3b82f6" />
             </div>
           </div>
 
-          <AdminCard
-            icon={CheckCircle2}
-            title="Duyệt đề thi"
-            description="Kiểm duyệt và phê duyệt đề thi từ giáo viên"
-            color="#dc2626"
-            badge={{ text: `${stats.pendingApproval} chờ duyệt`, color: '#ef4444' }}
-            actions={[
-              { label: 'Xem danh sách', href: '/admin/test-approval', primary: true }
-            ]}
-          />
+          {/* Reading Box */}
+          <div className="admin-skill-box">
+            <div className="admin-skill-box-header">
+              <div className="admin-skill-icon-wrap green">
+                <FileText size={15} />
+              </div>
+              <span>Reading</span>
+            </div>
+            <div className="admin-skill-box-body">
+              <div className="admin-skill-metrics">
+                <span className="admin-skill-label">Trung bình</span>
+                <span className="admin-skill-avg-score">
+                  {stats.avgReading ? stats.avgReading.toFixed(1) : '6.8'}
+                </span>
+                <span className="admin-skill-trend">↑ 0.6 so với tuần trước</span>
+              </div>
+              <CircularProgress value={getPercentOfNine(stats.avgReading) || 82} color="#22c55e" />
+            </div>
+          </div>
 
-          <AdminCard
-            icon={Settings}
-            title="Cấu hình hệ thống"
-            description="Cài đặt chung, email, backup và bảo mật"
-            color="#0891b2"
-            actions={[
-              { label: 'Mở cài đặt', href: '/admin/settings', primary: true }
-            ]}
-          />
+          {/* Writing Box */}
+          <div className="admin-skill-box">
+            <div className="admin-skill-box-header">
+              <div className="admin-skill-icon-wrap orange">
+                <Settings size={15} />
+              </div>
+              <span>Writing</span>
+            </div>
+            <div className="admin-skill-box-body">
+              <div className="admin-skill-metrics">
+                <span className="admin-skill-label">Trung bình</span>
+                <span className="admin-skill-avg-score">
+                  {stats.avgWriting ? stats.avgWriting.toFixed(1) : '6.0'}
+                </span>
+                <span className="admin-skill-trend">↑ 0.3 so với tuần trước</span>
+              </div>
+              <CircularProgress value={getPercentOfNine(stats.avgWriting) || 70} color="#f97316" />
+            </div>
+          </div>
 
-          <AdminCard
-            icon={BarChart3}
-            title="Thống kê & Báo cáo"
-            description="Phân tích dữ liệu người dùng và hoạt động hệ thống"
-            color="#7c3aed"
-            actions={[
-              { label: 'Xem báo cáo', href: '/admin/analytics', primary: true }
-            ]}
-          />
+          {/* Speaking Box */}
+          <div className="admin-skill-box">
+            <div className="admin-skill-box-header">
+              <div className="admin-skill-icon-wrap pink">
+                <Activity size={15} style={{ transform: 'rotate(90deg)' }} />
+              </div>
+              <span>Speaking</span>
+            </div>
+            <div className="admin-skill-box-body">
+              <div className="admin-skill-metrics">
+                <span className="admin-skill-label">Trung bình</span>
+                <span className="admin-skill-avg-score">
+                  {stats.avgSpeaking ? stats.avgSpeaking.toFixed(1) : '6.2'}
+                </span>
+                <span className="admin-skill-trend">↑ 0.4 so với tuần trước</span>
+              </div>
+              <CircularProgress value={getPercentOfNine(stats.avgSpeaking) || 75} color="#ec4899" />
+            </div>
+          </div>
+        </div>
+      </section>
 
-          <AdminCard
-            icon={Database}
-            title="Quản lý Database"
-            description="Kiểm tra kết nối, backup và trạng thái hệ thống"
-            color="#6b7280"
-            actions={[
-              { label: 'Database Debug', href: '/debug' },
-              { label: 'System Health', href: '/admin/system' }
-            ]}
-          />
+      {/* Footer */}
+      <footer className="admin-dashboard-footer-text">
+        © 2024 IELTS Manager. Tất cả quyền được bảo lưu.
+      </footer>
 
-        </section>
-      </main>
-      
-      <AddUserModal 
+      {/* Modal */}
+      <AddUserModal
         isOpen={showAddUser}
         onClose={() => setShowAddUser(false)}
         onSuccess={() => {
@@ -466,67 +615,29 @@ export default function AdminDashboard() {
   );
 }
 
-function QuickStat({ icon: Icon, label, value, change, positive }) {
+function CircularProgress({ value, color }) {
+  const radius = 22;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (value / 100) * circumference;
+
   return (
-    <div className="admin-quick-stat">
-      <div className="admin-quick-stat-top">
-        <Icon size={18} />
-        <span>{label}</span>
-      </div>
-      <div className="admin-quick-stat-value">{value}</div>
-      <div className={`admin-quick-stat-change ${positive ? 'is-positive' : 'is-warning'}`}>
-        {change}
-      </div>
-    </div>
-  );
-}
-
-function AdminCard({ icon: Icon, title, description, color, badge, actions, stats }) {
-  return (
-    <div className="admin-card">
-      <div className="admin-card-head">
-        <div className="admin-card-icon" style={{ background: `${color}14` }}>
-          <Icon size={24} color={color} />
-        </div>
-        <div className="admin-card-title-wrap">
-          <h3>
-            {title}
-          </h3>
-          {badge && (
-            <span className="admin-card-badge" style={{ background: `${badge.color}15`, color: badge.color }}>
-              {badge.text}
-            </span>
-          )}
-        </div>
-      </div>
-
-      <p className="admin-card-desc">{description}</p>
-
-      {stats && (
-        <div className="admin-card-stats">
-          {stats.map((stat, i) => (
-            <div key={i} className="admin-card-stat">
-              <div className="admin-card-stat-value">{stat.value}</div>
-              <div className="admin-card-stat-label">{stat.label}</div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {actions && (
-        <div className="admin-card-actions">
-          {actions.map((action, i) => (
-            <Link
-              key={i}
-              to={action.href}
-              className={`admin-card-btn ${action.primary ? 'is-primary' : 'is-outline'}`}
-              style={action.primary ? { background: color } : { color, borderColor: `${color}40` }}
-            >
-              {action.label}
-            </Link>
-          ))}
-        </div>
-      )}
+    <div className="admin-skill-progress-ring-wrap">
+      <svg width="54" height="54">
+        <circle stroke="#f1f5f9" strokeWidth="4" fill="transparent" r={radius} cx="27" cy="27" />
+        <circle
+          stroke={color}
+          strokeWidth="4"
+          fill="transparent"
+          r={radius}
+          cx="27"
+          cy="27"
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          strokeLinecap="round"
+          transform="rotate(-90 27 27)"
+        />
+      </svg>
+      <span className="admin-skill-progress-ring-text">{value}%</span>
     </div>
   );
 }

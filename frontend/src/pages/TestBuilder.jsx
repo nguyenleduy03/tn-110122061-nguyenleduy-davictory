@@ -1821,6 +1821,7 @@ const TestBuilder = () => {
       'SPEAKING_PART3': 'SPEAKING_DISCUSSION',
       'FLOW_CHART': 'FILL_IN_BLANK',
       'DIAGRAM_LABELLING': 'FILL_IN_BLANK',
+      'SHARED_OPTIONS_DROPDOWN': 'MCQ_DROPDOWN',
     };
     const ctMap = {
       'FILL_BLANK': 'NOTE_COMPLETION',
@@ -1842,6 +1843,7 @@ const TestBuilder = () => {
       'SPEAKING_PART3': 'SPEAKING_DISCUSSION',
       'FLOW_CHART': 'FLOW_CHART',
       'DIAGRAM_LABELLING': 'DIAGRAM',
+      'SHARED_OPTIONS_DROPDOWN': 'SHARED_OPTIONS_DROPDOWN',
     };
 
     preview.sections?.forEach((sec) => {
@@ -1879,6 +1881,21 @@ const TestBuilder = () => {
         if (contentType === 'NOTE_COMPLETION') {
           seedExtra.noteText = (grp.passage_text || '').replace(/_{3,}|\.{3,}|-{3,}|\?{2,}/g, '[blank] ');
           seedExtra.title = grp.title || '';
+        }
+        if (contentType === 'SHARED_OPTIONS_DROPDOWN') {
+          const pt = grp.passage_text || '';
+          const lines = pt.split('\n');
+          const tableLines = lines.filter(l => l.trim().startsWith('|') && l.includes('---') === false);
+          const options = [];
+          for (const line of tableLines) {
+            const cells = line.split('|').map(c => c.trim()).filter(c => c);
+            if (cells.length >= 2 && /^[A-Z]$/i.test(cells[0])) {
+              options.push({ id: `so-${nextId()}`, key: cells[0], label: cells.slice(1).join(' | '), imageUrl: '' });
+            }
+          }
+          if (options.length > 0) {
+            seedExtra.sharedOptions = options;
+          }
         }
         if (contentType === 'TABLE_COMPLETION') {
           const pt = grp.passage_text || '';

@@ -59,6 +59,11 @@ const ExamManager = lazy(() => import('./pages/teacher/ExamManager'))
 const StudentExams = lazy(() => import('./pages/student/StudentExams'))
 const AgentWorkspace = lazy(() => import('./pages/AgentWorkspace'))
 const AdminAgents = lazy(() => import('./pages/AdminAgents'))
+const AdminAnalytics = lazy(() => import('./pages/AdminAnalytics'))
+const AdminTestApproval = lazy(() => import('./pages/AdminTestApproval'))
+const AdminSettings = lazy(() => import('./pages/AdminSettings'))
+const AdminSystemHealth = lazy(() => import('./pages/AdminSystemHealth'))
+const AdminTests = lazy(() => import('./pages/AdminTests'))
 const BlogPage = lazy(() => import('./pages/BlogPage'))
 const BlogDetail = lazy(() => import('./pages/BlogDetail'))
 
@@ -106,9 +111,9 @@ function AppContent() {
           <Route path="/my-dashboard/settings" element={<ProtectedRoute><DashboardSettings /></ProtectedRoute>} />
           <Route path="/admin" element={<RoleBasedRoute requiredRole="ADMIN"><ErrorBoundary><AdminDashboard /></ErrorBoundary></RoleBasedRoute>} />
           <Route path="/admin/users" element={<RoleBasedRoute requiredRole="ADMIN"><ErrorBoundary><AdminUsers /></ErrorBoundary></RoleBasedRoute>} />
-          <Route path="/admin/tests" element={<RoleBasedRoute requiredRole="ADMIN"><Navigate to="/lms/teacher/tests" replace /></RoleBasedRoute>} />
+          <Route path="/admin/tests" element={<RoleBasedRoute requiredRole="ADMIN"><ErrorBoundary><AdminTests /></ErrorBoundary></RoleBasedRoute>} />
           <Route path="/admin/drive" element={<RoleBasedRoute requiredRole="ADMIN"><Navigate to="/admin#drive" replace /></RoleBasedRoute>} />
-          <Route path="/admin/teacher-class" element={<RoleBasedRoute requiredRole="ADMIN"><ErrorBoundary><ClassManagement /></ErrorBoundary></RoleBasedRoute>} />
+          <Route path="/admin/teacher-class" element={<RoleBasedRoute requiredRole="MANAGER"><ErrorBoundary><ClassManagement /></ErrorBoundary></RoleBasedRoute>} />
 
           <Route path="/manager" element={<RoleBasedRoute requiredRole="MANAGER"><ErrorBoundary><ManagerDashboard /></ErrorBoundary></RoleBasedRoute>} />
           <Route path="/manager/classes" element={<RoleBasedRoute requiredRole="MANAGER"><ErrorBoundary><ManagerClasses /></ErrorBoundary></RoleBasedRoute>} />
@@ -164,6 +169,10 @@ function AppContent() {
 
           {/* Agent Workspace - Unified UI */}
           <Route path="/agent/*" element={<RoleBasedRoute requiredRole="MANAGER"><AgentWorkspace /></RoleBasedRoute>} />
+          <Route path="/admin/analytics" element={<RoleBasedRoute requiredRole="ADMIN"><ErrorBoundary><AdminAnalytics /></ErrorBoundary></RoleBasedRoute>} />
+          <Route path="/admin/test-approval" element={<RoleBasedRoute requiredRole="ADMIN"><ErrorBoundary><AdminTestApproval /></ErrorBoundary></RoleBasedRoute>} />
+          <Route path="/admin/settings" element={<RoleBasedRoute requiredRole="ADMIN"><ErrorBoundary><AdminSettings /></ErrorBoundary></RoleBasedRoute>} />
+          <Route path="/admin/system" element={<RoleBasedRoute requiredRole="ADMIN"><ErrorBoundary><AdminSystemHealth /></ErrorBoundary></RoleBasedRoute>} />
           <Route path="/admin/agents" element={<RoleBasedRoute requiredRole="ADMIN"><AdminAgents /></RoleBasedRoute>} />
         </Routes>
       </Suspense>

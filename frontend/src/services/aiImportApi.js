@@ -71,6 +71,38 @@ const aiImportApi = {
       headers: getAuthHeaders(),
     });
   },
+
+  visionExtract(file, questionType = '', skillHint = '', testType = 'ACADEMIC', part = '') {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (questionType) formData.append('questionType', questionType);
+    if (skillHint) formData.append('skillHint', skillHint);
+    if (testType) formData.append('testType', testType);
+    if (part) formData.append('part', part);
+    return axios.post('ai/import/vision-extract', formData, {
+      baseURL: API_CONFIG.BASE_URL,
+      timeout: 180000,
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        ...getAuthHeaders(),
+      },
+    });
+  },
+
+  formatStructure(taskId, skill, testType, part, questionType, passageText, questions) {
+    return api.post('ai/import/format-structure', {
+      task_id: taskId,
+      skill,
+      test_type: testType,
+      part,
+      question_type: questionType,
+      passage_text: passageText,
+      questions,
+    }, {
+      headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+      timeout: 180000,
+    });
+  },
 };
 
 export default aiImportApi;

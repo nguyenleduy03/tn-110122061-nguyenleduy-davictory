@@ -80,4 +80,38 @@ public class AIImportController {
             return ResponseEntity.ok(Map.of("taskId", taskId, "status", "UNKNOWN"));
         }
     }
+
+    @PostMapping("/vision-extract")
+    @PreAuthorize("hasAnyRole('TEACHER', 'MANAGER', 'ADMIN')")
+    public ResponseEntity<?> visionExtract(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "questionType", defaultValue = "") String questionType,
+            @RequestParam(value = "skillHint", defaultValue = "") String skillHint,
+            @RequestParam(value = "testType", defaultValue = "ACADEMIC") String testType,
+            @RequestParam(value = "part", defaultValue = "") String part,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            byte[] content = file.getBytes();
+            String filename = file.getOriginalFilename();
+            Map<String, Object> result = aiBridgeService.importVisionExtract(
+                    content, filename, questionType, skillHint, testType, part);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            log.error("AI import vision extract failed: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("status", "FAILED", "error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/format-structure")
+    @PreAuthorize("hasAnyRole('TEACHER', 'MANAGER', 'ADMIN')")
+    public ResponseEntity<?> formatStructure(@RequestBody Map<String, Object> request,
+                                              @AuthenticationPrincipal UserDetails userDetails) {
+        try {
+            Map<String, Object> result = aiBridgeService.importFormatStructure(request);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            log.error("AI import format structure failed: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("status", "FAILED", "error", e.getMessage()));
+        }
+    }
 }

@@ -8,7 +8,11 @@
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/config/TestStructureInitializer.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/AIImportController.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/AISpeakingTestController.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/AdminAnalyticsController.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/AdminDriveController.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/AdminSettingsController.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/AdminSystemHealthController.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/AdminTestApprovalController.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/AgentController.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/AssignmentController.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/AuthController.java

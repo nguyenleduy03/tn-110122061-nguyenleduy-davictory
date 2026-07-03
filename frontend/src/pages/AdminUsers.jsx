@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Users,
@@ -8,13 +8,10 @@ import {
   Trash2,
   AlertCircle,
   Key,
-  Eye,
-  EyeOff,
   UserCheck,
   UserX,
   Filter,
   MoreVertical,
-  ArrowLeft,
   Shield,
   Target,
   GraduationCap,
@@ -26,17 +23,28 @@ import {
   Mail,
   School,
   UserPlus,
-  ClipboardList,
+  X,
+  Loader2
 } from 'lucide-react';
 import AdminLayout from '../components/admin/AdminLayout.jsx';
 import { authApi } from '../services/authApi';
+import { API_CONFIG } from '../config/api';
 
 const ROLES = {
-  ADMIN: { label: 'Quản trị viên', color: '#dc2626', bg: '#fef2f2', icon: Shield },
-  MANAGER: { label: 'Quản lý', color: '#d97706', bg: '#fef3c7', icon: Target },
-  TEACHER: { label: 'Giáo viên', color: '#059669', bg: '#ecfdf5', icon: GraduationCap },
-  STUDENT: { label: 'Học viên', color: '#2563eb', bg: '#eff6ff', icon: BookOpen }
+  ADMIN: { label: 'Quản trị viên', color: '#6366f1', bg: 'rgba(99, 102, 241, 0.08)', icon: Shield },
+  MANAGER: { label: 'Quản lý', color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.08)', icon: Target },
+  TEACHER: { label: 'Giáo viên', color: '#10b981', bg: 'rgba(16, 185, 129, 0.08)', icon: GraduationCap },
+  STUDENT: { label: 'Học viên', color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.08)', icon: BookOpen }
 };
+
+const TABS = [
+  { key: 'ALL', label: 'Tất cả', icon: Users },
+  { key: 'ADMIN', label: 'Quản trị viên', icon: Shield },
+  { key: 'MANAGER', label: 'Quản lý', icon: Target },
+  { key: 'TEACHER', label: 'Giáo viên', icon: GraduationCap },
+  { key: 'STUDENT', label: 'Học viên', icon: BookOpen },
+  { key: 'DELETED', label: 'Đã xóa', icon: XCircle }
+];
 
 const hasAdminRole = (roles) => {
   if (!Array.isArray(roles)) return false;
@@ -63,7 +71,9 @@ export default function AdminUsers() {
   const [handoverWarning, setHandoverWarning] = useState(null);
   const [deleteClassTarget, setDeleteClassTarget] = useState(null);
   const [deleteClassPassword, setDeleteClassPassword] = useState('');
+  const [deletingClass, setDeletingClass] = useState(false);
   const [managementLoading, setManagementLoading] = useState(false);
+  const [managementError, setManagementError] = useState('');
   const [managementData, setManagementData] = useState({ classes: [], teachers: [] });
   const [pagination, setPagination] = useState({
     page: 0,
@@ -80,8 +90,10 @@ export default function AdminUsers() {
     teacherCount: 0,
     studentCount: 0,
   });
+  const [openActionMenuId, setOpenActionMenuId] = useState(null);
+  const actionMenuRef = useRef(null);
 
-  // Lấy thông tin user hiện tại
+  // Current logged in user info
   const currentUser = authApi.getStoredUser();
   const isCurrentUserAdmin = hasAdminRole(currentUser?.roles);
 
@@ -100,7 +112,7 @@ export default function AdminUsers() {
     return () => clearTimeout(timer);
   }, [notification]);
 
-  // Kiểm tra quyền truy cập
+  // Check access permissions
   useEffect(() => {
     if (!isCurrentUserAdmin) {
       notify('error', 'Không có quyền truy cập', 'Bạn không có quyền truy cập trang này.');
@@ -121,9 +133,6 @@ export default function AdminUsers() {
     try {
       setLoading(true);
       setLoadError('');
-      console.log('[AdminUsers] Fetching paginated users...');
-      
-      // Kiểm tra token trước
       const token = localStorage.getItem('authToken');
       if (!token) {
         throw new Error('Chưa đăng nhập. Vui lòng đăng nhập lại.');
@@ -137,7 +146,6 @@ export default function AdminUsers() {
         size: pagination.size,
       });
 
-      console.log('[AdminUsers] Received page:', data);
       setUsers(Array.isArray(data?.content) ? data.content : []);
       setSummaryCounts((prev) => ({ ...prev, ...(data?.summary || {}) }));
       setPagination((prev) => ({
@@ -149,8 +157,6 @@ export default function AdminUsers() {
       }));
     } catch (error) {
       console.error('[AdminUsers] Error fetching users:', error);
-      console.error('[AdminUsers] Error response:', error.response);
-      
       let errorMsg = 'Không thể tải danh sách người dùng.';
       if (error.response?.status === 401) {
         errorMsg = 'Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.';
@@ -158,10 +164,7 @@ export default function AdminUsers() {
         errorMsg = 'Bạn không có quyền ADMIN để truy cập trang này.';
       } else if (error.message) {
         errorMsg = error.message;
-      } else if (error.response?.data?.message) {
-        errorMsg = error.response.data.message;
       }
-      
       setLoadError(errorMsg);
       setUsers([]);
       setSummaryCounts((prev) => ({ ...prev, totalUsers: 0, activeUsers: 0, deletedUsers: 0 }));
@@ -186,255 +189,6 @@ export default function AdminUsers() {
       setManagementLoading(false);
     }
   };
-
-  const parseStudentCodes = (rawText) => {
-    return (rawText || '')
-      .split(/[,\n;\t\s]+/g)
-      .map((s) => s.trim())
-      .filter(Boolean);
-  };
-
-  const parseCodesFromCsv = (csvText) => {
-    const cleanText = String(csvText || '').replace(/^\uFEFF/, '');
-    const lines = cleanText
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .filter(Boolean);
-
-    if (lines.length === 0) return [];
-
-    const parseRow = (line) => line
-      .split(',')
-      .map((cell) => cell.trim().replace(/^"|"$/g, ''));
-
-    const firstRow = parseRow(lines[0]);
-    const normalizedHeader = firstRow.map((h) => h.toLowerCase());
-    const codeColIndex = normalizedHeader.findIndex((h) =>
-      ['studentcode', 'student_code', 'username', 'code', 'mahv', 'mshv'].includes(h)
-    );
-
-    const dataStartIndex = codeColIndex >= 0 ? 1 : 0;
-    const extracted = [];
-
-    for (let i = dataStartIndex; i < lines.length; i += 1) {
-      const row = parseRow(lines[i]);
-      if (row.length === 0) continue;
-
-      const rawCode = codeColIndex >= 0
-        ? row[codeColIndex]
-        : row[0];
-
-      if (rawCode && rawCode.trim()) {
-        extracted.push(rawCode.trim());
-      }
-    }
-
-    return [...new Set(extracted)];
-  };
-
-  const handleCsvUploadForHandover = async (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setCsvParseError('');
-    setCsvFileName(file.name || '');
-
-    if (!file.name.toLowerCase().endsWith('.csv')) {
-      setCsvPreviewCodes([]);
-      setCsvParseError('Chỉ chấp nhận file .csv');
-      return;
-    }
-
-    try {
-      const text = await file.text();
-      const parsedCodes = parseCodesFromCsv(text);
-
-      if (parsedCodes.length === 0) {
-        setCsvPreviewCodes([]);
-        setCsvParseError('Không đọc được mã học viên từ file CSV. Hãy kiểm tra cột username/studentCode.');
-        return;
-      }
-
-      setCsvPreviewCodes(parsedCodes);
-    } catch (error) {
-      setCsvPreviewCodes([]);
-      setCsvParseError('Không thể đọc file CSV. Vui lòng thử lại.');
-    }
-  };
-
-  const clearCsvPreview = () => {
-    setCsvPreviewCodes([]);
-    setCsvFileName('');
-    setCsvParseError('');
-    if (csvInputRef.current) {
-      csvInputRef.current.value = '';
-    }
-  };
-
-  const handleAssignTeacherByClassCode = async () => {
-    if (!assignTeacherForm.classCode.trim()) {
-      notify('warning', 'Thiếu mã lớp', 'Vui lòng nhập mã lớp.');
-      return;
-    }
-    if (!assignTeacherForm.teacherId) {
-      notify('warning', 'Thiếu giảng viên', 'Vui lòng chọn giảng viên.');
-      return;
-    }
-
-    try {
-      await authApi.assignTeacherByClassCode({
-        classCode: assignTeacherForm.classCode.trim(),
-        teacherId: Number(assignTeacherForm.teacherId),
-        role: assignTeacherForm.role,
-        notes: assignTeacherForm.notes,
-      });
-      notify('success', 'Phân công thành công', 'Đã phân công giảng viên quản lý lớp thành công.');
-      setAssignTeacherForm((prev) => ({ ...prev, notes: '' }));
-      fetchManagementData();
-    } catch (error) {
-      notify('error', 'Phân công thất bại', error?.response?.data?.message || 'Không thể phân công giảng viên.');
-    }
-  };
-
-  const handleCreateClassAndAssignTeacher = async () => {
-    const classCode = createClassForm.classCode.trim();
-    const className = createClassForm.className.trim();
-
-    if (!classCode) {
-      notify('warning', 'Thiếu mã lớp', 'Vui lòng nhập mã lớp.');
-      return;
-    }
-    if (!className) {
-      notify('warning', 'Thiếu tên lớp', 'Vui lòng nhập tên lớp.');
-      return;
-    }
-
-    try {
-      setCreateClassLoading(true);
-
-      const createdClass = await authApi.createClassForAdmin({
-        classCode,
-        className,
-        startDate: createClassForm.startDate || undefined,
-        notes: createClassForm.notes || undefined,
-      });
-
-      if (createClassForm.teacherId) {
-        await authApi.assignTeacherByClassCode({
-          classCode,
-          teacherId: Number(createClassForm.teacherId),
-          role: createClassForm.teacherRole,
-          notes: 'Auto-assign từ form tạo lớp'
-        });
-      }
-
-      setAssignTeacherForm((prev) => ({
-        ...prev,
-        classCode,
-        teacherId: createClassForm.teacherId || prev.teacherId,
-        role: createClassForm.teacherRole || prev.role,
-      }));
-
-      setHandoverForm((prev) => ({
-        ...prev,
-        classCode,
-      }));
-
-      setCreateClassForm({
-        classCode: '',
-        className: '',
-        startDate: '',
-        teacherId: '',
-        teacherRole: 'MAIN_TEACHER',
-        notes: ''
-      });
-
-      await fetchManagementData();
-
-      notify(
-        'success',
-        'Tạo lớp thành công',
-        createClassForm.teacherId
-          ? `Đã tạo lớp ${createdClass?.code || classCode} và gán giảng viên thành công.`
-          : `Đã tạo lớp ${createdClass?.code || classCode} thành công. Bạn có thể tải danh sách học viên ngay ở khung bên dưới.`
-      );
-    } catch (error) {
-      notify('error', 'Tạo lớp thất bại', error?.response?.data?.message || 'Không thể tạo lớp.');
-    } finally {
-      setCreateClassLoading(false);
-    }
-  };
-
-  const handleAssignStudentsByClassCode = async () => {
-    if (!handoverForm.classCode.trim()) {
-      notify('warning', 'Thiếu mã lớp', 'Vui lòng nhập mã lớp.');
-      return;
-    }
-
-    const manualCodes = parseStudentCodes(handoverForm.studentCodesText);
-    const studentCodes = [...new Set([...(manualCodes || []), ...(csvPreviewCodes || [])])];
-
-    if (studentCodes.length === 0) {
-      notify('warning', 'Chưa có học viên', 'Vui lòng nhập mã học viên thủ công hoặc upload CSV trước khi bàn giao.');
-      return;
-    }
-
-    try {
-      const result = await authApi.assignStudentsByClassCode({
-        classCode: handoverForm.classCode.trim(),
-        studentCodes,
-        notes: handoverForm.notes,
-      });
-
-      const failed = Number(result?.failed || 0);
-      if (failed > 0) {
-        notify('warning', 'Bàn giao một phần', `Đã bàn giao ${result?.success || 0} học viên, thất bại ${failed}. Vui lòng kiểm tra mã học viên.`);
-      } else {
-        notify('success', 'Bàn giao thành công', `Đã bàn giao thành công ${result?.success || 0} học viên vào lớp ${result?.classCode || handoverForm.classCode}.`);
-      }
-
-      setHandoverForm((prev) => ({ ...prev, studentCodesText: '', notes: '' }));
-      clearCsvPreview();
-      fetchManagementData();
-    } catch (error) {
-      notify('error', 'Bàn giao thất bại', error?.response?.data?.message || 'Không thể bàn giao danh sách học viên.');
-    }
-  };
-
-  const handleRequestDeleteClass = (clazz) => {
-    if (!clazz) return;
-    setDeleteClassTarget(clazz);
-    setDeleteClassPassword('');
-  };
-
-  const handleDeleteClass = async () => {
-    if (!deleteClassTarget) return;
-    if (!deleteClassPassword.trim()) {
-      notify('warning', 'Thiếu mật khẩu', 'Vui lòng nhập mật khẩu admin để xác nhận.');
-      return;
-    }
-
-    try {
-      setDeletingClass(true);
-      const result = await authApi.deleteClass(deleteClassTarget.id, deleteClassPassword.trim());
-      notify(
-        'success',
-        'Xóa lớp thành công',
-        `Đã xóa lớp ${result?.code || deleteClassTarget.code || ''}${result?.name ? ` - ${result.name}` : ''}.`
-      );
-      setDeleteClassTarget(null);
-      setDeleteClassPassword('');
-      await fetchManagementData();
-    } catch (error) {
-      notify('error', 'Xóa lớp thất bại', error?.response?.data?.message || error?.message || 'Không thể xóa lớp.');
-    } finally {
-      setDeletingClass(false);
-    }
-  };
-
-  const isDeletedUser = (user) => Boolean(user?.deletedAt);
-
-  const filteredUsers = users;
 
   const handleToggleActive = async (userId) => {
     try {
@@ -487,7 +241,6 @@ export default function AdminUsers() {
   };
 
   const handleEditUser = (user) => {
-    // Không cho phép sửa chính mình
     if (user.id === currentUser?.id) {
       notify('warning', 'Không thể chỉnh sửa', 'Bạn không thể chỉnh sửa thông tin của chính mình tại đây.');
       return;
@@ -503,13 +256,11 @@ export default function AdminUsers() {
   };
 
   const handleSaveEdit = async () => {
-    // Kiểm tra không được phép tạo thêm Admin
     if (editForm.roles.includes('ADMIN') && !selectedUser.roles.includes('ADMIN')) {
       notify('warning', 'Không được phép nâng cấp', 'Không được phép nâng cấp tài khoản lên ADMIN!');
       return;
     }
 
-    // Kiểm tra không được hạ cấp Admin cuối cùng
     const adminUsers = users.filter(u => u.roles.includes('ADMIN'));
     if (selectedUser.roles.includes('ADMIN') && !editForm.roles.includes('ADMIN') && adminUsers.length <= 1) {
       notify('warning', 'Giữ lại Admin cuối cùng', 'Không thể hạ cấp Admin cuối cùng trong hệ thống!');
@@ -532,7 +283,6 @@ export default function AdminUsers() {
   };
 
   const handleDeleteUser = async (userId) => {
-    // Không cho phép xóa chính mình
     if (userId === currentUser?.id) {
       notify('warning', 'Không thể xóa', 'Bạn không thể xóa chính mình.');
       return;
@@ -540,14 +290,12 @@ export default function AdminUsers() {
 
     const userToDelete = users.find(u => u.id === userId);
 
-    // Đảm bảo dữ liệu quản lý lớp đã được tải trước khi kiểm tra
     if (managementLoading) {
       await fetchManagementData();
     }
 
     const activeTeacherClasses = getActiveTeacherAssignments(userId);
 
-    // Nếu là giảng viên đang quản lý lớp thì bắt buộc bàn giao trước khi xóa
     if (userToDelete?.roles.includes('TEACHER') && activeTeacherClasses.length > 0) {
       setHandoverWarning({
         user: userToDelete,
@@ -556,7 +304,6 @@ export default function AdminUsers() {
       return;
     }
 
-    // Không cho phép xóa Admin cuối cùng
     const adminUsers = users.filter(u => u.roles.includes('ADMIN'));
     if (userToDelete?.roles.includes('ADMIN') && adminUsers.length <= 1) {
       alert('Không thể xóa Admin cuối cùng trong hệ thống');
@@ -570,10 +317,10 @@ export default function AdminUsers() {
   const handleRestoreUser = async (userId) => {
     try {
       await authApi.restoreUser(userId);
-      notify('success', 'Khôi phục thành công', 'User đã được khôi phục');
+      notify('success', 'Khôi phục thành công', 'Tài khoản đã được khôi phục.');
       fetchUsers();
     } catch (error) {
-      notify('error', 'Khôi phục thất bại', error?.response?.data?.message || 'Không thể khôi phục user');
+      notify('error', 'Khôi phục thất bại', error?.response?.data?.message || 'Không thể khôi phục tài khoản.');
     }
   };
 
@@ -588,146 +335,140 @@ export default function AdminUsers() {
 
     try {
       const deleted = await authApi.deleteUser(deleteTarget.id, deletePassword.trim());
-      const deletedData = deleted && typeof deleted === 'object' ? deleted : {};
-      const deletedAtValue = deleted?.deletedAt || new Date().toISOString();
-      setUsers((prev) => prev.map((user) => (
-        user.id === deleteTarget.id
-          ? {
-              ...user,
-              ...deletedData,
-              deletedAt: deletedAtValue,
-              isActive: deleted?.isActive ?? false,
-            }
-          : user
-      )));
-      notify('success', 'Xóa người dùng thành công', `Đã xóa ${deleteTarget.fullName || deleteTarget.username || 'người dùng'} thành công.`);
+      notify('success', 'Xóa thành công', `Đã xóa ${deleteTarget.fullName || deleteTarget.username} thành công.`);
       setDeleteTarget(null);
       setDeletePassword('');
       fetchUsers();
     } catch (error) {
-      console.error('Delete user error:', error);
-      console.error('Error response:', error.response?.data);
-      const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message;
-      notify('error', 'Xóa người dùng thất bại', errorMessage);
+      notify('error', 'Xóa thất bại', error.response?.data?.error || error.message);
     }
   };
 
+  useEffect(() => {
+    if (!openActionMenuId) return;
+    const handleMouseDown = (event) => {
+      if (actionMenuRef.current && !actionMenuRef.current.contains(event.target)) {
+        setOpenActionMenuId(null);
+      }
+    };
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') setOpenActionMenuId(null);
+    };
+    document.addEventListener('mousedown', handleMouseDown);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleMouseDown);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [openActionMenuId]);
+
   return (
     <AdminLayout
-      title="Quản trị người dùng"
+      title="Users"
       subtitle="Quản lý tài khoản và phân quyền người dùng"
     >
+      {/* Dynamic Notifications */}
       {notification && (
-        <div className={`admin-toast admin-toast-${notification.type}`} key={notification.id}>
-          <div className="admin-toast-icon">
-            {notification.type === 'success' ? (
-              <CheckCircle size={18} />
-            ) : notification.type === 'error' ? (
-              <XCircle size={18} />
-            ) : (
-              <AlertCircle size={18} />
-            )}
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          right: '20px',
+          zIndex: 1000,
+          background: '#ffffff',
+          border: '1px solid #e2e8f0',
+          borderRadius: '12px',
+          padding: '12px 18px',
+          boxShadow: '0 10px 25px rgba(0,0,0,0.08)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          maxWidth: '350px'
+        }}>
+          <div style={{
+            width: '28px',
+            height: '28px',
+            borderRadius: '50%',
+            background: notification.type === 'success' ? '#d1fae5' : '#fdf2f2',
+            color: notification.type === 'success' ? '#10b981' : '#ef4444',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontWeight: 'bold'
+          }}>
+            {notification.type === 'success' ? '✓' : '!'}
           </div>
-          <div className="admin-toast-body">
-            <div className="admin-toast-title">{notification.title}</div>
-            <div className="admin-toast-message">{notification.message}</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>{notification.title}</div>
+            <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>{notification.message}</div>
           </div>
-          <button className="admin-toast-close" onClick={() => setNotification(null)} aria-label="Đóng thông báo">
+          <button
+            onClick={() => setNotification(null)}
+            style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '14px' }}
+          >
             ×
           </button>
         </div>
       )}
-      <div style={{ maxWidth: 1400, margin: '0 auto', width: '100%', position: 'relative' }}>
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
-          <Link to="/admin" style={{ 
-            display: 'flex', alignItems: 'center', gap: 8, 
-            color: '#0056d2', textDecoration: 'none', fontSize: 14,
-            padding: '8px 16px', borderRadius: 8, background: 'rgba(0, 86, 210, 0.1)',
-            transition: 'all 0.3s ease'
-          }}
-          onMouseEnter={(e) => e.target.style.background = 'rgba(0, 86, 210, 0.2)'}
-          onMouseLeave={(e) => e.target.style.background = 'rgba(0, 86, 210, 0.1)'}
-          >
-            <ArrowLeft size={16} />
-            Quay lại Admin
-          </Link>
-        </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
-          <div>
-            <h1 style={{ 
-              fontSize: 32, fontWeight: 800, color: '#111827', margin: 0,
-              display: 'flex', alignItems: 'center', gap: 12
-            }}>
-              <Users size={32} style={{ color: '#0056d2' }} />
-              <span style={{
-                background: 'linear-gradient(135deg, #0056d2 0%, #003380 100%)',
-                WebkitBackgroundClip: 'text', 
-                WebkitTextFillColor: 'transparent'
-              }}>
-                Quản lý người dùng
-              </span>
-            </h1>
-            <p style={{ color: '#6b7280', marginTop: 8, fontSize: 16 }}>
-              Tổng cộng <strong>{summaryCounts.totalUsers}</strong> người dùng • {summaryCounts.activeUsers} đang hoạt động
-            </p>
+      {/* Row 1: 3 Stats Card panel */}
+      <section className="admin-dashboard-stats-grid" style={{ marginBottom: 24 }}>
+        <div className="admin-stat-card-new">
+          <div className="admin-stat-card-left">
+            <span className="admin-stat-card-label">Tổng số người dùng</span>
+            <span className="admin-stat-card-value">{summaryCounts.totalUsers.toLocaleString()}</span>
+            <span className="admin-stat-card-trend" style={{ color: '#4f46e5' }}>Tổng tài khoản hệ thống</span>
           </div>
-          
-          <div style={{ display: 'flex', gap: 12 }}>
-            <button style={{
-              display: 'flex', alignItems: 'center', gap: 8,
-              padding: '12px 20px', 
-              background: 'linear-gradient(135deg, #0056d2 0%, #003380 100%)', 
-              color: 'white', border: 'none', borderRadius: 12, cursor: 'pointer',
-                fontWeight: 600, fontSize: 14, 
-                boxShadow: '0 4px 15px rgba(0, 86, 210, 0.4)',
-                transition: 'all 0.3s ease'
-              }}
-              onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
-              onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
-              >
-                <Plus size={18} />
-                Thêm người dùng
-              </button>
-              
-              <button style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                padding: '12px 20px', background: 'white', color: '#374151',
-                border: '2px solid #e5e7eb', borderRadius: 12, cursor: 'pointer', 
-                fontWeight: 600, fontSize: 14, transition: 'all 0.3s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.borderColor = '#0056d2';
-                e.target.style.color = '#0056d2';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.borderColor = '#e5e7eb';
-                e.target.style.color = '#374151';
-              }}
-              >
-                <BarChart3 size={18} />
-                Thống kê
-              </button>
-            </div>
+          <div className="admin-stat-card-icon-wrap blue">
+            <Users size={22} />
+          </div>
         </div>
 
-        {/* Tabs */}
-        <div style={{ 
-          display: 'flex', gap: 4, marginBottom: 24,
-          background: 'white', padding: 8, borderRadius: 16,
-          boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)'
-        }}>
-          {[
-            { key: 'ALL', label: 'Tất cả', icon: Users, count: summaryCounts.totalUsers },
-            { key: 'ADMIN', label: 'Quản trị viên', icon: Shield, count: summaryCounts.adminCount },
-            { key: 'MANAGER', label: 'Quản lý', icon: Target, count: summaryCounts.managerCount },
-            { key: 'TEACHER', label: 'Giáo viên', icon: GraduationCap, count: summaryCounts.teacherCount },
-            { key: 'STUDENT', label: 'Học viên', icon: BookOpen, count: summaryCounts.studentCount },
-            { key: 'DELETED', label: 'Đã xóa', icon: XCircle, count: summaryCounts.deletedUsers }
-          ].map(tab => {
-            const IconComponent = tab.icon;
-            const isActive = activeTab === tab.key;
+        <div className="admin-stat-card-new">
+          <div className="admin-stat-card-left">
+            <span className="admin-stat-card-label">Đang hoạt động</span>
+            <span className="admin-stat-card-value">{summaryCounts.activeUsers.toLocaleString()}</span>
+            <span className="admin-stat-card-trend" style={{ color: '#10b981' }}>Tài khoản active</span>
+          </div>
+          <div className="admin-stat-card-icon-wrap green">
+            <UserCheck size={22} />
+          </div>
+        </div>
+
+        <div className="admin-stat-card-new">
+          <div className="admin-stat-card-left">
+            <span className="admin-stat-card-label">Tài khoản lưu trữ/đã xóa</span>
+            <span className="admin-stat-card-value">{summaryCounts.deletedUsers.toLocaleString()}</span>
+            <span className="admin-stat-card-trend" style={{ color: '#ef4444' }}>Đã xóa mềm</span>
+          </div>
+          <div className="admin-stat-card-icon-wrap pink">
+            <UserX size={22} />
+          </div>
+        </div>
+      </section>
+
+      {/* Row 2: Horizontal Filter Tabs & Add Actions */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        borderBottom: '1px solid #e2e8f0',
+        marginBottom: '20px',
+        background: '#ffffff',
+        borderRadius: '16px',
+        padding: '10px 20px',
+        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.01)'
+      }}>
+        <div style={{ display: 'flex', gap: '20px' }}>
+          {TABS.map((tab) => {
+            const active = activeTab === tab.key;
+            // Get proper count from summary counts
+            let count = summaryCounts.totalUsers;
+            if (tab.key === 'ADMIN') count = summaryCounts.adminCount;
+            else if (tab.key === 'MANAGER') count = summaryCounts.managerCount;
+            else if (tab.key === 'TEACHER') count = summaryCounts.teacherCount;
+            else if (tab.key === 'STUDENT') count = summaryCounts.studentCount;
+            else if (tab.key === 'DELETED') count = summaryCounts.deletedUsers;
+
             return (
               <button
                 key={tab.key}
@@ -736,1124 +477,630 @@ export default function AdminUsers() {
                   setPagination((prev) => ({ ...prev, page: 0 }));
                 }}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 8,
-                  padding: '12px 20px', borderRadius: 12, border: 'none',
-                  background: isActive ? 'linear-gradient(135deg, #0056d2 0%, #003380 100%)' : 'transparent',
-                  color: isActive ? 'white' : '#6b7280',
-                  cursor: 'pointer', fontWeight: 600, fontSize: 14,
-                  transition: 'all 0.3s ease'
-                }}
-                onMouseEnter={(e) => {
-                  if (!isActive) {
-                    e.target.style.background = '#f8fafc';
-                    e.target.style.color = '#0056d2';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isActive) {
-                    e.target.style.background = 'transparent';
-                    e.target.style.color = '#6b7280';
-                  }
+                  background: 'none',
+                  border: 'none',
+                  padding: '12px 4px',
+                  fontSize: '14px',
+                  fontWeight: active ? '600' : '500',
+                  color: active ? '#4f46e5' : '#64748b',
+                  borderBottom: active ? '2.5px solid #4f46e5' : '2.5px solid transparent',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  outline: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
                 }}
               >
-                <IconComponent size={16} />
-                {tab.label}
+                <span>{tab.label}</span>
                 <span style={{
-                  background: isActive ? 'rgba(255,255,255,0.2)' : '#e5e7eb',
-                  color: isActive ? 'white' : '#6b7280',
-                  padding: '2px 8px', borderRadius: 12, fontSize: 12, fontWeight: 700
+                  background: active ? '#4f46e5' : '#e2e8f0',
+                  color: active ? '#ffffff' : '#64748b',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  padding: '2px 6px',
+                  borderRadius: '12px',
+                  minWidth: '18px'
                 }}>
-                  {tab.count}
+                  {count ?? 0}
                 </span>
               </button>
             );
           })}
         </div>
 
-        {/* Filters */}
-        <div style={{ 
-          background: 'white', padding: 24, borderRadius: 16, 
-          border: '1px solid #f1f5f9', marginBottom: 24,
-          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), 0 20px 25px -5px rgba(0, 0, 0, 0.04)',
-          display: 'flex', gap: 20, alignItems: 'center'
-        }}>
-          <div style={{ position: 'relative', flex: 1 }}>
-            <Search size={20} style={{ 
-              position: 'absolute', left: 16, top: '50%', 
-              transform: 'translateY(-50%)', color: '#9ca3af' 
-            }} />
-            <input
-              type="text"
-              placeholder="Tìm kiếm theo tên, username, email..."
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setPagination((prev) => ({ ...prev, page: 0 }));
-              }}
-              style={{
-                width: '100%', padding: '14px 20px 14px 50px', 
-                border: '2px solid #f1f5f9', borderRadius: 12, fontSize: 15,
-                transition: 'all 0.3s ease', background: '#fafbfc'
-              }}
-              onFocus={(e) => {
-                e.target.style.borderColor = '#0056d2';
-                e.target.style.background = 'white';
-                e.target.style.boxShadow = '0 0 0 3px rgba(0, 86, 210, 0.1)';
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = '#f1f5f9';
-                e.target.style.background = '#fafbfc';
-                e.target.style.boxShadow = 'none';
-              }}
-            />
-          </div>
-          
-          <div style={{ 
-            padding: '12px 16px', background: '#f8fafc', borderRadius: 10,
-            border: '1px solid #e2e8f0', fontSize: 14, fontWeight: 600, color: '#475569',
-            display: 'flex', alignItems: 'center', gap: 8
-          }}>
-            <BarChart3 size={16} />
-            {pagination.totalElements} kết quả
-          </div>
-        </div>
+        <button
+          onClick={() => setShowModal('add')}
+          style={{
+            padding: '8px 14px',
+            background: '#4f46e5',
+            border: 'none',
+            borderRadius: '8px',
+            fontSize: '13px',
+            fontWeight: 600,
+            color: '#ffffff',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            cursor: 'pointer',
+            transition: 'all 0.2s'
+          }}
+        >
+          <Plus size={14} />
+          Thêm người dùng
+        </button>
+      </div>
 
-
-      {/* Delete User Confirmation Modal */}
-      {deleteTarget && (
+      {/* Search Input bar */}
+      <div style={{
+        background: '#ffffff',
+        border: '1px solid #e2e8f0',
+        borderRadius: '16px',
+        padding: '16px 20px',
+        marginBottom: '20px',
+        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.01)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '16px'
+      }}>
         <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(15, 23, 42, 0.62)',
+          position: 'relative',
+          flex: 1,
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1100,
-          backdropFilter: 'blur(10px)',
-          padding: 20,
-        }} onClick={() => setDeleteTarget(null)}>
-          <div style={{
-            width: '100%',
-            maxWidth: 520,
-            background: 'linear-gradient(180deg, #ffffff 0%, #f8fafc 100%)',
-            borderRadius: 24,
-            boxShadow: '0 30px 80px rgba(15, 23, 42, 0.25)',
-            border: '1px solid rgba(255,255,255,0.6)',
-            overflow: 'hidden',
-          }} onClick={(e) => e.stopPropagation()}>
-            <div style={{
-              padding: '22px 24px',
-              background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
-              color: 'white',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-            }}>
-              <div style={{
-                width: 42,
-                height: 42,
-                borderRadius: '50%',
-                background: 'rgba(255,255,255,0.18)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
-                <Trash2 size={20} />
-              </div>
-              <div>
-                <div style={{ fontSize: 18, fontWeight: 800 }}>Xác nhận xóa người dùng</div>
-                <div style={{ fontSize: 13, opacity: 0.9 }}>Hành động này không thể hoàn tác</div>
-              </div>
+          background: '#f1f5f9',
+          border: '1px solid #e2e8f0',
+          borderRadius: '10px',
+          padding: '6px 12px'
+        }}>
+          <Search size={14} style={{ color: '#64748b', marginRight: '8px' }} />
+          <input
+            type="text"
+            placeholder="Tìm kiếm theo tên, username, email..."
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setPagination((prev) => ({ ...prev, page: 0 }));
+            }}
+            style={{
+              border: 'none',
+              background: 'transparent',
+              outline: 'none',
+              fontSize: '13px',
+              width: '100%',
+              color: '#0f172a'
+            }}
+          />
+          {searchTerm && (
+            <button onClick={() => setSearchTerm('')} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: '#94a3b8' }}>
+              <X size={14} />
+            </button>
+          )}
+        </div>
+
+        <div style={{
+          fontSize: '13px',
+          fontWeight: 600,
+          color: '#475569',
+          background: '#f8fafc',
+          border: '1px solid #e2e8f0',
+          borderRadius: '8px',
+          padding: '8px 12px'
+        }}>
+          {pagination.totalElements} kết quả
+        </div>
+      </div>
+
+      {loadError && (
+        <div className="admin-alert admin-alert-danger" style={{ marginBottom: 20 }}>
+          <AlertCircle size={16} />
+          <span>{loadError}</span>
+        </div>
+      )}
+
+      {/* Main Users Table Card */}
+      <div style={{
+        background: '#ffffff',
+        border: '1px solid #e2e8f0',
+        borderRadius: '16px',
+        padding: '24px',
+        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.01)'
+      }}>
+        {loading ? (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 0', gap: '10px', color: '#64748b', fontSize: '14px' }}>
+            <Loader2 size={18} className="spin" />
+            Đang tải dữ liệu người dùng...
+          </div>
+        ) : users.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '60px 0', color: '#64748b' }}>
+            <Users size={48} style={{ color: '#cbd5e1', marginBottom: '16px' }} />
+            <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', color: '#0f172a', fontWeight: 700 }}>Không có người dùng phù hợp</h3>
+            <p style={{ margin: 0, fontSize: '13px' }}>Thử thay đổi bộ lọc hoặc thêm tài khoản để bắt đầu.</p>
+          </div>
+        ) : (
+          <>
+            <div className="admin-table-wrap">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Người dùng</th>
+                    <th>Vai trò</th>
+                    {activeTab !== 'DELETED' && <th>Trạng thái</th>}
+                    <th>Hoạt động cuối</th>
+                    <th style={{ textAlign: 'right' }}>Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {users.map((user) => (
+                    <tr key={user.id}>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <div style={{
+                            width: '36px',
+                            height: '36px',
+                            borderRadius: '50%',
+                            background: ROLES[user.roles[0]]?.bg || '#f1f5f9',
+                            color: ROLES[user.roles[0]]?.color || '#64748b',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: 700,
+                            fontSize: '14px'
+                          }}>
+                            {user.fullName?.charAt(0)?.toUpperCase() || '?'}
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: 600, color: '#0f172a', fontSize: '14px' }}>{user.fullName}</div>
+                            <div style={{ fontSize: '12px', color: '#64748b' }}>@{user.username}</div>
+                            <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '1px' }}>{user.email}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                          {user.roles.map(role => (
+                            <span key={role} style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              padding: '2px 8px',
+                              borderRadius: '6px',
+                              fontSize: '11px',
+                              fontWeight: 600,
+                              background: ROLES[role]?.bg || '#f1f5f9',
+                              color: ROLES[role]?.color || '#64748b'
+                            }}>
+                              {ROLES[role]?.label || role}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                      {activeTab !== 'DELETED' && (
+                        <td>
+                          <button
+                            onClick={() => handleToggleActive(user.id)}
+                            style={{
+                              border: 'none',
+                              padding: '4px 10px',
+                              borderRadius: '20px',
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              background: user.isActive ? '#e6f4ea' : '#fce8e6',
+                              color: user.isActive ? '#137333' : '#c5221f'
+                            }}
+                          >
+                            {user.isActive ? 'Hoạt động' : 'Tạm khóa'}
+                          </button>
+                        </td>
+                      )}
+                      <td>
+                        {user.lastLogin ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: '#64748b' }}>
+                            <Clock size={12} />
+                            <span>{new Date(user.lastLogin).toLocaleDateString('vi-VN')}</span>
+                          </div>
+                        ) : (
+                          <span style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '12px' }}>Chưa đăng nhập</span>
+                        )}
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <div className="admin-action-wrap" ref={openActionMenuId === user.id ? actionMenuRef : null} style={{ display: 'inline-block' }}>
+                          <button
+                            type="button"
+                            className="admin-action-trigger"
+                            onClick={() => setOpenActionMenuId((prev) => (prev === user.id ? null : user.id))}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: '#64748b',
+                              cursor: 'pointer',
+                              padding: '4px'
+                            }}
+                          >
+                            <MoreVertical size={18} />
+                          </button>
+
+                          {openActionMenuId === user.id && (
+                            <div className="admin-action-menu" style={{
+                              position: 'absolute',
+                              right: 0,
+                              background: '#ffffff',
+                              border: '1px solid #e2e8f0',
+                              borderRadius: '12px',
+                              boxShadow: '0 10px 25px rgba(0,0,0,0.08)',
+                              width: '160px',
+                              padding: '6px',
+                              zIndex: 100,
+                              textAlign: 'left'
+                            }}>
+                              {user.deletedAt ? (
+                                <>
+                                  {canRestoreTest(user) && (
+                                    <button
+                                      onClick={() => { setOpenActionMenuId(null); handleRestoreUser(user.id); }}
+                                      className="admin-dropdown-item"
+                                      style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}
+                                    >
+                                      <RefreshCw size={14} /> Khôi phục
+                                    </button>
+                                  )}
+                                </>
+                              ) : (
+                                <>
+                                  <button
+                                    onClick={() => { setOpenActionMenuId(null); setSelectedUser(user); setShowModal('password'); }}
+                                    className="admin-dropdown-item"
+                                    style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}
+                                  >
+                                    <Key size={14} /> Đổi mật khẩu
+                                  </button>
+
+                                  {user.id !== currentUser?.id && (
+                                    <button
+                                      onClick={() => { setOpenActionMenuId(null); handleEditUser(user); }}
+                                      className="admin-dropdown-item"
+                                      style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}
+                                    >
+                                      <Edit size={14} /> Chỉnh sửa
+                                    </button>
+                                  )}
+
+                                  {user.id !== currentUser?.id && (
+                                    <button
+                                      onClick={() => { setOpenActionMenuId(null); handleDeleteUser(user.id); }}
+                                      className="admin-dropdown-item logout"
+                                      style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}
+                                    >
+                                      <Trash2 size={14} /> Xóa tài khoản
+                                    </button>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
 
-            <div style={{ padding: 24 }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: 12,
-                padding: '14px 16px',
-                borderRadius: 16,
-                background: '#fef2f2',
-                border: '1px solid #fecaca',
-                color: '#991b1b',
-                marginBottom: 18,
-              }}>
-                <AlertCircle size={18} style={{ marginTop: 2, flexShrink: 0 }} />
-                <div style={{ fontSize: 14, lineHeight: 1.6, width: '100%' }}>
-                  Bạn sắp xóa <strong>{deleteTarget.fullName || deleteTarget.username}</strong>.
-                  {deleteTarget.roles?.includes('TEACHER') && (
-                    <>
-                      <br />Giảng viên phải bàn giao lớp trước khi xóa.
-                    </>
-                  )}
-                  <div style={{ marginTop: 12 }}>
-                    <input
-                      type="password"
-                      value={deletePassword}
-                      onChange={(e) => setDeletePassword(e.target.value)}
-                      placeholder="Nhập mật khẩu admin để xác nhận"
-                      style={{
-                        width: '100%',
-                        padding: '10px 12px',
-                        borderRadius: 8,
-                        border: '1.5px solid #fca5a5',
-                        outline: 'none',
-                        fontSize: 14,
-                        background: 'white'
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: 12,
-                marginBottom: 16,
-                fontSize: 13,
-                color: '#475569',
-              }}>
-                <div style={{ padding: 14, borderRadius: 14, background: 'white', border: '1px solid #e2e8f0' }}>
-                  <div style={{ color: '#94a3b8', marginBottom: 4 }}>Username</div>
-                  <strong>{deleteTarget.username}</strong>
-                </div>
-                <div style={{ padding: 14, borderRadius: 14, background: 'white', border: '1px solid #e2e8f0' }}>
-                  <div style={{ color: '#94a3b8', marginBottom: 4 }}>Vai trò</div>
-                  <strong>{(deleteTarget.roles || []).join(', ')}</strong>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+            {pagination.totalPages > 1 && (
+              <div className="admin-pagination" style={{ marginTop: '24px' }}>
                 <button
-                  onClick={() => setDeleteTarget(null)}
-                  style={{
-                    padding: '12px 18px',
-                    background: '#fff',
-                    border: '1.5px solid #e2e8f0',
-                    borderRadius: 14,
-                    cursor: 'pointer',
-                    fontWeight: 700,
-                    color: '#334155',
-                  }}
+                  onClick={() => setPagination(prev => ({ ...prev, page: Math.max(prev.page - 1, 0) }))}
+                  disabled={pagination.page <= 0}
+                  className="admin-btn ghost small"
                 >
-                  Hủy bỏ
+                  Trước
                 </button>
+                <span className="admin-pagination-info">
+                  Trang {pagination.page + 1} / {pagination.totalPages} ({pagination.totalElements} tài khoản)
+                </span>
                 <button
-                  onClick={confirmDeleteUser}
-                  style={{
-                    padding: '12px 18px',
-                    background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: 14,
-                    cursor: 'pointer',
-                    fontWeight: 800,
-                    boxShadow: '0 12px 24px rgba(220, 38, 38, 0.25)',
-                  }}
+                  onClick={() => setPagination(prev => ({ ...prev, page: Math.min(prev.page + 1, prev.totalPages - 1) }))}
+                  disabled={pagination.page >= pagination.totalPages - 1}
+                  className="admin-btn ghost small"
                 >
-                  Xóa ngay
+                  Sau
                 </button>
               </div>
-            </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Modals are overlayed with consistent backdrop filters */}
+
+      {/* Add User Modal */}
+      {showModal === 'add' && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.62)',
+          display: 'flex', alignItems: 'center', justifyItems: 'center', justifyContent: 'center',
+          zIndex: 1000, backdropFilter: 'blur(8px)', padding: '20px'
+        }}>
+          <div style={{ background: '#ffffff', borderRadius: '24px', width: '90%', maxWidth: '500px', padding: '32px', boxShadow: '0 25px 50px rgba(0,0,0,0.18)' }}>
+            <h3 style={{ margin: '0 0 16px 0', fontSize: '20px', fontWeight: 700, color: '#0f172a' }}>Thêm tài khoản người dùng</h3>
+            <AddUserForm onClose={() => setShowModal(null)} onSuccess={() => { setShowModal(null); fetchUsers(); notify('success', 'Thành công', 'Đã thêm tài khoản mới.'); }} />
           </div>
         </div>
       )}
-        {loadError && (
-          <div style={{
-            marginBottom: 16,
-            padding: '12px 16px',
-            borderRadius: 10,
-            border: '1px solid #fecaca',
-            background: '#fef2f2',
-            color: '#dc2626',
-            fontSize: 14,
-            fontWeight: 500
-          }}>
-            {loadError}
-          </div>
-        )}
-
-        {/* Users Table */}
-        {loading ? (
-          <div style={{ 
-            background: 'white', borderRadius: 12, border: '1px solid #e5e7eb',
-            padding: 60, textAlign: 'center', color: '#6b7280'
-          }}>
-            Đang tải dữ liệu người dùng...
-          </div>
-        ) : filteredUsers.length === 0 ? (
-          <div style={{
-            background: 'white',
-            borderRadius: 12,
-            border: '1px solid #e5e7eb',
-            padding: 42,
-            textAlign: 'center',
-            color: '#64748b'
-          }}>
-            Không có dữ liệu người dùng phù hợp.
-          </div>
-        ) : (
-          <div style={{ 
-            background: 'white', borderRadius: 16, border: '1px solid #f1f5f9', 
-            overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
-          }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead style={{ background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)' }}>
-              <tr>
-                <th style={{ 
-                  padding: 20, textAlign: 'left', fontWeight: 700, color: '#1e293b',
-                  fontSize: 14, letterSpacing: '0.5px', textTransform: 'uppercase'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Users size={16} />
-                    Người dùng
-                  </div>
-                </th>
-                <th style={{ 
-                  padding: 20, textAlign: 'left', fontWeight: 700, color: '#1e293b',
-                  fontSize: 14, letterSpacing: '0.5px', textTransform: 'uppercase'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Shield size={16} />
-                    Vai trò
-                  </div>
-                </th>
-                {activeTab !== 'DELETED' && (
-                <th style={{ 
-                  padding: 20, textAlign: 'left', fontWeight: 700, color: '#1e293b',
-                  fontSize: 14, letterSpacing: '0.5px', textTransform: 'uppercase'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <CheckCircle size={16} />
-                    Trạng thái
-                  </div>
-                </th>
-                )}
-                <th style={{ 
-                  padding: 20, textAlign: 'left', fontWeight: 700, color: '#1e293b',
-                  fontSize: 14, letterSpacing: '0.5px', textTransform: 'uppercase'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Clock size={16} />
-                    Hoạt động cuối
-                  </div>
-                </th>
-                <th style={{ 
-                  padding: 20, textAlign: 'center', fontWeight: 700, color: '#1e293b',
-                  fontSize: 14, letterSpacing: '0.5px', textTransform: 'uppercase'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
-                    <MoreVertical size={16} />
-                    Thao tác
-                  </div>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredUsers.map((user, index) => (
-                <tr key={user.id} style={{ 
-                  borderTop: index > 0 ? '1px solid #f1f5f9' : 'none',
-                  transition: 'all 0.2s ease'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.background = '#fafbfc'}
-                onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
-                >
-                  <td style={{ padding: 20 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <div style={{
-                        width: 48, height: 48, borderRadius: '50%',
-                        background: `linear-gradient(135deg, ${ROLES[user.roles[0]]?.color || '#6b7280'} 0%, ${ROLES[user.roles[0]]?.color || '#6b7280'}80 100%)`,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 18, fontWeight: 700, color: 'white',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-                      }}>
-                        {user.fullName?.charAt(0)?.toUpperCase() || '?'}
-                      </div>
-                      <div>
-                        <div style={{ fontWeight: 700, color: '#111827', fontSize: 15 }}>
-                          {user.fullName}
-                        </div>
-                        <div style={{ fontSize: 13, color: '#6b7280', marginTop: 2 }}>
-                          @{user.username}
-                        </div>
-                        <div style={{ fontSize: 13, color: '#9ca3af', marginTop: 1 }}>
-                          <Mail size={12} style={{ display: 'inline', marginRight: 4 }} />
-                          {user.email}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td style={{ padding: 20 }}>
-                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                      {user.roles.map(role => {
-                        const IconComponent = ROLES[role]?.icon || Shield;
-                        return (
-                          <span key={role} style={{
-                            display: 'inline-flex', alignItems: 'center', gap: 6,
-                            padding: '6px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600,
-                            background: ROLES[role]?.bg || '#f3f4f6', 
-                            color: ROLES[role]?.color || '#6b7280',
-                            border: `1px solid ${ROLES[role]?.color}20`
-                          }}>
-                            <IconComponent size={12} />
-                            {ROLES[role]?.label}
-                          </span>
-                        );
-                      })}
-                    </div>
-                  </td>
-                  {activeTab !== 'DELETED' && (
-                  <td style={{ padding: 20 }}>
-                    <button
-                      onClick={() => handleToggleActive(user.id)}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 8,
-                        padding: '8px 16px', borderRadius: 25, border: 'none',
-                        background: user.isActive 
-                          ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' 
-                          : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-                        color: 'white', fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                        boxShadow: user.isActive 
-                          ? '0 4px 12px rgba(16, 185, 129, 0.4)' 
-                          : '0 4px 12px rgba(239, 68, 68, 0.4)',
-                        transition: 'all 0.3s ease'
-                      }}
-                      onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
-                      onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
-                    >
-                      {user.isActive ? <CheckCircle size={14} /> : <XCircle size={14} />}
-                      {user.isActive ? 'Hoạt động' : 'Tạm khóa'}
-                    </button>
-                  </td>
-                  )}
-                  <td style={{ padding: 20, fontSize: 13, color: '#6b7280' }}>
-                    {user.lastLogin ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <Clock size={12} />
-                        {new Date(user.lastLogin).toLocaleDateString('vi-VN')}
-                      </div>
-                    ) : (
-                      <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>Chưa đăng nhập</span>
-                    )}
-                  </td>
-                  <td style={{ padding: 20, textAlign: 'center' }}>
-                    <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-                      {/* Nút Đổi mật khẩu - ẩn khi ở tab Đã xóa */}
-                      {activeTab !== 'DELETED' && (
-                      <button
-                        onClick={() => {
-                          setSelectedUser(user);
-                          setShowModal('password');
-                        }}
-                        style={{
-                          padding: 10, background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)', 
-                          border: 'none', borderRadius: 10, cursor: 'pointer', color: 'white',
-                          boxShadow: '0 4px 12px rgba(139, 92, 246, 0.4)',
-                          transition: 'all 0.3s ease'
-                        }}
-                        title="Đổi mật khẩu"
-                        onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
-                        onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
-                      >
-                        <Key size={16} />
-                      </button>
-                      )}
-                      
-                      {/* Nút Chỉnh sửa - ẩn khi ở tab Đã xóa hoặc là chính mình */}
-                      {activeTab !== 'DELETED' && user.id !== currentUser?.id && (
-                        <button
-                          onClick={() => handleEditUser(user)}
-                          style={{
-                            padding: 10, background: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)', 
-                            border: 'none', borderRadius: 10, cursor: 'pointer', color: 'white',
-                            boxShadow: '0 4px 12px rgba(6, 182, 212, 0.4)',
-                            transition: 'all 0.3s ease'
-                          }}
-                          title="Chỉnh sửa"
-                          onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
-                          onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
-                        >
-                          <Edit size={16} />
-                        </button>
-                      )}
-                      
-                      {/* Nút Khôi phục cho user đã xóa, nút Xóa cho user active */}
-                      {user.deletedAt ? (
-                        <button
-                          onClick={() => handleRestoreUser(user.id)}
-                          style={{
-                            padding: 10, background: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)', 
-                            border: 'none', borderRadius: 10, cursor: 'pointer', color: 'white',
-                            boxShadow: '0 4px 12px rgba(22, 163, 74, 0.4)',
-                            transition: 'all 0.3s ease'
-                          }}
-                        >
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
-                            <path d="M21 3v5h-5"/>
-                            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
-                            <path d="M3 21v-5h5"/>
-                          </svg>
-                        </button>
-                      ) : (
-                        user.id !== currentUser?.id && !(user.roles.includes('ADMIN') && users.filter(u => u.roles.includes('ADMIN')).length <= 1) && (
-                          <button
-                            onClick={() => handleDeleteUser(user.id)}
-                            style={{
-                              padding: 10, background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', 
-                              border: 'none', borderRadius: 10, cursor: 'pointer', color: 'white',
-                              boxShadow: '0 4px 12px rgba(239, 68, 68, 0.4)',
-                              transition: 'all 0.3s ease'
-                            }}
-                          title="Xóa"
-                          onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
-                          onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                        )
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: 12,
-            padding: '16px 20px',
-            borderTop: '1px solid #f1f5f9',
-            background: '#fcfdff',
-          }}>
-            <div style={{ fontSize: 13, color: '#64748b' }}>
-              Trang <strong>{pagination.page + 1}</strong> / <strong>{Math.max(pagination.totalPages, 1)}</strong>
-              {' '}• {filteredUsers.length} bản ghi trên trang
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <select
-                value={pagination.size}
-                onChange={(e) => setPagination((prev) => ({ ...prev, size: Number(e.target.value), page: 0 }))}
-                style={{
-                  padding: '10px 12px',
-                  borderRadius: 10,
-                  border: '1px solid #dbe4f0',
-                  background: '#fff',
-                  color: '#334155',
-                  fontWeight: 600,
-                }}
-              >
-                {[10, 20, 50, 100].map((size) => (
-                  <option key={size} value={size}>Hiển thị {size}</option>
-                ))}
-              </select>
-              <button
-                onClick={() => setPagination((prev) => ({ ...prev, page: Math.max(prev.page - 1, 0) }))}
-                disabled={pagination.page <= 0}
-                style={{
-                  padding: '10px 14px',
-                  borderRadius: 10,
-                  border: '1px solid #dbe4f0',
-                  background: pagination.page <= 0 ? '#f8fafc' : '#fff',
-                  color: '#334155',
-                  fontWeight: 700,
-                  cursor: pagination.page <= 0 ? 'not-allowed' : 'pointer',
-                }}
-              >
-                Trước
-              </button>
-              <button
-                onClick={() => setPagination((prev) => ({ ...prev, page: Math.min(prev.page + 1, Math.max(prev.totalPages - 1, 0)) }))}
-                disabled={pagination.page >= pagination.totalPages - 1}
-                style={{
-                  padding: '10px 14px',
-                  borderRadius: 10,
-                  border: '1px solid #dbe4f0',
-                  background: pagination.page >= pagination.totalPages - 1 ? '#f8fafc' : '#fff',
-                  color: '#334155',
-                  fontWeight: 700,
-                  cursor: pagination.page >= pagination.totalPages - 1 ? 'not-allowed' : 'pointer',
-                }}
-              >
-                Sau
-              </button>
-            </div>
-          </div>
-        </div>
-        )}
 
       {/* Edit User Modal */}
       {showModal === 'edit' && selectedUser && (
         <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 1000, backdropFilter: 'blur(8px)'
+          position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.62)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1000, backdropFilter: 'blur(8px)', padding: '20px'
         }}>
-          <div style={{
-            background: 'white', borderRadius: 20, padding: 32, width: 500,
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-            border: '1px solid rgba(255,255,255,0.2)',
-            maxHeight: '90vh', overflowY: 'auto'
-          }}>
-            <div style={{ textAlign: 'center', marginBottom: 24 }}>
-              <div style={{
-                width: 64, height: 64, borderRadius: '50%',
-                background: 'linear-gradient(135deg, #0056d2 0%, #003380 100%)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                margin: '0 auto 16px', boxShadow: '0 8px 25px rgba(0, 86, 210, 0.3)'
-              }}>
-                <Edit size={28} color="white" />
-              </div>
-              <h3 style={{ 
-                margin: 0, fontSize: 20, fontWeight: 700, color: '#111827',
-                marginBottom: 8
-              }}>
-                Chỉnh sửa thông tin
-              </h3>
-              <p style={{ 
-                margin: 0, color: '#6b7280', fontSize: 14,
-                fontWeight: 500
-              }}>
-                Cập nhật thông tin cho <strong>{selectedUser?.fullName}</strong>
-              </p>
-            </div>
+          <div style={{ background: '#ffffff', borderRadius: '24px', width: '90%', maxWidth: '500px', padding: '32px', boxShadow: '0 25px 50px rgba(0,0,0,0.18)' }}>
+            <h3 style={{ margin: '0 0 20px 0', fontSize: '20px', fontWeight: 700, color: '#0f172a' }}>Chỉnh sửa thông tin</h3>
+            <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '20px' }}>Cập nhật thông tin cho <strong>{selectedUser.fullName}</strong></p>
 
-            <div style={{ marginBottom: 20 }}>
-              <label style={{ 
-                display: 'block', fontSize: 14, fontWeight: 600, 
-                color: '#374151', marginBottom: 8 
-              }}>
-                Họ và tên
-              </label>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>Họ và tên</label>
               <input
                 type="text"
                 value={editForm.fullName}
-                onChange={(e) => setEditForm({...editForm, fullName: e.target.value})}
-                style={{
-                  width: '100%', padding: '14px 16px', border: '2px solid #f1f5f9',
-                  borderRadius: 12, fontSize: 14, background: '#fafbfc',
-                  transition: 'all 0.3s ease', outline: 'none'
-                }}
-                onFocus={(e) => {
-                  e.target.style.borderColor = '#0056d2';
-                  e.target.style.background = 'white';
-                  e.target.style.boxShadow = '0 0 0 3px rgba(0, 86, 210, 0.1)';
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = '#f1f5f9';
-                  e.target.style.background = '#fafbfc';
-                  e.target.style.boxShadow = 'none';
-                }}
+                onChange={(e) => setEditForm({ ...editForm, fullName: e.target.value })}
+                style={{ width: '100%', padding: '10px 14px', border: '1.5px solid #cbd5e1', borderRadius: '10px', fontSize: '14px', outline: 'none' }}
               />
             </div>
 
-            <div style={{ marginBottom: 20 }}>
-              <label style={{ 
-                display: 'block', fontSize: 14, fontWeight: 600, 
-                color: '#374151', marginBottom: 8 
-              }}>
-                Email
-              </label>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>Email</label>
               <input
                 type="email"
                 value={editForm.email}
-                onChange={(e) => setEditForm({...editForm, email: e.target.value})}
-                style={{
-                  width: '100%', padding: '14px 16px', border: '2px solid #f1f5f9',
-                  borderRadius: 12, fontSize: 14, background: '#fafbfc',
-                  transition: 'all 0.3s ease', outline: 'none'
-                }}
-                onFocus={(e) => {
-                  e.target.style.borderColor = '#0056d2';
-                  e.target.style.background = 'white';
-                  e.target.style.boxShadow = '0 0 0 3px rgba(0, 86, 210, 0.1)';
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = '#f1f5f9';
-                  e.target.style.background = '#fafbfc';
-                  e.target.style.boxShadow = 'none';
-                }}
+                onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                style={{ width: '100%', padding: '10px 14px', border: '1.5px solid #cbd5e1', borderRadius: '10px', fontSize: '14px', outline: 'none' }}
               />
             </div>
 
-            <div style={{ marginBottom: 20 }}>
-              <label style={{ 
-                display: 'block', fontSize: 14, fontWeight: 600, 
-                color: '#374151', marginBottom: 12 
-              }}>
-                Vai trò
-              </label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, color: '#374151', marginBottom: '8px' }}>Vai trò</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
                 {['MANAGER', 'TEACHER', 'STUDENT'].map(role => {
-                  const roleData = ROLES[role];
-                  const IconComponent = roleData?.icon || Shield;
                   const isSelected = editForm.roles.includes(role);
                   return (
                     <button
                       key={role}
                       onClick={() => {
                         if (isSelected) {
-                          setEditForm({
-                            ...editForm,
-                            roles: editForm.roles.filter(r => r !== role)
-                          });
+                          setEditForm({ ...editForm, roles: editForm.roles.filter(r => r !== role) });
                         } else {
-                          setEditForm({
-                            ...editForm,
-                            roles: [...editForm.roles, role]
-                          });
+                          setEditForm({ ...editForm, roles: [...editForm.roles, role] });
                         }
                       }}
                       style={{
-                        display: 'flex', alignItems: 'center', gap: 6,
-                        padding: '10px 16px', borderRadius: 12, border: '2px solid',
-                        borderColor: isSelected ? '#0056d2' : '#e5e7eb',
-                        background: isSelected ? 'rgba(0, 86, 210, 0.1)' : 'white',
-                        color: isSelected ? '#0056d2' : '#6b7280',
-                        cursor: 'pointer', fontSize: 14, fontWeight: 600,
-                        transition: 'all 0.3s ease'
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!isSelected) {
-                          e.target.style.borderColor = '#0056d2';
-                          e.target.style.color = '#0056d2';
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!isSelected) {
-                          e.target.style.borderColor = '#e5e7eb';
-                          e.target.style.color = '#6b7280';
-                        }
+                        padding: '6px 12px',
+                        borderRadius: '8px',
+                        border: '1.5px solid',
+                        borderColor: isSelected ? '#4f46e5' : '#cbd5e1',
+                        background: isSelected ? '#f5f3ff' : '#ffffff',
+                        color: isSelected ? '#4f46e5' : '#475569',
+                        fontSize: '13px',
+                        fontWeight: 600,
+                        cursor: 'pointer'
                       }}
                     >
-                      <IconComponent size={14} />
-                      {roleData?.label || role}
+                      {ROLES[role]?.label}
                     </button>
                   );
                 })}
               </div>
-              <div style={{ 
-                fontSize: 12, color: '#dc2626', 
-                background: '#fef2f2', padding: '8px 12px', borderRadius: 8,
-                border: '1px solid #fecaca', display: 'flex', alignItems: 'center', gap: 6
-              }}>
-                <Shield size={14} />
-                Không thể chỉnh sửa quyền ADMIN vì lý do bảo mật
+              <div style={{ fontSize: '11px', color: '#dc2626', background: '#fef2f2', padding: '6px 10px', borderRadius: '8px' }}>
+                * Quyền ADMIN không thể thay đổi vì lý do bảo mật.
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: 12 }}>
-              <button
-                onClick={() => setShowModal(null)}
-                style={{
-                  flex: 1, padding: '14px 20px', background: '#f8fafc', 
-                  border: '2px solid #e5e7eb', borderRadius: 12, cursor: 'pointer',
-                  fontSize: 14, fontWeight: 600, color: '#6b7280',
-                  transition: 'all 0.3s ease'
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.background = '#f1f5f9';
-                  e.target.style.borderColor = '#d1d5db';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.background = '#f8fafc';
-                  e.target.style.borderColor = '#e5e7eb';
-                }}
-              >
-                Hủy bỏ
-              </button>
-              <button
-                onClick={handleSaveEdit}
-                style={{
-                  flex: 1, padding: '14px 20px', 
-                  background: 'linear-gradient(135deg, #0056d2 0%, #003380 100%)',
-                  color: 'white', border: 'none', borderRadius: 12, cursor: 'pointer',
-                  fontSize: 14, fontWeight: 600, transition: 'all 0.3s ease',
-                  boxShadow: '0 4px 15px rgba(0, 86, 210, 0.4)'
-                }}
-                onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
-                onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
-              >
-                Lưu thay đổi
-              </button>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowModal(null)} className="admin-btn ghost small">Hủy bỏ</button>
+              <button onClick={handleSaveEdit} className="admin-btn primary small">Lưu thay đổi</button>
             </div>
           </div>
         </div>
       )}
 
       {/* Change Password Modal */}
-      {showModal === 'password' && (
+      {showModal === 'password' && selectedUser && (
         <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 1000, backdropFilter: 'blur(8px)'
+          position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.62)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1000, backdropFilter: 'blur(8px)', padding: '20px'
         }}>
-          <div style={{
-            background: 'white', borderRadius: 20, padding: 32, width: 450,
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-            border: '1px solid rgba(255,255,255,0.2)',
-            animation: 'modalSlideIn 0.3s ease-out'
-          }}>
-            <div style={{ textAlign: 'center', marginBottom: 24 }}>
-              <div style={{
-                width: 64, height: 64, borderRadius: '50%',
-                background: 'linear-gradient(135deg, #0056d2 0%, #003380 100%)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                margin: '0 auto 16px', boxShadow: '0 8px 25px rgba(0, 86, 210, 0.3)'
-              }}>
-                <Key size={28} color="white" />
-              </div>
-              <h3 style={{ 
-                margin: 0, fontSize: 20, fontWeight: 700, color: '#111827',
-                marginBottom: 8
-              }}>
-                Đổi mật khẩu
-              </h3>
-              <p style={{ 
-                margin: 0, color: '#6b7280', fontSize: 14,
-                fontWeight: 500
-              }}>
-                Tạo mật khẩu mới cho <strong>{selectedUser?.fullName}</strong>
-              </p>
-            </div>
-            
-            <div style={{ marginBottom: 24 }}>
-              <label style={{ 
-                display: 'block', fontSize: 14, fontWeight: 600, 
-                color: '#374151', marginBottom: 8 
-              }}>
-                Mật khẩu mới
-              </label>
+          <div style={{ background: '#ffffff', borderRadius: '24px', width: '90%', maxWidth: '450px', padding: '32px', boxShadow: '0 25px 50px rgba(0,0,0,0.18)' }}>
+            <h3 style={{ margin: '0 0 8px 0', fontSize: '20px', fontWeight: 700, color: '#0f172a' }}>Đổi mật khẩu</h3>
+            <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '20px' }}>Tạo mật khẩu mới cho <strong>{selectedUser.fullName}</strong></p>
+
+            <div style={{ marginBottom: '20px' }}>
               <input
                 type="password"
                 placeholder="Nhập mật khẩu mới (tối thiểu 6 ký tự)"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                style={{
-                  width: '100%', padding: '14px 16px', border: '2px solid #f1f5f9',
-                  borderRadius: 12, fontSize: 14, background: '#fafbfc',
-                  transition: 'all 0.3s ease', outline: 'none'
-                }}
-                onFocus={(e) => {
-                  e.target.style.borderColor = '#0056d2';
-                  e.target.style.background = 'white';
-                  e.target.style.boxShadow = '0 0 0 3px rgba(0, 86, 210, 0.1)';
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = '#f1f5f9';
-                  e.target.style.background = '#fafbfc';
-                  e.target.style.boxShadow = 'none';
-                }}
+                style={{ width: '100%', padding: '10px 14px', border: '1.5px solid #cbd5e1', borderRadius: '10px', fontSize: '14px', outline: 'none' }}
               />
             </div>
-            
-            <div style={{ display: 'flex', gap: 12 }}>
-              <button
-                onClick={() => setShowModal(null)}
-                style={{
-                  flex: 1, padding: '14px 20px', background: '#f8fafc', 
-                  border: '2px solid #e5e7eb', borderRadius: 12, cursor: 'pointer',
-                  fontSize: 14, fontWeight: 600, color: '#6b7280',
-                  transition: 'all 0.3s ease'
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.background = '#f1f5f9';
-                  e.target.style.borderColor = '#d1d5db';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.background = '#f8fafc';
-                  e.target.style.borderColor = '#e5e7eb';
-                }}
-              >
-                Hủy bỏ
-              </button>
-              <button
-                onClick={handleChangePassword}
-                disabled={newPassword.length < 6}
-                style={{
-                  flex: 1, padding: '14px 20px', 
-                  background: newPassword.length >= 6 
-                    ? 'linear-gradient(135deg, #0056d2 0%, #003380 100%)' 
-                    : '#e5e7eb',
-                  color: newPassword.length >= 6 ? 'white' : '#9ca3af',
-                  border: 'none', borderRadius: 12, cursor: newPassword.length >= 6 ? 'pointer' : 'not-allowed',
-                  fontSize: 14, fontWeight: 600, transition: 'all 0.3s ease',
-                  boxShadow: newPassword.length >= 6 ? '0 4px 15px rgba(0, 86, 210, 0.4)' : 'none'
-                }}
-                onMouseEnter={(e) => {
-                  if (newPassword.length >= 6) {
-                    e.target.style.transform = 'translateY(-2px)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.transform = 'translateY(0)';
-                }}
-              >
-                Đổi mật khẩu
-              </button>
+
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button onClick={() => { setShowModal(null); setNewPassword(''); }} className="admin-btn ghost small">Hủy</button>
+              <button onClick={handleChangePassword} disabled={newPassword.length < 6} className="admin-btn primary small">Cập nhật</button>
             </div>
           </div>
         </div>
       )}
 
+      {/* Delete User Modal */}
+      {deleteTarget && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.62)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1000, backdropFilter: 'blur(8px)', padding: '20px'
+        }}>
+          <div style={{ background: '#ffffff', borderRadius: '24px', width: '90%', maxWidth: '480px', padding: '32px', boxShadow: '0 25px 50px rgba(0,0,0,0.18)' }}>
+            <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: 700, color: '#9b1c1c' }}>Xác nhận xóa tài khoản</h3>
+            <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '16px' }}>Hành động này sẽ xóa mềm tài khoản <strong>{deleteTarget.fullName}</strong> khỏi danh sách active.</p>
+
+            <div style={{ marginBottom: '20px' }}>
+              <input
+                type="password"
+                placeholder="Nhập mật khẩu admin của bạn để xác nhận"
+                value={deletePassword}
+                onChange={(e) => setDeletePassword(e.target.value)}
+                style={{ width: '100%', padding: '10px 14px', border: '1.5px solid #fca5a5', borderRadius: '10px', fontSize: '14px', outline: 'none' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button onClick={() => setDeleteTarget(null)} className="admin-btn ghost small">Hủy bỏ</button>
+              <button onClick={confirmDeleteUser} className="admin-btn danger small" style={{ background: '#dc2626' }}>Xác nhận xóa</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Handover Warning Modal */}
       {handoverWarning && (
         <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(15, 23, 42, 0.68)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1200,
-          backdropFilter: 'blur(10px)',
-          padding: 20,
-        }} onClick={closeHandoverWarning}>
-          <div style={{
-            width: '100%',
-            maxWidth: 620,
-            background: 'linear-gradient(180deg, #ffffff 0%, #fffbeb 100%)',
-            borderRadius: 24,
-            boxShadow: '0 30px 80px rgba(15, 23, 42, 0.30)',
-            border: '1px solid rgba(253, 230, 138, 0.85)',
-            overflow: 'hidden',
-          }} onClick={(e) => e.stopPropagation()}>
-            <div style={{
-              padding: '22px 24px',
-              background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-              color: 'white',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-            }}>
-              <div style={{
-                width: 42,
-                height: 42,
-                borderRadius: '50%',
-                background: 'rgba(255,255,255,0.18)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
-                <AlertCircle size={20} />
-              </div>
-              <div>
-                <div style={{ fontSize: 18, fontWeight: 800 }}>Giảng viên đang quản lý lớp</div>
-                <div style={{ fontSize: 13, opacity: 0.92 }}>Cần bàn giao hoặc gỡ phân công trước khi xóa</div>
-              </div>
+          position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.62)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1000, backdropFilter: 'blur(8px)', padding: '20px'
+        }}>
+          <div style={{ background: '#ffffff', borderRadius: '24px', width: '90%', maxWidth: '520px', padding: '32px', boxShadow: '0 25px 50px rgba(0,0,0,0.18)' }}>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: '18px', fontWeight: 700, color: '#b45309' }}>Giảng viên đang quản lý lớp</h3>
+            <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '16px' }}>
+              Giảng viên <strong>{handoverWarning.user?.fullName}</strong> đang được phân công giảng dạy cho <strong>{handoverWarning.classes.length}</strong> lớp học.
+              Vui lòng bàn giao lớp hoặc gỡ phân công trước khi thực hiện xóa.
+            </p>
+
+            <div style={{ display: 'grid', gap: '8px', maxHeight: '180px', overflowY: 'auto', marginBottom: '20px' }}>
+              {handoverWarning.classes.map((clazz) => (
+                <div key={clazz.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: '#fffbeb', border: '1px solid #fef3c7', borderRadius: '8px', fontSize: '13px' }}>
+                  <strong>{clazz.code}</strong>
+                  <span style={{ color: '#b45309' }}>{clazz.name}</span>
+                </div>
+              ))}
             </div>
 
-            <div style={{ padding: 24 }}>
-              <div style={{
-                padding: '14px 16px',
-                borderRadius: 16,
-                background: '#fff7ed',
-                border: '1px solid #fdba74',
-                color: '#9a3412',
-                marginBottom: 18,
-                lineHeight: 1.6,
-              }}>
-                <strong>{handoverWarning.user?.fullName || handoverWarning.user?.username}</strong>
-                {' '}đang quản lý <strong>{handoverWarning.classes.length}</strong> lớp học.
-                Vui lòng bàn giao hết lớp hoặc gỡ phân công giảng viên trước khi xóa.
-              </div>
-
-              <div style={{
-                display: 'grid',
-                gap: 10,
-                marginBottom: 18,
-                maxHeight: 220,
-                overflow: 'auto',
-              }}>
-                {handoverWarning.classes.map((clazz) => (
-                  <div key={`${clazz.id}-${clazz.code}`} style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 12,
-                    padding: '12px 14px',
-                    borderRadius: 14,
-                    background: 'white',
-                    border: '1px solid #fde68a',
-                  }}>
-                    <div>
-                      <div style={{ fontWeight: 800, color: '#111827' }}>{clazz.code || '—'} </div>
-                      <div style={{ fontSize: 13, color: '#475569' }}>{clazz.name || 'Không có tên lớp'}</div>
-                    </div>
-                    <div style={{
-                      padding: '6px 10px',
-                      borderRadius: 999,
-                      background: '#fef3c7',
-                      color: '#92400e',
-                      fontSize: 12,
-                      fontWeight: 700,
-                      flexShrink: 0,
-                    }}>
-                      Đang quản lý
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                <Link
-                  to="/admin/teacher-class"
-                  onClick={closeHandoverWarning}
-                  style={{
-                    padding: '12px 18px',
-                    background: 'linear-gradient(135deg, #0056d2 0%, #003380 100%)',
-                    color: 'white',
-                    borderRadius: 14,
-                    textDecoration: 'none',
-                    fontWeight: 800,
-                    boxShadow: '0 12px 24px rgba(0, 86, 210, 0.22)',
-                  }}
-                >
-                  Đi tới quản lý lớp
-                </Link>
-                <button
-                  onClick={closeHandoverWarning}
-                  style={{
-                    padding: '12px 18px',
-                    background: 'white',
-                    border: '1.5px solid #e2e8f0',
-                    borderRadius: 14,
-                    cursor: 'pointer',
-                    fontWeight: 700,
-                    color: '#334155',
-                  }}
-                >
-                  Đóng
-                </button>
-              </div>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <Link to="/admin/teacher-class" onClick={closeHandoverWarning} className="admin-btn primary small" style={{ background: '#4f46e5', textDecoration: 'none', color: '#ffffff' }}>
+                Bàn giao ngay
+              </Link>
+              <button onClick={closeHandoverWarning} className="admin-btn ghost small">Đóng</button>
             </div>
           </div>
         </div>
       )}
-
-      {/* Delete Class Confirmation Modal */}
-      {deleteClassTarget && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(15, 23, 42, 0.72)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1300,
-          backdropFilter: 'blur(10px)',
-          padding: 20,
-        }} onClick={() => !deletingClass && setDeleteClassTarget(null)}>
-          <div style={{
-            width: '100%',
-            maxWidth: 560,
-            background: 'linear-gradient(180deg, #ffffff 0%, #fff7ed 100%)',
-            borderRadius: 24,
-            boxShadow: '0 30px 80px rgba(15, 23, 42, 0.35)',
-            border: '1px solid rgba(253, 186, 116, 0.8)',
-            overflow: 'hidden',
-          }} onClick={(e) => e.stopPropagation()}>
-            <div style={{
-              padding: '22px 24px',
-              background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)',
-              color: 'white',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-            }}>
-              <div style={{
-                width: 42,
-                height: 42,
-                borderRadius: '50%',
-                background: 'rgba(255,255,255,0.18)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
-                <Trash2 size={20} />
-              </div>
-              <div>
-                <div style={{ fontSize: 18, fontWeight: 800 }}>Xác nhận xóa lớp</div>
-                <div style={{ fontSize: 13, opacity: 0.92 }}>Cần nhập mật khẩu admin để xác nhận thao tác</div>
-              </div>
-            </div>
-
-            <div style={{ padding: 24 }}>
-              <div style={{
-                padding: '14px 16px',
-                borderRadius: 16,
-                background: '#fff7ed',
-                border: '1px solid #fdba74',
-                color: '#9a3412',
-                marginBottom: 18,
-                lineHeight: 1.65,
-              }}>
-                Bạn sắp xóa lớp <strong>{deleteClassTarget.code}</strong>
-                {deleteClassTarget.name ? ` - ${deleteClassTarget.name}` : ''}.<br />
-                Hệ thống sẽ ngắt phân công giáo viên và đánh dấu học viên của lớp là đã rời lớp.
-              </div>
-
-              <div style={{ display: 'grid', gap: 10, marginBottom: 16 }}>
-                <div style={{ fontSize: 13, color: '#475569', fontWeight: 700 }}>Mật khẩu admin xác nhận</div>
-                <input
-                  type="password"
-                  value={deleteClassPassword}
-                  onChange={(e) => setDeleteClassPassword(e.target.value)}
-                  placeholder="Nhập mật khẩu admin"
-                  style={{
-                    width: '100%',
-                    padding: '13px 14px',
-                    border: '1.5px solid #fdba74',
-                    borderRadius: 12,
-                    outline: 'none',
-                    fontSize: 14,
-                  }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                <button
-                  onClick={() => setDeleteClassTarget(null)}
-                  disabled={deletingClass}
-                  style={{
-                    padding: '12px 18px',
-                    background: '#fff',
-                    border: '1.5px solid #e2e8f0',
-                    borderRadius: 14,
-                    cursor: 'pointer',
-                    fontWeight: 700,
-                    color: '#334155',
-                  }}
-                >
-                  Hủy bỏ
-                </button>
-                <button
-                  onClick={handleDeleteClass}
-                  disabled={deletingClass}
-                  style={{
-                    padding: '12px 18px',
-                    background: deletingClass ? '#ef4444aa' : 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: 14,
-                    cursor: deletingClass ? 'not-allowed' : 'pointer',
-                    fontWeight: 800,
-                    boxShadow: '0 12px 24px rgba(220, 38, 38, 0.25)',
-                  }}
-                >
-                  {deletingClass ? 'Đang xóa...' : 'Xóa lớp'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-      </div>
     </AdminLayout>
+  );
+}
+
+// Embedded clean Form to add user
+function AddUserForm({ onClose, onSuccess }) {
+  const [form, setForm] = useState({
+    username: '',
+    fullName: '',
+    email: '',
+    password: '',
+    roles: ['STUDENT']
+  });
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.username.trim() || !form.fullName.trim() || !form.email.trim() || !form.password.trim()) {
+      setError('Vui lòng điền đầy đủ tất cả các trường.');
+      return;
+    }
+    try {
+      setLoading(true);
+      setError('');
+      // Save User API
+      await authApi.register(form);
+      onSuccess();
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Lỗi khi tạo người dùng.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      {error && (
+        <div style={{ fontSize: '12px', color: '#dc2626', background: '#fef2f2', padding: '8px 12px', borderRadius: '8px', border: '1px solid #fecaca' }}>
+          {error}
+        </div>
+      )}
+
+      <div>
+        <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>Username</label>
+        <input
+          type="text"
+          value={form.username}
+          onChange={(e) => setForm({ ...form, username: e.target.value })}
+          placeholder="Ví dụ: hocvien01"
+          style={{ width: '100%', padding: '8px 12px', border: '1.5px solid #cbd5e1', borderRadius: '8px', fontSize: '13px', outline: 'none' }}
+        />
+      </div>
+
+      <div>
+        <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>Họ và tên</label>
+        <input
+          type="text"
+          value={form.fullName}
+          onChange={(e) => setForm({ ...form, fullName: e.target.value })}
+          placeholder="Ví dụ: Nguyễn Văn A"
+          style={{ width: '100%', padding: '8px 12px', border: '1.5px solid #cbd5e1', borderRadius: '8px', fontSize: '13px', outline: 'none' }}
+        />
+      </div>
+
+      <div>
+        <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>Email</label>
+        <input
+          type="email"
+          value={form.email}
+          onChange={(e) => setForm({ ...form, email: e.target.value })}
+          placeholder="Ví dụ: a@ieltsmanager.com"
+          style={{ width: '100%', padding: '8px 12px', border: '1.5px solid #cbd5e1', borderRadius: '8px', fontSize: '13px', outline: 'none' }}
+        />
+      </div>
+
+      <div>
+        <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>Mật khẩu</label>
+        <input
+          type="password"
+          value={form.password}
+          onChange={(e) => setForm({ ...form, password: e.target.value })}
+          placeholder="Mật khẩu tối thiểu 6 ký tự"
+          style={{ width: '100%', padding: '8px 12px', border: '1.5px solid #cbd5e1', borderRadius: '8px', fontSize: '13px', outline: 'none' }}
+        />
+      </div>
+
+      <div>
+        <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>Vai trò</label>
+        <select
+          value={form.roles[0]}
+          onChange={(e) => setForm({ ...form, roles: [e.target.value] })}
+          style={{ width: '100%', padding: '8px 12px', border: '1.5px solid #cbd5e1', borderRadius: '8px', fontSize: '13px', outline: 'none', background: '#ffffff', cursor: 'pointer' }}
+        >
+          <option value="STUDENT">Học viên (Student)</option>
+          <option value="TEACHER">Giáo viên (Teacher)</option>
+          <option value="MANAGER">Quản lý (Manager)</option>
+        </select>
+      </div>
+
+      <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '12px' }}>
+        <button type="button" onClick={onClose} className="admin-btn ghost small">Đóng</button>
+        <button type="submit" disabled={loading} className="admin-btn primary small">
+          {loading ? 'Đang tạo...' : 'Tạo tài khoản'}
+        </button>
+      </div>
+    </form>
   );
 }
