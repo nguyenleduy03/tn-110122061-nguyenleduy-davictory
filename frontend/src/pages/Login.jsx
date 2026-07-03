@@ -47,6 +47,15 @@ const Login = () => {
 
       console.log('Đăng nhập thành công:', result);
 
+      // Kiểm tra redirect param (từ ai-test-frontend hoặc other apps)
+      const searchParams = new URLSearchParams(location.search);
+      const redirectParam = searchParams.get('redirect');
+
+      if (redirectParam) {
+        window.location.href = redirectParam;
+        return;
+      }
+
       // Chuyển hướng theo role của user
       let targetPath = '/';
       const userRoles = normalizeRoles(result.user?.roles || []);

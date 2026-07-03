@@ -548,3 +548,16 @@ body {
   background: #94a3b8;
 }
 
+/* Login page */
+.login-input:focus {
+  border-color: #4f46e5 !important;
+  background: #ffffff !important;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+  .main-wrapper { margin-left: 0; }
+  .main-content { padding: 16px; }
+}
+

@@ -1,6 +1,8 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
+import ProtectedRoute from './components/ProtectedRoute';
+import RoleBasedRoute from './components/RoleBasedRoute';
 import { HeaderProvider } from './context/HeaderContext';
 import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
@@ -13,7 +15,6 @@ import Admin from './pages/Admin';
 import Console from './pages/Console';
 import Evaluation from './pages/Evaluation';
 import Samples from './pages/Samples';
-
 export default function App() {
   return (
     <HeaderProvider>
@@ -23,16 +24,22 @@ export default function App() {
         <main className="main-content">
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/writing" element={<Writing />} />
-            <Route path="/speaking" element={<Speaking />} />
-            <Route path="/grammar" element={<GrammarChecker />} />
-            <Route path="/tests" element={<TestLibrary />} />
             <Route path="/pricing" element={<Pricing />} />
-            <Route path="/admin" element={<Admin />} />
-            <Route path="/console" element={<Console />} />
-            <Route path="/evaluation" element={<Evaluation />} />
-            <Route path="/samples" element={<Samples />} />
+
+            <Route path="/grammar" element={<ProtectedRoute><GrammarChecker /></ProtectedRoute>} />
+            <Route path="/tests" element={<ProtectedRoute><TestLibrary /></ProtectedRoute>} />
+
+            <Route path="/writing" element={<ProtectedRoute><Writing /></ProtectedRoute>} />
+            <Route path="/speaking" element={<ProtectedRoute><Speaking /></ProtectedRoute>} />
+            <Route path="/samples" element={<RoleBasedRoute requiredRole="TEACHER"><Samples /></RoleBasedRoute>} />
+
+            <Route path="/dashboard" element={<RoleBasedRoute requiredRole="MANAGER"><Dashboard /></RoleBasedRoute>} />
+            <Route path="/evaluation" element={<RoleBasedRoute requiredRole="MANAGER"><Evaluation /></RoleBasedRoute>} />
+            <Route path="/console" element={<RoleBasedRoute requiredRole="MANAGER"><Console /></RoleBasedRoute>} />
+
+            <Route path="/admin" element={<RoleBasedRoute requiredRole="ADMIN"><Admin /></RoleBasedRoute>} />
+
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
       </div>

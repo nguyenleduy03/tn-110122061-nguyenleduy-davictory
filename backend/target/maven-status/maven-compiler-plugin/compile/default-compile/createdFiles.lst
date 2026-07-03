@@ -97,6 +97,7 @@ com/victory/DAVictory/controller/AdminDriveController.class
 com/victory/DAVictory/controller/ExamAttemptController.class
 com/victory/DAVictory/dto/AuthResponse.class
 com/victory/DAVictory/entity/AudioTranscript.class
+com/victory/DAVictory/repository/AIGradingHistoryRepository.class
 com/victory/DAVictory/repository/QuestionRepository.class
 com/victory/DAVictory/service/WritingService.class
 com/victory/DAVictory/controller/TestBuilderController.class
@@ -168,6 +169,7 @@ com/victory/DAVictory/security/JwtAuthenticationFilter.class
 com/victory/DAVictory/dto/FullTestProgressResponse.class
 com/victory/DAVictory/controller/TestPartController.class
 com/victory/DAVictory/controller/GuestExamController.class
+com/victory/DAVictory/dto/AIGradingHistoryRequest.class
 com/victory/DAVictory/dto/TestFullResponse$AnswerResp.class
 com/victory/DAVictory/service/GuestExamService.class
 com/victory/DAVictory/dto/SpeakingAttemptResponse$ScoreDTO.class
@@ -181,6 +183,7 @@ com/victory/DAVictory/dto/SpeakingAttemptResponse.class
 com/victory/DAVictory/dto/AIGradingResponseDTO$CriteriaScoreDTO.class
 com/victory/DAVictory/repository/ClassTeacherRepository.class
 com/victory/DAVictory/service/InternalQueryService.class
+com/victory/DAVictory/entity/AIGradingHistory.class
 com/victory/DAVictory/repository/WritingTaskRepository.class
 com/victory/DAVictory/dto/InlineCombo.class
 com/victory/DAVictory/service/DriveAssetRenameService.class

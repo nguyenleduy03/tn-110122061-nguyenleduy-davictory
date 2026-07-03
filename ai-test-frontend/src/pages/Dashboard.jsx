@@ -25,6 +25,7 @@ export default function Dashboard() {
   const [writingConfig, setWritingConfig] = useState(null);
   const [speakingConfig, setSpeakingConfig] = useState(null);
   const [analytics, setAnalytics] = useState(null);
+  const [gradingStats, setGradingStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const [hoveredItem, setHoveredItem] = useState(null); // { x, y, label, count, cardId, suffix }
@@ -49,12 +50,13 @@ export default function Dashboard() {
       const token = localStorage.getItem('authToken');
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-      const [ws, ss, wc, sc, an] = await Promise.allSettled([
+      const [ws, ss, wc, sc, an, gs] = await Promise.allSettled([
         checkService('/api/admin/ai/config', 'AI Writing Service'),
         checkService('/api/admin/speaking/config', 'AI Speaking Service'),
         writingApi.getConfig().catch(() => null),
         speakingApi.getConfig().catch(() => null),
-        axios.get('/api/admin/analytics/all', { headers }).catch(() => null)
+        axios.get('/api/admin/analytics/all', { headers }).catch(() => null),
+        writingApi.getAiGradingStats().catch(e => { console.warn('getAiGradingStats failed:', e); return null; }),
       ]);
 
       setServices([
@@ -65,6 +67,7 @@ export default function Dashboard() {
       if (wc.status === 'fulfilled' && wc.value) setWritingConfig(wc.value.data);
       if (sc.status === 'fulfilled' && sc.value) setSpeakingConfig(sc.value.data);
       if (an.status === 'fulfilled' && an.value) setAnalytics(an.value.data);
+      if (gs.status === 'fulfilled' && gs.value) setGradingStats(gs.value.data);
 
       setLoading(false);
     }
@@ -95,9 +98,11 @@ export default function Dashboard() {
   };
 
   const totalTests = analytics?.dashStats?.totalTests ?? 248;
-  const totalAttempts = analytics?.dashStats?.totalAttempts ?? 12340;
+  const totalAttempts = gradingStats?.total ?? 0;
+  const attemptsTrend = gradingStats?.trend || 'up';
+  const attemptsPercent = gradingStats?.percentChange ?? 0;
   const loginsCount = analytics?.summary?.loginsWeek ?? 8500;
-  const totalUsage = Math.round(totalAttempts * 2.8 + loginsCount) || 23456;
+  const totalUsage = gradingStats?.total ?? 0;
 
   // Generate the last 7 calendar days ending today (YYYY-MM-DD)
   const last7Days = [];
@@ -334,13 +339,15 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Số bài đã chấm */}
+        {/* Số bài đã chấm - từ ai_grading_history */}
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px 14px', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.01)' }}>
-          <span style={{ fontSize: '9.5px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>Số bài đã chấm</span>
+          <span style={{ fontSize: '9.5px', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>BÀI LÀM ĐÃ CHẤM</span>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
             <div>
               <span style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>{formatNumber(totalAttempts)}</span>
-              <div style={{ fontSize: '9.5px', fontWeight: 600, color: '#10b981', marginTop: 1 }}>↑ 24.3%</div>
+              <div style={{ fontSize: '9.5px', fontWeight: 600, color: attemptsTrend === 'up' ? '#10b981' : '#ef4444', marginTop: 1 }}>
+                {attemptsTrend === 'up' ? '↑' : '↓'} {attemptsPercent}% so với tuần trước
+              </div>
             </div>
             <svg width="55" height="24" viewBox="0 0 70 30">
               <path d="M0,25 Q15,30 30,12 T55,18 T70,8" fill="none" stroke="#10b981" strokeWidth="2" />

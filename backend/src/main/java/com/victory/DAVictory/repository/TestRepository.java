@@ -18,6 +18,9 @@ public interface TestRepository extends JpaRepository<Test, Long>, JpaSpecificat
 
     List<Test> findByStatusNot(TestStatus status);
 
+    @Query("SELECT COUNT(t) FROM Test t WHERE t.status <> 'DELETED'")
+    long countActive();
+
     List<Test> findByTestType(TestType testType);
 
     List<Test> findByTestTypeAndStatus(TestType testType, TestStatus status);

@@ -3,7 +3,7 @@ import {
   Sparkles, FileText, BarChart3, Layers, Brain, Target, BookOpen,
   Languages, Quote, TrendingUp, Zap, Database, Code, Clock, Cpu,
   RotateCw, ChevronDown, ChevronUp, AlertCircle, CheckCircle2,
-  Scan, FileSearch, Star, Info, GraduationCap,
+  Scan, FileSearch, Star, Info, GraduationCap, History, User, Search,
 } from 'lucide-react';
 import { writingApi } from '../api/writingApi';
 import { useHeader } from '../context/HeaderContext';
@@ -73,6 +73,7 @@ export default function Writing() {
   const tabDefs = [
     { key: 'grade', label: 'Chấm điểm', icon: Sparkles, onClick: () => setTab('grade') },
     { key: 'grader', label: 'Chấm Writing', icon: GraduationCap, onClick: () => setTab('grader') },
+    { key: 'history', label: 'Lịch sử', icon: Clock, onClick: () => setTab('history') },
   ];
 
   useEffect(() => {
@@ -99,6 +100,10 @@ export default function Writing() {
   const scanTimer = useRef(null);
   const resultRef = useRef(null);
   const logStreamEndRef = useRef(null);
+
+  const [historyList, setHistoryList] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [selectedHistory, setSelectedHistory] = useState(null);
 
   const fetchTokenLimits = (tt) => {
     writingApi.getConfig(tt || taskType).then(r => {
@@ -132,6 +137,16 @@ export default function Writing() {
   useEffect(() => {
     logStreamEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [liveLogs]);
+
+  useEffect(() => {
+    if (tab === 'history') {
+      setHistoryLoading(true);
+      writingApi.getAiGradingHistory()
+        .then(res => setHistoryList(res.data || []))
+        .catch(() => {})
+        .finally(() => setHistoryLoading(false));
+    }
+  }, [tab]);
 
   const wordCount = essayText.trim() ? essayText.trim().split(/\s+/).length : 0;
   const { maxTotal, sysOverhead, minCompletion } = tokenLimits;
@@ -168,6 +183,23 @@ export default function Writing() {
       setResult(res.data);
       setScanStage(SCAN_STAGES.length);
       fetchTokenLimits(rt);
+      writingApi.saveAiGradingHistory({
+        essayText,
+        taskType: rt,
+        topic: '',
+        promptText,
+        overallBand: res.data.overallBand,
+        taskResponse: res.data.taskResponse?.band,
+        coherenceCohesion: res.data.coherenceCohesion?.band,
+        lexicalResource: res.data.lexicalResource?.band,
+        grammaticalRange: res.data.grammaticalRange?.band,
+        overallFeedback: res.data.overallFeedback,
+        strengths: res.data.strengths || [],
+        weaknesses: res.data.weaknesses || [],
+        improvementPriority: res.data.improvementPriority || [],
+        provider: res.data.provider,
+        model: res.data.model,
+      }).catch(() => {});
       setTimeout(() => resultRef.current?.scrollIntoView({ behavior: 'smooth' }), 200);
     } catch (e) {
       setError(e.response?.data ? JSON.stringify(e.response.data) : e.message);
@@ -447,6 +479,116 @@ export default function Writing() {
       )}
 
       {tab === 'grader' && <TeacherWritingGrader />}
+
+      {tab === 'history' && (
+        <div style={{ display: 'flex', gap: 20 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h2 style={{ fontSize: 18, fontWeight: 800, marginBottom: 20, display: 'flex', alignItems: 'center', gap: 8, color: '#0f172a' }}>
+              <History size={20} color="#6366f1" />
+              Lịch sử chấm bài AI
+            </h2>
+
+            {historyLoading ? (
+              <div style={{ textAlign: 'center', padding: 40, color: '#94a3b8' }}>Đang tải...</div>
+            ) : historyList.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: 60, color: '#94a3b8', border: '2px dashed #e2e8f0', borderRadius: 14 }}>
+                <History size={40} style={{ marginBottom: 12, opacity: 0.4 }} />
+                <div style={{ fontWeight: 700, fontSize: 15, color: '#64748b' }}>Chưa có lịch sử chấm bài</div>
+                <div style={{ fontSize: 13, marginTop: 4 }}>Hãy chấm bài Writing AI để lưu lại lịch sử.</div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {historyList.map(h => (
+                  <div
+                    key={h.id}
+                    onClick={() => setSelectedHistory(selectedHistory?.id === h.id ? null : h)}
+                    style={{
+                      padding: '14px 16px', borderRadius: 12, cursor: 'pointer',
+                      background: selectedHistory?.id === h.id ? '#f5f3ff' : '#fff',
+                      border: `1px solid ${selectedHistory?.id === h.id ? '#c7d2fe' : '#e2e8f0'}`,
+                      transition: 'all 0.15s'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        {h.fullName && (
+                          <span style={{ fontSize: 12, fontWeight: 600, color: '#6366f1', display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <User size={12} /> {h.fullName}
+                          </span>
+                        )}
+                        <span style={{
+                          fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 999,
+                          background: h.overallBand >= 7 ? '#ecfdf5' : h.overallBand >= 5 ? '#fff7ed' : '#fef2f2',
+                          color: h.overallBand >= 7 ? '#059669' : h.overallBand >= 5 ? '#d97706' : '#dc2626'
+                        }}>
+                          Band {h.overallBand?.toFixed(1)}
+                        </span>
+                        <span style={{ fontSize: 12, color: '#64748b', fontWeight: 500 }}>
+                          {h.taskType || 'N/A'}
+                        </span>
+                      </div>
+                      <span style={{ fontSize: 11, color: '#94a3b8' }}>
+                        {h.createdAt ? new Date(h.createdAt).toLocaleString('vi-VN') : ''}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 13, color: '#475569', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                      {h.essayText?.substring(0, 200)}
+                    </div>
+
+                    {selectedHistory?.id === h.id && (
+                      <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid #e2e8f0' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
+                          {[
+                            { label: 'Task Response', value: h.taskResponse },
+                            { label: 'Coherence & Cohesion', value: h.coherenceCohesion },
+                            { label: 'Lexical Resource', value: h.lexicalResource },
+                            { label: 'Grammatical Range', value: h.grammaticalRange },
+                          ].map(c => (
+                            <div key={c.label} style={{ padding: '10px 14px', background: '#f8fafc', borderRadius: 8 }}>
+                              <div style={{ fontSize: 11, fontWeight: 600, color: '#64748b', marginBottom: 4 }}>{c.label}</div>
+                              <div style={{ fontSize: 18, fontWeight: 800, color: '#0f172a' }}>{c.value?.toFixed(1) || '-'}</div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {h.overallFeedback && (
+                          <div style={{ marginBottom: 12 }}>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 6 }}>Nhận xét tổng quát:</div>
+                            <div style={{ fontSize: 13, color: '#334155', lineHeight: 1.6, whiteSpace: 'pre-wrap', padding: 12, background: '#f8fafc', borderRadius: 8 }}>{h.overallFeedback}</div>
+                          </div>
+                        )}
+
+                        {h.weaknesses?.length > 0 && (
+                          <div style={{ marginBottom: 12 }}>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: '#dc2626', marginBottom: 6 }}>Điểm yếu:</div>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                              {h.weaknesses.map((w, i) => (
+                                <span key={i} style={{ padding: '3px 10px', borderRadius: 999, fontSize: 12, fontWeight: 500, background: '#fef2f2', color: '#dc2626' }}>{w}</span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {h.improvementPriority?.length > 0 && (
+                          <div>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: '#d97706', marginBottom: 6 }}>Ưu tiên cải thiện:</div>
+                            {h.improvementPriority.map((p, i) => (
+                              <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '6px 0', fontSize: 13, color: '#78350f' }}>
+                                <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#f59e0b', flexShrink: 0 }} />
+                                {p}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -43,6 +43,7 @@
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/controller/WritingCriteriaController.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/AIBatchGradingRequestDTO.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/AIBatchGradingStatusDTO.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/AIGradingHistoryRequest.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/AIGradingResponseDTO.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/AIImportResponseDTO.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/AgentActionRequest.java
@@ -113,6 +114,7 @@
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/WritingGradeRequest.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/WritingSubmissionResponse.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/dto/WritingSubmitRequest.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/entity/AIGradingHistory.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/entity/AgentAction.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/entity/AgentConfig.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/entity/AgentLog.java
@@ -193,6 +195,7 @@
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/enums/TestType.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/exception/AIGradingException.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/exception/AIImportException.java
+/home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/repository/AIGradingHistoryRepository.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/repository/AgentActionRepository.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/repository/AgentConfigRepository.java
 /home/hv/DuAn/DAVictory/backend/src/main/java/com/victory/DAVictory/repository/AgentLogRepository.java

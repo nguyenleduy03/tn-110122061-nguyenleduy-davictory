@@ -1,34 +1,66 @@
-import React from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Sparkles, PlusCircle, Play, ArrowRight, Cpu, CheckCircle2, Zap,
   Star, ShieldCheck, Lock, Pencil, Mic, Languages, BookOpen
 } from 'lucide-react';
+import { writingApi } from '../api/writingApi';
+import { useAuth } from '../context/AuthContext';
+import { ROLE_RANK } from '../api/authApi';
+
+const ROLE_VI = {
+  STUDENT: 'Học viên',
+  TEACHER: 'Giáo viên',
+  MANAGER: 'Quản lý',
+  ADMIN: 'Quản trị viên',
+};
 
 export default function Home() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [homeStats, setHomeStats] = useState(null);
+
+  useEffect(() => {
+    writingApi.getHomeStats()
+      .then(res => setHomeStats(res.data))
+      .catch(() => {});
+  }, []);
+
+  const displayName = user?.fullName || user?.username || 'bạn';
+  const userRole = (() => {
+    const roles = Array.isArray(user?.roles) ? user.roles : [];
+    const names = roles.map(r => typeof r === 'string' ? r : (r?.name || ''));
+    const ranked = names.filter(n => ROLE_RANK[n] != null);
+    ranked.sort((a, b) => (ROLE_RANK[b] ?? 0) - (ROLE_RANK[a] ?? 0));
+    return ranked[0] || '';
+  })();
+  const roleDisplay = ROLE_VI[userRole] || userRole;
+
+  const totalTests = homeStats?.totalTests ?? 0;
+  const totalGradings = homeStats?.totalGradings ?? 0;
+  const totalUsage = totalGradings;
 
   const stats = [
     {
       label: 'ĐỀ THI ĐÃ TẠO',
-      value: '248',
-      trend: '↑ 18% so với tuần trước',
+      value: totalTests.toLocaleString('vi-VN'),
+      trend: '— Tổng số đề thi trong hệ thống',
       icon: Cpu,
       color: '#6366f1',
       bg: '#f5f3ff',
     },
     {
       label: 'BÀI LÀM ĐÃ CHẤM',
-      value: '1.234',
-      trend: '↑ 24% so với tuần trước',
+      value: totalGradings.toLocaleString('vi-VN'),
+      trend: '— Tổng số bài đã chấm AI',
       icon: CheckCircle2,
       color: '#10b981',
       bg: '#ecfdf5',
     },
     {
       label: 'LƯỢT SỬ DỤNG AI',
-      value: '3.560',
-      trend: '↑ 32% so với tuần trước',
+      value: totalUsage.toLocaleString('vi-VN'),
+      trend: '— Tổng lượt sử dụng AI',
       icon: Zap,
       color: '#f59e0b',
       bg: '#fff7ed',
@@ -123,7 +155,7 @@ export default function Home() {
             color: '#d97706',
             marginBottom: 20
           }}>
-            👋 Xin chào, Admin
+            👋 Xin chào, {displayName}{roleDisplay ? ` — ${roleDisplay}` : ''}
           </div>
 
           <h1 style={{
@@ -389,7 +421,7 @@ export default function Home() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{s.label}</span>
                 <span style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', lineHeight: 1.1 }}>{s.value}</span>
-                <span style={{ fontSize: 11, fontWeight: 600, color: s.label.includes('CHÍNH') ? '#64748b' : '#10b981', marginTop: 1 }}>{s.trend}</span>
+                <span style={{ fontSize: 11, fontWeight: 600, color: '#64748b', marginTop: 1 }}>{s.trend}</span>
               </div>
             </div>
           );
