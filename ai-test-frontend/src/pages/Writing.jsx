@@ -199,6 +199,8 @@ export default function Writing() {
         improvementPriority: res.data.improvementPriority || [],
         provider: res.data.provider,
         model: res.data.model,
+        latencyMs: res.data.latencyMs,
+        confidenceScore: res.data.confidenceScore,
       }).catch(() => {});
       setTimeout(() => resultRef.current?.scrollIntoView({ behavior: 'smooth' }), 200);
     } catch (e) {

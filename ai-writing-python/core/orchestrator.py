@@ -33,9 +33,10 @@ class GradingOrchestrator:
     def _get_llm(self):
         active = get_active_model() or ""
         if active:
-            if active.startswith("nvidia/"):
+            if active.startswith("nvidia/") or "qwen" in active.lower():
                 return self.nvidia_llm
-            return self.groq_llm
+            if active.startswith("groq/") or active.startswith("llama") or active.startswith("mixtral") or active.startswith("gemma"):
+                return self.groq_llm
         if self.settings.scoring_provider == "nvidia":
             return self.nvidia_llm
         return self.groq_llm

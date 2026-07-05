@@ -18,4 +18,10 @@ public interface AIGradingHistoryRepository extends JpaRepository<AIGradingHisto
 
     @Query("SELECT COUNT(h) FROM AIGradingHistory h")
     long countTotal();
+
+    @Query("SELECT AVG(h.latencyMs) FROM AIGradingHistory h WHERE h.latencyMs IS NOT NULL")
+    Double avgLatencyMs();
+
+    @Query("SELECT AVG(h.confidenceScore) FROM AIGradingHistory h WHERE h.confidenceScore IS NOT NULL")
+    Double avgConfidenceScore();
 }

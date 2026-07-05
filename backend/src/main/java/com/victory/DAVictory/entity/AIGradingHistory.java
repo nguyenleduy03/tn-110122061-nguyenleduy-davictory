@@ -72,6 +72,10 @@ public class AIGradingHistory {
     @Column(length = 100)
     private String model;
 
+    private Long latencyMs;
+
+    private Double confidenceScore;
+
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;

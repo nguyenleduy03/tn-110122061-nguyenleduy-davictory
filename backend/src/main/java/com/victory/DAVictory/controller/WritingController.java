@@ -254,6 +254,8 @@ public class WritingController {
             history.setImprovementPriority(request.getImprovementPriority() != null ? String.join("||", request.getImprovementPriority()) : null);
             history.setProvider(request.getProvider());
             history.setModel(request.getModel());
+            history.setLatencyMs(request.getLatencyMs());
+            history.setConfidenceScore(request.getConfidenceScore());
 
             aiGradingHistoryRepository.save(history);
             return ResponseEntity.ok(Map.of("id", history.getId(), "status", "saved"));
@@ -350,12 +352,17 @@ public class WritingController {
                 ? Math.round(((double) (thisWeek - lastWeek) / lastWeek) * 1000.0) / 10.0
                 : thisWeek > 0 ? 100.0 : 0.0;
 
+            Double avgLatency = aiGradingHistoryRepository.avgLatencyMs();
+            Double avgConfidence = aiGradingHistoryRepository.avgConfidenceScore();
+
             Map<String, Object> stats = new HashMap<>();
             stats.put("total", total);
             stats.put("thisWeek", thisWeek);
             stats.put("lastWeek", lastWeek);
             stats.put("percentChange", percentChange);
             stats.put("trend", percentChange >= 0 ? "up" : "down");
+            stats.put("avgLatencyMs", avgLatency != null ? Math.round(avgLatency * 100.0) / 100.0 : null);
+            stats.put("avgConfidence", avgConfidence != null ? Math.round(avgConfidence * 1000.0) / 10.0 : null);
 
             return ResponseEntity.ok(stats);
         } catch (RuntimeException e) {
@@ -373,10 +380,14 @@ public class WritingController {
         try {
             long totalTests = testRepository.countActive();
             long totalGradings = aiGradingHistoryRepository.countTotal();
+            Double avgLatency = aiGradingHistoryRepository.avgLatencyMs();
+            Double avgConfidence = aiGradingHistoryRepository.avgConfidenceScore();
 
             Map<String, Object> stats = new HashMap<>();
             stats.put("totalTests", totalTests);
             stats.put("totalGradings", totalGradings);
+            stats.put("avgLatencyMs", avgLatency != null ? Math.round(avgLatency * 100.0) / 100.0 : null);
+            stats.put("avgConfidence", avgConfidence != null ? Math.round(avgConfidence * 1000.0) / 10.0 : null);
             return ResponseEntity.ok(stats);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));

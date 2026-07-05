@@ -3,9 +3,9 @@
 BACKUP_DIR="/home/hv/DuAn/DAVictory/backups"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 DB_NAME="DAVictory"
-DB_USER="root"
-DB_PASS="1111"
-DB_HOST="localhost"
+DB_USER="${DB_USER:-root}"
+DB_PASS="${DB_PASS:-your_password}"
+DB_HOST="${DB_HOST:-localhost}"
 RETENTION_DAYS=2
 
 mkdir -p "$BACKUP_DIR/"{db,data}

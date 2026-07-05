@@ -12,6 +12,8 @@ google-drive-credentials.json
 backend/target/
 frontend/node_modules/
 frontend/dist/
+ai-test-frontend/node_modules/
+ai-test-frontend/dist/
 
 # Logs
 *.log
@@ -56,3 +58,29 @@ ai-writing-service/data/tmp/*
 .venv/
 venv/
 __pycache__/
+
+# Thesis report documents
+baocaototnghiep/
+
+# Generated reports (AI Agent)
+ai-agent-python/reports/*.md
+
+# Generated test report
+BAO_CAO_TEST.md
+PHU_LUC_A_B_C.md
+
+# Database backups
+backups/
+
+# ChromaDB vector store
+data/chroma/
+data/vector-store
+
+# Temp data
+data/tmp/
+
+# Uploads
+ai-agent-python/uploads/
+
+# Runtime config
+ai-writing-python/active_model.json

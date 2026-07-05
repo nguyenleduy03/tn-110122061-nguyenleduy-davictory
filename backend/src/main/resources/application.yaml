@@ -4,7 +4,7 @@ spring:
   datasource:
     url: jdbc:mysql://localhost:3306/DAVictory?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&cachePrepStmts=true&useServerPrepStmts=true&rewriteBatchedStatements=true&zeroDateTimeBehavior=convertToNull
     username: root
-    password: 1111
+    password: ${DB_PASSWORD:1111}
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       maximum-pool-size: 20
@@ -32,7 +32,6 @@ server:
   tomcat:
     max-http-form-post-size: 2GB
     max-swallow-size: 2GB
-  # Forwarded headers de Cloudflare/Nginx proxy lay dung protocol (HTTP/HTTPS)
   forward-headers-strategy: native
 
 springdoc:
@@ -43,23 +42,20 @@ springdoc:
     operationsSorter: method
     tagsSorter: alpha
 
-# JWT Configuration
 jwt:
-  secret: DAVictorySecretKey2026SuperLongAndSecureBase64EncodedKeyForJWTSigning1234567890ABCDEF
-  expiration: 86400000   # 24 giờ (ms)
-  refresh-expiration: 604800000  # 7 ngày (ms)
+  secret: ${JWT_SECRET:DAVictorySecretKey2026ChangeInProduction}
+  expiration: 86400000
+  refresh-expiration: 604800000
 
-# Google Drive Configuration
 google:
   drive:
-    client-id: 701620301832-2bu7es690lnhev3269vqqo56qj0qkl36.apps.googleusercontent.com
-    client-secret: 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
-    redirect-uri: https://davictory.io.vn/api/drive/oauth2callback
+    client-id: ${GOOGLE_DRIVE_CLIENT_ID:your-client-id}
+    client-secret: ${GOOGLE_DRIVE_CLIENT_SECRET:your-client-secret}
+    redirect-uri: ${GOOGLE_DRIVE_REDIRECT_URI:https://davictory.io.vn/api/drive/oauth2callback}
     frontend-url: ${GOOGLE_DRIVE_FRONTEND_URL:https://davictory.io.vn}
     folder:
-      id: 1VuSeTs0V248E4X7co4a4kc6MSi4ke_3r
+      id: ${GOOGLE_DRIVE_FOLDER_ID:your-folder-id}
 
-# AI Writing Grading Service Configuration
 app:
   ai:
     service:

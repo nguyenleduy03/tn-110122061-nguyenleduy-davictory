@@ -1,7 +1,7 @@
 import re
 import pymysql
 
-DB = dict(host="localhost", user="root", password="1111", database="DAVictory")
+DB = dict(host="localhost", user="root", password=os.environ.get("DB_PASSWORD", "your_password"), database="DAVictory")
 
 IMG_STYLE = 'max-width:100%;border-radius:8px;margin:16px 0;'
 URL_RE = re.compile(r'/uploads/articles/[a-f0-9-]+\.(?:jpg|jpeg|png|webp)')

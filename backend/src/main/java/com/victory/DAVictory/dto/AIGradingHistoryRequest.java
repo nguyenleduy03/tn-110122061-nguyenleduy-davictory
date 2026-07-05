@@ -23,4 +23,6 @@ public class AIGradingHistoryRequest {
     private List<String> improvementPriority;
     private String provider;
     private String model;
+    private Long latencyMs;
+    private Double confidenceScore;
 }

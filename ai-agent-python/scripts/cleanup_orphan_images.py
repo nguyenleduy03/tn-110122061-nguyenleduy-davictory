@@ -23,7 +23,7 @@ def get_all_referenced_images(cur) -> set:
 
 def main():
     conn = pymysql.connect(
-        host="localhost", user="root", password="1111", database="DAVictory"
+        host="localhost", user="root", password=os.environ.get("DB_PASSWORD", "your_password"), database="DAVictory"
     )
     cur = conn.cursor()
 

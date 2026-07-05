@@ -1,5 +1,0 @@
-[serve] Production server running on http://127.0.0.1:5173
-[serve] Main FE: /home/hv/DuAn/DAVictory/frontend/dist
-[serve] AI Test UI: /home/hv/DuAn/DAVictory/ai-test-frontend/dist -> /ai-test/
-[serve] Proxying AI APIs -> Python services (5182, 5181)
-[serve] Proxying /api/* -> http://localhost:8080

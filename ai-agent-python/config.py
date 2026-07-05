@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     db_host: str = "localhost"
     db_port: int = 3306
     db_user: str = "root"
-    db_password: str = "1111"
+    db_password: str = "your_password"
     db_name: str = "DAVictory"
 
     groq_api_key: str = ""
