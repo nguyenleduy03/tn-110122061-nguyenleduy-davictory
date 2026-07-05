@@ -84,3 +84,6 @@ ai-agent-python/uploads/
 
 # Runtime config
 ai-writing-python/active_model.json
+
+# Env template
+env.template.sh
