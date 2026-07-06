@@ -29,6 +29,8 @@ class Settings(BaseSettings):
 
     redis_url: str = ""
 
+    backend_url: str = "http://localhost:8080"
+
     host: str = "0.0.0.0"
     port: int = 5187
 

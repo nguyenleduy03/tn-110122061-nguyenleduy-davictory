@@ -1,6 +1,7 @@
+import os
 import httpx
 
-JAVA_BACKEND_URL = "http://localhost:8080"
+JAVA_BACKEND_URL = os.environ.get("BACKEND_URL", "http://backend:8080")
 
 
 async def check_permission(table: str, role: str = "MANAGER") -> bool:

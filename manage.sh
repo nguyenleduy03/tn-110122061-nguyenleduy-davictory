@@ -18,6 +18,15 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RUN_DIR="$ROOT_DIR/.run"
 mkdir -p "$RUN_DIR"
 
+# Load env vars (Google Drive, JWT, DB)
+if [[ -f "$ROOT_DIR/env.template.sh" ]]; then
+  source "$ROOT_DIR/env.template.sh"
+fi
+
+# Xoá key giả khỏi process env — tránh đè .env của AI services
+unset NVIDIA_API_KEY GROQ_API_KEY GROQ_API_KEY_2 GROQ_API_KEY_3 GROQ_API_KEY_4 GROQ_API_KEY_5
+unset OPENAI_API_KEY
+
 # Ports
 BACKEND_PORT=8080; FRONTEND_PORT=5173
 AI_WRITING_PORT=5182; AI_SPEAKING_PORT=5181; AI_AGENT_PORT=5187; AI_IMPORT_PORT=5186
@@ -127,7 +136,7 @@ status() {
   done
   local n=0
   for svc in backend frontend ai-writing ai-agent ai-import; do _running "$svc" && n=$((n+1)); done
-  for svc in chroma ai-speaking redis; do _docker_running "$svc" && n=$((n+1)); done
+  for svc in chroma redis; do _docker_running "$svc" && n=$((n+1)); done
   echo ""
   echo -e "  ${BOLD}→ $n/7 services đang chạy${NC}"
   echo ""
@@ -186,7 +195,7 @@ start_svc() {
       echo $! > "$(_pid_file "$svc")"
       _ok "$name sẵn sàng (http://localhost:$port)"
       ;;
-    ai-writing|ai-agent|ai-import)
+    ai-writing|ai-speaking|ai-agent|ai-import)
       local dir; dir=$(_dir "$svc")
       local python_bin="python3"
       if [[ -f "$dir/.venv/bin/python" ]]; then
@@ -212,17 +221,6 @@ start_svc() {
       else
         _err "$name khởi động thất bại"
         tail -5 "$(_log_file "$svc")"
-        return 1
-      fi
-      ;;
-    ai-speaking)
-      _docker_service up -d "$svc" 2>&1
-      sleep 2
-      if _docker_running "$svc"; then
-        _ok "$name sẵn sàng (http://localhost:$port)"
-      else
-        _err "$name khởi động thất bại"
-        _docker_service logs "$svc" --tail 10 2>&1
         return 1
       fi
       ;;
@@ -331,7 +329,7 @@ stop_svc() {
       fi
       return 0
       ;;
-    ai-agent|ai-import)
+    ai-agent|ai-import|ai-speaking)
       local pid
       if _running "$svc"; then
         pid=$(cat "$(_pid_file "$svc")" 2>/dev/null)
@@ -349,7 +347,7 @@ stop_svc() {
       _ok "$name đã dừng"
       return 0
       ;;
-    ai-speaking|redis)
+    redis)
       if _docker_running "$svc"; then
         echo -e "  Stopping ${BOLD}$name${NC}..."
         _docker_service stop "$svc" 2>&1
@@ -426,18 +424,18 @@ menu() {
     echo ""
 
     case "$c" in
-      1) for s in backend frontend ai-writing ai-agent ai-import chroma; do start_svc "$s"; done
+      1) for s in backend frontend ai-writing ai-speaking ai-agent ai-import chroma; do start_svc "$s"; done
         _ok "Tất cả services đã khởi động";;
-      2) for s in backend frontend ai-writing ai-agent ai-import chroma; do stop_svc "$s"; done
+      2) for s in backend frontend ai-writing ai-speaking ai-agent ai-import chroma; do stop_svc "$s"; done
         _ok "Tất cả services đã dừng";;
-      3) for s in backend frontend ai-writing ai-agent ai-import chroma; do stop_svc "$s"; done; sleep 1
-         for s in backend frontend ai-writing ai-agent ai-import chroma; do start_svc "$s"; done
-         _docker_service restart ai-speaking redis 2>&1 ;;
+      3) for s in backend frontend ai-writing ai-speaking ai-agent ai-import chroma; do stop_svc "$s"; done; sleep 1
+         for s in backend frontend ai-writing ai-speaking ai-agent ai-import chroma; do start_svc "$s"; done
+         _docker_service restart redis 2>&1 ;;
       4) build_frontend ;;
       5) build_backend ;;
       6) build_ai_frontend ;;
-      7) _docker_service up -d --build ai-speaking redis ;;
-      8) _docker_service stop ai-speaking redis ;;
+      7) _docker_service up -d --build redis ;;
+      8) _docker_service stop redis ;;
       Sb) stop_svc backend;;        Rb) stop_svc backend; sleep 1; start_svc backend;;
       Sf) stop_svc frontend;;       Rf) stop_svc frontend; sleep 1; start_svc frontend;;
       Sw) stop_svc ai-writing;;     Rw) stop_svc ai-writing; sleep 1; start_svc ai-writing;;
@@ -459,7 +457,7 @@ menu() {
       Lw) tail -f "$(_log_file "ai-writing")" 2>/dev/null || _err "Chưa có log";;
       La) tail -f "$(_log_file "ai-agent")" 2>/dev/null || _err "Chưa có log";;
       Li) tail -f "$(_log_file "ai-import")" 2>/dev/null || _err "Chưa có log";;
-      Lp) _docker_service logs ai-speaking --tail 50 -f 2>&1 ;;
+      Lp) tail -f "$(_log_file "ai-speaking")" 2>/dev/null || _err "Chưa có log";;
       Lc) tail -f "$(_log_file "chroma")" 2>/dev/null || _err "Chưa có log";;
       Lr) _docker_service logs redis --tail 50 -f 2>&1 ;;
       9) status;;
@@ -482,7 +480,7 @@ else
       ;;
     start)
       if [[ $# -eq 0 ]]; then
-        for s in backend frontend ai-writing ai-agent ai-import chroma; do start_svc "$s"; done
+        for s in backend frontend ai-writing ai-speaking ai-agent ai-import chroma; do start_svc "$s"; done
         _ok "All services started"
       else
         for s in "$@"; do start_svc "$s"; done
@@ -490,7 +488,7 @@ else
       ;;
     stop)
       if [[ $# -eq 0 ]]; then
-        for s in backend frontend ai-writing ai-agent ai-import chroma; do stop_svc "$s"; done
+        for s in backend frontend ai-writing ai-speaking ai-agent ai-import chroma; do stop_svc "$s"; done
         _ok "All services stopped"
       else
         for s in "$@"; do stop_svc "$s"; done
@@ -498,9 +496,9 @@ else
       ;;
     restart)
       if [[ $# -eq 0 ]]; then
-        for s in backend frontend ai-writing ai-agent ai-import chroma; do stop_svc "$s"; done; sleep 1
-        for s in backend frontend ai-writing ai-agent ai-import chroma; do start_svc "$s"; done
-        _docker_service restart ai-speaking redis 2>&1
+        for s in backend frontend ai-writing ai-speaking ai-agent ai-import chroma; do stop_svc "$s"; done; sleep 1
+        for s in backend frontend ai-writing ai-speaking ai-agent ai-import chroma; do start_svc "$s"; done
+        _docker_service restart redis 2>&1
       else
         for s in "$@"; do stop_svc "$s"; done; sleep 1
         for s in "$@"; do start_svc "$s"; done
@@ -510,7 +508,8 @@ else
       [[ $# -eq 0 ]] && { echo "Usage: $0 log <service>"; exit 1; }
       case $1 in
         ai-writing|chroma) tail -f "$(_log_file "$1")" 2>/dev/null || _err "Chưa có log cho $1";;
-        ai-speaking|redis) _docker_service logs "$1" --tail 50 -f 2>&1;;
+        ai-speaking) tail -f "$(_log_file "$1")" 2>/dev/null || _err "Chưa có log cho $1";;
+        redis) _docker_service logs "$1" --tail 50 -f 2>&1;;
         ai-agent) tail -f "$(_log_file "ai-agent")" 2>/dev/null || _err "Chưa có log cho $1";;
         ai-import) tail -f "$(_log_file "ai-import")" 2>/dev/null || _err "Chưa có log cho $1";;
       *) tail -f "$(_log_file "$1")" 2>/dev/null || _err "Chưa có log cho $1";;
@@ -526,7 +525,8 @@ else
         ai-writing|chroma)
           _err "Direct service — use 'start' instead of 'build'"
           ;;
-        ai-speaking|redis)
+        ai-speaking) _err "Direct service — use 'start' instead of 'build'" ;;
+        redis)
           _docker_service up -d --build "$1" 2>&1
           ;;
         *)

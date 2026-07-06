@@ -2,9 +2,9 @@ spring:
   application:
     name: DAVictory
   datasource:
-    url: jdbc:mysql://localhost:3306/DAVictory?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&cachePrepStmts=true&useServerPrepStmts=true&rewriteBatchedStatements=true&zeroDateTimeBehavior=convertToNull
-    username: root
-    password: ${DB_PASSWORD:1111}
+    url: jdbc:mysql://${DB_HOST:mysql}:${DB_PORT:3306}/DAVictory?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&cachePrepStmts=true&useServerPrepStmts=true&rewriteBatchedStatements=true&zeroDateTimeBehavior=convertToNull
+    username: ${DB_USER:root}
+    password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       maximum-pool-size: 20
@@ -43,32 +43,34 @@ springdoc:
     tagsSorter: alpha
 
 jwt:
-  secret: ${JWT_SECRET:DAVictorySecretKey2026ChangeInProduction}
+  secret: ${JWT_SECRET}
   expiration: 86400000
   refresh-expiration: 604800000
 
 google:
   drive:
-    client-id: ${GOOGLE_DRIVE_CLIENT_ID:your-client-id}
-    client-secret: ${GOOGLE_DRIVE_CLIENT_SECRET:your-client-secret}
-    redirect-uri: ${GOOGLE_DRIVE_REDIRECT_URI:https://davictory.io.vn/api/drive/oauth2callback}
-    frontend-url: ${GOOGLE_DRIVE_FRONTEND_URL:https://davictory.io.vn}
+    client-id: ${GOOGLE_DRIVE_CLIENT_ID}
+    client-secret: ${GOOGLE_DRIVE_CLIENT_SECRET}
+    redirect-uri: ${GOOGLE_DRIVE_REDIRECT_URI}
+    frontend-url: ${GOOGLE_DRIVE_FRONTEND_URL}
     folder:
-      id: ${GOOGLE_DRIVE_FOLDER_ID:your-folder-id}
+      id: ${GOOGLE_DRIVE_FOLDER_ID}
 
 app:
   ai:
     service:
-      url: ${AI_SERVICE_URL:http://localhost:5182}
+      url: ${AI_SERVICE_URL:http://ai-writing-python:5182}
+    speaking:
+      service:
+        url: ${AI_SPEAKING_SERVICE_URL:http://ai-speaking-python:5181}
     import:
       service:
-        url: ${AI_IMPORT_SERVICE_URL:http://localhost:5186}
+        url: ${AI_IMPORT_SERVICE_URL:http://ai-import-python:5186}
     agent:
       service:
-        url: ${AI_AGENT_SERVICE_URL:http://localhost:5187}
+        url: ${AI_AGENT_SERVICE_URL:http://ai-agent-python:5187}
   agent:
     uploads:
-      dir: ${AI_AGENT_UPLOADS_DIR:../ai-agent-python/uploads}
+      dir: ${AI_AGENT_UPLOADS_DIR:/app/ai-agent-python/uploads}
 
 logging:
-  

@@ -208,6 +208,12 @@ export const testBuilderApi = {
     return await res.json();
   },
 
+  // ─── Lấy snapshot của một phiên bản ─────────────────────────
+  getVersionSnapshot: async (testId, versionNumber) => {
+    const res = await apiClient.get(`/test-builder/${testId}/versions/${versionNumber}/snapshot`);
+    return res.data;
+  },
+
   // ─── Lấy link chia sẻ hiện tại nếu đã có ─────────────────────
   getCurrentShareLink: async (testId, skillType) => {
     const res = await apiClient.get('/test-share/current', {
@@ -238,9 +244,10 @@ export const testBuilderApi = {
  * @param {number} createdByUserId - ID người tạo
  * @param {number|null} existingTestId - ID đề thi (nếu đang cập nhật)
  * @param {Object} sessionDurationsOverride - Bản ghi thời gian theo kỹ năng từ UI hiện tại
+ * @param {boolean} [createVersion=false] - true = tạo phiên bản mới (khi thoát editor)
  * @returns {Object} payload cho POST /api/test-builder/save-full
  */
-export function buildSavePayload(test, sessions, structure, createdByUserId, existingTestId = null, sessionDurationsOverride = null) {
+export function buildSavePayload(test, sessions, structure, createdByUserId, existingTestId = null, sessionDurationsOverride = null, createVersion = false) {
   const sessionPayloads = [];
 
   // Xác định skills cần gửi: full test = tất cả, single = chỉ 1 skill
@@ -521,6 +528,7 @@ export function buildSavePayload(test, sessions, structure, createdByUserId, exi
     isFullTest: isFullTest,
     durationMinutes: test.durationMinutes || 165,
     targetBand: test.targetBand || '6.5',
+    createVersion,
     createdByUserId,
     sessions: sessionPayloads,
   };

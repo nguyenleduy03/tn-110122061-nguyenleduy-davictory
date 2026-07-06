@@ -141,6 +141,7 @@ const IeltsListeningTest = () => {
     const isFullTest = searchParams.get('fullTest') === 'true';
     const mode = searchParams.get('mode') || 'practice';
     const isReview = searchParams.get('review') === 'true';
+    const isGuestLink = searchParams.get('guest') === '1';
     const assignmentId = searchParams.get('assignment');
     const selectedPartsParam = searchParams.get('parts') || '';
     const startPartNumber = Number.parseInt(searchParams.get('startPart') || '', 10);
@@ -237,7 +238,7 @@ const IeltsListeningTest = () => {
 
     // Check guest mode
     useEffect(() => {
-        if (isReview) return;
+        if (isReview || !isGuestLink) return;
 
         const savedGuestInfo = sessionStorage.getItem('guestExamInfo');
         if (savedGuestInfo) {
@@ -251,11 +252,10 @@ const IeltsListeningTest = () => {
             }
         }
 
-        const isAuth = ieltsApi.isAuthenticated();
-        if (!isAuth) {
+        if (!ieltsApi.isAuthenticated()) {
             setShowGuestForm(true);
         }
-    }, [isReview]);
+    }, [isReview, isGuestLink]);
 
     const autosaveStateRef = useRef({
         answers: {},

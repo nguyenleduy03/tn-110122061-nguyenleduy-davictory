@@ -156,6 +156,7 @@ const IeltsWritingTest = () => {
     const navigate = useNavigate();
     const isFullTest = searchParams.get('fullTest') === 'true';
     const mode = searchParams.get('mode') || 'practice';
+    const isGuestLink = searchParams.get('guest') === '1';
     const examId = searchParams.get('examId') || null;
     const assignmentId = searchParams.get('assignment');
     const selectedPartsParam = searchParams.get('parts') || '';
@@ -188,6 +189,8 @@ const IeltsWritingTest = () => {
     }, [timerPersistKey, navigate]);
 
     useEffect(() => {
+        if (!isGuestLink) return;
+
         const savedGuestInfo = sessionStorage.getItem('guestExamInfo');
         if (savedGuestInfo) {
             try {
@@ -203,7 +206,7 @@ const IeltsWritingTest = () => {
         if (!ieltsApi.isAuthenticated()) {
             setShowGuestForm(true);
         }
-    }, []);
+    }, [isGuestLink]);
     const autosaveStateRef = useRef({
         writingAnswers: {},
         currentPartIndex: 0,

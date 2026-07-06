@@ -3,25 +3,25 @@ import react from '@vitejs/plugin-react'
 
 const BACKEND_PORT = 8080
 
-// Tự động lấy IP public của máy hiện tại qua api.ipify.org
-// Nếu không có mạng hoặc lỗi thì fallback về localhost
 async function getPublicIP() {
   try {
     const res = await fetch('https://api.ipify.org?format=json', { signal: AbortSignal.timeout(4000) })
     const data = await res.json()
     return data.ip
   } catch {
-    console.warn('[vite] ⚠️  Không lấy được IP public, fallback về localhost')
+    console.warn('[vite] Khong lay duoc IP public, fallback ve localhost')
     return 'localhost'
   }
 }
 
-// https://vite.dev/config/
-export default defineConfig(async () => {
-  const PUBLIC_IP = await getPublicIP()
+export default defineConfig(async ({ command }) => {
+  const IS_DEV = command === 'serve'
+  const PUBLIC_IP = IS_DEV ? await getPublicIP() : 'localhost'
 
-  console.log(`[vite] 🌐 Public IP: ${PUBLIC_IP}`)
-  console.log(`[vite] 🔗 API Base URL: http://${PUBLIC_IP}:${BACKEND_PORT}/api`)
+  if (IS_DEV) {
+    console.log(`[vite] Public IP: ${PUBLIC_IP}`)
+    console.log(`[vite] API Base URL: http://${PUBLIC_IP}:${BACKEND_PORT}/api`)
+  }
 
   return {
     plugins: [react()],
@@ -33,19 +33,14 @@ export default defineConfig(async () => {
     server: {
       host: '0.0.0.0',
       port: 5173,
-      allowedHosts: ['davictory.io.vn', 'www.davictory.io.vn', 'localhost'],
-      hmr: {
-        protocol: 'wss',
-        host: 'davictory.io.vn',
-        clientPort: 443
-      },
+      allowedHosts: ['localhost', '127.0.0.1'],
       proxy: {
         '/api/ai/speaking': {
-          target: 'http://localhost:5181',
+          target: process.env.AI_SPEAKING_TARGET || 'http://localhost:5181',
           changeOrigin: true,
         },
         '/api': {
-          target: `http://localhost:${BACKEND_PORT}`,
+          target: process.env.BACKEND_TARGET || `http://localhost:${BACKEND_PORT}`,
           changeOrigin: true,
         }
       }

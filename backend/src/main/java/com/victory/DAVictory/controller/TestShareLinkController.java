@@ -3,6 +3,7 @@ package com.victory.DAVictory.controller;
 import com.victory.DAVictory.enums.SkillType;
 import com.victory.DAVictory.service.TestShareLinkService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -16,6 +17,9 @@ import java.util.Map;
 public class TestShareLinkController {
 
     private final TestShareLinkService testShareLinkService;
+
+    @Value("${google.drive.frontend-url:https://davictory.io.vn}")
+    private String configuredFrontendUrl;
 
     @PostMapping("/api/test-share/generate")
     @PreAuthorize("hasAnyRole('TEACHER', 'MANAGER', 'ADMIN')")
@@ -102,6 +106,9 @@ public class TestShareLinkController {
     private String resolveBaseOrigin(String origin, String host, String forwardedProto) {
         if (origin != null && !origin.isBlank()) {
             return origin;
+        }
+        if (configuredFrontendUrl != null && !configuredFrontendUrl.isBlank()) {
+            return configuredFrontendUrl;
         }
         if (host == null || host.isBlank()) {
             return "";

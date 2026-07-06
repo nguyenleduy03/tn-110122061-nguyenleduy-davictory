@@ -1,4 +1,4 @@
-# Credentials
+# Credentials / Secrets
 backend/credentials/
 backend/credentials/*.json
 google-drive-credentials.json
@@ -23,9 +23,13 @@ ai-test-frontend/dist/
 .DS_Store
 Thumbs.db
 
-# Env
-.env
-.env.local
+# Env (chi commit .env o root + .env.example, khong commit .env trong sub-service)
+.env.*
+!.env.example
+ai-writing-python/.env
+ai-speaking-python/.env
+ai-agent-python/.env
+ai-import-python/.env
 
 # Tokens
 backend/tokens/
@@ -36,8 +40,6 @@ application-optimized.yaml
 ai-writing-service/src/main/resources/application.yaml
 
 # Dependencies
-ai-writing-service/vue-ui/node_modules/
-ai-writing-service/vue-ui/node_modules/*
 **/node_modules/
 
 # Build artifacts
@@ -58,6 +60,11 @@ ai-writing-service/data/tmp/*
 .venv/
 venv/
 __pycache__/
+
+# Docker volumes
+mysql-data/
+redis-data/
+chroma-data/
 
 # Thesis report documents
 baocaototnghiep/
@@ -85,5 +92,11 @@ ai-agent-python/uploads/
 # Runtime config
 ai-writing-python/active_model.json
 
-# Env template
+# Env template with secrets (deprecated - use .env.example instead)
 env.template.sh
+
+# Thesis documents (excluded from deployment)
+docs/
+
+# Runtime data (Chromadb data, temp files - excluded from deployment)
+data/

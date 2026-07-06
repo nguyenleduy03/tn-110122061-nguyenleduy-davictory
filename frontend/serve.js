@@ -8,7 +8,7 @@ const PORT = 5173;
 
 const ROOT = path.join(__dirname, '..');
 const MAIN_DIST = path.join(__dirname, 'dist');
-const AI_TEST_DIST = path.join(ROOT, 'ai-test-frontend', 'dist');
+const AI_TEST_DIST = path.join(__dirname, 'ai-test-dist');
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -27,19 +27,24 @@ const MIME = {
   '.eot': 'application/vnd.ms-fontobject',
 };
 
-// [path_prefix, target_url]
+const BACKEND_HOST = process.env.BACKEND_HOST || 'backend';
+const AI_WRITING_HOST = process.env.AI_WRITING_HOST || 'ai-writing-python';
+const AI_SPEAKING_HOST = process.env.AI_SPEAKING_HOST || 'ai-speaking-python';
+const AI_IMPORT_HOST = process.env.AI_IMPORT_HOST || 'ai-import-python';
+const AI_AGENT_HOST = process.env.AI_AGENT_HOST || 'ai-agent-python';
+
 const API_PROXY_RULES = [
-  ['/api/ai/speaking/scoring', 'http://localhost:5181'],
-  ['/api/ai/speaking', 'http://localhost:5181'],
-  ['/api/admin/speaking', 'http://localhost:5181'],
-  ['/api/ai/writing', 'http://localhost:5182'],
-  ['/api/ai/evaluation', 'http://localhost:5182'],
-  ['/api/admin/ai', 'http://localhost:5182'],
-  ['/api/ai/import', 'http://localhost:5186'],
-  ['/api/agent', 'http://localhost:5187'],
+  ['/api/ai/speaking/scoring', `http://${AI_SPEAKING_HOST}:5181`],
+  ['/api/ai/speaking', `http://${AI_SPEAKING_HOST}:5181`],
+  ['/api/admin/speaking', `http://${AI_SPEAKING_HOST}:5181`],
+  ['/api/ai/writing', `http://${AI_WRITING_HOST}:5182`],
+  ['/api/ai/evaluation', `http://${AI_WRITING_HOST}:5182`],
+  ['/api/admin/ai', `http://${AI_WRITING_HOST}:5182`],
+  ['/api/ai/import', `http://${AI_IMPORT_HOST}:5186`],
+  ['/api/agent', `http://${AI_AGENT_HOST}:5187`],
 ];
 
-const BACKEND = 'http://localhost:8080';
+const BACKEND = `http://${BACKEND_HOST}:8080`;
 
 const proxyAgent = new http.Agent({ keepAlive: true, maxSockets: 100, maxFreeSockets: 10 });
 
@@ -105,19 +110,16 @@ function serveStatic(res, filePath, fallbackHtml) {
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
 
-  // AI API proxy
   for (const [prefix, target] of API_PROXY_RULES) {
     if (url.pathname.startsWith(prefix)) {
       return proxyTo(url, target, req, res);
     }
   }
 
-  // Backend API proxy
   if (url.pathname.startsWith('/api/')) {
     return proxyTo(url, BACKEND, req, res);
   }
 
-  // AI Test UI at /ai-test/
   if (url.pathname.startsWith('/ai-test')) {
     const basePath = '/ai-test';
     const relativePath = url.pathname === basePath || url.pathname === basePath + '/'
@@ -128,7 +130,6 @@ const server = http.createServer((req, res) => {
     return serveStatic(res, filePath, fallback);
   }
 
-  // Main frontend
   const filePath = path.join(MAIN_DIST, url.pathname === '/' ? 'index.html' : url.pathname);
   const fallback = path.join(MAIN_DIST, 'index.html');
   serveStatic(res, filePath, fallback);
@@ -137,10 +138,10 @@ const server = http.createServer((req, res) => {
 server.keepAliveTimeout = 5000;
 server.timeout = 0;
 
-server.listen(PORT, '127.0.0.1', () => {
-  console.log(`[serve] Production server running on http://127.0.0.1:${PORT}`);
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`[serve] Production server running on http://0.0.0.0:${PORT}`);
   console.log(`[serve] Main FE: ${MAIN_DIST}`);
   console.log(`[serve] AI Test UI: ${AI_TEST_DIST} -> /ai-test/`);
-  console.log(`[serve] Proxying AI APIs -> Python services (5182, 5181)`);
+  console.log(`[serve] Proxying AI APIs -> Python services`);
   console.log(`[serve] Proxying /api/* -> ${BACKEND}`);
 });

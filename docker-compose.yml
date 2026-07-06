@@ -1,27 +1,142 @@
-# DAVictory Python AI Services - Docker Compose
-# Redis + AI Speaking (ChromaDB được quản lý bởi manage.sh)
-
 services:
+  mysql:
+    image: mysql:8.0
+    container_name: davictory-mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-changeme}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-DAVictory}
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-changeme}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
   redis:
     image: redis:7-alpine
+    container_name: davictory-redis
     ports:
-      - "5185:6379"
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
-  ai-speaking:
+  chromadb:
+    image: chromadb/chroma:0.5.23
+    container_name: davictory-chromadb
+    ports:
+      - "8000:8000"
+    volumes:
+      - chroma-data:/chroma/chroma
+    environment:
+      IS_PERSISTENT: "TRUE"
+      PERSIST_DIRECTORY: /chroma/chroma
+      ANONYMIZED_TELEMETRY: "FALSE"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/heartbeat')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: davictory-backend
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: unless-stopped
+
+  ai-writing-python:
+    build:
+      context: ./ai-writing-python
+      dockerfile: Dockerfile
+    container_name: davictory-ai-writing
+    ports:
+      - "5182:5182"
+    env_file:
+      - .env
+    depends_on:
+      mysql:
+        condition: service_healthy
+      chromadb:
+        condition: service_healthy
+    restart: unless-stopped
+
+  ai-speaking-python:
     build:
       context: ./ai-speaking-python
       dockerfile: Dockerfile
-    command: uvicorn main:app --host 0.0.0.0 --port 5181 --workers 1
+    container_name: davictory-ai-speaking
     ports:
       - "5181:5181"
     env_file:
-      - ./ai-speaking-python/.env
-    environment:
-      - DB_HOST=host.docker.internal
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - .env
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: unless-stopped
+
+  ai-agent-python:
+    build:
+      context: ./ai-agent-python
+      dockerfile: Dockerfile
+    container_name: davictory-ai-agent
+    ports:
+      - "5187:5187"
+    env_file:
+      - .env
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: unless-stopped
+
+  ai-import-python:
+    build:
+      context: ./ai-import-python
+      dockerfile: Dockerfile
+    container_name: davictory-ai-import
+    ports:
+      - "5186:5186"
+    env_file:
+      - .env
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: davictory-frontend
+    ports:
+      - "5173:5173"
+    env_file:
+      - .env
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  mysql-data:
+  redis-data:
+  chroma-data:

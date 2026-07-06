@@ -6,6 +6,11 @@ export const useTokenExpiry = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Bỏ qua nếu đang truy cập bằng link guest (không cần login)
+    if (new URLSearchParams(window.location.search).get('guest') === '1') {
+      return undefined;
+    }
+
     const syncAuthState = () => {
       const token = localStorage.getItem('authToken');
 
