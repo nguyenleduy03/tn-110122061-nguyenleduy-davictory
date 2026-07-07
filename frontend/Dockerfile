@@ -1,14 +1,14 @@
 FROM node:22-alpine AS build-main
 WORKDIR /build/main
 COPY frontend/package.json frontend/package-lock.json* ./
-RUN npm ci
+RUN npm ci --legacy-peer-deps
 COPY frontend/ .
 RUN npm run build
 
 FROM node:22-alpine AS build-ai
 WORKDIR /build/ai
 COPY ai-test-frontend/package.json ai-test-frontend/package-lock.json* ./
-RUN npm ci
+RUN npm ci --legacy-peer-deps
 COPY ai-test-frontend/ .
 RUN npm run build
 
