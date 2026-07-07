@@ -14,15 +14,22 @@ He thong luyen thi IELTS toan dien, bao gom cac ky nang: Listening, Reading, Wri
 git clone <repo-url>
 cd DAVictory
 
-# 2. Cau hinh bien moi truong
-cp .env.example .env
-
-# 3. Sua file .env - it nhat phai dien cac API key:
+# 2. Sua file .env - dien API key:
 #    - GROQ_API_KEY (bat buoc - lay tu https://console.groq.com)
-#    - NVIDIA_API_KEY (tuy chon)
-#    - JWT_SECRET (doi thanh chuoi ngau nhien dai)
+#    - JWT_SECRET (doi thanh chuoi ngau nhien)
 
-# 4. Khoi dong toan bo he thong
+# 3. Khoi dong toan bo he thong
+docker compose up -d --build
+```
+
+> **Quan trong:** Sau khi sưa `.env`, dung `--force-recreate` đê ap dung thay đôi:
+> ```bash
+> docker compose up -d --force-recreate
+> ```
+> Hoăc reset hoan toan:
+> ```bash
+> docker compose down && docker compose up -d --build
+> ```
 docker compose up -d --build
 
 # 5. Truy cap
@@ -61,10 +68,13 @@ Sua file `.env` truoc khi chay. Cac bien quan trong:
 
 ```bash
 # Khoi dong
-docker compose up -d
-
-# Build lai sau khi sua code
 docker compose up -d --build
+
+# Sau khi sua .env → ap dung thay doi (BAT BUOC)
+docker compose up -d --force-recreate
+
+# Hoac reset hoan toan
+docker compose down && docker compose up -d --build
 
 # Xem log
 docker compose logs -f
