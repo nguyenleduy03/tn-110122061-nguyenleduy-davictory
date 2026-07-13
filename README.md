@@ -9,31 +9,71 @@ He thong luyen thi IELTS toan dien, bao gom cac ky nang: Listening, Reading, Wri
 
 ## Cach chay nhanh
 
+### Linux / macOS
+
 ```bash
 # 1. Clone du an
 git clone <repo-url>
 cd DAVictory
 
-# 2. Sua file .env - dien API key:
+# 2. Tao file .env tu mau
+cp .env.example .env
+
+# 3. Sua file .env - dien API key:
 #    - GROQ_API_KEY (bat buoc - lay tu https://console.groq.com)
 #    - JWT_SECRET (doi thanh chuoi ngau nhien)
+#    - Cac key khac neu can
 
-# 3. Khoi dong toan bo he thong
-docker compose up -d --build
-```
-
-> **Quan trong:** Sau khi sưa `.env`, dung `--force-recreate` đê ap dung thay đôi:
-> ```bash
-> docker compose up -d --force-recreate
-> ```
-> Hoăc reset hoan toan:
-> ```bash
-> docker compose down && docker compose up -d --build
-> ```
+# 4. Khoi dong toan bo he thong
 docker compose up -d --build
 
 # 5. Truy cap
 # http://localhost:5173
+```
+
+### Windows
+
+```batch
+:: 1. Clone du an
+git clone <repo-url>
+cd DAVictory
+
+:: 2. Tao file .env tu mau (hoac dung: manage.bat init)
+copy .env.example .env
+
+:: 3. Sua file .env - dien API key
+
+:: 4. Khoi dong (menu tuong tac)
+manage.bat
+
+:: Hoac chay truc tiep:
+manage.bat build
+```
+
+## Quan ly bang script
+
+### Windows (`manage.bat`)
+
+| Lenh | Chuc nang |
+|------|-----------|
+| `manage.bat` | Menu tuong tac |
+| `manage.bat up` | Khoi dong tat ca |
+| `manage.bat down` | Tat tat ca |
+| `manage.bat build` | Build lai + khoi dong |
+| `manage.bat start backend` | Start rieng backend |
+| `manage.bat stop ai-writing-python` | Stop rieng AI Writing |
+| `manage.bat rebuild frontend` | Build lai + start frontend |
+| `manage.bat logs ai-agent-python` | Xem log AI Agent |
+| `manage.bat status` | Trang thai containers |
+| `manage.bat init` | Tao .env tu .env.example |
+
+### Linux (`manage.sh`)
+
+```bash
+./manage.sh           # Menu tuong tac
+./manage.sh start     # Khoi dong tat ca
+./manage.sh stop      # Tat tat ca
+./manage.sh log ai-writing  # Xem log
 ```
 
 ## Cau hinh .env
@@ -47,6 +87,7 @@ Sua file `.env` truoc khi chay. Cac bien quan trong:
 | `JWT_SECRET` | Khoa ky JWT - doi thanh chuoi ngau nhien | Co |
 | `GROQ_API_KEY` | Groq API key (LLM chinh) | Co |
 | `NVIDIA_API_KEY` | NVIDIA API key (LLM du phong) | Khong |
+| `UNSPLASH_ACCESS_KEY` | Unsplash API key (cho AI Agent) | Khong |
 | `GOOGLE_DRIVE_CLIENT_ID` | Google OAuth client ID | Khong |
 | `GOOGLE_DRIVE_CLIENT_SECRET` | Google OAuth client secret | Khong |
 
@@ -64,13 +105,16 @@ Sua file `.env` truoc khi chay. Cac bien quan trong:
 | Redis | 6379 | Cache va hang doi |
 | ChromaDB | 8000 | Vector database cho RAG |
 
-## Lenh thuong dung
+## Lenh thuong dung (Docker)
 
 ```bash
 # Khoi dong
+docker compose up -d
+
+# Build lai + khoi dong (dung sau khi sua code)
 docker compose up -d --build
 
-# Sau khi sua .env → ap dung thay doi (BAT BUOC)
+# Sau khi sua .env -> ap dung thay doi
 docker compose up -d --force-recreate
 
 # Hoac reset hoan toan
