@@ -278,7 +278,9 @@ start_svc() {
       echo -e "  ${YELLOW}→${NC} Building frontend..."
       npm run build > "$(_log_file "$svc")" 2>&1
       echo -e "  ${GREEN}✓${NC} Build complete"
-      nohup node serve.js > "$(_log_file "$svc")" 2>&1 &
+      BACKEND_HOST=localhost AI_WRITING_HOST=localhost AI_SPEAKING_HOST=localhost \
+      AI_IMPORT_HOST=localhost AI_AGENT_HOST=localhost \
+        nohup node serve.js > "$(_log_file "$svc")" 2>&1 &
       echo $! > "$(_pid_file "$svc")"
       _ok "$name sẵn sàng (http://localhost:$port)"
       ;;
