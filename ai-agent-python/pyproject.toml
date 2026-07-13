@@ -20,6 +20,7 @@ dependencies = [
     "redis>=5.0",
     "beautifulsoup4>=4.12",
     "lxml>=5.0",
+    "pyjwt>=2.0",
 ]
 
 [tool.setuptools.packages.find]

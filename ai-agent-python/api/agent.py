@@ -1,6 +1,7 @@
 import asyncio
 import copy
 import json
+import os
 import re
 from datetime import datetime
 
@@ -20,7 +21,7 @@ from db.session import get_session
 from infrastructure.progress_tracker import get_all_progress
 from models.agent import AgentSession, AgentTask
 
-JWT_SECRET = "DAVictorySecretKey2026SuperLongAndSecureBase64EncodedKeyForJWTSigning1234567890ABCDEF"
+JWT_SECRET = os.getenv("JWT_SECRET", "DAVictorySecretKey2026SuperLongAndSecureBase64EncodedKeyForJWTSigning1234567890ABCDEF")
 MANAGER_ROLES = {"ROLE_MANAGER", "ROLE_ADMIN"}
 
 

@@ -70,10 +70,19 @@ manage.bat build
 ### Linux (`manage.sh`)
 
 ```bash
-./manage.sh           # Menu tuong tac
-./manage.sh start     # Khoi dong tat ca
-./manage.sh stop      # Tat tat ca
-./manage.sh log ai-writing  # Xem log
+./manage.sh                    # Menu tuong tac (nhan M de chuyen Docker/Native mode)
+./manage.sh start              # Khoi dong tat ca (native)
+./manage.sh stop               # Tat tat ca (native)
+./manage.sh log ai-writing     # Xem log (native)
+
+# Docker mode
+./manage.sh docker-up          # docker compose up -d --build
+./manage.sh docker-down        # docker compose down
+./manage.sh docker-start ai-agent  # Start rieng 1 service
+./manage.sh docker-stop backend    # Stop rieng 1 service
+./manage.sh docker-logs ai-agent   # Xem log container
+./manage.sh docker-ps              # Xem danh sach container
+./manage.sh docker-mode up         # Chuyen Docker mode + up
 ```
 
 ## Cau hinh .env

@@ -20,6 +20,7 @@ dependencies = [
     "groq>=0.15.0",
     "loguru>=0.7",
     "tenacity>=9.0",
+    "python-multipart>=0.0.9",
 ]
 
 [tool.setuptools.packages.find]

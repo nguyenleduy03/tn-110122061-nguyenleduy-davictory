@@ -3,14 +3,20 @@
 # manage.sh — Quản lý tất cả services DAVictory
 #   ./manage.sh                 → Menu tương tác
 #   ./manage.sh status          → Xem trạng thái
-#   ./manage.sh start           → Start tất cả
+#   ./manage.sh start           → Start tất cả (native)
 #   ./manage.sh stop backend    → Stop riêng
 #   ./manage.sh log ai-writing  → Xem log
-#   ./manage.sh log chroma      → Xem log ChromaDB
 #   ./manage.sh build backend   → Build backend
 #   ./manage.sh build frontend  → Build frontend
 #   ./manage.sh bebuild         → Build backend (shortcut)
 #   ./manage.sh febuild         → Build frontend (shortcut)
+#
+#   Docker mode:
+#   ./manage.sh docker-up       → docker compose up -d --build (all)
+#   ./manage.sh docker-down     → docker compose down (all)
+#   ./manage.sh docker-start backend → docker compose up -d backend
+#   ./manage.sh docker-stop backend  → docker compose stop backend
+#   ./manage.sh docker-logs ai-agent → docker compose logs -f ai-agent-python
 # ===============================================================
 set -uo pipefail
 
@@ -27,10 +33,13 @@ fi
 unset NVIDIA_API_KEY GROQ_API_KEY GROQ_API_KEY_2 GROQ_API_KEY_3 GROQ_API_KEY_4 GROQ_API_KEY_5
 unset OPENAI_API_KEY
 
+# Docker mode: 0 = native processes, 1 = Docker Compose
+USE_DOCKER=${USE_DOCKER:-0}
+
 # Ports
 BACKEND_PORT=8080; FRONTEND_PORT=5173
 AI_WRITING_PORT=5182; AI_SPEAKING_PORT=5181; AI_AGENT_PORT=5187; AI_IMPORT_PORT=5186
-CHROMA_PORT=5184; REDIS_PORT=5185
+CHROMA_PORT=5184; REDIS_PORT=6379; MYSQL_PORT=3306
 BACKEND_DIR="backend"; FRONTEND_DIR="frontend"
 AI_WRITING_DIR="ai-writing-python"; AI_SPEAKING_DIR="ai-speaking-python"; AI_AGENT_DIR="ai-agent-python"; AI_IMPORT_DIR="ai-import-python"
 CHROMA_DATA_DIR="$ROOT_DIR/data/chroma"
@@ -77,7 +86,7 @@ _name() {
     backend) echo "Backend";; frontend) echo "Frontend";;
     ai-writing) echo "AI Writing";; ai-speaking) echo "AI Speaking";;
     ai-agent) echo "AI Agent";; ai-import) echo "AI Import";;
-    chroma) echo "ChromaDB";; redis) echo "Redis";;
+    chroma) echo "ChromaDB";; redis) echo "Redis";; mysql) echo "MySQL";;
   esac
 }
 
@@ -90,20 +99,75 @@ _dir() {
   esac
 }
 
-_docker_service_name() {
+# Map short service name → docker-compose.yml service name
+_docker_compose_svc() {
   case $1 in
+    backend) echo "backend";;
+    frontend) echo "frontend";;
+    ai-writing) echo "ai-writing-python";;
+    ai-speaking) echo "ai-speaking-python";;
+    ai-agent) echo "ai-agent-python";;
+    ai-import) echo "ai-import-python";;
     chroma) echo "chromadb";;
+    redis) echo "redis";;
+    mysql) echo "mysql";;
     *) echo "$1";;
   esac
 }
 
+# Map short service name → Docker container name
+_docker_container_name() {
+  case $1 in
+    backend) echo "davictory-backend";;
+    frontend) echo "davictory-frontend";;
+    ai-writing) echo "davictory-ai-writing";;
+    ai-speaking) echo "davictory-ai-speaking";;
+    ai-agent) echo "davictory-ai-agent";;
+    ai-import) echo "davictory-ai-import";;
+    chroma) echo "davictory-chromadb";;
+    redis) echo "davictory-redis";;
+    mysql) echo "davictory-mysql";;
+    *) echo "davictory-$1";;
+  esac
+}
+
 _docker_running() {
-  local dsvc; dsvc=$(_docker_service_name "$1")
-  [[ "$(docker inspect --format='{{.State.Status}}' "davictory-${dsvc}-1" 2>/dev/null)" == "running" ]]
+  local cname; cname=$(_docker_container_name "$1")
+  [[ "$(docker inspect --format='{{.State.Status}}' "$cname" 2>/dev/null)" == "running" ]]
 }
 
 _docker_service() {
   docker compose -f "$COMPOSE_FILE" "$@"
+}
+
+_docker_start_svc() {
+  local svc=$1; local name; name=$(_name "$svc")
+  local dsvc; dsvc=$(_docker_compose_svc "$svc")
+  if _docker_running "$svc"; then
+    _ok "$name đã chạy trong Docker"
+    return 0
+  fi
+  echo -e "  Starting ${BOLD}$name${NC} (Docker)..."
+  _docker_service up -d --build "$dsvc" 2>&1 | tail -3
+  sleep 2
+  if _docker_running "$svc"; then
+    _ok "$name sẵn sàng (Docker)"
+  else
+    _err "$name khởi động thất bại"
+    return 1
+  fi
+}
+
+_docker_stop_svc() {
+  local svc=$1; local name; name=$(_name "$svc")
+  local dsvc; dsvc=$(_docker_compose_svc "$svc")
+  if ! _docker_running "$svc"; then
+    _warn "$name không chạy trong Docker"
+    return 0
+  fi
+  echo -e "  Stopping ${BOLD}$name${NC} (Docker)..."
+  _docker_service stop "$dsvc" 2>&1 | tail -2
+  _ok "$name đã dừng"
 }
 
 _maven_runner() {
@@ -117,28 +181,44 @@ _maven_runner() {
 # ===============================================================
 status() {
   echo ""
+  if [[ USE_DOCKER -eq 1 ]]; then
+    echo -e "  ${BOLD}Mode: 🐳 Docker Mode${NC}"
+  else
+    echo -e "  ${BOLD}Mode: Native Process Mode${NC}"
+  fi
+  echo ""
   printf "  ${BOLD}%-20s %8s %s${NC}\n" "SERVICE" "PORT" "STATUS"
-  echo "  $(printf '─%.0s' {1..50})"
-  for svc in backend frontend ai-writing ai-speaking ai-agent ai-import chroma redis; do
-    local port; port=$(_port "$svc")
+  echo "  $(printf '─%.0s' {1..55})"
+  local count=0 total=0
+  for svc in mysql redis chroma backend frontend ai-writing ai-speaking ai-agent ai-import; do
+    total=$((total + 1))
+    local port; port=$(_port "$svc" 2>/dev/null) || port="-"
     local name; name=$(_name "$svc")
-    if _running "$svc" 2>/dev/null; then
-      local pid; pid=$(cat "$(_pid_file "$svc")" 2>/dev/null)
-      printf "  ${GREEN}%-20s ${NC}:%-5s ${GREEN}● Running${NC}   PID %s\n" "$name" "$port" "$pid"
-    elif _docker_running "$svc" 2>/dev/null; then
-      printf "  ${GREEN}%-20s ${NC}:%-5s ${GREEN}● Docker${NC}\n" "$name" "$port"
-    elif lsof -ti:"$port" &>/dev/null; then
-      local opid; opid=$(lsof -ti:"$port" 2>/dev/null | head -1)
-      printf "  ${YELLOW}%-20s ${NC}:%-5s ${YELLOW}⚠ Occupied${NC} by PID %s\n" "$name" "$port" "$opid"
+    if [[ USE_DOCKER -eq 1 ]]; then
+      if _docker_running "$svc" 2>/dev/null; then
+        printf "  ${GREEN}%-20s ${NC}:%-5s ${GREEN}● Docker${NC}\n" "$name" "$port"
+        count=$((count + 1))
+      else
+        printf "  ${RED}%-20s ${NC}:%-5s ${RED}○ Stopped${NC}\n" "$name" "$port"
+      fi
     else
-      printf "  ${RED}%-20s ${NC}:%-5s ${RED}○ Stopped${NC}\n" "$name" "$port"
+      if _running "$svc" 2>/dev/null; then
+        local pid; pid=$(cat "$(_pid_file "$svc")" 2>/dev/null)
+        printf "  ${GREEN}%-20s ${NC}:%-5s ${GREEN}● Running${NC}   PID %s\n" "$name" "$port" "$pid"
+        count=$((count + 1))
+      elif _docker_running "$svc" 2>/dev/null; then
+        printf "  ${GREEN}%-20s ${NC}:%-5s ${GREEN}● Docker${NC}\n" "$name" "$port"
+        count=$((count + 1))
+      elif lsof -ti:"$port" &>/dev/null 2>/dev/null; then
+        local opid; opid=$(lsof -ti:"$port" 2>/dev/null | head -1)
+        printf "  ${YELLOW}%-20s ${NC}:%-5s ${YELLOW}⚠ Occupied${NC} by PID %s\n" "$name" "$port" "$opid"
+      else
+        printf "  ${RED}%-20s ${NC}:%-5s ${RED}○ Stopped${NC}\n" "$name" "$port"
+      fi
     fi
   done
-  local n=0
-  for svc in backend frontend ai-writing ai-agent ai-import; do _running "$svc" && n=$((n+1)); done
-  for svc in chroma redis; do _docker_running "$svc" && n=$((n+1)); done
   echo ""
-  echo -e "  ${BOLD}→ $n/7 services đang chạy${NC}"
+  echo -e "  ${BOLD}→ $count/$total services đang chạy${NC}"
   echo ""
 }
 
@@ -147,6 +227,13 @@ start_svc() {
   local svc=$1; local port; port=$(_port "$svc")
   local name; name=$(_name "$svc")
 
+  # Docker mode
+  if [[ USE_DOCKER -eq 1 ]]; then
+    _docker_start_svc "$svc"
+    return $?
+  fi
+
+  # Native mode
   _running "$svc" && { _warn "$name đã chạy (port $port)"; return 0; }
   if _port_in_use "$port"; then
     local oldpid; oldpid=$(_port_pid "$port")
@@ -201,7 +288,6 @@ start_svc() {
       if [[ -f "$dir/.venv/bin/python" ]]; then
         python_bin="$dir/.venv/bin/python"
       fi
-      # Kill process cũ trên port nếu có
       if _port_in_use "$port"; then
         local oldpid; oldpid=$(_port_pid "$port")
         echo -e "  ${YELLOW}→${NC} Port $port đang dùng bởi PID $oldpid, sẽ tắt..."
@@ -251,7 +337,78 @@ start_svc() {
         return 1
       fi
       ;;
+    mysql)
+      _docker_service up -d mysql 2>&1
+      sleep 1
+      if _docker_running mysql; then
+        _ok "MySQL sẵn sàng"
+      else
+        _err "MySQL khởi động thất bại"
+        return 1
+      fi
+      ;;
   esac
+}
+
+stop_svc() {
+  local svc=$1; local name; name=$(_name "$svc")
+  local port; port=$(_port "$svc")
+
+  # Docker mode
+  if [[ USE_DOCKER -eq 1 ]]; then
+    _docker_stop_svc "$svc"
+    return $?
+  fi
+
+  # Native mode
+  case $svc in
+    mysql|redis)
+      if _docker_running "$svc"; then
+        echo -e "  Stopping ${BOLD}$name${NC} (Docker)..."
+        local dsvc; dsvc=$(_docker_compose_svc "$svc")
+        _docker_service stop "$dsvc" 2>&1
+        _ok "$name đã dừng"
+      else
+        _warn "$name không chạy"
+      fi
+      return 0
+      ;;
+    chroma)
+      if _docker_running "$svc"; then
+        echo -e "  Stopping ${BOLD}$name${NC} (Docker)..."
+        _docker_service stop chromadb 2>&1
+        _ok "$name đã dừng"
+      elif _running "$svc"; then
+        local pid; pid=$(cat "$(_pid_file "$svc")" 2>/dev/null)
+        echo -e "  Stopping ${BOLD}$name${NC} (PID: $pid)..."
+        kill "$pid" 2>/dev/null || true
+        for _ in $(seq 1 8); do kill -0 "$pid" 2>/dev/null || break; sleep 0.5; done
+        kill -0 "$pid" 2>/dev/null && kill -9 "$pid" 2>/dev/null || true
+        rm -f "$(_pid_file "$svc")"
+        _ok "$name đã dừng"
+      else
+        _warn "$name không chạy"; rm -f "$(_pid_file "$svc")"
+      fi
+      return 0
+      ;;
+  esac
+
+  local pid
+  if _running "$svc"; then
+    pid=$(cat "$(_pid_file "$svc")" 2>/dev/null)
+  elif _port_in_use "$port"; then
+    pid=$(_port_pid "$port")
+    echo -e "  ${YELLOW}→${NC} Phát hiện tiến trình chiếm port $port (PID: $pid, không quản lý bởi script)"
+  else
+    _warn "$name không chạy"; rm -f "$(_pid_file "$svc")"; return 0
+  fi
+
+  echo -e "  Stopping ${BOLD}$name${NC} (PID: $pid)..."
+  kill "$pid" 2>/dev/null || true
+  for _ in $(seq 1 8); do kill -0 "$pid" 2>/dev/null || break; sleep 0.5; done
+  kill -0 "$pid" 2>/dev/null && kill -9 "$pid" 2>/dev/null || true
+  rm -f "$(_pid_file "$svc")"
+  _ok "$name đã dừng"
 }
 
 # Build backend production
@@ -288,93 +445,41 @@ build_ai_frontend() {
   echo -e "  ${GREEN}✓${NC} Build AI test frontend hoàn tất"
 }
 
-stop_svc() {
+# Docker compose up (all services)
+docker_up() {
+  echo -e "  ${BOLD}🐳 Docker Compose Up (--build)${NC}"
+  _docker_service up -d --build 2>&1 | tail -10
+  echo -e "  ${GREEN}✓${NC} All containers started"
+  echo ""
+  docker ps --format "table {{.Names}}\t{{.Status}}"
+}
+
+# Docker compose down (all services)
+docker_down() {
+  echo -e "  ${BOLD}🐳 Docker Compose Down${NC}"
+  _docker_service down 2>&1 | tail -5
+  echo -e "  ${GREEN}✓${NC} All containers stopped"
+}
+
+# Docker compose logs
+docker_logs() {
+  local svc=$1
+  local dsvc; dsvc=$(_docker_compose_svc "$svc")
+  _docker_service logs "$dsvc" --tail 50 -f 2>&1
+}
+
+# Docker compose restart
+docker_restart() {
   local svc=$1; local name; name=$(_name "$svc")
-  local port; port=$(_port "$svc")
-
-  case $svc in
-    ai-writing)
-      local pid
-      if _running "$svc"; then
-        pid=$(cat "$(_pid_file "$svc")" 2>/dev/null)
-      elif _port_in_use "$port"; then
-        pid=$(_port_pid "$port")
-        echo -e "  ${YELLOW}→${NC} Phát hiện tiến trình chiếm port $port (PID: $pid, không quản lý bởi script)"
-      else
-        _warn "$name không chạy"; rm -f "$(_pid_file "$svc")"; return 0
-      fi
-      echo -e "  Stopping ${BOLD}$name${NC} (PID: $pid)..."
-      kill "$pid" 2>/dev/null || true
-      for _ in $(seq 1 8); do kill -0 "$pid" 2>/dev/null || break; sleep 0.5; done
-      kill -0 "$pid" 2>/dev/null && kill -9 "$pid" 2>/dev/null || true
-      rm -f "$(_pid_file "$svc")"
-      _ok "$name đã dừng"
-      return 0
-      ;;
-    chroma)
-      if _docker_running "$svc"; then
-        echo -e "  Stopping ${BOLD}$name${NC} (Docker)..."
-        _docker_service stop chromadb 2>&1
-        _ok "$name đã dừng"
-      elif _running "$svc"; then
-        pid=$(cat "$(_pid_file "$svc")" 2>/dev/null)
-        echo -e "  Stopping ${BOLD}$name${NC} (PID: $pid)..."
-        kill "$pid" 2>/dev/null || true
-        for _ in $(seq 1 8); do kill -0 "$pid" 2>/dev/null || break; sleep 0.5; done
-        kill -0 "$pid" 2>/dev/null && kill -9 "$pid" 2>/dev/null || true
-        rm -f "$(_pid_file "$svc")"
-        _ok "$name đã dừng"
-      else
-        _warn "$name không chạy"; rm -f "$(_pid_file "$svc")"
-      fi
-      return 0
-      ;;
-    ai-agent|ai-import|ai-speaking)
-      local pid
-      if _running "$svc"; then
-        pid=$(cat "$(_pid_file "$svc")" 2>/dev/null)
-      elif _port_in_use "$port"; then
-        pid=$(_port_pid "$port")
-        echo -e "  ${YELLOW}→${NC} Phát hiện tiến trình chiếm port $port (PID: $pid, không quản lý bởi script)"
-      else
-        _warn "$name không chạy"; rm -f "$(_pid_file "$svc")"; return 0
-      fi
-      echo -e "  Stopping ${BOLD}$name${NC} (PID: $pid)..."
-      kill "$pid" 2>/dev/null || true
-      for _ in $(seq 1 8); do kill -0 "$pid" 2>/dev/null || break; sleep 0.5; done
-      kill -0 "$pid" 2>/dev/null && kill -9 "$pid" 2>/dev/null || true
-      rm -f "$(_pid_file "$svc")"
-      _ok "$name đã dừng"
-      return 0
-      ;;
-    redis)
-      if _docker_running "$svc"; then
-        echo -e "  Stopping ${BOLD}$name${NC}..."
-        _docker_service stop "$svc" 2>&1
-        _ok "$name đã dừng"
-      else
-        _warn "$name không chạy"
-      fi
-      return 0
-      ;;
-  esac
-
-  local pid
-  if _running "$svc"; then
-    pid=$(cat "$(_pid_file "$svc")" 2>/dev/null)
-  elif _port_in_use "$port"; then
-    pid=$(_port_pid "$port")
-    echo -e "  ${YELLOW}→${NC} Phát hiện tiến trình chiếm port $port (PID: $pid, không quản lý bởi script)"
+  local dsvc; dsvc=$(_docker_compose_svc "$svc")
+  echo -e "  Restarting ${BOLD}$name${NC} (Docker)..."
+  _docker_service stop "$dsvc" 2>&1 | tail -1
+  _docker_service up -d --build "$dsvc" 2>&1 | tail -3
+  if _docker_running "$svc"; then
+    _ok "$name sẵn sàng (Docker)"
   else
-    _warn "$name không chạy"; rm -f "$(_pid_file "$svc")"; return 0
+    _err "$name restart thất bại"
   fi
-
-  echo -e "  Stopping ${BOLD}$name${NC} (PID: $pid)..."
-  kill "$pid" 2>/dev/null || true
-  for _ in $(seq 1 8); do kill -0 "$pid" 2>/dev/null || break; sleep 0.5; done
-  kill -0 "$pid" 2>/dev/null && kill -9 "$pid" 2>/dev/null || true
-  rm -f "$(_pid_file "$svc")"
-  _ok "$name đã dừng"
 }
 
 # ===============================================================
@@ -388,25 +493,42 @@ menu() {
     echo ""
     status
     echo -e "  ${BOLD}── MENU ──${NC}"
-    echo "    [1] Khởi động tất cả"
-    echo "    [2] Dừng tất cả"
-    echo "    [3] Khởi động lại tất cả"
+
+    if [[ USE_DOCKER -eq 1 ]]; then
+      echo "    [1] Docker Compose Up (--build tất cả)"
+      echo "    [2] Docker Compose Down (dừng tất cả)"
+      echo "    [3] Docker Restart tất cả"
+      echo "    [M]  Chuyển sang Native Mode"
+    else
+      echo "    [1] Khởi động tất cả (native)"
+      echo "    [2] Dừng tất cả (native)"
+      echo "    [3] Khởi động lại tất cả (native)"
+      echo "    [M]  Chuyển sang Docker Mode 🐳"
+    fi
     echo "    [4] Build frontend"
     echo "    [5] Build backend"
     echo "    [6] Build AI test frontend"
-    echo "    [7] Start all AI (compose up)"
-    echo "    [8] Stop all AI (compose down)"
     echo ""
     for pair in "b:backend" "f:frontend" "w:ai-writing" "p:ai-speaking" "a:ai-agent" "i:ai-import" "c:chroma" "r:redis"; do
       local key="${pair%%:*}"
       local svc="${pair##*:}"
       local port; port=$(_port "$svc"); local name; name=$(_name "$svc")
-      if _running "$svc" || _port_in_use "$port"; then
-        echo -e "    [S${key}] Dừng ${BOLD}$name${NC}     [R${key}] Khởi động lại"
+
+      if [[ USE_DOCKER -eq 1 ]]; then
+        if _docker_running "$svc" 2>/dev/null; then
+          echo -e "    [D${key}] Dừng ${BOLD}$name${NC} (Docker)     [R${key}] Restart ${BOLD}$name${NC}"
+        else
+          echo -e "    [${key}]  Start ${BOLD}$name${NC} (Docker)"
+        fi
+        echo -e "    [L${key}] Log ${BOLD}$name${NC}"
       else
-        echo -e "    [${key}]  Start ${BOLD}$name${NC}"
+        if _running "$svc" || _port_in_use "$port" 2>/dev/null; then
+          echo -e "    [S${key}] Dừng ${BOLD}$name${NC}     [R${key}] Khởi động lại"
+        else
+          echo -e "    [${key}]  Start ${BOLD}$name${NC}"
+        fi
+        echo -e "    [L${key}] Log ${BOLD}$name${NC}"
       fi
-      echo -e "    [L${key}] Log ${BOLD}$name${NC}"
     done
     echo ""
     echo "    [9] Xem status"
@@ -415,7 +537,6 @@ menu() {
 
     # Read with timeout to avoid infinite loop on non-TTY
     if [[ ! -t 0 ]]; then
-      # Non-TTY: read first line from stdin if available
       read -r -t 0.1 c || c=""
       [[ -z "$c" ]] && { echo "Not a TTY, running status once."; status; exit 0; }
     else
@@ -424,42 +545,80 @@ menu() {
     echo ""
 
     case "$c" in
-      1) for s in backend frontend ai-writing ai-speaking ai-agent ai-import chroma; do start_svc "$s"; done
-        _ok "Tất cả services đã khởi động";;
-      2) for s in backend frontend ai-writing ai-speaking ai-agent ai-import chroma; do stop_svc "$s"; done
-        _ok "Tất cả services đã dừng";;
-      3) for s in backend frontend ai-writing ai-speaking ai-agent ai-import chroma; do stop_svc "$s"; done; sleep 1
-         for s in backend frontend ai-writing ai-speaking ai-agent ai-import chroma; do start_svc "$s"; done
-         _docker_service restart redis 2>&1 ;;
+      # Mode toggle
+      M|m)
+        if [[ USE_DOCKER -eq 1 ]]; then
+          USE_DOCKER=0
+          _info "Chuyển sang Native Mode"
+        else
+          USE_DOCKER=1
+          _info "Chuyển sang Docker Mode 🐳"
+        fi
+        ;;
+
+      # Docker mode actions
+      1)
+        if [[ USE_DOCKER -eq 1 ]]; then
+          docker_up
+        else
+          for s in backend frontend ai-writing ai-speaking ai-agent ai-import chroma; do start_svc "$s"; done
+          _ok "Tất cả services đã khởi động"
+        fi
+        ;;
+      2)
+        if [[ USE_DOCKER -eq 1 ]]; then
+          docker_down
+        else
+          for s in backend frontend ai-writing ai-speaking ai-agent ai-import chroma; do stop_svc "$s"; done
+          _ok "Tất cả services đã dừng"
+        fi
+        ;;
+      3)
+        if [[ USE_DOCKER -eq 1 ]]; then
+          docker_down
+          echo -e "  ${YELLOW}→${NC} Đợi 3 giây..."
+          sleep 3
+          docker_up
+        else
+          for s in backend frontend ai-writing ai-speaking ai-agent ai-import chroma; do stop_svc "$s"; done; sleep 1
+          for s in backend frontend ai-writing ai-speaking ai-agent ai-import chroma; do start_svc "$s"; done
+          _docker_service restart redis 2>&1
+        fi
+        ;;
       4) build_frontend ;;
       5) build_backend ;;
       6) build_ai_frontend ;;
-      7) _docker_service up -d --build redis ;;
-      8) _docker_service stop redis ;;
-      Sb) stop_svc backend;;        Rb) stop_svc backend; sleep 1; start_svc backend;;
-      Sf) stop_svc frontend;;       Rf) stop_svc frontend; sleep 1; start_svc frontend;;
-      Sw) stop_svc ai-writing;;     Rw) stop_svc ai-writing; sleep 1; start_svc ai-writing;;
-      Sa) stop_svc ai-agent;;       Ra) stop_svc ai-agent; sleep 1; start_svc ai-agent;;
-      Si) stop_svc ai-import;;      Ri) stop_svc ai-import; sleep 1; start_svc ai-import;;
-      Sp) stop_svc ai-speaking;;    Rp) stop_svc ai-speaking; sleep 1; start_svc ai-speaking;;
-      Sc) stop_svc chroma;;         Rc) stop_svc chroma; sleep 1; start_svc chroma;;
-      Sr) stop_svc redis;;          Rr) stop_svc redis; sleep 1; start_svc redis;;
-      b) start_svc backend;;        rb) stop_svc backend; sleep 1; start_svc backend;;
-      f) start_svc frontend;;       rf) stop_svc frontend; sleep 1; start_svc frontend;;
-      w) start_svc ai-writing;;     rw) stop_svc ai-writing; sleep 1; start_svc ai-writing;;
-      a) start_svc ai-agent;;       ra) stop_svc ai-agent; sleep 1; start_svc ai-agent;;
-      i) start_svc ai-import;;      ri) stop_svc ai-import; sleep 1; start_svc ai-import;;
-      p) start_svc ai-speaking;;    rp) stop_svc ai-speaking; sleep 1; start_svc ai-speaking;;
-      c) start_svc chroma;;         rc) stop_svc chroma; sleep 1; start_svc chroma;;
-      r) start_svc redis;;          rr) stop_svc redis; sleep 1; start_svc redis;;
-      Lb) tail -f "$(_log_file "backend")" 2>/dev/null || _err "Chưa có log";;
-      Lf) tail -f "$(_log_file "frontend")" 2>/dev/null || _err "Chưa có log";;
-      Lw) tail -f "$(_log_file "ai-writing")" 2>/dev/null || _err "Chưa có log";;
-      La) tail -f "$(_log_file "ai-agent")" 2>/dev/null || _err "Chưa có log";;
-      Li) tail -f "$(_log_file "ai-import")" 2>/dev/null || _err "Chưa có log";;
-      Lp) tail -f "$(_log_file "ai-speaking")" 2>/dev/null || _err "Chưa có log";;
-      Lc) tail -f "$(_log_file "chroma")" 2>/dev/null || _err "Chưa có log";;
-      Lr) _docker_service logs redis --tail 50 -f 2>&1 ;;
+
+      # Native start/stop per service
+      b) start_svc backend;;        Sb) stop_svc backend;;       Rb) stop_svc backend; sleep 1; start_svc backend;;
+      f) start_svc frontend;;       Sf) stop_svc frontend;;      Rf) stop_svc frontend; sleep 1; start_svc frontend;;
+      w) start_svc ai-writing;;     Sw) stop_svc ai-writing;;    Rw) stop_svc ai-writing; sleep 1; start_svc ai-writing;;
+      a) start_svc ai-agent;;       Sa) stop_svc ai-agent;;      Ra) stop_svc ai-agent; sleep 1; start_svc ai-agent;;
+      i) start_svc ai-import;;      Si) stop_svc ai-import;;     Ri) stop_svc ai-import; sleep 1; start_svc ai-import;;
+      p) start_svc ai-speaking;;    Sp) stop_svc ai-speaking;;   Rp) stop_svc ai-speaking; sleep 1; start_svc ai-speaking;;
+      c) start_svc chroma;;         Sc) stop_svc chroma;;        Rc) stop_svc chroma; sleep 1; start_svc chroma;;
+      r) start_svc redis;;          Sr) stop_svc redis;;         Rr) stop_svc redis; sleep 1; start_svc redis;;
+
+      # Docker start/stop per service
+      Db) _docker_start_svc backend;;    Rb) docker_restart backend;;
+      Df) _docker_start_svc frontend;;   Rf) docker_restart frontend;;
+      Dw) _docker_start_svc ai-writing;; Rw) docker_restart ai-writing;;
+      Da) _docker_start_svc ai-agent;;   Ra) docker_restart ai-agent;;
+      Di) _docker_start_svc ai-import;;  Ri) docker_restart ai-import;;
+      Dp) _docker_start_svc ai-speaking;;Rp) docker_restart ai-speaking;;
+      Dc) _docker_start_svc chroma;;     Rc) docker_restart chroma;;
+      Dr) _docker_start_svc redis;;      Rr) docker_restart redis;;
+
+      # Logs
+      Lb) if [[ USE_DOCKER -eq 1 ]]; then docker_logs backend; else tail -f "$(_log_file "backend")" 2>/dev/null || _err "Chưa có log"; fi;;
+      Lf) if [[ USE_DOCKER -eq 1 ]]; then docker_logs frontend; else tail -f "$(_log_file "frontend")" 2>/dev/null || _err "Chưa có log"; fi;;
+      Lw) if [[ USE_DOCKER -eq 1 ]]; then docker_logs ai-writing; else tail -f "$(_log_file "ai-writing")" 2>/dev/null || _err "Chưa có log"; fi;;
+      La) if [[ USE_DOCKER -eq 1 ]]; then docker_logs ai-agent; else tail -f "$(_log_file "ai-agent")" 2>/dev/null || _err "Chưa có log"; fi;;
+      Li) if [[ USE_DOCKER -eq 1 ]]; then docker_logs ai-import; else tail -f "$(_log_file "ai-import")" 2>/dev/null || _err "Chưa có log"; fi;;
+      Lp) if [[ USE_DOCKER -eq 1 ]]; then docker_logs ai-speaking; else tail -f "$(_log_file "ai-speaking")" 2>/dev/null || _err "Chưa có log"; fi;;
+      Lc) if [[ USE_DOCKER -eq 1 ]]; then docker_logs chroma; else tail -f "$(_log_file "chroma")" 2>/dev/null || _err "Chưa có log"; fi;;
+      Lr) docker_logs redis;;
+
       9) status;;
       0) echo "  Bye!"; exit 0;;
       *) echo -e "  ${YELLOW}Lựa chọn không hợp lệ${NC}";;
@@ -480,6 +639,7 @@ else
       ;;
     start)
       if [[ $# -eq 0 ]]; then
+        USE_DOCKER=${USE_DOCKER:-0}
         for s in backend frontend ai-writing ai-speaking ai-agent ai-import chroma; do start_svc "$s"; done
         _ok "All services started"
       else
@@ -507,12 +667,8 @@ else
     log)
       [[ $# -eq 0 ]] && { echo "Usage: $0 log <service>"; exit 1; }
       case $1 in
-        ai-writing|chroma) tail -f "$(_log_file "$1")" 2>/dev/null || _err "Chưa có log cho $1";;
-        ai-speaking) tail -f "$(_log_file "$1")" 2>/dev/null || _err "Chưa có log cho $1";;
         redis) _docker_service logs "$1" --tail 50 -f 2>&1;;
-        ai-agent) tail -f "$(_log_file "ai-agent")" 2>/dev/null || _err "Chưa có log cho $1";;
-        ai-import) tail -f "$(_log_file "ai-import")" 2>/dev/null || _err "Chưa có log cho $1";;
-      *) tail -f "$(_log_file "$1")" 2>/dev/null || _err "Chưa có log cho $1";;
+        *) tail -f "$(_log_file "$1")" 2>/dev/null || _err "Chưa có log cho $1";;
       esac
       ;;
     build)
@@ -520,12 +676,7 @@ else
       case $1 in
         backend) build_backend ;;
         frontend) build_frontend ;;
-        ai-test-frontend) build_ai_frontend ;;
-        ai-frontend) build_ai_frontend ;;
-        ai-writing|chroma)
-          _err "Direct service — use 'start' instead of 'build'"
-          ;;
-        ai-speaking) _err "Direct service — use 'start' instead of 'build'" ;;
+        ai-test-frontend|ai-frontend) build_ai_frontend ;;
         redis)
           _docker_service up -d --build "$1" 2>&1
           ;;
@@ -545,10 +696,64 @@ else
     aibuild)
       build_ai_frontend
       ;;
+
+    # Docker CLI commands
+    docker-up)
+      docker_up
+      ;;
+    docker-down)
+      docker_down
+      ;;
+    docker-start)
+      [[ $# -eq 0 ]] && { echo "Usage: $0 docker-start <service>"; exit 1; }
+      for s in "$@"; do _docker_start_svc "$s"; done
+      ;;
+    docker-stop)
+      [[ $# -eq 0 ]] && { echo "Usage: $0 docker-stop <service>"; exit 1; }
+      for s in "$@"; do _docker_stop_svc "$s"; done
+      ;;
+    docker-restart)
+      [[ $# -eq 0 ]] && { echo "Usage: $0 docker-restart <service>"; exit 1; }
+      for s in "$@"; do docker_restart "$s"; done
+      ;;
+    docker-logs)
+      [[ $# -eq 0 ]] && { echo "Usage: $0 docker-logs <service>"; exit 1; }
+      docker_logs "$1"
+      ;;
+    docker-ps)
+      docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" --filter name=davictory
+      ;;
+    docker-mode)
+      USE_DOCKER=1
+      _info "Switched to Docker Mode 🐳"
+      if [[ $# -ge 1 ]]; then
+        case $1 in
+          up) docker_up ;;
+          down) docker_down ;;
+          start) shift; for s in "$@"; do _docker_start_svc "$s"; done ;;
+          stop) shift; for s in "$@"; do _docker_stop_svc "$s"; done ;;
+          restart) shift; for s in "$@"; do docker_restart "$s"; done ;;
+          logs) shift; docker_logs "$1" ;;
+          ps) docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" --filter name=davictory ;;
+        esac
+      fi
+      ;;
     *)
-      echo "Usage: $0 [status|start|stop|restart|log|build|bebuild|febuild|aibuild] [service...]"
+      echo "Usage: $0 [status|start|stop|restart|log|build|bebuild|febuild|aibuild]"
       echo ""
-      echo "  Services: backend frontend ai-writing ai-speaking ai-agent ai-import chroma redis"
+      echo "  Docker commands:"
+      echo "    docker-up        docker compose up -d --build"
+      echo "    docker-down      docker compose down"
+      echo "    docker-start     docker compose up -d <service>"
+      echo "    docker-stop      docker compose stop <service>"
+      echo "    docker-restart   docker compose restart <service>"
+      echo "    docker-logs      docker compose logs -f <service>"
+      echo "    docker-ps        list davictory containers"
+      echo "    docker-mode      switch to Docker mode, e.g.:"
+      echo "                      ./manage.sh docker-mode up"
+      echo "                      ./manage.sh docker-mode start backend"
+      echo ""
+      echo "  Services: backend frontend ai-writing ai-speaking ai-agent ai-import chroma redis mysql"
       exit 1
       ;;
   esac

@@ -7,6 +7,5 @@ Dockerfile
 .dockerignore
 tests/
 reports/
-uploads/
 *.log
 chroma.log
