@@ -27,11 +27,11 @@ const MIME = {
   '.eot': 'application/vnd.ms-fontobject',
 };
 
-const BACKEND_HOST = process.env.BACKEND_HOST || 'backend';
-const AI_WRITING_HOST = process.env.AI_WRITING_HOST || 'ai-writing-python';
-const AI_SPEAKING_HOST = process.env.AI_SPEAKING_HOST || 'ai-speaking-python';
-const AI_IMPORT_HOST = process.env.AI_IMPORT_HOST || 'ai-import-python';
-const AI_AGENT_HOST = process.env.AI_AGENT_HOST || 'ai-agent-python';
+const BACKEND_HOST = process.env.BACKEND_HOST || 'localhost';
+const AI_WRITING_HOST = process.env.AI_WRITING_HOST || 'localhost';
+const AI_SPEAKING_HOST = process.env.AI_SPEAKING_HOST || 'localhost';
+const AI_IMPORT_HOST = process.env.AI_IMPORT_HOST || 'localhost';
+const AI_AGENT_HOST = process.env.AI_AGENT_HOST || 'localhost';
 
 const API_PROXY_RULES = [
   ['/api/ai/speaking/scoring', `http://${AI_SPEAKING_HOST}:5181`],
