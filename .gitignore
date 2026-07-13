@@ -23,7 +23,8 @@ ai-test-frontend/dist/
 .DS_Store
 Thumbs.db
 
-# Env (chi commit .env o root + .env.example, khong commit .env trong sub-service)
+# Env (dung .env.example lam mau, tu tao .env cho rieng minh)
+.env
 .env.*
 !.env.example
 ai-writing-python/.env
