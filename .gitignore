@@ -27,10 +27,8 @@ Thumbs.db
 .env
 .env.*
 !.env.example
-ai-writing-python/.env
-ai-speaking-python/.env
-ai-agent-python/.env
-ai-import-python/.env
+!.env.docker
+!.env.production
 
 # Tokens
 backend/tokens/

@@ -19,21 +19,14 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RUN_DIR="$ROOT_DIR/.run"
 mkdir -p "$RUN_DIR"
 
-# Load env vars (Google Drive, JWT, DB)
-if [[ -f "$ROOT_DIR/env.template.sh" ]]; then
-  source "$ROOT_DIR/env.template.sh"
+# Load env vars từ .env.production cho native/production mode
+if [[ -f "$ROOT_DIR/.env.production" ]]; then
+  set -a
+  source "$ROOT_DIR/.env.production"
+  set +a
+else
+  echo "WARN: Không tìm thấy .env.production, dùng fallback mặc định"
 fi
-
-# Xoá key giả khỏi process env — tránh đè .env của AI services
-unset NVIDIA_API_KEY GROQ_API_KEY GROQ_API_KEY_2 GROQ_API_KEY_3 GROQ_API_KEY_4 GROQ_API_KEY_5
-unset OPENAI_API_KEY
-
-# Export critical env vars từ .env cho AI services
-export DB_PASSWORD=$(grep -m1 '^DB_PASSWORD=' "$ROOT_DIR/.env" 2>/dev/null | cut -d= -f2-)
-export GROQ_API_KEY=$(grep -m1 '^GROQ_API_KEY=' "$ROOT_DIR/.env" 2>/dev/null | cut -d= -f2-)
-export GROQ_API_KEYS=$(grep -m1 '^GROQ_API_KEYS=' "$ROOT_DIR/.env" 2>/dev/null | cut -d= -f2-)
-export UNSPLASH_ACCESS_KEY=$(grep -m1 '^UNSPLASH_ACCESS_KEY=' "$ROOT_DIR/.env" 2>/dev/null | cut -d= -f2-)
-export JWT_SECRET=$(grep -m1 '^JWT_SECRET=' "$ROOT_DIR/.env" 2>/dev/null | cut -d= -f2-)
 
 # Ports
 BACKEND_PORT=8080; FRONTEND_PORT=5173

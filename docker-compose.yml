@@ -18,20 +18,6 @@ services:
       start_period: 30s
     restart: unless-stopped
 
-  redis:
-    image: redis:7-alpine
-    container_name: davictory-redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis-data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
-
   chromadb:
     image: chromadb/chroma:0.5.23
     container_name: davictory-chromadb
@@ -59,7 +45,7 @@ services:
     ports:
       - "8080:8080"
     env_file:
-      - .env
+      - .env.docker
     depends_on:
       mysql:
         condition: service_healthy
@@ -73,7 +59,7 @@ services:
     ports:
       - "5182:5182"
     env_file:
-      - .env
+      - .env.docker
     depends_on:
       mysql:
         condition: service_healthy
@@ -89,7 +75,7 @@ services:
     ports:
       - "5181:5181"
     env_file:
-      - .env
+      - .env.docker
     depends_on:
       mysql:
         condition: service_healthy
@@ -103,7 +89,7 @@ services:
     ports:
       - "5187:5187"
     env_file:
-      - .env
+      - .env.docker
     depends_on:
       mysql:
         condition: service_healthy
@@ -117,7 +103,7 @@ services:
     ports:
       - "5186:5186"
     env_file:
-      - .env
+      - .env.docker
     depends_on:
       mysql:
         condition: service_healthy
@@ -131,12 +117,11 @@ services:
     ports:
       - "5173:5173"
     env_file:
-      - .env
+      - .env.docker
     depends_on:
       - backend
     restart: unless-stopped
 
 volumes:
   mysql-data:
-  redis-data:
   chroma-data:

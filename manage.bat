@@ -6,7 +6,7 @@ title DAVictory Manager
 cd /d "%~dp0"
 
 set COMPOSE_FILE=docker-compose.yml
-set ENV_FILE=.env
+set ENV_FILE=.env.docker
 set ENV_EXAMPLE=.env.example
 
 :check_docker
@@ -140,7 +140,7 @@ echo.
 
 :menu_status
 echo  ----- TRANG THAI -----
-for %%s in (mysql redis chromadb backend ai-writing-python ai-speaking-python ai-agent-python ai-import-python frontend) do (
+for %%s in (mysql chromadb backend ai-writing-python ai-speaking-python ai-agent-python ai-import-python frontend) do (
     docker ps --format "{{.Names}}" --filter "name=%%s" | findstr /C:"%%s" >nul 2>&1
     if !errorlevel! equ 0 (
         echo    [DANG CHAY] %%s
@@ -218,24 +218,22 @@ echo  ----- QUAN LY TUNG SERVICE -----
 echo.
 echo  Service:
 echo    [1] mysql            [5] ai-writing-python
-echo    [2] redis            [6] ai-speaking-python
-echo    [3] chromadb         [7] ai-agent-python
-echo    [4] backend          [8] ai-import-python
-echo                            [9] frontend
+echo    [2] chromadb         [6] ai-speaking-python
+echo    [3] backend          [7] ai-agent-python
+echo    [4] frontend         [8] ai-import-python
 echo.
 set /p SVC="Nhap ten service (1-9): "
 if "%SVC%"=="" goto menu
 
 set SERVICE_NAME=
 if "%SVC%"=="1" set SERVICE_NAME=mysql
-if "%SVC%"=="2" set SERVICE_NAME=redis
-if "%SVC%"=="3" set SERVICE_NAME=chromadb
-if "%SVC%"=="4" set SERVICE_NAME=backend
+if "%SVC%"=="2" set SERVICE_NAME=chromadb
+if "%SVC%"=="3" set SERVICE_NAME=backend
+if "%SVC%"=="4" set SERVICE_NAME=frontend
 if "%SVC%"=="5" set SERVICE_NAME=ai-writing-python
 if "%SVC%"=="6" set SERVICE_NAME=ai-speaking-python
 if "%SVC%"=="7" set SERVICE_NAME=ai-agent-python
 if "%SVC%"=="8" set SERVICE_NAME=ai-import-python
-if "%SVC%"=="9" set SERVICE_NAME=frontend
 
 if "%SERVICE_NAME%"=="" (
     echo  Khong hop le!

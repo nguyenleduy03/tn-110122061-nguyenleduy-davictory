@@ -5,8 +5,8 @@
 #   ./docker.sh down         → docker compose down
 #   ./docker.sh ps           → Danh sách container
 #   ./docker.sh logs backend → Xem log service
-#   ./docker.sh start redis  → Start 1 service
-#   ./docker.sh stop redis   → Stop 1 service
+#   ./docker.sh start mysql  → Start 1 service
+#   ./docker.sh stop mysql   → Stop 1 service
 #   ./docker.sh rebuild ai-agent → Build lại + start 1 service
 # ===============================================================
 set -uo pipefail
@@ -29,7 +29,7 @@ _container_name() {
     backend) echo "davictory-backend";; frontend) echo "davictory-frontend";;
     ai-writing) echo "davictory-ai-writing";; ai-speaking) echo "davictory-ai-speaking";;
     ai-agent) echo "davictory-ai-agent";; ai-import) echo "davictory-ai-import";;
-    chroma) echo "davictory-chromadb";; redis) echo "davictory-redis";; mysql) echo "davictory-mysql";;
+    chroma) echo "davictory-chromadb";; mysql) echo "davictory-mysql";;
     *) echo "davictory-$1";;
   esac
 }
@@ -51,7 +51,7 @@ port_of() {
   case $1 in
     backend) echo 8080;; frontend) echo 5173;; ai-writing) echo 5182;;
     ai-speaking) echo 5181;; ai-agent) echo 5187;; ai-import) echo 5186;;
-    chroma) echo 5184;; redis) echo 6379;; mysql) echo 3306;;
+    chroma) echo 5184;; mysql) echo 3306;;
   esac
 }
 
@@ -59,7 +59,7 @@ name_of() {
   case $1 in
     backend) echo "Backend";; frontend) echo "Frontend";; ai-writing) echo "AI Writing";;
     ai-speaking) echo "AI Speaking";; ai-agent) echo "AI Agent";; ai-import) echo "AI Import";;
-    chroma) echo "ChromaDB";; redis) echo "Redis";; mysql) echo "MySQL";;
+    chroma) echo "ChromaDB";; mysql) echo "MySQL";;
   esac
 }
 
@@ -70,7 +70,7 @@ status() {
   printf "  ${BOLD}%-20s %8s %s${NC}\n" "SERVICE" "PORT" "STATUS"
   echo "  $(printf '─%.0s' {1..55})"
   local count=0
-  for svc in mysql redis chroma backend frontend ai-writing ai-speaking ai-agent ai-import; do
+  for svc in mysql chroma backend frontend ai-writing ai-speaking ai-agent ai-import; do
     local port; port=$(port_of "$svc"); local name; name=$(name_of "$svc")
     if _is_running "$svc" 2>/dev/null; then
       printf "  ${GREEN}%-20s ${NC}:%-5s ${GREEN}● Running${NC}\n" "$name" "$port"
@@ -80,7 +80,7 @@ status() {
     fi
   done
   echo ""
-  echo -e "  ${BOLD}→ $count/9 services đang chạy${NC}"
+  echo -e "  ${BOLD}→ $count/8 services đang chạy${NC}"
   echo ""
 }
 
@@ -159,7 +159,7 @@ menu() {
     echo "    [2] Down (dừng tất cả)"
     echo "    [3] PS (danh sách container)"
     echo ""
-    for pair in "b:backend" "f:frontend" "w:ai-writing" "p:ai-speaking" "a:ai-agent" "i:ai-import" "c:chroma" "r:redis"; do
+    for pair in "b:backend" "f:frontend" "w:ai-writing" "p:ai-speaking" "a:ai-agent" "i:ai-import" "c:chroma"; do
       local key="${pair%%:*}"
       local svc="${pair##*:}"
       local name; name=$(name_of "$svc")
@@ -194,11 +194,10 @@ menu() {
       i) do_start ai-import;; Si) do_stop ai-import;;  Ri) do_rebuild ai-import;;
       p) do_start ai-speaking;; Sp) do_stop ai-speaking;; Rp) do_rebuild ai-speaking;;
       c) do_start chroma;;     Sc) do_stop chroma;;      Rc) do_rebuild chroma;;
-      r) do_start redis;;      Sr) do_stop redis;;       Rr) do_rebuild redis;;
       Lb) do_logs backend;;    Lf) do_logs frontend;;
       Lw) do_logs ai-writing;; La) do_logs ai-agent;;
       Li) do_logs ai-import;;  Lp) do_logs ai-speaking;;
-      Lc) do_logs chroma;;     Lr) do_logs redis;;
+      Lc) do_logs chroma;;
       9) status;;
       0) echo "  Bye!"; exit 0;;
       *) echo -e "  ${YELLOW}Lựa chọn không hợp lệ${NC}";;
@@ -233,7 +232,7 @@ else
       ;;
     *)
       echo "Usage: $0 [up|down|ps|status|start|stop|restart|rebuild|logs]"
-      echo "  Services: backend frontend ai-writing ai-speaking ai-agent ai-import chroma redis mysql"
+      echo "  Services: backend frontend ai-writing ai-speaking ai-agent ai-import chroma mysql"
       exit 1
       ;;
   esac
