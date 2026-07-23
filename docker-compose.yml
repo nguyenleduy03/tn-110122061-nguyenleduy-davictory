@@ -4,9 +4,8 @@ services:
     container_name: davictory-mysql
     ports:
       - "3307:3306"
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-changeme}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-DAVictory}
+    env_file:
+      - .env.docker
     volumes:
       - mysql-data:/var/lib/mysql
       - ./initdb:/docker-entrypoint-initdb.d:ro
